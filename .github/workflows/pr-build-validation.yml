@@ -407,12 +407,26 @@ jobs:
       - name: Validate kustomize overlays
         run: |
           set -euo pipefail
-          # Deployable platform overlays that must render and schema-validate cleanly.
+          # Overlays that must render and schema-validate cleanly. This set mirrors what the
+          # dashboard-operator actually renders at runtime (see dashboard-operator/internal/
+          # controller/{actions,support,module_deploy}.go): the platform base overlays, the
+          # observability manifests, the MaaS consumer-portal ConsoleLink, and every module
+          # overlay (rendered per enabled module). Keeping these in sync means a broken
+          # resources: path in any of them is caught here instead of at deploy time.
           OVERLAYS=(
             manifests/base
             manifests/odh
             manifests/rhoai
+            manifests/observability/odh
+            manifests/observability/rhoai
+            manifests/maas-consumer-portal-consolelink/rhoai
           )
+
+          # Dynamically append every module overlay (manifests/modules/<slug>) so newly
+          # added modules are validated automatically without editing this list.
+          while IFS= read -r kfile; do
+            OVERLAYS+=("$(dirname "$kfile")")
+          done < <(find manifests/modules -mindepth 2 -maxdepth 2 -name kustomization.yaml | sort)
 
           FAILURES=0
           for overlay in "${OVERLAYS[@]}"; do
@@ -441,15 +455,47 @@ jobs:
               continue
             fi
 
-            # Schema-validate. -ignore-missing-schemas skips CRDs with no public schema
-            # (Dashboard, OdhDashboardConfig, ...) but still fails on malformed core resources.
-            if ! kubeconform \
-                -summary \
+            # Schema-validate. -ignore-missing-schemas lets custom resources with no public
+            # schema (Dashboard, ConsoleLink, route.openshift.io, ...) pass as "skipped".
+            # But that flag also silently skips a *misspelled* built-in kind/apiVersion
+            # (e.g. "Deploymnet" or "aps/v1"), masking real typos. To close that gap we
+            # emit JSON and fail if any skipped resource belongs to a core Kubernetes group
+            # (core "" or *.k8s.io or apps/batch/policy/autoscaling/extensions) — those
+            # always have a schema, so a skip there means the kind/apiVersion is wrong.
+            KC_JSON=$(mktemp)
+            set +e
+            kubeconform \
                 -strict \
                 -ignore-missing-schemas \
                 -kubernetes-version "$K8S_SCHEMA_VERSION" \
-                "$RENDERED"; then
+                -output json \
+                "$RENDERED" > "$KC_JSON" 2>/tmp/kubeconform-err
+            KC_EXIT=$?
+            set -e
+            if [ "$KC_EXIT" -ne 0 ]; then
               echo "❌ FAIL: kubeconform schema validation failed for $overlay"
+              jq -r '.resources[] | select(.status=="statusInvalid" or .status=="statusError") | "  \(.kind)/\(.name // "?") (\(.version)): \(.msg)"' "$KC_JSON" 2>/dev/null || cat /tmp/kubeconform-err
+              FAILURES=$((FAILURES + 1))
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Report which kinds were skipped (missing schema) for visibility.
+            SKIPPED_KINDS=$(jq -r '[.resources[] | select(.status=="statusSkipped") | .kind] | unique | join(", ")' "$KC_JSON" 2>/dev/null || echo "")
+            [ -n "$SKIPPED_KINDS" ] && echo "  ℹ️  skipped (no schema): $SKIPPED_KINDS"
+
+            # Fail if a *built-in* kind was skipped — that indicates a typo, not a CRD.
+            BAD_SKIPS=$(jq -r '
+              .resources[]
+              | select(.status=="statusSkipped")
+              | . as $r
+              | (if ($r.version | contains("/")) then ($r.version | split("/")[0]) else "" end) as $g
+              | select($g == "" or ($g | endswith(".k8s.io")) or ($g | IN("apps","batch","policy","autoscaling","extensions")))
+              | "  \($r.kind) (\($r.version))"
+            ' "$KC_JSON" 2>/dev/null || echo "")
+            if [ -n "$BAD_SKIPS" ]; then
+              echo "❌ FAIL: $overlay has built-in resources with no matching schema (likely a kind/apiVersion typo):"
+              echo "$BAD_SKIPS"
               FAILURES=$((FAILURES + 1))
               echo "::endgroup::"
               continue
@@ -737,6 +783,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      # This job loads two images into Kind (dashboard + operator) and the operator
+      # reconcile applies the base manifests, so free up runner disk before starting.
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
 
       - name: Download ODH image
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
@@ -1038,93 +1089,42 @@ jobs:
 
           echo "::group::Applying operator RBAC (ClusterRole + SA + binding in opendatahub)"
           kubectl apply -f dashboard-operator/config/rbac/role.yaml
-          kubectl apply -f - <<'EOF'
-          apiVersion: v1
-          kind: ServiceAccount
-          metadata:
-            name: dashboard-operator
-            namespace: opendatahub
-          ---
-          apiVersion: rbac.authorization.k8s.io/v1
-          kind: ClusterRoleBinding
-          metadata:
-            name: dashboard-operator-rolebinding
-          roleRef:
-            apiGroup: rbac.authorization.k8s.io
-            kind: ClusterRole
-            name: dashboard-operator-role
-          subjects:
-            - kind: ServiceAccount
-              name: dashboard-operator
-              namespace: opendatahub
-          EOF
+          # SA + ClusterRoleBinding live in a checked-in file (.github/pr-build-simulation/)
+          # rather than an inline heredoc so they can be linted and reviewed independently.
+          kubectl apply -f .github/pr-build-simulation/operator-rbac.yaml
           echo "::endgroup::"
 
       - name: Deploy operator
         run: |
           set -euo pipefail
-          # Minimal deployment: the real manager.yaml mounts webhook/metrics cert secrets
-          # (cert-manager) that don't exist in Kind. We run the manager with the webhook
-          # disabled (default) and metrics served over HTTP so no certs are required —
-          # enough to prove the controller starts and reconciles.
-          kubectl apply -f - <<'EOF'
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: dashboard-operator
-            namespace: opendatahub
-            labels:
-              app.kubernetes.io/name: dashboard-operator
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app.kubernetes.io/name: dashboard-operator
-            template:
-              metadata:
-                labels:
-                  app.kubernetes.io/name: dashboard-operator
-              spec:
-                serviceAccountName: dashboard-operator
-                securityContext:
-                  runAsNonRoot: true
-                containers:
-                  - name: manager
-                    image: dashboard-operator:sim-test
-                    imagePullPolicy: Never
-                    args:
-                      - --namespace=opendatahub
-                      - --secure-metrics=false
-                      - --health-probe-bind-address=:8081
-                    env:
-                      - name: OPERATOR_NAMESPACE
-                        value: opendatahub
-                      - name: APPLICATIONS_NAMESPACE
-                        value: opendatahub
-                    securityContext:
-                      allowPrivilegeEscalation: false
-                      capabilities:
-                        drop: [ALL]
-                    livenessProbe:
-                      httpGet:
-                        path: /healthz
-                        port: 8081
-                      initialDelaySeconds: 15
-                      periodSeconds: 20
-                    readinessProbe:
-                      httpGet:
-                        path: /readyz
-                        port: 8081
-                      initialDelaySeconds: 5
-                      periodSeconds: 10
-                    resources:
-                      requests:
-                        cpu: 10m
-                        memory: 128Mi
-          EOF
+          # The operator Deployment lives in a checked-in file
+          # (.github/pr-build-simulation/operator-deployment.yaml) rather than an inline
+          # heredoc so it can be linted and reviewed independently. See that file for why
+          # the deployment is minimal and how the dashboard image is pinned to the PR tag.
+          kubectl apply -f .github/pr-build-simulation/operator-deployment.yaml
 
           echo "Waiting for operator rollout..."
-          kubectl rollout status deployment/dashboard-operator -n opendatahub --timeout=120s
+          # rollout status only prints a terse "timed out" on failure, and the log/describe
+          # dump lives in the *next* step which never runs once this one exits non-zero.
+          # Dump diagnostics inline so a failed rollout is debuggable from this step alone.
+          if ! kubectl rollout status deployment/dashboard-operator -n opendatahub --timeout=120s; then
+            echo "❌ FAIL: operator rollout did not complete within timeout"
+            echo "::group::Operator deployment"
+            kubectl describe deployment/dashboard-operator -n opendatahub || true
+            echo "::endgroup::"
+            echo "::group::Operator pods"
+            kubectl get pods -n opendatahub -l app.kubernetes.io/name=dashboard-operator -o wide || true
+            kubectl describe pods -n opendatahub -l app.kubernetes.io/name=dashboard-operator || true
+            echo "::endgroup::"
+            echo "::group::Operator logs (current + previous)"
+            kubectl logs -n opendatahub deploy/dashboard-operator --tail=100 || echo "No current logs"
+            kubectl logs -n opendatahub deploy/dashboard-operator --previous --tail=100 || echo "No previous logs"
+            echo "::endgroup::"
+            echo "::group::Recent events"
+            kubectl get events -n opendatahub --sort-by='.lastTimestamp' | tail -30 || true
+            echo "::endgroup::"
+            exit 1
+          fi
 
       - name: Create Dashboard CR and verify reconciliation starts
         run: |
@@ -1145,6 +1145,17 @@ jobs:
           # the ODH manifests reference OpenShift-only namespaces (e.g. openshift-ingress)
           # that don't exist in Kind, so full provisioning is expected to error. The point
           # of this check is that the controller *started* reconciling the CR.
+          #
+          # Note on the dashboard image during reconcile: the operator SSA-applies the base
+          # manifests, taking ownership of the dashboard Deployment's image + imagePullPolicy
+          # (MergeDeployments only preserves resources/replicas). Because the operator's
+          # RELATED_IMAGE_ODH_DASHBOARD_IMAGE is pinned to the loaded PR tag
+          # (odh-dashboard:odh-test), it writes that tag instead of quay.io/.../:main — so no
+          # large :main image is pulled. The dashboard pod may ErrImagePull the local-only
+          # tag (base sets imagePullPolicy: Always, which the operator re-owns each reconcile,
+          # so patching it is futile); that is expected and irrelevant here — this step only
+          # asserts operator reconcile evidence, not dashboard pod health (already validated
+          # above against the PR image).
           echo "Polling for reconciliation evidence (finalizer + observedGeneration)..."
           RECONCILED=false
           for i in {1..24}; do
