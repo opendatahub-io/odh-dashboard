@@ -366,6 +366,12 @@ export const deployMCPServer = (
     configMapName: name,
   });
 
+  // Delete the deployment first to avoid "spec.selector is immutable" errors if
+  // a stale deployment with different labels exists from a previous test run.
+  cy.exec(`oc delete deployment/${name} -n ${mcpNamespace} --ignore-not-found`, {
+    failOnNonZeroExit: false,
+  });
+
   cy.fixture('resources/genAi/mcp_server_deploy.yaml').then((yamlContent: string) => {
     const rendered = replacePlaceholdersInYaml(yamlContent, {
       NAMESPACE: mcpNamespace,
@@ -395,5 +401,224 @@ export const teardownMCPServer = (mcpNamespace: string, clusterRoleBindingName: 
   );
   cleanupMcpServerDeployResources(clusterRoleBindingName);
 };
+
+const MLFLOW_UI_BFF_SVC = 'odh-dashboard-mlflow-ui'; // Service name (used in URL)
+const MLFLOW_UI_BFF_DEPLOY = 'mlflow-ui'; // Deployment name (used for oc exec)
+const MLFLOW_UI_BFF_PORT = '8343';
+
+/**
+ * Execute a curl command against the MLflow UI BFF service on the cluster.
+ * Uses `oc run` with a temporary curl pod to reach the in-cluster service.
+ */
+const execMlflowBffCurl = (
+  method: string,
+  path: string,
+  workspace: string,
+  body?: object,
+): Cypress.Chainable<{ status: number; body: string }> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE') || 'redhat-ods-applications';
+  const svcUrl = `https://${MLFLOW_UI_BFF_SVC}.${namespace}.svc:${MLFLOW_UI_BFF_PORT}${path}`;
+  const bodyArgs = body ? `-d '${JSON.stringify(body).replace(/'/g, "'\\''")}'` : '';
+  // Pipe auth headers via stdin so the OAuth token never appears in process arguments
+  // (avoids CWE-522; requires curl >= 7.55.0 for -H @- support).
+  const curlArgs = [
+    `curl -sk -X ${method} '${svcUrl}'`,
+    `-H 'Content-Type: application/json'`,
+    `-H @-`,
+    `-w '\\n%{http_code}'`,
+    bodyArgs,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const cmd =
+    `printf 'Authorization: Bearer %s\\r\\nX-Forwarded-Access-Token: %s\\r\\n' ` +
+    `"$(oc whoami -t)" "$(oc whoami -t)" | ` +
+    `oc exec -i -n ${namespace} deploy/${MLFLOW_UI_BFF_DEPLOY} -- ${curlArgs}`;
+
+  return cy.exec(cmd, { timeout: 30000, failOnNonZeroExit: false }).then((result) => {
+    const lines = result.stdout.trim().split('\n');
+    const rawStatus = lines[lines.length - 1];
+    const status = parseInt(rawStatus, 10);
+    if (Number.isNaN(status)) {
+      throw new Error(
+        `MLflow BFF curl produced no HTTP status code — oc exec may have failed.\n` +
+          `stdout: ${result.stdout || '(empty)'}\nstderr: ${result.stderr || '(empty)'}`,
+      );
+    }
+    const responseBody = lines.slice(0, -1).join('\n');
+    return { status, body: responseBody };
+  });
+};
+
+/**
+ * Register an MCP server in the MLflow MCP Registry via the cluster's MLflow UI BFF.
+ * Creates the server, a version, activates it, and adds an access endpoint.
+ *
+ * @param workspace - Namespace/workspace to register the server in.
+ * @param serverName - Registry server name (e.g. "io.kubernetes/mcp-server").
+ * @param serverUrl - The access endpoint URL for the MCP server.
+ * @param description - Server description.
+ */
+/* eslint-disable camelcase */
+export const registerMCPServerInRegistry = (
+  workspace: string,
+  serverName: string,
+  serverUrl: string,
+  description: string,
+): Cypress.Chainable<void> => {
+  const encodedName = serverName.split('/').map(encodeURIComponent).join('%2F');
+
+  cy.log(`Registering MCP server "${serverName}" in MLflow registry for workspace "${workspace}"`);
+
+  // Pre-cleanup: remove any stale server from a previous run (best effort, ignores errors).
+  // This prevents 400 "already exists" failures when a prior test run's cleanup was incomplete.
+  return removeMCPServerFromRegistryBestEffort(workspace, serverName).then(
+    () =>
+      // Step 1: Create the server entry
+      execMlflowBffCurl('POST', `/api/v1/mcp-registry/servers?workspace=${workspace}`, workspace, {
+        name: serverName,
+        description,
+      })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            throw new Error(`Failed to create MCP registry server: ${resp.status} ${resp.body}`);
+          }
+
+          // Step 2: Create a version
+          return execMlflowBffCurl(
+            'POST',
+            `/api/v1/mcp-registry/servers/${encodedName}/versions?workspace=${workspace}`,
+            workspace,
+            {
+              server_json: {
+                name: serverName,
+                version: '1.0.0',
+                display_name: serverName.split('/').pop(),
+                description,
+              },
+            },
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            throw new Error(`Failed to create MCP registry version: ${resp.status} ${resp.body}`);
+          }
+
+          // Step 3: Activate the version
+          return execMlflowBffCurl(
+            'PATCH',
+            `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+            workspace,
+            { status: 'active' },
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 200 && resp.status !== 409) {
+            throw new Error(
+              `Failed to activate MCP registry version: HTTP ${resp.status} ${resp.body}`,
+            );
+          }
+
+          // Step 4: Create an access endpoint
+          return execMlflowBffCurl(
+            'POST',
+            `/api/v1/mcp-registry/servers/${encodedName}/endpoints?workspace=${workspace}`,
+            workspace,
+            {
+              endpoint_url: serverUrl,
+              transport_type: 'streamable-http',
+              server_version: '1.0.0',
+            },
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            throw new Error(
+              `Failed to create MCP registry endpoint: HTTP ${resp.status} ${resp.body}`,
+            );
+          }
+          cy.log(`MCP server "${serverName}" registered in MLflow registry`);
+        }) as unknown as Cypress.Chainable<void>,
+  );
+};
+
+/**
+ * Best-effort removal of an MCP registry server. Silently ignores all errors so it
+ * can safely be called as a pre-cleanup step even when the server may not exist.
+ */
+const removeMCPServerFromRegistryBestEffort = (
+  workspace: string,
+  serverName: string,
+): Cypress.Chainable<void> => {
+  const encodedName = serverName.split('/').map(encodeURIComponent).join('%2F');
+  cy.log(`Best-effort cleanup of registry server "${serverName}" in workspace "${workspace}"`);
+  // Attempt each step; ignore errors at every stage (404, etc.)
+  return execMlflowBffCurl(
+    'PATCH',
+    `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+    workspace,
+    { status: 'deprecated' },
+  )
+    .then(() =>
+      execMlflowBffCurl(
+        'DELETE',
+        `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+        workspace,
+      ),
+    )
+    .then(() =>
+      execMlflowBffCurl(
+        'DELETE',
+        `/api/v1/mcp-registry/servers/${encodedName}?workspace=${workspace}`,
+        workspace,
+      ),
+    )
+    .then(() => {
+      cy.log(`Best-effort cleanup done for "${serverName}"`);
+    }) as unknown as Cypress.Chainable<void>;
+};
+
+/**
+ * Remove an MCP server from the MLflow MCP Registry via the cluster's MLflow UI BFF.
+ * The registry requires the active version to be deprecated and deleted before the
+ * server itself can be deleted.
+ */
+export const removeMCPServerFromRegistry = (
+  workspace: string,
+  serverName: string,
+): Cypress.Chainable<void> => {
+  const encodedName = serverName.split('/').map(encodeURIComponent).join('%2F');
+
+  // Step 1: Deprecate the active version (active → deprecated transition is required)
+  return execMlflowBffCurl(
+    'PATCH',
+    `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+    workspace,
+    { status: 'deprecated' },
+  )
+    .then(() => {
+      // Step 2: Delete the version
+      return execMlflowBffCurl(
+        'DELETE',
+        `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+        workspace,
+      );
+    })
+    .then(() => {
+      // Step 3: Delete the server
+      return execMlflowBffCurl(
+        'DELETE',
+        `/api/v1/mcp-registry/servers/${encodedName}?workspace=${workspace}`,
+        workspace,
+      );
+    })
+    .then((resp) => {
+      if (resp.status !== 204 && resp.status !== 404) {
+        throw new Error(`Failed to delete MCP registry server: HTTP ${resp.status} ${resp.body}`);
+      }
+      cy.log(`MCP registry server "${serverName}" removed`);
+    }) as unknown as Cypress.Chainable<void>;
+};
+/* eslint-enable camelcase */
 
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';

@@ -89,6 +89,7 @@ export enum SupportedArea {
   PLUGIN_GEN_AI = 'plugin-gen-ai',
   PLUGIN_NOTEBOOKS = 'plugin-notebooks',
   PLUGIN_DATA_REGISTRY = 'plugin-data-registry',
+  PLUGIN_DATA_CONNECT_HUB = 'plugin-data-connect-hub',
 
   /* LM Eval */
   LM_EVAL = 'lm-eval',

@@ -99,9 +99,9 @@ func TestMaaSConsumerPortalURL(t *testing.T) {
 		wantOK  bool
 	}{
 		{
-			name:    "derives host from domain",
+			name:    "derives path URL from gateway domain",
 			domain:  "rh-ai.apps.example.com",
-			wantURL: "https://maas-consumer-portal.rh-ai.apps.example.com/",
+			wantURL: "https://rh-ai.apps.example.com/maas-consumer-portal/",
 			wantOK:  true,
 		},
 		{
@@ -177,7 +177,7 @@ spec:
 
 	// Inject the operator-derived values, mirroring MaaS Consumer Portal manifest rendering.
 	params := readExistingParams(filepath.Join(dir, "params.env"))
-	params["maas-consumer-portal-url"] = "https://maas-consumer-portal.rh-ai.apps.example.com/"
+	params["maas-consumer-portal-url"] = "https://rh-ai.apps.example.com/maas-consumer-portal/"
 	params["section-title"] = "OpenShift Self Managed Services"
 	require.NoError(t, writeParamsEnv(dir, params))
 
@@ -198,7 +198,7 @@ spec:
 	href, found, err := unstructured.NestedString(consoleLink.Object, "spec", "href")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Equal(t, "https://maas-consumer-portal.rh-ai.apps.example.com/", href)
+	assert.Equal(t, "https://rh-ai.apps.example.com/maas-consumer-portal/", href)
 
 	section, found, err := unstructured.NestedString(consoleLink.Object, "spec", "applicationMenu", "section")
 	require.NoError(t, err)

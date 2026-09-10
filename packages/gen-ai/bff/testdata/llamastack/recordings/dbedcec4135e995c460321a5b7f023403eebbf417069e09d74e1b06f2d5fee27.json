@@ -1,0 +1,172 @@
+{
+  "test_id": "bff/testdata/llamastack/test.py::record",
+  "request": {
+    "method": "POST",
+    "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "models/gemini-2.5-flash",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First message in conversation"
+        },
+        {
+          "role": "assistant",
+          "content": "The \"best\" first message depends heavily on the *context* and your *goal*. To give you the most useful advice, tell me:\n\n1.  **Where is this conversation happening?** (e.g., dating app, professional networking like LinkedIn, social media, a text to a new acquaintance, email to a potential client, etc.)\n2.  **What is your relationship with the person?** (e.g., complete stranger, someone you briefly met, a mutual connection, an old friend you're reconnecting with, someone you admire professionally, etc.)\n3.  **What is your primary goal for this conversation?** (e.g., to get to know them, ask for a favor, network, make a friend, express interest, continue a previous conversation, etc.)\n\n---\n\n**However, here are some general principles and examples that apply to most situations:**\n\n**General Principles for a Good First Message:**\n\n1.  **Be Specific & Personal:** Refer to something unique about them, their profile, a shared interest, or a common experience. This shows you've put in a little effort.\n2.  **Be Clear About Your Intent (if applicable):** Why are you reaching out? Don't make them guess.\n3.  **Keep It Concise:** Don't write a novel. Get to the point.\n4.  **Ask an Open-Ended Question:** Encourage a response beyond a \"yes\" or \"no.\"\n5.  **Be Respectful & Polite:** Always.\n6.  **Proofread:** Typos make a bad first impression.\n7.  **Be Authentic:** Let a bit of your personality shine through.\n\n---\n\n**Examples based on common scenarios:**\n\n**Scenario 1: Dating App / Social Media (getting to know someone new)**\n\n*   **Goal:** Spark a conversation, show genuine interest.\n*   **Example 1 (Referencing Profile):**\n    \"Hey [Name], your profile really caught my eye, especially your love for [specific hobby/interest/place mentioned]. What's your favorite part about [that hobby/place]?\"\n*   **Example 2 (Shared Interest):**\n    \"Hi [Name], saw you're a big fan of [Band/Movie/Book/Sport]! Any recommendations for [related thing, e.g., similar artists/movies/books]?\"\n*   **Example 3 (Lighthearted & Question-based):**\n    \"Hey [Name], that photo of you [doing something specific] looks like fun! What's the story behind it?\"\n\n**Scenario 2: Professional Networking (LinkedIn, etc.)**\n\n*   **Goal:** Connect, learn, potentially collaborate, or ask for advice.\n*   **Example 1 (Mutual Connection):**\n    \"Hi [Name], [Mutual Connection's Name] suggested I reach out. I'm really impressed by your work at [Company/Field], especially [specific project/article]. I'm currently exploring [related area] and would love to hear your perspective if you ever have a few minutes.\"\n*   **Example 2 (Admiration / Learning):**\n    \"Dear [Name], I've been following your work in [Industry/Field] for a while, and your insights on [specific topic/article] really resonated with me. I'm working on [related project] and was hoping you might be open to a quick chat sometime to share your experience.\"\n*   **Example 3 (Meeting at an Event):**\n    \"Hello [Name], it was great meeting you at [Event Name] yesterday. I really enjoyed our discussion about [topic]. Hope you had a good rest of the conference!\" (You can add a follow-up question if appropriate).\n\n**Scenario 3: Texting a New Acquaintance (after meeting briefly)**\n\n*   **Goal:** Keep the connection going, suggest future interaction.\n*   **Example 1:**\n    \"Hey [Name]! Great meeting you at [Place/Event] earlier. I really enjoyed our chat about [topic]. Hope you have a good rest of your day!\"\n*   **Example 2 (With a suggestion):**\n    \"Hi [Name]! It was really nice talking with you at [Event/Place]. Still thinking about that [thing you discussed]! Let me know if you're ever free to grab that coffee/drink/etc. sometime.\"\n\n**Scenario 4: Asking for a Favor/Information from a Polite Stranger (e.g., email)**\n\n*   **Goal:** Get specific information or help.\n*   **Example:**\n    \"Hello [Name], I hope you don't mind me reaching out. I found your work on [Project/Website] and was incredibly impressed by [specific detail]. I'm currently working on a similar [type of project] and was hoping you might be able to offer a quick piece of advice regarding [specific question], if you have a moment. No worries at all if not!\"\n\n---\n\n**What to Avoid in a First Message:**\n\n*   **\"Hey\" / \"Hi\" (alone, without context):** It's too generic and doesn't give the other person anything to respond to.\n*   **Overly familiar or demanding language:** Don't assume intimacy or entitlement.\n*   **Long paragraphs:** People skim. Get to the point.\n*   **Spelling or grammar errors:** Shows lack of care.\n*   **Anything offensive, creepy, or overly sexual (unless explicitly on a platform/context where that's the norm and desired).**\n*   **A sales pitch:** Unless they specifically requested it.\n\n---\n\nOnce you tell me more about your specific situation, I can give you a more tailored and effective suggestion!"
+        },
+        {
+          "role": "user",
+          "content": "Continue our conversation"
+        }
+      ],
+      "stream": true,
+      "stream_options": {
+        "include_usage": true
+      }
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "models/gemini-2.5-flash",
+    "provider_metadata": {
+      "openai_sdk_version": "3.1.0"
+    }
+  },
+  "response": {
+    "body": [
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-dbedcec4135e",
+          "choices": [
+            {
+              "delta": {
+                "content": "Ah, great! To continue our conversation and help you craft the",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 13,
+            "prompt_tokens": 1244,
+            "total_tokens": 1506,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-dbedcec4135e",
+          "choices": [
+            {
+              "delta": {
+                "content": " *perfect* first message, I'm still waiting for a little more context from you.\n\nCould you please tell me:\n\n1.  **Where will this conversation be happening?** (e.g., dating app, LinkedIn,",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 62,
+            "prompt_tokens": 1244,
+            "total_tokens": 1555,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-dbedcec4135e",
+          "choices": [
+            {
+              "delta": {
+                "content": " text, email, etc.)\n2.  **What is your relationship with the person?** (e.g., complete stranger, new acquaintance, professional contact, etc.)\n3.  **What is your primary goal for this conversation",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 111,
+            "prompt_tokens": 1244,
+            "total_tokens": 1604,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-dbedcec4135e",
+          "choices": [
+            {
+              "delta": {
+                "content": "?** (e.g., get to know them, network, ask a question, etc.)\n\nOnce I have those details, I can give you a much more specific and effective suggestion!",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 150,
+            "prompt_tokens": 1244,
+            "total_tokens": 1643,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      }
+    ],
+    "is_streaming": true
+  },
+  "id_normalization_mapping": {}
+}

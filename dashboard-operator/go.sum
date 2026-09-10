@@ -139,6 +139,8 @@ github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJw
 github.com/opencontainers/image-spec v1.1.1/go.mod h1:qpqAh3Dmcf36wStyyWU+kCeDgrGnAve2nCC8+7h8Q0M=
 github.com/opendatahub-io/odh-platform-utilities v0.2.1-0.20260804085229-7872bf1402b9 h1:Tr6yI0fD3Wq/SHlNpxgmXK1w6HdtJh2BP/7Fsw1N6a4=
 github.com/opendatahub-io/odh-platform-utilities v0.2.1-0.20260804085229-7872bf1402b9/go.mod h1:RbnUlLqR+D6BxqpZFjtzkKcz9UtB6BjMUOiLuBY0aeE=
+github.com/opendatahub-io/operator-chaos v0.0.0-20260521100204-4dab974d613c h1:olKZNTyNTTaLVnGyNimB4nSihohMghshSoqDWfSmFwI=
+github.com/opendatahub-io/operator-chaos v0.0.0-20260521100204-4dab974d613c/go.mod h1:f9D+8VSCrpTB2EeGD6F26ZkaO8GN7dCbT9lFZfZ68t0=
 github.com/openshift/api v3.9.0+incompatible h1:fJ/KsefYuZAjmrr3+5U9yZIZbTOpVkDDLDLFresAeYs=
 github.com/openshift/api v3.9.0+incompatible/go.mod h1:dh9o4Fs58gpFXGSYfnVxGR9PnV53I8TW84pQaJDdGiY=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

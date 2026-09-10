@@ -10,6 +10,23 @@ export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION =
   'Data from the following projects is not displayed on the Infrastructure page because they do not use Kueue for workload admission.';
 export const NON_KUEUE_PROJECT_STATUS_LABEL = 'not Kueue-managed';
 
+export const CLUSTER_QUEUE_WORKLOADS_TABLE_DESCRIPTION =
+  'Workloads admitted or waiting in this cluster queue.';
+export const CLUSTER_QUEUE_WORKLOADS_EMPTY_TITLE = 'No workloads';
+export const CLUSTER_QUEUE_WORKLOADS_EMPTY_BODY = 'Admitted or waiting workloads will appear here.';
+export const CLUSTER_QUEUE_WORKLOADS_TYPE_HELP =
+  'Workload type: Workbench, Training, Ray job, Model serving, Ray cluster, or Unknown (e.g. pipeline workloads without a dedicated integration).';
+
+export enum ClusterQueueWorkloadsToolbarFilterOptions {
+  name = 'name',
+  status = 'status',
+}
+
+export const clusterQueueWorkloadsFilterOptions: Record<string, string> = {
+  [ClusterQueueWorkloadsToolbarFilterOptions.name]: 'Name',
+  [ClusterQueueWorkloadsToolbarFilterOptions.status]: 'Status',
+};
+
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;

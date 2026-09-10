@@ -104,6 +104,7 @@
     "@emotion/styled": "^11.14.0",
     "@hookform/resolvers": "^5.2.2",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
     "@patternfly/patternfly": "~6.5.1",
     "@patternfly/react-component-groups": "~6.5.0",
     "@patternfly/react-charts": "~8.5.1",
