@@ -30,7 +30,7 @@ const isGatewayOrigin = (value: string): boolean => {
   try {
     const url = new URL(value.trim());
     return (
-      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      url.protocol === 'https:' &&
       !!url.hostname &&
       !url.username &&
       !url.password &&
@@ -112,8 +112,8 @@ const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
               <HelperText>
                 <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
                   {showBaseUrlError
-                    ? 'Use an origin such as https://maas.apps.example.com, without /maas-api.'
-                    : 'Use the hosted MaaS Gateway origin, without a path.'}
+                    ? 'Use an HTTPS origin such as https://maas.apps.example.com, without /maas-api.'
+                    : 'Use the hosted MaaS HTTPS origin, without a path.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>

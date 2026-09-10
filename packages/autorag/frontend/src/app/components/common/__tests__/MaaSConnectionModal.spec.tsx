@@ -30,6 +30,26 @@ describe('MaaSConnectionModal', () => {
     expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
   });
 
+  it('should reject an HTTP Gateway URL', async () => {
+    render(<MaaSConnectionModal namespace="test" onClose={jest.fn()} onSubmit={jest.fn()} />);
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
+        target: { value: 'Hosted MaaS' },
+      });
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
+        target: { value: 'http://maas.example.com' },
+      });
+      fireEvent.change(screen.getByTestId('maas-connection-api-key'), {
+        target: { value: 'secret-key' },
+      });
+      fireEvent.blur(screen.getByTestId('maas-connection-base-url'));
+    });
+
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+    expect(screen.getByText(/HTTPS origin/)).toBeInTheDocument();
+  });
+
   it('should create a secret containing only the hosted MaaS credentials', async () => {
     const onSubmit = jest.fn();
     render(<MaaSConnectionModal namespace="test" onClose={jest.fn()} onSubmit={onSubmit} />);

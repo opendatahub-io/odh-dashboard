@@ -10,6 +10,7 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/ssrf"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -127,15 +128,15 @@ func (s *MaaSService) ListModels(ctx context.Context, namespace, secretName stri
 
 func validateMaaSEndpoint(rawURL string) error {
 	parsedURL, err := url.Parse(rawURL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Hostname() == "" || parsedURL.User != nil || (parsedURL.Path != "" && parsedURL.Path != "/") || parsedURL.RawQuery != "" || parsedURL.Fragment != "" {
+	if err != nil || parsedURL.Scheme != "https" || parsedURL.Hostname() == "" || parsedURL.User != nil || (parsedURL.Path != "" && parsedURL.Path != "/") || parsedURL.RawQuery != "" || parsedURL.Fragment != "" {
 		return errors.New("invalid MaaS endpoint")
 	}
 	if ip := net.ParseIP(parsedURL.Hostname()); ip != nil {
-		return validateOGXIP(ip)
+		return ssrf.ValidateIP(ip)
 	}
 	if ips, err := net.LookupIP(parsedURL.Hostname()); err == nil {
 		for _, ip := range ips {
-			if err := validateOGXIP(ip); err != nil {
+			if err := ssrf.ValidateIP(ip); err != nil {
 				return errors.New("invalid MaaS endpoint")
 			}
 		}

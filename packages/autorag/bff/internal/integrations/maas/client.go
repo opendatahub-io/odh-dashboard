@@ -3,11 +3,15 @@ package maas
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/ssrf"
 )
 
 // Model and Response are transport representations of the hosted MaaS API contract.
@@ -50,14 +54,25 @@ type TransportError struct {
 	Cause      error
 }
 
+var ErrResponseTooLarge = errors.New("hosted MaaS response exceeds maximum size")
+
+const maxResponseBytes int64 = 2 << 20
+
 func (e *TransportError) Error() string { return e.Message }
 func (e *TransportError) Unwrap() error { return e.Cause }
 
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 30 * time.Second}
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.DialContext = ssrf.SafeDialContext(&net.Dialer{Timeout: 10 * time.Second}, false)
+		httpClient = &http.Client{
+			Timeout:   30 * time.Second,
+			Transport: transport,
+		}
 	}
-	return &Client{http: httpClient}
+	clientCopy := *httpClient
+	clientCopy.CheckRedirect = func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }
+	return &Client{http: &clientCopy}
 }
 
 func (c *Client) ListModels(ctx context.Context, config RequestConfig) (Response, error) {
@@ -84,12 +99,27 @@ func (c *Client) ListModels(ctx context.Context, config RequestConfig) (Response
 		}
 		return empty, &TransportError{StatusCode: statusCode, Message: fmt.Sprintf("hosted MaaS returned status %d", res.StatusCode)}
 	}
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxResponseBytes+1))
 	if err != nil {
 		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from hosted MaaS", Cause: err}
 	}
+	if int64(len(body)) > maxResponseBytes {
+		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from hosted MaaS", Cause: ErrResponseTooLarge}
+	}
 	var parsed Response
-	if err := json.Unmarshal(body, &parsed); err != nil {
+	var envelope struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from hosted MaaS", Cause: err}
+	}
+	if len(envelope.Data) == 0 || string(envelope.Data) == "null" {
+		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from hosted MaaS", Cause: errors.New("response data must be a non-null array")}
+	}
+	if err := json.Unmarshal(envelope.Data, &parsed.Data); err != nil || parsed.Data == nil {
+		if err == nil {
+			err = errors.New("response data must be an array")
+		}
 		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from hosted MaaS", Cause: err}
 	}
 	return parsed, nil

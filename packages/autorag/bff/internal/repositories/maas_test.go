@@ -84,6 +84,8 @@ func TestMaaSServiceMapsSecretErrorsWithoutCredentials(t *testing.T) {
 	}{
 		{"missing base URL", map[string][]byte{"MAAS_API_KEY": []byte("secret-key")}, ErrMaaSCredentialsInvalid},
 		{"missing API key", map[string][]byte{"MAAS_BASE_URL": []byte("https://maas.example.com")}, ErrMaaSCredentialsInvalid},
+		{"HTTP endpoint", map[string][]byte{"MAAS_BASE_URL": []byte("http://maas.example.com"), "MAAS_API_KEY": []byte("secret-key")}, ErrMaaSCredentialsInvalid},
+		{"blocked HTTPS endpoint", map[string][]byte{"MAAS_BASE_URL": []byte("https://127.0.0.1"), "MAAS_API_KEY": []byte("secret-key")}, ErrMaaSCredentialsInvalid},
 		{"invalid endpoint", map[string][]byte{"MAAS_BASE_URL": []byte("http://127.0.0.1"), "MAAS_API_KEY": []byte("secret-key")}, ErrMaaSCredentialsInvalid},
 	} {
 		t.Run(test.name, func(t *testing.T) {
