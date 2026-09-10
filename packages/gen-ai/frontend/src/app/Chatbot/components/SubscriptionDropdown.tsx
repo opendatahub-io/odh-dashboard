@@ -113,7 +113,7 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
             isDisabled={isDisabled}
-            style={{ width: '100%' }}
+            isFullWidth
             data-testid="subscription-selector-toggle"
           >
             {toggleLabel}
