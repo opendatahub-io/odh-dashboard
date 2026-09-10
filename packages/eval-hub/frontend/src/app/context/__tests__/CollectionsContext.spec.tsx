@@ -45,4 +45,23 @@ describe('CollectionsContextProvider', () => {
       COLLECTION_FETCH_LIMIT,
     );
   });
+
+  it('should mark the context loaded when fetching collections fails', () => {
+    mockUseCollectionsQuery.mockReturnValue({
+      data: undefined,
+      isSuccess: false,
+      error: new Error('Unable to load collections'),
+      refetch: jest.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <CollectionsContextProvider namespace="test-ns">
+          <ContextConsumer />
+        </CollectionsContextProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('collections-loaded')).toHaveTextContent('true');
+  });
 });

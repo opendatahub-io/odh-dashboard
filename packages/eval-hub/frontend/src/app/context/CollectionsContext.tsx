@@ -47,7 +47,12 @@ export const CollectionsContextProvider: React.FC<CollectionsContextProviderProp
   }, [refetch]);
 
   const value = React.useMemo(
-    () => ({ response, loaded: isSuccess, loadError: error ?? undefined, refresh }),
+    () => ({
+      response,
+      loaded: isSuccess || error != null,
+      loadError: error ?? undefined,
+      refresh,
+    }),
     [response, isSuccess, error, refresh],
   );
 
