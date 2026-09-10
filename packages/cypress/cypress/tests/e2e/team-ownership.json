@@ -1,0 +1,61 @@
+{
+  "description": "Maps Cypress E2E test directories to owning scrum teams. Used by the nightly test failure analyzer to route failures to the responsible team.",
+  "default_team": "Razzmatazz",
+  "teams": [
+    {
+      "name": "Green",
+      "ci_tags": ["ModelRegistryCI"],
+      "path_patterns": ["modelRegistry/", "modelCatalog/"]
+    },
+    {
+      "name": "Razzmatazz",
+      "ci_tags": ["AgentOpsCI", "ConnectionTypes", "HardwareProfiles", "MlflowEmbedded", "MLflowCI"],
+      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/"]
+    },
+    {
+      "name": "Zaffre",
+      "ci_tags": ["KServeCI", "NIMServingCI", "ModelServingCI", "LLMDServingCI"],
+      "path_patterns": ["modelServing/", "nim/", "dataScienceProjects/models/", "dataScienceProjects/connections/", "settings/servingRuntimes/"]
+    },
+    {
+      "name": "Monarch",
+      "ci_tags": ["Observability"],
+      "path_patterns": ["distributedWorkloadMetrics/"]
+    },
+    {
+      "name": "Crimson",
+      "ci_tags": ["GenAICI"],
+      "path_patterns": ["gen-ai/"]
+    },
+    {
+      "name": "Teal",
+      "ci_tags": ["Notebooks Extensions"],
+      "path_patterns": ["dataScienceProjects/workbenches/", "applications/enabled/"]
+    },
+    {
+      "name": "Indigo",
+      "ci_tags": ["Notebooks Server"],
+      "path_patterns": ["notebooks/"]
+    },
+    {
+      "name": "Onyx",
+      "ci_tags": ["MaaSCI"],
+      "path_patterns": ["maas/"]
+    },
+    {
+      "name": "Purple",
+      "ci_tags": ["AutoMLCI", "AutoRAGCI", "EvalHubCI"],
+      "path_patterns": ["automl/", "autorag/", "evalHub/"]
+    },
+    {
+      "name": "Tangerine",
+      "ci_tags": ["FeatureStoreCI", "ModelTrainingCI", "GpuaasCI"],
+      "path_patterns": ["featureStore/", "modelTraining/", "rayjob/"]
+    },
+    {
+      "name": "Pewter",
+      "ci_tags": [],
+      "path_patterns": []
+    }
+  ]
+}
