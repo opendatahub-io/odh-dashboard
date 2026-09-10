@@ -358,6 +358,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const isLastStep = currentStepIndex === activeSteps.length - 1;
   // True while we don't yet know if the collections step will be present
   const isStepsLoading = vectorStoresEnabled && !collectionsLoaded;
+  const existingTracingEnabled = lsdStatus?.tracingEnabled ?? false;
 
   // When updating a playground that has the BFF passthrough provider, only
   // vector store changes require an OGX restart (embedding models are implicitly
@@ -369,10 +370,19 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     const existingCollectionIds = new Set(existingCollections.map((vs) => vs.id));
     const selectedCollectionIds = new Set(selectedCollections.map((c) => c.vector_store_id));
     return (
+      (tracingEnabled && enableTracing !== existingTracingEnabled) ||
       existingCollectionIds.size !== selectedCollectionIds.size ||
       [...existingCollectionIds].some((id) => !selectedCollectionIds.has(id))
     );
-  }, [isUpdate, hasBffPassthroughProvider, existingCollections, selectedCollections]);
+  }, [
+    isUpdate,
+    hasBffPassthroughProvider,
+    existingCollections,
+    selectedCollections,
+    tracingEnabled,
+    enableTracing,
+    existingTracingEnabled,
+  ]);
 
   const goNext = () => setCurrentStepIndex((i) => Math.min(i + 1, activeSteps.length - 1));
   const goBack = () => setCurrentStepIndex((i) => Math.max(i - 1, 0));

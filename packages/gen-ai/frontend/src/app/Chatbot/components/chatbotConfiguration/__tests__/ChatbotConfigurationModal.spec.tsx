@@ -878,6 +878,22 @@ describe('ChatbotConfigurationModal form tracking', () => {
 
 describe('ChatbotConfigurationModal tracing configuration', () => {
   const allModels = [createAIModel({ model_name: 'test-model' })];
+  const passthroughLsdStatus: LlamaStackDistributionModel = {
+    name: 'lsd-playground',
+    phase: 'Ready',
+    version: '0.1.0',
+    distributionConfig: {
+      activeDistribution: 'rh',
+      providers: [
+        {
+          provider_id: 'genai-bff-proxy',
+          api: 'inference',
+          health: { status: 'Ready', message: '' },
+        },
+      ],
+      availableDistributions: {},
+    },
+  };
 
   it('does not render tracing toggle when feature flag is disabled', () => {
     (useTracingEnabled as jest.Mock).mockReturnValue(false);
@@ -891,6 +907,18 @@ describe('ChatbotConfigurationModal tracing configuration', () => {
     renderModalWithContext({ allModels });
 
     expect(screen.getByTestId('enable-tracing-switch')).toBeInTheDocument();
+  });
+
+  it('enables Configure when tracing changes for a passthrough playground', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels, lsdStatus: passthroughLsdStatus });
+
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+
+    await user.click(screen.getByTestId('enable-tracing-switch'));
+
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
   });
 
   it('does not include enable_tracing in payload when feature flag is disabled', async () => {
