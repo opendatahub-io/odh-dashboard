@@ -138,6 +138,7 @@ func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, 
 		}
 	}
 	// TODO: Remove this temporary mapping once the EvalHub API is deployed.
+	input.Category = strings.TrimSpace(input.Category)
 	if input.Category == "" && len(input.AIEntities) > 0 {
 		input.Category = input.AIEntities[0]
 	}

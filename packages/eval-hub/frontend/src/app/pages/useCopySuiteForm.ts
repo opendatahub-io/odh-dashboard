@@ -94,7 +94,12 @@ const parseAdditionalParameters = (value: string | undefined): Record<string, un
 
 const mergeBenchmarkParameters = (benchmark: CopySuiteBenchmark): Record<string, unknown> => ({
   ...parseAdditionalParameters(benchmark.additionalParameters),
-  ...(benchmark.numSamples != null ? { limit: benchmark.numSamples } : {}),
+  ...(benchmark.numSamples != null
+    ? {
+        // eslint-disable-next-line camelcase
+        num_examples: benchmark.numSamples,
+      }
+    : {}),
   ...(benchmark.numFewShot != null
     ? {
         // eslint-disable-next-line camelcase
@@ -342,7 +347,11 @@ const buildInitialBenchmarks = (
       const primaryScore = cb.primary_score ?? pb?.primary_score;
       const datasetSize = pb?.dataset_size ?? undefined;
       const initialNumSamples =
-        cb.parameters?.limit != null ? Number(cb.parameters.limit) : (datasetSize ?? undefined);
+        cb.parameters?.num_examples != null
+          ? Number(cb.parameters.num_examples)
+          : cb.parameters?.limit != null
+            ? Number(cb.parameters.limit)
+            : (datasetSize ?? undefined);
 
       return {
         id: cb.id,

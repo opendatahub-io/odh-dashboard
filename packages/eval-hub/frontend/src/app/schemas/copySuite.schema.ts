@@ -1,7 +1,12 @@
 import * as z from 'zod';
 import { SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
 
-export const RESERVED_BENCHMARK_PARAMETER_KEYS = ['limit', 'num_few_shot', 'num_fewshot'] as const;
+export const RESERVED_BENCHMARK_PARAMETER_KEYS = [
+  'limit',
+  'num_examples',
+  'num_few_shot',
+  'num_fewshot',
+] as const;
 
 const reservedBenchmarkParameterKeys = new Set<string>(RESERVED_BENCHMARK_PARAMETER_KEYS);
 

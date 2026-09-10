@@ -69,12 +69,45 @@ jest.mock('~/app/components/BenchmarkThresholdField', () => ({
   ),
 }));
 
-jest.mock('~/app/components/CopySuiteBenchmarkCatalogDrawer', () => ({
+jest.mock('~/app/components/CopySuiteBenchmarkSelectionStep', () => ({
   __esModule: true,
-  default: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="copy-suite-benchmark-catalog-drawer">
-      <button type="button" onClick={onClose}>
-        Close catalog drawer
+  default: ({
+    selectedBenchmarkKeys,
+    isInteractionDisabled,
+    onNext,
+    onBack,
+    onCancel,
+  }: {
+    selectedBenchmarkKeys: string[];
+    isInteractionDisabled?: boolean;
+    onNext: (selectedKeys: string[]) => void;
+    onBack: () => void;
+    onCancel: () => void;
+  }) => (
+    <div data-testid="copy-suite-step-select-benchmarks">
+      <button
+        type="button"
+        data-testid="copy-suite-next-select-benchmarks"
+        disabled={isInteractionDisabled || selectedBenchmarkKeys.length === 0}
+        onClick={() => onNext(selectedBenchmarkKeys)}
+      >
+        Next
+      </button>
+      <button
+        type="button"
+        data-testid="copy-suite-back-select-benchmarks"
+        disabled={isInteractionDisabled}
+        onClick={onBack}
+      >
+        Back
+      </button>
+      <button
+        type="button"
+        data-testid="copy-suite-cancel-select-benchmarks"
+        disabled={isInteractionDisabled}
+        onClick={onCancel}
+      >
+        Cancel
       </button>
     </div>
   ),
@@ -82,7 +115,8 @@ jest.mock('~/app/components/CopySuiteBenchmarkCatalogDrawer', () => ({
 
 jest.mock('~/app/components/CopySuiteBenchmarkDetailsOverlay', () => ({
   __esModule: true,
-  default: () => <div data-testid="copy-suite-benchmark-details-overlay" />,
+  default: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? <div data-testid="copy-suite-benchmark-details-overlay" /> : null,
 }));
 
 jest.mock('~/app/components/BenchmarkWeightsModal', () => ({
@@ -235,8 +269,13 @@ const renderCreatePage = () =>
     </MemoryRouter>,
   );
 
-const goToBenchmarksStep = () => {
+const goToSelectBenchmarksStep = () => {
   fireEvent.click(screen.getByTestId('copy-suite-next'));
+};
+
+const goToBenchmarksStep = () => {
+  goToSelectBenchmarksStep();
+  fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
 };
 
 beforeEach(() => {
@@ -262,7 +301,7 @@ describe('CopySuitePage', () => {
       'Add to my benchmark suites',
     );
     fireEvent.click(screen.getByTestId('copy-suite-back-step-2'));
-    expect(screen.getByTestId('copy-suite-form')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
   });
 
   it('should wire create and run and create only to their respective handlers', () => {
@@ -357,6 +396,9 @@ describe('CopySuitePage', () => {
     expect(screen.getByText('Language benchmark suites')).toBeInTheDocument();
     expect(screen.getByText('Customize benchmark suite')).toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-settings-actions')).toHaveClass(
+      'evalhub-copy-suite-page__footer',
+    );
     expect(screen.queryByTestId('copy-suite-save-and-run')).not.toBeInTheDocument();
   });
 
@@ -518,7 +560,7 @@ describe('CopySuitePage', () => {
 
   it('should disable save actions when the form is invalid or submitting', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
-    mockUseCopySuiteForm.mockReturnValue(makeForm({ isValid: false, isSubmitting: true }));
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ isValid: false }));
 
     renderPage();
     goToBenchmarksStep();
@@ -527,34 +569,42 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-save-only')).toBeDisabled();
   });
 
-  it('should open and close the benchmark catalog drawer from the benchmarks step', () => {
+  it('should navigate through the select benchmarks step before configuration', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
-    goToBenchmarksStep();
-    fireEvent.click(screen.getByTestId('copy-suite-add-benchmarks-btn'));
+    goToSelectBenchmarksStep();
 
-    expect(screen.getByTestId('copy-suite-benchmark-catalog-drawer')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Close catalog drawer' }));
-    expect(screen.queryByTestId('copy-suite-benchmark-catalog-drawer')).not.toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
+    expect(screen.getByText('Select benchmarks')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-breadcrumb-settings')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
+    expect(screen.getByTestId('copy-suite-step-benchmarks')).toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-add-benchmarks-btn')).not.toBeInTheDocument();
   });
 
-  it('should show an empty benchmark state without the sidebar', () => {
+  it('should render separators between every breadcrumb step', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+    goToSelectBenchmarksStep();
+
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(3);
+
+    fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
+    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(4);
+  });
+
+  it('should navigate back to settings from the select benchmarks breadcrumb', () => {
     mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
-    mockUseCopySuiteForm.mockReturnValue(
-      makeForm({ benchmarks: [], selectedBenchmarkKeys: [], isValid: false }),
-    );
 
     renderCreatePage();
-    goToBenchmarksStep();
+    goToSelectBenchmarksStep();
 
-    expect(screen.getByTestId('copy-suite-benchmarks-empty-state')).toBeInTheDocument();
-    expect(screen.queryByTestId('copy-suite-benchmark-sections')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('copy-suite-add-benchmarks-btn')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('benchmark-jump-link-0')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('copy-suite-empty-add-benchmarks-btn'));
-    expect(screen.getByTestId('copy-suite-benchmark-catalog-drawer')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('copy-suite-breadcrumb-settings'));
+    expect(screen.getByTestId('copy-suite-form')).toBeInTheDocument();
   });
 
   it('should navigate back to settings from the benchmarks breadcrumb', () => {
@@ -575,7 +625,7 @@ describe('CopySuitePage', () => {
     goToBenchmarksStep();
     fireEvent.click(screen.getByTestId('copy-suite-back-step-2'));
 
-    expect(screen.getByTestId('copy-suite-form')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
   });
 
   it('should disable editing and breadcrumb navigation while a clone is pending', () => {
@@ -588,14 +638,10 @@ describe('CopySuitePage', () => {
 
     renderPage();
     goToBenchmarksStep();
-    fireEvent.click(screen.getByTestId('copy-suite-add-benchmarks-btn'));
-    expect(screen.getByTestId('copy-suite-benchmark-catalog-drawer')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('copy-suite-save-and-run'));
     fireEvent.click(screen.getByTestId('copy-suite-set-clone-pending'));
 
-    expect(screen.queryByTestId('copy-suite-benchmark-catalog-drawer')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-samples-input-0')).toBeDisabled();
-    expect(screen.getByTestId('copy-suite-add-benchmarks-btn')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-back-step-2')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-save-and-run')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-save-only')).toBeDisabled();
@@ -620,7 +666,6 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-step-benchmarks')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('copy-suite-set-clone-complete'));
-    expect(screen.queryByTestId('copy-suite-benchmark-catalog-drawer')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-samples-input-0')).toBeEnabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-settings')).toBeEnabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).toHaveAttribute('href');
@@ -630,16 +675,17 @@ describe('CopySuitePage', () => {
     );
   });
 
-  it('should disable editing and breadcrumb navigation while a save-only clone is pending', () => {
+  it('should disable the select benchmarks step while a save-only operation is pending', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
     mockUseCopySuiteForm.mockReturnValue(makeForm({ isSubmitting: true }));
 
     renderPage();
-    goToBenchmarksStep();
 
-    expect(screen.getByTestId('benchmark-samples-input-0')).toBeDisabled();
-    expect(screen.getByTestId('copy-suite-add-benchmarks-btn')).toBeDisabled();
-    expect(screen.getByTestId('copy-suite-back-step-2')).toBeDisabled();
+    goToSelectBenchmarksStep();
+
+    expect(screen.getByTestId('copy-suite-next-select-benchmarks')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-back-select-benchmarks')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-cancel-select-benchmarks')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-settings')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).toHaveAttribute(
       'aria-disabled',
@@ -648,7 +694,7 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).not.toHaveAttribute('href');
 
     fireEvent.click(screen.getByTestId('copy-suite-breadcrumb-settings'));
-    expect(screen.getByTestId('copy-suite-step-benchmarks')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
   });
 
   it('should close benchmark details and weight overlays when a clone becomes pending', () => {

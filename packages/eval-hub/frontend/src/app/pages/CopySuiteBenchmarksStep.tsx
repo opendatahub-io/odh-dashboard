@@ -7,8 +7,6 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
-  Flex,
-  FlexItem,
   JumpLinks,
   JumpLinksItem,
   Sidebar,
@@ -16,29 +14,20 @@ import {
   SidebarPanel,
 } from '@patternfly/react-core';
 import { useModularArchContext } from 'mod-arch-core';
-import CopySuiteBenchmarkCatalogDrawer from '~/app/components/CopySuiteBenchmarkCatalogDrawer';
 import CopySuiteBenchmarkDetailsOverlay from '~/app/components/CopySuiteBenchmarkDetailsOverlay';
 import CopySuiteBenchmarkSection from '~/app/components/CopySuiteBenchmarkSection';
 import BenchmarkWeightsModal from '~/app/components/BenchmarkWeightsModal';
 import type { WeightSegment } from '~/app/components/WeightDistributionBar';
-import {
-  getBenchmarkKey,
-  MAX_BENCHMARKS,
-  type CopySuiteBenchmark,
-} from '~/app/pages/useCopySuiteForm';
+import { getBenchmarkKey, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
 import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
-import type { FlatBenchmark, Provider } from '~/app/types';
-import {
-  buildFlatBenchmarkByKey,
-  toggleBenchmarkSelectionKey,
-} from '~/app/utilities/benchmarkDetailsUtils';
+import type { Provider } from '~/app/types';
+import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
 import { getEvalHubScrollContainer } from '~/app/utilities/scrollContainer';
 
 import './CopySuiteBenchmarksStep.scss';
 
 type CopySuiteBenchmarksStepProps = {
   benchmarks: CopySuiteBenchmark[];
-  selectedBenchmarkKeys: string[];
   providers: Provider[];
   showWeightEdit: boolean;
   weightSegments: WeightSegment[];
@@ -47,7 +36,6 @@ type CopySuiteBenchmarksStepProps = {
   isSubmitting: boolean;
   isInteractionDisabled?: boolean;
   onUpdateBenchmark: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
-  onApplyBenchmarkSelection: (selectedKeys: string[]) => void;
   onWeightsChange: (weights: number[]) => void;
   onSaveAndRun: () => void;
   onSaveOnly: () => void;
@@ -61,7 +49,6 @@ type CopySuiteBenchmarksStepProps = {
 
 const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   benchmarks,
-  selectedBenchmarkKeys,
   providers,
   showWeightEdit,
   weightSegments,
@@ -70,7 +57,6 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   isSubmitting,
   isInteractionDisabled = false,
   onUpdateBenchmark,
-  onApplyBenchmarkSelection,
   onWeightsChange,
   onSaveAndRun,
   onSaveOnly,
@@ -85,14 +71,11 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   const {
     formState: { errors },
   } = useFormContext<CopySuiteFormValues>();
-  const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
-  const [catalogDraftKeys, setCatalogDraftKeys] = React.useState<string[]>([]);
   const [detailsBenchmarkKey, setDetailsBenchmarkKey] = React.useState<string | undefined>();
   const [isWeightsModalOpen, setIsWeightsModalOpen] = React.useState(false);
 
   React.useLayoutEffect(() => {
     if (isInteractionDisabled) {
-      setIsCatalogOpen(false);
       setDetailsBenchmarkKey(undefined);
       setIsWeightsModalOpen(false);
     }
@@ -109,43 +92,16 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
     ? flatBenchmarkByKey.get(detailsBenchmarkKey)
     : undefined;
   const hasBenchmarks = benchmarks.length > 0;
-
-  const activeSelectionKeys = isCatalogOpen ? catalogDraftKeys : selectedBenchmarkKeys;
-
-  const isDetailsBenchmarkSelected = detailsBenchmarkKey
-    ? activeSelectionKeys.includes(detailsBenchmarkKey)
-    : false;
-
-  const openCatalog = React.useCallback(() => {
-    if (isInteractionDisabled) {
-      return;
-    }
-    setCatalogDraftKeys(selectedBenchmarkKeys);
-    setIsCatalogOpen(true);
-  }, [isInteractionDisabled, selectedBenchmarkKeys]);
-
-  const handleDetailsPrimaryAction = React.useCallback(
-    (benchmark: FlatBenchmark) => {
-      if (isInteractionDisabled) {
-        return;
-      }
-      if (isCatalogOpen) {
-        setCatalogDraftKeys((prev) =>
-          toggleBenchmarkSelectionKey(prev, getBenchmarkKey(benchmark), MAX_BENCHMARKS),
-        );
-      }
-      setDetailsBenchmarkKey(undefined);
-    },
-    [isCatalogOpen, isInteractionDisabled],
+  const isDetailsBenchmarkSelected = benchmarks.some(
+    (benchmark) => getBenchmarkKey(benchmark) === detailsBenchmarkKey,
   );
 
-  const closeCatalog = React.useCallback(() => {
-    setIsCatalogOpen(false);
-    setDetailsBenchmarkKey(undefined);
-  }, []);
-
   return (
-    <div id="copy-suite-step-content-benchmarks" data-testid="copy-suite-step-benchmarks">
+    <div
+      id="copy-suite-step-content-benchmarks"
+      className="evalhub-copy-suite-page__step"
+      data-testid="copy-suite-step-benchmarks"
+    >
       <fieldset
         disabled={isInteractionDisabled}
         className="evalhub-copy-suite-benchmarks-step__fields"
@@ -167,7 +123,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
             : undefined
         }
       >
-        <PageHeader onOpenCatalog={openCatalog} hasBenchmarks={hasBenchmarks} />
+        <PageHeader />
 
         {hasBenchmarks ? (
           <Sidebar hasGutter className="evalhub-copy-suite-benchmarks-step__layout">
@@ -252,69 +208,58 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
             </SidebarContent>
           </Sidebar>
         ) : (
-          <EmptyBenchmarksState onOpenCatalog={openCatalog} />
+          <EmptyBenchmarksState onBack={onBack} />
         )}
-
-        <div
-          id="copy-suite-actions"
-          className="evalhub-copy-suite-page__footer"
-          data-testid="copy-suite-actions"
-        >
-          <Button
-            variant="secondary"
-            data-testid="copy-suite-back-step-2"
-            onClick={onBack}
-            isDisabled={isSubmitting}
-          >
-            Back
-          </Button>
-          <Button
-            variant="primary"
-            data-testid={primaryActionTestId}
-            onClick={onSaveAndRun}
-            isDisabled={!isValid || isSubmitting}
-            isLoading={isSubmitting}
-          >
-            {primaryActionLabel}
-          </Button>
-          {showSecondaryAction ? (
-            <Button
-              variant="secondary"
-              data-testid="copy-suite-save-only"
-              onClick={onSaveOnly}
-              isDisabled={!isValid || isSubmitting}
-            >
-              {secondaryActionLabel}
-            </Button>
-          ) : null}
-          <Button
-            variant="link"
-            data-testid="copy-suite-cancel-step-2"
-            onClick={onCancel}
-            isDisabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-        </div>
       </fieldset>
 
-      {isCatalogOpen && !isInteractionDisabled ? (
-        <CopySuiteBenchmarkCatalogDrawer
-          providers={providers}
-          selectedBenchmarkKeys={catalogDraftKeys}
-          onSelectionChange={setCatalogDraftKeys}
-          onSave={onApplyBenchmarkSelection}
-          onClose={closeCatalog}
-          detailsBenchmarkKey={detailsBenchmarkKey}
-          onOpenDetails={(benchmarkKey) => setDetailsBenchmarkKey(benchmarkKey)}
-        />
-      ) : null}
+      <div
+        id="copy-suite-actions"
+        className="evalhub-copy-suite-page__footer"
+        data-testid="copy-suite-actions"
+      >
+        <Button
+          variant="secondary"
+          data-testid="copy-suite-back-step-2"
+          onClick={onBack}
+          isDisabled={isSubmitting}
+        >
+          Back
+        </Button>
+        <Button
+          variant="primary"
+          data-testid={primaryActionTestId}
+          onClick={onSaveAndRun}
+          isDisabled={!isValid || isSubmitting}
+          isLoading={isSubmitting}
+        >
+          {primaryActionLabel}
+        </Button>
+        {showSecondaryAction ? (
+          <Button
+            variant="secondary"
+            data-testid="copy-suite-save-only"
+            onClick={onSaveOnly}
+            isDisabled={!isValid || isSubmitting}
+          >
+            {secondaryActionLabel}
+          </Button>
+        ) : null}
+        <Button
+          variant="link"
+          data-testid="copy-suite-cancel-step-2"
+          onClick={onCancel}
+          isDisabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+      </div>
 
-      {detailsBenchmarkKey && !isInteractionDisabled ? (
+      {!isInteractionDisabled ? (
         <CopySuiteBenchmarkDetailsOverlay
           benchmark={detailsBenchmark}
+          isOpen={!!detailsBenchmarkKey}
           onClose={() => setDetailsBenchmarkKey(undefined)}
-          onPrimaryAction={handleDetailsPrimaryAction}
+          onPrimaryAction={() => setDetailsBenchmarkKey(undefined)}
           primaryActionLabel={isDetailsBenchmarkSelected ? 'Selected' : 'Select benchmark'}
         />
       ) : null}
@@ -331,43 +276,18 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   );
 };
 
-type PageHeaderProps = {
-  onOpenCatalog: () => void;
-  hasBenchmarks: boolean;
-};
-
-const PageHeader: React.FC<PageHeaderProps> = ({ onOpenCatalog, hasBenchmarks }) => (
-  <Flex
-    alignItems={{ default: 'alignItemsFlexStart' }}
-    justifyContent={{ default: 'justifyContentSpaceBetween' }}
-    className="evalhub-copy-suite-benchmarks-step__header"
-  >
-    <FlexItem>
-      <Content component="p" data-testid="copy-suite-benchmarks-description">
-        Choose the primary metric, number of samples, number of few-shot examples, and threshold
-        used to calculate the result for each benchmark.
-      </Content>
-    </FlexItem>
-    {hasBenchmarks ? (
-      <FlexItem>
-        <Button
-          variant="primary"
-          id="copy-suite-add-benchmarks-btn"
-          data-testid="copy-suite-add-benchmarks-btn"
-          onClick={onOpenCatalog}
-        >
-          Add remove benchmarks
-        </Button>
-      </FlexItem>
-    ) : null}
-  </Flex>
+const PageHeader: React.FC = () => (
+  <Content component="p" data-testid="copy-suite-benchmarks-description">
+    Choose the primary metric, number of samples, number of few-shot examples, and threshold used to
+    calculate the result for each benchmark.
+  </Content>
 );
 
 type EmptyBenchmarksStateProps = {
-  onOpenCatalog: () => void;
+  onBack: () => void;
 };
 
-const EmptyBenchmarksState: React.FC<EmptyBenchmarksStateProps> = ({ onOpenCatalog }) => (
+const EmptyBenchmarksState: React.FC<EmptyBenchmarksStateProps> = ({ onBack }) => (
   <EmptyState
     data-testid="copy-suite-benchmarks-empty-state"
     headingLevel="h3"
@@ -376,12 +296,8 @@ const EmptyBenchmarksState: React.FC<EmptyBenchmarksStateProps> = ({ onOpenCatal
     <EmptyStateBody>No benchmarks have been added to this suite.</EmptyStateBody>
     <EmptyStateFooter>
       <EmptyStateActions>
-        <Button
-          variant="primary"
-          data-testid="copy-suite-empty-add-benchmarks-btn"
-          onClick={onOpenCatalog}
-        >
-          Add benchmarks
+        <Button variant="primary" data-testid="copy-suite-empty-back-btn" onClick={onBack}>
+          Back to select benchmarks
         </Button>
       </EmptyStateActions>
     </EmptyStateFooter>

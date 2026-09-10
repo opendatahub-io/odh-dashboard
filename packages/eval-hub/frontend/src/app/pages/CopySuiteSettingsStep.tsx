@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  ActionGroup,
   Button,
   Form,
   FormGroup,
@@ -167,7 +166,11 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
   const isSettingsValid = suiteName.trim() !== '';
 
   return (
-    <div id="copy-suite-step-content-settings" data-testid="copy-suite-step-settings">
+    <div
+      id="copy-suite-step-content-settings"
+      className="evalhub-copy-suite-page__step"
+      data-testid="copy-suite-step-settings"
+    >
       <Form id="copy-suite-form" style={{ maxWidth: 840 }} data-testid="copy-suite-form">
         <FormGroup label="Suite name" isRequired fieldId="suite-name">
           <Controller
@@ -261,21 +264,24 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
             />
           )}
         />
-
-        <ActionGroup>
-          <Button
-            variant="primary"
-            data-testid="copy-suite-next"
-            onClick={onNext}
-            isDisabled={!isSettingsValid}
-          >
-            Next
-          </Button>
-          <Button variant="link" data-testid="copy-suite-cancel" onClick={onCancel}>
-            Cancel
-          </Button>
-        </ActionGroup>
       </Form>
+      <div
+        id="copy-suite-settings-actions"
+        className="evalhub-copy-suite-page__footer"
+        data-testid="copy-suite-settings-actions"
+      >
+        <Button
+          variant="primary"
+          data-testid="copy-suite-next"
+          onClick={onNext}
+          isDisabled={!isSettingsValid}
+        >
+          Next
+        </Button>
+        <Button variant="link" data-testid="copy-suite-cancel" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 };

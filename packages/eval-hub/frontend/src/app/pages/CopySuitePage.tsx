@@ -22,6 +22,7 @@ import { evaluationsBaseRoute, evaluationCollectionsRoute } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
 import { formatCategory } from '~/app/components/benchmarkUtils';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
+import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
 import CopySuiteSettingsStep from '~/app/pages/CopySuiteSettingsStep';
 import { suiteEvaluatesToSourceMode } from '~/app/utilities/startEvaluationRunUtils';
@@ -30,7 +31,7 @@ import { useCopySuiteForm } from './useCopySuiteForm';
 
 import './CopySuitePage.scss';
 
-type CopySuiteStep = 'settings' | 'benchmarks';
+type CopySuiteStep = 'settings' | 'selectBenchmarks' | 'benchmarks';
 type SuiteEditorMode = 'copy' | 'create';
 
 type SuiteEditorPageProps = {
@@ -160,58 +161,96 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     );
   }
 
+  const breadcrumbItems: React.ReactElement[] = [
+    <BreadcrumbItem
+      key="evaluations"
+      render={() =>
+        renderBreadcrumbLink(
+          evaluationsBaseRoute(namespace),
+          'Evaluations',
+          'copy-suite-breadcrumb-evaluations',
+        )
+      }
+    />,
+    <BreadcrumbItem
+      key="collections"
+      render={() =>
+        renderBreadcrumbLink(
+          evaluationCollectionsRoute(namespace),
+          collectionsBreadcrumbLabel,
+          'copy-suite-breadcrumb-collections',
+        )
+      }
+    />,
+  ];
+
+  if (currentStep === 'settings') {
+    breadcrumbItems.push(
+      <BreadcrumbItem key="settings" isActive>
+        {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
+      </BreadcrumbItem>,
+    );
+  } else {
+    breadcrumbItems.push(
+      <BreadcrumbItem
+        key="settings"
+        render={() => (
+          <Button
+            variant="link"
+            isInline
+            className="pf-v6-c-breadcrumb__link"
+            onClick={() => {
+              if (!isPageInteractionDisabled) {
+                setCurrentStep('settings');
+              }
+            }}
+            isDisabled={isPageInteractionDisabled}
+            data-testid="copy-suite-breadcrumb-settings"
+          >
+            {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
+          </Button>
+        )}
+      />,
+    );
+
+    if (currentStep === 'selectBenchmarks') {
+      breadcrumbItems.push(
+        <BreadcrumbItem key="selectBenchmarks" isActive>
+          Select benchmarks
+        </BreadcrumbItem>,
+      );
+    } else {
+      breadcrumbItems.push(
+        <BreadcrumbItem
+          key="selectBenchmarks"
+          render={() => (
+            <Button
+              variant="link"
+              isInline
+              className="pf-v6-c-breadcrumb__link"
+              onClick={() => {
+                if (!isPageInteractionDisabled) {
+                  setCurrentStep('selectBenchmarks');
+                }
+              }}
+              isDisabled={isPageInteractionDisabled}
+              data-testid="copy-suite-breadcrumb-select-benchmarks"
+            >
+              Select benchmarks
+            </Button>
+          )}
+        />,
+        <BreadcrumbItem key="benchmarks" isActive>
+          Benchmarks
+        </BreadcrumbItem>,
+      );
+    }
+  }
+
   return (
     <ApplicationsPage
       noHeader
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() =>
-              renderBreadcrumbLink(
-                evaluationsBaseRoute(namespace),
-                'Evaluations',
-                'copy-suite-breadcrumb-evaluations',
-              )
-            }
-          />
-          <BreadcrumbItem
-            render={() =>
-              renderBreadcrumbLink(
-                evaluationCollectionsRoute(namespace),
-                collectionsBreadcrumbLabel,
-                'copy-suite-breadcrumb-collections',
-              )
-            }
-          />
-          {currentStep === 'settings' ? (
-            <BreadcrumbItem isActive>
-              {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
-            </BreadcrumbItem>
-          ) : (
-            <>
-              <BreadcrumbItem
-                render={() => (
-                  <Button
-                    variant="link"
-                    isInline
-                    className="pf-v6-c-breadcrumb__link"
-                    onClick={() => {
-                      if (!isPageInteractionDisabled) {
-                        setCurrentStep('settings');
-                      }
-                    }}
-                    isDisabled={isPageInteractionDisabled}
-                    data-testid="copy-suite-breadcrumb-settings"
-                  >
-                    {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
-                  </Button>
-                )}
-              />
-              <BreadcrumbItem isActive>Benchmarks</BreadcrumbItem>
-            </>
-          )}
-        </Breadcrumb>
-      }
+      breadcrumb={<Breadcrumb>{breadcrumbItems}</Breadcrumb>}
       loaded
       empty={false}
     >
@@ -222,7 +261,11 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         className="evalhub-copy-suite-page"
       >
         <FormProvider {...form.form}>
-          <div id="copy-suite-editor" data-testid="copy-suite-editor">
+          <div
+            id="copy-suite-editor"
+            className="evalhub-copy-suite-page__editor"
+            data-testid="copy-suite-editor"
+          >
             <Content
               component="h1"
               data-testid="app-page-title"
@@ -238,13 +281,24 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
 
             {currentStep === 'settings' ? (
               <CopySuiteSettingsStep
-                onNext={() => setCurrentStep('benchmarks')}
+                onNext={() => setCurrentStep('selectBenchmarks')}
+                onCancel={form.handleCancel}
+              />
+            ) : currentStep === 'selectBenchmarks' ? (
+              <CopySuiteBenchmarkSelectionStep
+                providers={providers}
+                selectedBenchmarkKeys={form.selectedBenchmarkKeys}
+                isInteractionDisabled={isPageInteractionDisabled}
+                onNext={(selectedKeys) => {
+                  form.applyBenchmarkSelection(selectedKeys);
+                  setCurrentStep('benchmarks');
+                }}
+                onBack={() => setCurrentStep('settings')}
                 onCancel={form.handleCancel}
               />
             ) : (
               <CopySuiteBenchmarksStep
                 benchmarks={form.benchmarks}
-                selectedBenchmarkKeys={form.selectedBenchmarkKeys}
                 providers={providers}
                 showWeightEdit={form.benchmarks.length > 1}
                 weightSegments={form.weightSegments}
@@ -253,9 +307,8 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
                 isSubmitting={isPageInteractionDisabled}
                 isInteractionDisabled={isPageInteractionDisabled}
                 onUpdateBenchmark={form.updateBenchmark}
-                onApplyBenchmarkSelection={form.applyBenchmarkSelection}
                 onWeightsChange={form.handleWeightsChange}
-                onBack={() => setCurrentStep('settings')}
+                onBack={() => setCurrentStep('selectBenchmarks')}
                 onSaveAndRun={form.handleSaveAndRun}
                 onSaveOnly={form.handleSaveOnly}
                 primaryActionTestId={isCreateMode ? 'create-suite-submit' : undefined}

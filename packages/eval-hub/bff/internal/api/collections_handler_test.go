@@ -115,7 +115,7 @@ func TestCreateCollectionHandlerPreservesCategory(t *testing.T) {
 	mockClient := ehmocks.NewMockEvalHubClient()
 	body := evalhub.CreateCollectionRequest{
 		Name:       "My New Suite",
-		Category:   "Safety",
+		Category:   "  Safety \t",
 		AIEntities: []string{"model"},
 		Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
 	}
@@ -129,6 +129,26 @@ func TestCreateCollectionHandlerPreservesCategory(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, response.StatusCode)
 	assert.Equal(t, "Safety", result.Data.Category)
+}
+
+func TestCreateCollectionHandlerFallsBackForWhitespaceCategory(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	body := evalhub.CreateCollectionRequest{
+		Name:       "My New Suite",
+		Category:   " \t\n",
+		AIEntities: []string{"model"},
+		Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
+	}
+
+	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collections?namespace=test-ns",
+		body, nil, identity, ehmocks.NewMockEvalHubClient(),
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+	assert.Equal(t, "model", result.Data.Category)
 }
 
 func TestCreateCollectionHandlerRequiresNameAndBenchmark(t *testing.T) {

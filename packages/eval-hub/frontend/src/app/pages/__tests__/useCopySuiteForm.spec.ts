@@ -62,7 +62,7 @@ const sourceCollection: Collection = {
       weight: 1,
       primary_score: { metric: 'accuracy', lower_is_better: false },
       pass_criteria: { threshold: 0.75 },
-      parameters: { limit: 250, num_few_shot: 3 },
+      parameters: { num_examples: 250, num_few_shot: 3 },
     },
   ],
 };
@@ -515,7 +515,7 @@ describe('useCopySuiteForm', () => {
           weight: 1,
           primary_score: { metric: 'accuracy', lower_is_better: false },
           parameters: {
-            limit: 250,
+            num_examples: 250,
             num_fewshot: 0,
             blocking_subtask: 'harmless',
             blocking_subtask_threshold: 0.7,
@@ -850,19 +850,19 @@ describe('useCopySuiteForm', () => {
       result.result.current.updateBenchmark(
         0,
         'additionalParameters',
-        '{"limit": 999, "num_fewshot": 20, "blocking_subtask": "harmless"}',
+        '{"num_examples": 999, "num_fewshot": 20, "blocking_subtask": "harmless"}',
       ),
     );
 
     await waitFor(() =>
       expect(
         result.result.current.form.formState.errors.benchmarks?.[0]?.additionalParameters?.message,
-      ).toBe('Use the dedicated fields for limit, num_fewshot.'),
+      ).toBe('Use the dedicated fields for num_examples, num_fewshot.'),
     );
 
     const pending = result.result.current.buildPendingCollection();
     expect(pending?.benchmarks?.[0].parameters).toEqual({
-      limit: 250,
+      num_examples: 250,
       num_few_shot: 3,
       blocking_subtask: 'harmless',
     });
@@ -912,7 +912,7 @@ describe('useCopySuiteForm', () => {
             weight: 1,
             primary_score: { metric: 'accuracy', lower_is_better: false },
             pass_criteria: { threshold: 0.75 },
-            parameters: { limit: 250, num_few_shot: 3 },
+            parameters: { num_examples: 250, num_few_shot: 3 },
           }),
         ],
       }),
