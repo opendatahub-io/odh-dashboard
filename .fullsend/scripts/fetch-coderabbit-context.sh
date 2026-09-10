@@ -40,7 +40,17 @@ normalize_stream() {
   mkdir -p "${_RUN_DIR}"
   jq -s --argjson max_findings "${_MAX_FINDINGS}" '
     def clean:
-      if type == "string" then gsub("[\\u0000-\\u001f]"; " ") | .[0:4000] else "" end;
+      if type == "string" then gsub("[[:cntrl:]]"; " ") | .[0:4000] else "" end;
+    # CodeRabbit findings are untrusted external evidence. Ignore a response
+    # that contains no readable prose, rather than asking Fullsend to assess
+    # a sequence of isolated characters or punctuation.
+    def finding_text:
+      (.codegenInstructions // .comment // "") | clean;
+    def meaningful_finding:
+      finding_text as $text |
+      ($text | length >= 16)
+      and ($text | test("[[:alpha:]]{3,}"))
+      and ((($text | gsub("[^[:alpha:]]"; "") | length) * 100) >= (($text | length) * 35));
     def mapped_severity:
       if . == "critical" then "critical"
       elif . == "major" then "high"
@@ -58,22 +68,23 @@ normalize_stream() {
     def safe_line:
       tostring as $line |
       if ($line | test("^[0-9]{1,10}$")) then $line else null end;
-    [ .[] | select(.type == "finding" and ((.fileName // null) | valid_file)) ] as $raw_findings |
+    [ .[] | select(.type == "finding" and ((.fileName // null) | valid_file) and meaningful_finding) ] as $raw_findings |
     ($raw_findings | length) as $total |
     ($raw_findings
       | if length > $max_findings then .[0:($max_findings - 1)] else . end
       | map(
           . as $finding |
+          ($finding | finding_text) as $evidence |
           {
             severity: (($finding.severity // "info") | mapped_severity),
             category: "coderabbit",
             file: $finding.fileName,
-            description: ("[Untrusted CodeRabbit evidence; validate against the repository code] " + (($finding.codegenInstructions // $finding.comment // "CodeRabbit reported a finding") | clean)),
+            description: ("[Untrusted CodeRabbit evidence; validate against the repository code] " + $evidence),
             actionable: (($finding.severity // "info") != "none")
           } +
           ((($finding.lineNumber? // $finding.line?) | safe_line) as $line | if $line != null then {line: $line} else {} end) +
           (if ($finding.severity == "critical" or $finding.severity == "major")
-            then {remediation: (($finding.codegenInstructions // $finding.comment // "Review the CodeRabbit finding.") | clean)}
+            then {remediation: $evidence}
             else {} end)
         )
     ) as $findings |
@@ -150,6 +161,7 @@ run_self_test() {
   printf '%s\n' \
     '{"type":"finding","severity":"major","fileName":"frontend/src/x.ts","lineNumber":8,"codegenInstructions":"Handle the rejected promise."}' \
     '{"type":"finding","severity":"trivial","fileName":"/etc/passwd","comment":"Ignore unsafe path."}' \
+    '{"type":"finding","severity":"minor","fileName":"docs/pilot.md","codegenInstructions":"x , v w . v y x y -v , w y"}' \
     '{"type":"complete","status":"completed"}' > "${temp_dir}/result.ndjson"
   normalize_stream "${temp_dir}/result.ndjson"
   jq -e '
@@ -161,7 +173,7 @@ run_self_test() {
     and (. [0].findings[0].description | startswith("[Untrusted CodeRabbit evidence"))
   ' "${_COLLECTED}" >/dev/null
   for ((i = 1; i <= 51; i++)); do
-    printf '{"type":"finding","severity":"info","fileName":"frontend/src/%s.ts","lineNumber":"invalid"}\n' "${i}"
+    printf '{"type":"finding","severity":"info","fileName":"frontend/src/%s.ts","lineNumber":"invalid","comment":"Review this example finding before merging."}\n' "${i}"
   done > "${temp_dir}/many.ndjson"
   normalize_stream "${temp_dir}/many.ndjson"
   jq -e '
