@@ -2,9 +2,8 @@
 # Host-side CodeRabbit adapter for Fullsend review runs.
 #
 # The CodeRabbit API key is used only here, in the trusted context job. This
-# script writes a bounded, normalized finding envelope and collection file for
-# Fullsend to upload to its sandbox; raw CLI output and credentials never leave
-# the runner.
+# script writes a bounded, normalized finding envelope for the host-side
+# aggregator; raw CLI output and credentials never leave the runner.
 #
 # Usage:
 #   fetch-coderabbit-context.sh
@@ -14,7 +13,6 @@ set -euo pipefail
 _DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _RUN_DIR="${_DIR}/../.run"
 _OUT="${_RUN_DIR}/coderabbit.json"
-_COLLECTED="${_RUN_DIR}/collected.json"
 _MAX_FINDINGS=50
 
 write_envelope() {
@@ -31,8 +29,6 @@ write_envelope() {
       findings: []
     } + if $reason == "" then {} else {reason: $reason} end
   ' > "${_OUT}"
-  jq -s '[.[] | select(.output == "findings" and (.findings | type == "array"))]' \
-    "${_OUT}" > "${_COLLECTED}"
 }
 
 normalize_stream() {
@@ -106,8 +102,6 @@ normalize_stream() {
         else [] end))
     }
   ' "${raw}" > "${_OUT}"
-  jq -s '[.[] | select(.output == "findings" and (.findings | type == "array"))]' \
-    "${_OUT}" > "${_COLLECTED}"
 }
 
 run_producer() {
@@ -157,7 +151,6 @@ run_self_test() {
   trap 'rm -rf "${temp_dir}"' RETURN
   _RUN_DIR="${temp_dir}"
   _OUT="${_RUN_DIR}/coderabbit.json"
-  _COLLECTED="${_RUN_DIR}/collected.json"
   printf '%s\n' \
     '{"type":"finding","severity":"major","fileName":"frontend/src/x.ts","lineNumber":8,"codegenInstructions":"Handle the rejected promise."}' \
     '{"type":"finding","severity":"trivial","fileName":"/etc/passwd","comment":"Ignore unsafe path."}' \
@@ -168,10 +161,10 @@ run_self_test() {
     .status == "ok" and (.findings | length == 1)
   ' "${_OUT}" >/dev/null
   jq -e '
-    .[0].findings[0].severity == "high"
-    and .[0].findings[0].line == "8"
-    and (. [0].findings[0].description | startswith("[Untrusted CodeRabbit evidence"))
-  ' "${_COLLECTED}" >/dev/null
+    .findings[0].severity == "high"
+    and .findings[0].line == "8"
+    and (.findings[0].description | startswith("[Untrusted CodeRabbit evidence"))
+  ' "${_OUT}" >/dev/null
   for ((i = 1; i <= 51; i++)); do
     printf '{"type":"finding","severity":"info","fileName":"frontend/src/%s.ts","lineNumber":"invalid","comment":"Review this example finding before merging."}\n' "${i}"
   done > "${temp_dir}/many.ndjson"

@@ -39,6 +39,26 @@ normalize_dispatch_context() {
   fi
 }
 
+aggregate_findings() {
+  local run_dir="${_SCRIPT_DIR}/../.run"
+  local file
+  local files=()
+
+  shopt -s nullglob
+  for file in "${run_dir}"/*.json; do
+    [[ "${file}" == "${run_dir}/collected.json" ]] || files+=("${file}")
+  done
+  shopt -u nullglob
+
+  mkdir -p "${run_dir}"
+  if ((${#files[@]} == 0)); then
+    printf '[]\n' > "${run_dir}/collected.json"
+  else
+    jq -s '[.[] | select(.output == "findings" and (.findings | type == "array"))]' \
+      "${files[@]}" > "${run_dir}/collected.json"
+  fi
+}
+
 run_self_test() {
   local fail=0
   if ! (
@@ -207,20 +227,19 @@ if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
     --name "${_CODERABBIT_ARTIFACT}" \
     --dir "${_CODERABBIT_ARTIFACT_DIR}" >/dev/null 2>&1; then
     _CODERABBIT_FILE="${_CODERABBIT_ARTIFACT_DIR}/coderabbit.json"
-    _COLLECTED_FILE="${_CODERABBIT_ARTIFACT_DIR}/collected.json"
-    if [[ -f "${_CODERABBIT_FILE}" && -f "${_COLLECTED_FILE}" ]]; then
+    if [[ -f "${_CODERABBIT_FILE}" ]]; then
       mkdir -p "${_SCRIPT_DIR}/../.run"
       cp "${_CODERABBIT_FILE}" "${_SCRIPT_DIR}/../.run/coderabbit.json"
-      cp "${_COLLECTED_FILE}" "${_SCRIPT_DIR}/../.run/collected.json"
       export FULLSEND_CODERABBIT_CONTEXT_READY=1
       echo "Loaded sanitized CodeRabbit findings from workflow artifact ${_CODERABBIT_ARTIFACT}"
     else
-      echo "::warning::CodeRabbit context artifact did not contain both normalized JSON files"
+      echo "::warning::CodeRabbit context artifact did not contain coderabbit.json"
     fi
   else
     echo "::warning::Could not download CodeRabbit context artifact ${_CODERABBIT_ARTIFACT}; continuing without CodeRabbit findings"
   fi
   rm -rf "${_CODERABBIT_ARTIFACT_DIR}"
+  aggregate_findings
 fi
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"
