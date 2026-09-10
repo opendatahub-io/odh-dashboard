@@ -83,7 +83,7 @@ normalize_stream() {
       kind: "cli-adapter",
       output: "findings",
       status: "ok",
-      findings: $findings +
+      findings: ($findings +
         (if $total > $max_findings then
           [{
             severity: "info",
@@ -92,7 +92,7 @@ normalize_stream() {
             description: "CodeRabbit output was truncated from \($total) findings to \($max_findings - 1) findings.",
             actionable: false
           }]
-        else [] end)
+        else [] end))
     }
   ' "${raw}" > "${_OUT}"
   jq -s '[.[] | select(.output == "findings" and (.findings | type == "array"))]' \
