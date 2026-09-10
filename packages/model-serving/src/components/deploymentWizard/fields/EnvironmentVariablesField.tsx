@@ -21,35 +21,84 @@ import {
   OutlinedQuestionCircleIcon,
   PlusCircleIcon,
 } from '@patternfly/react-icons';
+import SimpleSelect, {
+  type SimpleSelectOption,
+} from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { z } from 'zod';
+import {
+  createDefaultEnvironmentVariable,
+  EnvironmentVariableType,
+  isEnvironmentVariableType,
+  normalizeEnvironmentVariable,
+  type EnvironmentVariable,
+} from '../../../shared/environmentVariablesUtils';
 
-// Schema
-const envVarSchema = z.object({
-  name: z
-    .string()
-    .regex(
-      /^[A-Za-z_][A-Za-z0-9_]*$/,
-      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
-    ),
+const envVarNameSchema = z
+  .string()
+  .regex(
+    /^[A-Za-z_][A-Za-z0-9_]*$/,
+    'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+  );
+
+const valueEnvVarSchema = z.object({
+  type: z.literal(EnvironmentVariableType.Value),
+  name: envVarNameSchema,
   value: z.string(),
 });
 
+const secretEnvVarSchema = z.object({
+  type: z.literal(EnvironmentVariableType.Secret),
+  name: envVarNameSchema,
+  secretName: z.string().min(1, 'Secret name is required'),
+  secretKey: z.string().min(1, 'Secret key is required'),
+});
+
+const enabledEnvVarSchema = z.discriminatedUnion('type', [valueEnvVarSchema, secretEnvVarSchema]);
+
+const disabledEnvVarSchema = z.object({
+  type: z.nativeEnum(EnvironmentVariableType).optional(),
+  name: z.string(),
+  value: z.string().optional(),
+  secretName: z.string().optional(),
+  secretKey: z.string().optional(),
+});
+
 export const environmentVariablesFieldSchema = z.discriminatedUnion('enabled', [
-  z.object({ enabled: z.literal(true), variables: z.array(envVarSchema) }),
+  z.object({
+    enabled: z.literal(true),
+    variables: z.array(enabledEnvVarSchema),
+  }),
   z.object({
     enabled: z.literal(false),
-    variables: z.array(z.object({ name: z.string(), value: z.string() })),
+    variables: z.array(disabledEnvVarSchema),
   }),
 ]);
 
 export type EnvironmentVariablesFieldData = z.infer<typeof environmentVariablesFieldSchema>;
 
+const envVarTypeOptions: SimpleSelectOption[] = [
+  { key: EnvironmentVariableType.Value, label: 'Value' },
+  { key: EnvironmentVariableType.Secret, label: 'Secret' },
+];
+
 export const isValidEnvironmentVariables = (name: string): string => {
   if (name.length === 0) {
     return '';
   }
-  const result = envVarSchema.shape.name.safeParse(name);
+  const result = envVarNameSchema.safeParse(name);
   return result.success ? '' : result.error.errors[0]?.message || '';
+};
+
+const isEnvironmentVariableComplete = (envVar: EnvironmentVariable): boolean => {
+  if (envVar.name.trim() === '' || isValidEnvironmentVariables(envVar.name) !== '') {
+    return false;
+  }
+
+  if (envVar.type === EnvironmentVariableType.Secret) {
+    return envVar.secretName.trim() !== '' && envVar.secretKey.trim() !== '';
+  }
+
+  return true;
 };
 
 export const hasInvalidEnvironmentVariableNames = (
@@ -59,13 +108,7 @@ export const hasInvalidEnvironmentVariableNames = (
     return false;
   }
 
-  return data.variables.some((variable) => {
-    if (variable.name.trim() === '') {
-      return true;
-    }
-    const error = isValidEnvironmentVariables(variable.name);
-    return error !== '';
-  });
+  return data.variables.some((variable) => !isEnvironmentVariableComplete(variable));
 };
 
 // Hook
@@ -85,6 +128,14 @@ export const useEnvironmentVariablesField = (
     data: envVarsData,
     setData: setEnvVarsData,
   };
+};
+
+type EnvironmentVariableUpdates = {
+  type?: EnvironmentVariableType;
+  name?: string;
+  value?: string;
+  secretName?: string;
+  secretKey?: string;
 };
 
 // Component
@@ -109,9 +160,17 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
   };
 
   const addEnvVar = () => {
-    const newVars = [...data.variables, { name: '', value: '' }];
-    const newData = { ...data, variables: newVars };
-    onChange?.(newData);
+    if (data.enabled) {
+      onChange?.({
+        enabled: true,
+        variables: [
+          ...data.variables.map(normalizeEnvironmentVariable),
+          createDefaultEnvironmentVariable(),
+        ],
+      });
+    } else {
+      onChange?.({ enabled: true, variables: [createDefaultEnvironmentVariable()] });
+    }
     requestAnimationFrame(() => {
       lastNameFieldRef.current?.focus();
     });
@@ -119,23 +178,59 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
 
   const removeEnvVar = (indexToRemove: number) => {
     const newVars = data.variables.filter((_, i) => i !== indexToRemove);
-    const newData = { ...data, variables: newVars };
-    onChange?.(newData);
+    if (data.enabled) {
+      onChange?.({
+        enabled: true,
+        variables: newVars.map(normalizeEnvironmentVariable),
+      });
+    } else {
+      onChange?.({ enabled: false, variables: newVars });
+    }
   };
 
-  const updateEnvVar = (index: number, updates: { name?: string; value?: string }) => {
-    const newVars = [...data.variables];
-    const updatedVar = { ...newVars[index], ...updates };
+  const updateEnvVar = (index: number, updates: EnvironmentVariableUpdates) => {
+    if (!data.enabled) {
+      return;
+    }
+
+    const currentVar = normalizeEnvironmentVariable(data.variables[index]);
+    const nextType = updates.type ?? currentVar.type;
+
+    const updatedVar: EnvironmentVariable =
+      nextType === EnvironmentVariableType.Secret
+        ? {
+            type: EnvironmentVariableType.Secret,
+            name: updates.name ?? currentVar.name,
+            secretName:
+              updates.secretName ??
+              (currentVar.type === EnvironmentVariableType.Secret ? currentVar.secretName : ''),
+            secretKey:
+              updates.secretKey ??
+              (currentVar.type === EnvironmentVariableType.Secret ? currentVar.secretKey : ''),
+          }
+        : {
+            type: EnvironmentVariableType.Value,
+            name: updates.name ?? currentVar.name,
+            value:
+              updates.value ??
+              (currentVar.type === EnvironmentVariableType.Value ? currentVar.value : ''),
+          };
+
+    const newVars = data.variables.map(normalizeEnvironmentVariable);
     newVars[index] = updatedVar;
-    const newData = { ...data, variables: newVars };
-    onChange?.(newData);
+    onChange?.({ enabled: true, variables: newVars });
   };
 
   const handleCheckboxChange = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    const newData: EnvironmentVariablesFieldData = checked
-      ? { enabled: true, variables: data.variables }
-      : { enabled: false, variables: data.variables };
-    onChange?.(newData);
+    if (checked) {
+      onChange?.({
+        enabled: true,
+        variables: data.variables.map(normalizeEnvironmentVariable),
+      });
+      return;
+    }
+
+    onChange?.({ enabled: false, variables: data.variables });
   };
 
   return (
@@ -198,36 +293,107 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
         <Stack>
           <Stack hasGutter>
             {data.variables.map((envVar, index) => {
-              const error = validateEnvVarName(envVar.name);
+              const normalizedEnvVar = normalizeEnvironmentVariable(envVar);
+              const nameError = validateEnvVarName(normalizedEnvVar.name);
+              const secretNameError =
+                normalizedEnvVar.type === EnvironmentVariableType.Secret &&
+                normalizedEnvVar.secretName.trim() === ''
+                  ? 'Secret name is required'
+                  : '';
+              const secretKeyError =
+                normalizedEnvVar.type === EnvironmentVariableType.Secret &&
+                normalizedEnvVar.secretKey.trim() === ''
+                  ? 'Secret key is required'
+                  : '';
+
               return (
                 <Split hasGutter key={index}>
+                  <SplitItem>
+                    <SimpleSelect
+                      dataTestId={`env-var-type-${index}`}
+                      ariaLabel="env var type"
+                      options={envVarTypeOptions}
+                      value={normalizedEnvVar.type}
+                      onChange={(key) => {
+                        if (isEnvironmentVariableType(key)) {
+                          updateEnvVar(index, { type: key });
+                        }
+                      }}
+                      isDisabled={!allowCreate}
+                    />
+                  </SplitItem>
                   <SplitItem isFilled>
                     <TextInput
                       data-testid={`env-var-name-${index}`}
                       aria-label="env var name"
-                      value={envVar.name}
+                      value={normalizedEnvVar.name}
                       onChange={(_event, value) => updateEnvVar(index, { name: value })}
                       ref={index === data.variables.length - 1 ? lastNameFieldRef : undefined}
-                      validated={error ? ValidatedOptions.error : ValidatedOptions.default}
+                      validated={nameError ? ValidatedOptions.error : ValidatedOptions.default}
                     />
-                    {error && (
+                    {nameError && (
                       <FormHelperText>
                         <HelperText>
                           <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-                            {error}
+                            {nameError}
                           </HelperTextItem>
                         </HelperText>
                       </FormHelperText>
                     )}
                   </SplitItem>
-                  <SplitItem isFilled>
-                    <TextInput
-                      data-testid={`env-var-value-${index}`}
-                      aria-label="env var value"
-                      value={envVar.value}
-                      onChange={(_event, value) => updateEnvVar(index, { value })}
-                    />
-                  </SplitItem>
+                  {normalizedEnvVar.type === EnvironmentVariableType.Value ? (
+                    <SplitItem isFilled>
+                      <TextInput
+                        data-testid={`env-var-value-${index}`}
+                        aria-label="env var value"
+                        value={normalizedEnvVar.value}
+                        onChange={(_event, value) => updateEnvVar(index, { value })}
+                      />
+                    </SplitItem>
+                  ) : (
+                    <>
+                      <SplitItem isFilled>
+                        <TextInput
+                          data-testid={`env-var-secret-name-${index}`}
+                          aria-label="env var secret name"
+                          value={normalizedEnvVar.secretName}
+                          onChange={(_event, value) => updateEnvVar(index, { secretName: value })}
+                          validated={
+                            secretNameError ? ValidatedOptions.error : ValidatedOptions.default
+                          }
+                        />
+                        {secretNameError && (
+                          <FormHelperText>
+                            <HelperText>
+                              <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                                {secretNameError}
+                              </HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
+                        )}
+                      </SplitItem>
+                      <SplitItem isFilled>
+                        <TextInput
+                          data-testid={`env-var-secret-key-${index}`}
+                          aria-label="env var secret key"
+                          value={normalizedEnvVar.secretKey}
+                          onChange={(_event, value) => updateEnvVar(index, { secretKey: value })}
+                          validated={
+                            secretKeyError ? ValidatedOptions.error : ValidatedOptions.default
+                          }
+                        />
+                        {secretKeyError && (
+                          <FormHelperText>
+                            <HelperText>
+                              <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                                {secretKeyError}
+                              </HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
+                        )}
+                      </SplitItem>
+                    </>
+                  )}
                   <SplitItem>
                     <Button
                       aria-label="remove-environment-variable"

@@ -35,6 +35,21 @@ export {
 } from '../components/deploymentWizard/fields/EnvironmentVariablesField';
 
 export {
+  EnvironmentVariableType,
+  createDefaultEnvironmentVariable,
+  formatEnvironmentVariableForReview,
+  mapEnvironmentVariableToK8sEnv,
+  mapEnvironmentVariablesToK8sEnv,
+  mapK8sEnvToEnvironmentVariable,
+  normalizeEnvironmentVariable,
+  type EnvironmentVariable,
+  type K8sEnvironmentVariable,
+  type K8sEnvironmentVariableInput,
+  type SecretEnvironmentVariable,
+  type ValueEnvironmentVariable,
+} from './environmentVariablesUtils';
+
+export {
   ExternalRouteField,
   externalRouteFieldSchema,
   isValidExternalRoute,

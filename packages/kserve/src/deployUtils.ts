@@ -15,6 +15,7 @@ import {
   type ModelAvailabilityFieldsData,
   type RuntimeArgsFieldData,
   type EnvironmentVariablesFieldData,
+  mapEnvironmentVariablesToK8sEnv,
   type CreateConnectionData,
   type DeploymentStrategyFieldData,
   type DeploymentMethodFieldData,
@@ -114,10 +115,7 @@ export const applyEnvironmentVariables = (
   result.spec.predictor.model = {
     ...result.spec.predictor.model,
     ...(environmentVariables.enabled && {
-      env: environmentVariables.variables.map((envVar) => ({
-        name: envVar.name,
-        value: envVar.value,
-      })),
+      env: mapEnvironmentVariablesToK8sEnv(environmentVariables.variables),
     }),
   };
 
