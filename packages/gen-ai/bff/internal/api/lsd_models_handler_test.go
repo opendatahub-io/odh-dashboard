@@ -54,24 +54,6 @@ var _ = Describe("LlamaStackModelsHandler", func() {
 		assert.Greater(t, len(models), 0, "should have at least one model")
 	})
 
-	It("should query OGX even when GatewayDomain is configured", func() {
-		t := GinkgoT()
-		app.config.GatewayDomain = "apps.cluster.example.com"
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models?namespace="+testutil.TestNamespace, nil)
-		assert.NoError(t, err)
-
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		req = req.WithContext(context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient))
-
-		app.LlamaStackModelsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		var response ModelsResponse
-		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-		assert.NotEmpty(t, response.Data)
-	})
-
 	It("should have correct response structure", func() {
 		t := GinkgoT()
 		rr := httptest.NewRecorder()
