@@ -147,15 +147,6 @@ export const QUOTA_USAGE_TO_KUEUE_STATUS: Partial<
   [QuotaUsageWorkloadStatuses.Complete]: KueueWorkloadStatus.Complete,
 };
 
-/**
- * Default Quota usage cluster-queue table scope (RHOAIENG-88168): active workloads only.
- * Complete and Failed are excluded unless product scope changes.
- */
-export const QUOTA_USAGE_EXCLUDED_WORKLOAD_STATUSES: QuotaUsageWorkloadStatus[] = [
-  QuotaUsageWorkloadStatuses.Complete,
-  QuotaUsageWorkloadStatuses.Failed,
-];
-
 /** Statuses indicating the workload has passed Kueue admission. */
 export const QUOTA_USAGE_STATUSES_PAST_ADMISSION: QuotaUsageWorkloadStatus[] = [
   QuotaUsageWorkloadStatuses.Admitted,
@@ -181,8 +172,7 @@ export type ClusterQueueWorkloadRow = {
   /**
    * Hardware profile display name — resolved from the real HardwareProfile CR when the workload's
    * Pod carries the `opendatahub.io/hardware-profile-name` annotation (e.g. "Research notebook MIG
-   * 7g"), falling back to the GPU product from the admitted ResourceFlavor's nodeLabels (e.g.
-   * "NVIDIA-L40S").
+   * 7g"), or by matching workload resources to a HardwareProfile.
    */
   hardwareProfile?: string;
   /** Accelerator resource identifier for the resolved hardware profile, e.g. "nvidia.com/mig-7g.80gb". */

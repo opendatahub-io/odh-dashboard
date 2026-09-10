@@ -190,19 +190,16 @@ const useWorkloadRows = (
       refreshedCache,
       projectDisplayNames,
     );
-    const flattenedRows = [...workloadsByClusterQueue.values()].flat();
-    const refreshedPositions =
-      flattenedRows.length > 0 ? await fetchQueuePositions(flattenedRows) : emptyPositions;
 
     return {
       mode: 'clusterQueues',
       workloadsByClusterQueue: applyQueuePositionsToMap(
         workloadsByClusterQueue,
-        refreshedPositions,
-        true,
+        positions,
+        positionsLoaded,
       ),
     };
-  }, [refreshCache, projectDisplayNames]);
+  }, [positions, positionsLoaded, projectDisplayNames, refreshCache]);
 
   if (scope.mode === 'namespace') {
     return {

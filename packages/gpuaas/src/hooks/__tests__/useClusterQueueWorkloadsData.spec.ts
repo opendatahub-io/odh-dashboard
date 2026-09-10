@@ -45,7 +45,6 @@ const fetchQueuePositionsMock = jest.mocked(fetchQueuePositions);
 const kueueProject = mockProjectK8sResource({ k8sName: 'dsp-1', enableKueue: true });
 const emptyCache = {
   namespaceData: [],
-  resourceFlavorByName: new Map(),
   hardwareProfileByKey: new Map(),
   hardwareProfilesForMatching: [],
 };
@@ -117,7 +116,6 @@ const mockCacheWithTwoQueues = {
       jobKindByUid: new Map(),
     },
   ],
-  resourceFlavorByName: new Map(),
 } as unknown as KueueNamespaceWorkloadCache;
 
 const mockUseFetchDefaults = (): void => {

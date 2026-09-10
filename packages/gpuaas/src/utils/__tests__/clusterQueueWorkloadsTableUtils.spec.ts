@@ -43,11 +43,13 @@ describe('clusterQueueWorkloadsTableUtils', () => {
       priority: 'on demand (100)',
       hardwareProfile: 'Standard (H100 MIG - 20GB)',
     }),
+    baseRow({ name: 'completed-training', status: QuotaUsageWorkloadStatuses.Complete }),
+    baseRow({ name: 'failed-training', status: QuotaUsageWorkloadStatuses.Failed }),
   ];
 
   describe('filterClusterQueueWorkloads', () => {
     it('should return all workloads when no filters are active', () => {
-      expect(filterClusterQueueWorkloads(workloads, {})).toHaveLength(3);
+      expect(filterClusterQueueWorkloads(workloads, {})).toHaveLength(5);
     });
 
     it('should filter workloads by name', () => {
@@ -64,6 +66,13 @@ describe('clusterQueueWorkloadsTableUtils', () => {
           status: { label: 'Admitted', value: QuotaUsageWorkloadStatuses.Admitted },
         }),
       ).toEqual([workloads[2]]);
+    });
+
+    it.each([
+      [QuotaUsageWorkloadStatuses.Complete, workloads[3]],
+      [QuotaUsageWorkloadStatuses.Failed, workloads[4]],
+    ])('should filter workloads by %s status', (status, expectedWorkload) => {
+      expect(filterClusterQueueWorkloads(workloads, { status })).toEqual([expectedWorkload]);
     });
 
     it('should apply name and status filters together', () => {

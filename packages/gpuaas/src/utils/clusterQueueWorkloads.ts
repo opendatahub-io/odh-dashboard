@@ -5,7 +5,6 @@ import {
   type LocalQueueKind,
   type PodKind,
   type ProjectKind,
-  type ResourceFlavorKind,
   WorkloadOwnerType,
   type WorkloadKind,
 } from '@odh-dashboard/k8s-core';
@@ -16,7 +15,6 @@ import {
 } from '@odh-dashboard/internal/api/k8s/hardwareProfiles';
 import { listInferenceService } from '@odh-dashboard/internal/api/k8s/inferenceServices';
 import { getPendingWorkloads } from '@odh-dashboard/internal/api/k8s/pendingWorkloads';
-import { listResourceFlavors } from '@odh-dashboard/internal/api/k8s/resourceFlavors';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { PodModel, StatefulSetModel } from '@odh-dashboard/internal/api/models';
 import { RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
@@ -27,7 +25,6 @@ import {
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import {
   buildHardwareProfileKey,
-  buildResourceFlavorByName,
   getHardwareProfileRefFromAnnotations,
   getHardwareProfileRefFromPod,
   type HardwareProfileByKey,
@@ -47,7 +44,6 @@ import {
   type QuotaUsageWorkloadType,
 } from '../types';
 
-const EMPTY_HARDWARE_PROFILES: HardwareProfileKind[] = [];
 const EMPTY_INFERENCE_SERVICES: WorkloadInferenceService[] = [];
 
 const NOTEBOOK_OWNER_KINDS = new Set(['job', 'statefulset', 'notebook', 'pod']);
@@ -103,7 +99,6 @@ export type { HardwareProfileByKey } from './hardwareModels';
 
 export type KueueNamespaceWorkloadCache = {
   namespaceData: NamespaceWorkloadData[];
-  resourceFlavorByName: Map<string, ResourceFlavorKind>;
   hardwareProfileByKey: HardwareProfileByKey;
   /** All HardwareProfile CRs used for resource-based matching (global + project namespaces). */
   hardwareProfilesForMatching: HardwareProfileKind[];
@@ -111,12 +106,25 @@ export type KueueNamespaceWorkloadCache = {
   namespaceLoadError?: Error;
 };
 
-/** Collects the distinct HardwareProfile refs referenced by Pod, StatefulSet, or InferenceService annotations. */
+/**
+ * Collects distinct HardwareProfile refs referenced by workload-related annotations.
+ *
+ * Pending workloads may carry the profile annotation only on the Workload pod-set template, before
+ * a Pod or owning StatefulSet exists, so those annotations must be included here as well.
+ */
 export const collectHardwareProfileRefs = (
   namespaceData: NamespaceWorkloadData[],
 ): HardwareProfileRef[] => {
   const refsByKey = new Map<string, HardwareProfileRef>();
-  for (const { pods, statefulSets, inferenceServices } of namespaceData) {
+  for (const { workloads, pods, statefulSets, inferenceServices } of namespaceData) {
+    for (const workload of workloads) {
+      for (const podSet of workload.spec.podSets) {
+        const ref = getHardwareProfileRefFromAnnotations(podSet.template.metadata?.annotations);
+        if (ref) {
+          refsByKey.set(buildHardwareProfileKey(ref), ref);
+        }
+      }
+    }
     for (const pod of pods) {
       const ref = getHardwareProfileRefFromPod(pod);
       if (ref) {
@@ -156,9 +164,15 @@ export const fetchHardwareProfilesForMatching = async (
   }
 
   const profileLists = await Promise.all(
-    [...namespaces].map((namespace) =>
-      listHardwareProfiles(namespace).catch(() => EMPTY_HARDWARE_PROFILES),
-    ),
+    [...namespaces].map(async (namespace) => {
+      try {
+        return await listHardwareProfiles(namespace);
+      } catch {
+        // Hardware-profile matching is optional enrichment; one inaccessible namespace should not
+        // prevent workload rows from rendering with an unavailable profile value.
+        return [];
+      }
+    }),
   );
 
   const profilesByKey = new Map<string, HardwareProfileKind>();
@@ -466,25 +480,12 @@ export const isKueueManagedWorkload = (
   return true;
 };
 
-const EXCLUDED_KUEUE_STATUSES_FOR_CQ_TABLE = new Set([
-  KueueWorkloadStatus.Complete,
-  KueueWorkloadStatus.Failed,
-]);
-
-/** Default CQ table scope: active workloads only — excludes Complete and Failed. */
-export const isActiveQuotaUsageClusterQueueWorkload = (workload: WorkloadKind): boolean => {
-  const { status } = getKueueWorkloadStatusWithMessage(workload);
-  return !EXCLUDED_KUEUE_STATUSES_FOR_CQ_TABLE.has(status);
-};
-
 export const isQuotaUsageClusterQueueWorkload = (
   workload: WorkloadKind,
   pods: PodKind[],
   localQueueByName: Map<string, LocalQueueKind>,
 ): boolean =>
-  isGpuAwareWorkload(workload) &&
-  isKueueManagedWorkload(workload, pods, localQueueByName) &&
-  isActiveQuotaUsageClusterQueueWorkload(workload);
+  isGpuAwareWorkload(workload) && isKueueManagedWorkload(workload, pods, localQueueByName);
 
 /**
  * Notebook-style workbench workloads carry the job-name label and a supported owner ref.
@@ -1041,7 +1042,6 @@ export const mapWorkloadToRow = (
   projectDisplayName: string,
   pods: PodKind[],
   localQueueByName: Map<string, LocalQueueKind>,
-  resourceFlavorByName: Map<string, ResourceFlavorKind>,
   jobKindByUid: ReadonlyMap<string, WorkloadJobKind> = new Map(),
   clusterQueueName?: string,
   hardwareProfileByKey: HardwareProfileByKey = new Map(),
@@ -1068,7 +1068,6 @@ export const mapWorkloadToRow = (
     inferenceService,
     hardwareProfileByKey,
     hardwareProfilesForMatching,
-    resourceFlavorByName,
     workloadType,
   });
 
@@ -1097,7 +1096,6 @@ export const filterAndMapClusterQueueWorkloads = (
   clusterQueueName: string,
   namespaceData: NamespaceWorkloadData[],
   projectDisplayNames: Map<string, string>,
-  resourceFlavorByName: Map<string, ResourceFlavorKind>,
   hardwareProfileByKey: HardwareProfileByKey = new Map(),
   hardwareProfilesForMatching: HardwareProfileKind[] = [],
 ): ClusterQueueWorkloadRow[] =>
@@ -1129,7 +1127,6 @@ export const filterAndMapClusterQueueWorkloads = (
             projectDisplayName,
             pods,
             localQueueByName,
-            resourceFlavorByName,
             jobKindByUid,
             clusterQueueName,
             hardwareProfileByKey,
@@ -1153,7 +1150,6 @@ export const filterAndMapNamespaceWorkloads = (
     jobKindByUid,
   }: NamespaceWorkloadData,
   projectDisplayName: string,
-  resourceFlavorByName: Map<string, ResourceFlavorKind>,
   hardwareProfileByKey: HardwareProfileByKey = new Map(),
   hardwareProfilesForMatching: HardwareProfileKind[] = [],
 ): ClusterQueueWorkloadRow[] => {
@@ -1168,7 +1164,6 @@ export const filterAndMapNamespaceWorkloads = (
       projectDisplayName,
       pods,
       localQueueByName,
-      resourceFlavorByName,
       jobKindByUid,
       undefined,
       hardwareProfileByKey,
@@ -1264,24 +1259,20 @@ export const fetchKueueNamespaceWorkloadCache = async (
   if (namespaces.length === 0) {
     return {
       namespaceData: [],
-      resourceFlavorByName: new Map(),
       hardwareProfileByKey: new Map(),
       hardwareProfilesForMatching: [],
     };
   }
 
-  const [namespaceResults, resourceFlavors] = await Promise.all([
-    Promise.all(
-      namespaces.map(async (namespace) => {
-        try {
-          return await fetchNamespaceWorkloadData(namespace);
-        } catch {
-          return undefined;
-        }
-      }),
-    ),
-    listResourceFlavors(),
-  ]);
+  const namespaceResults = await Promise.all(
+    namespaces.map(async (namespace) => {
+      try {
+        return await fetchNamespaceWorkloadData(namespace);
+      } catch {
+        return undefined;
+      }
+    }),
+  );
 
   const namespaceData = namespaceResults.filter(
     (result): result is NamespaceWorkloadData => result != null,
@@ -1293,7 +1284,6 @@ export const fetchKueueNamespaceWorkloadCache = async (
 
   return {
     namespaceData,
-    resourceFlavorByName: buildResourceFlavorByName(resourceFlavors),
     hardwareProfileByKey,
     hardwareProfilesForMatching,
   };
@@ -1323,7 +1313,6 @@ export const mapWorkloadsForClusterQueuesSync = (
         clusterQueueName,
         cache.namespaceData,
         projectDisplayNames,
-        cache.resourceFlavorByName,
         cache.hardwareProfileByKey,
         cache.hardwareProfilesForMatching,
       ),
@@ -1394,11 +1383,7 @@ export const fetchNamespaceWorkloads = async (
     return [];
   }
 
-  const [namespaceData, resourceFlavors] = await Promise.all([
-    fetchNamespaceWorkloadData(namespace),
-    listResourceFlavors(),
-  ]);
-  const resourceFlavorByName = buildResourceFlavorByName(resourceFlavors);
+  const namespaceData = await fetchNamespaceWorkloadData(namespace);
   const [hardwareProfileByKey, hardwareProfilesForMatching] = await Promise.all([
     fetchHardwareProfilesByKey(collectHardwareProfileRefs([namespaceData])),
     fetchHardwareProfilesForMatching([namespaceData], dashboardNamespace),
@@ -1406,7 +1391,6 @@ export const fetchNamespaceWorkloads = async (
   const rows = filterAndMapNamespaceWorkloads(
     namespaceData,
     projectDisplayName,
-    resourceFlavorByName,
     hardwareProfileByKey,
     hardwareProfilesForMatching,
   );

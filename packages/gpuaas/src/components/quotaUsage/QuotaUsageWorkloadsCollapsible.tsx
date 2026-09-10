@@ -9,8 +9,6 @@ import {
 import {
   CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE,
   CLUSTER_QUEUE_WORKLOADS_TABLE_DESCRIPTION,
-  INFRASTRUCTURE_MANUAL_REFRESH_ONLY,
-  INFRASTRUCTURE_REFRESH_INTERVAL,
 } from '../../const';
 import ClusterQueueWorkloadsSection from '../clusterQueueWorkloads/ClusterQueueWorkloadsSection';
 
@@ -23,14 +21,7 @@ const QuotaUsageWorkloadsCollapsible: React.FC<QuotaUsageWorkloadsCollapsiblePro
   clusterQueueName,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
-  const workloadRowsOptions = React.useMemo(
-    () => ({
-      refreshRate: isExpanded
-        ? INFRASTRUCTURE_REFRESH_INTERVAL
-        : INFRASTRUCTURE_MANUAL_REFRESH_ONLY,
-    }),
-    [isExpanded],
-  );
+
   return (
     <ExpandableSection
       className="gpuaas-quota-usage-detail-section pf-v6-u-mt-xl"
@@ -50,7 +41,6 @@ const QuotaUsageWorkloadsCollapsible: React.FC<QuotaUsageWorkloadsCollapsiblePro
           <ClusterQueueWorkloadsSection
             clusterQueueName={clusterQueueName}
             showDescription={false}
-            workloadRowsOptions={workloadRowsOptions}
           />
         </StackItem>
       </Stack>

@@ -2,7 +2,6 @@ import type {
   K8sResourceCommon,
   LocalQueueKind,
   PodKind,
-  ResourceFlavorKind,
   WorkloadCondition,
   WorkloadKind,
 } from '@odh-dashboard/k8s-core';
@@ -26,7 +25,6 @@ import {
   findWorkloadPods,
   formatWorkloadPriority,
   getNamespacesForClusterQueues,
-  isActiveQuotaUsageClusterQueueWorkload,
   isGpuAwareWorkload,
   getWorkloadAcceleratorCount,
   isKueueManagedWorkload,
@@ -73,7 +71,6 @@ const getHardwareProfileMock = jest.mocked(getHardwareProfile);
 const NS = 'dsp-1';
 const CQ = 'gpu-cq';
 const LQ = 'user-queue';
-const emptyResourceFlavors = new Map<string, ResourceFlavorKind>();
 
 const baseWorkload = (overrides: Partial<WorkloadKind> = {}): WorkloadKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta2',
@@ -217,6 +214,45 @@ describe('clusterQueueWorkloads', () => {
     it('matches pending workloads targeting the cluster queue via local queue', () => {
       const workload = baseWorkload({ status: { conditions: queuedConditions } });
       expect(workloadMatchesClusterQueue(workload, CQ, localQueueByName)).toBe(true);
+    });
+
+    it('collects hardware profile references from workload pod-set annotations', () => {
+      const workload = baseWorkload({
+        spec: {
+          queueName: LQ,
+          podSets: [
+            {
+              count: 1,
+              name: 'main',
+              template: {
+                metadata: {
+                  annotations: {
+                    'opendatahub.io/hardware-profile-name': 'gpu-profile',
+                    'opendatahub.io/hardware-profile-namespace': NS,
+                  },
+                },
+                spec: {
+                  containers: [],
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      expect(
+        collectHardwareProfileRefs([
+          {
+            namespace: NS,
+            workloads: [workload],
+            localQueues: [],
+            pods: [],
+            statefulSets: [],
+            inferenceServices: [],
+            jobKindByUid: new Map(),
+          },
+        ]),
+      ).toEqual([{ name: 'gpu-profile', namespace: NS }]);
     });
 
     it('excludes workloads on a different cluster queue', () => {
@@ -553,7 +589,7 @@ describe('clusterQueueWorkloads', () => {
   describe('filterAndMapClusterQueueWorkloads', () => {
     const projectDisplayNames = new Map([[NS, 'DSP One']]);
 
-    it('maps active workloads and excludes Complete and Failed (default scope)', () => {
+    it('maps active, Complete, and Failed workloads', () => {
       const admitted = baseWorkload({
         metadata: {
           name: 'admitted-wl',
@@ -600,10 +636,9 @@ describe('clusterQueueWorkloads', () => {
           },
         ],
         projectDisplayNames,
-        emptyResourceFlavors,
       );
 
-      expect(rows).toHaveLength(2);
+      expect(rows).toHaveLength(4);
       expect(rows.find((row) => row.name === 'admitted-wl')).toMatchObject({
         project: 'DSP One',
         clusterQueue: CQ,
@@ -616,8 +651,12 @@ describe('clusterQueueWorkloads', () => {
         type: QuotaUsageWorkloadTypes.Workbench,
         status: QuotaUsageWorkloadStatuses.Queued,
       });
-      expect(rows.find((row) => row.name === 'complete-wl')).toBeUndefined();
-      expect(rows.find((row) => row.name === 'failed-wl')).toBeUndefined();
+      expect(rows.find((row) => row.name === 'complete-wl')).toMatchObject({
+        status: QuotaUsageWorkloadStatuses.Complete,
+      });
+      expect(rows.find((row) => row.name === 'failed-wl')).toMatchObject({
+        status: QuotaUsageWorkloadStatuses.Failed,
+      });
     });
 
     it('excludes workloads not actively managed by Kueue', () => {
@@ -686,7 +725,6 @@ describe('clusterQueueWorkloads', () => {
           },
         ],
         projectDisplayNames,
-        emptyResourceFlavors,
       );
 
       expect(rows.map((row) => row.name)).toEqual(['admitted-wl', 'serving-kueue-wl']);
@@ -743,7 +781,6 @@ describe('clusterQueueWorkloads', () => {
           },
         ],
         projectDisplayNames,
-        emptyResourceFlavors,
       );
 
       expect(rows).toHaveLength(0);
@@ -787,7 +824,6 @@ describe('clusterQueueWorkloads', () => {
           },
         ],
         projectDisplayNames,
-        emptyResourceFlavors,
       );
 
       expect(rows).toHaveLength(1);
@@ -844,7 +880,6 @@ describe('clusterQueueWorkloads', () => {
           },
         ],
         projectDisplayNames,
-        emptyResourceFlavors,
       );
 
       expect(rows).toHaveLength(1);
@@ -921,34 +956,6 @@ describe('clusterQueueWorkloads', () => {
       } as PodKind;
 
       expect(isKueueManagedWorkload(workload, [servingPod], localQueueByName)).toBe(true);
-    });
-  });
-
-  describe('isActiveQuotaUsageClusterQueueWorkload', () => {
-    it('returns false for Complete and Failed workloads', () => {
-      expect(
-        isActiveQuotaUsageClusterQueueWorkload(
-          baseWorkload({ status: { conditions: completeConditions } }),
-        ),
-      ).toBe(false);
-      expect(
-        isActiveQuotaUsageClusterQueueWorkload(
-          baseWorkload({ status: { conditions: failedConditions } }),
-        ),
-      ).toBe(false);
-    });
-
-    it('returns true for admitted and queued workloads', () => {
-      expect(
-        isActiveQuotaUsageClusterQueueWorkload(
-          baseWorkload({ status: { conditions: admittedConditions } }),
-        ),
-      ).toBe(true);
-      expect(
-        isActiveQuotaUsageClusterQueueWorkload(
-          baseWorkload({ status: { conditions: queuedConditions } }),
-        ),
-      ).toBe(true);
     });
   });
 
@@ -1134,13 +1141,7 @@ describe('clusterQueueWorkloads', () => {
   });
 
   describe('mapWorkloadToRow', () => {
-    it('maps priority and hardware profile from workload spec and admission', () => {
-      const resourceFlavor: ResourceFlavorKind = {
-        apiVersion: 'kueue.x-k8s.io/v1beta2',
-        kind: 'ResourceFlavor',
-        metadata: { name: 'gpu-l40s' },
-        spec: { nodeLabels: { 'nvidia.com/gpu.product': 'NVIDIA-L40S' } },
-      };
+    it('maps priority without deriving a hardware profile from resource flavor admission', () => {
       const workload = baseWorkload({
         spec: {
           queueName: LQ,
@@ -1168,7 +1169,6 @@ describe('clusterQueueWorkloads', () => {
         'DSP One',
         [],
         buildLocalQueueByName([localQueue(LQ, CQ)]),
-        new Map([['gpu-l40s', resourceFlavor]]),
         new Map(),
         CQ,
       );
@@ -1176,7 +1176,7 @@ describe('clusterQueueWorkloads', () => {
       expect(row).toMatchObject({
         clusterQueue: CQ,
         priority: 'on demand (100)',
-        hardwareProfile: 'NVIDIA-L40S',
+        hardwareProfile: undefined,
       });
     });
   });
@@ -1287,7 +1287,6 @@ describe('clusterQueueWorkloads', () => {
           jobKindByUid: new Map(),
         },
         'DSP One',
-        emptyResourceFlavors,
       );
 
       expect(rows).toHaveLength(3);
@@ -1396,7 +1395,6 @@ describe('clusterQueueWorkloads', () => {
             jobKindByUid: new Map(),
           },
         ],
-        resourceFlavorByName: emptyResourceFlavors,
         hardwareProfileByKey: new Map(),
         hardwareProfilesForMatching: [],
       };
@@ -1514,7 +1512,6 @@ describe('clusterQueueWorkloads', () => {
         'DSP One',
         [pod],
         buildLocalQueueByName([localQueue(LQ, CQ)]),
-        emptyResourceFlavors,
         new Map(),
         CQ,
         hardwareProfileByKey,
@@ -1583,7 +1580,6 @@ describe('clusterQueueWorkloads', () => {
         'DSP One',
         [],
         buildLocalQueueByName([localQueue(LQ, CQ)]),
-        emptyResourceFlavors,
         new Map(),
         CQ,
         hardwareProfileByKey,
@@ -1650,7 +1646,6 @@ describe('clusterQueueWorkloads', () => {
         'DSP One',
         [],
         buildLocalQueueByName([localQueue(LQ, CQ)]),
-        emptyResourceFlavors,
         new Map(),
         CQ,
         hardwareProfileByKey,

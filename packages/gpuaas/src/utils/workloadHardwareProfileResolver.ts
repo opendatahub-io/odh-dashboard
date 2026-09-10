@@ -1,7 +1,6 @@
 import {
   type HardwareProfileKind,
   HardwareProfileFeatureVisibility,
-  type ResourceFlavorKind,
   type WorkloadKind,
 } from '@odh-dashboard/k8s-core';
 import { matchToHardwareProfile } from './matchToHardwareProfile';
@@ -12,7 +11,6 @@ import {
 import {
   getHardwareProfileAcceleratorIdentifier,
   getHardwareProfileDisplayName,
-  resolveWorkloadHardwareProfile,
   resolveWorkloadHardwareProfileFromAnnotation,
   type HardwareProfileByKey,
   type WorkloadHardwareProfileInfo,
@@ -86,7 +84,6 @@ export type WorkloadHardwareProfileResolverContext = {
   inferenceService?: WorkloadInferenceService;
   hardwareProfileByKey: HardwareProfileByKey;
   hardwareProfilesForMatching: HardwareProfileKind[];
-  resourceFlavorByName: Map<string, ResourceFlavorKind>;
   workloadType: QuotaUsageWorkloadType;
 };
 
@@ -115,7 +112,6 @@ export const resolveWorkloadHardwareProfileForRow = (
     inferenceService,
     hardwareProfileByKey,
     hardwareProfilesForMatching,
-    resourceFlavorByName,
     workloadType,
   }: WorkloadHardwareProfileResolverContext,
 ): WorkloadHardwareProfileInfo | undefined => {
@@ -147,11 +143,6 @@ export const resolveWorkloadHardwareProfileForRow = (
   );
   if (workloadMatch) {
     return toProfileInfo(workloadMatch);
-  }
-
-  const flavorProduct = resolveWorkloadHardwareProfile(workload, resourceFlavorByName);
-  if (flavorProduct) {
-    return { displayName: flavorProduct };
   }
 
   return undefined;

@@ -4,7 +4,6 @@ import {
   IdentifierResourceType,
   type PodKind,
   ResourceFlavorKind,
-  type WorkloadKind,
 } from '@odh-dashboard/k8s-core';
 import parseK8sQuantity from './parseK8sQuantity';
 import { ACCELERATOR_RESOURCE_REGEX } from '../const';
@@ -82,45 +81,6 @@ export const resolveWorkloadHardwareProfileFromAnnotation = (
     }
   }
   return undefined;
-};
-
-export const buildResourceFlavorByName = (
-  resourceFlavors: ResourceFlavorKind[],
-): Map<string, ResourceFlavorKind> =>
-  new Map(
-    resourceFlavors.flatMap((resourceFlavor) => {
-      const name = resourceFlavor.metadata?.name;
-      return name ? [[name, resourceFlavor] as const] : [];
-    }),
-  );
-
-/** Resolves admitted ResourceFlavor assignments to GPU product names. */
-export const resolveWorkloadHardwareProfile = (
-  workload: WorkloadKind,
-  resourceFlavorByName: Map<string, ResourceFlavorKind>,
-): string | undefined => {
-  const models = new Set<string>();
-
-  for (const assignment of workload.status?.admission?.podSetAssignments ?? []) {
-    for (const flavorName of Object.values(assignment.flavors ?? {})) {
-      const resourceFlavor = resourceFlavorByName.get(flavorName);
-      if (!resourceFlavor?.spec.nodeLabels) {
-        continue;
-      }
-      for (const label of GPU_PRODUCT_LABELS) {
-        const value = resourceFlavor.spec.nodeLabels[label];
-        if (value) {
-          models.add(value);
-        }
-      }
-    }
-  }
-
-  if (models.size === 0) {
-    return undefined;
-  }
-
-  return [...models].toSorted((a, b) => a.localeCompare(b)).join(', ');
 };
 
 export type ModelGpuCount = {

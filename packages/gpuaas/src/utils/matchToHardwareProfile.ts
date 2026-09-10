@@ -13,15 +13,19 @@ const normalizeTolerationOperator = (operator?: Toleration['operator']): Tolerat
 const tolerationEffectsMatch = (
   workloadEffect?: Toleration['effect'],
   profileEffect?: Toleration['effect'],
-): boolean => !workloadEffect || workloadEffect === profileEffect;
+): boolean => !workloadEffect || !profileEffect || workloadEffect === profileEffect;
 
-const tolerationsMatchPair = (workload: Toleration, profile: Toleration): boolean =>
-  workload.key === profile.key &&
-  workload.value === profile.value &&
-  normalizeTolerationOperator(workload.operator) ===
-    normalizeTolerationOperator(profile.operator) &&
-  tolerationEffectsMatch(workload.effect, profile.effect) &&
-  workload.tolerationSeconds === profile.tolerationSeconds;
+const tolerationsMatchPair = (workload: Toleration, profile: Toleration): boolean => {
+  const workloadOperator = normalizeTolerationOperator(workload.operator);
+  const profileOperator = normalizeTolerationOperator(profile.operator);
+
+  return (
+    workload.key === profile.key &&
+    workloadOperator === profileOperator &&
+    (workloadOperator === TolerationOperator.EXISTS || workload.value === profile.value) &&
+    tolerationEffectsMatch(workload.effect, profile.effect)
+  );
+};
 
 /**
  * Gpuaas-local copy of `matchToHardwareProfile` from `useHardwareProfileConfig` — same logic
@@ -74,7 +78,7 @@ export const matchToHardwareProfile = (
       );
     });
 
-    const tolerationsMatch = profile.spec.scheduling?.node?.tolerations?.every(
+    const tolerationsMatch = (profile.spec.scheduling?.node?.tolerations ?? []).every(
       (profileToleration) =>
         tolerations.some((workloadToleration) =>
           tolerationsMatchPair(workloadToleration, profileToleration),

@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { act, render, renderHook, waitFor } from '@testing-library/react';
-import type { PodKind } from '@odh-dashboard/k8s-core';
+import type { PodKind, WorkloadKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { useProjects } from '@odh-dashboard/internal/api/k8s/projects';
-import { listResourceFlavors } from '@odh-dashboard/internal/api/k8s/resourceFlavors';
+import { listHardwareProfiles } from '@odh-dashboard/internal/api/k8s/hardwareProfiles';
 import KueueNamespaceWorkloadCacheProvider, {
   useKueueNamespaceWorkloadCache,
 } from '../KueueNamespaceWorkloadCacheContext';
+import { TREND_REFRESH_INTERVAL } from '../../const';
 import {
   enrichNamespaceWorkloadData,
   fetchLocalQueueClusterQueueIndex,
@@ -19,8 +20,9 @@ jest.mock('@odh-dashboard/internal/api/k8s/projects', () => ({
   useProjects: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/api/k8s/resourceFlavors', () => ({
-  listResourceFlavors: jest.fn(),
+jest.mock('@odh-dashboard/internal/api/k8s/hardwareProfiles', () => ({
+  listHardwareProfiles: jest.fn(),
+  getHardwareProfile: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
@@ -35,7 +37,7 @@ jest.mock('../../utils/clusterQueueWorkloads', () => ({
 }));
 
 const useProjectsMock = jest.mocked(useProjects);
-const listResourceFlavorsMock = jest.mocked(listResourceFlavors);
+const listHardwareProfilesMock = jest.mocked(listHardwareProfiles);
 const fetchLocalQueueClusterQueueIndexMock = jest.mocked(fetchLocalQueueClusterQueueIndex);
 const fetchNamespaceWorkloadBaseDataMock = jest.mocked(fetchNamespaceWorkloadBaseData);
 const enrichNamespaceWorkloadDataMock = jest.mocked(enrichNamespaceWorkloadData);
@@ -47,6 +49,18 @@ const base = (namespace: string) => ({
   namespace,
   workloads: [],
   localQueues: [],
+});
+
+const baseWithWorkload = (namespace: string, uid: string) => ({
+  ...base(namespace),
+  workloads: [
+    {
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
+      kind: 'Workload',
+      metadata: { name: `workload-${uid}`, namespace, uid },
+      spec: { queueName: 'queue', podSets: [] },
+    } satisfies WorkloadKind,
+  ],
 });
 
 const mockPod = (name: string): PodKind => ({
@@ -68,7 +82,7 @@ describe('KueueNamespaceWorkloadCacheProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useProjectsMock.mockReturnValue([[dsp1, dsp2], true, undefined]);
-    listResourceFlavorsMock.mockResolvedValue([]);
+    listHardwareProfilesMock.mockResolvedValue([]);
     fetchLocalQueueClusterQueueIndexMock.mockResolvedValue(
       new Map([
         ['gpu-cq', new Set(['dsp-1'])],
@@ -252,6 +266,16 @@ describe('KueueNamespaceWorkloadCacheProvider', () => {
     await waitFor(() => expect(enrichNamespaceWorkloadDataMock).toHaveBeenCalledTimes(3));
   });
 
+  it('keeps workload data loaded when hardware profile listing fails', async () => {
+    listHardwareProfilesMock.mockRejectedValue(new Error('hardware profiles forbidden'));
+
+    const { result } = renderWithProvider(['gpu-cq']);
+
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.error).toBeUndefined();
+    expect(enrichNamespaceWorkloadDataMock).toHaveBeenCalled();
+  });
+
   it('surfaces namespace fetch failures while keeping successful namespaces', async () => {
     fetchNamespaceWorkloadBaseDataMock.mockImplementation((namespace: string) => {
       if (namespace === 'dsp-2') {
@@ -272,18 +296,75 @@ describe('KueueNamespaceWorkloadCacheProvider', () => {
     expect(result.current.error?.message).toContain('forbidden');
   });
 
+  it('periodically refreshes at the trend refresh interval when active', async () => {
+    jest.useFakeTimers();
+    try {
+      const { result } = renderWithProvider(['gpu-cq']);
+
+      await waitFor(() => expect(result.current.loaded).toBe(true));
+      expect(fetchNamespaceWorkloadBaseDataMock).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        jest.advanceTimersByTime(TREND_REFRESH_INTERVAL);
+      });
+      await waitFor(() => expect(fetchNamespaceWorkloadBaseDataMock).toHaveBeenCalledTimes(2));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('re-fetches namespace bundles on refresh', async () => {
     const { result } = renderWithProvider(['gpu-cq']);
 
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(fetchNamespaceWorkloadBaseDataMock).toHaveBeenCalledTimes(1);
 
+    let refreshedCache: Awaited<ReturnType<typeof result.current.refresh>>;
     await act(async () => {
-      await result.current.refresh();
+      refreshedCache = await result.current.refresh();
     });
 
     expect(fetchNamespaceWorkloadBaseDataMock).toHaveBeenCalledTimes(2);
     expect(fetchNamespaceWorkloadBaseDataMock).toHaveBeenCalledWith('dsp-1');
+    expect(refreshedCache?.namespaceData.map((data) => data.namespace)).toEqual(['dsp-1']);
+  });
+
+  it('does not let a superseded base fetch overwrite the latest cache', async () => {
+    const refreshResolvers: Array<(value: ReturnType<typeof baseWithWorkload>) => void> = [];
+    fetchNamespaceWorkloadBaseDataMock.mockResolvedValueOnce(base('dsp-1')).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          refreshResolvers.push(resolve);
+        }),
+    );
+
+    const { result } = renderWithProvider(['gpu-cq']);
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    act(() => {
+      void result.current.refresh();
+    });
+    await waitFor(() => expect(refreshResolvers).toHaveLength(1));
+
+    let secondRefresh: Promise<unknown> | undefined;
+    act(() => {
+      secondRefresh = result.current.refresh();
+    });
+    await waitFor(() => expect(refreshResolvers).toHaveLength(2));
+
+    await act(async () => {
+      refreshResolvers[1]?.(baseWithWorkload('dsp-1', 'fresh'));
+      await secondRefresh;
+    });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    await act(async () => {
+      refreshResolvers[0]?.(baseWithWorkload('dsp-1', 'stale'));
+    });
+
+    await waitFor(() =>
+      expect(result.current.cache.namespaceData[0]?.workloads[0]?.metadata?.uid).toBe('fresh'),
+    );
   });
 
   it('does not reuse stale enrichment after refresh', async () => {
@@ -324,5 +405,6 @@ describe('KueueNamespaceWorkloadCacheProvider', () => {
 
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.cache.namespaceData[0]?.pods).toEqual([]);
+    expect(result.current.error?.message).toContain('enrichment failed');
   });
 });

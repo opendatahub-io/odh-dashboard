@@ -30,6 +30,12 @@ const gpuResources = {
 };
 
 describe('matchToHardwareProfile', () => {
+  it('matches a profile without scheduling configuration', () => {
+    const profile = gpuProfile(undefined);
+
+    expect(matchToHardwareProfile([profile], gpuResources)).toBe(profile);
+  });
+
   it('matches when workload omits toleration operator and profile uses Equal', () => {
     const profile = gpuProfile({
       type: SchedulingType.NODE,
@@ -74,6 +80,54 @@ describe('matchToHardwareProfile', () => {
     ).toBe(profile);
   });
 
+  it('matches when profile toleration omits effect', () => {
+    const profile = gpuProfile({
+      type: SchedulingType.NODE,
+      node: {
+        tolerations: [{ key: 'gpu-node', value: 'true' }],
+      },
+    });
+
+    expect(
+      matchToHardwareProfile([profile], gpuResources, [
+        {
+          key: 'gpu-node',
+          operator: TolerationOperator.EQUAL,
+          value: 'true',
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ]),
+    ).toBe(profile);
+  });
+
+  it('ignores toleration seconds when matching scheduling tolerations', () => {
+    const profile = gpuProfile({
+      type: SchedulingType.NODE,
+      node: {
+        tolerations: [
+          {
+            key: 'gpu-node',
+            operator: TolerationOperator.EQUAL,
+            value: 'true',
+            effect: TolerationEffect.NO_SCHEDULE,
+          },
+        ],
+      },
+    });
+
+    expect(
+      matchToHardwareProfile([profile], gpuResources, [
+        {
+          key: 'gpu-node',
+          operator: TolerationOperator.EQUAL,
+          value: 'true',
+          effect: TolerationEffect.NO_SCHEDULE,
+          tolerationSeconds: 60,
+        },
+      ]),
+    ).toBe(profile);
+  });
+
   it('does not match when explicit workload effect differs from profile effect', () => {
     const profile = gpuProfile({
       type: SchedulingType.NODE,
@@ -99,5 +153,30 @@ describe('matchToHardwareProfile', () => {
         },
       ]),
     ).toBeUndefined();
+  });
+
+  it('matches an empty-key Exists toleration', () => {
+    const profile = gpuProfile({
+      type: SchedulingType.NODE,
+      node: {
+        tolerations: [
+          {
+            key: '',
+            operator: TolerationOperator.EXISTS,
+            effect: TolerationEffect.NO_SCHEDULE,
+          },
+        ],
+      },
+    });
+
+    expect(
+      matchToHardwareProfile([profile], gpuResources, [
+        {
+          key: '',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ]),
+    ).toBe(profile);
   });
 });

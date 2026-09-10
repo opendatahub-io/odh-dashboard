@@ -115,7 +115,6 @@ describe('workloadHardwareProfileResolver', () => {
       ],
       hardwareProfileByKey,
       hardwareProfilesForMatching: [],
-      resourceFlavorByName: new Map(),
       workloadType: QuotaUsageWorkloadTypes.Workbench,
     });
 
@@ -147,7 +146,6 @@ describe('workloadHardwareProfileResolver', () => {
       inferenceService,
       hardwareProfileByKey: new Map(),
       hardwareProfilesForMatching: [servingProfile],
-      resourceFlavorByName: new Map(),
       workloadType: QuotaUsageWorkloadTypes.Serve,
     });
 
@@ -157,7 +155,7 @@ describe('workloadHardwareProfileResolver', () => {
     });
   });
 
-  it('returns undefined when resources do not match any profile or flavor', () => {
+  it('returns undefined when resources do not match any hardware profile', () => {
     const unmatchedWorkload = (): WorkloadKind =>
       ({
         ...trainWorkload(),
@@ -208,7 +206,6 @@ describe('workloadHardwareProfileResolver', () => {
       inferenceService,
       hardwareProfileByKey: new Map(),
       hardwareProfilesForMatching: [servingProfile],
-      resourceFlavorByName: new Map(),
       workloadType: QuotaUsageWorkloadTypes.Serve,
     });
 

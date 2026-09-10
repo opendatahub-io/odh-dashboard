@@ -119,12 +119,10 @@ const mockCacheWithGpuCq = {
       jobKindByUid: new Map(),
     },
   ],
-  resourceFlavorByName: new Map(),
 } as unknown as KueueNamespaceWorkloadCache;
 
 const emptyCache = {
   namespaceData: [],
-  resourceFlavorByName: new Map(),
   hardwareProfileByKey: new Map(),
   hardwareProfilesForMatching: [],
 };
@@ -316,7 +314,7 @@ describe('useWorkloadRows', () => {
     expect(renderResult.result.current.error).toBe(namespaceLoadError);
   });
 
-  it('refreshes namespace cache and queue positions for clusterQueues scope', async () => {
+  it('refreshes namespace cache and lets position fetch follow cache refresh', async () => {
     const refreshCache = jest.fn().mockResolvedValue(mockCacheWithGpuCq);
     fetchQueuePositionsMock.mockResolvedValue(new Map());
     useKueueNamespaceWorkloadCacheMock.mockReturnValue({
@@ -348,7 +346,7 @@ describe('useWorkloadRows', () => {
 
     const refreshed = await renderResult.result.current.refresh();
     expect(refreshCache).toHaveBeenCalled();
-    expect(fetchQueuePositionsMock).toHaveBeenCalled();
+    expect(fetchQueuePositionsMock).toHaveBeenCalledTimes(1);
     expect(refreshed?.mode).toBe('clusterQueues');
     if (refreshed?.mode === 'clusterQueues') {
       expect(refreshed.workloadsByClusterQueue.get('gpu-cq')?.[0]?.name).toBe('wl-1');

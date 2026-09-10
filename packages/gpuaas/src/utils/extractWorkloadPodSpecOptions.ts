@@ -27,19 +27,25 @@ const mapWorkloadTolerations = (
     return undefined;
   }
 
-  return tolerations.flatMap((toleration) =>
-    toleration.key
-      ? [
-          {
-            key: toleration.key,
-            operator: isTolerationOperator(toleration.operator) ? toleration.operator : undefined,
-            value: toleration.value,
-            effect: isTolerationEffect(toleration.effect) ? toleration.effect : undefined,
-            tolerationSeconds: toleration.tolerationSeconds,
-          },
-        ]
-      : [],
-  );
+  return tolerations.flatMap((toleration) => {
+    const operator = isTolerationOperator(toleration.operator) ? toleration.operator : undefined;
+
+    // Kubernetes permits an empty key for an Exists toleration; it matches taints regardless of
+    // key and must not be discarded before hardware-profile matching.
+    if (!toleration.key && operator !== TolerationOperator.EXISTS) {
+      return [];
+    }
+
+    return [
+      {
+        key: toleration.key ?? '',
+        operator,
+        value: toleration.value,
+        effect: isTolerationEffect(toleration.effect) ? toleration.effect : undefined,
+        tolerationSeconds: toleration.tolerationSeconds,
+      },
+    ];
+  });
 };
 
 /** Pod spec options extracted from the first Kueue Workload podSet (same shape Model Serving passes to profile matching). */

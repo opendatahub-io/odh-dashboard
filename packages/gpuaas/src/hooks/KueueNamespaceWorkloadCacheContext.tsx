@@ -1,55 +1,41 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useProjects } from '@odh-dashboard/internal/api/k8s/projects';
-import { listResourceFlavors } from '@odh-dashboard/internal/api/k8s/resourceFlavors';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import useFetch, {
+  isCommonStateError,
   NotReadyError,
+  type AdHocUpdate,
   type FetchStateObject,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { INFRASTRUCTURE_MANUAL_REFRESH_ONLY } from '../const';
-import { buildResourceFlavorByName } from '../utils/hardwareModels';
+import { INFRASTRUCTURE_MANUAL_REFRESH_ONLY, TREND_REFRESH_INTERVAL } from '../const';
+import type { KueueNamespaceWorkloadCache } from '../utils/clusterQueueWorkloads';
 import {
-  collectHardwareProfileRefs,
-  enrichNamespaceWorkloadData,
-  fetchHardwareProfilesByKey,
-  fetchHardwareProfilesForMatching,
-  fetchLocalQueueClusterQueueIndex,
-  fetchNamespaceWorkloadBaseData,
-  getNamespacesForClusterQueues,
-  toNamespaceWorkloadData,
-  type HardwareProfileByKey,
-  type KueueNamespaceWorkloadCache,
-  type LocalQueueClusterQueueIndex,
-  type NamespaceWorkloadBaseData,
-} from '../utils/clusterQueueWorkloads';
-import {
-  applyNamespaceEnrichment,
-  createNamespaceBundleState,
-  toDisplayBundle,
-  type NamespaceBundleState,
-  type NamespaceWorkloadEnrichment,
-} from '../utils/namespaceBundleState';
+  clearWorkloadCacheStore,
+  createWorkloadCacheStore,
+  loadWorkloadCache,
+  type WorkloadCacheMutableStore,
+} from '../utils/loadWorkloadCache';
 import { getKueueManagedDataScienceProjects } from '../utils/kueueProjects';
 
 const emptyCache: KueueNamespaceWorkloadCache = {
   namespaceData: [],
-  resourceFlavorByName: new Map(),
   hardwareProfileByKey: new Map(),
   hardwareProfilesForMatching: [],
 };
 
-const emptyIndex: LocalQueueClusterQueueIndex = new Map();
+type WorkloadCacheFetchState = {
+  cache: KueueNamespaceWorkloadCache;
+  enrichmentReady: boolean;
+};
+
+const emptyFetchState: WorkloadCacheFetchState = {
+  cache: emptyCache,
+  enrichmentReady: false,
+};
 
 const buildNamespacesKey = (namespaces: Iterable<string>): string =>
   [...namespaces].toSorted((a, b) => a.localeCompare(b)).join('\0');
-
-const buildNamespaceLoadError = (failures: { namespace: string; error: Error }[]): Error =>
-  new Error(
-    `Failed to load workloads for: ${failures
-      .map(({ namespace, error }) => `${namespace} (${error.message})`)
-      .join('; ')}`,
-  );
 
 type KueueNamespaceWorkloadCacheContextValue = {
   cache: KueueNamespaceWorkloadCache;
@@ -86,9 +72,9 @@ type KueueNamespaceWorkloadCacheProviderProps = {
  * namespace), so switching between cluster queues that share a namespace reuses already-fetched
  * data until the next refresh re-fetches all relevant namespaces in place.
  *
- * Loading is two-phase: B1 fetches workloads + LocalQueues; B2 enriches with pods, StatefulSets,
- * InferenceServices, job-kind indexes, and hardware profiles. `loaded` stays false until B2
- * completes for the current base generation so Type/HW profile columns are not misleading.
+ * Loading is two-phase: base workloads, then enrichment. `loaded` stays false until enrichment
+ * completes so Type/HW profile columns are not misleading. Updates use a single `loadWorkloadCache`
+ * pipeline — manual refresh badge and a 5m timer when a cluster queue is selected.
  */
 const KueueNamespaceWorkloadCacheProvider: React.FC<KueueNamespaceWorkloadCacheProviderProps> = ({
   children,
@@ -113,246 +99,155 @@ const KueueNamespaceWorkloadCacheProvider: React.FC<KueueNamespaceWorkloadCacheP
     [clusterQueueNames],
   );
 
-  // Phase A: cheap, cluster-wide LocalQueue index — only when a cluster queue is selected.
-  const {
-    data: index,
-    loaded: indexLoaded,
-    error: indexError,
-    refresh: refreshIndex,
-  } = useFetch<LocalQueueClusterQueueIndex>(
-    React.useCallback(async () => {
-      if (!active) {
-        return emptyIndex;
-      }
-      return fetchLocalQueueClusterQueueIndex();
-    }, [active]),
-    emptyIndex,
-    {
-      refreshRate: active ? INFRASTRUCTURE_MANUAL_REFRESH_ONLY : -1,
-      initialPromisePurity: true,
-    },
-  );
-
-  const namespaceBundleStateRef = React.useRef(new Map<string, NamespaceBundleState>());
-  const hardwareProfileCacheRef = React.useRef<HardwareProfileByKey>(new Map());
-  const hardwareProfilesForMatchingCacheRef = React.useRef<
-    KueueNamespaceWorkloadCache['hardwareProfilesForMatching']
-  >([]);
-  /** Bumps on each B1 completion; B2 must match before enriched cache is shown (avoids stale enrich on CQ switch / refresh). */
-  const baseFetchGenerationRef = React.useRef(0);
-  const enrichedFetchGenerationRef = React.useRef(0);
+  const storeRef = React.useRef<WorkloadCacheMutableStore>(createWorkloadCacheStore());
+  const invalidateOnNextLoadRef = React.useRef(false);
+  const loadCompletionRef = React.useRef<Promise<KueueNamespaceWorkloadCache>>();
   const clusterQueueNamesKeyRef = React.useRef(clusterQueueNamesKey);
-  const dashboardNamespaceRef = React.useRef(dashboardNamespace);
-  dashboardNamespaceRef.current = dashboardNamespace;
 
   React.useEffect(() => {
     if (clusterQueueNamesKeyRef.current === clusterQueueNamesKey) {
       return;
     }
     clusterQueueNamesKeyRef.current = clusterQueueNamesKey;
-    for (const [namespace, state] of namespaceBundleStateRef.current) {
-      namespaceBundleStateRef.current.set(namespace, { base: state.base });
-    }
-    hardwareProfileCacheRef.current.clear();
-    hardwareProfilesForMatchingCacheRef.current = [];
-    enrichedFetchGenerationRef.current = 0;
+    storeRef.current.stripEnrichmentOnClusterQueueSwitch();
   }, [clusterQueueNamesKey]);
 
   const clusterQueueNamesRef = React.useRef(clusterQueueNames);
   clusterQueueNamesRef.current = clusterQueueNames;
   const kueueNamespaceSetRef = React.useRef(kueueNamespaceSet);
   kueueNamespaceSetRef.current = kueueNamespaceSet;
-  const indexRef = React.useRef(index);
-  indexRef.current = index;
+  const dashboardNamespaceRef = React.useRef(dashboardNamespace);
+  dashboardNamespaceRef.current = dashboardNamespace;
 
-  // Phase B1: workloads + LocalQueues — optimistic enrichment reuse while B2 catches up.
+  const [pipelineError, setPipelineError] = React.useState<Error | undefined>();
+
   const {
-    data: baseCache,
-    loaded: baseLoaded,
-    error: baseError,
-    refresh: refreshBase,
-  } = useFetch<KueueNamespaceWorkloadCache>(
+    data: fetchState = emptyFetchState,
+    error: fetchError,
+    refresh: refreshFetch,
+  } = useFetch<WorkloadCacheFetchState | AdHocUpdate<WorkloadCacheFetchState>>(
     React.useCallback(async () => {
+      setPipelineError(undefined);
+
       if (!active) {
-        return emptyCache;
+        return { cache: emptyCache, enrichmentReady: true };
       }
-      if (!projectsLoaded || !indexLoaded) {
-        throw new NotReadyError('Projects or LocalQueue index not loaded');
+      if (!projectsLoaded) {
+        throw new NotReadyError('Projects not loaded');
       }
 
-      const relevantNamespaces = [
-        ...getNamespacesForClusterQueues(clusterQueueNamesRef.current, indexRef.current),
-      ].filter((namespace) => kueueNamespaceSetRef.current.has(namespace));
+      const invalidateBundles = invalidateOnNextLoadRef.current;
+      if (invalidateBundles) {
+        clearWorkloadCacheStore(storeRef.current);
+      }
+      invalidateOnNextLoadRef.current = false;
 
-      const pendingBaseGeneration = baseFetchGenerationRef.current + 1;
-
-      const [fetchResults, resourceFlavors] = await Promise.all([
-        Promise.all(
-          relevantNamespaces.map(async (namespace) => {
-            try {
-              const previousState = namespaceBundleStateRef.current.get(namespace);
-              let base = previousState?.base;
-              if (!base) {
-                base = await fetchNamespaceWorkloadBaseData(namespace);
-              }
-              const nextState = createNamespaceBundleState(base, previousState);
-              namespaceBundleStateRef.current.set(namespace, nextState);
-              const bundle = toDisplayBundle(nextState, pendingBaseGeneration, true);
-              return { namespace, bundle, error: undefined };
-            } catch (error) {
-              return {
-                namespace,
-                bundle: undefined,
-                error: error instanceof Error ? error : new Error(String(error)),
-              };
-            }
-          }),
-        ),
-        listResourceFlavors(),
-      ]);
-
-      const failures = fetchResults.flatMap((result) =>
-        result.error ? [{ namespace: result.namespace, error: result.error }] : [],
-      );
-
-      const namespaceData = relevantNamespaces.flatMap((namespace) => {
-        const state = namespaceBundleStateRef.current.get(namespace);
-        return state ? [toDisplayBundle(state, pendingBaseGeneration, true)] : [];
-      });
-
-      const namespaceLoadError =
-        failures.length > 0 ? buildNamespaceLoadError(failures) : undefined;
-
-      baseFetchGenerationRef.current = pendingBaseGeneration;
-
-      return {
-        namespaceData,
-        resourceFlavorByName: buildResourceFlavorByName(resourceFlavors),
-        hardwareProfileByKey: new Map(hardwareProfileCacheRef.current),
-        hardwareProfilesForMatching: hardwareProfilesForMatchingCacheRef.current,
-        namespaceLoadError,
+      const loadParams = {
+        clusterQueueNames: clusterQueueNamesRef.current,
+        kueueNamespaceSet: kueueNamespaceSetRef.current,
+        dashboardNamespace: dashboardNamespaceRef.current,
+        store: storeRef.current,
+        invalidateBundles,
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- keys fingerprint selection/namespace inputs
-    }, [active, projectsLoaded, indexLoaded, clusterQueueNamesKey, namespacesKey]),
-    emptyCache,
-    {
-      refreshRate: active ? INFRASTRUCTURE_MANUAL_REFRESH_ONLY : -1,
-      initialPromisePurity: true,
-    },
-  );
 
-  const baseCacheRef = React.useRef(baseCache);
-  baseCacheRef.current = baseCache;
+      return new Promise<AdHocUpdate<WorkloadCacheFetchState>>((resolve, reject) => {
+        let adHocDelivered = false;
 
-  // Phase B2: lazy pods/STS/ISVC/job lists + hardware profiles.
-  const { data: enrichedCache, refresh: refreshEnriched } = useFetch<KueueNamespaceWorkloadCache>(
-    React.useCallback(async () => {
-      if (!active || !baseLoaded) {
-        throw new NotReadyError('Base namespace workload cache not loaded');
-      }
-
-      const baseNamespaceData = baseCacheRef.current.namespaceData;
-      if (baseNamespaceData.length === 0) {
-        return baseCacheRef.current;
-      }
-
-      const baseGeneration = baseFetchGenerationRef.current;
-
-      const enrichResults = await Promise.all(
-        baseNamespaceData.map(async (baseBundle) => {
-          const state = namespaceBundleStateRef.current.get(baseBundle.namespace);
-          const base: NamespaceWorkloadBaseData = state?.base ?? {
-            namespace: baseBundle.namespace,
-            workloads: baseBundle.workloads,
-            localQueues: baseBundle.localQueues,
-          };
-          try {
-            const enriched = await enrichNamespaceWorkloadData(base, clusterQueueNamesRef.current);
-            const enrichment: NamespaceWorkloadEnrichment = {
-              pods: enriched.pods,
-              statefulSets: enriched.statefulSets,
-              inferenceServices: enriched.inferenceServices,
-              jobKindByUid: enriched.jobKindByUid,
-            };
-            const updatedState = applyNamespaceEnrichment(
-              state ?? { base },
-              enrichment,
-              baseGeneration,
-            );
-            namespaceBundleStateRef.current.set(base.namespace, updatedState);
-            return toDisplayBundle(updatedState, baseGeneration);
-          } catch {
-            return toNamespaceWorkloadData(base);
+        const handlePipelineFailure = (reason: unknown) => {
+          if (reason instanceof Error && isCommonStateError(reason)) {
+            return;
           }
-        }),
-      );
+          const error = reason instanceof Error ? reason : new Error(String(reason));
+          if (!adHocDelivered) {
+            reject(error);
+            return;
+          }
+          setPipelineError(error);
+        };
 
-      const [fetchedHardwareProfiles, hardwareProfilesForMatching] = await Promise.all([
-        fetchHardwareProfilesByKey(collectHardwareProfileRefs(enrichResults)),
-        fetchHardwareProfilesForMatching(enrichResults, dashboardNamespaceRef.current),
-      ]);
-      for (const [key, hardwareProfile] of fetchedHardwareProfiles) {
-        hardwareProfileCacheRef.current.set(key, hardwareProfile);
-      }
-      hardwareProfilesForMatchingCacheRef.current = hardwareProfilesForMatching;
+        const loadPromise = loadWorkloadCache({
+          ...loadParams,
+          onBaseCache: (base) => {
+            resolve((setStateLater) => {
+              adHocDelivered = true;
+              setStateLater(() => ({
+                cache: base,
+                enrichmentReady: base.namespaceData.length === 0,
+              }));
+              void loadPromise
+                .then((enriched) => {
+                  setPipelineError(undefined);
+                  setStateLater(() => ({ cache: enriched, enrichmentReady: true }));
+                })
+                .catch(handlePipelineFailure);
+            });
+          },
+        });
+        loadCompletionRef.current = loadPromise;
 
-      if (baseGeneration !== baseFetchGenerationRef.current) {
-        throw new NotReadyError('Base generation advanced during enrichment');
-      }
-      enrichedFetchGenerationRef.current = baseGeneration;
-
-      return {
-        namespaceData: enrichResults,
-        resourceFlavorByName: baseCacheRef.current.resourceFlavorByName,
-        hardwareProfileByKey: new Map(hardwareProfileCacheRef.current),
-        hardwareProfilesForMatching,
-        namespaceLoadError: baseCacheRef.current.namespaceLoadError,
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- keys fingerprint selection inputs
-    }, [active, baseLoaded, clusterQueueNamesKey, namespacesKey]),
-    emptyCache,
+        void loadPromise.catch((reason) => {
+          if (!adHocDelivered) {
+            handlePipelineFailure(reason);
+          }
+        });
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- keys fingerprint selection/namespace inputs
+    }, [active, projectsLoaded, clusterQueueNamesKey, namespacesKey]),
+    emptyFetchState,
     {
       refreshRate: active ? INFRASTRUCTURE_MANUAL_REFRESH_ONLY : -1,
       initialPromisePurity: true,
     },
   );
 
-  const isEnrichedCurrent =
-    enrichedCache.namespaceData.length > 0 &&
-    enrichedFetchGenerationRef.current === baseFetchGenerationRef.current;
-
-  const enrichmentReady = !active || baseCache.namespaceData.length === 0 || isEnrichedCurrent;
-
-  const cache = isEnrichedCurrent ? enrichedCache : baseCache;
+  const resolvedState: WorkloadCacheFetchState =
+    typeof fetchState === 'function' ? emptyFetchState : fetchState;
 
   const refresh = React.useCallback(async () => {
-    if (active) {
-      namespaceBundleStateRef.current.clear();
-      hardwareProfileCacheRef.current.clear();
-      hardwareProfilesForMatchingCacheRef.current = [];
-      enrichedFetchGenerationRef.current = 0;
-      await refreshIndex();
+    if (!active) {
+      return undefined;
     }
-    await refreshBase();
-    return refreshEnriched();
-  }, [active, refreshBase, refreshEnriched, refreshIndex]);
+    invalidateOnNextLoadRef.current = true;
+    const refreshPromise = refreshFetch();
+    const loadCompletion = loadCompletionRef.current;
+    await refreshPromise;
+    if (!loadCompletion) {
+      return undefined;
+    }
+    try {
+      return await loadCompletion;
+    } catch {
+      return undefined;
+    }
+  }, [active, refreshFetch]);
+
+  React.useEffect(() => {
+    if (!active) {
+      return undefined;
+    }
+    const intervalId = setInterval(() => {
+      invalidateOnNextLoadRef.current = true;
+      void refreshFetch();
+    }, TREND_REFRESH_INTERVAL);
+    return () => clearInterval(intervalId);
+  }, [active, refreshFetch]);
+
+  const { cache, enrichmentReady } = resolvedState;
 
   const value = React.useMemo(
     (): KueueNamespaceWorkloadCacheContextValue => ({
       cache,
-      loaded: active && projectsLoaded && indexLoaded && baseLoaded && enrichmentReady,
+      loaded: active && projectsLoaded && enrichmentReady,
       enrichmentReady,
-      error: projectsError ?? indexError ?? baseError ?? cache.namespaceLoadError,
+      error: projectsError ?? fetchError ?? pipelineError ?? cache.namespaceLoadError,
       refresh,
     }),
     [
       active,
       cache,
-      baseLoaded,
-      baseError,
       enrichmentReady,
-      indexLoaded,
-      indexError,
+      fetchError,
+      pipelineError,
       projectsError,
       projectsLoaded,
       refresh,
