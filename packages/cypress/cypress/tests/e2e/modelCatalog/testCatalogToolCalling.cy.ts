@@ -49,13 +49,16 @@ describe('Verify tool calling configuration in Model Catalog', () => {
       cy.step('Verify filtered results contain at least one model card');
       modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
-      cy.step('Expand label overflow on first card and verify Tool calling has a success icon');
-      modelCatalog.expandFirstCardLabelGroup();
-      modelCatalog.findFirstCardLabelWithIcon(testData.toolCallingLabel).should('exist');
-      modelCatalog.findValidatedTaskIcon().should('exist');
+      cy.step('Expand the tool-calling model label overflow and verify its success icon');
+      modelCatalog.findModelCatalogCard(testData.toolCallingModelName).should('exist');
+      modelCatalog.expandCardLabelGroup(testData.toolCallingModelName);
+      modelCatalog
+        .findCardLabelByText(testData.toolCallingModelName, testData.toolCallingLabel)
+        .should('exist');
+      modelCatalog.findValidatedTaskIcon(testData.toolCallingModelName).should('exist');
 
-      cy.step('Navigate to the first filtered model details page');
-      modelCatalog.findFirstModelCatalogCardLink().click();
+      cy.step('Navigate to the tool-calling model details page');
+      modelCatalog.findModelCatalogCardLink(testData.toolCallingModelName).click();
 
       cy.step('Verify the details page loads');
       modelDetailsPage.findPageTitle().should('exist');

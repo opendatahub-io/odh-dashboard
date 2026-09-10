@@ -120,8 +120,8 @@ class ModelCatalog {
     return this.findFirstModelCatalogCard().contains('[data-testid="model-catalog-label"]', text);
   }
 
-  findValidatedTaskIcon() {
-    return this.findFirstModelCatalogCard().findByTestId('validated-task-icon');
+  findValidatedTaskIcon(modelName: string) {
+    return this.findModelCatalogCard(modelName).findByTestId('validated-task-icon');
   }
 
   findCardLabelByIndex(modelName: string, index: number) {
