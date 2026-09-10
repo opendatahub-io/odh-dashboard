@@ -87,7 +87,6 @@ export const getKServePVCDependentDeploymentsFromResources = (
     const { name } = inferenceService.metadata;
     const runtimeName = inferenceService.spec.predictor.model?.runtime;
     if (
-      typeof name !== 'string' ||
       !name ||
       name === excludeInferenceServiceName ||
       typeof runtimeName !== 'string' ||

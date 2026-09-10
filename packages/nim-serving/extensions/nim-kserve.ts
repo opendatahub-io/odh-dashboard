@@ -160,7 +160,7 @@ const extensions: (
       title: 'Delete model deployment?',
       submitButtonLabel: 'Delete model deployment',
       DeleteModalComponent: () =>
-        import('../src/nimKServe/NIMKServeDeleteModal').then((m) => m.default),
+        import('../src/nimKServe/NIMKServeDeleteModal').then((m) => ({ default: m.default })),
     },
     flags: {
       required: [SupportedArea.NIM_WIZARD],
