@@ -6,31 +6,10 @@
   }
 }
 
-// Quota usage detail sections (Summary, Accelerator usage, Workloads). PF ExpandableSection
-// renders the toggle as a link Button — match prototype heading text (see DashboardExpandableSection).
-.gpuaas-quota-usage-detail-section > .pf-v6-c-expandable-section__toggle > .pf-v6-c-button {
-  --pf-v6-c-button--m-link--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-link--hover--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-link--m-clicked--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-link__icon--Color: var(--pf-t--global--icon--color--regular);
-  --pf-v6-c-button--m-link--hover__icon--Color: var(--pf-t--global--icon--color--regular);
-  --pf-v6-c-button--m-link--m-clicked__icon--Color: var(--pf-t--global--icon--color--regular);
-
-  font-size: var(--pf-t--global--font--size--heading--h4) !important;
-  font-weight: var(--pf-t--global--font--weight--heading--default) !important;
-  color: var(--pf-t--global--text--color--regular) !important;
-  text-decoration: none !important;
+.gpuaas-quota-usage-summary-content {
+  background-color: transparent;
 }
 
-.gpuaas-quota-usage-detail-section > .pf-v6-c-expandable-section__toggle > .pf-v6-c-button:hover,
-.gpuaas-quota-usage-detail-section > .pf-v6-c-expandable-section__toggle > .pf-v6-c-button:focus-visible {
-  color: var(--pf-t--global--text--color--regular) !important;
-  text-decoration: none !important;
-}
-
-.gpuaas-quota-usage-detail-section
-  > .pf-v6-c-expandable-section__toggle
-  > .pf-v6-c-button
-  .pf-v6-c-expandable-section__toggle-icon {
-  color: var(--pf-t--global--icon--color--regular) !important;
+.gpuaas-quota-usage-meter__value {
+  color: var(--pf-t--global--text--color--regular);
 }

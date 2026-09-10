@@ -35,7 +35,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   const hideHwp = isNonSingleNodeTopologyActive(wizardState.state);
   const preferredAccelerator = wizardState.computedOverrides.hardwareProfile?.preferredAccelerator;
 
-  const isHardwareProfilePreferred = React.useMemo(
+  const isHardwareProfileWithPreferredAccelerator = React.useMemo(
     (): ((profile: HardwareProfileKind) => boolean) | undefined =>
       preferredAccelerator
         ? (profile) => isHardwareProfileWithAcceleratorPrefix(profile, preferredAccelerator)
@@ -100,7 +100,8 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
             project={projectName}
             hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
             isEditing={wizardState.initialData?.isEditing}
-            isHardwareProfilePreferred={isHardwareProfilePreferred}
+            isHardwareProfileSupported={isHardwareProfileWithPreferredAccelerator}
+            isHardwareProfilePreferred={isHardwareProfileWithPreferredAccelerator}
           />
         )}
         {wizardState.state.modelFormatState.isVisible && (
