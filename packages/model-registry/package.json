@@ -28,7 +28,7 @@
     "branch": "update-preview-bff",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "ac098ffe85f49a9dc2e6239e04c46bbc71ca90a4"
+    "commit": "c870f06a13ed6647bc80ff43ab7041ecb898eafc"
   },
   "module-federation": {
     "name": "modelRegistry",
