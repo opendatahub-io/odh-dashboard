@@ -8,6 +8,8 @@ module.exports = {
   clearMocks: true,
   moduleDirectories: ['node_modules', '<rootDir>/src'],
   moduleNameMapper: {
+    '^react$': require.resolve('react'),
+    '^react-dom$': require.resolve('react-dom'),
     '\\.(css|less|sass|scss)$': '<rootDir>/config/transform.style.js',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/config/transform.file.js',

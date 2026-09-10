@@ -63,7 +63,7 @@ import {
   MaaSTokenRequest,
   MaaSTokenResponse,
 } from '~/app/types';
-import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
+import { API_URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 import { GUARDRAIL_ERROR_CODES, GUARDRAIL_MESSAGES } from '~/app/Chatbot/const';
 import { ThinkTagParser } from './thinkTagParser';
 
@@ -897,7 +897,7 @@ const buildApiUrl = (
   path: string,
   queryParams: Record<string, unknown> = {},
 ): string => {
-  const base = hostPath && hostPath.length > 0 ? hostPath : URL_PREFIX;
+  const base = hostPath && hostPath.length > 0 ? hostPath : API_URL_PREFIX;
   const qs = new URLSearchParams();
   Object.entries(queryParams).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {

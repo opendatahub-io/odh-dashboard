@@ -1,12 +1,21 @@
 import * as React from 'react';
 import {
   Alert,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   EmptyState,
-  Spinner,
   EmptyStateBody,
   EmptyStateVariant,
+  ExpandableSection,
+  ExpandableSectionToggle,
+  Flex,
+  FlexItem,
+  Label,
+  MenuToggle,
+  Spinner,
 } from '@patternfly/react-core';
-import { UnknownIcon } from '@patternfly/react-icons';
+import { CubesIcon, EllipsisVIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { useCheckboxTableBase, Table } from 'mod-arch-shared';
 import {
   fireFormTrackingEvent,
@@ -39,6 +48,7 @@ interface MCPServersPanelProps {
   servers: MCPServerFromAPI[];
   serversLoaded: boolean;
   serversLoadError?: Error | null;
+  registryAvailable?: boolean;
   serverTokens: Map<string, import('~/app/types').TokenInfo>;
   onServerTokensChange: (tokens: Map<string, import('~/app/types').TokenInfo>) => void;
   checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
@@ -48,12 +58,14 @@ interface MCPServersPanelProps {
 }
 
 const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
+const MCP_CATALOG_URL = '/ai-hub/mcp-servers?tab=catalog';
 
 const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   configId,
   servers: apiServers,
   serversLoaded,
   serversLoadError = null,
+  registryAvailable = false,
   serverTokens: initialServerTokens,
   onServerTokensChange,
   checkServerStatus,
@@ -65,10 +77,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = React.useContext(GenAiContext);
 
-  // Get initial selected server IDs from store
   const initialSelectedServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
 
-  // Get tool selections callback from store
   const getToolSelections = React.useCallback(
     (namespaceName: string, serverUrl: string) =>
       useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
@@ -81,6 +91,24 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     () => apiServers.map(transformMCPServerData),
     [apiServers],
   );
+
+  // Split servers by source for grouped rendering
+  const registeredServers = React.useMemo(
+    () => transformedServers.filter((s) => s.source === 'registry'),
+    [transformedServers],
+  );
+
+  const manualServers = React.useMemo(
+    () => transformedServers.filter((s) => s.source !== 'registry'),
+    [transformedServers],
+  );
+
+  const showRegisteredSection = registryAvailable && registeredServers.length > 0;
+
+  // Section expand/collapse state
+  const [isRegisteredExpanded, setIsRegisteredExpanded] = React.useState(true);
+  const [isManualExpanded, setIsManualExpanded] = React.useState(true);
+  const [isKebabOpen, setIsKebabOpen] = React.useState(false);
 
   // Token management
   const tokenManagement = useServerTokens({
@@ -124,6 +152,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     onSelectionChange,
   });
 
+  const selectedRegisteredCount = React.useMemo(
+    () => selection.selectedServers.filter((s) => s.source === 'registry').length,
+    [selection.selectedServers],
+  );
+
   // Auto-unlock
   const { autoUnlockingServers } = useAutoUnlock({
     checkServerStatus,
@@ -148,7 +181,6 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       const namespaceName = namespace?.name;
       const totalToolsCount = toolsManagement.serverToolsCount.get(serverUrl);
       const savedTools = namespaceName ? getToolSelections(namespaceName, serverUrl) : undefined;
-      // If savedTools is undefined (never configured), all tools are selected by default
       const selectedToolsCount = savedTools === undefined ? totalToolsCount : savedTools.length;
 
       return { totalToolsCount, selectedToolsCount };
@@ -173,10 +205,6 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
 
   const showToolsWarning = totalActiveTools > 40;
 
-  // Show banner when initial load is settled and at least one selected server is not yet
-  // authenticated and not currently being checked. Each server is evaluated independently
-  // so an auth-required server surfaces the banner even while another server is still
-  // auto-unlocking.
   const showAuthRequiredBanner =
     selection.isInitialLoadComplete &&
     selection.selectedServers.some((server) => {
@@ -189,12 +217,10 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       return !isAuthenticated && !isServerLoading;
     });
 
-  // Notify parent when tools warning state changes
   React.useEffect(() => {
     onToolsWarningChange?.(showToolsWarning);
   }, [showToolsWarning, onToolsWarningChange]);
 
-  // Notify parent when active tools count changes
   React.useEffect(() => {
     onActiveToolsCountChange?.(totalActiveTools);
   }, [totalActiveTools, onActiveToolsCountChange]);
@@ -271,6 +297,59 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     };
   }, [successModal.selectedItem, getToolCounts, handleEditToolsFromSuccess, handleDisconnect]);
 
+  const renderServerRow = (server: MCPServer) => {
+    const tokenInfo = tokenManagement.getToken(server.connectionUrl);
+    const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+    const isChecking = validation.checkingServers.has(server.connectionUrl);
+    const isFetchingTools = toolsManagement.fetchingToolsServers.has(server.connectionUrl);
+    const isServerLoading = validation.validatingServers.has(server.connectionUrl) || isChecking;
+    const needsAuthorization =
+      selection.isInitialLoadComplete &&
+      isSelected(server) &&
+      !isAuthenticated &&
+      !isServerLoading &&
+      !autoUnlockingServers.has(server.connectionUrl);
+
+    const { selectedToolsCount: toolsCount } = getToolCounts(server.connectionUrl);
+
+    return (
+      <MCPServerPanelRow
+        key={server.id}
+        server={server}
+        isChecked={isSelected(server)}
+        isDisabled={false}
+        needsAuthorization={needsAuthorization}
+        onToggleCheck={() => {
+          const wasSelected = isSelected(server);
+          toggleSelection(server);
+          fireMiscTrackingEvent('Playground MCP Select', {
+            mcpServerName: server.name,
+            isSelected: !wasSelected,
+          });
+
+          if (
+            shouldTriggerAutoUnlock({
+              isInitialLoadComplete: selection.isInitialLoadComplete,
+              wasSelected,
+              isAuthenticated,
+              isChecking,
+              isValidating: validation.validatingServers.has(server.connectionUrl),
+            })
+          ) {
+            validation.handleLockClick(server);
+          }
+        }}
+        onLockClick={() => validation.handleLockClick(server)}
+        onToolsClick={() => handleToolsClick(server)}
+        isLoading={validation.validatingServers.has(server.connectionUrl) || isChecking}
+        isStatusLoading={statusesLoading.has(server.connectionUrl)}
+        isAuthenticated={isAuthenticated}
+        toolsCount={toolsCount}
+        isFetchingTools={isFetchingTools}
+      />
+    );
+  };
+
   if (!serversLoaded) {
     return <EmptyState titleText="Loading" headingLevel="h4" icon={Spinner} />;
   }
@@ -279,7 +358,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     return (
       <EmptyState
         variant={EmptyStateVariant.xs}
-        data-testid="ai-assets-empty-state"
+        data-testid="mcp-servers-load-error"
         icon={() => (
           <img
             src={isDarkMode ? SupportIconLight : SupportIconDark}
@@ -298,105 +377,42 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     );
   }
 
-  if (transformedServers.length === 0) {
-    return (
-      <EmptyState
-        variant={EmptyStateVariant.xs}
-        data-testid="ai-assets-empty-state"
-        icon={UnknownIcon}
-        headingLevel="h6"
-        titleText="No valid MCP servers available"
-      >
-        <EmptyStateBody>
-          An MCP configuration exists, but no valid servers were found. Contact your cluster
-          administrator to update the configuration.
-        </EmptyStateBody>
-      </EmptyState>
-    );
-  }
+  const renderServerTable = (servers: MCPServer[], tableTestId: string) => (
+    <Table
+      data={servers}
+      columns={MCPPanelColumns}
+      defaultSortColumn={0}
+      enablePagination={false}
+      rowRenderer={renderServerRow}
+      data-testid={tableTestId}
+    />
+  );
 
-  return (
+  const alerts = (
     <>
-      <div className="mcp-servers-panel">
-        {showAuthRequiredBanner && (
-          <Alert
-            variant="warning"
-            isInline
-            title="Authorization needed for selected MCPs"
-            className="pf-v6-u-mb-md"
-            data-testid="mcp-auth-required-alert"
-          />
-        )}
-        {showToolsWarning && (
-          <Alert
-            variant="warning"
-            isInline
-            title="Performance may be degraded with more than 40 active tools."
-            className="pf-v6-u-mb-md"
-            data-testid="mcp-tools-warning-alert"
-          />
-        )}
-        <Table
-          data={transformedServers}
-          columns={MCPPanelColumns}
-          defaultSortColumn={0}
-          enablePagination={false}
-          rowRenderer={(server: MCPServer) => {
-            const tokenInfo = tokenManagement.getToken(server.connectionUrl);
-            const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
-            const isChecking = validation.checkingServers.has(server.connectionUrl);
-            const isFetchingTools = toolsManagement.fetchingToolsServers.has(server.connectionUrl);
-            const isServerLoading =
-              validation.validatingServers.has(server.connectionUrl) || isChecking;
-            const needsAuthorization =
-              selection.isInitialLoadComplete &&
-              isSelected(server) &&
-              !isAuthenticated &&
-              !isServerLoading &&
-              !autoUnlockingServers.has(server.connectionUrl);
-
-            const { selectedToolsCount: toolsCount } = getToolCounts(server.connectionUrl);
-
-            return (
-              <MCPServerPanelRow
-                key={server.id}
-                server={server}
-                isChecked={isSelected(server)}
-                isDisabled={false}
-                needsAuthorization={needsAuthorization}
-                onToggleCheck={() => {
-                  const wasSelected = isSelected(server);
-                  toggleSelection(server);
-                  fireMiscTrackingEvent('Playground MCP Select', {
-                    mcpServerName: server.name,
-                    isSelected: !wasSelected,
-                  });
-
-                  if (
-                    shouldTriggerAutoUnlock({
-                      isInitialLoadComplete: selection.isInitialLoadComplete,
-                      wasSelected,
-                      isAuthenticated,
-                      isChecking,
-                      isValidating: validation.validatingServers.has(server.connectionUrl),
-                    })
-                  ) {
-                    validation.handleLockClick(server);
-                  }
-                }}
-                onLockClick={() => validation.handleLockClick(server)}
-                onToolsClick={() => handleToolsClick(server)}
-                isLoading={validation.validatingServers.has(server.connectionUrl) || isChecking}
-                isStatusLoading={statusesLoading.has(server.connectionUrl)}
-                isAuthenticated={isAuthenticated}
-                toolsCount={toolsCount}
-                isFetchingTools={isFetchingTools}
-              />
-            );
-          }}
-          data-testid="mcp-servers-panel-table"
+      {showAuthRequiredBanner && (
+        <Alert
+          variant="warning"
+          isInline
+          title="Authorization needed for selected MCPs"
+          className="pf-v6-u-mb-md"
+          data-testid="mcp-auth-required-alert"
         />
-      </div>
+      )}
+      {showToolsWarning && (
+        <Alert
+          variant="warning"
+          isInline
+          title="Performance may be degraded with more than 40 active tools."
+          className="pf-v6-u-mb-md"
+          data-testid="mcp-tools-warning-alert"
+        />
+      )}
+    </>
+  );
+
+  const modals = (
+    <>
       {configModal.selectedItem && (
         <MCPServerConfigModal
           isOpen={configModal.isOpen}
@@ -426,6 +442,174 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
           {...successModalProps}
         />
       )}
+    </>
+  );
+
+  // Grouped layout: show Registered + Manual Connection sections
+  if (showRegisteredSection) {
+    return (
+      <>
+        <div className="mcp-servers-panel">
+          {alerts}
+
+          {/* Registered section */}
+          <div className="pf-v6-u-mb-md" data-testid="mcp-registered-section">
+            <Flex
+              justifyContent={{ default: 'justifyContentSpaceBetween' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+              className="pf-v6-u-mb-sm"
+            >
+              <FlexItem>
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  flexWrap={{ default: 'nowrap' }}
+                >
+                  <FlexItem>
+                    <ExpandableSectionToggle
+                      toggleId="mcp-registered-section-toggle"
+                      isExpanded={isRegisteredExpanded}
+                      onToggle={() => setIsRegisteredExpanded((prev) => !prev)}
+                      contentId="mcp-registered-content"
+                      data-testid="mcp-registered-toggle"
+                    >
+                      Registered
+                    </ExpandableSectionToggle>
+                  </FlexItem>
+                  <FlexItem>
+                    <Label variant="outline" data-testid="mcp-registered-count-badge">
+                      {selectedRegisteredCount} of {registeredServers.length} servers on
+                    </Label>
+                  </FlexItem>
+                </Flex>
+              </FlexItem>
+              <FlexItem>
+                <Dropdown
+                  isOpen={isKebabOpen}
+                  onSelect={() => setIsKebabOpen(false)}
+                  onOpenChange={setIsKebabOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      variant="plain"
+                      onClick={() => setIsKebabOpen((prev) => !prev)}
+                      isExpanded={isKebabOpen}
+                      aria-label="Registered servers actions"
+                      data-testid="mcp-registered-kebab"
+                    >
+                      <EllipsisVIcon />
+                    </MenuToggle>
+                  )}
+                  popperProps={{ position: 'right' }}
+                >
+                  <DropdownList>
+                    <DropdownItem
+                      key="manage-servers"
+                      icon={<ExternalLinkAltIcon />}
+                      onClick={() => window.open(MCP_CATALOG_URL, '_blank', 'noopener,noreferrer')}
+                      data-testid="mcp-manage-servers-link"
+                    >
+                      Manage servers in AI Hub
+                    </DropdownItem>
+                  </DropdownList>
+                </Dropdown>
+              </FlexItem>
+            </Flex>
+            <ExpandableSection
+              isExpanded={isRegisteredExpanded}
+              isDetached
+              contentId="mcp-registered-content"
+              toggleId="mcp-registered-section-toggle"
+            >
+              {renderServerTable(registeredServers, 'mcp-registered-servers-table')}
+            </ExpandableSection>
+          </div>
+
+          {/* Manual Connection section */}
+          <div data-testid="mcp-manual-section">
+            <div className="pf-v6-u-mb-sm">
+              <ExpandableSectionToggle
+                toggleId="mcp-manual-section-toggle"
+                isExpanded={isManualExpanded}
+                onToggle={() => setIsManualExpanded((prev) => !prev)}
+                contentId="mcp-manual-content"
+                data-testid="mcp-manual-toggle"
+              >
+                Manual Connection
+              </ExpandableSectionToggle>
+            </div>
+            <ExpandableSection
+              isExpanded={isManualExpanded}
+              isDetached
+              contentId="mcp-manual-content"
+              toggleId="mcp-manual-section-toggle"
+            >
+              {manualServers.length === 0 ? (
+                <EmptyState
+                  variant={EmptyStateVariant.xs}
+                  icon={CubesIcon}
+                  headingLevel="h6"
+                  titleText="No manual servers configured"
+                  data-testid="mcp-manual-empty-state"
+                >
+                  <EmptyStateBody>
+                    Manual servers are configured directly in this workspace. Registered servers
+                    from your organization&rsquo;s MCP registry appear above.
+                  </EmptyStateBody>
+                </EmptyState>
+              ) : (
+                renderServerTable(manualServers, 'mcp-manual-servers-table')
+              )}
+            </ExpandableSection>
+          </div>
+        </div>
+        {modals}
+      </>
+    );
+  }
+
+  // Flat layout: no registry, show Manual Connection section only
+  return (
+    <>
+      <div className="mcp-servers-panel">
+        {alerts}
+        <div data-testid="mcp-manual-section">
+          <div className="pf-v6-u-mb-sm">
+            <ExpandableSectionToggle
+              toggleId="mcp-manual-section-toggle"
+              isExpanded={isManualExpanded}
+              onToggle={() => setIsManualExpanded((prev) => !prev)}
+              contentId="mcp-manual-content"
+              data-testid="mcp-manual-toggle"
+            >
+              Manual Connection
+            </ExpandableSectionToggle>
+          </div>
+          <ExpandableSection
+            isExpanded={isManualExpanded}
+            isDetached
+            contentId="mcp-manual-content"
+            toggleId="mcp-manual-section-toggle"
+          >
+            {manualServers.length === 0 ? (
+              <EmptyState
+                variant={EmptyStateVariant.xs}
+                icon={CubesIcon}
+                headingLevel="h6"
+                titleText="No manual servers configured"
+                data-testid="mcp-manual-empty-state"
+              >
+                <EmptyStateBody>
+                  Manual servers are configured directly in this workspace.
+                </EmptyStateBody>
+              </EmptyState>
+            ) : (
+              renderServerTable(manualServers, 'mcp-manual-servers-table')
+            )}
+          </ExpandableSection>
+        </div>
+      </div>
+      {modals}
     </>
   );
 };

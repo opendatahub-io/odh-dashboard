@@ -1,10 +1,10 @@
-import type { WorkloadCondition, WorkloadKind } from '#~/k8sTypes';
 import {
   getKueueWorkloadStatusWithMessage,
-  getKueueStatusInfo,
   aggregateKueueStatusForModel,
-} from '#~/concepts/kueue';
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
+import type { WorkloadCondition, WorkloadKind } from '#~/k8sTypes';
 
 const baseWorkload: WorkloadKind = {
   apiVersion: 'kueue.x-k8s.io/v1beta2',

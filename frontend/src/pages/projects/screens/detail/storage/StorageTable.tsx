@@ -3,6 +3,7 @@ import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { Table } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import DeletePVCModal from '#~/pages/projects/pvc/DeletePVCModal';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
@@ -10,6 +11,8 @@ import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
 import { StorageTableData } from './types';
 import ClusterStorageModal from './ClusterStorageModal';
+import { useStorageContextType } from './useStorageContextType';
+import { useClusterStorageConnectedResources } from './useClusterStorageConnectedResources';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
@@ -22,6 +25,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
   const [editPVC, setEditPVC] = React.useState<PersistentVolumeClaimKind | undefined>();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
+  const [storageContextTypes, storageContextTypesLoaded] = useStorageContextType();
   const [alertDismissed, setAlertDismissed] = React.useState<boolean>(false);
   const storageTableData: StorageTableData[] = pvcs.map((pvc) => ({
     pvc,
@@ -39,14 +43,25 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
   const shouldShowAlert = isDeprecatedAlert && !alertDismissed && isStorageClassesAvailable;
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  // Feature packages (e.g. KServe) contribute resources that may be connected to a PVC. The hook
+  // owns the extension resolution, per-hook fetching, and loaded-state short-circuits.
+  const {
+    hasExtensions: hasConnectedResourceExtensions,
+    loaded: connectedResourcesLoaded,
+    getConnectedResourceLabels,
+    hookNotifications,
+  } = useClusterStorageConnectedResources(currentProject);
+  const showConnectedResources = workbenchEnabled || hasConnectedResourceExtensions;
+
   const getStorageColumns = () => {
-    let storageColumns = columns;
+    let storageColumns = columns({ storageContextTypes });
 
     if (!isStorageClassesAvailable) {
-      storageColumns = columns.filter((column) => column.field !== 'storage');
+      storageColumns = storageColumns.filter((column) => column.field !== 'storage');
     }
 
-    if (!workbenchEnabled) {
+    if (!showConnectedResources) {
       storageColumns = storageColumns.filter((column) => column.field !== 'connected');
     }
 
@@ -55,6 +70,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
 
   return (
     <>
+      {hookNotifications}
       {shouldShowAlert && (
         <Alert
           data-testid="storage-class-deprecated-alert"
@@ -83,7 +99,12 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
             key={data.pvc.metadata.uid}
             rowIndex={i}
             obj={data}
+            storageContextTypes={storageContextTypes}
+            storageContextTypesLoaded={storageContextTypesLoaded}
             storageClassesLoaded={storageClassesLoaded}
+            showConnectedResources={showConnectedResources}
+            additionalResourcesLoaded={connectedResourcesLoaded}
+            getConnectedResourceLabels={getConnectedResourceLabels}
             onEditPVC={setEditPVC}
             onDeletePVC={setDeleteStorage}
             onAddPVC={onAddPVC}

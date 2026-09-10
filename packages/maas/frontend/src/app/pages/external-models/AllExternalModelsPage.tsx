@@ -14,7 +14,7 @@ import {
 } from './const';
 import { ExternalModelsTable } from './ExternalModelsTable';
 import ExternalModelsToolBar from './ExternalModelsToolBar';
-import ExternalModelsProjectSelector from './ExternalModelsProjectSelector';
+import MaaSExternalResourcesProjectSelector from './MaaSExternalResourcesProjectSelector';
 import { filterExternalModelsByKeyword } from './utils';
 import DeleteExternalModelModal from './DeleteExternalModelModal';
 
@@ -58,7 +58,12 @@ const AllExternalModelsPage: React.FC = () => {
 
   return (
     <>
-      {resolvedNamespace && <ExternalModelsProjectSelector namespace={resolvedNamespace} />}
+      {resolvedNamespace && (
+        <MaaSExternalResourcesProjectSelector
+          namespace={resolvedNamespace}
+          pathFunction={deploymentsExternalPath}
+        />
+      )}
       <ApplicationsPage
         loaded={namespacesLoaded && (noProjects || externalModelsLoaded || !!externalModelsError)}
         loadError={namespacesLoadError || externalModelsError}
@@ -77,7 +82,11 @@ const AllExternalModelsPage: React.FC = () => {
             onClearFilters={onClearFilters}
             setDeleteExternalModel={setDeleteExternalModel}
             toolbarContent={
-              <ExternalModelsToolBar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+              <ExternalModelsToolBar
+                namespace={resolvedNamespace}
+                filterData={filterData}
+                onFilterUpdate={onFilterUpdate}
+              />
             }
             emptyTableView={
               filterData[ExternalModelsFilterOptions.keyword] ? undefined : (

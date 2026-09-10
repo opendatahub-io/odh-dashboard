@@ -5,6 +5,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import {
   ExternalModelsInfoPopoverLocation,
   ExternalModelsInfoPopoverTarget,
+  ExternalModelsInfoPopoverViewedProperties,
   MaaSEvents,
 } from '~/app/types/event-tracking';
 
@@ -76,7 +77,7 @@ export const GovernancePairingWarning: React.FC = () => (
         fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
           infoTarget: ExternalModelsInfoPopoverTarget.SECONDARY_STATUS,
           location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
-        });
+        } satisfies ExternalModelsInfoPopoverViewedProperties);
       }}
     >
       <Label color="purple" isCompact>

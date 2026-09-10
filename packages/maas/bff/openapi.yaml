@@ -72,7 +72,7 @@ paths:
            dev impersonation feature (`DEV_IMPERSONATE_USER`) is active.
 
         2. `x-forwarded-access-token` — fallback for standalone federated dev mode
-           where the webpack proxy injects the real user's token directly.
+           where the rspack proxy injects the real user's token directly.
       responses:
         '200':
           description: Access check result

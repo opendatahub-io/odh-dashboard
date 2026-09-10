@@ -55,7 +55,7 @@ export type ModuleFederationPluginClass<TCompiler> = new (config: ModuleFederati
  * - **Remote** (`isHost: false`): `import: false` for must-share / host-provided
  *   modules.
  *
- * React / PatternFly / SDK versions come from `package.json` in webpack
+ * React / PatternFly / SDK versions come from `package.json` in the bundler
  * `compiler.options.context`.
  */
 abstract class BaseOdhFederationPlugin<TCompiler extends FederationCompiler> {

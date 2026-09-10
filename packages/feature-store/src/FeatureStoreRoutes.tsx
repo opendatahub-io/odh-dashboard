@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
-import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
+import { conditionalArea } from '@odh-dashboard/ui-core/components/conditionalArea';
 import { accessAllowedRouteHoC } from '@odh-dashboard/internal/concepts/userSSAR/accessAllowedRouteHoC';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 import { FeatureStoreObject } from './const';

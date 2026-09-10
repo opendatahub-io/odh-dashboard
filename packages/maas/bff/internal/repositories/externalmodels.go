@@ -7,6 +7,7 @@ import (
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
@@ -70,6 +71,90 @@ func (r *ExternalModelsRepository) ListExternalModels(ctx context.Context, names
 	), nil
 }
 
+// CreateExternalModel creates an ExternalModel resource and its companion MaaSModelRef.
+func (r *ExternalModelsRepository) CreateExternalModel(ctx context.Context, request models.CreateExternalModelRequest) (*models.ExternalModelSummary, error) {
+	r.logger.Debug("Creating ExternalModel", slog.String("name", request.Name), slog.String("namespace", request.Namespace))
+
+	client, err := r.k8sFactory.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	obj := buildExternalModelUnstructured(request)
+	created, err := client.GetDynamicClient().Resource(constants.ExternalModelGvr).Namespace(request.Namespace).Create(ctx, obj, metav1.CreateOptions{})
+	if err != nil {
+		if k8sErrors.IsAlreadyExists(err) {
+			return nil, fmt.Errorf("%w: ExternalModel '%s' already exists", ErrAlreadyExists, request.Name)
+		}
+		return nil, fmt.Errorf("failed to create ExternalModel: %w", err)
+	}
+
+	if err := r.createMaaSModelRefForExternalModel(ctx, request, string(created.GetUID())); err != nil {
+		if delErr := client.GetDynamicClient().
+			Resource(constants.ExternalModelGvr).
+			Namespace(request.Namespace).
+			Delete(ctx, request.Name, metav1.DeleteOptions{}); delErr != nil {
+			r.logger.Error(
+				"failed to rollback ExternalModel creation after MaaSModelRef failure",
+				slog.String("namespace", request.Namespace),
+				slog.String("name", request.Name),
+				slog.Any("err", delErr),
+			)
+		}
+		return nil, fmt.Errorf("failed to create MaaSModelRef for ExternalModel: %w", err)
+	}
+
+	return convertUnstructuredToExternalModelSummary(created), nil
+}
+
+// UpdateExternalModel updates an ExternalModel resource and its companion MaaSModelRef.
+func (r *ExternalModelsRepository) UpdateExternalModel(ctx context.Context, namespace, name string, request models.UpdateExternalModelRequest) (*models.ExternalModelSummary, error) {
+	r.logger.Debug("Updating ExternalModel", slog.String("namespace", namespace), slog.String("name", name))
+
+	client, err := r.k8sFactory.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient := client.GetDynamicClient()
+	existing, err := kubeClient.Resource(constants.ExternalModelGvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, fmt.Errorf("%w: ExternalModel '%s' not found", ErrNotFound, name)
+		}
+		return nil, fmt.Errorf("failed to get ExternalModel: %w", err)
+	}
+
+	existingSpec, _, _ := unstructured.NestedMap(existing.Object, "spec")
+	if existingSpec == nil {
+		existingSpec = map[string]interface{}{}
+	}
+	if request.ModelName != "" {
+		existingSpec["modelName"] = request.ModelName
+	}
+	if len(request.ProviderRefs) > 0 {
+		existingSpec["externalProviderRefs"] = buildExternalProviderRefs(request.ProviderRefs)
+	}
+	existing.Object["spec"] = existingSpec
+	existing.SetAnnotations(applyDisplayAnnotations(existing.GetAnnotations(), request.DisplayName, request.Description))
+
+	updated, err := kubeClient.Resource(constants.ExternalModelGvr).Namespace(namespace).Update(ctx, existing, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update ExternalModel: %w", err)
+	}
+
+	if err := r.syncMaaSModelRefOnUpdate(ctx, namespace, name, request, string(updated.GetUID())); err != nil {
+		r.logger.Warn(
+			"failed to sync MaaSModelRef for ExternalModel",
+			slog.String("namespace", namespace),
+			slog.String("name", name),
+			slog.Any("err", err),
+		)
+	}
+
+	return convertUnstructuredToExternalModelSummary(updated), nil
+}
+
 // DeleteExternalModel deletes an ExternalModel resource and its companion MaaSModelRef.
 func (r *ExternalModelsRepository) DeleteExternalModel(ctx context.Context, namespace, name string) error {
 	r.logger.Debug("Deleting ExternalModel", slog.String("namespace", namespace), slog.String("name", name))
@@ -99,19 +184,4 @@ func (r *ExternalModelsRepository) deleteMaaSModelRefForExternalModel(ctx contex
 		return nil
 	}
 	return err
-}
-
-func (r *ExternalModelsRepository) CreateExternalModel(
-	_ context.Context,
-	_ models.CreateExternalModelRequest,
-) (*models.ExternalModelSummary, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (r *ExternalModelsRepository) UpdateExternalModel(
-	_ context.Context,
-	_, _ string,
-	_ models.UpdateExternalModelRequest,
-) (*models.ExternalModelSummary, error) {
-	return nil, fmt.Errorf("not implemented")
 }

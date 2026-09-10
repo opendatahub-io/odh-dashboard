@@ -21,9 +21,9 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ClusterQueueModel,
   LocalQueueModel,
-  ProjectModel,
   WorkloadModel,
-} from '../../../utils/models';
+} from '@odh-dashboard/k8s-core/api/models';
+import { ProjectModel } from '../../../utils/models';
 import { globalDistributedWorkloads } from '../../../pages/distributedWorkloads';
 
 const mockContainer: PodContainer = {

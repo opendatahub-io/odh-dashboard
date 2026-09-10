@@ -13,7 +13,11 @@ import {
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
 import { usePolicyAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
-import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import {
+  convertStringToPhaseStatus,
+  PhaseLabelLocation,
+  PhaseResourceType,
+} from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
@@ -26,6 +30,8 @@ import {
   EventTrackingPopoverType,
   convertStringToPopoverViewedStatus,
   MaaSGovernanceStatusPopoverViewedProperties,
+  MaaSSettingsDetailsViewedProperties,
+  MaaSSettingsListRowExpandedProperties,
 } from '~/app/types/event-tracking';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -61,7 +67,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
       resourceType: EventTrackingResourceType.AUTHPOLICY,
       source: EventTrackingSource.TAB_KEBAB,
       resourceStatus: authPolicy.phase ?? '',
-    });
+    } satisfies MaaSSettingsDetailsViewedProperties);
     navigate(getAuthPolicyViewUrl(authPolicyName), navState);
   };
   const onEditAuthPolicy = (authPolicyName: string) => {
@@ -100,7 +106,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
                     resourceType: EventTrackingResourceType.AUTHPOLICY,
                     source: EventTrackingSource.TAB_LINK,
                     resourceStatus: authPolicy.phase ?? '',
-                  })
+                  } satisfies MaaSSettingsDetailsViewedProperties)
                 }
               >
                 {authPolicy.displayName ?? authPolicy.name}
@@ -187,10 +193,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
                 fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
                   resourceType: EventTrackingResourceType.AUTHPOLICY,
                   expandedSection: EventTrackingExpandedSection.GROUPS,
-                  resourceStatus: authPolicy.phase ?? '',
+                  resourceStatus: convertStringToPhaseStatus(authPolicy.phase ?? ''),
                   modelCount: modelsCount,
                   groupCount: groupsCount,
-                });
+                } satisfies MaaSSettingsListRowExpandedProperties);
               }
             },
             expandId: `expand-${authPolicy.name}-groups`,
@@ -212,10 +218,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
                 fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
                   resourceType: EventTrackingResourceType.AUTHPOLICY,
                   expandedSection: EventTrackingExpandedSection.MODELS,
-                  resourceStatus: authPolicy.phase ?? '',
+                  resourceStatus: convertStringToPhaseStatus(authPolicy.phase ?? ''),
                   modelCount: modelsCount,
                   groupCount: groupsCount,
-                });
+                } satisfies MaaSSettingsListRowExpandedProperties);
               }
             },
             expandId: `expand-${authPolicy.name}-models`,

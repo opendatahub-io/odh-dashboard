@@ -932,10 +932,10 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 	}
 }
 
-func TestNewPipelinesRepository_DefaultVersion(t *testing.T) {
+func TestNewPipelinesRepository_PipelineVersion(t *testing.T) {
 	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{})
-	if repo.config.DefaultPipelineVersion != constants.DefaultPipelineVersionSuffix {
-		t.Errorf("got %q, want %q", repo.config.DefaultPipelineVersion, constants.DefaultPipelineVersionSuffix)
+	if repo.config.DefaultPipelineVersion != "" {
+		t.Errorf("got %q, want empty for newest version selection", repo.config.DefaultPipelineVersion)
 	}
 
 	repo2 := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{DefaultPipelineVersion: "custom"})

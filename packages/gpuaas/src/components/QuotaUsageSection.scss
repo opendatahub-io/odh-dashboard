@@ -1,0 +1,7 @@
+// Prototype match: collapsed toggle points right, expanded points down (PF default caret is down/up).
+.gpuaas-quota-usage-section {
+  .gpuaas-quota-usage-tree {
+    --pf-v6-c-tree-view__node-toggle-icon--base--Rotate: -90deg;
+    --pf-v6-c-tree-view__list-item--m-expanded__node-toggle-icon--Rotate: 0deg;
+  }
+}

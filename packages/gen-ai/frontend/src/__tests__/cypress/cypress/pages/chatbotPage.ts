@@ -226,7 +226,7 @@ class ChatbotPage {
   }
 
   findMCPServersTable(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-servers-panel-table');
+    return cy.findByTestId('mcp-manual-servers-table');
   }
 
   openKebabAndClickItem(testId: string): void {

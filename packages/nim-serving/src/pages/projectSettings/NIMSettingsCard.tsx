@@ -5,6 +5,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Alert,
   Button,
   HelperText,
   HelperTextItem,
@@ -41,7 +42,8 @@ type NIMSettingsCardProps = {
 };
 
 const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
-  const { status, errorMessages, refresh, startRevalidation } = useNIMAccountStatus(namespace);
+  const { status, errorMessages, loadError, refresh, startRevalidation } =
+    useNIMAccountStatus(namespace);
 
   const { loaded: accessReviewLoaded, allowed } = useNIMSettingsAccessAllowed(namespace);
 
@@ -95,8 +97,17 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   }, [namespace, refresh, stopPollingDeleteStatus]);
 
   const renderFooterContent = () => {
-    if (!accessReviewLoaded || status === NIMAccountStatus.LOADING) {
+    if (!accessReviewLoaded || (status === NIMAccountStatus.LOADING && !loadError)) {
       return <Skeleton data-testid="nim-permissions-loading" height="35px" width="250px" />;
+    }
+
+    if (loadError) {
+      return (
+        <Alert variant="danger" isInline title="Unable to load NVIDIA NIM account">
+          NVIDIA NIM account information could not be loaded for this project. Ask your project
+          administrator to verify that you have permission to view NIM accounts, then try again.
+        </Alert>
+      );
     }
 
     const enableButton = (

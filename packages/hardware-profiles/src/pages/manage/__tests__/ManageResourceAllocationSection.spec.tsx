@@ -14,8 +14,8 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
-jest.mock('@odh-dashboard/internal/concepts/areas', () => ({
-  ...jest.requireActual('@odh-dashboard/internal/concepts/areas'),
+jest.mock('@odh-dashboard/ui-core/components/conditionalArea', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core/components/conditionalArea'),
   conditionalArea: jest.fn(() => (Component: React.FC) => Component),
 }));
 jest.mock('@odh-dashboard/internal/pages/clusterSettings/useDefaultDsc');

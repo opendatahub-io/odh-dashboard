@@ -327,7 +327,7 @@ rm -f packages/gen-ai/Dockerfile.dev-deploy
 
 ## Troubleshooting
 
-### Podman machine OOM (SIGKILL on webpack)
+### Podman machine OOM (SIGKILL on rspack)
 
 Increase podman machine memory:
 

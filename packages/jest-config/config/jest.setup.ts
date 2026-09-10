@@ -18,7 +18,7 @@ if (typeof global.structuredClone === 'undefined') {
   global.structuredClone = (obj: unknown) => JSON.parse(JSON.stringify(obj));
 }
 
-// Mock webpack-injected global variables
+// Mock bundler-injected global variables
 declare global {
   // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
   var __COMMIT_HASH__: string;

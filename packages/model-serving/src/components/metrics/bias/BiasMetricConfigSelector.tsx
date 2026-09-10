@@ -1,9 +1,6 @@
 import React from 'react';
 import { useModelBiasData } from '@odh-dashboard/trustyai/hooks/useModelBiasData';
-import {
-  MultiSelection,
-  SelectionOptions,
-} from '@odh-dashboard/internal/components/MultiSelection';
+import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import {
   type BiasMetricConfig,
   TrustyInstallState,

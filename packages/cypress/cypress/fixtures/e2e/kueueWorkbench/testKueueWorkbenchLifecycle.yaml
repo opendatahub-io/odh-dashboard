@@ -1,5 +1,5 @@
 # Kueue workbench lifecycle test data
-# Uses zero quota to force Queued state, then updates quota to allow admission
+# Uses zero quota to force Inadmissible state, then updates quota to allow admission
 projectName: "kueue-lifecycle-project"
 flavorName: "lifecycle-flavor"
 clusterQueueName: "lifecycle-cluster-queue"
@@ -12,5 +12,4 @@ updatedCpuQuota: 4
 updatedMemoryQuota: 8
 sectionTab: "workbenches"
 notebookImage: "code-server-notebook"
-waitingForQuotaMessage: "Waiting for quota"
-queuePositionMarker: "(position"
+exceededQuotaMessage: "Exceeded quota"

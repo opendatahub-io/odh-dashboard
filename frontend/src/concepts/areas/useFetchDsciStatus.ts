@@ -1,6 +1,6 @@
 import type { DataScienceClusterInitializationKindStatus } from '@odh-dashboard/k8s-core';
 import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 /**
  * Should only return `null` when on v1 Operator.

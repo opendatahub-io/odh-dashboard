@@ -46,12 +46,12 @@ const findMonorepoRoot = (): string => {
   }
   throw new Error(
     `Could not locate monorepo root from ${process.cwd()}. ` +
-      'Ensure webpack is invoked from a directory within the monorepo.',
+      'Ensure the bundler is invoked from a directory within the monorepo.',
   );
 };
 
 /**
- * Read `dependencies` from the package.json in `startDir` (webpack `compiler.options.context`).
+ * Read `dependencies` from the package.json in `startDir` (bundler `compiler.options.context`).
  */
 const collectDependenciesFromContext = (startDir: string): Record<string, string> =>
   readPackageJson(startDir)?.dependencies ?? {};

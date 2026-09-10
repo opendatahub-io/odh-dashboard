@@ -154,14 +154,17 @@
     "@rspack/core": "2.1.10",
     "@rspack/cli": "2.1.10",
     "serialize-javascript": ">=7.0.5",
-    "fast-uri": ">=3.1.4 <4.0.0",
+    "fast-uri": ">=3.1.7 <4.0.0",
     "koa": ">=3.1.2",
     "adm-zip": ">=0.6.0",
+    "postcss": ">=8.5.23 <9.0.0",
+    "js-yaml@^3": "3.15.2",
+    "js-yaml@^4": "4.3.2",
     "@cypress/code-coverage": {
-      "js-yaml": ">=4.3.0"
+      "js-yaml": ">=4.3.2 <5.0.0"
     },
     "xmlbuilder2": {
-      "js-yaml": "^3.14.2"
+      "js-yaml": "3.15.2"
     }
   }
 }

@@ -15,6 +15,7 @@ import {
   NotificationWatcherContext,
   type NotificationWatcherResponse,
 } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
+import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ModelCustomizationFormData } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import useRunFormData from '#~/concepts/pipelines/content/createRun/useRunFormData';
@@ -44,7 +45,6 @@ import { RunTypeOption } from '#~/concepts/pipelines/content/createRun/types';
 import { FineTunedModelNewConnectionContext } from '#~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
 import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';
 import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
-import { deleteSecret } from '#~/api';
 import { isFilledRunFormData } from '#~/concepts/pipelines/content/createRun/utils';
 import { GetArtifactsRequest } from '#~/third_party/mlmd';
 import { ListOperationOptions } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';

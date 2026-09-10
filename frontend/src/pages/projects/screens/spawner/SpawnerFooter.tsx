@@ -12,6 +12,7 @@ import {
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { createNotebook, mergePatchUpdateNotebook, restartNotebook, updateNotebook } from '#~/api';
 import {
   EnvVariable,
@@ -30,7 +31,6 @@ import {
   getWorkbenchKueueTrackingProperties,
   WorkbenchTrackingEvent,
 } from '#~/concepts/kueue/workbenchTracking';
-import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import { UseExistingSecretsResult } from './environmentVariables/useExistingSecrets';
 import {
   createConfigMapsAndSecretsForNotebook,
@@ -50,6 +50,8 @@ type SpawnerFooterProps = {
   connections: Connection[];
   canEnablePipelines: boolean;
   selectedFeatureStores?: SelectedFeatureStoreConfig[];
+  featureStoreApiAvailable?: boolean;
+  featureStoresLoading?: boolean;
   /** Present when editing; prefer this over looking up the notebook from context. */
   existingNotebook?: NotebookKind;
   existingSecretsData: UseExistingSecretsResult;
@@ -62,6 +64,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   connections = [],
   canEnablePipelines,
   selectedFeatureStores = [],
+  featureStoreApiAvailable = true,
+  featureStoresLoading = false,
   existingNotebook,
   existingSecretsData,
 }) => {
@@ -108,6 +112,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     hasDeletedOrMissingRefs ||
     !isHardwareProfileValid ||
+    featureStoresLoading ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 
@@ -253,7 +258,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
-    const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
+    const feastData = generateFeastMetadata(
+      selectedFeatureStores,
+      editNotebook,
+      true,
+      featureStoreApiAvailable,
+    );
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,

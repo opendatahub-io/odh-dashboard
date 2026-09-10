@@ -6,7 +6,7 @@ import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { assembleServingRuntimeTemplate } from '#~/api';
 import { addTypesToK8sListedResources } from '#~/utilities/addTypesToK8sListedResources';
 

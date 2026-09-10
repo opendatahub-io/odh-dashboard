@@ -32,7 +32,9 @@ RUN npm run build:prod
 FROM registry.redhat.io/ubi9/go-toolset:1.26 AS bff-builder
 WORKDIR /usr/src/app
 COPY packages/gen-ai/bff/go.mod packages/gen-ai/bff/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 RUN go mod download
+COPY pkg/tls/ /pkg/tls/
 COPY packages/gen-ai/bff/cmd/ cmd/
 COPY packages/gen-ai/bff/internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd

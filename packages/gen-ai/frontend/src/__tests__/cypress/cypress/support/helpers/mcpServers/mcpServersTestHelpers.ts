@@ -14,6 +14,7 @@ import {
   mockMCPStatusAutoConnect,
   mockMCPToolsAutoConnect,
   mockMCPToolsAutoConnectWithCount,
+  mockMCPServersWithRegistry,
 } from '~/__tests__/cypress/cypress/__mocks__';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { playgroundPage } from '~/__tests__/cypress/cypress/pages/playgroundPage';
@@ -273,4 +274,39 @@ export const initHighToolsCountIntercepts = ({
   // Mock auto-connect status and tools with high count
   mockMCPStatusAutoConnect(serverUrl);
   mockMCPToolsAutoConnectWithCount(serverUrl, toolsCount);
+};
+
+export const initRegistryIntercepts = ({
+  config,
+  namespace,
+  registryServers,
+  configmapServers,
+}: {
+  config: MCPTestConfig;
+  namespace: string;
+  registryServers?: Array<{ name: string; url: string; status?: string }>;
+  configmapServers?: Array<{ name: string; url: string; status?: string }>;
+}): void => {
+  setupBaseMCPServerMocks(config, { lsdStatus: 'Ready', includeLsdModel: true });
+
+  const regServers = registryServers?.map((s) =>
+    mockMCPServer({
+      ...s,
+      source: 'registry',
+      status: (s.status ?? 'healthy') as MCPServerStatus,
+    }),
+  );
+  const cmServers = configmapServers?.map((s) =>
+    mockMCPServer({
+      ...s,
+      source: 'configmap',
+      status: (s.status ?? 'healthy') as MCPServerStatus,
+    }),
+  );
+
+  cy.interceptGenAi(
+    'GET /api/v1/aaa/mcps',
+    { query: { namespace } },
+    mockMCPServersWithRegistry(regServers, cmServers),
+  );
 };

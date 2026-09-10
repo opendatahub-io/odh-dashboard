@@ -19,7 +19,6 @@ import {
   Tabs,
   TabContent,
   TabTitleText,
-  Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
@@ -27,6 +26,7 @@ import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { deleteGenericTable } from '~/app/api/dataRegistry';
 import { browseUrl } from '~/app/utilities/routes';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
+import EditAssetModal from '~/app/components/EditAssetModal';
 import TableDetailView from './TableDetailView';
 
 const TableDetailPage: React.FC = () => {
@@ -37,9 +37,10 @@ const TableDetailPage: React.FC = () => {
   }>();
   const navigate = useNavigate();
 
-  const [asset, loaded, loadError] = useGenericTable(project, collection, name);
+  const [asset, loaded, loadError, refresh] = useGenericTable(project, collection, name);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
 
   const handleDelete = React.useCallback(async () => {
     if (!project || !collection || !name) {
@@ -83,6 +84,7 @@ const TableDetailPage: React.FC = () => {
           <MenuToggle
             ref={toggleRef}
             variant="plain"
+            isDisabled={!loaded}
             onClick={() => setIsActionsOpen((prev) => !prev)}
             isExpanded={isActionsOpen}
             aria-label="Actions"
@@ -94,11 +96,13 @@ const TableDetailPage: React.FC = () => {
         popperProps={{ position: 'right' }}
       >
         <DropdownList>
-          <Tooltip content="Edit functionality coming soon">
-            <DropdownItem key="edit" isDisabled data-testid="asset-action-edit">
-              Edit
-            </DropdownItem>
-          </Tooltip>
+          <DropdownItem
+            key="edit"
+            onClick={() => setIsEditModalOpen(true)}
+            data-testid="asset-action-edit"
+          >
+            Edit
+          </DropdownItem>
           <DropdownItem
             key="delete"
             onClick={() => setIsDeleteModalOpen(true)}
@@ -114,6 +118,20 @@ const TableDetailPage: React.FC = () => {
           assetType="table"
           onDelete={handleDelete}
           onClose={() => setIsDeleteModalOpen(false)}
+        />
+      ) : null}
+      {isEditModalOpen && asset && project && collection && name ? (
+        <EditAssetModal
+          asset={asset}
+          assetKind="table"
+          project={project}
+          collection={collection}
+          name={name}
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={() => {
+            setIsEditModalOpen(false);
+            refresh();
+          }}
         />
       ) : null}
     </>

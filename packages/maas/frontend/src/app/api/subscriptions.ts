@@ -8,7 +8,7 @@ import {
   restUPDATE,
   assembleModArchBody,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
 import {
   CreateSubscriptionRequest,
   CreateSubscriptionResponse,
@@ -152,7 +152,7 @@ export const listSubscriptions =
   (hostPath = '') =>
   (opts: APIOptions): Promise<MaaSSubscription[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-subscriptions`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-subscriptions`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isMaaSSubscription).map(normalizeSubscription);
@@ -166,7 +166,7 @@ export const deleteSubscription =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/subscription/${encodeURIComponent(name)}`,
         {},
         {},
         opts,
@@ -187,7 +187,7 @@ export const getSubscriptionInfo =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription-info/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/subscription-info/${encodeURIComponent(name)}`,
         {},
         opts,
       ),
@@ -206,7 +206,7 @@ export const listAllGroups =
   (hostPath = '') =>
   (opts: APIOptions): Promise<string[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-groups`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-groups`, {}, opts),
     ).then((response) => {
       if (
         isModArchResponse<unknown>(response) &&
@@ -223,7 +223,7 @@ export const listAllMaasModels =
   (hostPath = '') =>
   (opts: APIOptions): Promise<MaaSModelRefSummary[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-maas-models`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-maas-models`, {}, opts),
     ).then((response) => {
       if (
         isModArchResponse<unknown>(response) &&
@@ -241,7 +241,7 @@ export const createSubscription =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`,
         assembleModArchBody(request),
         {},
         opts,
@@ -266,7 +266,7 @@ export const updateSubscription =
     handleRestFailures(
       restUPDATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/update-subscription/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/update-subscription/${encodeURIComponent(name)}`,
         assembleModArchBody(request),
         {},
         opts,
@@ -285,7 +285,7 @@ export const listUserSubscriptions =
   (hostPath = '') =>
   (opts: APIOptions): Promise<UserSubscription[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isUserSubscription);
@@ -300,7 +300,7 @@ export const getUserSubscription =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions/${encodeURIComponent(id)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions/${encodeURIComponent(id)}`,
         {},
         opts,
       ),
@@ -317,7 +317,7 @@ export const getResourceYaml =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/yaml`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/yaml`,
         { name, type: resourceType },
         opts,
       ),

@@ -42,6 +42,7 @@ describe('AIAssetsMCPTab', () => {
     mockUseFetchMCPServers.mockReturnValue({
       data: [],
       configMapName: null,
+      registryAvailable: false,
       loaded: false,
       error: undefined,
     });
@@ -66,6 +67,7 @@ describe('AIAssetsMCPTab', () => {
     mockUseFetchMCPServers.mockReturnValue({
       data: [],
       configMapName: null,
+      registryAvailable: false,
       loaded: true,
       error: new Error('ConfigMap not found'),
     });
@@ -94,6 +96,7 @@ describe('AIAssetsMCPTab', () => {
     mockUseFetchMCPServers.mockReturnValue({
       data: [],
       configMapName: null,
+      registryAvailable: false,
       loaded: true,
       error: undefined,
     });
@@ -129,6 +132,7 @@ describe('AIAssetsMCPTab', () => {
         },
       ] as MCPServerFromAPI[],
       configMapName: null,
+      registryAvailable: false,
       loaded: true,
       error: undefined,
     });

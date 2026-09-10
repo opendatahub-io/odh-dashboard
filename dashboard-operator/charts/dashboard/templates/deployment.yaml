@@ -87,6 +87,10 @@ spec:
                   fieldPath: metadata.namespace
             - name: OPERATOR_DEPLOYMENT_NAME
               value: {{ include "dashboard.deploymentName" . }}
+            - name: OPERATOR_SERVICE_ACCOUNT_NAME
+              value: {{ include "dashboard.serviceAccountName" . }}
+            - name: OPERATOR_CONFIGMAP_NAME
+              value: {{ include "dashboard.configMapName" . }}
             {{- range $name, $value := .Values.relatedImages }}
             {{- if $value }}
             - name: {{ $name }}

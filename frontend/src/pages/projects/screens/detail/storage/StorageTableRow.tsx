@@ -12,6 +12,7 @@ import {
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -25,12 +26,17 @@ import ConnectedResources from '#~/pages/projects/screens/detail/connections/Con
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
-import { isModelStorage } from './utils';
+import { getPVCContextStorageType, StorageContextType } from './useStorageContextType';
 
 type StorageTableRowProps = {
   rowIndex: number;
   obj: StorageTableData;
+  storageContextTypes?: StorageContextType[];
+  storageContextTypesLoaded: boolean;
   storageClassesLoaded: boolean;
+  showConnectedResources: boolean;
+  additionalResourcesLoaded: boolean;
+  getConnectedResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
   onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
   onAddPVC: () => void;
@@ -39,16 +45,19 @@ type StorageTableRowProps = {
 const StorageTableRow: React.FC<StorageTableRowProps> = ({
   rowIndex,
   obj,
+  storageContextTypes,
+  storageContextTypesLoaded,
   storageClassesLoaded,
+  showConnectedResources,
+  additionalResourcesLoaded,
+  getConnectedResourceLabels,
   onDeletePVC,
   onEditPVC,
   onAddPVC,
 }) => {
   const isRootVolume = useIsRootVolume(obj.pvc);
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const storageClassConfig = obj.storageClass && getStorageClassConfig(obj.storageClass);
-  const modelStorage = isModelStorage(obj.pvc);
   const actions: IAction[] = [
     {
       title: <span data-testid="edit-storage-action">Edit storage</span>,
@@ -149,21 +158,31 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
         </Content>
       </Td>
       <Td dataLabel="Storage context">
-        <Content component="p">
-          <Flex>
-            <FlexItem spacer={{ default: 'spacerSm' }}>
-              <HddIcon />
-            </FlexItem>
-            <FlexItem>{` ${modelStorage ? 'Model storage' : 'General purpose'}`}</FlexItem>
-          </Flex>
-        </Content>
+        {storageContextTypesLoaded ? (
+          <Content component="p">
+            <Flex>
+              <FlexItem spacer={{ default: 'spacerSm' }}>
+                <HddIcon />
+              </FlexItem>
+              <FlexItem>{` ${
+                getPVCContextStorageType(obj.pvc, storageContextTypes).title
+              }`}</FlexItem>
+            </Flex>
+          </Content>
+        ) : (
+          <Skeleton />
+        )}
       </Td>
       <Td dataLabel="Storage size">
         <StorageSizeBar pvc={obj.pvc} />
       </Td>
-      {workbenchEnabled && (
+      {showConnectedResources && (
         <Td dataLabel="Connected resources">
-          <ConnectedResources pvc={obj.pvc} />
+          <ConnectedResources
+            pvc={obj.pvc}
+            additionalResources={getConnectedResourceLabels(obj.pvc)}
+            additionalResourcesLoaded={additionalResourcesLoaded}
+          />
         </Td>
       )}
       <Td isActionCell>

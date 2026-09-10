@@ -332,6 +332,49 @@ func TestReconcile(t *testing.T) {
 	}
 }
 
+func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
+	scheme := testScheme(t)
+	manifests := t.TempDir()
+	maasModulePath := filepath.Join(manifests, "modules", "maas")
+	require.NoError(t, os.MkdirAll(maasModulePath, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(maasModulePath, "kustomization.yaml"), []byte("invalid: ["), 0644))
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
+			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		},
+	}
+	cli := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                scheme,
+		ManifestsBasePath:     manifests,
+		Platform:              cluster.SelfManagedRhoai,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+	require.Error(t, err)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+	condition := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, condition)
+	assert.Equal(t, metav1.ConditionFalse, condition.Status)
+	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
+}
+
 func TestReconcile_Deletion(t *testing.T) {
 	s := testScheme(t)
 
@@ -764,6 +807,35 @@ func TestReconcile_StatusContract(t *testing.T) {
 			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
 		})
 	}
+}
+
+func TestReconcileDegradedCondition(t *testing.T) {
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(
+		dashboard,
+		string(common.ConditionTypeReady),
+		string(common.ConditionTypeDegraded),
+	)
+	r := &ctrlpkg.DashboardReconciler{}
+
+	r.ReconcileDegradedCondition(cm, map[string]v1alpha1.ModuleStatus{
+		"modelRegistry": {Phase: v1alpha1.ModulePhaseDegraded},
+		"genAi":         {Phase: v1alpha1.ModulePhaseDegraded},
+		"mlflow":        {Phase: v1alpha1.ModulePhaseDeployed},
+	})
+
+	degraded := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "ModulesDegraded", degraded.Reason)
+	assert.Equal(t, "2 module(s) degraded", degraded.Message)
+	assert.Equal(t, common.ConditionSeverityError, degraded.Severity)
+	ready := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeReady))
+	require.NotNil(t, ready)
+	assert.Equal(t, metav1.ConditionFalse, ready.Status)
+	assert.Equal(t, "ModulesDegraded", ready.Reason)
+	assert.Equal(t, "2 module(s) degraded", ready.Message)
+	assert.False(t, cm.IsHappy())
 }
 
 func TestReconcile_DistinctNamespaces(t *testing.T) {

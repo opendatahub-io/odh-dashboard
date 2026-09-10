@@ -3,8 +3,15 @@ import { Link } from 'react-router-dom';
 import { ConnectionRef } from '~/app/types';
 
 type ConnectionRefLinkProps = {
-  connectionRef?: ConnectionRef | null;
+  connectionRef?: ConnectionRef | string | null;
   linkTo?: string;
+};
+
+const getLabel = (ref: ConnectionRef | string): string => {
+  if (typeof ref === 'string') {
+    return ref;
+  }
+  return ref.type === 'rhai' ? ref.secret_name : ref.id;
 };
 
 const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({ connectionRef, linkTo }) => {
@@ -12,19 +19,17 @@ const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({ connectionRef, li
     return <>-</>;
   }
 
-  const label = connectionRef.type === 'rhai' ? connectionRef.secret_name : connectionRef.id;
-
-  const testId = connectionRef.type === 'rhai' ? 'connection-ref-rhai' : 'connection-ref-dch';
+  const label = getLabel(connectionRef);
 
   if (linkTo) {
     return (
-      <Link to={linkTo} data-testid={testId}>
+      <Link to={linkTo} data-testid="connection-ref-link">
         {label}
       </Link>
     );
   }
 
-  return <span data-testid={testId}>{label}</span>;
+  return <span data-testid="connection-ref-label">{label}</span>;
 };
 
 export default ConnectionRefLink;

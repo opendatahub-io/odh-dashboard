@@ -8,7 +8,7 @@
 ## Design Intent
 
 - **No package-local BFF:** all API traffic goes through the main dashboard backend (e.g. `/api/k8s/`) or equivalent cluster proxy; the UI never talks to a dedicated model-serving Go/Node service.
-- **Not a separate Webpack remote:** imported as `@odh-dashboard/model-serving`; registers extensions via the dynamic plugin SDK (`extensions/index.ts` aggregates `extensions/odh.ts`, `model-registry.ts`, `model-catalog.ts`).
+- **Not a separate Module Federation remote:** imported as `@odh-dashboard/model-serving`; registers extensions via the dynamic plugin SDK (`extensions/index.ts` aggregates `extensions/odh.ts`, `model-registry.ts`, `model-catalog.ts`).
 - Platform packages (notably `packages/kserve`) implement extension points such as `model-serving.platform`, `watch-deployments`, and `deployment/deploy` so the shared wizard and deployments table create `InferenceService` / `ServingRuntime` resources correctly for KServe vs other platforms.
 - **Data flow:** Kubernetes → main backend → React; platform-specific behaviour is injected through those extension points instead of branching inside every component.
 

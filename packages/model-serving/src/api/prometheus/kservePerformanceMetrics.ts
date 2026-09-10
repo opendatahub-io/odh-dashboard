@@ -4,7 +4,7 @@ import {
   TimeframeTitle,
   type PrometheusQueryRangeResultValue,
 } from '@odh-dashboard/ui-core/types/metrics';
-import { PendingContextResourceData } from '@odh-dashboard/internal/types';
+import { PendingContextResourceData } from '@odh-dashboard/ui-core/types/prometheus';
 import { defaultResponsePredicate } from './usePrometheusQueryRange';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 import { DEFAULT_PENDING_CONTEXT_RESOURCE } from './const';

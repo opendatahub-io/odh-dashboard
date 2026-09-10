@@ -1,0 +1,5 @@
+# Transitive dependency constraints for the MLflow test/dev server.
+# Main MLflow version is pinned via MLFLOW_VERSION in the Makefile (--with mlflow==...).
+# Python version is pinned via .python-version in this directory.
+# Add pins here when MLflow transitive dependencies break — no Go code changes needed.
+anyio<4.15

@@ -1,28 +1,33 @@
 import * as React from 'react';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { SecretKind, K8sAPIOptions, RoleKind, RoleBindingKind } from '@odh-dashboard/k8s-core';
+import type {
+  SecretKind,
+  K8sAPIOptions,
+  RoleKind,
+  RoleBindingKind,
+  ServiceAccountKind,
+} from '@odh-dashboard/k8s-core';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import {
   assembleSecretSA,
   createSecret,
   deleteSecret,
   replaceSecret,
-} from '@odh-dashboard/internal/api/k8s/secrets';
+} from '@odh-dashboard/k8s-core/api/secrets';
 import {
   assembleServiceAccount,
   createServiceAccount,
   getServiceAccount,
-} from '@odh-dashboard/internal/api/k8s/serviceAccounts';
-import { getRole, createRole } from '@odh-dashboard/internal/api/k8s/roles';
+} from '@odh-dashboard/k8s-core/api/serviceAccounts';
+import { getRole, createRole } from '@odh-dashboard/k8s-core/api/roles';
 import {
   generateRoleBindingServiceAccount,
   getRoleBinding,
   createRoleBinding,
-} from '@odh-dashboard/internal/api/k8s/roleBindings';
-import { addOwnerReference } from '@odh-dashboard/internal/api/k8sUtils';
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import type { ServiceAccountKind } from '@odh-dashboard/internal/k8sTypes';
+} from '@odh-dashboard/k8s-core/api/roleBindings';
+import { addOwnerReference } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import useFetch, {
   NotReadyError,
   type FetchOptions,

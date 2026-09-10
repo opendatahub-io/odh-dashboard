@@ -1,4 +1,4 @@
-import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
+import * as secretsApi from '@odh-dashboard/k8s-core/api/secrets';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React, { act } from 'react';
@@ -6,7 +6,7 @@ import OgxConnectionModal from '~/app/components/common/OgxConnectionModal';
 
 const TEST_NAMESPACE = 'my-namespace';
 
-jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
   createSecret: jest.fn(),
 }));
 

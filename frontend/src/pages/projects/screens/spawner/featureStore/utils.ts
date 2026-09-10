@@ -101,11 +101,31 @@ export const generateFeastMetadata = (
   selectedFeatureStores: WorkbenchFeatureStoreConfig[],
   existingNotebook?: NotebookKind,
   isUpdate = false,
+  featureStoreApiAvailable = true,
 ): {
   featureStores: NotebookFeatureStore[];
   annotations?: Record<string, string>;
   labels?: Record<string, string>;
 } => {
+  if (isUpdate && !featureStoreApiAvailable && existingNotebook) {
+    const labels: Record<string, string> = {};
+    const annotations: Record<string, string> = {};
+
+    if (existingNotebook.metadata.labels?.[FEAST_INTEGRATION_LABEL]) {
+      labels[FEAST_INTEGRATION_LABEL] = existingNotebook.metadata.labels[FEAST_INTEGRATION_LABEL];
+    }
+    if (existingNotebook.metadata.annotations?.[FEAST_CONFIG_ANNOTATION]) {
+      annotations[FEAST_CONFIG_ANNOTATION] =
+        existingNotebook.metadata.annotations[FEAST_CONFIG_ANNOTATION];
+    }
+
+    return {
+      featureStores: [],
+      ...(Object.keys(annotations).length > 0 && { annotations }),
+      ...(Object.keys(labels).length > 0 && { labels }),
+    };
+  }
+
   const featureStores = mapFeatureStoresForNotebook(selectedFeatureStores);
   const hasFeatureStores = featureStores.length > 0;
   const feastConfigAnnotation = hasFeatureStores
