@@ -110,7 +110,6 @@ describe('NIM Models Deployments', () => {
     deleteModelServingModal.shouldBeOpen();
     deleteModelServingModal.findPVCCheckbox().should('not.be.checked');
     deleteModelServingModal.findPVCDependentsAlert().should('not.exist');
-    deleteModelServingModal.findInput().type('Test Name');
 
     cy.interceptK8sList(
       InferenceServiceModel,
@@ -120,6 +119,7 @@ describe('NIM Models Deployments', () => {
       'getPVCDependentServingRuntimes',
     );
 
+    deleteModelServingModal.findInput().type('Test Name');
     deleteModelServingModal.findPVCCheckbox().click();
     cy.wait('@getPVCDependentInferenceServices');
     cy.wait('@getPVCDependentServingRuntimes');

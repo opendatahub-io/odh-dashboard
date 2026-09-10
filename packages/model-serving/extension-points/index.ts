@@ -234,7 +234,7 @@ export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extensi
     /** Whether this extension applies to the deployment. Active extensions with the highest priority win. */
     isActive?: CodeRef<(deployment: D) => boolean> | true;
     /** Priority among active delete extensions for the same platform. */
-    priority?: number | 0;
+    priority?: number;
     /** Optional platform-specific modal. It must call onClose(true) only after deletion succeeds. */
     DeleteModalComponent?: CodeRef<React.ComponentType<ModelServingDeleteModalComponentProps<D>>>;
   }

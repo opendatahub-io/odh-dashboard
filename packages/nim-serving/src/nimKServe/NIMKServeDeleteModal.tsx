@@ -77,7 +77,6 @@ const NIMKServeDeleteModal: React.FC<Props> = ({
   };
 
   const handleClose = () => {
-    setDeletePVC(false);
     onClose(false);
   };
 
