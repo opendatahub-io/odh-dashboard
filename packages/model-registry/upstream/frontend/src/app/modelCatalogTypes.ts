@@ -47,6 +47,8 @@ export type CatalogSource = {
   status?: 'available' | 'partially-available' | 'error' | 'disabled';
   error?: string;
   assetType?: CatalogAssetType;
+  hasApiKey?: boolean;
+  authenticated?: boolean;
 };
 
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };

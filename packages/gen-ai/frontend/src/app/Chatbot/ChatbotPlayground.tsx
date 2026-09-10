@@ -33,7 +33,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
-import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
+import { API_URL_PREFIX, isLlamaModelEnabled } from '~/app/utilities';
 import {
   convertMaaSModelToAIModel,
   getId,
@@ -274,6 +274,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // MCP hooks
   const {
     data: mcpServers = [],
+    registryAvailable: mcpRegistryAvailable,
     loaded: mcpServersLoaded,
     error: mcpServersLoadError,
   } = useFetchMCPServers();
@@ -587,7 +588,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         fileName: normalizedName,
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
+      const url = `${API_URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
         namespace?.name || '',
       )}`;
       const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
@@ -1127,6 +1128,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 mcpServers={mcpServers}
                 mcpServersLoaded={mcpServersLoaded}
                 mcpServersLoadError={mcpServersLoadError}
+                mcpRegistryAvailable={mcpRegistryAvailable}
                 mcpServerTokens={mcpServerTokens}
                 onMcpServerTokensChange={setMcpServerTokens}
                 checkMcpServerStatus={checkMcpServerStatus}

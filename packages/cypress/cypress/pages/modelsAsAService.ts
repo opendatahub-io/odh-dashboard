@@ -12,12 +12,12 @@ class MaaSWizardField {
 }
 
 class APIKeysPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/keys-and-subs');
     this.wait();
   }
 
-  visitKeysAndSubsWithoutLogin(): void {
+  visit(): void {
     cy.visit('/maas/keys-and-subs');
     this.wait();
   }
@@ -136,7 +136,12 @@ class APIKeysPage {
 
 class MySubscriptionsPage {
   visit(subName: string): void {
-    cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`);
+    cy.visit(`/maas/keys-and-subs/subscriptions/${subName}`);
+    this.wait();
+  }
+
+  visitWithLogin(subName: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`, credentials);
     this.wait();
   }
 
@@ -488,8 +493,13 @@ class AdminBulkRevokeAPIKeyModal extends Modal {
 }
 
 class SubscriptionsPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/maas-governance/subscriptions');
+    this.wait();
+  }
+
+  visit(): void {
+    cy.visit('/maas/maas-governance/subscriptions');
     this.wait();
   }
 
@@ -709,7 +719,12 @@ class PhaseModal extends Modal {
 }
 class CreateSubscriptionPage {
   visit(): void {
-    cy.visitWithLogin('/maas/maas-governance/subscriptions/create');
+    cy.visit('/maas/maas-governance/subscriptions/create');
+    this.wait();
+  }
+
+  visitWithLogin(credentials?: UserAuthConfig): void {
+    cy.visitWithLogin('/maas/maas-governance/subscriptions/create', credentials);
     this.wait();
   }
 
@@ -802,7 +817,12 @@ class CreateSubscriptionPage {
 
 class EditSubscriptionPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/subscriptions/edit/${name}`);
+    cy.visit(`/maas/maas-governance/subscriptions/edit/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/subscriptions/edit/${name}`, credentials);
     this.wait();
   }
 
@@ -959,7 +979,12 @@ class DeleteSubscriptionModal extends DeleteModal {
 }
 class ViewSubscriptionPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/subscriptions/view/${name}`);
+    cy.visit(`/maas/maas-governance/subscriptions/view/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/subscriptions/view/${name}`, credentials);
     this.wait();
   }
 
@@ -1038,7 +1063,15 @@ class PolicyPage {
     const path = policyName
       ? `/maas/maas-governance/auth-policies/edit/${encodeURIComponent(policyName)}`
       : '/maas/maas-governance/auth-policies/create';
-    cy.visitWithLogin(path);
+    cy.visit(path);
+    this.wait();
+  }
+
+  visitWithLogin(policyName?: string, credentials?: UserAuthConfig): void {
+    const path = policyName
+      ? `/maas/maas-governance/auth-policies/edit/${encodeURIComponent(policyName)}`
+      : '/maas/maas-governance/auth-policies/create';
+    cy.visitWithLogin(path, credentials);
     this.wait();
   }
 
@@ -1102,8 +1135,13 @@ class PolicyPage {
 }
 
 class AuthPoliciesPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/maas-governance/auth-policies');
+    this.wait();
+  }
+
+  visit(): void {
+    cy.visit('/maas/maas-governance/auth-policies');
     this.wait();
   }
 
@@ -1292,7 +1330,12 @@ class DeleteAuthPolicyModal extends DeleteModal {
 
 class ViewAuthPolicyPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/auth-policies/view/${name}`);
+    cy.visit(`/maas/maas-governance/auth-policies/view/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/auth-policies/view/${name}`, credentials);
     this.wait();
   }
 
@@ -1678,7 +1721,13 @@ class OverviewTabPage {
 class MaaSGovernancePage {
   visit(tab?: string): void {
     const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
-    cy.visitWithLogin(path);
+    cy.visit(path);
+    this.wait();
+  }
+
+  visitWithLogin(tab?: string, credentials?: UserAuthConfig): void {
+    const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
+    cy.visitWithLogin(path, credentials);
     this.wait();
   }
 

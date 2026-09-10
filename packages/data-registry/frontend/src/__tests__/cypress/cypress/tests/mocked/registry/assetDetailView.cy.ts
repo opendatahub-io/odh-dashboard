@@ -33,14 +33,21 @@ const mockVolumeResponse = {
   name: 'training-documents',
   'catalog-name': 'test-project',
   'schema-name': 'default',
-  'volume-type': 'EXTERNAL',
+  'volume-type': 'documents',
   'storage-location': 's3://bucket/docs/training',
-  comment: 'Training document storage',
-  owner: 'ml-team',
+  comment: null,
+  owner: null,
   'created-at': '2026-06-01T08:00:00Z',
   'updated-at': '2026-08-10T12:00:00Z',
   labels: ['source-docs', 'unstructured'],
-  properties: { purpose: 'training', environment: 'production' },
+  properties: {
+    description: 'Training document storage',
+    'content-type': 'application/pdf',
+    purpose: 'training',
+    environment: 'production',
+    registered_by: 'ml-team@example.com',
+    updated_by: 'admin@example.com',
+  },
   config: {},
 };
 
@@ -66,7 +73,7 @@ describe('Table Detail View', () => {
   });
 
   it('should display table metadata in two-column layout', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('data-details-card').should('exist');
@@ -80,7 +87,7 @@ describe('Table Detail View', () => {
   });
 
   it('should display asset type badge and Overview tab', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-type-badge').should('contain.text', 'Data asset');
@@ -89,7 +96,7 @@ describe('Table Detail View', () => {
   });
 
   it('should display labels, properties, and schema cards', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('labels-card').should('exist');
@@ -107,7 +114,7 @@ describe('Table Detail View', () => {
   });
 
   it('should display created and modified with user attribution', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-created-at').should('contain.text', 'by user@example.com');
@@ -115,7 +122,7 @@ describe('Table Detail View', () => {
   });
 
   it('should show breadcrumb navigation', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.get('.pf-v6-c-breadcrumb').should('exist');
@@ -125,7 +132,7 @@ describe('Table Detail View', () => {
   });
 
   it('should open delete modal from kebab menu', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -145,29 +152,44 @@ describe('Volume Detail View', () => {
     ).as('getVolume');
   });
 
-  it('should display volume metadata', () => {
-    cy.visit('/main-view/volumes/test-project/default/training-documents');
+  it('should display volume metadata as unified asset', () => {
+    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('data-details-card').should('exist');
-    cy.findByTestId('volume-comment').should('contain.text', 'Training document storage');
-    cy.findByTestId('volume-type').should('contain.text', 'EXTERNAL');
-    cy.findByTestId('volume-project').should('contain.text', 'test-project');
-    cy.findByTestId('volume-storage-location').should('contain.text', 's3://bucket/docs/training');
-    cy.findByTestId('volume-owner').should('contain.text', 'ml-team');
+    cy.findByTestId('asset-description').should('contain.text', 'Training document storage');
+    cy.findByTestId('asset-type').should('contain.text', 'Unstructured');
+    cy.findByTestId('asset-collection').should('contain.text', 'default');
+    cy.findByTestId('asset-location').should('contain.text', 's3://bucket/docs/training');
+    cy.findByTestId('asset-owner').should('contain.text', '-'); // owner is null in mock
   });
 
-  it('should display volume type badge and Overview tab', () => {
-    cy.visit('/main-view/volumes/test-project/default/training-documents');
+  it('should display created and modified with user attribution', () => {
+    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
-    cy.findByTestId('asset-type-badge').should('contain.text', 'Volume');
+    cy.findByTestId('asset-created-at').should('contain.text', 'by ml-team@example.com');
+    cy.findByTestId('asset-updated-at').should('contain.text', 'by admin@example.com');
+  });
+
+  it('should display the unstructured format field', () => {
+    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.wait('@getVolume');
+
+    cy.findByTestId('asset-format').should('contain.text', 'Documents');
+  });
+
+  it('should display asset type badge and Overview tab', () => {
+    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.wait('@getVolume');
+
+    cy.findByTestId('asset-type-badge').should('contain.text', 'Data asset');
     cy.findByTestId('detail-tabs').should('exist');
     cy.contains('Overview').should('exist');
   });
 
   it('should display labels and properties cards', () => {
-    cy.visit('/main-view/volumes/test-project/default/training-documents');
+    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('labels-card').should('exist');
@@ -175,12 +197,20 @@ describe('Volume Detail View', () => {
     cy.contains('unstructured').should('exist');
 
     cy.findByTestId('properties-card').should('exist');
+    cy.contains('content-type: application/pdf').should('exist');
     cy.contains('purpose: training').should('exist');
     cy.contains('environment: production').should('exist');
   });
 
+  it('should not display schema card for volumes', () => {
+    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.wait('@getVolume');
+
+    cy.findByTestId('schema-card').should('not.exist');
+  });
+
   it('should handle delete action', () => {
-    cy.visit('/main-view/volumes/test-project/default/training-documents');
+    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('asset-actions-toggle').click();

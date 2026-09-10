@@ -3,7 +3,7 @@ import { BrowserStorageContextProvider, Namespace, useQueryParamNamespaces } fro
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import useSyncPreferredNamespace from '~/app/hooks/useSyncPreferredNamespace';
 import useGenAiAPIState, { GenAiAPIState } from '~/app/hooks/useGenAiAPIState';
-import { URL_PREFIX } from '~/app/utilities';
+import { API_URL_PREFIX } from '~/app/utilities';
 import { GenAiAPIs } from '~/app/types';
 
 type GenAiContextProps = {
@@ -37,7 +37,7 @@ export const GenAiContextProvider: React.FC<GenAiContextProviderProps> = ({
 
   const queryParams = useQueryParamNamespaces();
 
-  const [apiState, refreshAPIState] = useGenAiAPIState(`${URL_PREFIX}/api/v1`, queryParams);
+  const [apiState, refreshAPIState] = useGenAiAPIState(`${API_URL_PREFIX}/api/v1`, queryParams);
 
   const contextValue = React.useMemo(
     () => ({ namespace: foundNamespace, apiState, refreshAPIState }),

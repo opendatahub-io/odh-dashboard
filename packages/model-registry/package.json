@@ -27,7 +27,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "33a089c9670f00406097372850f1cf0b24e1b15e"
+    "commit": "11f57437c4e21fd408445bfa752820055ffbe3aa"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -50,7 +50,8 @@
     }
   },
   "e2eCiTags": [
-    "@ModelRegistryCI"
+    "@ModelRegistryCI",
+    "@ModelCatalogCI"
   ],
   "exports": {
     "./extensions": "./extensions.ts",

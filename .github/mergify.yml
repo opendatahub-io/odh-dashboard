@@ -1,0 +1,90 @@
+# Label-only enqueue (@Mergifyio queue / requeue disabled via commands_restrictions).
+#
+# Two-label handoff (see .github/workflows/mergify-clear-queue-eligibility.yml):
+#   lgtm          — Prow trigger to enter the merge queue; removed on handoff so Tide
+#                   does not merge the PR.
+#   mergify-lgtm  — Sticky queue-eligibility token: survives flake dequeue + CI rerun;
+#                   cleared on author push (not Mergify rebase) so a fresh /lgtm is
+#                   required before re-queue.
+#
+# Pilot gate: only PRs labeled mergify-testing are managed by Mergify.
+commands_restrictions:
+  queue:
+    conditions:
+      - number < 0
+  requeue:
+    conditions:
+      - number < 0
+
+merge_queue:
+  max_parallel_checks: 1
+  mode: serial
+  status_comments: outcomes
+  queue_controls_comment: false
+
+queue_rules:
+  - name: default
+    max_checks_retries: 0
+    merge_method: squash
+    batch_size: 1
+    update_method: rebase
+    branch_protection_injection_mode: queue
+    # In-place checks: merge_conditions must match queue_conditions (no draft PRs).
+    queue_conditions: &default-queue-conditions
+      - base = main
+      - -draft
+      - -conflict
+      - label = mergify-testing
+      - label = mergify-lgtm
+      - label = approved
+      - -label ~= ^do-not-merge/
+      - label != needs-rebase
+      - "#changes-requested-reviews-by = 0"
+      - "#approved-reviews-by >= 1"
+      - check-success = Tests
+      - check-success = ci/prow/images
+      - -check-failure ~= ^ci/prow
+    merge_conditions: *default-queue-conditions
+
+pull_request_rules:
+  # Intentionally does not remove mergify-lgtm on checks-failed dequeue (flake retry).
+  - name: Remove mergify-lgtm when no longer merge-ready
+    conditions:
+      - label = mergify-lgtm
+      - or:
+          - label != mergify-testing
+          - label != approved
+          - "#approved-reviews-by = 0"
+          - "#changes-requested-reviews-by > 0"
+          - conflict
+          - label ~= ^do-not-merge/
+          - label = needs-rebase
+    actions:
+      label:
+        remove:
+          - mergify-lgtm
+
+  # Pilot scope only: stripping lgtm here would block Tide on non-pilot PRs.
+  - name: Hand off lgtm to mergify-lgtm
+    conditions:
+      - label = mergify-testing
+      - label = lgtm
+    actions:
+      label:
+        add:
+          - mergify-lgtm
+        remove:
+          - lgtm
+
+  - name: Queue on mergify-lgtm
+    conditions:
+      - base = main
+      - -draft
+      - -conflict
+      - label = mergify-testing
+      - label = mergify-lgtm
+      - -label ~= ^do-not-merge/
+      - label != needs-rebase
+    actions:
+      queue:
+        name: default
