@@ -1,4 +1,7 @@
-import { modelCatalogUrl } from '~/__tests__/cypress/cypress/utils/modelCatalogTestRoutes';
+import {
+  catalogModelDetailsUrl,
+  modelCatalogUrl,
+} from '~/__tests__/cypress/cypress/utils/modelCatalogTestRoutes';
 import { appChrome } from './appChrome';
 
 class ModelCatalogFilter {
@@ -260,8 +263,7 @@ class ModelCatalog {
   }
 
   visitModelDetails(sourceId: string, modelName: string) {
-    const encodedModelName = encodeURIComponent(modelName).replace(/\./g, '%252E');
-    cy.visit(`/model-catalog/${sourceId}/${encodedModelName}`);
+    cy.visit(catalogModelDetailsUrl(modelName, sourceId));
     cy.findByTestId('app-page-title').should('exist');
   }
 
