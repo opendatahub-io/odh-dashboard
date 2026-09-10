@@ -106,12 +106,13 @@ func TestBuildRequestOptions(t *testing.T) {
 
 func TestListModelsWithProviderData(t *testing.T) {
 	var receivedProviderData map[string]interface{}
+	var unmarshalErr error
+	var responseWriteErr error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "Bearer user-token", r.Header.Get("Authorization"))
-		require.NoError(t, json.Unmarshal([]byte(r.Header.Get("X-Ogx-Provider-Data")), &receivedProviderData))
+		unmarshalErr = json.Unmarshal([]byte(r.Header.Get("X-Ogx-Provider-Data")), &receivedProviderData)
 		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"object":"list","data":[]}`))
-		require.NoError(t, err)
+		_, responseWriteErr = w.Write([]byte(`{"object":"list","data":[]}`))
 	}))
 	defer server.Close()
 
@@ -120,7 +121,30 @@ func TestListModelsWithProviderData(t *testing.T) {
 		"passthrough_api_key": "user-token",
 	})
 	require.NoError(t, err)
+	require.NoError(t, unmarshalErr)
+	require.NoError(t, responseWriteErr)
 	assert.Equal(t, map[string]interface{}{"passthrough_api_key": "user-token"}, receivedProviderData)
+}
+
+func TestListModelsWithProviderData_DoesNotFollowRedirects(t *testing.T) {
+	redirectTargetCalled := false
+	redirectTarget := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		redirectTargetCalled = true
+	}))
+	defer redirectTarget.Close()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, redirectTarget.URL, http.StatusFound)
+	}))
+	defer server.Close()
+
+	client := NewLlamaStackClient(server.URL, "user-token", false, nil, "")
+	_, err := client.ListModelsWithProviderData(context.Background(), map[string]interface{}{
+		"passthrough_api_key": "user-token",
+	})
+
+	require.Error(t, err)
+	assert.False(t, redirectTargetCalled, "provider data must not be forwarded to a redirect target")
 }
 
 func TestBuildRequestOptions_JSONFormat(t *testing.T) {

@@ -46,6 +46,11 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 			TLSClientConfig: tlsConfig,
 		}),
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
+		// Provider data can contain credentials. Return redirect responses to the caller
+		// rather than forwarding those credentials to the redirect target.
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	// Use the provided apiPath to construct the full base URL
