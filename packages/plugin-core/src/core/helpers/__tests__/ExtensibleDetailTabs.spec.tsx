@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { createMockTabExtension } from './mockExtensions';
 import { ExtensibleDetailTabs } from '../ExtensibleDetailTabs';
@@ -218,5 +218,251 @@ describe('ExtensibleDetailTabs', () => {
 
     expect(screen.getByTestId('metrics-tab')).toBeInTheDocument();
     expect(document.querySelector('.pf-v6-c-label')).toBeNull();
+  });
+
+  describe('shouldShow predicate', () => {
+    it('should hide extension tabs when shouldShow returns false', async () => {
+      const extensionTabs = [
+        createMockTabExtension('visible', 'Visible'),
+        createMockTabExtension('hidden', 'Hidden', { shouldShow: () => false }),
+      ];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('visible-tab')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('hidden-tab')).not.toBeInTheDocument();
+    });
+
+    it('should show extension tabs when shouldShow returns true', async () => {
+      const extensionTabs = [createMockTabExtension('shown', 'Shown', { shouldShow: () => true })];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('shown-tab')).toBeInTheDocument();
+      });
+    });
+
+    it('should show extension tabs when shouldShow is not provided', () => {
+      const extensionTabs = [createMockTabExtension('default', 'Default')];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      expect(screen.getByTestId('default-tab')).toBeInTheDocument();
+    });
+
+    it('should pass componentProps to shouldShow', async () => {
+      const shouldShow = jest.fn().mockReturnValue(true);
+      const extensionTabs = [createMockTabExtension('tested', 'Tested', { shouldShow })];
+      const componentProps = { modelName: 'test-model', sourceId: 'src-1' };
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={componentProps}
+          testId="test-tabs"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(shouldShow).toHaveBeenCalledWith(componentProps);
+      });
+    });
+
+    it('should show extension tab when async shouldShow resolves to true', async () => {
+      const extensionTabs = [
+        createMockTabExtension('async-tab', 'Async Tab', {
+          shouldShow: () => Promise.resolve(true),
+        }),
+      ];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('async-tab-tab')).toBeInTheDocument();
+      });
+    });
+
+    it('should hide extension tab when async shouldShow resolves to false', async () => {
+      const extensionTabs = [
+        createMockTabExtension('async-hidden', 'Async Hidden', {
+          shouldShow: () => Promise.resolve(false),
+        }),
+      ];
+
+      await act(async () => {
+        render(
+          <ExtensibleDetailTabs
+            activeKey="overview"
+            onSelect={defaultOnSelect}
+            staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+            extensionTabs={extensionTabs}
+            testId="test-tabs"
+          />,
+        );
+      });
+
+      expect(screen.queryByTestId('async-hidden-tab')).not.toBeInTheDocument();
+    });
+
+    it('should keep an async extension tab selected during deep-link while predicate is pending', async () => {
+      let resolveShow: (value: boolean) => void = () => undefined;
+      const shouldShow = jest.fn().mockImplementation(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveShow = resolve;
+          }),
+      );
+
+      const extensionTabs = [createMockTabExtension('insights', 'Insights', { shouldShow })];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="insights"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      expect(defaultOnSelect).not.toHaveBeenCalled();
+      expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
+
+      await act(async () => {
+        resolveShow(true);
+      });
+
+      expect(defaultOnSelect).not.toHaveBeenCalled();
+      expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
+    });
+
+    it('should hide the active extension tab when shouldShow returns false synchronously', () => {
+      const extensionTabs = [
+        createMockTabExtension('hidden-active', 'Hidden Active', { shouldShow: () => false }),
+      ];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="hidden-active"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      expect(screen.queryByTestId('hidden-active-tab')).not.toBeInTheDocument();
+      expect(defaultOnSelect).toHaveBeenCalledWith('overview');
+    });
+
+    it('should not call async shouldShow more than once per evaluation cycle', async () => {
+      const shouldShow = jest.fn().mockImplementation(() => Promise.resolve(true));
+      const extensionTabs = [createMockTabExtension('dedup', 'Dedup', { shouldShow })];
+
+      await act(async () => {
+        render(
+          <ExtensibleDetailTabs
+            activeKey="overview"
+            onSelect={defaultOnSelect}
+            staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+            extensionTabs={extensionTabs}
+            testId="test-tabs"
+          />,
+        );
+      });
+
+      expect(shouldShow).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('dedup-tab')).toBeInTheDocument();
+    });
+
+    it('should hide a previously-visible async tab while re-evaluating after componentProps change', async () => {
+      let resolveShow: (value: boolean) => void = () => undefined;
+
+      const shouldShow = jest.fn().mockImplementation(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveShow = resolve;
+          }),
+      );
+      const extensionTabs = [createMockTabExtension('deferred', 'Deferred', { shouldShow })];
+
+      const { rerender } = render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={{ version: 'v1' }}
+          testId="test-tabs"
+        />,
+      );
+
+      // Initially hidden (async pending)
+      expect(screen.queryByTestId('deferred-tab')).not.toBeInTheDocument();
+
+      // Resolve the first evaluation to true
+      await act(async () => {
+        resolveShow(true);
+      });
+      expect(screen.getByTestId('deferred-tab')).toBeInTheDocument();
+
+      // Change componentProps — the tab should go back to hidden while re-evaluating
+      rerender(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={{ version: 'v2' }}
+          testId="test-tabs"
+        />,
+      );
+
+      expect(screen.queryByTestId('deferred-tab')).not.toBeInTheDocument();
+
+      // Resolve the second evaluation
+      await act(async () => {
+        resolveShow(true);
+      });
+      expect(screen.getByTestId('deferred-tab')).toBeInTheDocument();
+    });
   });
 });

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import * as React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
 let mockLoaded = true;
 let mockLoadError: Error | undefined;
@@ -31,11 +32,15 @@ const renderView = () =>
   import('~/app/pages/modelCatalog/SecurityInsightsView').then(
     ({ default: SecurityInsightsView }) =>
       render(
-        React.createElement(SecurityInsightsView, {
-          sourceId: 'src-1',
-          modelName: 'test-model',
-          namespace: 'test-ns',
-        }),
+        React.createElement(
+          MemoryRouter,
+          null,
+          React.createElement(SecurityInsightsView, {
+            sourceId: 'src-1',
+            modelName: 'test-model',
+            namespace: 'test-ns',
+          }),
+        ),
       ),
   );
 
@@ -52,7 +57,9 @@ describe('SecurityInsightsView - Empty and Loading States', () => {
     expect(screen.getByTestId('security-insights-empty-state')).toBeInTheDocument();
     expect(screen.getByText('No safety and security insights')).toBeInTheDocument();
     expect(
-      screen.getByText('No safety and security evaluation data is available for this model yet.'),
+      screen.getByText(
+        'No safety and security evaluation data is available for this model yet. Run an evaluation to generate safety and security insights.',
+      ),
     ).toBeInTheDocument();
   });
 

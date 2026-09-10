@@ -17,6 +17,13 @@ export type DetailTabProperties = {
   group?: string;
   /** Optional label badge displayed alongside the tab title. */
   label?: string;
+  /**
+   * Optional predicate controlling tab visibility.
+   * Receives the same `componentProps` passed to `ExtensibleDetailTabs`.
+   * Return `true` to show, `false` to hide. When omitted the tab always shows.
+   * May return a `Promise<boolean>` for async checks (tab is hidden until resolved).
+   */
+  shouldShow?: (props: Record<string, unknown>) => boolean | Promise<boolean>;
 };
 
 /**

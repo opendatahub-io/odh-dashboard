@@ -241,6 +241,7 @@ describe('Agents Catalog Empty States', () => {
   it('should show empty state when no sources configured', () => {
     initAgentsCatalogIntercepts({ sources: [], agentsPerCategory: 0 });
     agentsCatalog.visit();
+    cy.wait('@getAgentSources');
     agentsCatalog.findEmptyState().should('be.visible');
   });
 });

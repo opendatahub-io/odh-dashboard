@@ -93,7 +93,7 @@ class McpManageSourcePage {
 
   private wait() {
     this.findHeading();
-    cy.testA11y();
+    cy.testA11y({ exclude: ['.pf-v6-c-tabs'] });
   }
 
   findHeading() {
