@@ -2,6 +2,7 @@ package maas
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -25,6 +26,21 @@ func TestClientListModels(t *testing.T) {
 	response, err := NewClient(testHTTPClient()).ListModels(context.Background(), RequestConfig{GatewayOrigin: server.URL, APIKey: "secret-key"})
 	if err != nil || len(response.Data) != 1 || response.Data[0].ID != "model-a" {
 		t.Fatalf("response/error = %+v/%v", response, err)
+	}
+}
+
+func TestClientHonorsConfiguredTLSTransport(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	}))
+	defer server.Close()
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // test server uses a self-signed certificate
+	client := NewClient(&http.Client{Transport: transport})
+
+	if _, err := client.ListModels(context.Background(), RequestConfig{GatewayOrigin: server.URL, APIKey: "secret-key"}); err != nil {
+		t.Fatalf("configured TLS transport was not honored: %v", err)
 	}
 }
 

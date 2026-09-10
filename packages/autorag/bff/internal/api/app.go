@@ -1,14 +1,17 @@
 package api
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
@@ -16,6 +19,7 @@ import (
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	"github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/ssrf"
 	k8sclient "k8s.io/client-go/kubernetes"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
@@ -231,7 +235,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	} else {
 		// Hosted MaaS requests get their Gateway origin and API key from the selected
 		// namespace Secret.
-		maasClient = maas.NewClient(nil)
+		maasTransport := http.DefaultTransport.(*http.Transport).Clone()
+		maasTransport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // caller-controlled knob; production config rejects this
+			RootCAs:            rootCAs,
+		}
+		maasTransport.DialContext = ssrf.SafeDialContext(&net.Dialer{Timeout: 10 * time.Second}, false)
+		maasClient = maas.NewClient(&http.Client{
+			Timeout:   30 * time.Second,
+			Transport: maasTransport,
+		})
 	}
 
 	app := &App{
