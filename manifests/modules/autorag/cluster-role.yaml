@@ -4,6 +4,14 @@ metadata:
   name: odh-dashboard-autorag
 rules:
   - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
+  - apiGroups:
       - authorization.k8s.io
     verbs:
       - create

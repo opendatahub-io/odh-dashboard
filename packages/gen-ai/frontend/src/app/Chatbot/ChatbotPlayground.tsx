@@ -33,7 +33,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
-import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
+import { API_URL_PREFIX, isLlamaModelEnabled } from '~/app/utilities';
 import {
   convertMaaSModelToAIModel,
   getId,
@@ -588,7 +588,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         fileName: normalizedName,
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
+      const url = `${API_URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
         namespace?.name || '',
       )}`;
       const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {

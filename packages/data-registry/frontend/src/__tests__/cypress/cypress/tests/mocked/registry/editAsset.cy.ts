@@ -40,6 +40,12 @@ describe('Edit Table Asset', () => {
       { name: 'amount', type: 'float', nullable: true, description: 'Claim amount' },
     ],
   });
+  const tableWithoutOptionalMetadataResponse = mockAssetResponse({
+    name: 'unclassified-data',
+    description: 'Data without optional metadata',
+    collection: 'analytics',
+    properties: {},
+  });
 
   beforeEach(() => {
     initIntercepts();
@@ -51,7 +57,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should open edit modal and display pre-populated fields', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -69,7 +75,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should edit description and save table', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -92,8 +98,52 @@ describe('Edit Table Asset', () => {
     });
   });
 
+  it('should clear the purpose when it is removed', () => {
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.wait('@getTable');
+
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: tableResponse },
+    ).as('updateTable');
+
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-edit').click();
+    editAssetModal.findPurposeInput().clear();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@updateTable').then((interception) => {
+      expect(interception.request.body).to.have.property('purpose', '');
+    });
+  });
+
+  it('should not submit empty optional metadata for a table', () => {
+    cy.intercept(
+      'GET',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/unclassified-data`,
+      { body: tableWithoutOptionalMetadataResponse },
+    ).as('getTableWithoutOptionalMetadata');
+    cy.visit('/main-view/assets/table/test-project/analytics/unclassified-data');
+    cy.wait('@getTableWithoutOptionalMetadata');
+
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/unclassified-data`,
+      { body: tableWithoutOptionalMetadataResponse },
+    ).as('updateTableWithoutOptionalMetadata');
+
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-edit').click();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@updateTableWithoutOptionalMetadata').then((interception) => {
+      expect(interception.request.body).to.not.have.property('maturity');
+    });
+  });
+
   it('should add and remove labels', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -128,7 +178,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should add and remove custom properties', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -160,7 +210,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should display schema section and add a column', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -190,7 +240,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should clear the final custom property', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
     cy.intercept(
       'PATCH',
@@ -209,7 +259,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should close modal on cancel', () => {
-    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -224,10 +274,14 @@ describe('Edit Table Asset', () => {
 describe('Edit Volume Asset', () => {
   const volumeResponse = mockVolumeInfo({
     name: 'training-docs',
-    comment: 'Training document storage',
+    comment: undefined,
     'storage-location': 's3://bucket/docs/training',
     labels: ['source-docs'],
-    properties: { purpose: 'training' },
+    properties: {
+      description: 'Training document storage',
+      'content-type': 'application/pdf',
+      purpose: 'training',
+    },
   });
 
   beforeEach(() => {
@@ -238,7 +292,7 @@ describe('Edit Volume Asset', () => {
   });
 
   it('should open edit modal for volume with pre-populated fields', () => {
-    cy.visit('/main-view/volumes/test-project/default/training-docs');
+    cy.visit('/main-view/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -248,12 +302,13 @@ describe('Edit Volume Asset', () => {
     editAssetModal.findNameInput().should('have.value', 'training-docs');
     editAssetModal.findDescriptionInput().should('have.value', 'Training document storage');
     editAssetModal.findAssetTypeInput().should('have.value', 'Unstructured');
+    editAssetModal.findFormatToggle().should('contain.text', 'Documents');
     editAssetModal.findPurposeInput().should('have.value', 'training');
     editAssetModal.findAddColumnButton().should('not.exist');
   });
 
   it('should edit volume and save', () => {
-    cy.visit('/main-view/volumes/test-project/default/training-docs');
+    cy.visit('/main-view/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
     cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
@@ -266,10 +321,53 @@ describe('Edit Volume Asset', () => {
 
     editAssetModal.findDescriptionInput().clear();
     editAssetModal.findDescriptionInput().type('Updated volume description');
+    editAssetModal.findFormatToggle().click();
+    cy.findByTestId('data-format-option-images').click();
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateVolume').then((interception) => {
       expect(interception.request.body).to.have.property('comment', 'Updated volume description');
+      expect(interception.request.body.properties).to.have.property('content-type', 'images');
+    });
+  });
+
+  it('should preserve the raw content type when only the description changes', () => {
+    cy.visit('/main-view/assets/volume/test-project/default/training-docs');
+    cy.wait('@getVolume');
+
+    cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
+      body: volumeResponse,
+    }).as('updateVolume');
+
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-edit').click();
+    editAssetModal.findDescriptionInput().clear();
+    editAssetModal.findDescriptionInput().type('Updated volume description');
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@updateVolume').then((interception) => {
+      expect(interception.request.body.properties).to.have.property(
+        'content-type',
+        'application/pdf',
+      );
+    });
+  });
+
+  it('should clear the purpose when it is removed', () => {
+    cy.visit('/main-view/assets/volume/test-project/default/training-docs');
+    cy.wait('@getVolume');
+
+    cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
+      body: volumeResponse,
+    }).as('updateVolume');
+
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-edit').click();
+    editAssetModal.findPurposeInput().clear();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@updateVolume').then((interception) => {
+      expect(interception.request.body.properties).to.have.property('purpose', '');
     });
   });
 });

@@ -19,11 +19,13 @@ import {
 import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useNIMSettingsAccessAllowed } from './useNIMSettingsAccessAllowed';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
 import { deleteNIMResources } from '../../api/accounts/api';
+import { fireNimAccountRemoved, NimFailureCategory } from '../../tracking/nimTrackingConstants';
 
 const NIM_DESCRIPTION =
   'NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use microservices designed ' +
@@ -36,6 +38,14 @@ const NO_PERMISSION_ADD_TOOLTIP =
   "You don't have permission to add a personal API key in this project. To request access, contact your project administrator.";
 const NO_PERMISSION_REMOVE_TOOLTIP =
   "You don't have permission to remove a personal API key in this project. To request access, contact your project administrator.";
+
+const DELETE_POLL_INTERVAL_MS = 1000;
+const DELETE_POLL_TIMEOUT_MS = 10_000;
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 type NIMSettingsCardProps = {
   namespace: string;
@@ -52,20 +62,27 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error>();
 
-  const deleteStatusIntervalRef = React.useRef<ReturnType<typeof setInterval>>();
+  const deletePollSettledRef = React.useRef(false);
+  const isDeletePollSettled = React.useCallback(() => deletePollSettledRef.current, []);
+  const hasTrackedDeleteRef = React.useRef(false);
+  const trackDeleteRemoved = React.useCallback(
+    (properties: Parameters<typeof fireNimAccountRemoved>[0]) => {
+      if (hasTrackedDeleteRef.current) {
+        return;
+      }
+      hasTrackedDeleteRef.current = true;
+      fireNimAccountRemoved(properties);
+    },
+    [],
+  );
   const stopPollingDeleteStatus = React.useCallback((error?: Error) => {
-    if (deleteStatusIntervalRef.current !== undefined) {
-      clearInterval(deleteStatusIntervalRef.current);
-      deleteStatusIntervalRef.current = undefined;
-    }
+    deletePollSettledRef.current = true;
     setDeleteError(error);
     setIsDeleting(false);
   }, []);
   React.useEffect(
     () => () => {
-      if (deleteStatusIntervalRef.current !== undefined) {
-        clearInterval(deleteStatusIntervalRef.current);
-      }
+      deletePollSettledRef.current = true;
     },
     [],
   );
@@ -73,28 +90,93 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const handleRemoveConfirm = React.useCallback(async () => {
     setIsDeleting(true);
     setDeleteError(undefined);
+    hasTrackedDeleteRef.current = false;
+    deletePollSettledRef.current = false;
     try {
       await deleteNIMResources(namespace);
     } catch (e) {
-      stopPollingDeleteStatus(e instanceof Error ? e : new Error('Failed to remove NIM.'));
+      const error = e instanceof Error ? e : new Error('Failed to remove NIM.');
+      stopPollingDeleteStatus(error);
+      trackDeleteRemoved({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: NimFailureCategory.DELETE_FAILED,
+      });
       return;
     }
-    let retries = 10;
-    deleteStatusIntervalRef.current = setInterval(async () => {
-      try {
-        const result = await refresh();
-        if (!result) {
-          stopPollingDeleteStatus();
-          setIsDeleteModalOpen(false);
-        } else if (retries === 0) {
-          stopPollingDeleteStatus(new Error('NIM resources were not deleted in time.'));
+
+    const deadline = Date.now() + DELETE_POLL_TIMEOUT_MS;
+
+    const finishDeleteTimeout = (): void => {
+      stopPollingDeleteStatus(new Error('NIM resources were not deleted in time.'));
+      trackDeleteRemoved({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: NimFailureCategory.DELETE_TIMEOUT,
+      });
+    };
+
+    const pollDeleteStatus = async (): Promise<void> => {
+      while (!isDeletePollSettled()) {
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) {
+          finishDeleteTimeout();
+          return;
         }
-        retries -= 1;
-      } catch (e) {
-        stopPollingDeleteStatus(e instanceof Error ? e : new Error('Failed to remove NIM.'));
+
+        try {
+          const result = await Promise.race([
+            refresh(),
+            sleep(remainingMs).then(() => 'deadline' as const),
+          ]);
+          if (isDeletePollSettled()) {
+            return;
+          }
+
+          if (result === 'deadline') {
+            finishDeleteTimeout();
+            return;
+          }
+
+          if (!result) {
+            stopPollingDeleteStatus();
+            setIsDeleteModalOpen(false);
+            trackDeleteRemoved({
+              outcome: TrackingOutcome.submit,
+              success: true,
+            });
+            return;
+          }
+        } catch (e) {
+          if (isDeletePollSettled()) {
+            return;
+          }
+
+          const error = e instanceof Error ? e : new Error('Failed to remove NIM.');
+          stopPollingDeleteStatus(error);
+          trackDeleteRemoved({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: NimFailureCategory.DELETE_FAILED,
+          });
+          return;
+        }
+
+        const waitMs = Math.min(DELETE_POLL_INTERVAL_MS, deadline - Date.now());
+        if (waitMs <= 0) {
+          finishDeleteTimeout();
+          return;
+        }
+
+        await sleep(waitMs);
+        if (isDeletePollSettled()) {
+          return;
+        }
       }
-    }, 1000);
-  }, [namespace, refresh, stopPollingDeleteStatus]);
+    };
+
+    void pollDeleteStatus();
+  }, [namespace, refresh, stopPollingDeleteStatus, trackDeleteRemoved, isDeletePollSettled]);
 
   const renderFooterContent = () => {
     if (!accessReviewLoaded || (status === NIMAccountStatus.LOADING && !loadError)) {
