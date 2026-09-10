@@ -106,6 +106,40 @@ describe('BenchmarkSuitesPage', () => {
     expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
   });
 
+  it('should search all collections client-side when the name filter is used', () => {
+    const collections = mockBenchmarkSuiteCollections();
+    const firstPageCollections = collections.slice(0, 6);
+
+    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
+      const limit = args[2];
+      const items = limit === 200 ? collections : firstPageCollections;
+
+      return {
+        // eslint-disable-next-line camelcase
+        data: { items, total_count: collections.length },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'finance' },
+    });
+
+    expect(screen.getByTestId('benchmark-suite-card-finance-evaluation-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+    expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
+      'test-project',
+      'tenant',
+      200,
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
   it('should show a search icon when no suites match the filters', () => {
     renderPage();
 

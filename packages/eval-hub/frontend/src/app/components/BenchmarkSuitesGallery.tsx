@@ -35,6 +35,7 @@ import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard'
 import DeleteConfirmationModal from '~/app/components/DeleteConfirmationModal';
 import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/types';
 import { formatCategory } from '~/app/components/benchmarkUtils';
+import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 import './BenchmarkSuitesGallery.scss';
 
 // TODO: Remove this curated mock fallback once the curated collections API is available.
@@ -187,8 +188,14 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
   const notification = useNotification();
-  const queryLimit = showPagination ? pageSize : maxVisibleCollections;
-  const queryOffset = showPagination ? (page - 1) * pageSize : undefined;
+  const isClientSideNameFiltering = showPagination && Boolean(nameFilter.trim());
+  const queryLimit = showPagination
+    ? isClientSideNameFiltering
+      ? COLLECTION_FETCH_LIMIT
+      : pageSize
+    : maxVisibleCollections;
+  const queryOffset =
+    showPagination && !isClientSideNameFiltering ? (page - 1) * pageSize : undefined;
   // Convert the current UI selections into API filters. These values are part of the React Query
   // key, so changing either dropdown automatically fetches the matching collection set again.
   const collectionQueryFilters = React.useMemo<CollectionFilterParams | undefined>(() => {
@@ -301,17 +308,18 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     });
   }, [categoryFilter, evaluatesFilter, industryFilter, nameFilter, sourceCollections]);
 
-  // Mock data has already been loaded in full, so it needs local slicing until the mock fallback
-  // is removed. API responses are already limited to the requested page.
+  // Mock data and name searches are loaded in full, so they need local slicing. Otherwise, API
+  // responses are already limited to the requested page.
+  const shouldUseClientSidePagination = isUsingMockCollections || isClientSideNameFiltering;
   const visibleCollections = showPagination
-    ? isUsingMockCollections
+    ? shouldUseClientSidePagination
       ? filteredCollections.slice((page - 1) * pageSize, page * pageSize)
       : filteredCollections.slice(0, pageSize)
     : sourceCollections;
   // TODO: Remove the mock count branch when mock collections are no longer needed and always use
   // the API total_count for pagination.
   const filteredCollectionCount = showPagination
-    ? isUsingMockCollections
+    ? shouldUseClientSidePagination
       ? filteredCollections.length
       : (data?.total_count ?? filteredCollections.length)
     : totalCount;
