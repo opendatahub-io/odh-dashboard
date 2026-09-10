@@ -15,6 +15,13 @@ interface MCPServerTableRowProps {
   isStatusLoading?: boolean;
 }
 
+const SOURCE_LABELS: ReadonlyMap<string, string> = new Map(
+  Object.entries({
+    configmap: 'Manual',
+    registry: 'Registered',
+  }),
+);
+
 const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
   server,
   isChecked,
@@ -40,12 +47,16 @@ const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
       />
     </Td>
     <Td dataLabel="Endpoint" className="pf-v6-u-align-content-center">
-      <MCPServerEndpointPopover connectionUrl={server.connectionUrl}>
+      <MCPServerEndpointPopover connectionUrl={server.connectionUrl} source={server.source}>
         <Button variant="link" style={{ textDecoration: 'none' }}>
           {server.endpoint}
         </Button>
       </MCPServerEndpointPopover>
     </Td>
+    <Td dataLabel="Source">
+      {(server.source && SOURCE_LABELS.get(server.source)) ?? server.source ?? '-'}
+    </Td>
+    <Td dataLabel="Version">{server.version || '-'}</Td>
   </Tr>
 );
 

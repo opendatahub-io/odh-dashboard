@@ -27,10 +27,13 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { RegistryAsset } from '~/app/hooks/useAssets';
+import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
+import { useNotification } from '~/app/hooks/useNotification';
 import { assetDetailUrl } from '~/app/utilities/routes';
 import { getFormatBadge, isStructured, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
+import DeleteAssetModal from './DeleteAssetModal';
 
 type RegistryTableProps = {
   assets: RegistryAsset[];
@@ -41,6 +44,7 @@ type RegistryTableProps = {
   onManageCollections: () => void;
   onManageLabels: () => void;
   onRegisterData: () => void;
+  onRefresh: () => void;
 };
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
@@ -60,7 +64,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   onManageCollections,
   onManageLabels,
   onRegisterData,
+  onRefresh,
 }) => {
+  const navigate = useNavigate();
+  const notification = useNotification();
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
@@ -69,6 +76,8 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   const [selectedAssetType, setSelectedAssetType] = React.useState('');
   const [selectedFormat, setSelectedFormat] = React.useState('');
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [activeActionsAsset, setActiveActionsAsset] = React.useState<string>();
+  const [deleteAsset, setDeleteAsset] = React.useState<RegistryAsset | null>(null);
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(undefined);
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const [page, setPage] = React.useState(1);
@@ -131,6 +140,17 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     activeSortDirection,
   ]);
 
+  const maxPage = Math.max(1, Math.ceil(filteredAssets.length / perPage));
+  const currentPage = Math.min(page, maxPage);
+
+  React.useEffect(() => {
+    if (page !== currentPage) {
+      setPage(currentPage);
+    }
+  }, [currentPage, page]);
+
+  const paginatedAssets = filteredAssets.slice((currentPage - 1) * perPage, currentPage * perPage);
+
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: { index: activeSortIndex, direction: activeSortDirection },
     onSort: (_event, index, direction) => {
@@ -139,6 +159,20 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     },
     columnIndex,
   });
+
+  const handleDelete = React.useCallback(
+    async (asset: RegistryAsset) => {
+      if (asset.assetType === 'volume') {
+        await deleteVolume(project, asset.collection, asset.name);
+      } else {
+        await deleteGenericTable(project, asset.collection, asset.name);
+      }
+      notification.success('Asset deleted', `${asset.name} was deleted successfully.`);
+      setDeleteAsset(null);
+      onRefresh();
+    },
+    [notification, onRefresh, project],
+  );
 
   // Value dropdown content based on category
   const renderValueDropdown = () => {
@@ -444,7 +478,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           <Pagination
             itemCount={filteredAssets.length}
             perPage={perPage}
-            page={page}
+            page={currentPage}
             onSetPage={(_event, p) => setPage(p)}
             onPerPageSelect={(_event, pp) => {
               setPerPage(pp);
@@ -487,10 +521,13 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 </Td>
               </Tr>
             ) : (
-              filteredAssets.slice((page - 1) * perPage, page * perPage).map((asset) => {
+              paginatedAssets.map((asset) => {
                 const badge = getFormatBadge(asset.format);
+                const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
+                const assetTestId = (prefix: string) =>
+                  `${prefix}-${asset.assetType}-${asset.collection}-${asset.name}`;
                 return (
-                  <Tr key={`${asset.collection}-${asset.name}`}>
+                  <Tr key={assetKey}>
                     <Td dataLabel="Name">
                       <Button
                         variant="link"
@@ -529,8 +566,58 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                         </LabelGroup>
                       ) : null}
                     </Td>
-                    {/* TODO: Wire up per-row actions (edit, delete) when detail view is implemented */}
-                    <Td isActionCell />
+                    <Td isActionCell data-testid={assetTestId('asset-actions-cell')}>
+                      <Dropdown
+                        isOpen={activeActionsAsset === assetKey}
+                        onSelect={() => setActiveActionsAsset(undefined)}
+                        onOpenChange={(isOpen) =>
+                          setActiveActionsAsset(isOpen ? assetKey : undefined)
+                        }
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            variant="plain"
+                            isExpanded={activeActionsAsset === assetKey}
+                            aria-label={`Actions for ${asset.name}`}
+                            data-testid={assetTestId('asset-actions')}
+                            onClick={() =>
+                              setActiveActionsAsset((current) =>
+                                current === assetKey ? undefined : assetKey,
+                              )
+                            }
+                          >
+                            <EllipsisVIcon />
+                          </MenuToggle>
+                        )}
+                        popperProps={{ position: 'right' }}
+                      >
+                        <DropdownList>
+                          <DropdownItem
+                            key="edit"
+                            onClick={() =>
+                              navigate(
+                                `${assetDetailUrl(
+                                  project,
+                                  asset.collection,
+                                  asset.name,
+                                  asset.assetType,
+                                )}?edit=true`,
+                              )
+                            }
+                            data-testid={assetTestId('asset-edit')}
+                          >
+                            Edit
+                          </DropdownItem>
+                          <DropdownItem
+                            key="delete"
+                            onClick={() => setDeleteAsset(asset)}
+                            data-testid={assetTestId('asset-delete')}
+                          >
+                            Delete
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </Td>
                   </Tr>
                 );
               })
@@ -538,6 +625,14 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           </Tbody>
         </Table>
       </PageSection>
+      {deleteAsset ? (
+        <DeleteAssetModal
+          assetName={deleteAsset.name}
+          assetType={deleteAsset.assetType}
+          onDelete={() => handleDelete(deleteAsset)}
+          onClose={() => setDeleteAsset(null)}
+        />
+      ) : null}
     </>
   );
 };

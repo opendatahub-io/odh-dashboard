@@ -141,7 +141,6 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('asset-updated-at')).toHaveTextContent('-');
     expect(screen.queryByTestId('properties-card')).not.toBeInTheDocument();
   });
-
   it('should hide schema card when no columns', () => {
     const asset = mockAssetResponse({ columns: [] });
     renderView(asset);

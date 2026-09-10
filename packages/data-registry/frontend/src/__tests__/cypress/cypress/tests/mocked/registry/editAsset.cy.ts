@@ -118,7 +118,7 @@ describe('Edit Table Asset', () => {
     });
   });
 
-  it('should not submit empty optional metadata for a table', () => {
+  it('should submit explicit empty values for optional table metadata', () => {
     cy.intercept(
       'GET',
       `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/unclassified-data`,
@@ -138,7 +138,11 @@ describe('Edit Table Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateTableWithoutOptionalMetadata').then((interception) => {
-      expect(interception.request.body).to.not.have.property('maturity');
+      expect(interception.request.body).to.include({
+        license: '',
+        maturity: '',
+        pii: '',
+      });
     });
   });
 

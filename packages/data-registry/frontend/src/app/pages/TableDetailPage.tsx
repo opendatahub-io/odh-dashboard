@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -25,8 +25,9 @@ import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { useVolume } from '~/app/hooks/useVolume';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
-import { browseUrl } from '~/app/utilities/routes';
+import { browseUrl, collectionDetailUrl } from '~/app/utilities/routes';
 import { volumeToAsset } from '~/app/utilities/assetUtils';
+import { useNotification } from '~/app/hooks/useNotification';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
 import TableDetailView from './TableDetailView';
@@ -39,6 +40,8 @@ const TableDetailPage: React.FC = () => {
     name: string;
   }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const notification = useNotification();
 
   const isVolume = assetType === 'volume';
 
@@ -65,16 +68,27 @@ const TableDetailPage: React.FC = () => {
 
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(searchParams.get('edit') === 'true');
+
+  const closeEditModal = React.useCallback(() => {
+    setIsEditModalOpen(false);
+    if (searchParams.has('edit')) {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete('edit');
+        return next;
+      });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSaved = React.useCallback(() => {
-    setIsEditModalOpen(false);
+    closeEditModal();
     if (isVolume) {
       refreshVolume();
     } else {
       refreshGenericTable();
     }
-  }, [isVolume, refreshGenericTable, refreshVolume]);
+  }, [closeEditModal, isVolume, refreshGenericTable, refreshVolume]);
 
   const handleDelete = React.useCallback(async () => {
     if (!project || !collection || !name) {
@@ -82,11 +96,13 @@ const TableDetailPage: React.FC = () => {
     }
     if (isVolume) {
       await deleteVolume(project, collection, name);
+      notification.success('Volume deleted', `${name} was deleted successfully.`);
     } else {
       await deleteGenericTable(project, collection, name);
+      notification.success('Table deleted', `${name} was deleted successfully.`);
     }
     navigate(browseUrl(project));
-  }, [project, collection, name, navigate, isVolume]);
+  }, [project, collection, name, navigate, isVolume, notification]);
 
   const displayName = name || 'Loading...';
 
@@ -99,10 +115,10 @@ const TableDetailPage: React.FC = () => {
           </Link>
         )}
       />
-      {collection ? (
+      {collection && project ? (
         <BreadcrumbItem
           render={({ className }) => (
-            <Link className={className} to={browseUrl(project)}>
+            <Link className={className} to={collectionDetailUrl(project, collection)}>
               {collection}
             </Link>
           )}
@@ -122,7 +138,7 @@ const TableDetailPage: React.FC = () => {
           project={project}
           collection={collection}
           name={name}
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={closeEditModal}
           onSaved={handleSaved}
         />
       );
@@ -134,7 +150,7 @@ const TableDetailPage: React.FC = () => {
           project={project}
           collection={collection}
           name={name}
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={closeEditModal}
           onSaved={handleSaved}
         />
       );

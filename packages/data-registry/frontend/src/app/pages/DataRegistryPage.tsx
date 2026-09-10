@@ -52,7 +52,7 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
-  const [collections, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
+  const [, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
     collectionNames,
@@ -174,12 +174,12 @@ const DataRegistryPage: React.FC = () => {
             }}
             onManageLabels={() => setIsLabelsModalOpen(true)}
             onRegisterData={() => setIsRegisterModalOpen(true)}
+            onRefresh={handleRefresh}
           />
           <ManageCollectionsModal
             isOpen={isCollectionsModalOpen}
             onClose={() => setIsCollectionsModalOpen(false)}
             project={selectedProject}
-            collections={collections}
             onRefresh={handleRefresh}
           />
           <ManageLabelsModal
