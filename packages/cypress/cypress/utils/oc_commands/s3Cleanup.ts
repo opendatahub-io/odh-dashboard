@@ -84,6 +84,7 @@ export const runAwsCliInCluster = ({
           envFrom: [{ secretRef: { name: secretName } }],
           securityContext: {
             runAsUser: 1001,
+            runAsGroup: 1001,
             runAsNonRoot: true,
             allowPrivilegeEscalation: false,
             seccompProfile: { type: 'RuntimeDefault' },
