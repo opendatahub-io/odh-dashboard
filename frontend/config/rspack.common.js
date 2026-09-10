@@ -68,14 +68,10 @@ module.exports = (env) => ({
       {
         test: /\.(tsx|ts|jsx|js)?$/,
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
-        include: [
-          SRC_DIR,
-          COMMON_DIR,
-          path.resolve(RELATIVE_DIRNAME, '../packages'),
-          path.resolve(RELATIVE_DIRNAME, '../plugins'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@odh-dashboard'),
-          path.resolve(ROOT_NODE_MODULES, '@odh-dashboard'),
-        ],
+        // Transpile host sources and workspace packages only. With pnpm symlinks enabled,
+        // workspace links resolve to packages/ paths. Including node_modules/@odh-dashboard
+        // makes Istanbul walk the entire hoisted tree and can hang the Cypress coverage build.
+        include: [SRC_DIR, COMMON_DIR, path.resolve(RELATIVE_DIRNAME, '../packages'), path.resolve(RELATIVE_DIRNAME, '../plugins')],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           {
@@ -298,7 +294,9 @@ module.exports = (env) => ({
     alias: {
       ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
     },
-    symlinks: false,
+    // Follow pnpm workspace symlinks so linked packages resolve under packages/ instead of
+    // scanning the full node_modules/.pnpm tree during the coverage build.
+    symlinks: true,
     cacheWithContext: false,
   },
 });

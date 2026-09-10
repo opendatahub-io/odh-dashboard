@@ -27,11 +27,7 @@ const isPatternFlyCss = (resourcePath, relativeDirname, rootNodeModules) => {
   }
 
   return (
-    (PNPM_NODE_MODULES.test(resourcePath) &&
-      (/[/\\]@patternfly[/\\]react-styles[/\\]css[/\\]/.test(resourcePath) ||
-        /[/\\]@patternfly[/\\][^/\\]+[/\\](?:dist[/\\]esm[/\\]css|react-styles[/\\]css)[/\\]/.test(
-          resourcePath,
-        ))) ||
+    (PNPM_NODE_MODULES.test(resourcePath) && /[/\\]@patternfly[/\\]/.test(resourcePath)) ||
     /[/\\]@odh-dashboard[/\\][^/\\]+[/\\]node_modules[/\\]@patternfly[/\\]/.test(resourcePath)
   );
 };
