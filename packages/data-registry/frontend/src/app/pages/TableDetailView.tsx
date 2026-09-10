@@ -14,15 +14,17 @@ import {
   LabelGroup,
   Stack,
   StackItem,
-  Timestamp,
-  TimestampFormat,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { AssetResponse } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
-import { browseUrl } from '~/app/utilities/routes';
-import { getFormatBadge } from '~/app/utilities/formatUtils';
+import { collectionDetailUrl } from '~/app/utilities/routes';
+import {
+  getFormatBadge,
+  getUnstructuredFormatLabel,
+  isStructured,
+} from '~/app/utilities/formatUtils';
 
 type TableDetailViewProps = {
   asset: AssetResponse;
@@ -31,6 +33,28 @@ type TableDetailViewProps = {
 
 const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => {
   const formatBadge = asset.format ? getFormatBadge(asset.format) : undefined;
+  const normalizedAssetType = asset.asset_type.toLowerCase();
+  const isUnstructured = normalizedAssetType === 'unstructured' || normalizedAssetType === 'volume';
+  const assetTypeLabel = isUnstructured ? 'Unstructured' : formatBadge?.text || asset.asset_type;
+
+  const formatTimestamp = (timestamp: string | null | undefined): string => {
+    if (!timestamp) {
+      return '-';
+    }
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+      return '-';
+    }
+    return date.toLocaleString('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: true,
+    });
+  };
 
   return (
     <Grid hasGutter>
@@ -42,6 +66,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
               data-testid="table-detail-description-list"
               columnModifier={{ default: '2Col' }}
             >
+              {/* Description - always first (left column) */}
               <DescriptionListGroup>
                 <DescriptionListTerm>Description</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-description">
@@ -49,7 +74,15 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
-              {asset.format ? (
+              {/* Asset type - second for unstructured (right column), fourth for structured */}
+              {isUnstructured ? (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Asset type</DescriptionListTerm>
+                  <DescriptionListDescription data-testid="asset-type">
+                    {assetTypeLabel}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : asset.format && isStructured(asset.format) ? (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Format</DescriptionListTerm>
                   <DescriptionListDescription data-testid="asset-format">
@@ -60,12 +93,15 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 </DescriptionListGroup>
               ) : null}
 
+              {/* Collection - third for unstructured (left column), third for structured */}
               <DescriptionListGroup>
                 <DescriptionListTerm>Collection</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-collection">
                   {asset.collection ? (
                     project ? (
-                      <Link to={browseUrl(project)}>{asset.collection}</Link>
+                      <Link to={collectionDetailUrl(project, asset.collection)}>
+                        {asset.collection}
+                      </Link>
                     ) : (
                       asset.collection
                     )
@@ -75,13 +111,29 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
-              <DescriptionListGroup>
-                <DescriptionListTerm>Asset type</DescriptionListTerm>
-                <DescriptionListDescription data-testid="asset-type">
-                  {formatBadge ? formatBadge.text : asset.asset_type || '-'}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
+              {/* Format - fourth for unstructured (right column) */}
+              {isUnstructured ? (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Format</DescriptionListTerm>
+                  <DescriptionListDescription data-testid="asset-format">
+                    <Label isCompact variant="outline" color={formatBadge?.color}>
+                      {getUnstructuredFormatLabel(asset.format)}
+                    </Label>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
 
+              {/* Asset type - for structured only (right column after Collection) */}
+              {!isUnstructured ? (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Asset type</DescriptionListTerm>
+                  <DescriptionListDescription data-testid="asset-type">
+                    {assetTypeLabel}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
+
+              {/* Connection - fifth for unstructured (left column), fifth for structured */}
               <DescriptionListGroup>
                 <DescriptionListTerm>Connection</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-connection">
@@ -89,6 +141,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
+              {/* Owner - sixth for both asset types (right column) */}
               <DescriptionListGroup>
                 <DescriptionListTerm>Owner</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-owner">
@@ -96,6 +149,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
+              {/* Path - seventh for unstructured (left column), seventh for structured */}
               <DescriptionListGroup>
                 <DescriptionListTerm>Path</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-location">
@@ -103,37 +157,27 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
+              {/* Created - eighth for both (right column) */}
               <DescriptionListGroup>
                 <DescriptionListTerm>Created</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-created-at">
-                  {asset.created_at ? (
-                    <>
-                      <Timestamp
-                        date={new Date(asset.created_at)}
-                        dateFormat={TimestampFormat.long}
-                      />
-                      {asset.registered_by ? ` by ${asset.registered_by}` : null}
-                    </>
-                  ) : (
-                    '-'
-                  )}
+                  {formatTimestamp(asset.created_at)}
+                  {asset.created_at && asset.registered_by ? ` by ${asset.registered_by}` : null}
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
+              {/* Empty placeholder - pushes Last modified below Created in the right column */}
+              <DescriptionListGroup>
+                <DescriptionListTerm>&nbsp;</DescriptionListTerm>
+                <DescriptionListDescription>&nbsp;</DescriptionListDescription>
+              </DescriptionListGroup>
+
+              {/* Last modified - tenth for both asset types (right column) */}
               <DescriptionListGroup>
                 <DescriptionListTerm>Last modified</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-updated-at">
-                  {asset.updated_at ? (
-                    <>
-                      <Timestamp
-                        date={new Date(asset.updated_at)}
-                        dateFormat={TimestampFormat.long}
-                      />
-                      {asset.updated_by ? ` by ${asset.updated_by}` : null}
-                    </>
-                  ) : (
-                    '-'
-                  )}
+                  {formatTimestamp(asset.updated_at)}
+                  {asset.updated_at && asset.updated_by ? ` by ${asset.updated_by}` : null}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
@@ -179,17 +223,17 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
             </StackItem>
           ) : null}
 
-          <StackItem>
-            <Card data-testid="schema-card">
-              <CardTitle>Schema</CardTitle>
-              <CardBody>
-                {(asset.columns?.length ?? 0) > 0 ? (
+          {(asset.columns?.length ?? 0) > 0 ? (
+            <StackItem>
+              <Card data-testid="schema-card">
+                <CardTitle>Schema</CardTitle>
+                <CardBody>
                   <span data-testid="schema-column-count">{asset.columns?.length} columns</span>
-                ) : null}
-                <SchemaColumnsTable columns={asset.columns ?? []} />
-              </CardBody>
-            </Card>
-          </StackItem>
+                  <SchemaColumnsTable columns={asset.columns ?? []} />
+                </CardBody>
+              </Card>
+            </StackItem>
+          ) : null}
         </Stack>
       </GridItem>
     </Grid>
