@@ -11,6 +11,14 @@
   margin-block-start: var(--pf-t--global--spacer--md);
 }
 
+.evalhub-browse-benchmarks-card__title {
+  margin-block-end: var(--pf-t--global--spacer--sm);
+}
+
+.evalhub-browse-benchmarks-card__description {
+  margin: 0;
+}
+
 .evalhub-evaluate-tab__curated {
   margin-block-start: var(--pf-t--global--spacer--md);
 }

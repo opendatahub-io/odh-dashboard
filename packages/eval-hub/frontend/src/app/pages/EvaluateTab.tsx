@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
+import {
+  Button,
+  Card,
+  CardBody,
+  Content,
+  Flex,
+  FlexItem,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CuratedSuiteCategories from '~/app/components/CuratedSuiteCategories';
@@ -24,25 +34,9 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace, onSelectCollection
     data-testid="evaluate-tab-content"
   >
     <StackItem>
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      >
-        <FlexItem>
-          <Title headingLevel="h2" size="lg">
-            My benchmark suites
-          </Title>
-        </FlexItem>
-        <FlexItem>
-          <Button
-            variant="primary"
-            component={(props) => <Link {...props} to={evaluationBenchmarksRoute(namespace)} />}
-            data-testid="start-single-benchmark-button"
-          >
-            Evaluate single benchmark
-          </Button>
-        </FlexItem>
-      </Flex>
+      <Title headingLevel="h2" size="lg">
+        My benchmark suites
+      </Title>
     </StackItem>
     <StackItem>
       {/* Use the real tenant collections API on the front page. */}
@@ -54,6 +48,40 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace, onSelectCollection
         onCreateSuite={handleCreateSuite}
         onSelectCollection={onSelectCollection}
       />
+    </StackItem>
+    <StackItem>
+      <Card
+        className="evalhub-browse-benchmarks-card"
+        variant="secondary"
+        data-testid="browse-all-benchmarks"
+      >
+        <CardBody>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            gap={{ default: 'gapMd' }}
+          >
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <Title headingLevel="h2" size="xl" className="evalhub-browse-benchmarks-card__title">
+                Browse all benchmarks
+              </Title>
+              <Content component="p" className="evalhub-browse-benchmarks-card__description">
+                Explore 100+ individual benchmarks across all evaluation frameworks to run a one-off
+                evaluation.
+              </Content>
+            </FlexItem>
+            <FlexItem>
+              <Button
+                variant="secondary"
+                component={(props) => <Link {...props} to={evaluationBenchmarksRoute(namespace)} />}
+                data-testid="browse-all-benchmarks-explore"
+              >
+                Explore
+              </Button>
+            </FlexItem>
+          </Flex>
+        </CardBody>
+      </Card>
     </StackItem>
     <StackItem className="evalhub-evaluate-tab__curated">
       <CuratedSuiteCategories namespace={namespace} />

@@ -207,10 +207,12 @@ describe('EvaluationsPage', () => {
     );
   });
 
-  it('should link to the single benchmark flow from the Evaluate tab', () => {
+  it('should link to the single benchmark flow from the browse benchmarks section', () => {
     renderPage('test-project');
 
-    expect(screen.getByTestId('start-single-benchmark-button')).toHaveAttribute(
+    expect(screen.queryByTestId('start-single-benchmark-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('browse-all-benchmarks')).toBeInTheDocument();
+    expect(screen.getByTestId('browse-all-benchmarks-explore')).toHaveAttribute(
       'href',
       '/evaluation/test-project/create/benchmarks',
     );
