@@ -62,7 +62,9 @@ export const deployKServeDeployment = async (
           name: wizardData.k8sNameDesc.data.k8sName.value,
           servingRuntime,
           scope: wizardData.modelServer?.data?.selection?.scope,
-          templateName: serverResourceTemplateName,
+          templateName:
+            serverResourceTemplateName ||
+            existingDeployment?.server?.metadata.annotations?.['opendatahub.io/template-name'],
         })
       : undefined,
   };

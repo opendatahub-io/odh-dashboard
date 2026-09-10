@@ -63,6 +63,44 @@ describe('deployKServeDeployment', () => {
     expect(result.server).toBe(existingDeployment.server);
   });
 
+  it('should preserve the existing serving runtime template name when updating without a template name', async () => {
+    const existingServer = mockServingRuntimeK8sResource({
+      name: 'existing-runtime',
+      templateName: 'nim-template',
+    });
+
+    await deployKServeDeployment(
+      WIZARD_DATA,
+      {},
+      'test-project',
+      {
+        modelServingPlatformId: 'kserve',
+        model: mockInferenceServiceK8sResource({}),
+        server: existingServer,
+      },
+      undefined,
+      existingServer,
+      undefined,
+      true,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
+
+    expect(mockUpdateServingRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          annotations: expect.objectContaining({
+            'opendatahub.io/template-name': 'nim-template',
+          }),
+        }),
+      }),
+      { dryRun: true },
+    );
+  });
+
   it('should update an existing serving runtime when explicitly requested', async () => {
     const existingServer = mockServingRuntimeK8sResource({ name: 'existing-runtime' });
     const updatedServer = {
