@@ -407,16 +407,13 @@ describe('isPlaygroundModelMatchForAIModel', () => {
     expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
   });
 
-  it('does not match namespace playground model to maas AIModel with same model_id', () => {
-    const playground = makeLlamaModel({ id: 'vllm-inference/gpt-4', modelId: 'gpt-4' });
-    const aiModel = makeModel({ model_id: 'gpt-4', model_source_type: 'maas' });
-    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
-  });
-
-  it('does not match maas playground model to namespace AIModel with same model_id', () => {
-    const playground = makeLlamaModel({ id: 'maas-openai/llama-7b', modelId: 'llama-7b' });
-    const aiModel = makeModel({ model_id: 'llama-7b', model_source_type: 'namespace' });
-    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
+  it('matches a MaaS AIModel registered through the passthrough provider without a maas- prefix', () => {
+    const playground = makeLlamaModel({
+      id: 'genai-bff-proxy/openai-gpt-4o-mini',
+      modelId: 'openai-gpt-4o-mini',
+    });
+    const aiModel = makeModel({ model_id: 'openai-gpt-4o-mini', model_source_type: 'maas' });
+    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(true);
   });
 
   it('matches custom_endpoint playground model to custom_endpoint AIModel', () => {

@@ -1380,6 +1380,36 @@ func TestGetProviderDataRouting(t *testing.T) {
 	})
 }
 
+func TestQualifyPassthroughModelID(t *testing.T) {
+	tests := []struct {
+		name    string
+		modelID string
+		want    string
+	}{
+		{
+			name:    "qualifies a bare namespace model",
+			modelID: "llama-32-1b-instruct",
+			want:    "genai-bff-proxy/llama-32-1b-instruct",
+		},
+		{
+			name:    "qualifies a bare MaaS model",
+			modelID: "maas-openai-gpt-4o-mini",
+			want:    "genai-bff-proxy/maas-openai-gpt-4o-mini",
+		},
+		{
+			name:    "does not double qualify a model",
+			modelID: "genai-bff-proxy/llama-32-1b-instruct",
+			want:    "genai-bff-proxy/llama-32-1b-instruct",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, qualifyPassthroughModelID(tt.modelID))
+		})
+	}
+}
+
 func TestGetPassthroughEmbeddingSecret(t *testing.T) {
 	// With the passthrough architecture, getProviderData always returns just
 	// passthrough_api_key = user JWT regardless of vectorStoreIDs or model type.

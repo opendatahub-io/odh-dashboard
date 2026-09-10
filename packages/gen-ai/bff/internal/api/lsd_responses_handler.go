@@ -575,7 +575,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 	params := llamastack.CreateResponseParams{
 		Input:              createRequest.Input,
-		Model:              createRequest.Model,
+		Model:              qualifyPassthroughModelID(createRequest.Model),
 		VectorStoreIDs:     createRequest.VectorStoreIDs,
 		ChatContext:        chatContext,
 		Temperature:        createRequest.Temperature,
@@ -600,6 +600,18 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	} else {
 		app.handleNonStreamingResponse(w, r, ctx, params)
 	}
+}
+
+// qualifyPassthroughModelID ensures OGX routes inference requests through the
+// remote::passthrough provider. Model IDs are displayed without this prefix in
+// the UI, while OGX requires it to resolve the configured provider.
+func qualifyPassthroughModelID(modelID string) string {
+	prefix := constants.PassthroughProviderID + "/"
+	if strings.HasPrefix(modelID, prefix) {
+		return modelID
+	}
+
+	return prefix + modelID
 }
 
 // checkInputModeration runs input moderation and returns the result.

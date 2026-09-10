@@ -67,10 +67,9 @@ export const isMaasLlamaModelId = (llamaModelId: string): boolean => {
 };
 
 /**
- * Returns true if a playground LlamaModel corresponds to the given AIModel, accounting for
- * model_source_type. MaaS playground models have a "maas-" provider prefix in their full id;
- * namespace and custom_endpoint models do not. Without this check, two AIModels that share the
- * same model_id but differ in model_source_type would incorrectly match the same playground entry.
+ * Returns true if a playground LlamaModel corresponds to the given AIModel.
+ * Model IDs are unique across sources, so the normalized model ID is sufficient to identify a
+ * matching playground model.
  */
 export const isPlaygroundModelMatchForAIModel = (
   playgroundModel: LlamaModel,
@@ -80,12 +79,7 @@ export const isPlaygroundModelMatchForAIModel = (
   const playgroundModelId = playgroundModel.modelId.startsWith('maas-')
     ? playgroundModel.modelId.slice(5)
     : playgroundModel.modelId;
-  if (playgroundModelId !== aiModel.model_id) {
-    return false;
-  }
-  return aiModel.model_source_type === 'maas'
-    ? isMaasLlamaModelId(playgroundModel.id)
-    : !isMaasLlamaModelId(playgroundModel.id);
+  return playgroundModelId === aiModel.model_id;
 };
 
 export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): string => {
