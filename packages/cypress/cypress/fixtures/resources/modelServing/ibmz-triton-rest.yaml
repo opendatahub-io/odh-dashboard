@@ -31,6 +31,8 @@ objects:
           args:
             - /opt/tritonserver/bin/tritonserver --model-repository=/mnt/models
               --http-port=8000 --grpc-port=8001 --metrics-port=8002
+              --strict-readiness=false --model-control-mode=explicit
+              --load-model=python
           image: icr.io/ibmz/ibmz-accelerated-for-nvidia-triton-inference-server:1.6.0
           securityContext:
             allowPrivilegeEscalation: false

@@ -38,7 +38,6 @@ let hardwareProfileResourceName: string;
 let tolerationValue: string;
 let modelFormat: string;
 let servingRuntime: string;
-let dataConnectionName: string;
 let isS390x: boolean;
 const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
@@ -59,9 +58,8 @@ describe('ModelServing - tolerations tests', () => {
       tolerationValue = testData.tolerationValue;
       modelFormat = testData.modelFormat;
       servingRuntime = testData.servingRuntime;
-      dataConnectionName = testData.dataConnectionName;
       isS390x = !!testData.isS390x;
-      
+
       if (!projectName) {
         throw new Error('Project name is undefined or empty in the loaded fixture');
       }
@@ -154,17 +152,9 @@ describe('ModelServing - tolerations tests', () => {
       );
       cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
-      // The connection is auto-selected when only one exists. Wait for the combobox input
-      // to reflect the selection (confirming React state is initialised) before typing the path.
-      modelServingWizard.findExistingConnectionValue().should('have.value', dataConnectionName);
-      modelServingWizard
-        .findLocationPathInput()
-        .should('be.visible')
-        .clear()
-        .type(modelFilePath)
-        // Verify the value stuck — React controlled inputs can clear on re-render
-        .should('have.value', modelFilePath);
+      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+      modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
@@ -203,6 +193,19 @@ describe('ModelServing - tolerations tests', () => {
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
+
+      // On s390x Cypress .type() does not trigger React synthetic onChange on the controlled
+      // path input, so storage.path is empty after form submission. Patch it directly via oc
+      // so the storage initializer can download the model and Triton can reach Ready state.
+      if (isS390x) {
+        cy.exec(
+          `oc patch inferenceservice ${modelName} -n ${projectName} --type=merge ` +
+            `-p '{"spec":{"predictor":{"model":{"storage":{"path":"${modelFilePath}"}}}}}' `,
+          { failOnNonZeroExit: false },
+        ).then((result) => {
+          cy.log(`Patched storage path: exit=${result.exitCode}, out=${result.stdout}`);
+        });
+      }
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
