@@ -490,7 +490,7 @@ make chart-validate
 make generate && make manifests
 ```
 
-For details on envtest integration tests — what they are, how to write them, and how to debug failures — see [envtest Integration Tests](envtest-integration-tests.md).
+For details on envtest integration tests — what they are, how to write them, and how to debug failures — see [envtest Integration Tests](envtest-integration-tests.md). Tests that require a deployed operator and a real cluster use the [dashboard-operator E2E framework](../dashboard-operator/test/e2e/README.md).
 
 ## Chaos Validation (operator-chaos)
 

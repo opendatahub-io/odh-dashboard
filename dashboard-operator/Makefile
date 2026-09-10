@@ -18,12 +18,12 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter (includes integration-tagged files).
-	$(GOLANGCI_LINT) run --build-tags=integration
+lint: golangci-lint ## Run golangci-lint linter (includes integration and E2E files).
+	$(GOLANGCI_LINT) run --build-tags=integration,e2e
 
 .PHONY: lint-fix
-lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes (includes integration-tagged files).
-	$(GOLANGCI_LINT) run --build-tags=integration --fix
+lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes (includes integration and E2E files).
+	$(GOLANGCI_LINT) run --build-tags=integration,e2e --fix
 
 .PHONY: test
 test: fmt vet ## Run tests.
@@ -33,6 +33,13 @@ test: fmt vet ## Run tests.
 test-integration: setup-envtest ## Run integration tests with envtest.
 	KUBEBUILDER_ASSETS="$$($(ENVTEST) use 1.31.x -p path)" go test -v -race -tags=integration -count=1 ./internal/controller/...
 
+.PHONY: test-e2e
+test-e2e: ## Run real-cluster E2E tests (requires KUBECONFIG and TEST_NAMESPACE).
+	@test -n "$$KUBECONFIG" || (echo "KUBECONFIG must point to a kubeconfig file." && exit 1)
+	@test -n "$$TEST_NAMESPACE" || (echo "TEST_NAMESPACE must name an existing namespace." && exit 1)
+	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
+	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/...
+
 ##@ Build
 
 SAFE_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | tr -cd '[:alnum:]_.-' || echo "unknown")
@@ -40,6 +47,13 @@ SAFE_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | tr -c
 .PHONY: build
 build: fmt vet ## Build manager binary.
 	go build -ldflags "-X github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller.Version=$(SAFE_VERSION)" -o bin/manager ./cmd/manager
+
+E2E_TEST_BINARY ?= bin/e2e.test
+
+.PHONY: build-e2e
+build-e2e: ## Compile the standalone real-cluster E2E test binary.
+	@mkdir -p "$(dir $(E2E_TEST_BINARY))"
+	go test -c -tags=e2e -o "$(E2E_TEST_BINARY)" ./test/e2e
 
 .PHONY: run
 run: fmt vet ## Run the controller from your host.
