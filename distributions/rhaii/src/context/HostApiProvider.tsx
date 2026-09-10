@@ -10,11 +10,21 @@ import {
 } from '@odh-dashboard/plugin-core';
 
 const ProjectDetailsContext = React.createContext(null);
-const ModelServingContext = React.createContext(null);
+const MODEL_SERVING_CONTEXT_VALUE = {
+  inferenceServices: {
+    data: { items: [] },
+    loaded: true,
+  },
+};
+const ModelServingContext = React.createContext(MODEL_SERVING_CONTEXT_VALUE);
 
 const ModelServingContextProvider: HostApiServices['contexts']['ModelServingContextProvider'] = ({
   children,
-}) => children;
+}) => (
+  <ModelServingContext.Provider value={MODEL_SERVING_CONTEXT_VALUE}>
+    {children}
+  </ModelServingContext.Provider>
+);
 
 const unsupportedCreateProject: HostApiServices['createProject'] = () =>
   Promise.reject(new Error('Project creation is not available in the RHAII Tilt host.'));
