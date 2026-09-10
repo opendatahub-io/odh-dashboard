@@ -239,23 +239,16 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const shouldShowLoadError = Boolean(error) && !useMockFallback;
   // TODO: Remove the mock fallback and this switch once the collections API is the source of
   // truth for every benchmark suite gallery.
-  const isUsingMockCollections = useMockFallback && !isLoading && !hasApiCollections;
+  const isUsingMockCollections = useMockFallback && !isLoading && Boolean(error);
   const collections = React.useMemo(() => {
     if (shouldShowLoadError || isLoading) {
       return [];
     }
-    if (hasApiCollections || !useMockFallback) {
-      return apiCollections;
+    if (isUsingMockCollections) {
+      return mockCollections;
     }
-    return mockCollections;
-  }, [
-    apiCollections,
-    hasApiCollections,
-    isLoading,
-    mockCollections,
-    shouldShowLoadError,
-    useMockFallback,
-  ]);
+    return apiCollections;
+  }, [apiCollections, isLoading, isUsingMockCollections, mockCollections, shouldShowLoadError]);
   const sourceCollections = React.useMemo(
     () => (maxVisibleCollections ? collections.slice(0, maxVisibleCollections) : collections),
     [collections, maxVisibleCollections],

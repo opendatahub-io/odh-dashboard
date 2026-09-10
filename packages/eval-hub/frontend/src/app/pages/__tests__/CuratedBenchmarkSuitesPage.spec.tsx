@@ -106,4 +106,24 @@ describe('CuratedBenchmarkSuitesPage', () => {
       screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).toBeInTheDocument();
   });
+
+  it('should render an empty state when the API returns no curated suites', () => {
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: [],
+        // eslint-disable-next-line camelcase
+        total_count: 0,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage('model');
+
+    expect(screen.getByTestId('benchmark-suites-empty-state')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Customize')).not.toBeInTheDocument();
+  });
 });
