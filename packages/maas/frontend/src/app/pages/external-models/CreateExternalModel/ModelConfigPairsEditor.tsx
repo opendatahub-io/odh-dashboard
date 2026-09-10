@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, FormGroup, TextInput } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, FormGroup, TextInput } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 export type ConfigPair = {
@@ -33,32 +33,38 @@ const ModelConfigPairsEditor: React.FC<ModelConfigPairsEditorProps> = ({ pairs, 
           fieldId={`provider-ref-config-pair-${index}`}
           isStack
         >
-          <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', width: '100%' }}>
-            <TextInput
-              id={`provider-ref-config-key-${index}`}
-              data-testid={`provider-ref-config-key-${index}`}
-              aria-label="Configuration key"
-              placeholder="Key"
-              value={pair.key}
-              onChange={(_event, value) => handlePairChange(index, 'key', value)}
-            />
-            <TextInput
-              id={`provider-ref-config-value-${index}`}
-              data-testid={`provider-ref-config-value-${index}`}
-              aria-label="Configuration value"
-              placeholder="Value"
-              value={pair.value}
-              onChange={(_event, value) => handlePairChange(index, 'value', value)}
-            />
-            <Button
-              variant="plain"
-              aria-label="Remove configuration pair"
-              onClick={() => handleRemovePair(index)}
-              data-testid={`provider-ref-config-remove-${index}`}
-            >
-              <MinusCircleIcon />
-            </Button>
-          </div>
+          <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-w-100">
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <TextInput
+                id={`provider-ref-config-key-${index}`}
+                data-testid={`provider-ref-config-key-${index}`}
+                aria-label="Configuration key"
+                placeholder="Key"
+                value={pair.key}
+                onChange={(_event, value) => handlePairChange(index, 'key', value)}
+              />
+            </FlexItem>
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <TextInput
+                id={`provider-ref-config-value-${index}`}
+                data-testid={`provider-ref-config-value-${index}`}
+                aria-label="Configuration value"
+                placeholder="Value"
+                value={pair.value}
+                onChange={(_event, value) => handlePairChange(index, 'value', value)}
+              />
+            </FlexItem>
+            <FlexItem>
+              <Button
+                variant="plain"
+                aria-label="Remove configuration pair"
+                onClick={() => handleRemovePair(index)}
+                data-testid={`provider-ref-config-remove-${index}`}
+              >
+                <MinusCircleIcon />
+              </Button>
+            </FlexItem>
+          </Flex>
         </FormGroup>
       ))}
       <Button

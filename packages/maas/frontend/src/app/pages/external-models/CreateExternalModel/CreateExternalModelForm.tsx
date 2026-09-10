@@ -7,7 +7,6 @@ import {
   Checkbox,
   Form,
   FormGroup,
-  FormSection,
   FormHelperText,
   HelperText,
   HelperTextItem,
@@ -17,10 +16,12 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
 import { z } from 'zod';
@@ -30,9 +31,42 @@ import { CreateExternalModelRequest, ProviderRef } from '~/app/types/external-mo
 import AddProviderReferenceModal from './AddProviderReferenceModal';
 import EditProviderReferenceModal from './EditProviderReferenceModal';
 import ProviderReferencesTable from './ProviderReferencesTable';
+import {
+  EXTERNAL_MODEL_FIELD_MAX_LENGTH,
+  getUtf8ByteLength,
+  hasControlCharacters,
+  validateExternalModelFieldLength,
+} from './providerReferenceUtils';
 
 const externalModelFormSchema = z.object({
-  providerRefs: z.array(z.unknown()).min(1, 'Add at least one provider reference'),
+  modelName: z
+    .string()
+    .trim()
+    .min(1, 'Name is required')
+    .refine((value) => getUtf8ByteLength(value) <= EXTERNAL_MODEL_FIELD_MAX_LENGTH, {
+      message: `Cannot exceed ${EXTERNAL_MODEL_FIELD_MAX_LENGTH} bytes`,
+    })
+    .refine((value) => !hasControlCharacters(value), {
+      message: 'Name cannot contain control characters or newlines',
+    }),
+  providerRefs: z
+    .array(z.object({ targetModel: z.string() }).passthrough())
+    .min(1, 'Add at least one provider reference')
+    .superRefine((refs, ctx) => {
+      refs.forEach((ref, index) => {
+        const fieldError = validateExternalModelFieldLength(
+          ref.targetModel.trim(),
+          'Target model ID',
+        );
+        if (fieldError) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: fieldError,
+            path: [index, 'targetModel'],
+          });
+        }
+      });
+    }),
 });
 
 type CreateExternalModelFormProps = {
@@ -53,25 +87,35 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
 
   const [providerRefs, setProviderRefs] = React.useState<ProviderRef[]>([]);
   const [providerRefsTouched, setProviderRefsTouched] = React.useState(false);
+  const [modelNameTouched, setModelNameTouched] = React.useState(false);
   const [isAddProviderModalOpen, setIsAddProviderModalOpen] = React.useState(false);
   const [isEditProviderModalOpen, setIsEditProviderModalOpen] = React.useState(false);
   const [editingProviderRefIndex, setEditingProviderRefIndex] = React.useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
-  const { getFieldValidation } = useZodFormValidation({ providerRefs }, externalModelFormSchema);
+  const formData = React.useMemo(
+    () => ({
+      modelName: nameDescData.name,
+      providerRefs,
+    }),
+    [nameDescData.name, providerRefs],
+  );
 
+  const { getFieldValidation } = useZodFormValidation(formData, externalModelFormSchema);
+
+  const modelNameErrors = modelNameTouched ? getFieldValidation(['modelName'], true) : [];
   const providerRefsErrors = providerRefsTouched ? getFieldValidation(['providerRefs'], true) : [];
   const providerRefsValidationError =
     providerRefsErrors.length > 0 ? providerRefsErrors[0].message : undefined;
 
   const canSubmit =
     isK8sNameDescriptionDataValid(nameDescData) &&
-    nameDescData.name.trim() !== '' &&
     getFieldValidation(undefined, true).length === 0 &&
     !isSubmitting;
 
   const handleSubmit = async () => {
+    setModelNameTouched(true);
     setProviderRefsTouched(true);
     if (!canSubmit) {
       return;
@@ -80,10 +124,13 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
     setIsSubmitting(true);
     setSubmitError(null);
 
+    const trimmedName = nameDescData.name.trim();
+
     const request: CreateExternalModelRequest = {
       name: nameDescData.k8sName.value,
       namespace,
-      modelName: nameDescData.name.trim(),
+      displayName: trimmedName,
+      modelName: trimmedName,
       description: nameDescData.description.trim() || undefined,
       providerRefs,
     };
@@ -159,13 +206,20 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
 
           <K8sNameDescriptionField
             data={nameDescData}
-            onDataChange={onNameDescChange}
+            onDataChange={(key, value) => {
+              if (key === 'name') {
+                setModelNameTouched(true);
+              }
+              onNameDescChange(key, value);
+            }}
             dataTestId="external-model-name-desc"
             nameLabel="Name"
             namePlaceholder="e.g. GPT-4 Turbo"
             nameHelperText="The client-facing model name. Consumers use this to identify the model in API requests."
             descriptionPlaceholder="Optional description of this external model"
+            maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
           />
+          <ZodErrorHelperText zodIssue={modelNameErrors} />
         </FormSection>
 
         <FormSection title="Provider reference configuration" titleElement="h2">

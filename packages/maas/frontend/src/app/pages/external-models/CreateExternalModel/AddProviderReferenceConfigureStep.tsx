@@ -19,6 +19,7 @@ import InheritedProviderConfig from './InheritedProviderConfig';
 import ModelConfigPairsEditor from './ModelConfigPairsEditor';
 import { ProviderReferenceFormData } from './providerReferenceFormTypes';
 import {
+  EXTERNAL_MODEL_FIELD_MAX_LENGTH,
   isProviderReferenceApiFormat,
   PROVIDER_REFERENCE_API_FORMAT_OPTIONS,
   PROVIDER_REFERENCE_API_FORMATS,
@@ -86,6 +87,7 @@ const AddProviderReferenceConfigureStep: React.FC<AddProviderReferenceConfigureS
           data-testid="provider-ref-target-model"
           placeholder="e.g. gpt-4o, claude-sonnet-4-5-20241022"
           value={form.targetModel}
+          maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
           onChange={(_event, value) => onChange({ targetModel: value })}
         />
         <FormHelperText>

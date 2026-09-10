@@ -4,7 +4,6 @@ import {
   Form,
   FormGroup,
   FormHelperText,
-  FormSection,
   HelperText,
   HelperTextItem,
   Label,
@@ -13,12 +12,14 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
+import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { ExternalProvider } from '~/app/types/external-models';
 import InheritedProviderConfig from './InheritedProviderConfig';
 import ModelConfigPairsEditor from './ModelConfigPairsEditor';
 import { ProviderReferenceFormData } from './providerReferenceFormTypes';
 import {
+  EXTERNAL_MODEL_FIELD_MAX_LENGTH,
   getProviderDisplayName,
   isProviderReferenceApiFormat,
   PROVIDER_REFERENCE_API_FORMAT_OPTIONS,
@@ -93,6 +94,7 @@ const EditProviderReferenceForm: React.FC<EditProviderReferenceFormProps> = ({
             data-testid="provider-ref-target-model"
             placeholder="e.g. gpt-4o, claude-sonnet-4-5-20241022"
             value={form.targetModel}
+            maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
             onChange={(_event, value) => onChange({ targetModel: value })}
           />
         </FormGroup>

@@ -33,10 +33,9 @@ const tableCellClassName = 'pf-v6-u-align-content-center';
 
 const WeightColumnHeader: React.FC = () => (
   <Flex
-    display={{ default: 'inlineFlex' }}
+    spaceItems={{ default: 'spaceItemsXs' }}
     alignItems={{ default: 'alignItemsCenter' }}
-    gap={{ default: 'gapXs' }}
-    className="pf-v6-u-text-nowrap"
+    className="pf-v6-u-display-inline-flex pf-v6-u-text-nowrap"
   >
     Weight
     <FieldGroupHelpLabelIcon

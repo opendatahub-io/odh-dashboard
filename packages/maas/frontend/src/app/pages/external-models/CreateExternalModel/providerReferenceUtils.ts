@@ -1,6 +1,30 @@
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import { ConfigPair } from './ModelConfigPairsEditor';
 
+/** Matches CRD maxLength for spec.modelName and spec.externalProviderRefs[].targetModel. */
+export const EXTERNAL_MODEL_FIELD_MAX_LENGTH = 253;
+
+export const getUtf8ByteLength = (value: string): number => new TextEncoder().encode(value).length;
+
+export const hasControlCharacters = (value: string): boolean =>
+  [...value].some((char) => {
+    const code = char.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f;
+  });
+
+export const validateExternalModelFieldLength = (
+  value: string,
+  fieldLabel: string,
+): string | undefined => {
+  if (getUtf8ByteLength(value) > EXTERNAL_MODEL_FIELD_MAX_LENGTH) {
+    return `${fieldLabel} cannot exceed ${EXTERNAL_MODEL_FIELD_MAX_LENGTH} bytes`;
+  }
+  if (hasControlCharacters(value)) {
+    return `${fieldLabel} cannot contain control characters or newlines`;
+  }
+  return undefined;
+};
+
 export const PROVIDER_REFERENCE_API_FORMATS = {
   'openai-chat': {
     label: 'OpenAI Chat',

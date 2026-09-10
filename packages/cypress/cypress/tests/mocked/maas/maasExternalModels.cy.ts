@@ -382,6 +382,7 @@ describe('External Models Page', () => {
         expect(interception.request.body.data).to.deep.include({
           name: 'gpt-4-turbo',
           namespace: TEST_PROJECT,
+          displayName: 'GPT-4 Turbo',
           modelName: 'GPT-4 Turbo',
           description: 'External GPT-4 Turbo model',
         });
