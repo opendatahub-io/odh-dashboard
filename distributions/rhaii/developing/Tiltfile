@@ -79,7 +79,7 @@ if enable_model_serving:
     quoted_model_serving_frontend = shell_quote(model_serving_frontend)
     local_resource(
         "workspace-install",
-        cmd="npm ci --ignore-scripts --legacy-peer-deps --prefix " + quoted_repo_root,
+        cmd="npm install --ignore-scripts --legacy-peer-deps --package-lock=false --prefix " + quoted_repo_root,
         labels=["model-serving"],
     )
     local_resource(

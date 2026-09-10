@@ -64,8 +64,10 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
             : Promise.resolve(undefined),
         ]);
         if (statusResponse?.ok) {
-          const namespace = getDashboardNamespace(await statusResponse.json());
-          if (namespace) {
+          const namespace = getDashboardNamespace(
+            await statusResponse.json().catch(() => undefined),
+          );
+          if (!unmounted && namespace) {
             setDashboardNamespace(namespace);
           }
         }
