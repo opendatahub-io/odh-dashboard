@@ -295,15 +295,15 @@ func (c *PipelinesClient) seedRuns() {
 			"embedding_models":              []any{"vllm-embedding/ibm-granite/granite-embedding-english-r2"},
 			"generation_models":             []any{"vllm-inference/meta-llama/Llama-3.1-8B-Instruct"},
 			"input_data_bucket_name":        "s3-bucket",
-			"input_data_key":                "autorag input data/pdf/bank_policies_pdf/documents",
+			"input_data_keys":               []any{"autorag input data/pdf/bank_policies_pdf/documents"},
 			"input_data_secret_name":        "data-connection",
-			"ogx_secret_name":               "ogx",
+			"maas_secret_name":              "maas",
 			"optimization_max_rag_patterns": 8,
 			"optimization_metric":           "faithfulness",
 			"test_data_bucket_name":         "s3-bucket",
 			"test_data_key":                 "autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json",
 			"test_data_secret_name":         "data-connection",
-			"vector_io_provider_id":         "milvus",
+			"vector_db_secret_name":         "vector-db",
 		}
 
 		history := []plsvc.RuntimeStatus{

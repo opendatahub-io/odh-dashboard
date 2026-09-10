@@ -1445,8 +1445,11 @@ components:
         - test_data_key
         - input_data_secret_name
         - input_data_bucket_name
-        - input_data_key
-        - ogx_secret_name
+        - input_data_keys
+        - maas_secret_name
+        - vector_db_secret_name
+        - embedding_models
+        - generation_models
       properties:
         display_name:
           type: string
@@ -1472,12 +1475,18 @@ components:
         input_data_bucket_name:
           type: string
           description: S3 bucket name for input data
-        input_data_key:
+        input_data_keys:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: string
+            minLength: 1
+          description: Ordered object keys within the input data bucket
+        maas_secret_name:
           type: string
-          description: Object key within the input data bucket
-        ogx_secret_name:
-          type: string
-          description: Name of the K8s secret for Open GenAI Stack access
+          minLength: 1
+          description: Name of the K8s secret for MaaS access
         preset:
           type: string
           enum:
@@ -1487,14 +1496,16 @@ components:
           default: speed
         embedding_models:
           type: array
+          minItems: 1
           items:
             type: string
-          description: Optional list of embedding model identifiers
+          description: List of embedding model identifiers
         generation_models:
           type: array
+          minItems: 1
           items:
             type: string
-          description: Optional list of generation model identifiers
+          description: List of generation model identifiers
         optimization_metric:
           type: string
           enum:
@@ -1503,10 +1514,11 @@ components:
             - answer_correctness
             - context_correctness
           description: Metric to optimize (defaults to overall_score)
-        vector_io_provider_id:
+        vector_db_secret_name:
           type: string
-          description: Pipeline vector store provider ID from the selected Open GenAI Stack provider (e.g. milvus)
-          example: milvus
+          minLength: 1
+          description: Name of the K8s secret for vector database access
+          example: vector-db-secret
         optimization_max_rag_patterns:
           type: integer
           minimum: 4
@@ -2178,8 +2190,14 @@ components:
                   test_data_key: "test_data.json"
                   input_data_secret_name: "minio-secret"
                   input_data_bucket_name: "autorag"
-                  input_data_key: "documents/"
-                  ogx_secret_name: "ogx-secret"
+                  input_data_keys:
+                    - "documents/"
+                  maas_secret_name: "maas-secret"
+                  vector_db_secret_name: "vector-db-secret"
+                  embedding_models:
+                    - "vllm-embedding/ibm-granite/granite-embedding-english-r2"
+                  generation_models:
+                    - "vllm-inference/meta-llama/Llama-3.1-8B-Instruct"
 
     PipelineRunResponse:
       description: Successful response containing a single pipeline run

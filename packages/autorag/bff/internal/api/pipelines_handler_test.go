@@ -405,6 +405,15 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "invalid_request_body",
 		},
 		{
+			name:           "legacy create field in body",
+			namespace:      ns,
+			body:           `{"display_name":"x","input_data_key":"docs/"}`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
 			name:           "oversized body",
 			namespace:      ns,
 			body:           `{"display_name":"` + strings.Repeat("x", 10<<20) + `"}`,

@@ -327,11 +327,28 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.InputDataBucketName == "" {
 		missing = append(missing, "input_data_bucket_name")
 	}
-	if req.InputDataKey == "" {
-		missing = append(missing, "input_data_key")
+	if len(req.InputDataKeys) == 0 {
+		missing = append(missing, "input_data_keys")
 	}
-	if req.OGXSecretName == "" {
-		missing = append(missing, "ogx_secret_name")
+	if req.MaaSSecretName == "" {
+		missing = append(missing, "maas_secret_name")
+	}
+	if req.VectorDBSecretName == "" {
+		missing = append(missing, "vector_db_secret_name")
+	}
+	if len(req.EmbeddingsModels) == 0 {
+		missing = append(missing, "embedding_models")
+	}
+	if len(req.GenerationModels) == 0 {
+		missing = append(missing, "generation_models")
+	}
+	if len(req.InputDataKeys) > 10 {
+		return NewValidationError("input_data_keys must contain at most 10 keys")
+	}
+	for i, key := range req.InputDataKeys {
+		if key == "" {
+			return NewValidationError(fmt.Sprintf("input_data_keys[%d] must not be empty", i))
+		}
 	}
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
@@ -391,8 +408,9 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		"test_data_key":          req.TestDataKey,
 		"input_data_secret_name": req.InputDataSecretName,
 		"input_data_bucket_name": req.InputDataBucketName,
-		"input_data_key":         req.InputDataKey,
-		"ogx_secret_name":        req.OGXSecretName,
+		"input_data_keys":        req.InputDataKeys,
+		"maas_secret_name":       req.MaaSSecretName,
+		"vector_db_secret_name":  req.VectorDBSecretName,
 	}
 
 	preset := constants.DefaultPreset
@@ -401,22 +419,14 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 	}
 	params["preset"] = preset
 
-	if len(req.EmbeddingsModels) > 0 {
-		params["embedding_models"] = req.EmbeddingsModels
-	}
-	if len(req.GenerationModels) > 0 {
-		params["generation_models"] = req.GenerationModels
-	}
+	params["embedding_models"] = req.EmbeddingsModels
+	params["generation_models"] = req.GenerationModels
 
 	metric := req.OptimizationMetric
 	if metric == "" {
 		metric = constants.DefaultOptimizationMetric
 	}
 	params["optimization_metric"] = metric
-
-	if req.VectorIOProviderID != "" {
-		params["vector_io_provider_id"] = req.VectorIOProviderID
-	}
 
 	if req.OptimizationMaxRagPatterns != nil {
 		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns

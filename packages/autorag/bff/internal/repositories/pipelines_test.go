@@ -102,8 +102,11 @@ func validRequest() models.CreateAutoRAGRunRequest {
 		TestDataKey:         "test.jsonl",
 		InputDataSecretName: "input-secret",
 		InputDataBucketName: "input-bucket",
-		InputDataKey:        "docs/",
-		OGXSecretName:       "ogx-secret",
+		InputDataKeys:       []string{"docs/"},
+		MaaSSecretName:      "maas-secret",
+		EmbeddingsModels:    []string{"embedding-model"},
+		GenerationModels:    []string{"generation-model"},
+		VectorDBSecretName:  "vector-db-secret",
 	}
 }
 
@@ -122,7 +125,8 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		for _, field := range []string{"display_name", "test_data_secret_name", "test_data_bucket_name",
-			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_key", "ogx_secret_name"} {
+			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_keys",
+			"maas_secret_name", "vector_db_secret_name", "embedding_models", "generation_models"} {
 			if !strings.Contains(err.Error(), field) {
 				t.Errorf("error should mention %q: %v", field, err)
 			}
@@ -130,6 +134,25 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		var ve *ValidationError
 		if !errors.As(err, &ve) {
 			t.Errorf("expected *ValidationError, got %T", err)
+		}
+	})
+
+	t.Run("rejects empty corpus keys", func(t *testing.T) {
+		req := validRequest()
+		req.InputDataKeys = []string{"docs/", ""}
+		if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("rejects more than ten corpus keys", func(t *testing.T) {
+		req := validRequest()
+		req.InputDataKeys = make([]string, 11)
+		for i := range req.InputDataKeys {
+			req.InputDataKeys[i] = fmt.Sprintf("docs/%d", i)
+		}
+		if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+			t.Fatal("expected validation error")
 		}
 	})
 
@@ -225,11 +248,24 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["test_data_secret_name"] != "test-secret" {
 			t.Errorf("test_data_secret_name = %v", params["test_data_secret_name"])
 		}
-		if params["input_data_key"] != "docs/" {
-			t.Errorf("input_data_key = %v", params["input_data_key"])
+		inputDataKeys, ok := params["input_data_keys"].([]string)
+		if !ok || len(inputDataKeys) != 1 || inputDataKeys[0] != "docs/" {
+			t.Errorf("input_data_keys = %v", params["input_data_keys"])
 		}
-		if params["ogx_secret_name"] != "ogx-secret" {
-			t.Errorf("ogx_secret_name = %v", params["ogx_secret_name"])
+		if params["maas_secret_name"] != "maas-secret" {
+			t.Errorf("maas_secret_name = %v", params["maas_secret_name"])
+		}
+		if params["vector_db_secret_name"] != "vector-db-secret" {
+			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
+		}
+		if _, ok := params["input_data_key"]; ok {
+			t.Error("input_data_key should not be forwarded")
+		}
+		if _, ok := params["ogx_secret_name"]; ok {
+			t.Error("ogx_secret_name should not be forwarded")
+		}
+		if _, ok := params["vector_io_provider_id"]; ok {
+			t.Error("vector_io_provider_id should not be forwarded")
 		}
 		if params["optimization_metric"] != constants.DefaultOptimizationMetric {
 			t.Errorf("optimization_metric = %v, want default %q", params["optimization_metric"], constants.DefaultOptimizationMetric)
@@ -247,9 +283,10 @@ func TestBuildPipelineRunInput(t *testing.T) {
 
 	t.Run("with optional fields", func(t *testing.T) {
 		req := validRequest()
+		req.InputDataKeys = []string{"docs/first/", "docs/second/"}
 		req.EmbeddingsModels = []string{"model-a", "model-b"}
 		req.GenerationModels = []string{"gen-1"}
-		req.VectorIOProviderID = "provider-x"
+		req.VectorDBSecretName = "provider-x"
 		req.OptimizationMaxRagPatterns = ptr(10)
 		req.Description = "test description"
 
@@ -264,8 +301,12 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if len(genModels) != 1 || genModels[0] != "gen-1" {
 			t.Errorf("generation_models = %v", params["generation_models"])
 		}
-		if params["vector_io_provider_id"] != "provider-x" {
-			t.Errorf("vector_io_provider_id = %v", params["vector_io_provider_id"])
+		if params["vector_db_secret_name"] != "provider-x" {
+			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
+		}
+		inputDataKeys := params["input_data_keys"].([]string)
+		if len(inputDataKeys) != 2 || inputDataKeys[0] != "docs/first/" || inputDataKeys[1] != "docs/second/" {
+			t.Errorf("input_data_keys = %v", inputDataKeys)
 		}
 		if params["optimization_max_rag_patterns"] != 10 {
 			t.Errorf("optimization_max_rag_patterns = %v", params["optimization_max_rag_patterns"])
@@ -275,19 +316,24 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 	})
 
-	t.Run("empty optional fields omitted", func(t *testing.T) {
+	t.Run("canonical fields are forwarded and legacy fields are omitted", func(t *testing.T) {
 		req := validRequest()
 		kfp := BuildPipelineRunInput(req, "pid", "vid")
 		params := kfp.RuntimeConfig.Parameters
 
-		if _, ok := params["embedding_models"]; ok {
-			t.Error("empty embedding_models should be omitted")
+		if _, ok := params["input_data_keys"]; !ok {
+			t.Error("input_data_keys should be forwarded")
 		}
-		if _, ok := params["generation_models"]; ok {
-			t.Error("empty generation_models should be omitted")
+		if _, ok := params["maas_secret_name"]; !ok {
+			t.Error("maas_secret_name should be forwarded")
 		}
-		if _, ok := params["vector_io_provider_id"]; ok {
-			t.Error("empty vector_io_provider_id should be omitted")
+		if _, ok := params["vector_db_secret_name"]; !ok {
+			t.Error("vector_db_secret_name should be forwarded")
+		}
+		for _, legacyKey := range []string{"input_data_key", "ogx_secret_name", "vector_io_provider_id"} {
+			if _, ok := params[legacyKey]; ok {
+				t.Errorf("%s should be omitted", legacyKey)
+			}
 		}
 		if _, ok := params["optimization_max_rag_patterns"]; ok {
 			t.Error("nil optimization_max_rag_patterns should be omitted")
@@ -666,8 +712,14 @@ func TestCreateRun(t *testing.T) {
 		if gotInput.PipelineVersionReference.PipelineID != "p1" {
 			t.Error("pipeline ID not forwarded")
 		}
-		if gotInput.RuntimeConfig.Parameters["ogx_secret_name"] != "ogx-secret" {
-			t.Error("ogx_secret_name not forwarded")
+		if gotInput.RuntimeConfig.Parameters["maas_secret_name"] != "maas-secret" {
+			t.Error("maas_secret_name not forwarded")
+		}
+		if gotInput.RuntimeConfig.Parameters["vector_db_secret_name"] != "vector-db-secret" {
+			t.Error("vector_db_secret_name not forwarded")
+		}
+		if _, ok := gotInput.RuntimeConfig.Parameters["ogx_secret_name"]; ok {
+			t.Error("ogx_secret_name should not be forwarded")
 		}
 		if gotInput.RuntimeConfig.Parameters["optimization_metric"] != constants.DefaultOptimizationMetric {
 			t.Error("default optimization_metric not set")
