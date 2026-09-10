@@ -107,9 +107,7 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
     );
   }
 
-  const awaitingInitialDetail = Boolean(selection && !detailLoaded && !detailError);
-
-  if (!loaded || awaitingInitialDetail) {
+  if (!loaded) {
     return (
       <Flex
         style={quotaUsageLoadingStyle}

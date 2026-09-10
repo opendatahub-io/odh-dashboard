@@ -14,6 +14,7 @@ import {
   Label,
   Stack,
   StackItem,
+  Spinner,
   Title,
 } from '@patternfly/react-core';
 import {
@@ -44,6 +45,24 @@ type QuotaUsageDetailPanelProps = {
   detail?: QuotaUsageDetailData;
   detailLoaded: boolean;
   error?: Error;
+};
+
+export type DetailState =
+  | { type: 'error'; error: Error }
+  | { type: 'loading' }
+  | { type: 'loaded'; detail: QuotaUsageDetailData; error?: Error }
+  | { type: 'empty' };
+
+export const getDetailState = (
+  detailLoaded: boolean,
+  detail: QuotaUsageDetailData | undefined,
+  error: Error | undefined,
+): DetailState => {
+  if (!detailLoaded) {
+    return error ? { type: 'error', error } : { type: 'loading' };
+  }
+
+  return detail ? { type: 'loaded', detail, error } : { type: 'empty' };
 };
 
 const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
@@ -121,61 +140,80 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
   const showBorrowingEnabledBadge =
     selection.type === QUOTA_NODE_TYPE.cohort && detail?.summary.isBorrowing === true;
 
+  const detailState = getDetailState(detailLoaded, detail, error);
   let detailBody: React.ReactNode;
 
-  if (!detailLoaded && error) {
-    detailBody = (
-      <EmptyState
-        headingLevel="h4"
-        icon={CubesIcon}
-        titleText="Error loading quota usage details"
-        variant={EmptyStateVariant.sm}
-        data-testid="quota-usage-detail-error"
-      >
-        <EmptyStateBody>{error.message}</EmptyStateBody>
-      </EmptyState>
-    );
-  } else if (!detail) {
-    detailBody = (
-      <Content component="p" data-testid="quota-usage-detail-no-data">
-        {selection.type === QUOTA_NODE_TYPE.unassigned
-          ? QUOTA_UNASSIGNED_TOOLTIP
-          : 'No accelerator usage data available.'}
-      </Content>
-    );
-  } else {
-    detailBody = (
-      <Stack hasGutter className="pf-v6-u-p-md">
-        {error && (
+  switch (detailState.type) {
+    case 'error':
+      detailBody = (
+        <EmptyState
+          headingLevel="h4"
+          icon={CubesIcon}
+          titleText="Error loading quota usage details"
+          variant={EmptyStateVariant.sm}
+          data-testid="quota-usage-detail-error"
+        >
+          <EmptyStateBody>{detailState.error.message}</EmptyStateBody>
+        </EmptyState>
+      );
+      break;
+    case 'loading':
+      detailBody = (
+        <Flex
+          justifyContent={{ default: 'justifyContentCenter' }}
+          className="pf-v6-u-py-3xl"
+          data-testid="quota-usage-detail-loading"
+        >
+          <Spinner size="lg" aria-label="Loading quota usage details" />
+        </Flex>
+      );
+      break;
+    case 'empty':
+      detailBody = (
+        <Content component="p" data-testid="quota-usage-detail-no-data">
+          {selection.type === QUOTA_NODE_TYPE.unassigned
+            ? QUOTA_UNASSIGNED_TOOLTIP
+            : 'No accelerator usage data available.'}
+        </Content>
+      );
+      break;
+    case 'loaded':
+      detailBody = (
+        <Stack hasGutter className="pf-v6-u-p-md">
+          {error && (
+            <StackItem>
+              <Alert
+                isInline
+                variant="warning"
+                title="Some usage telemetry is unavailable"
+                data-testid="quota-usage-detail-partial-error"
+              />
+            </StackItem>
+          )}
           <StackItem>
-            <Alert
-              isInline
-              variant="warning"
-              title="Some usage telemetry is unavailable"
-              data-testid="quota-usage-detail-partial-error"
+            <QuotaUsageSummarySection
+              summary={detailState.detail.summary}
+              perModelRows={detailState.detail.acceleratorRows}
+              selectionType={selection.type}
+              cohortName={
+                selection.type === QUOTA_NODE_TYPE.cohort ? selection.cohortName : undefined
+              }
+              showKueueProjectsLink={detailState.detail.showKueueProjectsLink}
+              onViewKueueProjects={() => setKueueModalOpen(true)}
+              onSelectClusterQueue={handleSelectClusterQueue}
+              clusterQueueName={detailState.detail.clusterQueueName}
+              nominalQuota={detailState.detail.summary.totalNominal}
             />
           </StackItem>
-        )}
-        <StackItem>
-          <QuotaUsageSummarySection
-            summary={detail.summary}
-            perModelRows={detail.acceleratorRows}
-            selectionType={selection.type}
-            cohortName={
-              selection.type === QUOTA_NODE_TYPE.cohort ? selection.cohortName : undefined
-            }
-            showKueueProjectsLink={detail.showKueueProjectsLink}
-            onViewKueueProjects={() => setKueueModalOpen(true)}
-            onSelectClusterQueue={handleSelectClusterQueue}
-            clusterQueueName={detail.clusterQueueName}
-            nominalQuota={detail.summary.totalNominal}
-          />
-        </StackItem>
-        <StackItem>
-          <QuotaUsageAcceleratorTable rows={detail.acceleratorRows} summary={detail.summary} />
-        </StackItem>
-      </Stack>
-    );
+          <StackItem>
+            <QuotaUsageAcceleratorTable
+              rows={detailState.detail.acceleratorRows}
+              summary={detailState.detail.summary}
+            />
+          </StackItem>
+        </Stack>
+      );
+      break;
   }
 
   return (
