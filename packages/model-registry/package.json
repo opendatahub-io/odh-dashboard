@@ -23,8 +23,9 @@
     "start:dev:wait": "wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
-    "repo": "https://github.com/kubeflow/model-registry.git",
-    "branch": "main",
+    "DO_NOT_MERGE_OVERRIDDEN_FOR_PR": "https://github.com/kubeflow/hub/pull/3191",
+    "repo": "https://github.com/ppadti/model-registry.git",
+    "branch": "update-preview-bff",
     "src": "clients/ui",
     "target": "upstream",
     "commit": "33a089c9670f00406097372850f1cf0b24e1b15e"
