@@ -45,12 +45,17 @@ export const useConnectedKServeResources = (
   );
 };
 
-const servingRuntimeUsesPVC = (servingRuntime: ServingRuntimeKind, pvcName: string): boolean =>
-  Boolean(pvcName) &&
-  (servingRuntime.spec.volumes?.some(
-    (volume) => volume.persistentVolumeClaim?.claimName === pvcName,
-  ) ??
-    false);
+const servingRuntimeUsesPVC = (servingRuntime: ServingRuntimeKind, pvcName: string): boolean => {
+  if (!pvcName) {
+    return false;
+  }
+
+  return (
+    servingRuntime.spec.volumes?.some(
+      (volume) => volume.persistentVolumeClaim?.claimName === pvcName,
+    ) ?? false
+  );
+};
 
 export type KServePVCDependentDeployment = {
   name: string;
@@ -71,7 +76,7 @@ export const getKServePVCDependentDeploymentsFromResources = (
     return [];
   }
 
-  const runtimeNames = new Set(
+  const runtimeNamesUsingPVC = new Set(
     servingRuntimes
       .filter((runtime) => servingRuntimeUsesPVC(runtime, pvcName))
       .map((runtime) => runtime.metadata.name)
@@ -86,7 +91,7 @@ export const getKServePVCDependentDeploymentsFromResources = (
       !name ||
       name === excludeInferenceServiceName ||
       typeof runtimeName !== 'string' ||
-      !runtimeNames.has(runtimeName)
+      !runtimeNamesUsingPVC.has(runtimeName)
     ) {
       return [];
     }
