@@ -190,6 +190,13 @@ func TestPatchCollectionHandlerRejectsInvalidOperations(t *testing.T) {
 			}},
 			message: "value is required for replace",
 		},
+		{
+			name: "value supplied for remove",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op: "remove", Path: "/name", Value: json.RawMessage(`"Updated suite"`),
+			}},
+			message: "value is not allowed for remove",
+		},
 	}
 
 	for _, tt := range tests {

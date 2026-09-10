@@ -29,6 +29,9 @@ func validateCollectionPatchOperations(operations []evalhub.CollectionPatchOpera
 		if (operation.Op == "add" || operation.Op == "replace") && len(operation.Value) == 0 {
 			return fmt.Errorf("invalid patch operation at index %d: value is required for %s", index, operation.Op)
 		}
+		if operation.Op == "remove" && len(operation.Value) > 0 {
+			return fmt.Errorf("invalid patch operation at index %d: value is not allowed for remove", index)
+		}
 	}
 
 	return nil

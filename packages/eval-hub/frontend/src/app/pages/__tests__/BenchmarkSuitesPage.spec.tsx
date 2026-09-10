@@ -184,11 +184,17 @@ describe('BenchmarkSuitesPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
+    fireEvent.click(screen.getByRole('option', { name: 'Health' }));
 
+    expect(screen.getByTestId('benchmark-suites-empty-state')).toHaveTextContent(
+      'No benchmark suites match the current filters.',
+    );
     expect(
       screen.getByTestId('benchmark-suites-name-filter').querySelector('input'),
     ).not.toBeDisabled();
     expect(screen.getByTestId('benchmark-suites-category-filter')).not.toBeDisabled();
+    expect(screen.getByTestId('benchmark-suites-industry-filter')).not.toBeDisabled();
   });
 
   it('should derive filter options from collection fields', async () => {
