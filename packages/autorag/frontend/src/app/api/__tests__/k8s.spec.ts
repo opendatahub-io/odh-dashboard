@@ -1,5 +1,5 @@
 import { handleRestFailures, restGET, isModArchResponse } from 'mod-arch-core';
-import { getSecretByName } from '~/app/api/k8s';
+import { getMaaSModels, getSecretByName } from '~/app/api/k8s';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/autorag',
@@ -76,6 +76,25 @@ describe('getSecretByName', () => {
 
     await expect(getSecretByName('')('ns', 'secret')({ signal: undefined })).rejects.toThrow(
       'Invalid response format',
+    );
+  });
+});
+
+describe('getMaaSModels', () => {
+  it('should require and send the selected secret name', async () => {
+    const mockResponse = { data: { models: [] } };
+    mockRestGET.mockReturnValue(Promise.resolve(mockResponse) as never);
+    mockHandleRestFailures.mockImplementation((p) => p as never);
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const opts = { signal: undefined };
+    await getMaaSModels('')('test-ns', 'maas-secret')(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/autorag/api/v1/maas/models',
+      { namespace: 'test-ns', secretName: 'maas-secret' },
+      opts,
     );
   });
 });

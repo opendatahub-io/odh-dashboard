@@ -229,19 +229,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockMaaSClient {
 		maasClient = &fake.MaaSClient{}
 	} else {
-		maasURL := cfg.MaaSDevURL
-		if maasURL == "" {
-			maasNamespace := os.Getenv("POD_NAMESPACE")
-			if maasNamespace == "" {
-				maasNamespace = "opendatahub"
-			}
-			scheme := "http"
-			if cfg.MaaSTLSEnabled {
-				scheme = "https"
-			}
-			maasURL = fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/api/v1", scheme, cfg.MaaSServiceName, maasNamespace, cfg.MaaSServicePort)
-		}
-		maasClient = maas.NewClient(maasURL, cfg.MaaSAuthMethod, cfg.MaaSAuthTokenHeader, cfg.MaaSAuthTokenPrefix, nil)
+		// Hosted MaaS requests get their Gateway origin and API key from the selected
+		// namespace Secret.
+		maasClient = maas.NewClient(nil)
 	}
 
 	app := &App{
@@ -281,9 +271,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			repo:   repositories.NewOGXRepository(logger, ogxClient, k8sService),
 		},
 		maas: &MaaSHandler{
-			logger:     logger,
-			service:    repositories.NewMaaSService(maasClient, k8sService),
-			authMethod: cfg.MaaSAuthMethod,
+			logger:  logger,
+			service: repositories.NewMaaSService(maasClient, k8sService),
 		},
 	}
 	return app, nil

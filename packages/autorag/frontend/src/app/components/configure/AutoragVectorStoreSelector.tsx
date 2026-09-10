@@ -1,6 +1,6 @@
 import { MenuToggle, Select, SelectList, SelectOption, Skeleton } from '@patternfly/react-core';
 import React, { useEffect, useState } from 'react';
-import { useController, useFormContext, useWatch } from 'react-hook-form';
+import { useController, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
@@ -47,7 +47,6 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   const {
     formState: { isSubmitting },
-    control,
   } = useFormContext<ConfigureSchema>();
 
   const {
@@ -56,17 +55,11 @@ const AutoragVectorStoreSelector: React.FC = () => {
     name: 'vector_io_provider_id',
   });
 
-  const ogxSecretName = useWatch({ control, name: 'ogx_secret_name' });
-
   const {
     data: providersData,
     isLoading,
     isError,
-  } = useOgxVectorStoreProvidersQuery(
-    namespace,
-    ogxSecretName ?? '',
-    SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
-  );
+  } = useOgxVectorStoreProvidersQuery(namespace, '', SUPPORTED_VECTOR_STORE_PROVIDER_TYPES);
 
   // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
   // Inject the default in-memory provider at the beginning of the list.
@@ -82,19 +75,12 @@ const AutoragVectorStoreSelector: React.FC = () => {
     if (isError) {
       notification.error(
         'Failed to load vector I/O providers.',
-        <>
-          Check that the secret for the provided Open GenAI Stack connection is valid and the API
-          key has not expired.
-        </>,
+        <>Vector I/O provider discovery is unavailable for hosted MaaS connections.</>,
       );
     } else if (totalProviderCount > 0 && providers.length === 0) {
       notification.warning(
         'No compatible vector I/O providers found.',
-        <>
-          Vector I/O providers were found on the Open GenAI Stack server, but none are compatible
-          with AutoRAG. Ensure a remote Milvus or PGVector provider is configured on your Open GenAI
-          Stack server.
-        </>,
+        <>Vector I/O provider selection will be enabled in a follow-up hosted MaaS migration.</>,
       );
     }
   }, [isLoading, isError, totalProviderCount, providers.length, notification]);

@@ -10,9 +10,7 @@ import (
 	"time"
 )
 
-const ReturnAllModelsHeader = "X-MaaS-Return-All-Models"
-
-// Model and Response are transport representations of the MaaS BFF contract.
+// Model and Response are transport representations of the hosted MaaS API contract.
 // They are consumed by the AutoRAG repository and never exposed by the API.
 type Model struct {
 	ID            string `json:"id"`
@@ -32,24 +30,18 @@ type Model struct {
 }
 
 type Response struct {
-	Data struct {
-		Data []Model `json:"data"`
-	} `json:"data"`
+	Data []Model `json:"data"`
 }
 
 type Client struct {
-	baseURL         string
-	http            *http.Client
-	authMethod      string
-	authTokenHeader string
-	authTokenPrefix string
+	http *http.Client
 }
 
 // RequestConfig contains request-scoped upstream overrides. It is intentionally
 // separate from Client so credentials and endpoints never mutate shared state.
 type RequestConfig struct {
-	BaseURL string
-	APIKey  string
+	GatewayOrigin string
+	APIKey        string
 }
 
 type TransportError struct {
@@ -61,40 +53,28 @@ type TransportError struct {
 func (e *TransportError) Error() string { return e.Message }
 func (e *TransportError) Unwrap() error { return e.Cause }
 
-func NewClient(baseURL, authMethod, authTokenHeader, authTokenPrefix string, httpClient *http.Client) *Client {
+func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 30 * time.Second}
 	}
-	return &Client{baseURL: strings.TrimRight(baseURL, "/"), http: httpClient, authMethod: authMethod, authTokenHeader: authTokenHeader, authTokenPrefix: authTokenPrefix}
+	return &Client{http: httpClient}
 }
 
-func (c *Client) ListModels(ctx context.Context, token string, headers map[string]string, configs ...RequestConfig) (Response, error) {
+func (c *Client) ListModels(ctx context.Context, config RequestConfig) (Response, error) {
 	var empty Response
-	baseURL := c.baseURL
-	var config RequestConfig
-	if len(configs) > 0 {
-		config = configs[0]
-		if config.BaseURL != "" {
-			baseURL = strings.TrimRight(config.BaseURL, "/")
-		}
+	if config.GatewayOrigin == "" || config.APIKey == "" {
+		return empty, &TransportError{StatusCode: http.StatusBadRequest, Message: "MaaS credentials are required"}
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models", nil)
+	baseURL := strings.TrimRight(config.GatewayOrigin, "/")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/maas-api/v1/models", nil)
 	if err != nil {
 		return empty, fmt.Errorf("create MaaS request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
-	if config.APIKey == "" && token != "" && c.authMethod == "user_token" && c.authTokenHeader != "" {
-		req.Header.Set(c.authTokenHeader, c.authTokenPrefix+token)
-	}
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-	if config.APIKey != "" && c.authTokenHeader != "" {
-		req.Header.Set(c.authTokenHeader, c.authTokenPrefix+config.APIKey)
-	}
+	req.Header.Set("Authorization", "Bearer "+config.APIKey)
 	res, err := c.http.Do(req)
 	if err != nil {
-		return empty, &TransportError{StatusCode: http.StatusServiceUnavailable, Message: "MaaS BFF is unavailable", Cause: err}
+		return empty, &TransportError{StatusCode: http.StatusServiceUnavailable, Message: "hosted MaaS is unavailable", Cause: err}
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= http.StatusBadRequest {
@@ -102,15 +82,15 @@ func (c *Client) ListModels(ctx context.Context, token string, headers map[strin
 		if statusCode >= http.StatusInternalServerError {
 			statusCode = http.StatusServiceUnavailable
 		}
-		return empty, &TransportError{StatusCode: statusCode, Message: fmt.Sprintf("MaaS BFF returned status %d", res.StatusCode)}
+		return empty, &TransportError{StatusCode: statusCode, Message: fmt.Sprintf("hosted MaaS returned status %d", res.StatusCode)}
 	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from MaaS BFF", Cause: err}
+		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from hosted MaaS", Cause: err}
 	}
 	var parsed Response
 	if err := json.Unmarshal(body, &parsed); err != nil {
-		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from MaaS BFF", Cause: err}
+		return empty, &TransportError{StatusCode: http.StatusBadGateway, Message: "invalid response from hosted MaaS", Cause: err}
 	}
 	return parsed, nil
 }

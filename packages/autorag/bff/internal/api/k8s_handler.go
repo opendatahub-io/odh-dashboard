@@ -102,8 +102,8 @@ func (h *K8sHandler) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _
 	}
 
 	secretType := r.URL.Query().Get("type")
-	if secretType != "" && secretType != "storage" && secretType != "ogx" {
-		badRequestResponse(h.logger, w, r, "query parameter 'type' must be 'storage', 'ogx', or omitted")
+	if secretType != "" && secretType != "storage" && secretType != "ogx" && secretType != "maas" {
+		badRequestResponse(h.logger, w, r, "query parameter 'type' must be 'storage', 'ogx', 'maas', or omitted")
 		return
 	}
 

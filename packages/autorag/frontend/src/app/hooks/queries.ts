@@ -66,13 +66,16 @@ export function useOgxModelsQuery(
   });
 }
 
-export function useMaaSModelsQuery(namespace: string): UseQueryResult<MaaSModelsResponse, Error> {
+export function useMaaSModelsQuery(
+  namespace: string,
+  secretName: string,
+): UseQueryResult<MaaSModelsResponse, Error> {
   return useQuery({
-    enabled: !!namespace,
-    queryKey: ['autorag', 'maasModels', namespace],
+    enabled: !!namespace && !!secretName,
+    queryKey: ['autorag', 'maasModels', namespace, secretName],
     queryFn: async () => {
       try {
-        const response = await getMaaSModels('')(namespace)({});
+        const response = await getMaaSModels('')(namespace, secretName)({});
         const validated = z
           .object({
             models: z.array(
@@ -367,7 +370,7 @@ export function useSecretCredentialsQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'ogx',
+  type?: 'storage' | 'ogx' | 'maas',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

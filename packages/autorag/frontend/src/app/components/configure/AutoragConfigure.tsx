@@ -66,6 +66,7 @@ import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer
 import { useUIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import { isUIError } from '~/app/components/common/UIError/util';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
+import MaaSConnectionModal from '~/app/components/common/MaaSConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
@@ -162,6 +163,7 @@ function AutoragConfigure({
     [allConnectionTypes],
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
+  const [isMaaSConnectionModalOpen, setIsMaaSConnectionModalOpen] = React.useState(false);
 
   const [fileExplorerMode, setFileExplorerMode] = useState<false | 'input_data' | 'test_data'>(
     false,
@@ -196,6 +198,8 @@ function AutoragConfigure({
   // as a cancel (onClose is invoked right after onSelectFiles when the user selects a file).
   const inputDataS3SelectionCommittedRef = useRef(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const maasSecretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const [selectedMaaSSecret, setSelectedMaaSSecret] = useState<SecretListItem>();
   const modelsInitialized = useRef(false);
 
   const notification = useNotification();
@@ -212,6 +216,7 @@ function AutoragConfigure({
     testDataSecretName,
     testDataBucketName,
     inputDataKey,
+    maasSecretName,
   ] = useWatch({
     control: form.control,
     name: [
@@ -220,6 +225,7 @@ function AutoragConfigure({
       'test_data_secret_name',
       'test_data_bucket_name',
       'input_data_key',
+      'maas_secret_name',
     ],
   });
 
@@ -229,7 +235,7 @@ function AutoragConfigure({
     data: allModelsData,
     isError: isModelsError,
     isLoading: isModelsLoading,
-  } = useMaaSModelsQuery(namespace ?? '');
+  } = useMaaSModelsQuery(namespace ?? '', maasSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
   useEffect(() => {
@@ -790,6 +796,50 @@ function AutoragConfigure({
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
+                        label="MaaS connection"
+                        description="Select the hosted MaaS connection used to discover generation and embedding models."
+                      >
+                        <Split hasGutter isWrappable>
+                          <SplitItem style={{ width: '10rem' }} isFilled>
+                            <Controller
+                              control={form.control}
+                              name="maas_secret_name"
+                              render={({ field: { onChange } }) => (
+                                <SecretSelector
+                                  namespace={namespace}
+                                  type="maas"
+                                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
+                                  value={selectedMaaSSecret?.uuid}
+                                  isRequired
+                                  isDisabled={isSubmitting}
+                                  onChange={(secret) => {
+                                    setSelectedMaaSSecret(secret);
+                                    onChange(secret?.invalid ? '' : (secret?.name ?? ''));
+                                  }}
+                                  onRefreshReady={(refresh) => {
+                                    maasSecretsRefreshRef.current = refresh;
+                                  }}
+                                  placeholder="Select MaaS connection"
+                                  toggleWidth="16rem"
+                                  dataTestId="maas-secret-selector"
+                                />
+                              )}
+                            />
+                          </SplitItem>
+                          <SplitItem>
+                            <Button
+                              variant="tertiary"
+                              isDisabled={isSubmitting}
+                              onClick={() => setIsMaaSConnectionModalOpen(true)}
+                            >
+                              Add MaaS connection
+                            </Button>
+                          </SplitItem>
+                        </Split>
+                      </ConfigureFormGroup>
+                    </FlexItem>
+                    <FlexItem>
+                      <ConfigureFormGroup
                         label="Vector I/O provider"
                         description="Specify the location for storing the vector index used to retrieve your documents."
                       >
@@ -1168,6 +1218,21 @@ function AutoragConfigure({
               setValue('input_data_secret_name', invalid ? '' : secret.name, {
                 shouldValidate: true,
               });
+            }
+          }}
+        />
+      )}
+      {isMaaSConnectionModalOpen && (
+        <MaaSConnectionModal
+          namespace={namespace}
+          onClose={() => setIsMaaSConnectionModalOpen(false)}
+          onSubmit={async (secretName) => {
+            const refresh = maasSecretsRefreshRef.current;
+            const list = refresh ? await refresh() : undefined;
+            const secret = list?.find((item) => item.name === secretName);
+            if (secret) {
+              setSelectedMaaSSecret(secret);
+              setValue('maas_secret_name', secret.name, { shouldValidate: true });
             }
           }}
         />

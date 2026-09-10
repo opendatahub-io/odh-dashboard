@@ -39,7 +39,7 @@ type MaaSModelsResponse struct {
 }
 
 type MaaSClient interface {
-	ListModels(context.Context, string, map[string]string, ...maas.RequestConfig) (maas.Response, error)
+	ListModels(context.Context, maas.RequestConfig) (maas.Response, error)
 }
 
 type MaaSService struct {
@@ -48,16 +48,19 @@ type MaaSService struct {
 }
 
 type MaaSModelService interface {
-	ListModels(context.Context, string, string, map[string]string, string) (MaaSModelsResponse, error)
+	ListModels(context.Context, string, string) (MaaSModelsResponse, error)
 }
 
 func NewMaaSService(client MaaSClient, k8sService kubernetes.Service) *MaaSService {
 	return &MaaSService{client: client, k8sService: k8sService}
 }
 
-func (s *MaaSService) ListModels(ctx context.Context, namespace, token string, headers map[string]string, secretName string) (MaaSModelsResponse, error) {
+func (s *MaaSService) ListModels(ctx context.Context, namespace, secretName string) (MaaSModelsResponse, error) {
+	if secretName == "" {
+		return MaaSModelsResponse{}, ErrMaaSCredentialsInvalid
+	}
 	var config maas.RequestConfig
-	if secretName != "" {
+	{
 		secret, err := s.k8sService.GetSecret(ctx, namespace, secretName)
 		if err != nil {
 			switch {
@@ -72,24 +75,24 @@ func (s *MaaSService) ListModels(ctx context.Context, namespace, token string, h
 		if secret == nil {
 			return MaaSModelsResponse{}, ErrMaaSSecretNotFound
 		}
-		config.BaseURL, err = kubernetes.LookupSecretValue(secret.Data, "MAAS_BASE_URL")
-		if err != nil || config.BaseURL == "" {
+		config.GatewayOrigin, err = kubernetes.LookupSecretValue(secret.Data, "MAAS_BASE_URL")
+		if err != nil || config.GatewayOrigin == "" {
 			return MaaSModelsResponse{}, ErrMaaSCredentialsInvalid
 		}
 		config.APIKey, err = kubernetes.LookupSecretValue(secret.Data, "MAAS_API_KEY")
 		if err != nil || config.APIKey == "" {
 			return MaaSModelsResponse{}, ErrMaaSCredentialsInvalid
 		}
-		if err := validateMaaSEndpoint(config.BaseURL); err != nil {
+		if err := validateMaaSEndpoint(config.GatewayOrigin); err != nil {
 			return MaaSModelsResponse{}, ErrMaaSCredentialsInvalid
 		}
 	}
-	response, err := s.client.ListModels(ctx, token, headers, config)
+	response, err := s.client.ListModels(ctx, config)
 	if err != nil {
 		return MaaSModelsResponse{}, classifyMaaSError(err)
 	}
-	result := MaaSModelsResponse{Data: MaaSModelsData{Models: make([]MaaSModel, 0, len(response.Data.Data))}}
-	for _, model := range response.Data.Data {
+	result := MaaSModelsResponse{Data: MaaSModelsData{Models: make([]MaaSModel, 0, len(response.Data))}}
+	for _, model := range response.Data {
 		id := model.ID
 		if id == "" {
 			id = model.ModelID
@@ -124,7 +127,7 @@ func (s *MaaSService) ListModels(ctx context.Context, namespace, token string, h
 
 func validateMaaSEndpoint(rawURL string) error {
 	parsedURL, err := url.Parse(rawURL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Hostname() == "" || parsedURL.User != nil || parsedURL.RawQuery != "" || parsedURL.Fragment != "" {
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Hostname() == "" || parsedURL.User != nil || (parsedURL.Path != "" && parsedURL.Path != "/") || parsedURL.RawQuery != "" || parsedURL.Fragment != "" {
 		return errors.New("invalid MaaS endpoint")
 	}
 	if ip := net.ParseIP(parsedURL.Hostname()); ip != nil {

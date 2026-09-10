@@ -19,7 +19,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-table';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
-import { useController, useFormContext } from 'react-hook-form';
+import { useController, useFormContext, useWatch } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
@@ -87,8 +87,9 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
   const { namespace = '' } = useParams();
 
   const form = useFormContext<ConfigureSchema>();
+  const maasSecretName = useWatch({ control: form.control, name: 'maas_secret_name' });
 
-  const { data: modelsData, isLoading, isError } = useMaaSModelsQuery(namespace);
+  const { data: modelsData, isLoading, isError } = useMaaSModelsQuery(namespace, maasSecretName);
 
   const { field: generationModelField } = useController({
     control: form.control,

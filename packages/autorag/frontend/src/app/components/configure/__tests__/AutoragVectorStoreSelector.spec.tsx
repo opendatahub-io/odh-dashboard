@@ -258,7 +258,9 @@ describe('AutoragVectorStoreSelector', () => {
     );
     const warningMessage = mockNotificationWarning.mock.calls[0][1] as React.ReactElement;
     const { container: warningContainer } = render(warningMessage);
-    expect(warningContainer).toHaveTextContent(/remote Milvus or PGVector provider/);
+    expect(warningContainer).toHaveTextContent(
+      'Vector I/O provider selection will be enabled in a follow-up hosted MaaS migration.',
+    );
   });
 
   it('should not show warning notification when no providers exist at all', () => {

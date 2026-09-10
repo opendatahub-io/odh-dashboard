@@ -19,17 +19,18 @@ type fakeMaaSClient struct {
 	config   maas.RequestConfig
 }
 
-func (f *fakeMaaSClient) ListModels(_ context.Context, _ string, _ map[string]string, configs ...maas.RequestConfig) (maas.Response, error) {
-	if len(configs) > 0 {
-		f.config = configs[0]
-	}
+func (f *fakeMaaSClient) ListModels(_ context.Context, config maas.RequestConfig) (maas.Response, error) {
+	f.config = config
 	return f.response, f.err
 }
 
 func TestMaaSServiceNormalizesAndSkipsInvalidModels(t *testing.T) {
 	var response maas.Response
-	response.Data.Data = []maas.Model{{ModelID: "model-a", DisplayNameV2: "Model A"}, {Name: "ignored"}}
-	result, err := NewMaaSService(&fakeMaaSClient{response: response}, nil).ListModels(context.Background(), "", "", nil, "")
+	response.Data = []maas.Model{{ModelID: "model-a", DisplayNameV2: "Model A"}, {Name: "ignored"}}
+	k8s := &mockK8sService{getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+		return &v1.Secret{Data: map[string][]byte{"MAAS_BASE_URL": []byte("https://maas.example.com"), "MAAS_API_KEY": []byte("key")}}, nil
+	}}
+	result, err := NewMaaSService(&fakeMaaSClient{response: response}, k8s).ListModels(context.Background(), "test", "maas-secret")
 	if err != nil || len(result.Data.Models) != 1 || result.Data.Models[0].ID != "model-a" {
 		t.Fatalf("result/error = %+v/%v", result, err)
 	}
@@ -44,7 +45,10 @@ func TestMaaSServiceClassifiesTransportErrors(t *testing.T) {
 		{http.StatusBadRequest, ErrMaaSBadRequest}, {http.StatusBadGateway, ErrMaaSBadResponse},
 		{http.StatusServiceUnavailable, ErrMaaSUnavailable},
 	} {
-		_, err := NewMaaSService(&fakeMaaSClient{err: &maas.TransportError{StatusCode: test.status}}, nil).ListModels(context.Background(), "", "", nil, "")
+		k8s := &mockK8sService{getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{"MAAS_BASE_URL": []byte("https://maas.example.com"), "MAAS_API_KEY": []byte("key")}}, nil
+		}}
+		_, err := NewMaaSService(&fakeMaaSClient{err: &maas.TransportError{StatusCode: test.status}}, k8s).ListModels(context.Background(), "test", "secret")
 		if !errors.Is(err, test.want) {
 			t.Errorf("status %d: error = %v", test.status, err)
 		}
@@ -58,16 +62,16 @@ func TestMaaSServiceLoadsSecretBackedCredentials(t *testing.T) {
 			t.Fatalf("secret lookup = %s/%s", namespace, name)
 		}
 		return &v1.Secret{Data: map[string][]byte{
-			"maas_base_url": []byte("https://maas.example.com/api/v1"),
-			"maas_api_key":  []byte("secret-key"),
+			"MAAS_BASE_URL": []byte("https://maas.example.com"),
+			"MAAS_API_KEY":  []byte("secret-key"),
 		}}, nil
 	}}
 
-	_, err := NewMaaSService(client, k8s).ListModels(context.Background(), "test", "", nil, "maas-secret")
+	_, err := NewMaaSService(client, k8s).ListModels(context.Background(), "test", "maas-secret")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if client.config.BaseURL != "https://maas.example.com/api/v1" || client.config.APIKey != "secret-key" {
+	if client.config.GatewayOrigin != "https://maas.example.com" || client.config.APIKey != "secret-key" {
 		t.Fatalf("request config = %+v", client.config)
 	}
 }
@@ -86,7 +90,7 @@ func TestMaaSServiceMapsSecretErrorsWithoutCredentials(t *testing.T) {
 			k8s := &mockK8sService{getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 				return &v1.Secret{Data: test.data}, nil
 			}}
-			_, err := NewMaaSService(&fakeMaaSClient{}, k8s).ListModels(context.Background(), "test", "", nil, "secret")
+			_, err := NewMaaSService(&fakeMaaSClient{}, k8s).ListModels(context.Background(), "test", "secret")
 			if !errors.Is(err, test.want) || strings.Contains(err.Error(), "secret-key") || strings.Contains(err.Error(), "maas.example.com") {
 				t.Fatalf("error = %v", err)
 			}
@@ -98,20 +102,20 @@ func TestMaaSServiceMapsMissingSecret(t *testing.T) {
 	k8s := &mockK8sService{getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 		return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "secret")
 	}}
-	_, err := NewMaaSService(&fakeMaaSClient{}, k8s).ListModels(context.Background(), "test", "", nil, "secret")
+	_, err := NewMaaSService(&fakeMaaSClient{}, k8s).ListModels(context.Background(), "test", "secret")
 	if !errors.Is(err, ErrMaaSSecretNotFound) || strings.Contains(err.Error(), "secret-key") {
 		t.Fatalf("error = %v", err)
 	}
 }
 
-func TestMaaSServiceDoesNotLoadSecretWithoutSecretName(t *testing.T) {
+func TestMaaSServiceRejectsMissingSecretName(t *testing.T) {
 	client := &fakeMaaSClient{}
 	k8s := &mockK8sService{getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 		t.Fatal("unexpected secret lookup")
 		return nil, nil
 	}}
 
-	if _, err := NewMaaSService(client, k8s).ListModels(context.Background(), "test", "token", nil, ""); err != nil {
-		t.Fatal(err)
+	if _, err := NewMaaSService(client, k8s).ListModels(context.Background(), "test", ""); !errors.Is(err, ErrMaaSCredentialsInvalid) {
+		t.Fatalf("error = %v", err)
 	}
 }

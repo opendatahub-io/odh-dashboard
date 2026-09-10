@@ -29,7 +29,7 @@ var fakeSecrets = map[string][]v1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "maas-credentials", Namespace: "my-project"},
 			Data: map[string][]byte{
-				"MAAS_BASE_URL": []byte("https://maas.example.com/api/v1"),
+				"MAAS_BASE_URL": []byte("https://maas.example.com"),
 				"MAAS_API_KEY":  []byte("fake-maas-api-key"),
 			},
 		},

@@ -19,13 +19,10 @@ import (
 type fakeMaaSService struct {
 	response   repositories.MaaSModelsResponse
 	err        error
-	token      string
-	headers    map[string]string
 	secretName string
 }
 
-func (f *fakeMaaSService) ListModels(_ context.Context, _ string, token string, headers map[string]string, secretName string) (repositories.MaaSModelsResponse, error) {
-	f.token, f.headers = token, headers
+func (f *fakeMaaSService) ListModels(_ context.Context, _ string, secretName string) (repositories.MaaSModelsResponse, error) {
 	f.secretName = secretName
 	return f.response, f.err
 }
@@ -53,7 +50,7 @@ func TestMaaSModelsHandlerValidatesAndPassesSecretName(t *testing.T) {
 }
 
 func maasRequest() *http.Request {
-	r := httptest.NewRequest(http.MethodGet, "/api/v1/maas/models?namespace=test", nil)
+	r := httptest.NewRequest(http.MethodGet, "/api/v1/maas/models?namespace=test&secretName=maas-secret", nil)
 	ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, "test")
 	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{Token: "user-token"})
 	return r.WithContext(ctx)
@@ -61,13 +58,13 @@ func maasRequest() *http.Request {
 
 func TestMaaSModelsHandler(t *testing.T) {
 	service := &fakeMaaSService{response: repositories.MaaSModelsResponse{Data: repositories.MaaSModelsData{Models: []repositories.MaaSModel{{ID: "model-a"}}}}}
-	handler := &MaaSHandler{logger: slog.Default(), service: service, authMethod: "internal"}
+	handler := &MaaSHandler{logger: slog.Default(), service: service}
 	recorder := httptest.NewRecorder()
 	r := maasRequest()
 	r.Header.Set(constants.KubeflowUserIDHeader, "user")
 	handler.ModelsHandler(recorder, r, httprouter.Params{})
-	if recorder.Code != http.StatusOK || service.token != "user-token" || service.headers["X-MaaS-Return-All-Models"] != "true" {
-		t.Fatalf("status/request = %d/%q/%v", recorder.Code, service.token, service.headers)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d", recorder.Code)
 	}
 	var response repositories.MaaSModelsResponse
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil || len(response.Data.Models) != 1 {
@@ -117,6 +114,17 @@ func TestMaaSModelsHandlerValidatesNamespace(t *testing.T) {
 	handler := &MaaSHandler{logger: slog.Default(), service: &fakeMaaSService{}}
 	recorder := httptest.NewRecorder()
 	handler.ModelsHandler(recorder, httptest.NewRequest(http.MethodGet, "/", nil), httprouter.Params{})
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d", recorder.Code)
+	}
+}
+
+func TestMaaSModelsHandlerRequiresSecretName(t *testing.T) {
+	handler := &MaaSHandler{logger: slog.Default(), service: &fakeMaaSService{}}
+	recorder := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/api/v1/maas/models?namespace=test", nil)
+	ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, "test")
+	handler.ModelsHandler(recorder, r.WithContext(ctx), httprouter.Params{})
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", recorder.Code)
 	}

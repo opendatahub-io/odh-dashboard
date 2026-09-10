@@ -40,7 +40,7 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'ogx') =>
+  (namespace: string, type?: 'storage' | 'ogx' | 'maas') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { namespace };
     if (type) {
@@ -94,10 +94,15 @@ export const getOgxModels =
 
 export const getMaaSModels =
   (hostPath: string) =>
-  (namespace: string) =>
+  (namespace: string, secretName: string) =>
   (opts: APIOptions): Promise<MaaSModelsResponse> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/models`, { namespace }, opts),
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/models`,
+        { namespace, secretName },
+        opts,
+      ),
     ).then((response) => {
       if (isModArchResponse<MaaSModelsResponse>(response)) {
         return response.data;
