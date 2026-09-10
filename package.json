@@ -32,7 +32,7 @@
     "make:login": "make login",
     "make:undeploy": "make undeploy",
     "make:push": "make push",
-    "start": "run-p start:*",
+    "start": "run-p start:backend start:frontend",
     "start:backend": "pnpm --filter odh-dashboard-backend start",
     "start:frontend": "echo \"...available at ./frontend/public\"",
     "test": "run-s test:backend test:frontend",
