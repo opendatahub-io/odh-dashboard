@@ -1339,7 +1339,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 			Token: "test-token",
 		})
 
-		providerData, err := app.getProviderData(ctx, "")
+		providerData, err := app.getProviderData(ctx, "", "")
 		require.NoError(t, err)
 		assert.Equal(t, map[string]interface{}{"passthrough_api_key": "test-token"}, providerData)
 	})
@@ -1350,18 +1350,19 @@ func TestGetProviderDataRouting(t *testing.T) {
 			Token: "test-token",
 		})
 
-		providerData, err := app.getProviderData(ctx, "my-subscription")
+		providerData, err := app.getProviderData(ctx, "my-subscription", string(models.ModelSourceTypeMaaS))
 		require.NoError(t, err)
 		assert.Equal(t, map[string]interface{}{
-			"passthrough_api_key": "test-token",
-			"maas_subscription":   "my-subscription",
+			"passthrough_api_key":         "test-token",
+			"maas_subscription":           "my-subscription",
+			"inference_model_source_type": string(models.ModelSourceTypeMaaS),
 		}, providerData)
 	})
 
 	t.Run("returns nil when identity is missing", func(t *testing.T) {
 		ctx := context.Background()
 
-		providerData, err := app.getProviderData(ctx, "")
+		providerData, err := app.getProviderData(ctx, "", "")
 		require.NoError(t, err)
 		assert.Nil(t, providerData)
 	})
@@ -1372,7 +1373,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 			Token: "",
 		})
 
-		providerData, err := app.getProviderData(ctx, "")
+		providerData, err := app.getProviderData(ctx, "", "")
 		require.NoError(t, err)
 		assert.Nil(t, providerData)
 	})
@@ -1433,7 +1434,7 @@ func TestGetPassthroughEmbeddingSecret(t *testing.T) {
 	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 
 	t.Run("returns only passthrough_api_key without subscription", func(t *testing.T) {
-		providerData, err := app.getProviderData(ctx, "")
+		providerData, err := app.getProviderData(ctx, "", "")
 		require.NoError(t, err)
 		assert.Equal(t, map[string]interface{}{"passthrough_api_key": "test-token"}, providerData)
 	})

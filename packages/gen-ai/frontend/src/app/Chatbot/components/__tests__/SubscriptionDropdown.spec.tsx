@@ -89,29 +89,25 @@ describe('SubscriptionDropdown', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('does not resolve subscriptions or auto-select when selectedModel has a non-MaaS provider prefix', () => {
-    // Regression: before the isMaasLlamaModelId guard, a namespace/non-MaaS model whose
-    // base model_id matched a MaaS entry would incorrectly pull up MaaS subscriptions.
+  it('resolves subscriptions for a MaaS model with an unprefixed unique ID', () => {
     const onSubscriptionChange = jest.fn();
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [{ name: 'only-sub', displayName: 'Only Subscription' }],
     });
 
-    const { container } = render(
+    render(
       <TestWrapper maasModels={[model]}>
         <SubscriptionDropdown
-          selectedModel="provider/test-model"
+          selectedModel="test-model"
           selectedSubscription=""
           onSubscriptionChange={onSubscriptionChange}
         />
       </TestWrapper>,
     );
 
-    // Component must render nothing — the non-MaaS prefix should block resolution.
-    expect(container.firstChild).toBeNull();
-    // Auto-select must not fire even though the model has a subscription.
-    expect(onSubscriptionChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('subscription-selector-toggle')).toBeInTheDocument();
+    expect(onSubscriptionChange).toHaveBeenCalledWith('only-sub');
   });
 
   it('auto-selects when model has exactly one subscription', () => {

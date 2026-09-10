@@ -3,7 +3,7 @@ import { FormGroup, MenuToggle, Select, SelectList, SelectOption } from '@patter
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { SubscriptionInfo } from '~/app/types';
-import { isMaasLlamaModelId, splitLlamaModelId } from '~/app/utilities/utils';
+import { splitLlamaModelId } from '~/app/utilities/utils';
 
 interface SubscriptionDropdownProps {
   selectedModel: string;
@@ -47,9 +47,6 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
 
   const subscriptions: SubscriptionInfo[] = React.useMemo(() => {
     if (!selectedModel) {
-      return [];
-    }
-    if (!isMaaSModel && !isMaasLlamaModelId(selectedModel)) {
       return [];
     }
     const rawId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;

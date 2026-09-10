@@ -16,7 +16,7 @@ type ModelsResponse = llamastack.APIResponse
 func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	providerData, err := app.getProviderData(ctx, "")
+	providerData, err := app.getProviderData(ctx, "", "")
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to build provider data: %w", err))
 		return

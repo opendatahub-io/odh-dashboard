@@ -515,7 +515,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData, err := app.getProviderData(ctx, createRequest.Subscription)
+	providerData, err := app.getProviderData(ctx, createRequest.Subscription, createRequest.ModelSourceType)
 	if err != nil {
 		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
@@ -805,9 +805,10 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 
 // getProviderData retrieves provider data for OGX requests.
 // All models route through the genai-bff-proxy passthrough provider. Provider data
-// includes the user JWT (as passthrough_api_key) for auth, plus the MaaS subscription
-// name so the proxy handler can issue properly-scoped ephemeral tokens.
-func (app *App) getProviderData(ctx context.Context, subscription string) (map[string]interface{}, error) {
+// includes the user JWT (as passthrough_api_key) for auth. MaaS requests additionally
+// include the subscription and source type so the proxy can resolve their endpoint and
+// issue a properly-scoped ephemeral token without relying on a model ID prefix.
+func (app *App) getProviderData(ctx context.Context, subscription, modelSourceType string) (map[string]interface{}, error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil || identity.Token == "" {
 		return nil, nil
@@ -817,8 +818,11 @@ func (app *App) getProviderData(ctx context.Context, subscription string) (map[s
 		"passthrough_api_key": identity.Token,
 	}
 
-	// For MaaS models, forward the subscription name so the proxy handler can issue
-	// its own properly-scoped ephemeral token via getMaaSTokenForModel.
+	// For MaaS models, forward the source type and subscription so the proxy handler can
+	// issue its own properly-scoped ephemeral token via getMaaSTokenForModel.
+	if modelSourceType == string(models.ModelSourceTypeMaaS) {
+		providerData["inference_model_source_type"] = modelSourceType
+	}
 	if subscription != "" {
 		providerData["maas_subscription"] = subscription
 	}

@@ -415,7 +415,8 @@ func NewPassthroughProvider(providerID, baseURL string) Provider {
 			"base_url": baseURL,
 			"api_key":  "",
 			"forward_headers": map[string]interface{}{
-				"maas_subscription": constants.MaaSSubscriptionHeader,
+				"maas_subscription":           constants.MaaSSubscriptionHeader,
+				"inference_model_source_type": constants.InferenceModelSourceTypeHeader,
 			},
 		},
 	}
@@ -423,7 +424,8 @@ func NewPassthroughProvider(providerID, baseURL string) Provider {
 
 // HasPassthroughProvider returns true if the config already contains a
 // remote::passthrough inference provider registered by the BFF, AND the
-// provider's base_url matches expectedBaseURL.
+// provider's base_url and forward-header configuration match the current BFF
+// requirements.
 //
 // Requiring the URL guards against stale configs written under a previous
 // GATEWAY_DOMAIN value: if the domain or path prefix changes, the existing
@@ -433,10 +435,25 @@ func (c *LlamaStackConfig) HasPassthroughProvider(expectedBaseURL string) bool {
 		if p.ProviderType == constants.PassthroughProviderType &&
 			p.ProviderID == constants.PassthroughProviderID {
 			baseURL, _ := p.Config["base_url"].(string)
-			return baseURL == expectedBaseURL
+			return baseURL == expectedBaseURL &&
+				hasExpectedPassthroughForwardHeaders(p.Config["forward_headers"])
 		}
 	}
 	return false
+}
+
+func hasExpectedPassthroughForwardHeaders(forwardHeaders interface{}) bool {
+	var maasSubscription, inferenceModelSourceType string
+	switch headers := forwardHeaders.(type) {
+	case map[string]interface{}:
+		maasSubscription, _ = headers["maas_subscription"].(string)
+		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
+	case map[interface{}]interface{}:
+		maasSubscription, _ = headers["maas_subscription"].(string)
+		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
+	}
+	return maasSubscription == constants.MaaSSubscriptionHeader &&
+		inferenceModelSourceType == constants.InferenceModelSourceTypeHeader
 }
 
 // NewSentenceTransformerProvider creates a new sentence transformer provider

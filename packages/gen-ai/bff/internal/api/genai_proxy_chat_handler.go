@@ -15,6 +15,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // GenAIProxyNSChatCompletionsHandler handles POST /api/v1/genai-proxy/ns/:namespace/v1/chat/completions.
@@ -88,9 +89,10 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	maasModelSourceType := r.Header.Get(constants.InferenceModelSourceTypeHeader)
 
 	// Resolve model → endpoint URL + credentials + the bare model ID the upstream expects.
-	baseURL, apiKey, resolvedModel, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription)
+	baseURL, apiKey, resolvedModel, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription, maasModelSourceType)
 	if resolveErr != nil {
 		app.logger.Warn("Model resolution failed", "model", reqBody.Model, "error", resolveErr)
 		if isProxyInfraError(resolveErr) {
@@ -237,7 +239,7 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 // maasSubscription is the optional MaaS subscription name (from X-MaaS-Subscription header,
 // forwarded by OGX via forward_headers). When non-empty, getMaaSTokenForModel uses it to
 // issue a properly-scoped ephemeral token.
-func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription string) (baseURL, apiKey, resolvedModelID string, err error) {
+func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription, modelSourceType string) (baseURL, apiKey, resolvedModelID string, err error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
 		return "", "", "", fmt.Errorf("missing RequestIdentity in context")
@@ -256,7 +258,7 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 	// 1. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 	// 2. Custom endpoint → ConfigMap + Secret (tried for all IDs, not just slash-qualified)
 	// 3. Namespace ISVC fallback (bare name) → InferenceService URL + user JWT
-	if strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
+	if modelSourceType == string(models.ModelSourceTypeMaaS) || strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			return "", "", "", &proxyInfraError{msg: "MaaS is not available"}
 		}

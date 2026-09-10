@@ -20,4 +20,11 @@ const (
 	// name from OGX to the BFF proxy (via forward_headers config). The proxy uses it
 	// to issue a properly-scoped ephemeral token per request.
 	MaaSSubscriptionHeader = "X-MaaS-Subscription"
+
+	// InferenceModelSourceTypeHeader identifies inference requests forwarded by
+	// OGX. MaaS model IDs are unique and no longer require a maas- routing prefix,
+	// so the chat proxy uses this header to select MaaS credential and endpoint
+	// resolution. It is intentionally inference-specific: embeddings may use a
+	// different source and do not use the passthrough inference provider.
+	InferenceModelSourceTypeHeader = "X-Inference-Model-Source-Type"
 )
