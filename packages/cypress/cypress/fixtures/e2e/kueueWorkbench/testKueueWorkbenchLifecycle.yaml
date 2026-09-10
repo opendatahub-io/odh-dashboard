@@ -8,7 +8,7 @@ hardwareProfileDisplayName: "Kueue Lifecycle Profile"
 sectionTab: "workbenches"
 notebookImage: "code-server-notebook"
 
-# Zero quota → Inadmissible (RHOAIENG-90198)
+# Zero quota → Inadmissible
 cpuQuota: 0
 memoryQuota: 0
 exceededQuotaMessage: "Exceeded quota"
