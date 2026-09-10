@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import CuratedBenchmarkSuitesPage from '~/app/pages/CuratedBenchmarkSuitesPage';
 
@@ -29,6 +29,20 @@ const renderPage = (aiEntity = 'agent') =>
       </Routes>
     </MemoryRouter>,
   );
+
+const RouteChangeButton: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <button
+      type="button"
+      data-testid="switch-to-model"
+      onClick={() => navigate('/test-project/collections/model')}
+    >
+      Switch to model suites
+    </button>
+  );
+};
 
 describe('CuratedBenchmarkSuitesPage', () => {
   beforeEach(() => {
@@ -125,5 +139,51 @@ describe('CuratedBenchmarkSuitesPage', () => {
       screen.queryByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Customize')).not.toBeInTheDocument();
+  });
+
+  it('should reset gallery filters when the AI entity route changes without remounting', () => {
+    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
+      const queryFilters = args[4] as { aiEntities?: string[] } | undefined;
+      const aiEntity = queryFilters?.aiEntities?.[0] === 'model' ? 'model' : 'agent';
+      const items = mockCuratedBenchmarkSuiteCollections(aiEntity);
+
+      return {
+        data: {
+          items,
+          // eslint-disable-next-line camelcase
+          total_count: items.length,
+        },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/test-project/collections/agent']}>
+        <Routes>
+          <Route
+            path="/:namespace/collections/:aiEntity"
+            element={
+              <>
+                <CuratedBenchmarkSuitesPage />
+                <RouteChangeButton />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    expect(
+      screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('switch-to-model'));
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
+    ).toBeInTheDocument();
   });
 });

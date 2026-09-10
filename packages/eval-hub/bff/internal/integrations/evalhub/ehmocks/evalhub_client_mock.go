@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
@@ -12,6 +13,7 @@ import (
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
+	mu                        sync.RWMutex
 	collectionOverrides       map[string]*evalhub.Collection
 	deletedCollections        map[string]bool
 	LastListCollectionsParams *evalhub.ListCollectionsParams
@@ -22,6 +24,12 @@ func NewMockEvalHubClient() *MockEvalHubClient {
 }
 
 func (m *MockEvalHubClient) SetCollection(id string, c *evalhub.Collection) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.setCollection(id, c)
+}
+
+func (m *MockEvalHubClient) setCollection(id string, c *evalhub.Collection) {
 	if m.collectionOverrides == nil {
 		m.collectionOverrides = make(map[string]*evalhub.Collection)
 	}
@@ -34,6 +42,9 @@ func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.H
 
 // ListCollections returns mock benchmark collections with optional in-memory filtering and pagination.
 func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.ListCollectionsParams) (evalhub.CollectionsResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.LastListCollectionsParams = &params
 	all := mockCollections()
 
@@ -366,6 +377,12 @@ func mockProviders() []evalhub.Provider {
 }
 
 func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.getCollection(id)
+}
+
+func (m *MockEvalHubClient) getCollection(id string) (*evalhub.Collection, error) {
 	if m.deletedCollections[id] {
 		return nil, nil
 	}
@@ -382,7 +399,10 @@ func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string
 }
 
 func (m *MockEvalHubClient) PatchCollection(_ context.Context, id string, _ string, operations []evalhub.CollectionPatchOperation) (*evalhub.Collection, error) {
-	collection, err := m.GetCollection(context.Background(), id, "")
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	collection, err := m.getCollection(id)
 	if err != nil || collection == nil {
 		return collection, err
 	}
@@ -408,11 +428,14 @@ func (m *MockEvalHubClient) PatchCollection(_ context.Context, id string, _ stri
 	if err := json.Unmarshal(updatedJSON, &updated); err != nil {
 		return nil, fmt.Errorf("unmarshal patched collection: %w", err)
 	}
-	m.SetCollection(id, &updated)
+	m.setCollection(id, &updated)
 	return &updated, nil
 }
 
 func (m *MockEvalHubClient) DeleteCollection(_ context.Context, id string, _ string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.deletedCollections == nil {
 		m.deletedCollections = make(map[string]bool)
 	}

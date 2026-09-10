@@ -256,6 +256,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -278,6 +280,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -1535,23 +1539,39 @@ components:
           nullable: true
 
     CollectionPatchOperation:
-      type: object
-      required:
-        - op
-        - path
-      properties:
-        op:
-          type: string
-          enum:
-            - replace
-            - add
-            - remove
-          description: JSON Patch operation type
-        path:
-          type: string
-          description: JSON Pointer path to the collection field being changed
-        value:
-          description: Value for add or replace operations; omitted for remove operations
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required:
+            - op
+            - path
+            - value
+          properties:
+            op:
+              type: string
+              enum:
+                - replace
+                - add
+              description: JSON Patch operation type
+            path:
+              type: string
+              description: JSON Pointer path to the collection field being changed
+            value:
+              description: Value for add or replace operations
+        - type: object
+          additionalProperties: false
+          required:
+            - op
+            - path
+          properties:
+            op:
+              type: string
+              enum:
+                - remove
+              description: JSON Patch operation type
+            path:
+              type: string
+              description: JSON Pointer path to the collection field being changed
 
     CollectionsData:
       type: object
@@ -2134,6 +2154,13 @@ components:
 
     Unauthorized:
       description: Unauthorized - Invalid or missing authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    Forbidden:
+      description: Forbidden - User is not authorized to access this service
       content:
         application/json:
           schema:

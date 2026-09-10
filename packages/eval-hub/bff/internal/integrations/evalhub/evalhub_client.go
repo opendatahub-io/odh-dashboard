@@ -920,9 +920,12 @@ func doRequest(c *EvalHubClient, ctx context.Context, method, path string, extra
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxGetResponseSize+1))
 	if err != nil {
 		return err
+	}
+	if len(body) > maxGetResponseSize {
+		return fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxGetResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

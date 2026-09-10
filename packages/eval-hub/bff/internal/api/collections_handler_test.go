@@ -52,6 +52,21 @@ func TestCollectionsHandlerForwardsScopeAndSort(t *testing.T) {
 	assert.NotNil(t, result.Data.Items)
 }
 
+func TestCollectionsHandlerRejectsInvalidSort(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	result, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodGet,
+		ApiPathPrefix+"/evaluations/collections?namespace=test-ns&sort_by=created_at",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	assert.Contains(t, result.Error.Message, "invalid sort_by parameter")
+}
+
 // Verify that a percent-encoded slash (%2F) in the ID is decoded and the
 // handler calls GetCollection with the literal "col/special" ID.
 func TestGetCollectionHandlerEncodedSlashID(t *testing.T) {
@@ -141,6 +156,58 @@ func TestPatchCollectionHandlerBadRequest(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+}
+
+func TestPatchCollectionHandlerRejectsInvalidOperations(t *testing.T) {
+	tests := []struct {
+		name       string
+		operations any
+		message    string
+	}{
+		{
+			name:       "empty operations",
+			operations: json.RawMessage("null"),
+			message:    "at least one patch operation is required",
+		},
+		{
+			name: "invalid operation",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op: "copy", Path: "/name", Value: json.RawMessage(`"Updated suite"`),
+			}},
+			message: "op must be add, replace, or remove",
+		},
+		{
+			name: "missing path",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op: "replace", Value: json.RawMessage(`"Updated suite"`),
+			}},
+			message: "path is required",
+		},
+		{
+			name: "missing value",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op: "replace", Path: "/name",
+			}},
+			message: "value is required for replace",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			mockClient := ehmocks.NewMockEvalHubClient()
+
+			result, response, err := setupApiTestWithEvalHub[HTTPError](
+				http.MethodPatch,
+				ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+				tt.operations, nil, identity, mockClient,
+			)
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+			assert.Contains(t, result.Error.Message, tt.message)
+		})
+	}
 }
 
 func TestPatchCollectionHandlerServerError(t *testing.T) {

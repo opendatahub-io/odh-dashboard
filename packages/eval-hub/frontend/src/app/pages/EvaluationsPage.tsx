@@ -65,6 +65,7 @@ const EvaluationsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get(TAB_QUERY_PARAM);
   const activeTab = tabParam === RUNS_TAB ? RUNS_TAB : EVALUATE_TAB;
+  const isRunsTab = activeTab === RUNS_TAB;
 
   // Pause list polling when the browser tab is backgrounded
   const isPollingEnabled = usePageVisibility();
@@ -146,8 +147,8 @@ const EvaluationsPage: React.FC = () => {
                   </FlexItem>
                 </Flex>
               }
-              loaded={healthLoaded && (!isHealthy || loaded)}
-              loadError={isHealthy ? error : healthError}
+              loaded={healthLoaded && (!isHealthy || !isRunsTab || loaded)}
+              loadError={!isHealthy ? healthError : isRunsTab ? error : undefined}
               loadErrorPage={
                 <PageSection hasBodyWrapper={false} isFilled>
                   {clusterAdmin ? (

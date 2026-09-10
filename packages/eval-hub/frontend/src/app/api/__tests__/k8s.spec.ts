@@ -464,6 +464,26 @@ describe('getCollections', () => {
     expect(result).toEqual({ items: [] });
   });
 
+  it('should sanitize malformed collection string arrays', async () => {
+    const items = [
+      {
+        resource: { id: 'col-1' },
+        name: 'Collection',
+        domains: ['safety', 123],
+        ai_entities: 'model',
+        industries: [null, 'healthcare'],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items[0].domains).toEqual(['safety']);
+    expect(result.items[0].ai_entities).toBeUndefined();
+    expect(result.items[0].industries).toEqual(['healthcare']);
+  });
+
   it('should return empty items when data is null', async () => {
     mockRestGET.mockResolvedValue({ data: null });
     mockIsModArchResponse.mockReturnValue(true);

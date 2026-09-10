@@ -165,6 +165,16 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should not gate the Evaluate tab on the Runs request', () => {
+    mockUseEvaluationJobs.mockReturnValue([[], false, new Error('Runs unavailable'), mockRefresh]);
+
+    renderPage('test-project');
+
+    expect(screen.getByTestId('evaluate-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
+    expect(screen.queryByTestId('evalhub-load-error-admin-empty-state')).not.toBeInTheDocument();
+  });
+
   it('should show the suite contextual actions and delete confirmation modal', () => {
     renderPage('test-project');
 

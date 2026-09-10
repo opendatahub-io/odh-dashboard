@@ -152,6 +152,34 @@ describe('BenchmarkSuitesPage', () => {
     expect(emptyState.querySelector('svg')).toBeInTheDocument();
   });
 
+  it('should keep filters enabled when an active API filter returns no suites', () => {
+    const collections = mockBenchmarkSuiteCollections();
+    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
+      const queryFilters = args[4];
+      const hasApiFilter = queryFilters && Object.keys(queryFilters).length > 0;
+
+      return {
+        data: {
+          items: hasApiFilter ? [] : collections,
+          // eslint-disable-next-line camelcase
+          total_count: hasApiFilter ? 0 : collections.length,
+        },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    renderPage();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+
+    expect(
+      screen.getByTestId('benchmark-suites-name-filter').querySelector('input'),
+    ).not.toBeDisabled();
+    expect(screen.getByTestId('benchmark-suites-category-filter')).not.toBeDisabled();
+  });
+
   it('should derive filter options from collection fields', async () => {
     const collections = mockBenchmarkSuiteCollections().map((collection, index) => ({
       ...collection,

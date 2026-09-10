@@ -242,6 +242,22 @@ func TestEvalHubClient_DeleteCollection(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestEvalHubClient_DeleteCollection_RejectsOversizedResponse(t *testing.T) {
+	oversizedBody := strings.Repeat("x", maxGetResponseSize+1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(oversizedBody))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	err := client.DeleteCollection(context.Background(), "collection-001", "my-ns")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
+}
+
 func TestEvalHubClient_PatchCollection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)

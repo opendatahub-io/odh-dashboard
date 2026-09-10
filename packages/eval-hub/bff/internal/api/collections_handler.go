@@ -14,6 +14,26 @@ import (
 type CollectionsEnvelope Envelope[evalhub.CollectionsResponse, None]
 type CollectionEnvelope Envelope[evalhub.Collection, None]
 
+func validateCollectionPatchOperations(operations []evalhub.CollectionPatchOperation) error {
+	if len(operations) == 0 {
+		return fmt.Errorf("at least one patch operation is required")
+	}
+
+	for index, operation := range operations {
+		if operation.Op != "add" && operation.Op != "replace" && operation.Op != "remove" {
+			return fmt.Errorf("invalid patch operation at index %d: op must be add, replace, or remove", index)
+		}
+		if strings.TrimSpace(operation.Path) == "" {
+			return fmt.Errorf("invalid patch operation at index %d: path is required", index)
+		}
+		if (operation.Op == "add" || operation.Op == "replace") && len(operation.Value) == 0 {
+			return fmt.Errorf("invalid patch operation at index %d: value is required for %s", index, operation.Op)
+		}
+	}
+
+	return nil
+}
+
 func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -31,6 +51,10 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 
 	var operations []evalhub.CollectionPatchOperation
 	if err := app.ReadJSON(w, r, &operations); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if err := validateCollectionPatchOperations(operations); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -129,6 +153,11 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 	}
 
 	query := r.URL.Query()
+	sortBy := query.Get("sort_by")
+	if sortBy != "" && sortBy != "curation_order" {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid sort_by parameter: must be curation_order"))
+		return
+	}
 
 	params := evalhub.ListCollectionsParams{
 		Namespace:  query.Get("namespace"),
@@ -136,7 +165,7 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 		Category:   query.Get("category"),
 		Tags:       query.Get("tags"),
 		Scope:      query.Get("scope"),
-		SortBy:     query.Get("sort_by"),
+		SortBy:     sortBy,
 		Domains:    query.Get("domains"),
 		Industries: query.Get("industries"),
 		AIEntities: query.Get("ai_entities"),

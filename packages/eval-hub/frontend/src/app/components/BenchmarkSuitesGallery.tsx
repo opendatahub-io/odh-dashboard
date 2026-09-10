@@ -188,6 +188,15 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
   const notification = useNotification();
+  const queryFiltersKey = React.useMemo(
+    () =>
+      [
+        queryFilters?.domains?.join(',') ?? '',
+        queryFilters?.industries?.join(',') ?? '',
+        queryFilters?.aiEntities?.join(',') ?? '',
+      ].join('|'),
+    [queryFilters],
+  );
   const isClientSideNameFiltering = showPagination && Boolean(nameFilter.trim());
   const queryLimit = showPagination
     ? isClientSideNameFiltering
@@ -319,7 +328,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const hasActiveFilters = Boolean(
     nameFilter || categoryFilter || evaluatesFilter || industryFilter,
   );
-  const areFiltersDisabled = shouldShowLoadError || (!isLoading && sourceCollections.length === 0);
+  const areFiltersDisabled =
+    shouldShowLoadError || (!isLoading && sourceCollections.length === 0 && !hasActiveFilters);
   const isRefreshing = isFetching && !isLoading;
 
   React.useEffect(() => {
@@ -332,6 +342,14 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     nameFilter,
     namespace,
   ]);
+
+  React.useEffect(() => {
+    setPage(1);
+    setNameFilter('');
+    setCategoryFilter('');
+    setEvaluatesFilter('');
+    setIndustryFilter('');
+  }, [queryFiltersKey, scope]);
 
   const handleDeleteSelect = React.useCallback(
     (collection: Collection) => {

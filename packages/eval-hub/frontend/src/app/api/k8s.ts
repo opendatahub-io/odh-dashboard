@@ -68,6 +68,9 @@ const validateEvaluationJob = (data: unknown): void => {
 
 const isString = (v: unknown): v is string => typeof v === 'string';
 
+const sanitizeStringArray = (value: unknown): string[] | undefined =>
+  Array.isArray(value) ? value.filter(isString) : undefined;
+
 const isValidProviderItem = (p: unknown): p is Provider =>
   p != null &&
   typeof p === 'object' &&
@@ -115,6 +118,13 @@ const sanitizeProviders = (items: unknown[]): Provider[] =>
 const sanitizeCollectionItems = (items: unknown[]): Collection[] =>
   items.filter(isValidCollectionItem).map((c) => ({
     ...c,
+    tags: sanitizeStringArray(c.tags),
+    domains: sanitizeStringArray(c.domains),
+    tasks: sanitizeStringArray(c.tasks),
+    modalities: sanitizeStringArray(c.modalities),
+    industries: sanitizeStringArray(c.industries),
+    // eslint-disable-next-line camelcase
+    ai_entities: sanitizeStringArray(c.ai_entities),
     benchmarks: Array.isArray(c.benchmarks)
       ? c.benchmarks.filter(isValidCollectionBenchmark)
       : undefined,

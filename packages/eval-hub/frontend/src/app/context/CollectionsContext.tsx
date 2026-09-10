@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useCollectionsQuery } from '~/app/hooks/collections';
-import { CollectionFilterParams, CollectionScope, CollectionsListResponse } from '~/app/types';
+import { CollectionsListResponse } from '~/app/types';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 
 const INITIAL_RESPONSE: CollectionsListResponse = { items: [] };
@@ -37,42 +36,10 @@ export const CollectionsContextProvider: React.FC<CollectionsContextProviderProp
   namespace,
   children,
 }) => {
-  const [searchParams] = useSearchParams();
-  const collectionScope = searchParams.get('scope');
-  const filters = React.useMemo<CollectionFilterParams | undefined>(() => {
-    const domains = searchParams
-      .getAll('domains')
-      .flatMap((value) => value.split(','))
-      .filter(Boolean);
-    const industries = searchParams
-      .getAll('industries')
-      .flatMap((value) => value.split(','))
-      .filter(Boolean);
-    const aiEntities = searchParams
-      .getAll('ai_entities')
-      .flatMap((value) => value.split(','))
-      .filter(Boolean);
-
-    if (domains.length === 0 && industries.length === 0 && aiEntities.length === 0) {
-      return undefined;
-    }
-
-    return {
-      domains: domains.length > 0 ? domains : undefined,
-      industries: industries.length > 0 ? industries : undefined,
-      aiEntities: aiEntities.length > 0 ? aiEntities : undefined,
-    };
-  }, [searchParams]);
-  const scope: CollectionScope | undefined =
-    collectionScope === 'system' || collectionScope === 'curated' || collectionScope === 'tenant'
-      ? collectionScope
-      : undefined;
   const { data, isSuccess, error, refetch } = useCollectionsQuery(
     namespace,
-    scope,
-    COLLECTION_FETCH_LIMIT,
     undefined,
-    filters,
+    COLLECTION_FETCH_LIMIT,
   );
   const response = data ?? INITIAL_RESPONSE;
   const refresh = React.useCallback(() => {
