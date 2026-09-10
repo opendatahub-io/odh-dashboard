@@ -25,6 +25,15 @@ describe('pnpmResolverIncludes', () => {
     assert.equal(isPatternFlyCss(nestedPfCss, FRONTEND_DIR, ROOT_NODE_MODULES), true);
   });
 
+  it('matches all @patternfly CSS packages under .pnpm paths', () => {
+    const quickstartsCss = path.join(
+      ROOT_NODE_MODULES,
+      '.pnpm/@patternfly+quickstarts@6.5.0/node_modules/@patternfly/quickstarts/dist/quickstarts.min.css',
+    );
+    assert.equal(isVendorCss(quickstartsCss, FRONTEND_DIR, ROOT_NODE_MODULES), true);
+    assert.equal(isPatternFlyCss(quickstartsCss, FRONTEND_DIR, ROOT_NODE_MODULES), true);
+  });
+
   it('matches font assets under .pnpm paths', () => {
     const fontPath = path.join(
       ROOT_NODE_MODULES,
