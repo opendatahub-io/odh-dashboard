@@ -524,6 +524,7 @@ describe('NIM Models Deployments', () => {
 
       expect(pvcVolume?.persistentVolumeClaim?.claimName).to.equal('updated-nim-wizard-pvc');
       expect(cacheVolumeMount).to.containSubset({
+        name: 'updated-nim-wizard-pvc',
         mountPath: '/mnt/models/cache',
         subPath: 'updated-cache-path',
       });
