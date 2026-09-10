@@ -7,7 +7,7 @@ import useFetch, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getKServePVCDependentDeployments } from '@odh-dashboard/kserve/pvcDependents';
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { deleteLegacyNIMDeployment } from './delete';
-import { getNIMKServePVCReference } from './deleteUtils';
+import { getNIMCachePVCReference } from './deleteUtils';
 
 type Props = ModelServingDeleteModalComponentProps<KServeDeployment>;
 
@@ -23,27 +23,34 @@ const NIMKServeDeleteModal: React.FC<Props> = ({
   const [deletePVC, setDeletePVC] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error>();
-  const pvcReference = React.useMemo(() => getNIMKServePVCReference(deployment), [deployment]);
+  const nimCachePVCReference = React.useMemo(
+    () => getNIMCachePVCReference(deployment),
+    [deployment],
+  );
   const deploymentName = getDisplayNameFromK8sResource(deployment.model);
 
   React.useEffect(() => {
     setDeletePVC(false);
     setDeleteError(undefined);
-  }, [deployment.model.metadata.name, deployment.model.metadata.namespace, pvcReference?.name]);
+  }, [
+    deployment.model.metadata.name,
+    deployment.model.metadata.namespace,
+    nimCachePVCReference?.name,
+  ]);
 
   const fetchDependents = React.useCallback(async () => {
     if (!deletePVC) {
       throw new NotReadyError('PVC dependent lookup is disabled');
     }
-    if (!pvcReference) {
+    if (!nimCachePVCReference) {
       throw new NotReadyError('No cache PVC is available');
     }
     return getKServePVCDependentDeployments(
-      pvcReference.namespace,
-      pvcReference.name,
+      nimCachePVCReference.namespace,
+      nimCachePVCReference.name,
       deployment.model.metadata.name,
     );
-  }, [deletePVC, deployment.model.metadata.name, pvcReference]);
+  }, [deletePVC, deployment.model.metadata.name, nimCachePVCReference]);
   const {
     data: dependentDeployments,
     loaded,
@@ -59,7 +66,7 @@ const NIMKServeDeleteModal: React.FC<Props> = ({
     try {
       await deleteLegacyNIMDeployment({
         deletePrimaryDeployment,
-        pvcToDelete: pvcReference,
+        pvcToDelete: nimCachePVCReference,
         deletePVC,
       });
       onClose(true);
@@ -74,13 +81,13 @@ const NIMKServeDeleteModal: React.FC<Props> = ({
     onClose(false);
   };
 
-  const additionalContent = pvcReference ? (
+  const additionalContent = nimCachePVCReference ? (
     <Stack hasGutter>
       <StackItem>
         <Checkbox
           id="nim-delete-pvc-checkbox"
           data-testid="nim-delete-pvc-checkbox"
-          label={`Delete associated PVC (${pvcReference.name})`}
+          label={`Delete associated PVC (${nimCachePVCReference.name})`}
           isChecked={deletePVC}
           onChange={(_event, checked) => setDeletePVC(checked)}
           aria-describedby={

@@ -7,7 +7,7 @@ export type NIMKServePVCReference = {
 };
 
 /** Returns the legacy NIM cache PVC mounted by the selected ServingRuntime. */
-export const getNIMKServePVCReference = (
+export const getNIMCachePVCReference = (
   deployment: KServeDeployment,
 ): NIMKServePVCReference | undefined => {
   const {

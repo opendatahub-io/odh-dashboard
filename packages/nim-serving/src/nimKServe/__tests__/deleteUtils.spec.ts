@@ -3,7 +3,7 @@ import {
   mockNimServingRuntime,
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import { NIM_CACHE_MOUNT_PATH, KSERVE_CONTAINER_NAME } from '../../constants';
-import { getNIMKServePVCReference } from '../deleteUtils';
+import { getNIMCachePVCReference } from '../deleteUtils';
 
 const mockServer = () => {
   const server = mockNimServingRuntime();
@@ -11,7 +11,7 @@ const mockServer = () => {
   return server;
 };
 
-describe('getNIMKServePVCReference', () => {
+describe('getNIMCachePVCReference', () => {
   it('should return the cache PVC name and namespace', () => {
     const deployment = {
       modelServingPlatformId: 'kserve',
@@ -19,7 +19,7 @@ describe('getNIMKServePVCReference', () => {
       server: mockServer(),
     };
 
-    expect(getNIMKServePVCReference(deployment)).toEqual({
+    expect(getNIMCachePVCReference(deployment)).toEqual({
       name: expect.any(String),
       namespace: 'project',
     });
@@ -39,7 +39,7 @@ describe('getNIMKServePVCReference', () => {
     );
 
     expect(
-      getNIMKServePVCReference({
+      getNIMCachePVCReference({
         modelServingPlatformId: 'kserve',
         model: mockNimInferenceService({ name: 'nim', namespace: 'project' }),
         server,
@@ -56,7 +56,7 @@ describe('getNIMKServePVCReference', () => {
     );
 
     expect(
-      getNIMKServePVCReference({
+      getNIMCachePVCReference({
         modelServingPlatformId: 'kserve',
         model: mockNimInferenceService({ name: 'nim', namespace: 'project' }),
         server,
@@ -71,7 +71,7 @@ describe('getNIMKServePVCReference', () => {
     );
 
     expect(
-      getNIMKServePVCReference({
+      getNIMCachePVCReference({
         modelServingPlatformId: 'kserve',
         model: mockNimInferenceService({ name: 'nim', namespace: 'project' }),
         server,
