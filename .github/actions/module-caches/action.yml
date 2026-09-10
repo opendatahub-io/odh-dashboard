@@ -77,6 +77,19 @@ runs:
       shell: bash
       run: npm install --prefix packages/data-registry/frontend
 
+    - name: data-connect-hub node_modules cache
+      id: data-connect-hub-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: packages/data-connect-hub/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-data-connect-hub-${{ hashFiles('packages/data-connect-hub/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-data-connect-hub-
+    - name: Install data-connect-hub dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.data-connect-hub-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/data-connect-hub/frontend
+
     - name: automl node_modules cache
       id: automl-cache
       if: inputs.include-modules == 'true'
