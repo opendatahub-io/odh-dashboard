@@ -6,6 +6,7 @@ import {
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { EnvironmentVariableType } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { createNIMService, updateNIMService, patchNIMService, assembleNIMService } from '../k8s';
 import { NIMServiceModel, type NIMServiceKind } from '../types';
 
@@ -221,8 +222,8 @@ describe('assembleNIMService', () => {
       environmentVariables: {
         enabled: true,
         variables: [
-          { name: 'FOO', value: 'bar' },
-          { name: 'BAZ', value: 'qux' },
+          { type: EnvironmentVariableType.Value, name: 'FOO', value: 'bar' },
+          { type: EnvironmentVariableType.Value, name: 'BAZ', value: 'qux' },
         ],
       },
       hardwareProfile: emptyHardwareProfile,
@@ -231,6 +232,37 @@ describe('assembleNIMService', () => {
     expect(result.spec.env).toEqual([
       { name: 'FOO', value: 'bar' },
       { name: 'BAZ', value: 'qux' },
+    ]);
+  });
+
+  it('should set secret environment variables when enabled', () => {
+    const result = assembleNIMService({
+      projectName: 'ns',
+      k8sName: 'test',
+      environmentVariables: {
+        enabled: true,
+        variables: [
+          {
+            type: EnvironmentVariableType.Secret,
+            name: 'HF_TOKEN',
+            secretName: 'hf-secret',
+            secretKey: 'HF_TOKEN',
+          },
+        ],
+      },
+      hardwareProfile: emptyHardwareProfile,
+    });
+
+    expect(result.spec.env).toEqual([
+      {
+        name: 'HF_TOKEN',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'hf-secret',
+            key: 'HF_TOKEN',
+          },
+        },
+      },
     ]);
   });
 

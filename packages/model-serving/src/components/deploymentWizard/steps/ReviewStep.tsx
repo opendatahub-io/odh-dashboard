@@ -26,6 +26,10 @@ import {
 } from '../../../shared/types/form-data';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 import { filterRuntimeArgsForContainer } from '../fields/RuntimeArgsField';
+import {
+  formatEnvironmentVariableForReview,
+  normalizeEnvironmentVariable,
+} from '../../../shared/environmentVariablesUtils';
 import { ExternalDataMap } from '../ExternalDataLoader';
 import { isWizardStepTitle } from '../utils';
 
@@ -374,7 +378,7 @@ const getStatusSections = (
                 <>{envVars.variables.length}</>
                 {envVars.variables.map((envVar, index: number) => (
                   <div key={index}>
-                    {envVar.name}, {envVar.value}
+                    {formatEnvironmentVariableForReview(normalizeEnvironmentVariable(envVar))}
                   </div>
                 ))}
               </>
