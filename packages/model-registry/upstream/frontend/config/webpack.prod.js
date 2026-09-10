@@ -4,7 +4,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserJSPlugin = require('terser-webpack-plugin');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
-const { patternFlyCssIncludes } = require('../../../../../scripts/webpack/pnpmResolverIncludes');
+const { patternFlyCssIncludes } = require('@odh-dashboard/app-config/webpack');
 
 setupDotenvFilesForEnv({ env: 'production' });
 const webpackCommon = require('./webpack.common.js');

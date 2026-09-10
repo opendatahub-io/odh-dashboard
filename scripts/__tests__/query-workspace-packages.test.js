@@ -4,10 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const {
-  expandPattern,
-  listWorkspacePackagesFromManifest,
-} = require('../../query-workspace-packages');
+const { expandPattern, listWorkspacePackagesFromManifest } = require('../query-workspace-packages');
 
 describe('expandPattern', () => {
   it('throws for unsupported ** globs', () => {
