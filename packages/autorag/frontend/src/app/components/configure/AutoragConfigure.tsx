@@ -817,6 +817,7 @@ function AutoragConfigure({
                     <FlexItem>
                       <ConfigureFormGroup
                         label="Vector database connection"
+                        isRequired
                         description="Select the Kubernetes secret for Milvus or PGVector. The pipeline reads MILVUS_* or PGVECTOR_* keys from that secret."
                       >
                         <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />

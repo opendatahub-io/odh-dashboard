@@ -165,6 +165,29 @@ func TestDetectType(t *testing.T) {
 		}
 	})
 
+	t.Run("vector-db filter returns milvus from MILVUS_URI", func(t *testing.T) {
+		secret := milvusSecret("s")
+		if got := detectType(secret, "vector-db"); got != "milvus" {
+			t.Errorf("got %q, want milvus", got)
+		}
+	})
+
+	t.Run("vector-db filter returns pgvector from PGVECTOR_HOST", func(t *testing.T) {
+		secret := pgvectorSecret("s")
+		if got := detectType(secret, "vector-db"); got != "pgvector" {
+			t.Errorf("got %q, want pgvector", got)
+		}
+	})
+
+	t.Run("vector-db filter matches lowercase keys", func(t *testing.T) {
+		secret := kubernetes.SecretInfo{
+			Data: map[string]string{"milvus_uri": "http://milvus:19530"},
+		}
+		if got := detectType(secret, "vector-db"); got != "milvus" {
+			t.Errorf("got %q, want milvus", got)
+		}
+	})
+
 	t.Run("storage filter falls back to key-based s3", func(t *testing.T) {
 		secret := s3Secret("s")
 		if got := detectType(secret, "storage"); got != "s3" {

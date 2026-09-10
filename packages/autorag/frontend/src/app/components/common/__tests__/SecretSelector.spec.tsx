@@ -371,6 +371,25 @@ describe('SecretSelector', () => {
       expect(toggle).toHaveTextContent('Select a secret');
     });
 
+    it('should show empty namespace helper text when no secrets are available', () => {
+      mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
+
+      render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          type="vector-db"
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+          placeholder="Select vector database secret"
+        />,
+      );
+
+      expect(
+        screen.getByText('There are no secrets in the selected namespace'),
+      ).toBeInTheDocument();
+    });
+
     it('should not open dropdown when clicked and no secrets available', () => {
       mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
 
@@ -565,6 +584,36 @@ describe('SecretSelector', () => {
         mockUseFetchState.mock.calls[mockUseFetchState.mock.calls.length - 1][0];
 
       // The callbacks should be different because type changed
+      expect(secondCallback).not.toBe(firstCallback);
+    });
+
+    it('should refetch when type changes to vector-db', () => {
+      mockUseFetchState.mockReturnValue([[], true, undefined, mockRefresh]);
+
+      const { rerender } = render(
+        <SecretSelector
+          namespace={defaultNamespace}
+          type="maas"
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      const firstCallback = mockUseFetchState.mock.calls[0][0];
+
+      rerender(
+        <SecretSelector
+          namespace={defaultNamespace}
+          type="vector-db"
+          value={undefined}
+          onChange={mockOnChange}
+          dataTestId="test-selector"
+        />,
+      );
+
+      const secondCallback =
+        mockUseFetchState.mock.calls[mockUseFetchState.mock.calls.length - 1][0];
       expect(secondCallback).not.toBe(firstCallback);
     });
   });
