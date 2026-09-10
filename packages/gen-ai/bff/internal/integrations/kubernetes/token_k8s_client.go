@@ -2194,19 +2194,21 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
 	} else {
 		// Without GatewayDomain the remote::passthrough provider cannot be registered.
-		// MaaS and custom_endpoint models are resolved per-request by the BFF proxy and
-		// do NOT need the passthrough provider. Only namespace (ISVC) models are routed
-		// through the OGX passthrough, so fail fast only for those.
+		// Namespace and custom-endpoint embedding models use static providers; MaaS
+		// embedding models are validation-only. Transcription models are not registered
+		// in Llama Stack. All other supported model sources require passthrough routing.
 		for _, m := range installModels {
-			if m.ModelSourceType == models.ModelSourceTypeNamespace {
-				return "", fmt.Errorf(
-					"cannot install namespace inference model %q: GATEWAY_DOMAIN is not configured, "+
-						"which is required to register the remote::passthrough inference provider",
-					m.ModelName,
-				)
+			if !requiresPassthroughProvider(m) {
+				continue
 			}
+			return "", fmt.Errorf(
+				"cannot install %s inference model %q: GATEWAY_DOMAIN is not configured, "+
+					"which is required to register the remote::passthrough inference provider",
+				m.ModelSourceType,
+				m.ModelName,
+			)
 		}
-		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured, no namespace inference models requested)")
+		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured, no models require it)")
 	}
 
 	// Optionally enable RBAC authentication using Kubernetes auth provider.
@@ -2233,6 +2235,20 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// Add comment header
 	configYAML = "# Llama Stack Configuration\n" + configYAML
 	return configYAML, nil
+}
+
+// requiresPassthroughProvider reports whether a supported model requires
+// remote::passthrough for inference routing. Namespace and custom-endpoint
+// embedding models use static providers, MaaS embedding models are validation-only,
+// and transcription models are not registered in Llama Stack.
+func requiresPassthroughProvider(model models.InstallModel) bool {
+	switch model.ModelSourceType {
+	case models.ModelSourceTypeNamespace, models.ModelSourceTypeMaaS, models.ModelSourceTypeCustomEndpoint:
+		return model.ModelType != string(models.ModelTypeEmbedding) &&
+			model.ModelType != string(models.ModelTypeTranscription)
+	default:
+		return false
+	}
 }
 
 // GetExternalModelsConfig retrieves and parses the gen-ai-aa-custom-model-endpoints ConfigMap

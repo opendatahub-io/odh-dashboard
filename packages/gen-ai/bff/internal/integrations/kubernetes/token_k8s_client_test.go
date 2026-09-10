@@ -161,7 +161,8 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		client := &TokenKubernetesClient{
-			Logger: slog.Default(),
+			Logger:    slog.Default(),
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
 		}
 
 		models := []models.InstallModel{
@@ -269,7 +270,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		// Create client with RBAC disabled (default)
 		client := &TokenKubernetesClient{
 			Logger:    slog.Default(),
-			EnvConfig: config.EnvConfig{EnableLlamaStackRBAC: false},
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com", EnableLlamaStackRBAC: false},
 		}
 
 		testModels := []models.InstallModel{
@@ -298,7 +299,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		// Create client with RBAC enabled
 		client := &TokenKubernetesClient{
 			Logger:    slog.Default(),
-			EnvConfig: config.EnvConfig{EnableLlamaStackRBAC: true},
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com", EnableLlamaStackRBAC: true},
 		}
 
 		testModels := []models.InstallModel{
@@ -371,7 +372,7 @@ func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
 		assert.Equal(t, "https://apps.cluster.example.com/gen-ai/api/v1/genai-proxy/ns/my-namespace", passthrough.Config["base_url"])
 	})
 
-	t.Run("should NOT add passthrough provider when GatewayDomain is empty", func(t *testing.T) {
+	t.Run("should NOT add passthrough provider for MaaS embedding when GatewayDomain is empty", func(t *testing.T) {
 		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
 		client := &TokenKubernetesClient{
@@ -380,7 +381,7 @@ func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
 		}
 
 		testModels := []models.InstallModel{
-			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeEmbedding)},
 		}
 
 		ctx := context.Background()
@@ -393,6 +394,28 @@ func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
 
 		assert.False(t, cfg.HasPassthroughProvider("https://any.com/gen-ai/api/v1/genai-proxy/ns/my-namespace"), "config should NOT include passthrough when GatewayDomain is empty")
 	})
+}
+
+func TestRequiresPassthroughProvider(t *testing.T) {
+	tests := []struct {
+		name  string
+		model models.InstallModel
+		want  bool
+	}{
+		{name: "namespace LLM", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeNamespace, ModelType: string(models.ModelTypeLLM)}, want: true},
+		{name: "MaaS LLM", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeLLM)}, want: true},
+		{name: "custom endpoint LLM", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeLLM)}, want: true},
+		{name: "namespace embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeNamespace, ModelType: string(models.ModelTypeEmbedding)}},
+		{name: "MaaS embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeEmbedding)}},
+		{name: "custom endpoint embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeEmbedding)}},
+		{name: "transcription", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeTranscription)}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, requiresPassthroughProvider(tt.model))
+		})
+	}
 }
 
 // TestExtractEndpointFromLLMInferenceService tests that extractEndpointFromLLMInferenceService
@@ -1056,8 +1079,9 @@ registered_resources:
 			Build()
 
 		client := &TokenKubernetesClient{
-			Logger: slog.Default(),
-			Client: fakeClient,
+			Logger:    slog.Default(),
+			Client:    fakeClient,
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
 		}
 
 		installModels := []models.InstallModel{

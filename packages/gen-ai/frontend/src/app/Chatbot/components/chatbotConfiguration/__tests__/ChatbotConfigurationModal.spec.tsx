@@ -921,6 +921,17 @@ describe('ChatbotConfigurationModal tracing configuration', () => {
     expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
   });
 
+  it('preserves existing tracing configuration for a passthrough playground', () => {
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({
+      allModels,
+      lsdStatus: { ...passthroughLsdStatus, tracingEnabled: true },
+    });
+
+    expect(screen.getByTestId('enable-tracing-switch')).toBeChecked();
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+  });
+
   it('does not include enable_tracing in payload when feature flag is disabled', async () => {
     const user = userEvent.setup();
     (useTracingEnabled as jest.Mock).mockReturnValue(false);

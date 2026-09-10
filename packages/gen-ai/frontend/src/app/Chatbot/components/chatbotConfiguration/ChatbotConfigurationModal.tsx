@@ -255,7 +255,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [configuringPlayground, setConfiguringPlayground] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
-  const [enableTracing, setEnableTracing] = React.useState(false);
+  const [enableTracing, setEnableTracing] = React.useState(
+    () => lsdStatus?.tracingEnabled ?? false,
+  );
 
   /**
    * Handles changes to the max_tokens value for a specific model.
