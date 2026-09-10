@@ -149,12 +149,18 @@ jobs:
         env:
           CODERABBIT_VERSION: "0.7.6"
           CODERABBIT_INSTALL_DIR: ${{ runner.temp }}/coderabbit-bin
+          # Update this digest deliberately when upgrading the installer or CLI.
+          CODERABBIT_INSTALLER_SHA256: "d7750952836a5082986e9168e1858d2871ae2d0bf929cf8ea607ac33a17ab8db"
           CI: "true"
         run: |
           set -euo pipefail
           export CODERABBIT_VERSION CODERABBIT_INSTALL_DIR CI
-          curl -fsSL https://cli.coderabbit.ai/install.sh | sh
-          "${CODERABBIT_INSTALL_DIR}/coderabbit" --version
+          installer="${RUNNER_TEMP}/coderabbit-install.sh"
+          curl -fsSL https://cli.coderabbit.ai/install.sh -o "${installer}"
+          echo "${CODERABBIT_INSTALLER_SHA256}  ${installer}" | sha256sum --check --status
+          bash "${installer}"
+          installed_version="$("${CODERABBIT_INSTALL_DIR}/coderabbit" --version | head -n 1)"
+          [[ "${installed_version}" == *"${CODERABBIT_VERSION}"* ]]
 
       - name: Fetch sanitized CodeRabbit findings
         env:
@@ -170,7 +176,6 @@ jobs:
           name: fullsend-coderabbit-context-${{ github.event.pull_request.number || github.event.issue.number }}
           path: |
             .fullsend/.run/coderabbit.json
-            .fullsend/.run/collected.json
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
