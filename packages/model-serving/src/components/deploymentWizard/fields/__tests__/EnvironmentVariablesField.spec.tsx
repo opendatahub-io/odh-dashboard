@@ -98,6 +98,22 @@ describe('environmentVariablesFieldSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('should reject enabled state with invalid secret reference fields', () => {
+    const data = {
+      enabled: true,
+      variables: [
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'HF_TOKEN',
+          secretName: 'INVALID_NAME',
+          secretKey: 'bad key',
+        },
+      ],
+    };
+    const result = environmentVariablesFieldSchema.safeParse(data);
+    expect(result.success).toBe(false);
+  });
+
   it('should reject enabled state with empty secret fields', () => {
     const data = {
       enabled: true,
