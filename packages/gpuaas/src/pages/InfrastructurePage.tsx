@@ -93,6 +93,8 @@ const InfrastructurePage: React.FC = () => {
   const metrics = useInfrastructureMetrics();
   const quotaHierarchy = useQuotaHierarchy();
   const { refresh: refreshQuotaHierarchy } = quotaHierarchy;
+  const quotaWorkloadRefreshRef = React.useRef<(() => Promise<unknown>) | undefined>(undefined);
+  const detailRefreshRef = React.useRef<() => Promise<unknown[]>>(() => Promise.resolve([]));
   const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
   const hasTrackedPageView = React.useRef(false);
   const [activeTabKey, setActiveTabKey] = React.useState<InfrastructureTabId>(
@@ -142,10 +144,16 @@ const InfrastructurePage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- .refresh is stable from useFetch
   }, [metrics.lastRefreshed, metrics.refresh]);
 
-  const handleQuotaRefresh = React.useCallback(() => {
-    void refreshQuotaHierarchy();
+  const handleQuotaRefresh = React.useCallback(async () => {
+    await refreshQuotaHierarchy();
+    await detailRefreshRef.current();
+    void quotaWorkloadRefreshRef.current?.();
     handleRefresh();
   }, [handleRefresh, refreshQuotaHierarchy]);
+
+  const registerDetailRefresh = React.useCallback((refresh: () => Promise<unknown[]>) => {
+    detailRefreshRef.current = refresh;
+  }, []);
 
   const handleTabSelect = React.useCallback(
     (
@@ -169,6 +177,10 @@ const InfrastructurePage: React.FC = () => {
         tree={quotaHierarchy.data.tree}
         loaded={quotaHierarchy.loaded}
         error={quotaHierarchy.error}
+        onRegisterWorkloadRefresh={(refresh) => {
+          quotaWorkloadRefreshRef.current = refresh;
+        }}
+        onRegisterDetailRefresh={registerDetailRefresh}
       />
     ),
   };

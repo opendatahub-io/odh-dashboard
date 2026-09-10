@@ -1,5 +1,10 @@
 import { ClusterQueueKind } from '@odh-dashboard/k8s-core';
 import {
+  findCurrentBorrowingSinceMs,
+  formatBorrowingSinceDate,
+  mapPrometheusValuesToBorrowingPoints,
+} from '../../utils/borrowingLending';
+import {
   buildSeries,
   getGpuNominalQuota,
   KueueUsageMetricResult,
@@ -137,5 +142,63 @@ describe('buildSeries', () => {
       makeCQInfoMap([['cq-a', { nominalQuota: 4, cohortName: 'cohort-1' }]]),
     );
     expect(series[0].data).toHaveLength(0);
+  });
+});
+
+describe('mapPrometheusValuesToBorrowingPoints', () => {
+  it('should compute borrowed amount from usage above nominal quota', () => {
+    expect(mapPrometheusValuesToBorrowingPoints([[1_700_000_000, '14']], 12)).toEqual([
+      {
+        timestampMs: 1_700_000_000_000,
+        gpuUsage: 14,
+        borrowedAmount: 2,
+      },
+    ]);
+  });
+});
+
+describe('findCurrentBorrowingSinceMs', () => {
+  it('should return undefined when the latest point is not borrowing', () => {
+    const since = findCurrentBorrowingSinceMs([
+      { timestampMs: 1, gpuUsage: 14, borrowedAmount: 2 },
+      { timestampMs: 2, gpuUsage: 10, borrowedAmount: 0 },
+    ]);
+
+    expect(since).toBeUndefined();
+  });
+
+  it('should return the start of the current borrowing episode', () => {
+    const since = findCurrentBorrowingSinceMs([
+      { timestampMs: 1_000, gpuUsage: 10, borrowedAmount: 0 },
+      { timestampMs: 2_000, gpuUsage: 10, borrowedAmount: 0 },
+      { timestampMs: 3_000, gpuUsage: 14, borrowedAmount: 2 },
+      { timestampMs: 4_000, gpuUsage: 14, borrowedAmount: 2 },
+    ]);
+
+    expect(since).toBe(3_000);
+  });
+
+  it('should ignore an earlier borrowing episode that already ended', () => {
+    const since = findCurrentBorrowingSinceMs([
+      { timestampMs: 1_000, gpuUsage: 14, borrowedAmount: 2 },
+      { timestampMs: 2_000, gpuUsage: 10, borrowedAmount: 0 },
+      { timestampMs: 3_000, gpuUsage: 14, borrowedAmount: 2 },
+      { timestampMs: 4_000, gpuUsage: 14, borrowedAmount: 2 },
+    ]);
+
+    expect(since).toBe(3_000);
+  });
+});
+
+describe('formatBorrowingSinceDate', () => {
+  it('should format a valid timestamp for display', () => {
+    const formatted = formatBorrowingSinceDate(Date.UTC(2020, 8, 17, 19, 0, 0));
+
+    expect(formatted).toContain('September');
+    expect(formatted).toContain('2020');
+  });
+
+  it('should return a dash for invalid timestamps', () => {
+    expect(formatBorrowingSinceDate(Number.NaN)).toBe('-');
   });
 });
