@@ -49,12 +49,9 @@ export const measureLineageNodeFocusTargets = (
       }
 
       const pillElement = nodeElement.querySelector(LINEAGE_PILL_BACKGROUND_SELECTOR);
-      if (!(pillElement instanceof Element)) {
-        return [];
-      }
-
-      const pillRect = pillElement.getBoundingClientRect();
-      if (pillRect.width <= 0 || pillRect.height <= 0) {
+      const focusElement = pillElement instanceof Element ? pillElement : nodeElement;
+      const focusRect = focusElement.getBoundingClientRect();
+      if (focusRect.width <= 0 || focusRect.height <= 0) {
         return [];
       }
 
@@ -62,11 +59,11 @@ export const measureLineageNodeFocusTargets = (
         {
           id,
           label: nodeElement.getAttribute(LINEAGE_NODE_FOCUS_LABEL_ATTR) ?? node.getLabel(),
-          left: pillRect.left - containerRect.left,
-          top: pillRect.top - containerRect.top,
-          width: pillRect.width,
-          height: pillRect.height,
-          borderRadius: pillRect.height / 2,
+          left: focusRect.left - containerRect.left,
+          top: focusRect.top - containerRect.top,
+          width: focusRect.width,
+          height: focusRect.height,
+          borderRadius: Math.min(focusRect.width, focusRect.height) / 2,
         },
       ];
     });

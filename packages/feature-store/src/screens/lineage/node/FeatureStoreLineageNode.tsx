@@ -103,14 +103,16 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
         const { currentTarget } = e;
         const pillElement =
           currentTarget instanceof Element
-            ? currentTarget.querySelector('[data-testid="lineage-pill-background"]')
+            ? currentTarget.querySelector('[data-testid="lineage-pill-background"]') ??
+              currentTarget.querySelector('foreignObject') ??
+              currentTarget
             : null;
 
         // Store click position and pill element for popover positioning
         setClickPosition({
           x: e.clientX,
           y: e.clientY,
-          pillElement: pillElement instanceof SVGRectElement ? pillElement : null,
+          pillElement,
         });
 
         fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NODE_SELECTED, {
