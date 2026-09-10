@@ -9,8 +9,18 @@ const read = (fileName: string): string => readFileSync(fileName, 'utf8');
 const readYamlScalar = (contents: string, key: string): string | undefined => {
   const value = contents.match(new RegExp(`^${key}:\\s*(.*?)\\s*$`, 'm'))?.[1];
 
-  return value?.replace(/^(['"])(.*)\\1$/, '$2');
+  return value?.replace(/^(['"])(.*)\1$/, '$2');
 };
+
+describe('readYamlScalar', () => {
+  it.each([
+    ['unquoted', 'image: quay.io/example/image', 'quay.io/example/image'],
+    ['single-quoted', "image: 'quay.io/example/image'", 'quay.io/example/image'],
+    ['double-quoted', 'image: "quay.io/example/image"', 'quay.io/example/image'],
+  ])('reads a %s scalar', (_caseName, contents, expected) => {
+    expect(readYamlScalar(contents, 'image')).toBe(expected);
+  });
+});
 
 describe('Agent Ops upstream BFF integration', () => {
   const packageRoot = process.cwd();
@@ -60,6 +70,7 @@ describe('Agent Ops upstream BFF integration', () => {
       { path: '/agent-ops/api', pathRewrite: '/api' },
       { path: '/agent-ops/healthcheck', pathRewrite: '/api/v1/healthz' },
     ]);
+    expect(packageConfig.scripts['cypress:server:e2e:wait']).toContain('/api/v1/healthz');
 
     const registry = read(
       resolve(repositoryRoot, 'dashboard-operator/internal/controller/modules.go'),
@@ -74,7 +85,8 @@ describe('Agent Ops upstream BFF integration', () => {
     const deployment = read(resolve(manifestRoot, 'deployment.yaml'));
     const service = read(resolve(manifestRoot, 'service.yaml'));
     const networkPolicy = read(resolve(manifestRoot, 'networkpolicy.yaml'));
-    const clusterRole = read(resolve(manifestRoot, 'cluster-role.yaml'));
+    const kustomization = read(resolve(manifestRoot, 'kustomization.yaml'));
+    const serviceAccount = read(resolve(manifestRoot, 'service-account.yaml'));
 
     expect(deployment).toContain('path: /api/v1/healthz');
     expect(deployment).toContain('port: 8843');
@@ -93,6 +105,18 @@ describe('Agent Ops upstream BFF integration', () => {
     expect(networkPolicy).toContain('port: 8843');
     expect(networkPolicy).not.toContain('port: 8080');
     expect(networkPolicy).not.toContain('port: 6443');
-    expect(clusterRole).toContain('rules: []');
+    expect(kustomization).not.toContain('cluster-role.yaml');
+    expect(kustomization).not.toContain('cluster-role-binding.yaml');
+    expect(serviceAccount).toContain('automountServiceAccountToken: false');
+    expect(deployment).toContain('serviceAccountName: odh-dashboard-agent-ops');
+  });
+
+  it('starts the pinned BFF with isolated Cypress settings', () => {
+    const makefile = read(resolve(packageRoot, 'Makefile'));
+
+    expect(makefile).toContain('dev-bff-e2e-cluster:');
+    expect(makefile).toContain('--volume "$(E2E_STATIC_ASSETS_DIR):/static:ro"');
+    expect(makefile).toContain('--env "AUTH_DISABLED=true"');
+    expect(makefile).toContain('"$(OPENSHELL_BFF_IMAGE)"');
   });
 });

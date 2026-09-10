@@ -22,8 +22,8 @@ their targets to the upstream runtime:
 The deployed module uses HTTPS on port `8843`, backed by the OpenShift
 serving-cert secret mounted at `/etc/tls/private`. The dashboard proxy forwards
 the authenticated user token in `x-forwarded-access-token`; the upstream BFF
-forwards that identity to the OpenShell gateway. The standard
-`Authorization: Bearer` fallback is used by the command-line ROSA smoke test.
+forwards that identity to the OpenShell gateway. The ROSA integration test uses
+the same proxy header.
 
 This integration assumes the imported upstream image includes inbound BFF TLS
 support. Production promotion still requires an ODH-compatible FIPS provenance
@@ -64,7 +64,8 @@ npm run test:contract
 ```
 
 These tests do not duplicate upstream API behavior. To prove that the assembled
-image can reach a ROSA-hosted gateway with an authenticated request, run:
+image can reach a ROSA-hosted gateway and complete the required authenticated
+workflow, run:
 
 ```bash
 AGENT_OPS_IMAGE=agent-ops-openshell-federated:local \
@@ -72,11 +73,14 @@ OPENSHELL_GATEWAY_URL=grpcs://gateway.example.com:443 \
 GATEWAY_CERT_DIR=/path/to/gateway-certificates \
 ROSA_BEARER_TOKEN=... \
 OPENSHELL_WORKSPACE=my-workspace \
+OPENSHELL_SANDBOX_IMAGE=ghcr.io/nvidia/openshell-community/sandboxes/base:latest \
 npm run test:integration:rosa
 ```
 
-The ROSA check is read-only. It does not print the bearer token or response and
-does not create or delete sandboxes.
+The ROSA check verifies missing and invalid credentials, lists workspaces, and
+creates then deletes a temporary `odh-poc-*` sandbox. It checks responses and
+container logs for token leakage. The cleanup hook deletes the sandbox if an
+assertion fails after creation.
 
 ## Scope
 

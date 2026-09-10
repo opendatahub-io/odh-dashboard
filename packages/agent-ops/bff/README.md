@@ -119,6 +119,12 @@ This setting is for local development only. Do not use it for a deployed BFF.
 An `oc whoami -t` token works only when the OpenShell gateway is configured to
 accept that token's issuer and audience.
 
+Run `npm run test:integration:rosa` from the package root to exercise the
+authenticated black-box contract. The test requires `AGENT_OPS_IMAGE`,
+`OPENSHELL_GATEWAY_URL`, `OPENSHELL_WORKSPACE`, `OPENSHELL_SANDBOX_IMAGE`, and
+`ROSA_BEARER_TOKEN`. It creates and deletes a temporary sandbox in the selected
+workspace and fails if a bearer token appears in a response or container log.
+
 Gateway features depend on the gateway version. In particular, lifecycle
 endpoints such as sandbox stop and start require a gateway that implements
 those operations.

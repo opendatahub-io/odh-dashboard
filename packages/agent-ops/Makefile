@@ -77,15 +77,18 @@ dev-start-kubeflow: docker-build-federated ## Build and run the BFF with the Kub
 ############ E2E and Integration ############
 
 E2E_BFF_PORT ?= 4021
+E2E_GATEWAY_URL ?= grpc://127.0.0.1:1
+E2E_STATIC_ASSETS_DIR ?= $(CURDIR)/frontend/public-cypress
 
 .PHONY: dev-bff-e2e-cluster test-contract test-integration-rosa
-dev-bff-e2e-cluster: ## Run the assembled BFF image on E2E_BFF_PORT.
-	$(MAKE) dev-bff BFF_PORT=$(E2E_BFF_PORT)
+dev-bff-e2e-cluster: ## Run the pinned BFF with Cypress assets and isolated test settings.
+	@test -d "$(E2E_STATIC_ASSETS_DIR)" || (echo "E2E assets are missing; run npm run cypress:server:build first" >&2; exit 1)
+	$(CONTAINER_TOOL) run --rm --name "$(BFF_CONTAINER_NAME)-e2e" --publish "127.0.0.1:$(E2E_BFF_PORT):8080" --volume "$(E2E_STATIC_ASSETS_DIR):/static:ro" --env "STATIC_DIR=/static" --env "AUTH_DISABLED=true" --env "OPENSHELL_GATEWAY_URL=$(E2E_GATEWAY_URL)" "$(OPENSHELL_BFF_IMAGE)"
 
 test-contract: ## Run downstream image and module integration checks.
 	npm run test:contract
 
-test-integration-rosa: ## Run the read-only ROSA gateway smoke test.
+test-integration-rosa: ## Run the authenticated ROSA gateway integration test.
 	npm run test:integration:rosa
 
 ############ Build and Push ############
