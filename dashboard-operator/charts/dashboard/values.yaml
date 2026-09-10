@@ -84,6 +84,7 @@ relatedImages:
   RELATED_IMAGE_ODH_AUTOML_IMAGE: ""
   RELATED_IMAGE_ODH_AUTORAG_IMAGE: ""
   RELATED_IMAGE_ODH_CORE_BFF_IMAGE: ""
+  RELATED_IMAGE_POSTGRESQL_16_IMAGE: ""
 
 config:
   name: odh-dashboard-config
