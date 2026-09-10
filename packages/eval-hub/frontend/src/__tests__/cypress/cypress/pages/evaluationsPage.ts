@@ -68,6 +68,10 @@ class EvaluationsPage {
     return cy.findByTestId('create-suite-button');
   }
 
+  findStartSingleBenchmarkButton() {
+    return cy.findByTestId('start-single-benchmark-button');
+  }
+
   findBenchmarkSuiteCard(collectionId: string) {
     return cy.findByTestId(`benchmark-suite-card-${collectionId}`);
   }

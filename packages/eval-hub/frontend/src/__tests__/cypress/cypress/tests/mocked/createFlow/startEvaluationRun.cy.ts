@@ -100,9 +100,10 @@ const initBaseIntercepts = () => {
   mockVerifyConnectionSuccess();
 };
 
-const selectSourceMode = (mode: 'Model' | 'Agent' | 'Pre-recorded responses') => {
+const selectSourceMode = (mode: 'Model' | 'Agent') => {
+  const modeValue = mode === 'Model' ? 'model' : 'agent';
   startEvaluationRunPage.findSourceModeToggle().click();
-  cy.findByRole('option', { name: mode }).click();
+  startEvaluationRunPage.findSourceModeOption(modeValue).click();
 };
 
 const selectExternalEndpoint = () => {
@@ -182,15 +183,13 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     startEvaluationRunPage.findSourceModeToggle().should('contain.text', 'Model');
     startEvaluationRunPage.findModelPickerToggle().should('exist');
 
-    selectSourceMode('Agent');
+    startEvaluationRunPage.findSourceModeToggle().click();
+    startEvaluationRunPage.findSourceModeOption('prerecorded').should('not.exist');
+    startEvaluationRunPage.findSourceModeOption('agent').click();
+
     startEvaluationRunPage.findAgentNameInput().should('exist');
     startEvaluationRunPage.findEndpointUrlInput().should('exist');
     startEvaluationRunPage.findModelPickerToggle().should('not.exist');
-
-    selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findSourceNameInput().should('exist');
-    startEvaluationRunPage.findDatasetUrlInput().should('exist');
-    startEvaluationRunPage.findAgentNameInput().should('not.exist');
   });
 
   it('should show external model fields when selecting Other (External endpoint)', () => {
@@ -593,37 +592,6 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
   });
 });
 
-describe('Start Evaluation Run - Pre-recorded Mode', () => {
-  beforeEach(() => {
-    initBaseIntercepts();
-    mockMlflowExperiments([]);
-  });
-
-  it('should submit with pre-recorded responses fields', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-003',
-      name: 'prerecorded-eval',
-      state: 'running',
-    });
-
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createPrerecordedJob',
-    );
-
-    navigateToBenchmarkStart();
-
-    selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
-    startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
-    startEvaluationRunPage.findSubmitButton().should('be.enabled');
-    startEvaluationRunPage.findSubmitButton().click();
-
-    cy.wait('@createPrerecordedJob').then((interception) => {
-      expect(interception.request.body.model).to.have.property('name', 'gpt-4-responses');
-    });
-  });
-});
-
 describe('Start Evaluation Run - Cancel', () => {
   beforeEach(() => {
     initBaseIntercepts();
@@ -750,27 +718,6 @@ describe('Start Evaluation Run - Connection Validation', () => {
 
     startEvaluationRunPage.findModelPickerToggle().click();
     cy.findByTestId('model-option-llama-3.2-1b-instruct').click();
-
-    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
-  });
-
-  it('should not show validate connection button for pre-recorded mode', () => {
-    navigateToBenchmarkStart();
-
-    selectSourceMode('Pre-recorded responses');
-
-    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
-  });
-
-  it('should not show validate connection button after switching from external model to pre-recorded mode', () => {
-    navigateToBenchmarkStart();
-
-    selectExternalEndpoint();
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
-    startEvaluationRunPage.findValidateConnectionButton().should('exist');
-
-    selectSourceMode('Pre-recorded responses');
 
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });

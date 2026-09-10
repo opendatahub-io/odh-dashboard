@@ -63,10 +63,15 @@ import {
 
 import './StartEvaluationRunPage.css';
 
+const SOURCE_MODE_LABELS: Record<SourceMode, string> = {
+  model: 'Model',
+  agent: 'Agent',
+  prerecorded: 'Pre-recorded responses',
+};
+
 const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
   { value: 'model', label: 'Model' },
   { value: 'agent', label: 'Agent' },
-  { value: 'prerecorded', label: 'Pre-recorded responses' },
 ];
 
 type StartEvaluationRunPageProps = {
@@ -321,7 +326,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             label={
               <FormGroupLabel
                 label="Evaluating"
-                description="Select the model, agent, or dataset to evaluate."
+                description="Select the model or agent to evaluate."
                 isRequired
               />
             }
@@ -343,7 +348,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
                   isFullWidth
                   data-testid="source-mode-toggle"
                 >
-                  {SOURCE_OPTIONS.find((o) => o.value === form.sourceMode)?.label}
+                  {SOURCE_MODE_LABELS[form.sourceMode]}
                 </MenuToggle>
               )}
               shouldFocusToggleOnSelect
@@ -353,6 +358,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
                   <SelectOption
                     key={opt.value}
                     value={opt.value}
+                    data-testid={`source-mode-option-${opt.value}`}
                     isSelected={opt.value === form.sourceMode}
                   >
                     {opt.label}

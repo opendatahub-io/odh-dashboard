@@ -74,6 +74,12 @@ describe('Evaluations Page - Tabs', () => {
       );
   });
 
+  it('should navigate to the single benchmark flow from the Evaluate tab', () => {
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findStartSingleBenchmarkButton().click();
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
+  });
+
   it('should switch to Runs and render its content description', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findRunsTab().click();

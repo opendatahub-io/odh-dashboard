@@ -180,6 +180,15 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should link to the single benchmark flow from the Evaluate tab', () => {
+    renderPage('test-project');
+
+    expect(screen.getByTestId('start-single-benchmark-button')).toHaveAttribute(
+      'href',
+      '/evaluation/test-project/create/benchmarks',
+    );
+  });
+
   it('should use the Runs tab from the URL and render its content description', () => {
     const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
     mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
