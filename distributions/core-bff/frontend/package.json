@@ -39,6 +39,7 @@
     "start:default": "STYLE_THEME=patternfly-theme pnpm run start:dev"
   },
   "devDependencies": {
+    "@odh-dashboard/jest-config": "workspace:*",
     "@eslint/js": "^9.18.0",
     "@eslint/markdown": "^6.3.0",
     "@module-federation/enhanced": "^0.24.1",

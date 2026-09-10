@@ -6,7 +6,8 @@
   "types": "types.d.ts",
   "exports": {
     ".": "./jest.config.ts",
-    "./hooks": "./src/hooks.ts"
+    "./hooks": "./src/hooks.ts",
+    "./pnpm": "./src/pnpm.js"
   },
   "scripts": {
     "lint": "eslint .",

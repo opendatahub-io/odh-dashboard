@@ -443,6 +443,9 @@ importers:
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../../packages/jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
@@ -1441,9 +1444,6 @@ importers:
         specifier: ^7.18.2
         version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@odh-dashboard/app-config':
-        specifier: workspace:*
-        version: link:../../app-config
       '@eslint/js':
         specifier: ^9.18.0
         version: 9.39.5
@@ -1462,6 +1462,12 @@ importers:
       '@mui/types':
         specifier: ^7.4.7
         version: 7.4.12(@types/react@18.3.31)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
@@ -1838,9 +1844,6 @@ importers:
         specifier: ^5.0.10
         version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
-      '@odh-dashboard/app-config':
-        specifier: workspace:*
-        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -1853,6 +1856,12 @@ importers:
       '@mui/types':
         specifier: ^7.4.7
         version: 7.4.12(@types/react@18.3.31)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
@@ -2213,9 +2222,6 @@ importers:
         specifier: ^5.0.10
         version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
-      '@odh-dashboard/app-config':
-        specifier: workspace:*
-        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -2231,6 +2237,12 @@ importers:
       '@mui/types':
         specifier: ^7.4.7
         version: 7.4.12(@types/react@18.3.31)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
@@ -2537,6 +2549,9 @@ importers:
         specifier: ^4.3.6
         version: 4.4.3
     devDependencies:
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@testing-library/jest-dom':
         specifier: ^6.6.2
         version: 6.10.0(@testing-library/dom@10.4.1)
@@ -2875,12 +2890,15 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@odh-dashboard/app-config':
-        specifier: workspace:*
-        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
@@ -3264,9 +3282,6 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0
     devDependencies:
-      '@odh-dashboard/app-config':
-        specifier: workspace:*
-        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -3279,6 +3294,12 @@ importers:
       '@mui/types':
         specifier: ^7.4.7
         version: 7.4.12(@types/react@18.3.31)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
@@ -3652,12 +3673,15 @@ importers:
         specifier: ^5.0.10
         version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
-      '@odh-dashboard/app-config':
-        specifier: workspace:*
-        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.5.15
         version: 0.5.17(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)
@@ -4342,9 +4366,6 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
-      '@odh-dashboard/app-config':
-        specifier: workspace:*
-        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -4357,6 +4378,12 @@ importers:
       '@mui/types':
         specifier: ^7.4.7
         version: 7.4.12(@types/react@18.3.31)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
@@ -4718,9 +4745,6 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0
     devDependencies:
-      '@odh-dashboard/app-config':
-        specifier: workspace:*
-        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -4733,6 +4757,12 @@ importers:
       '@mui/types':
         specifier: ^7.4.7
         version: 7.4.12(@types/react@18.3.31)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)

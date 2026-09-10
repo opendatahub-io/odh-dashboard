@@ -1,6 +1,4 @@
-const {
-  pnpmTransformIgnorePatterns,
-} = require('../../../scripts/jest/pnpmTransformIgnorePatterns');
+const { pnpmTransformIgnorePatterns } = require('@odh-dashboard/jest-config/pnpm');
 
 module.exports = {
   roots: ['<rootDir>/src/'],

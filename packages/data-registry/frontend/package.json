@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/app-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@module-federation/enhanced": "^0.24.1",
     "@rsdoctor/rspack-plugin": "^1.6.1",
     "@rspack/cli": "2.1.10",
