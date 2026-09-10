@@ -10,8 +10,10 @@ const benchmarks: CopySuiteBenchmark[] = [
     name: 'ARC Easy',
     weight: 0.5,
     primaryMetric: 'accuracy',
-    numSamples: 100,
-    numFewShot: 2,
+    parameters: [
+      { key: 'num_examples', type: 'number', value: 100 },
+      { key: 'num_few_shot', type: 'number', value: 2 },
+    ],
     threshold: 70,
     availableMetrics: ['accuracy', 'f1'],
   },
@@ -21,8 +23,10 @@ const benchmarks: CopySuiteBenchmark[] = [
     name: 'TruthfulQA',
     weight: 0.5,
     primaryMetric: 'accuracy',
-    numSamples: 200,
-    numFewShot: 3,
+    parameters: [
+      { key: 'num_examples', type: 'number', value: 200 },
+      { key: 'num_few_shot', type: 'number', value: 3 },
+    ],
     threshold: 75,
     availableMetrics: ['accuracy'],
   },
@@ -48,8 +52,8 @@ describe('BenchmarkConfigAccordion', () => {
     expect(screen.getByText('ARC Easy')).toBeInTheDocument();
     expect(screen.getByText('provider-one-arc_easy')).toBeInTheDocument();
     expect(screen.getByText('TruthfulQA')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-samples-input-0')).toHaveValue(100);
-    expect(screen.getByTestId('benchmark-few-shot-input-1')).toHaveValue(3);
+    expect(screen.getByTestId('benchmark-0-parameter-input-num_examples')).toHaveValue(100);
+    expect(screen.getByTestId('benchmark-1-parameter-input-num_few_shot')).toHaveValue(3);
     expect(screen.getAllByRole('spinbutton', { name: 'Threshold' })).toHaveLength(2);
     expect(screen.getAllByRole('button', { name: 'Remove' })).toHaveLength(2);
   });
@@ -63,11 +67,13 @@ describe('BenchmarkConfigAccordion', () => {
     fireEvent.click(toggle);
 
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByTestId('benchmark-samples-input-0')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-0-parameter-input-num_examples'),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('ARC Easy')).toBeInTheDocument();
 
     fireEvent.click(toggle);
-    expect(screen.getByTestId('benchmark-samples-input-0')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-0-parameter-input-num_examples')).toBeInTheDocument();
   });
 
   it('should expand newly added benchmarks while preserving explicit collapse state', () => {
@@ -89,7 +95,7 @@ describe('BenchmarkConfigAccordion', () => {
       'aria-expanded',
       'true',
     );
-    expect(screen.getByTestId('benchmark-samples-input-1')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-1-parameter-input-num_examples')).toBeInTheDocument();
   });
 
   it('should keep expansion state attached to a benchmark when an earlier benchmark is removed', () => {
@@ -142,15 +148,12 @@ describe('BenchmarkConfigAccordion', () => {
     expect(onUpdate).toHaveBeenNthCalledWith(2, 0, 'lowerIsBetter', true);
   });
 
-  it('should update the sample count, few-shot example count, and threshold', () => {
+  it('should update a dynamic parameter and threshold', () => {
     const onUpdate = jest.fn();
-    renderAccordion({ onUpdate, benchmarks: [{ ...benchmarks[0], datasetSize: 817 }] });
+    renderAccordion({ onUpdate });
 
-    fireEvent.change(screen.getByTestId('benchmark-samples-input-0'), {
+    fireEvent.change(screen.getByTestId('benchmark-0-parameter-input-num_examples'), {
       target: { value: '500' },
-    });
-    fireEvent.change(screen.getByTestId('benchmark-few-shot-input-0'), {
-      target: { value: '9' },
     });
     const thresholdInput = screen.getAllByRole('spinbutton', { name: 'Threshold' })[0];
     fireEvent.change(thresholdInput, {
@@ -158,52 +161,25 @@ describe('BenchmarkConfigAccordion', () => {
     });
     fireEvent.blur(thresholdInput);
 
-    expect(onUpdate).toHaveBeenCalledWith(0, 'numSamples', 500);
-    expect(onUpdate).toHaveBeenCalledWith(0, 'numFewShot', 9);
+    expect(onUpdate).toHaveBeenCalledWith(0, 'parameters', [
+      { key: 'num_examples', type: 'number', value: 500 },
+      { key: 'num_few_shot', type: 'number', value: 2 },
+    ]);
     expect(onUpdate).toHaveBeenCalledWith(0, 'threshold', 85);
   });
 
-  it('should clamp sample count to at least 1 and at most the dataset size', () => {
+  it('should allow clearing a dynamic parameter', () => {
     const onUpdate = jest.fn();
-    renderAccordion({
-      onUpdate,
-      benchmarks: [{ ...benchmarks[0], datasetSize: 200 }],
-    });
+    renderAccordion({ onUpdate });
 
-    fireEvent.change(screen.getByTestId('benchmark-samples-input-0'), {
-      target: { value: '0' },
-    });
-    expect(onUpdate).toHaveBeenCalledWith(0, 'numSamples', 1);
-
-    fireEvent.change(screen.getByTestId('benchmark-samples-input-0'), {
-      target: { value: '500' },
-    });
-    expect(onUpdate).toHaveBeenCalledWith(0, 'numSamples', 200);
-  });
-
-  it('should expose min and max attributes when dataset size is available', () => {
-    renderAccordion({ benchmarks: [{ ...benchmarks[0], datasetSize: 200 }] });
-
-    expect(screen.getByTestId('benchmark-samples-input-0')).toHaveAttribute('min', '1');
-    expect(screen.getByTestId('benchmark-samples-input-0')).toHaveAttribute('max', '200');
-  });
-
-  it('should omit the max attribute when dataset size is unavailable', () => {
-    renderAccordion({ benchmarks: [benchmarks[0]] });
-
-    expect(screen.getByTestId('benchmark-samples-input-0')).toHaveAttribute('min', '1');
-    expect(screen.getByTestId('benchmark-samples-input-0')).not.toHaveAttribute('max');
-  });
-
-  it('should allow clearing the sample count', () => {
-    const onUpdate = jest.fn();
-    renderAccordion({ onUpdate, benchmarks: [{ ...benchmarks[0], datasetSize: 200 }] });
-
-    fireEvent.change(screen.getByTestId('benchmark-samples-input-0'), {
+    fireEvent.change(screen.getByTestId('benchmark-0-parameter-input-num_examples'), {
       target: { value: '' },
     });
 
-    expect(onUpdate).toHaveBeenCalledWith(0, 'numSamples', undefined);
+    expect(onUpdate).toHaveBeenCalledWith(0, 'parameters', [
+      { key: 'num_examples', type: 'number' },
+      { key: 'num_few_shot', type: 'number', value: 2 },
+    ]);
   });
 
   it('should remove a benchmark when requested', () => {

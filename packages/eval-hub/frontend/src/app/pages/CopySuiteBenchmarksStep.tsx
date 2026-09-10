@@ -278,8 +278,8 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
 
 const PageHeader: React.FC = () => (
   <Content component="p" data-testid="copy-suite-benchmarks-description">
-    Choose the primary metric, number of samples, number of few-shot examples, and threshold used to
-    calculate the result for each benchmark.
+    Choose the primary metric, benchmark parameters, and threshold used to calculate the result for
+    each benchmark.
   </Content>
 );
 

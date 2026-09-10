@@ -17,6 +17,7 @@ const benchmark: CopySuiteBenchmark = {
   providerId: 'provider-one',
   name: 'Benchmark One',
   weight: 0.2,
+  parameters: [],
   threshold: 70,
   availableMetrics: [],
 };
@@ -46,13 +47,34 @@ describe('CopySuiteBenchmarkSection', () => {
 
   it('should surface advanced parameter validation errors', () => {
     renderSection({
-      benchmark: { ...benchmark, additionalParameters: '{"limit": 20}' },
+      benchmark: {
+        ...benchmark,
+        parameters: [{ key: 'limit', type: 'number', value: 20 }],
+        additionalParameters: '{"limit": 20}',
+      },
       additionalParametersError: 'Use the dedicated fields for limit.',
     });
 
     expect(screen.getByTestId('benchmark-additional-parameters-error-0')).toHaveTextContent(
       'Use the dedicated fields for limit.',
     );
+  });
+
+  it('should render dynamic benchmark parameters with the API value type', () => {
+    renderSection({
+      benchmark: {
+        ...benchmark,
+        parameters: [
+          { key: 'secondary_threshold', type: 'number', value: 0.7 },
+          { key: 'secondary_metric', type: 'text', value: 'accuracy_amb' },
+          { key: 'enabled', type: 'boolean', value: true },
+        ],
+      },
+    });
+
+    expect(screen.getByLabelText('Secondary metric')).toHaveValue('accuracy_amb');
+    expect(screen.getByLabelText('Secondary threshold')).toHaveAttribute('type', 'number');
+    expect(screen.getByLabelText('Enabled')).toHaveValue('true');
   });
 
   it('should close and disable a primary-metric menu when interaction is locked', async () => {

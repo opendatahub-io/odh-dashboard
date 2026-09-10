@@ -6,22 +6,20 @@ import {
   FileUpload,
   FormGroup,
   FormHelperText,
-  Grid,
-  GridItem,
   HelperText,
   HelperTextItem,
   MenuToggle,
   Select,
   SelectList,
   SelectOption,
-  TextInput,
 } from '@patternfly/react-core';
 import { PencilAltIcon } from '@patternfly/react-icons';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { getMetricDisplayName } from '~/app/components/benchmarkUtils';
+import DynamicBenchmarkParameterFields from '~/app/components/DynamicBenchmarkParameterFields';
 import {
-  clampNumSamples,
   getBenchmarkKey,
+  updateBenchmarkParameter,
   type CopySuiteBenchmark,
 } from '~/app/pages/useCopySuiteForm';
 
@@ -172,51 +170,18 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
           </FormGroup>
         ) : null}
 
-        <Grid hasGutter>
-          <GridItem span={6}>
-            <FormGroup label="Number of samples" fieldId={`${itemId}-samples`}>
-              <TextInput
-                id={`${itemId}-samples`}
-                data-testid={`benchmark-samples-input-${index}`}
-                type="number"
-                min={1}
-                max={benchmark.datasetSize}
-                value={benchmark.numSamples ?? ''}
-                isDisabled={isInteractionDisabled}
-                onChange={(_event, value) => {
-                  if (value === '') {
-                    onUpdate(index, 'numSamples', undefined);
-                    return;
-                  }
-                  const num = Number(value);
-                  onUpdate(index, 'numSamples', clampNumSamples(num, benchmark.datasetSize));
-                }}
-              />
-              {benchmark.datasetSize != null ? (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>Total dataset size: {benchmark.datasetSize}</HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              ) : null}
-            </FormGroup>
-          </GridItem>
-          <GridItem span={6}>
-            <FormGroup label="Number of few-shot examples" fieldId={`${itemId}-few-shot`}>
-              <TextInput
-                id={`${itemId}-few-shot`}
-                data-testid={`benchmark-few-shot-input-${index}`}
-                type="number"
-                value={benchmark.numFewShot ?? ''}
-                isDisabled={isInteractionDisabled}
-                onChange={(_event, value) => {
-                  const num = value === '' ? undefined : Number(value);
-                  onUpdate(index, 'numFewShot', num);
-                }}
-              />
-            </FormGroup>
-          </GridItem>
-        </Grid>
+        <DynamicBenchmarkParameterFields
+          parameters={benchmark.parameters}
+          itemId={itemId}
+          isDisabled={isInteractionDisabled}
+          onChange={(key, value) =>
+            onUpdate(
+              index,
+              'parameters',
+              updateBenchmarkParameter(benchmark.parameters, key, value),
+            )
+          }
+        />
 
         <BenchmarkThresholdField
           value={benchmark.threshold}
@@ -282,7 +247,7 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
               }}
               browseButtonText="Upload"
               allowEditingUploadedText
-              textAreaPlaceholder={'{\n  "num_examples": 10\n}'}
+              textAreaPlaceholder={'{\n  "other_parameter": "value"\n}'}
               dropzoneProps={{
                 accept: { 'application/json': ['.json'] },
                 disabled: isInteractionDisabled,

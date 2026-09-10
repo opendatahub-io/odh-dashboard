@@ -5,7 +5,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { cloneCollection, createCollection } from '~/app/api/k8s';
 import { useNotification } from '~/app/hooks/useNotification';
-import { useCopySuiteForm, clampNumSamples } from '~/app/pages/useCopySuiteForm';
+import { updateBenchmarkParameter, useCopySuiteForm } from '~/app/pages/useCopySuiteForm';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, Provider } from '~/app/types';
 
@@ -126,28 +126,6 @@ beforeEach(() => {
   mockUseNotification.mockReturnValue(mockNotification);
 });
 
-describe('clampNumSamples', () => {
-  it('should return undefined for blank or invalid values', () => {
-    expect(clampNumSamples(undefined, 100)).toBeUndefined();
-    expect(clampNumSamples(Number.NaN, 100)).toBeUndefined();
-  });
-
-  it('should enforce a minimum of 1', () => {
-    expect(clampNumSamples(0, 100)).toBe(1);
-    expect(clampNumSamples(-5, 100)).toBe(1);
-  });
-
-  it('should enforce the dataset size maximum when available', () => {
-    expect(clampNumSamples(500, 200)).toBe(200);
-    expect(clampNumSamples(50, 200)).toBe(50);
-  });
-
-  it('should only enforce the minimum when dataset size is unavailable', () => {
-    expect(clampNumSamples(500)).toBe(500);
-    expect(clampNumSamples(0)).toBe(1);
-  });
-});
-
 describe('useCopySuiteForm', () => {
   it('should initialize suite fields and benchmark fields from the source collection', async () => {
     const result = renderForm();
@@ -172,9 +150,11 @@ describe('useCopySuiteForm', () => {
         name: 'Benchmark One',
         weight: 1,
         primaryMetric: 'accuracy',
-        numSamples: 250,
-        datasetSize: 1000,
-        numFewShot: 3,
+        parameters: [
+          { key: 'num_examples', type: 'number', value: 250 },
+          { key: 'num_few_shot', type: 'number', value: 3 },
+        ],
+        additionalParameters: '',
         threshold: 75,
         availableMetrics: ['accuracy', 'f1'],
       }),
@@ -277,6 +257,7 @@ describe('useCopySuiteForm', () => {
           providerId: 'provider-one',
           name: 'Benchmark One',
           weight: 1,
+          parameters: [],
           threshold: 70,
           availableMetrics: [],
         },
@@ -335,6 +316,7 @@ describe('useCopySuiteForm', () => {
           providerId: 'provider-one',
           name: 'Benchmark One',
           weight: 1,
+          parameters: [],
           threshold: 70,
           availableMetrics: [],
         },
@@ -376,6 +358,7 @@ describe('useCopySuiteForm', () => {
           providerId: 'provider-one',
           name: 'Benchmark One',
           weight: 1,
+          parameters: [],
           threshold: 70,
           availableMetrics: [],
         },
@@ -420,6 +403,7 @@ describe('useCopySuiteForm', () => {
           providerId: 'provider-one',
           name: 'Benchmark One',
           weight: 1,
+          parameters: [],
           threshold: 70,
           availableMetrics: [],
         },
@@ -505,7 +489,7 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteEvaluates).toEqual(['guardrails']);
   });
 
-  it('should map num_fewshot parameters to the few-shot field and exclude them from advanced JSON', async () => {
+  it('should map returned primitive parameters to fields and keep other parameters in JSON', async () => {
     const collectionWithFewShotAlias: Collection = {
       ...sourceCollection,
       benchmarks: [
@@ -530,17 +514,82 @@ describe('useCopySuiteForm', () => {
 
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({
-        numFewShot: 0,
-        additionalParameters: JSON.stringify(
-          {
-            blocking_subtask: 'harmless',
-            blocking_subtask_threshold: 0.7,
-          },
-          null,
-          2,
-        ),
+        parameters: [
+          { key: 'blocking_subtask', type: 'text', value: 'harmless' },
+          { key: 'blocking_subtask_threshold', type: 'number', value: 0.7 },
+          { key: 'num_examples', type: 'number', value: 250 },
+          { key: 'num_fewshot', type: 'number', value: 0 },
+        ],
+        additionalParameters: '',
       }),
     );
+  });
+
+  it('should retain complex parameters in advanced JSON while rendering primitive parameters', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            ...sourceCollection.benchmarks![0],
+            parameters: {
+              secondary_metric: 'accuracy_amb',
+              secondary_threshold: 0.7,
+              enabled: true,
+              nested: { mode: 'strict' },
+            },
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    expect(result.result.current.benchmarks[0].parameters).toEqual([
+      { key: 'enabled', type: 'boolean', value: true },
+      { key: 'secondary_metric', type: 'text', value: 'accuracy_amb' },
+      { key: 'secondary_threshold', type: 'number', value: 0.7 },
+    ]);
+    expect(result.result.current.benchmarks[0].additionalParameters).toBe(
+      JSON.stringify({ nested: { mode: 'strict' } }, null, 2),
+    );
+  });
+
+  it('should serialize edited dynamic values and omit cleared fields from the payload', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            ...sourceCollection.benchmarks![0],
+            parameters: {
+              enabled: true,
+              secondary_metric: 'accuracy_amb',
+              secondary_threshold: 0.7,
+              nested: { mode: 'strict' },
+            },
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    act(() => {
+      const [{ parameters: initialParameters }] = result.result.current.benchmarks;
+      let parameters = initialParameters;
+      parameters = updateBenchmarkParameter(parameters, 'enabled', 'false');
+      parameters = updateBenchmarkParameter(parameters, 'secondary_threshold', '0.8');
+      parameters = updateBenchmarkParameter(parameters, 'secondary_metric', '');
+      result.result.current.updateBenchmark(0, 'parameters', parameters);
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].parameters).toEqual({
+      enabled: false,
+      nested: { mode: 'strict' },
+      secondary_threshold: 0.8,
+    });
   });
 
   it('should initialize with loaded providers when the collection resolves first', async () => {
@@ -586,9 +635,8 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({
         id: 'benchmark-one',
         name: 'Benchmark One',
-        datasetSize: 1000,
-        numSamples: 1000,
-        numFewShot: 5,
+        parameters: [],
+        additionalParameters: '',
         primaryMetric: 'accuracy',
         threshold: 70,
         availableMetrics: ['accuracy', 'f1'],
@@ -596,7 +644,7 @@ describe('useCopySuiteForm', () => {
     ]);
   });
 
-  it('should clamp an oversized saved limit to the provider dataset size on init', async () => {
+  it('should treat limit as a regular dynamic parameter', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -609,17 +657,17 @@ describe('useCopySuiteForm', () => {
       },
     });
 
-    await waitFor(() => expect(result.result.current.benchmarks[0].numSamples).toBe(1000));
-
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({
-        numSamples: 1000,
-        datasetSize: 1000,
+        parameters: [
+          { key: 'limit', type: 'number', value: 1500 },
+          { key: 'num_few_shot', type: 'number', value: 3 },
+        ],
       }),
     );
   });
 
-  it('should default numSamples to dataset size when the collection has no saved limit', async () => {
+  it('should initialize an empty dynamic parameter list when the collection has no parameters', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -634,12 +682,10 @@ describe('useCopySuiteForm', () => {
       },
     });
 
-    await waitFor(() => expect(result.result.current.benchmarks[0].numSamples).toBe(1000));
-
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({
-        numSamples: 1000,
-        datasetSize: 1000,
+        parameters: [],
+        additionalParameters: '',
       }),
     );
   });
@@ -653,7 +699,12 @@ describe('useCopySuiteForm', () => {
       result.result.current.setSuiteDescription('Updated description');
       result.result.current.setSuiteEvaluates(['traces']);
       result.result.current.handleSuiteThresholdChange(65);
-      result.result.current.updateBenchmark(0, 'numSamples', 500);
+      const [benchmark] = result.result.current.benchmarks;
+      result.result.current.updateBenchmark(
+        0,
+        'parameters',
+        updateBenchmarkParameter(benchmark.parameters, 'num_examples', '500'),
+      );
       result.result.current.updateBenchmark(0, 'threshold', 85);
     });
 
@@ -662,7 +713,13 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteEvaluates).toEqual(['traces']);
     expect(result.result.current.suiteThreshold).toBe(65);
     expect(result.result.current.benchmarks[0]).toEqual(
-      expect.objectContaining({ numSamples: 500, threshold: 85 }),
+      expect.objectContaining({
+        parameters: [
+          { key: 'num_examples', type: 'number', value: 500 },
+          { key: 'num_few_shot', type: 'number', value: 3 },
+        ],
+        threshold: 85,
+      }),
     );
   });
 
@@ -850,14 +907,14 @@ describe('useCopySuiteForm', () => {
       result.result.current.updateBenchmark(
         0,
         'additionalParameters',
-        '{"num_examples": 999, "num_fewshot": 20, "blocking_subtask": "harmless"}',
+        '{"num_examples": 999, "num_few_shot": 20, "blocking_subtask": "harmless"}',
       ),
     );
 
     await waitFor(() =>
       expect(
         result.result.current.form.formState.errors.benchmarks?.[0]?.additionalParameters?.message,
-      ).toBe('Use the dedicated fields for num_examples, num_fewshot.'),
+      ).toBe('Use the dedicated fields for num_examples, num_few_shot.'),
     );
 
     const pending = result.result.current.buildPendingCollection();
@@ -1009,6 +1066,7 @@ describe('useCopySuiteForm', () => {
           providerId: 'provider-one',
           name: 'Benchmark One',
           weight: 1,
+          parameters: [],
           threshold: 70,
           availableMetrics: [],
         },

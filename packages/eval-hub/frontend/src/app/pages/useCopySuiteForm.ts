@@ -14,7 +14,8 @@ import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/c
 import {
   copySuiteDefaultValues,
   copySuiteSchema,
-  RESERVED_BENCHMARK_PARAMETER_KEYS,
+  type CopySuiteBenchmarkParameter,
+  type CopySuiteBenchmarkParameterType,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
 import type {
@@ -27,7 +28,6 @@ import type {
 
 const DEFAULT_SUITE_THRESHOLD = 70;
 const MIN_WEIGHT_PERCENT = 5;
-const RESERVED_PARAMETER_KEYS = new Set<string>(RESERVED_BENCHMARK_PARAMETER_KEYS);
 export const MAX_BENCHMARKS = 10;
 
 export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];
@@ -35,45 +35,67 @@ export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];
 export const getBenchmarkKey = (benchmark: { providerId: string; id: string }): string =>
   `${benchmark.providerId}:${benchmark.id}`;
 
-export const clampNumSamples = (
-  value: number | undefined,
-  datasetSize?: number,
-): number | undefined => {
-  if (value == null || Number.isNaN(value)) {
-    return undefined;
-  }
-  let clamped = Math.max(1, value);
-  if (datasetSize != null) {
-    clamped = Math.min(datasetSize, clamped);
-  }
-  return clamped;
-};
+const isDynamicParameterValue = (value: unknown): value is string | number | boolean =>
+  typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 
-const extractNumFewShot = (parameters?: Record<string, unknown>): number | undefined => {
-  /* eslint-disable camelcase */
-  if (parameters?.num_few_shot != null) {
-    return Number(parameters.num_few_shot);
-  }
-  if (parameters?.num_fewshot != null) {
-    return Number(parameters.num_fewshot);
-  }
-  /* eslint-enable camelcase */
-  return undefined;
-};
+const getDynamicParameterType = (
+  value: string | number | boolean,
+): CopySuiteBenchmarkParameterType =>
+  typeof value === 'number' ? 'number' : typeof value === 'boolean' ? 'boolean' : 'text';
 
-const extractAdditionalParameters = (parameters?: Record<string, unknown>): string => {
-  if (!parameters) {
-    return '';
-  }
-  /* eslint-disable camelcase */
-  const extra = Object.fromEntries(
-    Object.entries(parameters).filter(([key]) => !RESERVED_PARAMETER_KEYS.has(key)),
+const splitBenchmarkParameters = (
+  parameters?: Record<string, unknown>,
+): { parameters: CopySuiteBenchmarkParameter[]; additionalParameters: string } => {
+  const dynamicParameters: CopySuiteBenchmarkParameter[] = [];
+  const additionalParameters: Record<string, unknown> = {};
+
+  Object.entries(parameters ?? {}).forEach(([key, value]) => {
+    if (isDynamicParameterValue(value)) {
+      dynamicParameters.push({ key, type: getDynamicParameterType(value), value });
+    } else {
+      additionalParameters[key] = value;
+    }
+  });
+
+  const sortedDynamicParameters = dynamicParameters.toSorted((left, right) =>
+    left.key.localeCompare(right.key),
   );
-  /* eslint-enable camelcase */
-  return Object.keys(extra).length > 0 ? JSON.stringify(extra, null, 2) : '';
+
+  return {
+    parameters: sortedDynamicParameters,
+    additionalParameters:
+      Object.keys(additionalParameters).length > 0
+        ? JSON.stringify(additionalParameters, null, 2)
+        : '',
+  };
 };
 
-const parseAdditionalParameters = (value: string | undefined): Record<string, unknown> => {
+export const updateBenchmarkParameter = (
+  parameters: CopySuiteBenchmarkParameter[],
+  key: string,
+  value: string,
+): CopySuiteBenchmarkParameter[] =>
+  parameters.map((parameter) => {
+    if (parameter.key !== key) {
+      return parameter;
+    }
+
+    if (value === '') {
+      return { ...parameter, value: undefined };
+    }
+
+    if (parameter.type === 'number') {
+      const numericValue = Number(value);
+      return { ...parameter, value: Number.isFinite(numericValue) ? numericValue : undefined };
+    }
+
+    return { ...parameter, value };
+  });
+
+const parseAdditionalParameters = (
+  value: string | undefined,
+  dedicatedParameterKeys: ReadonlySet<string>,
+): Record<string, unknown> => {
   if (!value?.trim()) {
     return {};
   }
@@ -85,28 +107,55 @@ const parseAdditionalParameters = (value: string | undefined): Record<string, un
     }
 
     return Object.fromEntries(
-      Object.entries(parsed).filter(([key]) => !RESERVED_PARAMETER_KEYS.has(key)),
+      Object.entries(parsed).filter(([key]) => !dedicatedParameterKeys.has(key)),
     );
   } catch {
     return {};
   }
 };
 
-const mergeBenchmarkParameters = (benchmark: CopySuiteBenchmark): Record<string, unknown> => ({
-  ...parseAdditionalParameters(benchmark.additionalParameters),
-  ...(benchmark.numSamples != null
-    ? {
-        // eslint-disable-next-line camelcase
-        num_examples: benchmark.numSamples,
-      }
-    : {}),
-  ...(benchmark.numFewShot != null
-    ? {
-        // eslint-disable-next-line camelcase
-        num_few_shot: benchmark.numFewShot,
-      }
-    : {}),
-});
+const normalizeDynamicParameterValue = (
+  parameter: CopySuiteBenchmarkParameter,
+): string | number | boolean | undefined => {
+  if (parameter.value == null || parameter.value === '') {
+    return undefined;
+  }
+
+  if (parameter.type === 'number') {
+    const numericValue = Number(parameter.value);
+    return Number.isFinite(numericValue) ? numericValue : undefined;
+  }
+
+  if (parameter.type === 'boolean') {
+    if (typeof parameter.value === 'boolean') {
+      return parameter.value;
+    }
+    const normalizedValue = String(parameter.value).trim().toLowerCase();
+    if (normalizedValue === 'true') {
+      return true;
+    }
+    if (normalizedValue === 'false') {
+      return false;
+    }
+  }
+
+  return String(parameter.value);
+};
+
+const mergeBenchmarkParameters = (benchmark: CopySuiteBenchmark): Record<string, unknown> => {
+  const dedicatedParameterKeys = new Set(benchmark.parameters.map((parameter) => parameter.key));
+  const dynamicParameters = Object.fromEntries(
+    benchmark.parameters.flatMap((parameter) => {
+      const value = normalizeDynamicParameterValue(parameter);
+      return value === undefined ? [] : [[parameter.key, value]];
+    }),
+  );
+
+  return {
+    ...parseAdditionalParameters(benchmark.additionalParameters, dedicatedParameterKeys),
+    ...dynamicParameters,
+  };
+};
 
 const buildCustomMetadata = (sourceCustom: unknown): Record<string, unknown> =>
   Object.fromEntries(
@@ -293,26 +342,20 @@ const resolveInitialEvaluates = (
 const buildBenchmarkFromProvider = (
   provider: Provider,
   providerBenchmark: ProviderBenchmark,
-): CopySuiteBenchmark => {
-  const datasetSize = providerBenchmark.dataset_size ?? undefined;
-
-  return {
-    id: providerBenchmark.id,
-    providerId: provider.resource.id,
-    name: providerBenchmark.name || providerBenchmark.id,
-    weight: 1,
-    primaryMetric: providerBenchmark.primary_score?.metric ?? providerBenchmark.metrics?.[0],
-    lowerIsBetter: providerBenchmark.primary_score?.lower_is_better,
-    numSamples: clampNumSamples(datasetSize, datasetSize),
-    datasetSize,
-    numFewShot: providerBenchmark.num_few_shot,
-    additionalParameters: '',
-    threshold: providerBenchmark.pass_criteria
-      ? normalizeThreshold(providerBenchmark.pass_criteria.threshold)
-      : DEFAULT_SUITE_THRESHOLD,
-    availableMetrics: providerBenchmark.metrics ?? [],
-  };
-};
+): CopySuiteBenchmark => ({
+  id: providerBenchmark.id,
+  providerId: provider.resource.id,
+  name: providerBenchmark.name || providerBenchmark.id,
+  weight: 1,
+  primaryMetric: providerBenchmark.primary_score?.metric ?? providerBenchmark.metrics?.[0],
+  lowerIsBetter: providerBenchmark.primary_score?.lower_is_better,
+  parameters: [],
+  additionalParameters: '',
+  threshold: providerBenchmark.pass_criteria
+    ? normalizeThreshold(providerBenchmark.pass_criteria.threshold)
+    : DEFAULT_SUITE_THRESHOLD,
+  availableMetrics: providerBenchmark.metrics ?? [],
+});
 
 export const createBenchmarkFromKey = (
   key: string,
@@ -345,13 +388,7 @@ const buildInitialBenchmarks = (
     sourceBenchmarks.map((cb, index) => {
       const pb = resolveProviderBenchmark(cb, providers);
       const primaryScore = cb.primary_score ?? pb?.primary_score;
-      const datasetSize = pb?.dataset_size ?? undefined;
-      const initialNumSamples =
-        cb.parameters?.num_examples != null
-          ? Number(cb.parameters.num_examples)
-          : cb.parameters?.limit != null
-            ? Number(cb.parameters.limit)
-            : (datasetSize ?? undefined);
+      const parameterState = splitBenchmarkParameters(cb.parameters);
 
       return {
         id: cb.id,
@@ -360,10 +397,8 @@ const buildInitialBenchmarks = (
         weight: normalizedWeights[index] ?? 0,
         primaryMetric: primaryScore?.metric,
         lowerIsBetter: primaryScore?.lower_is_better,
-        numSamples: clampNumSamples(initialNumSamples, datasetSize),
-        datasetSize,
-        numFewShot: extractNumFewShot(cb.parameters) ?? pb?.num_few_shot ?? undefined,
-        additionalParameters: extractAdditionalParameters(cb.parameters),
+        parameters: parameterState.parameters,
+        additionalParameters: parameterState.additionalParameters,
         threshold: cb.pass_criteria
           ? normalizeThreshold(cb.pass_criteria.threshold)
           : DEFAULT_SUITE_THRESHOLD,

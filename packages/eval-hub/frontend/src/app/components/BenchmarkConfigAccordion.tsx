@@ -5,21 +5,19 @@ import {
   Flex,
   FlexItem,
   FormGroup,
-  Grid,
-  GridItem,
   MenuToggle,
   Select,
   SelectList,
   SelectOption,
-  TextInput,
   Title,
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { getMetricDisplayName } from '~/app/components/benchmarkUtils';
+import DynamicBenchmarkParameterFields from '~/app/components/DynamicBenchmarkParameterFields';
 import {
-  clampNumSamples,
   getBenchmarkKey,
+  updateBenchmarkParameter,
   type CopySuiteBenchmark,
 } from '~/app/pages/useCopySuiteForm';
 
@@ -167,49 +165,17 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
                             </FormGroup>
                           ) : null}
 
-                          <Grid hasGutter>
-                            <GridItem span={6}>
-                              <FormGroup label="Number of samples" fieldId={`${itemId}-samples`}>
-                                <TextInput
-                                  id={`${itemId}-samples`}
-                                  data-testid={`benchmark-samples-input-${index}`}
-                                  type="number"
-                                  min={1}
-                                  max={benchmark.datasetSize}
-                                  value={benchmark.numSamples ?? ''}
-                                  onChange={(_e, val) => {
-                                    if (val === '') {
-                                      onUpdate(index, 'numSamples', undefined);
-                                      return;
-                                    }
-                                    const num = Number(val);
-                                    onUpdate(
-                                      index,
-                                      'numSamples',
-                                      clampNumSamples(num, benchmark.datasetSize),
-                                    );
-                                  }}
-                                />
-                              </FormGroup>
-                            </GridItem>
-                            <GridItem span={6}>
-                              <FormGroup
-                                label="Number of few-shot examples"
-                                fieldId={`${itemId}-few-shot`}
-                              >
-                                <TextInput
-                                  id={`${itemId}-few-shot`}
-                                  data-testid={`benchmark-few-shot-input-${index}`}
-                                  type="number"
-                                  value={benchmark.numFewShot ?? ''}
-                                  onChange={(_e, val) => {
-                                    const num = val === '' ? undefined : Number(val);
-                                    onUpdate(index, 'numFewShot', num);
-                                  }}
-                                />
-                              </FormGroup>
-                            </GridItem>
-                          </Grid>
+                          <DynamicBenchmarkParameterFields
+                            parameters={benchmark.parameters}
+                            itemId={itemId}
+                            onChange={(key, value) =>
+                              onUpdate(
+                                index,
+                                'parameters',
+                                updateBenchmarkParameter(benchmark.parameters, key, value),
+                              )
+                            }
+                          />
 
                           <BenchmarkThresholdField
                             value={benchmark.threshold}

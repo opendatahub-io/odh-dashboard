@@ -6,9 +6,22 @@ import type { Provider } from '~/app/types';
 
 jest.mock('~/app/components/CopySuiteBenchmarkDetailsOverlay', () => ({
   __esModule: true,
-  default: ({ isOpen, primaryActionLabel }: { isOpen: boolean; primaryActionLabel: string }) =>
+  default: ({
+    isOpen,
+    onPrimaryAction,
+    primaryActionLabel,
+  }: {
+    isOpen: boolean;
+    onPrimaryAction: () => void;
+    primaryActionLabel: string;
+  }) =>
     isOpen ? (
-      <div data-testid="copy-suite-benchmark-details-overlay">{primaryActionLabel}</div>
+      <div data-testid="copy-suite-benchmark-details-overlay">
+        {primaryActionLabel}
+        <button type="button" onClick={onPrimaryAction}>
+          Apply selection
+        </button>
+      </div>
     ) : null,
 }));
 
@@ -221,6 +234,33 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.getByTestId('benchmark-catalog-checkbox-benchmark-00')).not.toBeDisabled();
   });
 
+  it('should reject an over-limit selection until it is reduced', () => {
+    const providerMany = createProvidersWithBenchmarks(11);
+    const initiallySelectedKeys = Array.from(
+      { length: 11 },
+      (_, index) => `provider-many:benchmark-${String(index).padStart(2, '0')}`,
+    );
+    const { onNext } = renderSelectionStep({
+      providers: providerMany,
+      selectedBenchmarkKeys: initiallySelectedKeys,
+    });
+
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
+      'Invalid selection: 11 benchmarks selected. Select no more than 10.',
+    );
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).not.toHaveTextContent(
+      '-1 out of 10 remaining',
+    );
+    expect(screen.getByTestId('copy-suite-next-select-benchmarks')).toBeDisabled();
+    expect(onNext).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-benchmark-00'));
+
+    expect(screen.getByTestId('copy-suite-next-select-benchmarks')).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
+    expect(onNext).toHaveBeenCalledWith(initiallySelectedKeys.slice(1));
+  });
+
   it('should open benchmark details in a drawer overlay', () => {
     renderSelectionStep();
 
@@ -229,6 +269,24 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.getByTestId('benchmark-catalog-checkbox-mmlu')).not.toBeChecked();
     expect(screen.getByTestId('copy-suite-benchmark-details-overlay')).toHaveTextContent(
       'Select benchmark',
+    );
+  });
+
+  it('should keep the details overlay open when selecting at the benchmark limit', () => {
+    const providerMany = createProvidersWithBenchmarks(11);
+    const initiallySelectedKeys = Array.from(
+      { length: 10 },
+      (_, index) => `provider-many:benchmark-${String(index).padStart(2, '0')}`,
+    );
+    renderSelectionStep({ providers: providerMany, selectedBenchmarkKeys: initiallySelectedKeys });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
+    fireEvent.click(screen.getByTestId('benchmark-catalog-name-benchmark-10'));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply selection' }));
+
+    expect(screen.getByTestId('copy-suite-benchmark-details-overlay')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
+      '0 out of 10 remaining',
     );
   });
 });

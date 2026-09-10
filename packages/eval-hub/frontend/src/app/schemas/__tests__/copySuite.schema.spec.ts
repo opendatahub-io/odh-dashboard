@@ -13,6 +13,7 @@ const validValues = (): CopySuiteFormValues => ({
       providerId: 'provider-one',
       name: 'Benchmark one',
       weight: 1,
+      parameters: [],
       threshold: 70,
       availableMetrics: ['accuracy'],
     },
@@ -98,13 +99,14 @@ describe('copySuiteSchema', () => {
     }
   });
 
-  it('should reject advanced parameters that conflict with dedicated fields', () => {
+  it('should reject advanced parameters that conflict with dynamic fields', () => {
     const result = copySuiteSchema.safeParse({
       ...validValues(),
       benchmarks: [
         {
           ...validValues().benchmarks[0],
-          additionalParameters: '{"limit": 999, "num_few_shot": 4}',
+          parameters: [{ key: 'limit', type: 'number', value: 10 }],
+          additionalParameters: '{"limit": 999, "other": "value"}',
         },
       ],
     });
@@ -115,10 +117,24 @@ describe('copySuiteSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({
             path: ['benchmarks', 0, 'additionalParameters'],
-            message: 'Use the dedicated fields for limit, num_few_shot.',
+            message: 'Use the dedicated fields for limit.',
           }),
         ]),
       );
     }
+  });
+
+  it('should accept advanced parameters when no matching dynamic field exists', () => {
+    const result = copySuiteSchema.safeParse({
+      ...validValues(),
+      benchmarks: [
+        {
+          ...validValues().benchmarks[0],
+          additionalParameters: '{"limit": 999}',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
   });
 });

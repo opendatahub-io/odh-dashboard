@@ -163,8 +163,11 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     return sortedBenchmarks.slice(start, start + PAGE_SIZE);
   }, [sortedBenchmarks, page]);
 
-  const remainingSelections = MAX_BENCHMARKS - selected.size;
-  const isAtSelectionLimit = selected.size >= MAX_BENCHMARKS;
+  const selectionCount = draftSelectedBenchmarkKeys.length;
+  const remainingSelections = MAX_BENCHMARKS - selectionCount;
+  const isSelectionCountValid = selectionCount >= 1 && selectionCount <= MAX_BENCHMARKS;
+  const isAtSelectionLimit = selectionCount >= MAX_BENCHMARKS;
+  const hasTooManySelections = selectionCount > MAX_BENCHMARKS;
   const hasActiveFilters = hasActiveBenchmarkFilters(filterData);
   const flatBenchmarkByKey = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
   const detailsBenchmark: FlatBenchmark | undefined = detailsBenchmarkKey
@@ -187,10 +190,10 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   }, []);
 
   const handleNext = React.useCallback(() => {
-    if (draftSelectedBenchmarkKeys.length > 0 && !isInteractionDisabled) {
+    if (isSelectionCountValid && !isInteractionDisabled) {
       onNext([...draftSelectedBenchmarkKeys]);
     }
-  }, [draftSelectedBenchmarkKeys, isInteractionDisabled, onNext]);
+  }, [draftSelectedBenchmarkKeys, isInteractionDisabled, isSelectionCountValid, onNext]);
 
   return (
     <div
@@ -353,10 +356,19 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                   className="evalhub-copy-suite-benchmark-catalog__limit-message"
                   data-testid="benchmark-catalog-limit-message"
                 >
-                  You can select a maximum of {MAX_BENCHMARKS} benchmarks for this suite.{' '}
-                  <strong>
-                    {remainingSelections} out of {MAX_BENCHMARKS} remaining
-                  </strong>
+                  {hasTooManySelections ? (
+                    <strong>
+                      Invalid selection: {selectionCount} benchmarks selected. Select no more than{' '}
+                      {MAX_BENCHMARKS}.
+                    </strong>
+                  ) : (
+                    <>
+                      You can select a maximum of {MAX_BENCHMARKS} benchmarks for this suite.{' '}
+                      <strong>
+                        {remainingSelections} out of {MAX_BENCHMARKS} remaining
+                      </strong>
+                    </>
+                  )}
                 </HelperTextItem>
               </HelperText>
             </StackItem>
@@ -490,7 +502,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
           variant="primary"
           data-testid="copy-suite-next-select-benchmarks"
           onClick={handleNext}
-          isDisabled={isInteractionDisabled || draftSelectedBenchmarkKeys.length === 0}
+          isDisabled={isInteractionDisabled || !isSelectionCountValid}
         >
           Next
         </Button>
@@ -510,9 +522,11 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
           isOpen={!!detailsBenchmarkKey}
           onClose={() => setDetailsBenchmarkKey(undefined)}
           onPrimaryAction={() => {
-            if (detailsBenchmarkKey) {
-              toggleSelection(detailsBenchmarkKey);
+            if (!detailsBenchmarkKey || (!isDetailsBenchmarkSelected && isAtSelectionLimit)) {
+              return;
             }
+
+            toggleSelection(detailsBenchmarkKey);
             setDetailsBenchmarkKey(undefined);
           }}
           primaryActionLabel={

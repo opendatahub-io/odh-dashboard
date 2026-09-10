@@ -6,7 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useFetchState } from 'mod-arch-core';
 import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
-import { useCopySuiteForm } from '~/app/pages/useCopySuiteForm';
+import { useCopySuiteForm, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
 import CopySuitePage, { CreateSuitePage } from '~/app/pages/CopySuitePage';
 import { copySuiteSchema, type CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 import type { Collection, Provider } from '~/app/types';
@@ -162,11 +162,12 @@ const providers: Provider[] = [
   { resource: { id: 'provider-one' }, name: 'Provider One', benchmarks: [] },
 ];
 
-const benchmark = {
+const benchmark: CopySuiteBenchmark = {
   id: 'benchmark-one',
   providerId: 'provider-one',
   name: 'Benchmark One',
   weight: 1,
+  parameters: [{ key: 'num_examples', type: 'number', value: 100 }],
   threshold: 70,
   availableMetrics: [],
 };
@@ -641,7 +642,7 @@ describe('CopySuitePage', () => {
     fireEvent.click(screen.getByTestId('copy-suite-save-and-run'));
     fireEvent.click(screen.getByTestId('copy-suite-set-clone-pending'));
 
-    expect(screen.getByTestId('benchmark-samples-input-0')).toBeDisabled();
+    expect(screen.getByTestId('benchmark-0-parameter-input-num_examples')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-back-step-2')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-save-and-run')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-save-only')).toBeDisabled();
@@ -666,7 +667,7 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-step-benchmarks')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('copy-suite-set-clone-complete'));
-    expect(screen.getByTestId('benchmark-samples-input-0')).toBeEnabled();
+    expect(screen.getByTestId('benchmark-0-parameter-input-num_examples')).toBeEnabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-settings')).toBeEnabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).toHaveAttribute('href');
     expect(within(screen.getByTestId('benchmark-jump-link-0')).getByRole('link')).toHaveAttribute(
