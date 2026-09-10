@@ -186,7 +186,7 @@ const createMockParameters = (
   display_name: 'Test RAG Run',
   input_data_secret_name: 'test-secret',
   input_data_bucket_name: 'test-bucket',
-  input_data_key: 'input.csv',
+  input_data_keys: ['input.csv'],
   test_data_secret_name: 'test-secret',
   test_data_bucket_name: 'test-bucket',
   test_data_key: 'test.csv',

@@ -40,7 +40,7 @@ const defaultParameters: Partial<ConfigureSchema> = {
   display_name: 'My Run',
   input_data_secret_name: 's3-connection',
   input_data_bucket_name: 'my-bucket',
-  input_data_key: 'data.pdf',
+  input_data_keys: ['data.pdf'],
   test_data_secret_name: 's3-connection',
   test_data_bucket_name: 'my-bucket',
   test_data_key: 'eval-data.json',

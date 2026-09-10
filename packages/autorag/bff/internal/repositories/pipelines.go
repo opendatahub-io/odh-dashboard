@@ -327,14 +327,22 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.InputDataBucketName == "" {
 		missing = append(missing, "input_data_bucket_name")
 	}
-	if req.InputDataKey == "" {
-		missing = append(missing, "input_data_key")
+	if len(req.InputDataKeys) == 0 {
+		missing = append(missing, "input_data_keys")
 	}
 	if req.OGXSecretName == "" {
 		missing = append(missing, "ogx_secret_name")
 	}
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
+	}
+	if len(req.InputDataKeys) > 10 {
+		return NewValidationError("input_data_keys must contain at most 10 items")
+	}
+	for i, key := range req.InputDataKeys {
+		if strings.TrimSpace(key) == "" {
+			return NewValidationError(fmt.Sprintf("input_data_keys[%d] must not be empty or whitespace", i))
+		}
 	}
 
 	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
@@ -391,7 +399,7 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		"test_data_key":          req.TestDataKey,
 		"input_data_secret_name": req.InputDataSecretName,
 		"input_data_bucket_name": req.InputDataBucketName,
-		"input_data_key":         req.InputDataKey,
+		"input_data_keys":        req.InputDataKeys,
 		"ogx_secret_name":        req.OGXSecretName,
 	}
 

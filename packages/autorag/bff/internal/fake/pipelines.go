@@ -295,7 +295,7 @@ func (c *PipelinesClient) seedRuns() {
 			"embedding_models":              []any{"vllm-embedding/ibm-granite/granite-embedding-english-r2"},
 			"generation_models":             []any{"vllm-inference/meta-llama/Llama-3.1-8B-Instruct"},
 			"input_data_bucket_name":        "s3-bucket",
-			"input_data_key":                "autorag input data/pdf/bank_policies_pdf/documents",
+			"input_data_keys":               []any{"autorag input data/pdf/bank_policies_pdf/documents"},
 			"input_data_secret_name":        "data-connection",
 			"ogx_secret_name":               "ogx",
 			"optimization_max_rag_patterns": 8,

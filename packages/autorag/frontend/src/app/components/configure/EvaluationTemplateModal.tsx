@@ -10,7 +10,7 @@ const EVALUATION_TEMPLATE = `[
       "<second answer for question 1>",
       "..."
     ],
-    "correct_answer_document_ids": [
+    "correct_answer_document_keys": [
       "<name of first document used to determine answers>",
       "<name of second document used to determine answers>",
       "..."
@@ -21,7 +21,7 @@ const EVALUATION_TEMPLATE = `[
     "correct_answers": [
       "..."
     ],
-    "correct_answer_document_ids": [
+    "correct_answer_document_keys": [
       "..."
     ]
   }

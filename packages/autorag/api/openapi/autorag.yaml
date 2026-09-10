@@ -1363,7 +1363,7 @@ components:
         - test_data_key
         - input_data_secret_name
         - input_data_bucket_name
-        - input_data_key
+        - input_data_keys
         - ogx_secret_name
       properties:
         display_name:
@@ -1390,9 +1390,17 @@ components:
         input_data_bucket_name:
           type: string
           description: S3 bucket name for input data
-        input_data_key:
-          type: string
-          description: Object key within the input data bucket
+        input_data_keys:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: string
+            minLength: 1
+            pattern: '.*\S.*'
+          description: Object keys within the input data bucket
+          example:
+            - "documents/"
         ogx_secret_name:
           type: string
           description: Name of the K8s secret for Open GenAI Stack access
@@ -2076,7 +2084,8 @@ components:
                   test_data_key: "test_data.json"
                   input_data_secret_name: "minio-secret"
                   input_data_bucket_name: "autorag"
-                  input_data_key: "documents/"
+                  input_data_keys:
+                    - "documents/"
                   ogx_secret_name: "ogx-secret"
 
     PipelineRunResponse:

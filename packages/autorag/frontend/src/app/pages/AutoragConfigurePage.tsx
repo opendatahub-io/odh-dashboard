@@ -486,7 +486,7 @@ function AutoragConfigurePage({
                     optimizationMetric: mapOptimizationMetric(data.optimization_metric),
                     vectorDatabase: vectorDatabaseRef.current,
                     countOfModels: data.generation_models.length + data.embedding_models.length,
-                    countOfKnowledgeDocuments: data.input_data_key ? 1 : 0,
+                    countOfKnowledgeDocuments: data.input_data_keys.length,
                     countOfEvaluationDocuments: data.test_data_key ? 1 : 0,
                     countOfFoundationModels: data.generation_models.length,
                     countOfEmbeddingModels: data.embedding_models.length,

@@ -38,7 +38,7 @@ describe('Configure Schema', () => {
         display_name: 'a'.repeat(250),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -59,7 +59,7 @@ describe('Configure Schema', () => {
         display_name: 'a'.repeat(251),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -87,7 +87,7 @@ describe('Configure Schema', () => {
         display_name: '😀'.repeat(250),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -108,7 +108,7 @@ describe('Configure Schema', () => {
         display_name: '😀'.repeat(251),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -135,7 +135,7 @@ describe('Configure Schema', () => {
         display_name: '\u00e9'.repeat(250),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -156,7 +156,7 @@ describe('Configure Schema', () => {
         display_name: '\u00e9'.repeat(251),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -182,7 +182,7 @@ describe('Configure Schema', () => {
         description: 'a'.repeat(255),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -204,7 +204,7 @@ describe('Configure Schema', () => {
         description: 'a'.repeat(256),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -230,7 +230,7 @@ describe('Configure Schema', () => {
         description: '😀'.repeat(255),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -252,7 +252,7 @@ describe('Configure Schema', () => {
         description: '😀'.repeat(256),
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -278,7 +278,7 @@ describe('Configure Schema', () => {
         preset: 'speed' as const,
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -300,7 +300,7 @@ describe('Configure Schema', () => {
         preset: 'balanced' as const,
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -322,7 +322,7 @@ describe('Configure Schema', () => {
         preset: 'invalid_preset',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -347,7 +347,7 @@ describe('Configure Schema', () => {
         display_name: 'Test Run',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -362,6 +362,34 @@ describe('Configure Schema', () => {
       const result = schema.full.safeParse(data);
       expect(result.success).toBe(false);
     });
+
+    it('should accept between one and ten input data keys', () => {
+      const result = schema.base.shape.input_data_keys.safeParse(
+        Array.from({ length: 10 }, (_, index) => `input/data-${index}.pdf`),
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject more than ten input data keys', () => {
+      const result = schema.base.shape.input_data_keys.safeParse(
+        Array.from({ length: 11 }, (_, index) => `input/data-${index}.pdf`),
+      );
+
+      expect(result.success).toBe(false);
+    });
+
+    it.each(['', '   ', '\t\n'])('should reject blank input data keys: %j', (key) => {
+      const result = schema.base.shape.input_data_keys.safeParse([key]);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should preserve whitespace inside a non-blank input data key', () => {
+      const key = 'input/my document.pdf';
+
+      expect(schema.base.shape.input_data_keys.parse([key])).toEqual([key]);
+    });
   });
 
   describe('Transformers', () => {
@@ -371,7 +399,7 @@ describe('Configure Schema', () => {
         description: 'Test description',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -394,7 +422,7 @@ describe('Configure Schema', () => {
         description: '',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -417,7 +445,7 @@ describe('Configure Schema', () => {
         description: 'Test description',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -439,7 +467,7 @@ describe('Configure Schema', () => {
         display_name: 'Test Run',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
@@ -464,7 +492,7 @@ describe('Configure Schema', () => {
         display_name: 'Test',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        input_data_key: 'input/data.csv',
+        input_data_keys: ['input/data.csv'],
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',

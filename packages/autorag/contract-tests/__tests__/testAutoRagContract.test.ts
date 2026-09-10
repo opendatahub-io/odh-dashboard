@@ -664,7 +664,7 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           ogx_secret_name: OGX_SECRET,
         });
         expect(result).toMatchContract(apiSchema, {
@@ -683,7 +683,7 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           ogx_secret_name: OGX_SECRET,
           optimization_metric: 'answer_correctness',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
@@ -704,6 +704,51 @@ describe('AutoRAG API Contract Tests', () => {
         expect(result.error?.status).toBe(400);
       });
 
+      it('should return 400 for an empty input_data_keys array', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'empty-input-keys-run',
+          test_data_secret_name: SECRET,
+          test_data_bucket_name: BUCKET,
+          test_data_key: 'test-data.json',
+          input_data_secret_name: SECRET,
+          input_data_bucket_name: BUCKET,
+          input_data_keys: [],
+          ogx_secret_name: OGX_SECRET,
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+      });
+
+      it('should return 400 for more than 10 input_data_keys', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'too-many-input-keys-run',
+          test_data_secret_name: SECRET,
+          test_data_bucket_name: BUCKET,
+          test_data_key: 'test-data.json',
+          input_data_secret_name: SECRET,
+          input_data_bucket_name: BUCKET,
+          input_data_keys: Array.from({ length: 11 }, (_, index) => `documents/${index}`),
+          ogx_secret_name: OGX_SECRET,
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+      });
+
+      it('should return 400 for a whitespace-only input_data_keys item', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'blank-input-key-run',
+          test_data_secret_name: SECRET,
+          test_data_bucket_name: BUCKET,
+          test_data_key: 'test-data.json',
+          input_data_secret_name: SECRET,
+          input_data_bucket_name: BUCKET,
+          input_data_keys: [' \t'],
+          ogx_secret_name: OGX_SECRET,
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+      });
+
       it('should return 400 for invalid optimization metric', async () => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'bad-metric-run',
@@ -713,7 +758,7 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           ogx_secret_name: OGX_SECRET,
           optimization_metric: 'invalid_metric',
         });
@@ -734,7 +779,7 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           ogx_secret_name: OGX_SECRET,
         });
         expect(result.success).toBe(true);
@@ -787,7 +832,7 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           ogx_secret_name: OGX_SECRET,
         });
         expect(createResult.success).toBe(true);

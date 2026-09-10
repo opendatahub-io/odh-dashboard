@@ -381,7 +381,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `test_data_key` | string | Yes | Object key within the test data bucket |
 | `input_data_secret_name` | string | Yes | Name of the K8s secret containing input data credentials |
 | `input_data_bucket_name` | string | Yes | S3 bucket name for input data |
-| `input_data_key` | string | Yes | Object key within the input data bucket |
+| `input_data_keys` | string[] | Yes | One to ten object keys within the input data bucket |
 | `ogx_secret_name` | string | Yes | Name of the K8s secret for Open GenAI Stack access |
 | `embedding_models` | string[] | No | List of embedding model identifiers |
 | `generation_models` | string[] | No | List of generation model identifiers |
@@ -413,7 +413,7 @@ curl -X POST "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace"
     "test_data_key": "test_data.json",
     "input_data_secret_name": "minio-secret",
     "input_data_bucket_name": "autorag",
-    "input_data_key": "documents/",
+    "input_data_keys": ["documents/"],
     "ogx_secret_name": "llama-secret",
     "optimization_metric": "overall_score"
   }'
@@ -442,7 +442,7 @@ Returns `200 OK` with the created pipeline run:
         "test_data_key": "test_data.json",
         "input_data_secret_name": "minio-secret",
         "input_data_bucket_name": "autorag",
-        "input_data_key": "documents/",
+        "input_data_keys": ["documents/"],
         "ogx_secret_name": "llama-secret"
       }
     },

@@ -179,7 +179,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     const jsonData: EvaluationFileEntry[] = rows.map((row) => ({
       question: row.question,
       correct_answers: [row.correctAnswer], // eslint-disable-line camelcase
-      correct_answer_document_ids: row.documentIds, // eslint-disable-line camelcase
+      correct_answer_document_keys: row.documentIds, // eslint-disable-line camelcase
     }));
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '').replace(/-/g, '');

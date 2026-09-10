@@ -368,7 +368,7 @@ describe('AutoragReconfigureLoader', () => {
       const params: Partial<ConfigureSchema> = {
         input_data_secret_name: 'my-secret',
         input_data_bucket_name: 'my-bucket',
-        input_data_key: 'docs/input.pdf',
+        input_data_keys: ['docs/input.pdf'],
         test_data_secret_name: 'my-secret',
         test_data_bucket_name: 'my-bucket',
         test_data_key: 'eval.json',
@@ -391,7 +391,7 @@ describe('AutoragReconfigureLoader', () => {
       expect(capturedProps.initialValues).toMatchObject({
         input_data_secret_name: 'my-secret',
         input_data_bucket_name: 'my-bucket',
-        input_data_key: 'docs/input.pdf',
+        input_data_keys: ['docs/input.pdf'],
         test_data_secret_name: 'my-secret',
         test_data_bucket_name: 'my-bucket',
         test_data_key: 'eval.json',
@@ -422,7 +422,7 @@ describe('AutoragReconfigureLoader', () => {
           {
             input_data_secret_name: 'my-aws-secret',
             input_data_bucket_name: 'bucket',
-            input_data_key: 'file.pdf',
+            input_data_keys: ['file.pdf'],
             test_data_secret_name: 'my-aws-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
@@ -467,7 +467,7 @@ describe('AutoragReconfigureLoader', () => {
           {
             input_data_secret_name: 'incomplete-secret',
             input_data_bucket_name: 'bucket',
-            input_data_key: 'file.pdf',
+            input_data_keys: ['file.pdf'],
             test_data_secret_name: 'incomplete-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
@@ -504,7 +504,7 @@ describe('AutoragReconfigureLoader', () => {
           {
             input_data_secret_name: 'missing-secret',
             input_data_bucket_name: 'bucket',
-            input_data_key: 'file.pdf',
+            input_data_keys: ['file.pdf'],
             test_data_secret_name: 'missing-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
@@ -549,7 +549,7 @@ describe('AutoragReconfigureLoader', () => {
           {
             input_data_secret_name: 's3-secret',
             input_data_bucket_name: 'bucket',
-            input_data_key: 'file.pdf',
+            input_data_keys: ['file.pdf'],
             test_data_secret_name: 's3-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
@@ -588,7 +588,7 @@ describe('AutoragReconfigureLoader', () => {
           {
             input_data_secret_name: 's3-secret',
             input_data_bucket_name: 'bucket',
-            input_data_key: 'file.pdf',
+            input_data_keys: ['file.pdf'],
             test_data_secret_name: 's3-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
@@ -626,7 +626,7 @@ describe('AutoragReconfigureLoader', () => {
           {
             input_data_secret_name: 'my-secret',
             input_data_bucket_name: 'bucket',
-            input_data_key: 'file.pdf',
+            input_data_keys: ['file.pdf'],
             test_data_secret_name: 'my-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
@@ -696,7 +696,7 @@ describe('AutoragReconfigureLoader', () => {
           {
             input_data_secret_name: 'my-secret',
             input_data_bucket_name: 'my-bucket',
-            input_data_key: 'docs/input.pdf',
+            input_data_keys: ['docs/input.pdf'],
             test_data_secret_name: 'my-secret',
             test_data_bucket_name: 'my-bucket',
             test_data_key: 'eval.json',
@@ -754,7 +754,7 @@ describe('AutoragReconfigureLoader', () => {
           {
             input_data_secret_name: 's3-secret',
             input_data_bucket_name: 'bucket',
-            input_data_key: 'file.pdf',
+            input_data_keys: ['file.pdf'],
             test_data_secret_name: 's3-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
