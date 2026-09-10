@@ -194,7 +194,8 @@ describe('BenchmarkSuitesPage', () => {
   it('should derive filter options from collection fields', async () => {
     const collections = mockBenchmarkSuiteCollections().map((collection, index) => ({
       ...collection,
-      domains: [index % 2 === 0 ? 'z-domain' : 'a-domain'],
+      category: index % 2 === 0 ? 'z-category' : 'a-category',
+      domains: ['domain-only'],
       // eslint-disable-next-line camelcase
       ai_entities: [index % 2 === 0 ? 'z-entity' : 'a-entity'],
       industries: [index % 2 === 0 ? 'z-industry' : 'a-industry'],
@@ -215,13 +216,13 @@ describe('BenchmarkSuitesPage', () => {
     await user.click(screen.getByTestId('benchmark-suites-category-filter'));
 
     expect(
-      screen.getByTestId('benchmark-suites-category-filter-option-a-domain'),
+      screen.getByTestId('benchmark-suites-category-filter-option-a-category'),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId('benchmark-suites-category-filter-option-z-domain'),
+      screen.getByTestId('benchmark-suites-category-filter-option-z-category'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId('benchmark-suites-category-filter-option-code'),
+      screen.queryByTestId('benchmark-suites-category-filter-option-domain-only'),
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('benchmark-suites-category-filter-option-all'));

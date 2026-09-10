@@ -24,7 +24,7 @@ describe('BenchmarkSuiteCard', () => {
     expect(screen.getByTestId('benchmark-suite-card-model-suite')).toHaveTextContent('Model suite');
     expect(screen.getByText('2 benchmarks')).toBeInTheDocument();
     expect(screen.getByText('Safety')).toBeInTheDocument();
-    expect(screen.getByText('Model')).toBeInTheDocument();
+    expect(screen.queryByText('Model')).not.toBeInTheDocument();
     expect(screen.getByText('MC1 accuracy')).toBeInTheDocument();
     expect(screen.getByText('Toxicity score')).toBeInTheDocument();
   });
@@ -87,14 +87,33 @@ describe('BenchmarkSuiteCard', () => {
     expect(onSelect).toHaveBeenCalledWith(collection);
   });
 
-  it('should use the legacy category when domains are not available', () => {
+  it('should prefer category over domains for classification labels', () => {
     render(
       <BenchmarkSuiteCard
-        collection={mockCollection({ id: 'legacy-suite', category: 'legacy_category' })}
+        collection={mockCollection({
+          id: 'category-first-suite',
+          category: 'primary_category',
+          domains: ['domain_fallback'],
+        })}
         primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
       />,
     );
 
-    expect(screen.getByText('Legacy category')).toBeInTheDocument();
+    expect(screen.getByText('Primary category')).toBeInTheDocument();
+    expect(screen.queryByText('Domain fallback')).not.toBeInTheDocument();
+  });
+
+  it('should use domains when category is unavailable', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={{
+          ...mockCollection({ id: 'domain-fallback-suite', domains: ['domain_fallback'] }),
+          category: undefined,
+        }}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(screen.getByText('Domain fallback')).toBeInTheDocument();
   });
 });

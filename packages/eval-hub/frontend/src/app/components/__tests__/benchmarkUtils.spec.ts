@@ -3,6 +3,7 @@ import {
   capitalizeFirst,
   getCategoryColor,
   formatCategory,
+  getCollectionCategoryValues,
   getMetricDisplayName,
   toSafeExternalUrl,
 } from '~/app/components/benchmarkUtils';
@@ -90,6 +91,23 @@ describe('formatCategory', () => {
 
   it('should handle multiple underscores', () => {
     expect(formatCategory('inst_level_loose_acc')).toBe('Inst level loose acc');
+  });
+});
+
+describe('getCollectionCategoryValues', () => {
+  it('should prefer category when domains are also present', () => {
+    expect(
+      getCollectionCategoryValues({
+        category: 'primary_category',
+        domains: ['domain_fallback'],
+      }),
+    ).toEqual(['primary_category']);
+  });
+
+  it('should fall back to domains when category is unavailable', () => {
+    expect(getCollectionCategoryValues({ domains: ['domain_fallback'] })).toEqual([
+      'domain_fallback',
+    ]);
   });
 });
 

@@ -19,7 +19,12 @@ import {
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
-import { formatCategory, getCategoryColor, getMetricDisplayName } from './benchmarkUtils';
+import {
+  formatCategory,
+  getCategoryColor,
+  getCollectionCategoryValues,
+  getMetricDisplayName,
+} from './benchmarkUtils';
 import './BenchmarkSuiteCard.scss';
 
 export type BenchmarkSuiteCardAction = {
@@ -46,12 +51,10 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   onSelect,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const classificationLabels =
-    collection.domains?.length || collection.ai_entities?.length
-      ? [...(collection.domains ?? []), ...(collection.ai_entities ?? [])]
-      : collection.category
-        ? [collection.category]
-        : [];
+  const classificationLabels = [
+    ...getCollectionCategoryValues(collection),
+    ...(collection.ai_entities ?? []),
+  ];
   const domains = [...new Set(classificationLabels)];
   const metrics = [
     ...new Set(

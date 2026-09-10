@@ -34,7 +34,7 @@ import type { BenchmarkSuiteCardAction } from '~/app/components/BenchmarkSuiteCa
 import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard';
 import DeleteConfirmationModal from '~/app/components/DeleteConfirmationModal';
 import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/types';
-import { formatCategory } from '~/app/components/benchmarkUtils';
+import { formatCategory, getCollectionCategoryValues } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 import './BenchmarkSuitesGallery.scss';
 
@@ -131,19 +131,19 @@ const CollectionFilterSelect: React.FC<CollectionFilterSelectProps> = ({
 };
 
 /**
- * Reads the values for a filter from one collection. Domains use the deprecated category field
- * as a temporary fallback so older API responses and mocks remain filterable.
+ * Reads the values for a filter from one collection. Category is the canonical value; domains are
+ * used as a fallback for responses that do not provide category.
  */
 const getCollectionFieldValues = (
   collection: Collection,
   field: CollectionFilterField,
-): string[] =>
-  collection[field]?.length
-    ? collection[field]
-    : // TODO: Remove this legacy fallback once all collection responses use domains.
-      field === 'domains' && collection.category
-      ? [collection.category]
-      : [];
+): string[] => {
+  if (field === 'domains') {
+    return getCollectionCategoryValues(collection);
+  }
+
+  return collection[field] ?? [];
+};
 
 /**
  * Builds a dropdown's options from all values returned by the collections. Set removes duplicates,

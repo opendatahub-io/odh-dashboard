@@ -41,6 +41,11 @@ export const toTitleCase = (value: string): string => {
 
 export const formatCategory = (value: string): string => capitalizeFirst(value.replace(/_/g, ' '));
 
+export const getCollectionCategoryValues = (collection: {
+  category?: string;
+  domains?: string[];
+}): string[] => (collection.category ? [collection.category] : (collection.domains ?? []));
+
 /* eslint-disable camelcase */
 const METRIC_DISPLAY_NAMES: Record<string, string> = {
   acc: 'Accuracy',
