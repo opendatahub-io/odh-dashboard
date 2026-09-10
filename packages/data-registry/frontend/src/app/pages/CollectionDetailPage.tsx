@@ -195,6 +195,7 @@ const CollectionDetailPage: React.FC = () => {
       headerAction={headerAction}
       loaded={loaded}
       loadError={loadError}
+      onRetry={refresh}
       empty={loaded && !collectionDetail}
       emptyStatePage={
         <EmptyState
