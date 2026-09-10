@@ -226,6 +226,7 @@ export function useStartEvaluationRunForm({
   );
   const [newExperimentName, setNewExperimentName] = React.useState('');
   const [experimentAutoSelected, setExperimentAutoSelected] = React.useState(false);
+  const experimentManuallyChangedRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!experimentsLoaded || !namespace || experimentAutoSelected) {
@@ -290,7 +291,6 @@ export function useStartEvaluationRunForm({
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const abortControllerRef = React.useRef<AbortController | null>(null);
-  const experimentManuallyChangedRef = React.useRef(false);
 
   React.useEffect(
     () => () => {
