@@ -13,6 +13,8 @@ describe('useAutoUnlock', () => {
     connectionUrl: 'https://server1.com',
     tools: 0,
     version: 'Unknown',
+    source: 'configmap',
+    logo: null,
   };
 
   const mockCheckServerStatus = jest.fn();
