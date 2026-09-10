@@ -100,9 +100,6 @@ const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
     updatePreferredNamespace,
   ]);
 
-  const activeContent =
-    activeTabKey === 'connection-types' ? <ConnectionTypesTab /> : <ConnectionsTab />;
-
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="Connections" objectType={ProjectObjectType.connections} />}
@@ -158,11 +155,20 @@ const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
         </Tabs>
       </PageSection>
       <TabContent
-        id={`tab-content-${activeTabKey}`}
-        eventKey={activeTabKey}
+        id="tab-content-connection-types"
+        eventKey="connection-types"
         activeKey={activeTabKey}
+        hidden={activeTabKey !== 'connection-types'}
       >
-        {activeContent}
+        <ConnectionTypesTab />
+      </TabContent>
+      <TabContent
+        id="tab-content-connections"
+        eventKey="connections"
+        activeKey={activeTabKey}
+        hidden={activeTabKey !== 'connections'}
+      >
+        <ConnectionsTab />
       </TabContent>
     </ApplicationsPage>
   );
