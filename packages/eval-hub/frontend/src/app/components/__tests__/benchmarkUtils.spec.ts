@@ -106,7 +106,7 @@ describe('formatCollectionMetadataValue', () => {
   it('should leave the value unchanged for payload use', () => {
     const value = 'grounded_document_understanding';
     expect(value).toBe('grounded_document_understanding');
-    expect(formatCollectionMetadataValue(value)).not.toBe(value);
+    expect(formatCollectionMetadataValue(value)).toBe('Grounded document understanding');
   });
 });
 

@@ -262,7 +262,9 @@ func TestEvalHubClient_CreateCollection(t *testing.T) {
 		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		if !assert.NoError(t, err) {
+			return
+		}
 		assert.JSONEq(t, `{
 			"name": "My New Suite",
 			"description": "A custom suite",
@@ -691,10 +693,14 @@ func TestEvalHubClient_CloneCollection_PreservesMetadataFieldPresence(t *testing
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				body, err := io.ReadAll(r.Body)
-				require.NoError(t, err)
+				if !assert.NoError(t, err) {
+					return
+				}
 
 				var payload map[string]json.RawMessage
-				require.NoError(t, json.Unmarshal(body, &payload))
+				if !assert.NoError(t, json.Unmarshal(body, &payload)) {
+					return
+				}
 				for _, field := range tt.presentFields {
 					assert.JSONEq(t, `[]`, string(payload[field]))
 				}

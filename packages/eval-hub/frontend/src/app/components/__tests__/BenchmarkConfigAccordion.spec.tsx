@@ -70,6 +70,28 @@ describe('BenchmarkConfigAccordion', () => {
     expect(screen.getByTestId('benchmark-samples-input-0')).toBeInTheDocument();
   });
 
+  it('should expand newly added benchmarks while preserving explicit collapse state', () => {
+    const { rerender } = renderAccordion({ benchmarks: [benchmarks[0]] });
+    const firstToggle = screen.getByTestId('benchmark-expand-toggle-0');
+
+    fireEvent.click(firstToggle);
+    rerender(
+      <BenchmarkConfigAccordion
+        benchmarks={benchmarks}
+        onUpdate={jest.fn()}
+        onRemove={jest.fn()}
+        canRemove
+      />,
+    );
+
+    expect(firstToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('benchmark-expand-toggle-1')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByTestId('benchmark-samples-input-1')).toBeInTheDocument();
+  });
+
   it('should keep expansion state attached to a benchmark when an earlier benchmark is removed', () => {
     const { rerender } = renderAccordion();
     const firstToggle = screen.getByTestId('benchmark-expand-toggle-0');

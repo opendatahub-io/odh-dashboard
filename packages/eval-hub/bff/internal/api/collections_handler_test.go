@@ -110,6 +110,27 @@ func TestCreateCollectionHandler(t *testing.T) {
 	assert.Len(t, result.Data.Benchmarks, 1)
 }
 
+func TestCreateCollectionHandlerPreservesCategory(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+	body := evalhub.CreateCollectionRequest{
+		Name:       "My New Suite",
+		Category:   "Safety",
+		AIEntities: []string{"model"},
+		Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
+	}
+
+	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collections?namespace=test-ns",
+		body, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+	assert.Equal(t, "Safety", result.Data.Category)
+}
+
 func TestCreateCollectionHandlerRequiresNameAndBenchmark(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 
@@ -121,6 +142,7 @@ func TestCreateCollectionHandlerRequiresNameAndBenchmark(t *testing.T) {
 		{name: "blank name", body: evalhub.CreateCollectionRequest{Name: " \t", Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}}}},
 		{name: "missing benchmark", body: evalhub.CreateCollectionRequest{Name: "Suite"}},
 		{name: "blank benchmark id", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: " \t"}}}},
+		{name: "negative benchmark weight", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: -0.1}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, response, err := setupApiTestWithEvalHub[HTTPError](

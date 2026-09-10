@@ -76,8 +76,12 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = ({
                 isOpen={isOpen}
                 selected={selected}
                 onSelect={(_event, value) => {
-                  if (typeof value === 'string' && !selected.some((item) => item === value)) {
-                    field.onChange([...selected, value]);
+                  if (typeof value === 'string') {
+                    field.onChange(
+                      selected.some((item) => item === value)
+                        ? selected.filter((item) => item !== value)
+                        : [...selected, value],
+                    );
                   }
                 }}
                 onOpenChange={(open) => {

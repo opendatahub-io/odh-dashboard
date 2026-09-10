@@ -407,6 +407,26 @@ describe('CopySuitePage', () => {
     fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
   });
 
+  it('should add and remove metadata values when selecting options', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+    const form = makeForm({ suiteDomains: ['reasoning'] });
+    mockUseCopySuiteForm.mockReturnValue(form);
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('suite-domains-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('suite-domains-option-safety')).getByRole('checkbox'),
+    );
+
+    expect(form.form.getValues('suiteDomains')).toEqual(['reasoning', 'safety']);
+
+    fireEvent.click(
+      within(screen.getByTestId('suite-domains-option-safety')).getByRole('checkbox'),
+    );
+
+    expect(form.form.getValues('suiteDomains')).toEqual(['reasoning']);
+  });
+
   it('should allow the final selected metadata value to be removed', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
     const form = makeForm({ suiteDomains: ['reasoning'] });
@@ -437,16 +457,8 @@ describe('CopySuitePage', () => {
     fireEvent.click(
       within(screen.getByTestId('suite-evaluates-option-model')).getByRole('checkbox'),
     );
-    fireEvent.click(
-      within(screen.getByTestId('suite-evaluates-option-model')).getByRole('checkbox'),
-    );
     fireEvent.click(screen.getByTestId('suite-evaluates-toggle'));
     fireEvent.click(screen.getByTestId('suite-domains-toggle'));
-    fireEvent.click(
-      within(screen.getByTestId('suite-domains-option-knowledge_and_reasoning')).getByRole(
-        'checkbox',
-      ),
-    );
     fireEvent.click(
       within(screen.getByTestId('suite-domains-option-knowledge_and_reasoning')).getByRole(
         'checkbox',

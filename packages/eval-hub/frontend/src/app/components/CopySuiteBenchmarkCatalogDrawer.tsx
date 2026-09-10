@@ -191,6 +191,10 @@ const CopySuiteBenchmarkCatalogDrawer: React.FC<CopySuiteBenchmarkCatalogDrawerP
         return;
       }
 
+      if (event.target instanceof HTMLElement && event.target.closest('.pf-v6-c-menu')) {
+        return;
+      }
+
       event.stopPropagation();
       if (detailsBenchmarkKey) {
         onOpenDetails(undefined);

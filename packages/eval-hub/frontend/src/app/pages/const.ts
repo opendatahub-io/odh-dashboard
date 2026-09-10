@@ -28,6 +28,7 @@ export const COLLECTION_METADATA_OPTIONS = {
     'knowledge_and_reasoning',
     'multilingual',
     'multimodal',
+    'safety',
     'software',
     'tool_use_and_function_calling',
     'trustworthiness',

@@ -132,9 +132,13 @@ func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, 
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
 			return
 		}
+		if benchmark.Weight < 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
+			return
+		}
 	}
 	// TODO: Remove this temporary mapping once the EvalHub API is deployed.
-	if len(input.AIEntities) > 0 {
+	if input.Category == "" && len(input.AIEntities) > 0 {
 		input.Category = input.AIEntities[0]
 	}
 

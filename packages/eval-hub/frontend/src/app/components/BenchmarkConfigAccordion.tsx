@@ -38,14 +38,12 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
   onRemove,
   canRemove,
 }) => {
-  const [expanded, setExpanded] = React.useState<Set<string>>(
-    () => new Set(benchmarks.map(getBenchmarkKey)),
-  );
+  const [collapsed, setCollapsed] = React.useState<Set<string>>(() => new Set());
   const [metricOpenIndex, setMetricOpenIndex] = React.useState<number | null>(null);
 
   const toggleExpand = React.useCallback((benchmark: CopySuiteBenchmark) => {
     const benchmarkKey = getBenchmarkKey(benchmark);
-    setExpanded((prev) => {
+    setCollapsed((prev) => {
       const next = new Set(prev);
       if (next.has(benchmarkKey)) {
         next.delete(benchmarkKey);
@@ -68,7 +66,7 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
     <div className="evalhub-benchmark-config-accordion" data-testid="benchmark-config-accordion">
       {benchmarks.map((benchmark, index) => {
         const benchmarkKey = getBenchmarkKey(benchmark);
-        const isExpanded = expanded.has(benchmarkKey);
+        const isExpanded = !collapsed.has(benchmarkKey);
         const itemId = `benchmark-${index}`;
 
         return (

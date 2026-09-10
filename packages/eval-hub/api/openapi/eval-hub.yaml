@@ -1453,6 +1453,7 @@ components:
           nullable: true
         weight:
           type: number
+          minimum: 0
           nullable: true
         primary_score:
           $ref: '#/components/schemas/CollectionPrimaryScore'
@@ -1538,6 +1539,7 @@ components:
         name:
           type: string
           minLength: 1
+          pattern: '\S'
         category:
           type: string
           deprecated: true

@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import CopySuiteBenchmarkCatalogDrawer from '~/app/components/CopySuiteBenchmarkCatalogDrawer';
 import type { Provider } from '~/app/types';
 
@@ -223,13 +223,16 @@ describe('CopySuiteBenchmarkCatalogDrawer', () => {
     );
   });
 
-  it('should label the drawer and focus the panel when it opens', () => {
+  it('should label the drawer and focus the panel when it opens', async () => {
     renderDrawer();
 
-    expect(screen.getByRole('dialog', { name: 'Add remove benchmarks' })).toHaveAttribute(
-      'aria-labelledby',
-      'copy-suite-add-benchmarks-catalog-title',
-    );
+    const dialog = screen.getByRole('dialog', { name: 'Add remove benchmarks' });
+
+    const transitionEnd = new Event('transitionend', { bubbles: true });
+    Object.defineProperty(transitionEnd, 'propertyName', { value: 'transform' });
+    act(() => dialog.dispatchEvent(transitionEnd));
+    await waitFor(() => expect(dialog).toHaveFocus());
+    expect(dialog).toHaveAttribute('aria-labelledby', 'copy-suite-add-benchmarks-catalog-title');
   });
 
   it('should close the details overlay before closing the catalog on Escape', () => {
@@ -258,5 +261,18 @@ describe('CopySuiteBenchmarkCatalogDrawer', () => {
     });
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should close an open filter menu without closing the catalog on Escape', () => {
+    const onClose = jest.fn();
+    renderDrawer({ onClose });
+
+    fireEvent.click(screen.getByTestId('benchmark-catalog-category-filter'));
+    const categorySearch = screen.getByRole('textbox', { name: 'Search category' });
+    fireEvent.change(categorySearch, { target: { value: 'general' } });
+    fireEvent.keyDown(categorySearch, { key: 'Escape' });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId('copy-suite-add-benchmarks-catalog-drawer')).toBeInTheDocument();
   });
 });
