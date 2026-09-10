@@ -6,9 +6,9 @@ import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributed
 import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
 import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
 import { LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { initIntercepts, type InitInterceptsOptions } from './infrastructureMocks';
 import { PodModel, ProjectModel } from '../../../utils/models';
 import { getK8sAPIResourceURL } from '../../../utils/k8s';
-import { initIntercepts, type InitInterceptsOptions } from './infrastructureMocks';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';
 
