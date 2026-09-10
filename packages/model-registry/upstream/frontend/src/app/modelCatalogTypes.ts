@@ -31,6 +31,7 @@ import {
   McpToolList,
 } from './mcpServerCatalogTypes';
 import type { AgentCatalogSpecificAPIs } from './agentsCatalogTypes';
+import { CatalogSourceStatus } from './shared/types/catalogTypes';
 
 export type HardwareConfiguration = {
   gpu_type: string;
@@ -44,7 +45,11 @@ export type CatalogSource = {
   name: string;
   labels: string[];
   enabled?: boolean;
-  status?: 'available' | 'partially-available' | 'error' | 'disabled';
+  status?:
+    | CatalogSourceStatus.AVAILABLE
+    | CatalogSourceStatus.PARTIALLY_AVAILABLE
+    | CatalogSourceStatus.ERROR
+    | CatalogSourceStatus.DISABLED;
   error?: string;
   assetType?: CatalogAssetType;
   hasApiKey?: boolean;

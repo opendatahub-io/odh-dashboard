@@ -145,12 +145,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
 
     if (!artifactLoaded) {
       return (
-        <Button
-          variant={variant}
-          data-testid="register-model-button"
-          isLoading
-          isAriaDisabled
-        >
+        <Button variant={variant} data-testid="register-model-button" isLoading isAriaDisabled>
           Register model
         </Button>
       );

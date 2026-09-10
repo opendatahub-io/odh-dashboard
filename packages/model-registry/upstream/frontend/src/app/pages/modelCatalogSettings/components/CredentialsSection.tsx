@@ -179,7 +179,6 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
         helperTextNode={organizationHelperTxtNode}
         popoverHelpText={DESCRIPTION_TEXT.ORGANIZATION}
       >
-        {organizationDescriptionTxtNode}
         {organizationInput}
       </ThemeAwareFormGroupWrapper>
       {formGroupOrgHelpTextNode}
@@ -261,7 +260,6 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
         helperTextNode={accessTokenHelperTxtNode}
         popoverHelpText={DESCRIPTION_TEXT.ACCESS_TOKEN}
       >
-        {accessTokenDescriptionTxtNode}
         {accessTokenInput}
       </ThemeAwareFormGroupWrapper>
       {validationError && (
