@@ -307,6 +307,13 @@ def render_body(result, previous_md, action):
             lines += ["", "Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]]
         lines += ["", "The PR description is the source of truth. This section does not review the diff against Jira acceptance criteria."]
 
+    criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
+    if criteria:
+        lines += ["", "## Jira acceptance criteria", "", "| Criterion | Verdict | Evidence |", "| --- | --- | --- |"]
+        for criterion in criteria:
+            stale = " · stale comment" if criterion.get("stale_comment") else ""
+            lines.append(f"| {table_cell(criterion.get('criterion'))} | {table_cell(criterion.get('verdict'))}{stale} | {table_cell(criterion.get('evidence'))} |")
+
     checks = result.get("checks") if isinstance(result.get("checks"), list) else []
     if checks:
         lines += ["", "## Readiness checks", "", "| Check | Result | Summary |", "| --- | --- | --- |"]
@@ -602,11 +609,13 @@ run_self_test() {
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"classifications\":[{\"id\":\"ci-flake-classifier\",\"status\":\"completed\",\"summary\":\"One failed check classified.\",\"classifications\":[{\"subject\":\"unit\",\"classification\":\"flaky\",\"reason\":\"Repeated on unrelated PRs.\"}]}]}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"classifications\":[{\"id\":\"ci-flake-classifier\",\"status\":\"completed\",\"summary\":\"One failed check classified.\",\"classifications\":[{\"subject\":\"unit\",\"classification\":\"flaky\",\"reason\":\"Repeated on unrelated PRs.\"}]}]}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
   if ! grep -q '## Readiness checks' <<<"${body}" ||
      ! grep -q 'test-impact-review' <<<"${body}" ||
+     ! grep -q '## Jira acceptance criteria' <<<"${body}" ||
+     ! grep -q 'Permission is checked' <<<"${body}" ||
      ! grep -q '### Classifications' <<<"${body}" ||
      ! grep -q 'ci-flake-classifier' <<<"${body}"; then
     echo "FAIL structured results: checks or classifications were not rendered" >&2

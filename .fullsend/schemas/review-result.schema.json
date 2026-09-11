@@ -19,6 +19,10 @@
     "risk": { "$ref": "#/$defs/rated" },
     "confidence": { "$ref": "#/$defs/confidence_rated" },
     "product_ask": { "$ref": "#/$defs/product_ask" },
+    "jira_criteria": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/jira_criterion" }
+    },
     "checks": {
       "type": "array",
       "items": { "$ref": "#/$defs/readiness_check" }
@@ -151,6 +155,18 @@
         "mismatched": { "type": "array", "items": { "type": "string" } },
         "justified_in_description": { "type": "boolean" },
         "needs_human": { "type": "boolean" }
+      }
+    },
+    "jira_criterion": {
+      "type": "object",
+      "description": "Diff evaluation of one explicit Jira acceptance criterion. This is review context, not a finding and not challenger input.",
+      "additionalProperties": false,
+      "required": ["criterion", "verdict", "evidence"],
+      "properties": {
+        "criterion": { "type": "string", "minLength": 1 },
+        "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISS", "SKIP"] },
+        "evidence": { "type": "string", "minLength": 1 },
+        "stale_comment": { "type": "boolean" }
       }
     },
     "readiness_check": {

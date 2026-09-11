@@ -5,6 +5,14 @@
   "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "change_summary": "A small isolated change.",
   "findings": [],
+  "jira_criteria": [
+    {
+      "criterion": "The new route is gated by the expected permission.",
+      "verdict": "PASS",
+      "evidence": "The changed route checks the permission before rendering.",
+      "stale_comment": false
+    }
+  ],
   "checks": [
     {
       "id": "test-impact-review",

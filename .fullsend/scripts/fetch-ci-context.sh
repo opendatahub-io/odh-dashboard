@@ -63,6 +63,8 @@ if classifier_data is not None:
 
 if not isinstance(checks, list):
     check = {"id": "ci-status-review", "status": "could-not-verify", "summary": "CI checks were unavailable from the host."}
+elif not checks:
+    check = {"id": "ci-status-review", "status": "could-not-verify", "summary": "The host returned no CI checks, so CI status could not be verified."}
 else:
     failed = [x for x in checks if x.get("bucket") in ("fail", "cancel")]
     pending = [x for x in checks if x.get("bucket") in ("pending", "skipping")]
@@ -105,7 +107,17 @@ run_producer() {
   classifier_file="$(mktemp)"
   trap 'rm -f "${raw_file}" "${classifier_file}"' RETURN
 
-  if ! "${ANALYZE_CI}" "${owner}" "${repo}" "${PR_NUMBER}" > "${raw_file}"; then
+  # pre-review accepts REVIEW_TOKEN, but the canonical tooling invokes gh,
+  # which only reads GH_TOKEN. Probe first so authentication failure cannot
+  # become analyze-ci.sh's empty-array fallback and then a false green result.
+  local token
+  token="${REVIEW_TOKEN:-${GH_TOKEN:-}}"
+  if [[ -z "${token}" ]] || ! GH_TOKEN="${token}" gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}" --jq '.number' >/dev/null 2>&1; then
+    write_unavailable "CI host context is unavailable: GitHub authentication or PR lookup failed."
+    return 0
+  fi
+
+  if ! GH_TOKEN="${token}" "${ANALYZE_CI}" "${owner}" "${repo}" "${PR_NUMBER}" > "${raw_file}"; then
     write_unavailable "CI host context is unavailable: analyze-ci.sh failed."
     return 0
   fi
@@ -115,7 +127,7 @@ run_producer() {
   fi
 
   if jq -e '(.pr_checks | type == "array") and any(.[]; .bucket == "fail" or .bucket == "cancel")' "${raw_file}" >/dev/null; then
-    if ! python3 "${CLASSIFY_CI}" "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" > "${classifier_file}" || ! jq empty "${classifier_file}" >/dev/null 2>&1; then
+    if ! GH_TOKEN="${token}" python3 "${CLASSIFY_CI}" "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" > "${classifier_file}" || ! jq empty "${classifier_file}" >/dev/null 2>&1; then
       # Absence is deliberate: normalizer emits the explicit unavailable
       # classifier envelope rather than attempting to parse partial output.
       rm -f "${classifier_file}"
@@ -142,6 +154,9 @@ run_self_test() {
   RUN_DIR="${tmp}/unavailable" write_unavailable "fixture unavailable"
   jq -e '.check.status == "could-not-verify"' "${tmp}/unavailable/ci-status.json" >/dev/null
   jq -e '.classifier.status == "unavailable"' "${tmp}/unavailable/ci-flake-classifier.json" >/dev/null
+  printf '%s' '{"pr_checks":[],"failures":[],"local_workflows":[]}' > "${raw}"
+  RUN_DIR="${tmp}/empty" normalize_results "${raw}" "${classified}"
+  jq -e '.check.status == "could-not-verify"' "${tmp}/empty/ci-status.json" >/dev/null
   rm -rf "${tmp}"
   echo "PASS CI adapter: all-flaky failures are warnings"
   echo "PASS CI adapter: mixed failures retain blocking status"

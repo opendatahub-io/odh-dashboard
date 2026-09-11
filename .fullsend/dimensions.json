@@ -148,6 +148,7 @@
       "id": "jira-pr-review",
       "kind": "llm-skill",
       "output": "section:product_ask",
+      "result_fields": ["product_ask", "jira_criteria"],
       "dispatch": "always",
       "definition": "skills/jira-pr-review/SKILL.md",
       "meta_prompt": "meta-prompts/section-output.md",
@@ -159,7 +160,7 @@
         "jira-criterion-partial", "jira-criterion-missing", "jira-criterion-stale",
         "jira-eval-unavailable"
       ],
-      "notes": "Canonical Jira review compares the PR description with trusted Jira context and evaluates explicit acceptance criteria against the diff. product_ask stays out of challenger synthesis; findings enter it."
+      "notes": "Canonical Jira review compares the PR description with trusted Jira context and evaluates explicit acceptance criteria against the diff. product_ask and jira_criteria stay out of challenger synthesis; findings enter it."
     },
     {
       "id": "test-impact-review",

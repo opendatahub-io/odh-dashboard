@@ -53,6 +53,7 @@ Each `dimensions[]` object:
 | `id` | Stable dimension key |
 | `kind` | `llm-subagent`, `llm-skill`, or `cli-adapter` |
 | `output` | `findings` (default) · `context` · `section:<name>` · `check:<name>` · `classifier:<name>` |
+| `result_fields` | Optional schema members returned by a `section:*` row; defaults to the section named by `output` |
 | `include_findings` | For a `section:*` LLM, also collect its returned `findings[]` into synthesis |
 | `dispatch` | `always` or `conditional` |
 | `when` | For `conditional` LLM rows: when this dimension is in scope |
@@ -704,11 +705,12 @@ For each LLM row whose `output` starts with `section:`, `check:`, or
 2. Compose the prompt from the row's `definition`, then
    `meta-prompts/common-review.md`, then its `meta_prompt`, plus `Output
    id: <row.id>` and `Output kind: <row.output>`. For `section:<name>`,
-   also supply `Output section: <name>` and `Include findings: true|false`
-   from the registry. Do not call Jira or GitHub issue APIs to replace an
+   also supply `Output fields: <row.result_fields or [name]>` and `Include
+   findings: true|false` from the registry. Do not call Jira or GitHub issue APIs to replace an
    unavailable trusted snapshot.
-3. For `section:<name>`, copy the named schema object onto
-   `agent-result.json`; `include_findings: true` also contributes its
+3. For `section:<name>`, copy every schema member named by `result_fields`
+   (or its named section when omitted) onto `agent-result.json`;
+   `include_findings: true` also contributes its
    `findings[]` to step 5. For `check:<name>`, append its `check` object
    to `checks[]`. For `classifier:<name>`, append its `classifier` object
    to `classifications[]`. None enters challenger synthesis directly.
@@ -1157,7 +1159,8 @@ info-level finding in the review output:
 Write the result to `$FULLSEND_OUTPUT_DIR/agent-result.json` following
 the overlay schema (`.fullsend/schemas/review-result.schema.json`).
 Include `product_ask` when a section LLM (or the none-snapshot
-fallback) produced it. Do NOT call `gh pr review` — the post-script
+fallback) produced it, and include `jira_criteria` when that section evaluated
+acceptance criteria. Do NOT call `gh pr review` — the post-script
 handles all GitHub mutations. Omit `action` and `body` for normal reviews; the
 host computes and renders both. Set `action: failure` plus `reason` only when
 the review did not complete.
@@ -1188,6 +1191,8 @@ Every non-failure result must include:
   could not be verified.
 - `product_ask` from the section LLM, including `{ "status": "none" }` when no
   Jira snapshot exists.
+- `jira_criteria[]` from the Jira section when explicit acceptance criteria were
+  available, preserving each PASS/PARTIAL/MISS/SKIP verdict and evidence.
 - `checks[]` and `classifications[]` from structured-output LLMs. Preserve
   unavailable results rather than converting them into findings.
 - Optional `label_actions` from the `issue-labels` skill when contextual

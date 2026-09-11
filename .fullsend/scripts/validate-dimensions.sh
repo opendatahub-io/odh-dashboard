@@ -20,13 +20,19 @@ jq -e '
   ([.dimensions[] | select((.kind != "llm-subagent") and (.kind != "llm-skill") and (.kind != "cli-adapter"))] | length == 0)
 ' "${REGISTRY}" >/dev/null || fail "kind must be llm-subagent, llm-skill, or cli-adapter"
 
-while IFS=$'\t' read -r id kind output definition meta; do
+while IFS=$'\t' read -r id kind output definition meta result_fields; do
   [[ -n "${id}" ]] || fail "dimension without id"
   case "${output}" in
     findings|context) ;;
     section:*)
       section="${output#section:}"
       jq -e --arg section "${section}" '.properties[$section] != null' "${SCHEMA}" >/dev/null || fail "${id}: section ${section} is absent from result schema"
+      if [[ -n "${result_fields}" ]]; then
+        jq -ne --argjson fields "${result_fields}" '($fields | type == "array" and length > 0) and all($fields[]; type == "string" and . != "")' >/dev/null || fail "${id}: result_fields must be a non-empty string array"
+        while IFS= read -r field; do
+          jq -e --arg field "${field}" '.properties[$field] != null' "${SCHEMA}" >/dev/null || fail "${id}: result field ${field} is absent from result schema"
+        done < <(jq -r '.[]' <<<"${result_fields}")
+      fi
       ;;
     check:*)
       jq -e '."$defs".readiness_check != null' "${SCHEMA}" >/dev/null || fail "${id}: result schema lacks readiness_check"
@@ -45,6 +51,6 @@ while IFS=$'\t' read -r id kind output definition meta; do
     fail "${id}: cli context adapters must not declare an LLM meta prompt"
   fi
   printf 'PASS dimension %s (%s, %s)\n' "${id}" "${kind}" "${output}"
-done < <(jq -r '.dimensions[] | [.id, .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // "")] | @tsv' "${REGISTRY}")
+done < <(jq -r '.dimensions[] | [.id, .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // ""), (.result_fields // [] | @json)] | @tsv' "${REGISTRY}")
 
 echo "Fullsend dimension registry contract is valid"
