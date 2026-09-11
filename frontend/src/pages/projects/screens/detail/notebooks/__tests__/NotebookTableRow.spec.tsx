@@ -56,7 +56,7 @@ jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileBindingState', () => (
 }));
 
 jest.mock('#~/pages/projects/notebook/useStopNotebookModalAvailability', () =>
-  jest.fn(() => [true]),
+  jest.fn(() => [true, jest.fn()]),
 );
 
 jest.mock('#~/pages/projects/notebook/utils', () => ({
@@ -220,7 +220,7 @@ describe('NotebookTableRow — Kueue anomaly indicator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseNotification.mockReturnValue(notification);
-    mockUseStopNotebookModalAvailability.mockReturnValue([true]);
+    mockUseStopNotebookModalAvailability.mockReturnValue([true, jest.fn()]);
   });
 
   it('shows the anomaly indicator when project is Kueue-enabled and notebook has no queue label', () => {
@@ -258,7 +258,7 @@ describe('NotebookTableRow — Kueue anomaly indicator', () => {
     mockUseKueueConfiguration.mockReturnValue(kueueDisabledConfig);
     mockStopNotebook.mockRejectedValue(new Error('Unsupported Media Type'));
 
-    renderRow(mockNotebookK8sResource({ k8sName: 'test-notebook' }));
+    renderRow(mockNotebookK8sResource({ name: 'test-notebook' }));
     const stopButton = screen.getByRole('button', { name: 'stop notebook' });
     fireEvent.click(stopButton);
 
