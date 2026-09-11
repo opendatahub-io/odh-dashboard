@@ -248,18 +248,17 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["test_data_secret_name"] != "test-secret" {
 			t.Errorf("test_data_secret_name = %v", params["test_data_secret_name"])
 		}
-		inputDataKeys, ok := params["input_data_keys"].([]string)
-		if !ok || len(inputDataKeys) != 1 || inputDataKeys[0] != "docs/" {
-			t.Errorf("input_data_keys = %v", params["input_data_keys"])
+		if params["input_data_key"] != "docs/" {
+			t.Errorf("input_data_key = %v", params["input_data_key"])
+		}
+		if _, ok := params["input_data_keys"]; ok {
+			t.Error("input_data_keys should not be forwarded to KFP")
 		}
 		if params["maas_secret_name"] != "maas-secret" {
 			t.Errorf("maas_secret_name = %v", params["maas_secret_name"])
 		}
 		if params["vector_db_secret_name"] != "vector-db-secret" {
 			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
-		}
-		if _, ok := params["input_data_key"]; ok {
-			t.Error("input_data_key should not be forwarded")
 		}
 		if _, ok := params["ogx_secret_name"]; ok {
 			t.Error("ogx_secret_name should not be forwarded")
@@ -304,9 +303,11 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["vector_db_secret_name"] != "provider-x" {
 			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
 		}
-		inputDataKeys := params["input_data_keys"].([]string)
-		if len(inputDataKeys) != 2 || inputDataKeys[0] != "docs/first/" || inputDataKeys[1] != "docs/second/" {
-			t.Errorf("input_data_keys = %v", inputDataKeys)
+		if params["input_data_key"] != "docs/first/" {
+			t.Errorf("input_data_key = %v, want first corpus key", params["input_data_key"])
+		}
+		if _, ok := params["input_data_keys"]; ok {
+			t.Error("input_data_keys should not be forwarded to KFP")
 		}
 		if params["optimization_max_rag_patterns"] != 10 {
 			t.Errorf("optimization_max_rag_patterns = %v", params["optimization_max_rag_patterns"])
@@ -316,13 +317,16 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 	})
 
-	t.Run("canonical fields are forwarded and legacy fields are omitted", func(t *testing.T) {
+	t.Run("KFP compatibility adapter forwards legacy input field", func(t *testing.T) {
 		req := validRequest()
 		kfp := BuildPipelineRunInput(req, "pid", "vid")
 		params := kfp.RuntimeConfig.Parameters
 
-		if _, ok := params["input_data_keys"]; !ok {
-			t.Error("input_data_keys should be forwarded")
+		if params["input_data_key"] != "docs/" {
+			t.Errorf("input_data_key = %v", params["input_data_key"])
+		}
+		if _, ok := params["input_data_keys"]; ok {
+			t.Error("input_data_keys should not be forwarded to KFP")
 		}
 		if _, ok := params["maas_secret_name"]; !ok {
 			t.Error("maas_secret_name should be forwarded")
@@ -330,7 +334,7 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if _, ok := params["vector_db_secret_name"]; !ok {
 			t.Error("vector_db_secret_name should be forwarded")
 		}
-		for _, legacyKey := range []string{"input_data_key", "ogx_secret_name", "vector_io_provider_id"} {
+		for _, legacyKey := range []string{"ogx_secret_name", "vector_io_provider_id"} {
 			if _, ok := params[legacyKey]; ok {
 				t.Errorf("%s should be omitted", legacyKey)
 			}

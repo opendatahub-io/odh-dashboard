@@ -402,13 +402,15 @@ func ValidateCreateIndexingPipelineRunRequest(req models.CreateIndexingPipelineR
 }
 
 func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) *pipelines.CreatePipelineRunInput {
+	// The pipeline backend has not adopted input_data_keys yet. Forward only the
+	// first key under the legacy name; remove this adapter when pipeline support lands.
 	params := map[string]any{
 		"test_data_secret_name":  req.TestDataSecretName,
 		"test_data_bucket_name":  req.TestDataBucketName,
 		"test_data_key":          req.TestDataKey,
 		"input_data_secret_name": req.InputDataSecretName,
 		"input_data_bucket_name": req.InputDataBucketName,
-		"input_data_keys":        req.InputDataKeys,
+		"input_data_key":         req.InputDataKeys[0],
 		"maas_secret_name":       req.MaaSSecretName,
 		"vector_db_secret_name":  req.VectorDBSecretName,
 	}
