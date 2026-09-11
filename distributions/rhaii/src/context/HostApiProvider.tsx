@@ -158,6 +158,15 @@ const patchSecretWithOwnerReference = (
     model: SecretModel,
     queryOptions: { name: secret.metadata.name, ns: secret.metadata.namespace },
     patches: [
+      ...(secret.metadata.resourceVersion
+        ? [
+            {
+              op: 'test' as const,
+              path: '/metadata/resourceVersion',
+              value: secret.metadata.resourceVersion,
+            },
+          ]
+        : []),
       {
         op: 'add',
         path: '/metadata/ownerReferences',
@@ -183,13 +192,19 @@ const patchSecretWithProtocolAnnotation = (
     model: SecretModel,
     queryOptions: { name: secret.metadata.name, ns: secret.metadata.namespace },
     patches: [
+      ...(secret.metadata.resourceVersion
+        ? [
+            {
+              op: 'test' as const,
+              path: '/metadata/resourceVersion',
+              value: secret.metadata.resourceVersion,
+            },
+          ]
+        : []),
       {
         op: 'add',
-        path: '/metadata/annotations',
-        value: {
-          ...(secret.metadata.annotations || {}),
-          'opendatahub.io/connection-type-protocol': protocol,
-        },
+        path: '/metadata/annotations/opendatahub.io~1connection-type-protocol',
+        value: protocol,
       },
     ],
   });
