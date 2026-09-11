@@ -59,9 +59,18 @@ function setupWebpackDotenvFile() {
   // dotenv-webpack uses Webpack's DefinePlugin, which is incompatible with
   // the Rspack compiler used by this frontend. The dotenv files are loaded
   // into process.env by setupDotenvFilesForEnv before the config is created;
-  // expose that environment through Rspack's native DefinePlugin instead.
+  // Expose only values intended for client-side configuration. Server tokens,
+  // credentials, and internal build variables must not enter the browser bundle.
+  const publicEnvKeys = [
+    'AUTH_METHOD',
+    'DEPLOYMENT_MODE',
+    'DEV_MODE',
+    'IMAGES_DIRNAME',
+    'PUBLIC_PATH',
+  ];
+  const publicEnv = Object.fromEntries(publicEnvKeys.map((key) => [key, process.env[key]]));
   return new rspack.DefinePlugin({
-    'process.env': JSON.stringify({ ...process.env }),
+    'process.env': JSON.stringify(publicEnv),
   });
 }
 
