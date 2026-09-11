@@ -45,19 +45,6 @@ const ModelDetailsTabs = ({
   const queryParams = useQueryParamNamespaces();
   const namespace = typeof queryParams.namespace === 'string' ? queryParams.namespace : undefined;
 
-  if (gatedAccessDenied) {
-    return (
-      <PageSection
-        hasBodyWrapper={false}
-        isFilled
-        data-testid="model-overview-tab-content"
-        padding={{ default: 'noPadding' }}
-      >
-        <ModelGatedAccessRequiredView model={model} hfUsername={hfUsername} />
-      </PageSection>
-    );
-  }
-
   const showValidatedInsights = shouldShowValidatedInsights(model, artifacts.items);
 
   const staticTabs = React.useMemo(() => {
@@ -86,6 +73,19 @@ const ModelDetailsTabs = ({
 
     return tabs;
   }, [model, artifacts, artifactLoaded, artifactsLoadError, showValidatedInsights]);
+
+  if (gatedAccessDenied) {
+    return (
+      <PageSection
+        hasBodyWrapper={false}
+        isFilled
+        data-testid="model-overview-tab-content"
+        padding={{ default: 'noPadding' }}
+      >
+        <ModelGatedAccessRequiredView model={model} hfUsername={hfUsername} />
+      </PageSection>
+    );
+  }
 
   return (
     <ExtensibleDetailTabs
