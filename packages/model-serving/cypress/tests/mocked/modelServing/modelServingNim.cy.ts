@@ -7,7 +7,7 @@ import {
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
-import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mock200Status, mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
@@ -111,16 +111,19 @@ describe('NIM Models Deployments', () => {
     deleteModelServingModal.findPVCCheckbox().should('not.be.checked');
     deleteModelServingModal.findPVCDependentsAlert().should('not.exist');
 
-    cy.interceptK8sList(
-      InferenceServiceModel,
-      mockK8sResourceList([selectedDeployment, sharedDeployment]),
-    ).as('getPVCDependentInferenceServices');
-    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime])).as(
-      'getPVCDependentServingRuntimes',
-    );
+    cy.interceptK8sList(InferenceServiceModel, {
+      delay: 1000,
+      body: mockK8sResourceList([selectedDeployment, sharedDeployment]),
+    }).as('getPVCDependentInferenceServices');
+    cy.interceptK8sList(ServingRuntimeModel, {
+      delay: 1000,
+      body: mockK8sResourceList([runtime]),
+    }).as('getPVCDependentServingRuntimes');
 
     deleteModelServingModal.findInput().type('Test Name');
     deleteModelServingModal.findPVCCheckbox().click();
+    deleteModelServingModal.findPVCDependentsLoadingAlert().should('be.visible');
+    deleteModelServingModal.findSubmitButton().should('be.disabled');
     cy.wait('@getPVCDependentInferenceServices');
     cy.wait('@getPVCDependentServingRuntimes');
     deleteModelServingModal
@@ -162,6 +165,39 @@ describe('NIM Models Deployments', () => {
       .should('contain.text', 'PVC is not shared')
       .and('contain.text', 'No other model deployments use this PVC');
     cy.testA11y();
+  });
+
+  it('should require deselecting PVC cleanup when dependency lookup fails', () => {
+    const deployment = mockNimInferenceService();
+    const runtime = mockNimServingRuntime({ pvcName: 'nim-cache' });
+
+    initInterceptsToEnableNim({ nimWizard: true });
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([deployment]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime]));
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getDeploymentRow('Test Name').findKebabAction('Delete').click();
+
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      { statusCode: 500, body: mock500Error({}) },
+    ).as('getPVCDependentInferenceServicesError');
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([runtime]),
+    ).as('getPVCDependentServingRuntimes');
+
+    deleteModelServingModal.findInput().type('Test Name');
+    deleteModelServingModal.findPVCCheckbox().click();
+    cy.wait('@getPVCDependentInferenceServicesError');
+    cy.wait('@getPVCDependentServingRuntimes');
+    deleteModelServingModal
+      .findPVCDependentsAlert()
+      .should('contain.text', 'PVC dependencies could not be determined');
+    deleteModelServingModal.findSubmitButton().should('be.disabled');
+
+    deleteModelServingModal.findPVCCheckbox().click();
+    deleteModelServingModal.findSubmitButton().should('not.be.disabled');
   });
 
   it('should show the NIM deployment details in the expanded row on the project Models tab', () => {
