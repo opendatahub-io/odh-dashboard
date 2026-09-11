@@ -26,45 +26,19 @@ import SimpleSelect, {
 } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { z } from 'zod';
 import {
+  enabledEnvVarSchema,
+  envVarNameSchema,
+  getEnvironmentVariableFieldErrors,
+  isCompleteEnvironmentVariable,
+} from '../../../shared/environmentVariablesSchema';
+import {
   createDefaultEnvironmentVariable,
   EnvironmentVariableType,
   isEnvironmentVariableType,
-  isValidSecretDataKey,
-  isValidSecretName,
+  mergeEnvironmentVariableUpdates,
   normalizeEnvironmentVariable,
-  SECRET_DATA_KEY_VALIDATION_ERROR,
-  SECRET_NAME_VALIDATION_ERROR,
-  type EnvironmentVariable,
+  type EnvironmentVariableUpdates,
 } from '../../../shared/environmentVariablesUtils';
-
-const envVarNameSchema = z
-  .string()
-  .regex(
-    /^[A-Za-z_][A-Za-z0-9_]*$/,
-    'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
-  );
-
-const valueEnvVarSchema = z.object({
-  type: z.literal(EnvironmentVariableType.Value),
-  name: envVarNameSchema,
-  value: z.string(),
-});
-
-const secretEnvVarSchema = z.object({
-  type: z.literal(EnvironmentVariableType.Secret),
-  name: envVarNameSchema,
-  secretName: z
-    .string()
-    .min(1, 'Secret name is required')
-    .refine(isValidSecretName, SECRET_NAME_VALIDATION_ERROR),
-  secretKey: z
-    .string()
-    .min(1, 'Secret key is required')
-    .refine(isValidSecretDataKey, SECRET_DATA_KEY_VALIDATION_ERROR),
-  optional: z.boolean().optional(),
-});
-
-const enabledEnvVarSchema = z.discriminatedUnion('type', [valueEnvVarSchema, secretEnvVarSchema]);
 
 const disabledEnvVarSchema = z.object({
   type: z.nativeEnum(EnvironmentVariableType).optional(),
@@ -101,23 +75,6 @@ export const isValidEnvironmentVariables = (name: string): string => {
   return result.success ? '' : result.error.errors[0]?.message || '';
 };
 
-const isEnvironmentVariableComplete = (envVar: EnvironmentVariable): boolean => {
-  if (envVar.name.trim() === '' || isValidEnvironmentVariables(envVar.name) !== '') {
-    return false;
-  }
-
-  if (envVar.type === EnvironmentVariableType.Secret) {
-    return (
-      envVar.secretName.trim() !== '' &&
-      envVar.secretKey.trim() !== '' &&
-      isValidSecretName(envVar.secretName) &&
-      isValidSecretDataKey(envVar.secretKey)
-    );
-  }
-
-  return true;
-};
-
 export const hasInvalidEnvironmentVariableNames = (
   data?: EnvironmentVariablesFieldData,
 ): boolean => {
@@ -125,7 +82,7 @@ export const hasInvalidEnvironmentVariableNames = (
     return false;
   }
 
-  return data.variables.some((variable) => !isEnvironmentVariableComplete(variable));
+  return data.variables.some((variable) => !isCompleteEnvironmentVariable(variable));
 };
 
 // Hook
@@ -147,15 +104,6 @@ export const useEnvironmentVariablesField = (
   };
 };
 
-type EnvironmentVariableUpdates = {
-  type?: EnvironmentVariableType;
-  name?: string;
-  value?: string;
-  secretName?: string;
-  secretKey?: string;
-  optional?: boolean;
-};
-
 // Component
 type EnvironmentVariablesFieldProps = {
   data?: EnvironmentVariablesFieldData;
@@ -172,10 +120,6 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
 }) => {
   const lastNameFieldRef = React.useRef<HTMLInputElement>(null);
   const addVarButtonRef = React.useRef<HTMLButtonElement>(null);
-
-  const validateEnvVarName = (name: string): string => {
-    return isValidEnvironmentVariables(name);
-  };
 
   const addEnvVar = () => {
     if (data.enabled) {
@@ -212,31 +156,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
     }
 
     const currentVar = normalizeEnvironmentVariable(data.variables[index]);
-    const nextType = updates.type ?? currentVar.type;
-
-    const updatedVar: EnvironmentVariable =
-      nextType === EnvironmentVariableType.Secret
-        ? {
-            type: EnvironmentVariableType.Secret,
-            name: updates.name ?? currentVar.name,
-            secretName:
-              updates.secretName ??
-              (currentVar.type === EnvironmentVariableType.Secret ? currentVar.secretName : ''),
-            secretKey:
-              updates.secretKey ??
-              (currentVar.type === EnvironmentVariableType.Secret ? currentVar.secretKey : ''),
-            ...(currentVar.type === EnvironmentVariableType.Secret && currentVar.optional
-              ? { optional: true }
-              : {}),
-          }
-        : {
-            type: EnvironmentVariableType.Value,
-            name: updates.name ?? currentVar.name,
-            value:
-              updates.value ??
-              (currentVar.type === EnvironmentVariableType.Value ? currentVar.value : ''),
-          };
-
+    const updatedVar = mergeEnvironmentVariableUpdates(currentVar, updates);
     const newVars = data.variables.map(normalizeEnvironmentVariable);
     newVars[index] = updatedVar;
     onChange?.({ enabled: true, variables: newVars });
@@ -315,23 +235,8 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
           <Stack hasGutter>
             {data.variables.map((envVar, index) => {
               const normalizedEnvVar = normalizeEnvironmentVariable(envVar);
-              const nameError = validateEnvVarName(normalizedEnvVar.name);
-              const secretNameError =
-                normalizedEnvVar.type === EnvironmentVariableType.Secret
-                  ? normalizedEnvVar.secretName.trim() === ''
-                    ? 'Secret name is required'
-                    : isValidSecretName(normalizedEnvVar.secretName)
-                    ? ''
-                    : SECRET_NAME_VALIDATION_ERROR
-                  : '';
-              const secretKeyError =
-                normalizedEnvVar.type === EnvironmentVariableType.Secret
-                  ? normalizedEnvVar.secretKey.trim() === ''
-                    ? 'Secret key is required'
-                    : isValidSecretDataKey(normalizedEnvVar.secretKey)
-                    ? ''
-                    : SECRET_DATA_KEY_VALIDATION_ERROR
-                  : '';
+              const { nameError, secretNameError, secretKeyError } =
+                getEnvironmentVariableFieldErrors(normalizedEnvVar);
 
               return (
                 <Split hasGutter key={index}>

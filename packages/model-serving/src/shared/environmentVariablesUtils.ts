@@ -22,14 +22,22 @@ export type SecretEnvironmentVariable = {
 
 export type EnvironmentVariable = ValueEnvironmentVariable | SecretEnvironmentVariable;
 
+export const isSecretEnvVar = (
+  envVar: Pick<EnvironmentVariable, 'type'> | EnvironmentVariable,
+): envVar is SecretEnvironmentVariable => envVar.type === EnvironmentVariableType.Secret;
+
+export const isValueEnvVar = (
+  envVar: Pick<EnvironmentVariable, 'type'> | EnvironmentVariable,
+): envVar is ValueEnvironmentVariable => envVar.type === EnvironmentVariableType.Value;
+
 const SECRET_NAME_MAX_LENGTH = 253;
 const SECRET_DATA_KEY_MAX_LENGTH = 253;
 
 /** Secret metadata.name — DNS subdomain (RFC 1123), not a DNS label. */
 const SECRET_NAME_REGEX = /^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$/;
 
-/** Secret data key — valid path segment name. */
-const SECRET_DATA_KEY_REGEX = /^[-]?([_a-zA-Z0-9]([-._a-zA-Z0-9]*[_a-zA-Z0-9])?)$/;
+/** Secret data key — matches k8s IsConfigMapKey / notebook env var key validation. */
+const SECRET_DATA_KEY_REGEX = /^[-._a-zA-Z0-9]+$/;
 
 export const SECRET_NAME_VALIDATION_ERROR =
   'Secret name must be a valid Kubernetes secret name (lowercase letters, numbers, hyphens, or dots; max 253 characters)';
@@ -43,46 +51,58 @@ export const isValidSecretName = (name: string): boolean =>
 export const isValidSecretDataKey = (key: string): boolean =>
   key.length > 0 && key.length <= SECRET_DATA_KEY_MAX_LENGTH && SECRET_DATA_KEY_REGEX.test(key);
 
+export type K8sSecretKeyRef = {
+  name: string;
+  key: string;
+  optional?: boolean;
+};
+
+export type K8sEnvironmentVariableValueFrom = {
+  secretKeyRef: K8sSecretKeyRef;
+};
+
 /** Env var as written to serving CRs (value or secretKeyRef, never both). */
 export type K8sEnvironmentVariable =
   | { name: string; value: string }
   | {
       name: string;
-      valueFrom: {
-        secretKeyRef: {
-          name: string;
-          key: string;
-          optional?: boolean;
-        };
-      };
+      valueFrom: K8sEnvironmentVariableValueFrom;
     };
 
 /** Env var as read from CRs (looser than write shape). */
 export type K8sEnvironmentVariableInput = {
   name: string;
   value?: string | number;
-  valueFrom?: Record<string, unknown>;
+  valueFrom?: K8sEnvironmentVariableValueFrom | Record<string, unknown>;
 };
 
-const getSecretKeyRef = (
-  valueFrom: Record<string, unknown>,
-): { name: string; key: string; optional?: boolean } | undefined => {
+const isK8sEnvironmentVariableValueFrom = (
+  valueFrom: K8sEnvironmentVariableValueFrom | Record<string, unknown>,
+): valueFrom is K8sEnvironmentVariableValueFrom => {
   const { secretKeyRef } = valueFrom;
-  if (
-    secretKeyRef &&
+  return (
+    secretKeyRef !== null &&
     typeof secretKeyRef === 'object' &&
     'name' in secretKeyRef &&
     'key' in secretKeyRef &&
     typeof secretKeyRef.name === 'string' &&
     typeof secretKeyRef.key === 'string'
-  ) {
-    return {
-      name: secretKeyRef.name,
-      key: secretKeyRef.key,
-      ...('optional' in secretKeyRef && secretKeyRef.optional === true ? { optional: true } : {}),
-    };
+  );
+};
+
+const getSecretKeyRef = (
+  valueFrom: K8sEnvironmentVariableValueFrom | Record<string, unknown>,
+): K8sSecretKeyRef | undefined => {
+  if (!isK8sEnvironmentVariableValueFrom(valueFrom)) {
+    return undefined;
   }
-  return undefined;
+
+  const { secretKeyRef } = valueFrom;
+  return {
+    name: secretKeyRef.name,
+    key: secretKeyRef.key,
+    ...(secretKeyRef.optional ? { optional: true } : {}),
+  };
 };
 
 export const createDefaultEnvironmentVariable = (): ValueEnvironmentVariable => ({
@@ -107,14 +127,57 @@ export const normalizeEnvironmentVariable = (
   return {
     type: EnvironmentVariableType.Value,
     name: envVar.name,
-    value: 'value' in envVar ? envVar.value ?? '' : '',
+    value: envVar.value ?? '',
   };
+};
+
+export type EnvironmentVariableUpdates =
+  | Partial<ValueEnvironmentVariable>
+  | Partial<SecretEnvironmentVariable>
+  | { type: EnvironmentVariableType };
+
+export const mergeEnvironmentVariableUpdates = (
+  currentVar: EnvironmentVariable,
+  updates: EnvironmentVariableUpdates,
+): EnvironmentVariable => {
+  const nextType = updates.type ?? currentVar.type;
+
+  if (isSecretEnvVar({ type: nextType })) {
+    const base: SecretEnvironmentVariable = isSecretEnvVar(currentVar)
+      ? currentVar
+      : {
+          type: EnvironmentVariableType.Secret,
+          name: currentVar.name,
+          secretName: '',
+          secretKey: '',
+        };
+
+    return normalizeEnvironmentVariable({
+      ...base,
+      ...updates,
+      type: EnvironmentVariableType.Secret,
+    });
+  }
+
+  const base: ValueEnvironmentVariable = isValueEnvVar(currentVar)
+    ? currentVar
+    : {
+        type: EnvironmentVariableType.Value,
+        name: currentVar.name,
+        value: '',
+      };
+
+  return normalizeEnvironmentVariable({
+    ...base,
+    ...updates,
+    type: EnvironmentVariableType.Value,
+  });
 };
 
 export const mapEnvironmentVariableToK8sEnv = (
   envVar: EnvironmentVariable,
 ): K8sEnvironmentVariable => {
-  if (envVar.type === EnvironmentVariableType.Secret) {
+  if (isSecretEnvVar(envVar)) {
     return {
       name: envVar.name,
       valueFrom: {
@@ -163,7 +226,7 @@ export const mapK8sEnvToEnvironmentVariable = (
 };
 
 export const formatEnvironmentVariableForReview = (envVar: EnvironmentVariable): string => {
-  if (envVar.type === EnvironmentVariableType.Secret) {
+  if (isSecretEnvVar(envVar)) {
     return `${envVar.name}, secret/${envVar.secretName}:${envVar.secretKey}`;
   }
 
