@@ -49,7 +49,8 @@ import {
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
-const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
+type ConfigureInitialValues = Partial<ConfigureSchema> & Record<string, unknown>;
+const createFields = ['display_name', 'description', 'maas_secret_name'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
 
@@ -64,10 +65,10 @@ const arraysEqualUnordered = (a: string[], b: string[]): boolean => {
 };
 
 type AutoragConfigurePageProps = {
-  initialValues?: Partial<ConfigureSchema>;
+  initialValues?: ConfigureInitialValues;
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
-  /** Pre-resolved Open GenAI Stack connection secret for reconfigure flows. */
+  /** Legacy prop name retained until the reconfigure loader migrates to MaaS. */
   initialOgxSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
@@ -123,7 +124,7 @@ function AutoragConfigurePage({
     defaultValues: initialFormValues,
   });
 
-  const [displayName, description, ogxSecretName] = useWatch({
+  const [displayName, description, maasSecretName] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -340,7 +341,7 @@ function AutoragConfigurePage({
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
             !configureSchema.base.shape.description.safeParse(description).success ||
-            !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
+            !configureSchema.base.shape.maas_secret_name.safeParse(maasSecretName).success
           }
         >
           Next
@@ -486,7 +487,7 @@ function AutoragConfigurePage({
                     optimizationMetric: mapOptimizationMetric(data.optimization_metric),
                     vectorDatabase: vectorDatabaseRef.current,
                     countOfModels: data.generation_models.length + data.embedding_models.length,
-                    countOfKnowledgeDocuments: data.input_data_key ? 1 : 0,
+                    countOfKnowledgeDocuments: data.input_data_keys.length,
                     countOfEvaluationDocuments: data.test_data_key ? 1 : 0,
                     countOfFoundationModels: data.generation_models.length,
                     countOfEmbeddingModels: data.embedding_models.length,
@@ -558,7 +559,7 @@ function AutoragConfigurePage({
                 hasBodyWrapper={false}
               >
                 {step === 'create' ? (
-                  <AutoragCreate initialOgxSecret={initialOgxSecret} />
+                  <AutoragCreate initialMaaSSecret={initialOgxSecret} />
                 ) : (
                   <AutoragConfigure
                     initialValues={initialValues}

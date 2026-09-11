@@ -32,7 +32,7 @@ type SecretSelectorProps = Omit<
   'selectOptions' | 'selected' | 'onSelect' | 'onChange'
 > & {
   namespace: string;
-  type?: 'storage' | 'ogx';
+  type?: 'storage' | 'ogx' | 'maas' | 'vector-db';
   value?: string; // The UUID of the selected secret
   onChange: (selection: SecretSelection | undefined) => void;
   /**

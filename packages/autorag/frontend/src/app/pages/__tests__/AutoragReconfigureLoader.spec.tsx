@@ -5,7 +5,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import AutoragReconfigureLoader from '~/app/pages/AutoragReconfigureLoader';
 import type { PipelineRun } from '~/app/types';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 
 // ============================================================================
 // Mocks
@@ -97,7 +96,7 @@ jest.mock('mod-arch-shared', () => ({
 
 // Capture what AutoragConfigurePage receives
 let capturedProps: {
-  initialValues?: Partial<ConfigureSchema>;
+  initialValues?: Record<string, unknown>;
   initialInputDataSecret?: unknown;
   initialOgxSecret?: unknown;
   sourceRunId?: string;
@@ -111,7 +110,11 @@ jest.mock('~/app/pages/AutoragConfigurePage', () => ({
       <div data-testid="configure-page">
         <span data-testid="source-run-id">{props.sourceRunId ?? ''}</span>
         <span data-testid="source-run-name">{props.sourceRunName ?? ''}</span>
-        <span data-testid="initial-display-name">{props.initialValues?.display_name ?? ''}</span>
+        <span data-testid="initial-display-name">
+          {typeof props.initialValues?.display_name === 'string'
+            ? props.initialValues.display_name
+            : ''}
+        </span>
       </div>
     );
   },
@@ -123,7 +126,7 @@ jest.mock('~/app/pages/AutoragConfigurePage', () => ({
 
 const createMockPipelineRun = (
   overrides?: Partial<PipelineRun>,
-  parameters?: Partial<ConfigureSchema>,
+  parameters?: Record<string, unknown>,
 ): PipelineRun => ({
   run_id: 'run-123',
   display_name: 'Original Run',
@@ -365,7 +368,7 @@ describe('AutoragReconfigureLoader', () => {
     });
 
     it('should pass all runtime parameters as initialValues', async () => {
-      const params: Partial<ConfigureSchema> = {
+      const params: Record<string, unknown> = {
         input_data_secret_name: 'my-secret',
         input_data_bucket_name: 'my-bucket',
         input_data_key: 'docs/input.pdf',
@@ -666,7 +669,7 @@ describe('AutoragReconfigureLoader', () => {
           // optimization_max_rag_patterns must be a number — passing a string triggers a parse failure
           {
             optimization_max_rag_patterns: 'not-a-number',
-          } as unknown as Partial<ConfigureSchema>,
+          } as Record<string, unknown>,
         ),
         isPending: false,
         isError: false,

@@ -39,7 +39,7 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'ogx') =>
+  (namespace: string, type?: 'storage' | 'ogx' | 'maas' | 'vector-db') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { namespace };
     if (type) {

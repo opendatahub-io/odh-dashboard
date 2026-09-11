@@ -260,6 +260,7 @@ const mockUseParams = jest.mocked(useParams);
 const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
 
 const configureSchema = createConfigureSchema();
+type TestConfigureValues = Partial<typeof configureSchema.defaults> & Record<string, unknown>;
 
 // Captures the live react-hook-form instance so tests can assert on exact
 // form state (e.g. which model IDs are selected) instead of only on rendered
@@ -275,7 +276,7 @@ const getLatestFormValues = (): ConfigureSchema => {
 
 const FormWrapper: React.FC<{
   children: React.ReactNode;
-  defaultValues?: Partial<typeof configureSchema.defaults>;
+  defaultValues?: TestConfigureValues;
 }> = ({ children, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
@@ -299,7 +300,7 @@ const createTestQueryClient = () =>
 // Wrapper component that provides QueryClient and Form context
 const renderWithQueryClient = (
   component: React.ReactElement,
-  defaultValues?: Partial<typeof configureSchema.defaults>,
+  defaultValues?: TestConfigureValues,
   options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
 ) => {
   const queryClient = createTestQueryClient();
@@ -330,7 +331,7 @@ const renderWithQueryClient = (
 };
 
 const renderComponent = (
-  defaultValues?: Partial<typeof configureSchema.defaults>,
+  defaultValues?: TestConfigureValues,
   options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
 ) => renderWithQueryClient(<AutoragConfigure />, defaultValues, options);
 
@@ -338,7 +339,7 @@ const renderWithInitialValues = (
   initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
     initialInputDataSecret?: Parameters<typeof AutoragConfigure>[0]['initialInputDataSecret'];
   },
-  defaultValues?: Partial<typeof configureSchema.defaults>,
+  defaultValues?: TestConfigureValues,
 ) => {
   const { initialInputDataSecret, ...schemaValues } = initialValues;
   return renderWithQueryClient(
@@ -763,7 +764,10 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
 
       // Configure details fields should be visible
-      expect(screen.getByText('Vector I/O provider')).toBeInTheDocument();
+      expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+      expect(
+        screen.getByText('Provide connection details for a vector database.'),
+      ).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();

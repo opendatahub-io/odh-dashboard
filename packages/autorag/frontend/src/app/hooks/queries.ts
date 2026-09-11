@@ -329,7 +329,7 @@ export function useSecretCredentialsQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'ogx',
+  type?: 'storage' | 'ogx' | 'maas' | 'vector-db',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

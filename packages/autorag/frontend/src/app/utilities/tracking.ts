@@ -171,17 +171,38 @@ export const toVectorStoreProviderType = (
 
 export type VectorStoreConfiguredProperties = {
   providerType: VectorStoreProviderType;
-  countOfCompatibleProviders: number;
+  /** Retained for compatibility with the previous OGX discovery payload. */
+  countOfCompatibleProviders?: number;
   outcome: TrackingOutcome;
   success: boolean;
 };
 
+/** Infers a safe provider category from redacted Secret key metadata only. */
+export const getVectorStoreProviderTypeFromSecretData = (
+  data?: Record<string, string>,
+): VectorStoreProviderType | undefined => {
+  const keys = new Set(Object.keys(data ?? {}));
+  const hasMilvus = keys.has('MILVUS_URI');
+  const hasPgvector = [
+    'PGVECTOR_HOST',
+    'PGVECTOR_PORT',
+    'PGVECTOR_DB',
+    'PGVECTOR_USER',
+    'PGVECTOR_PASSWORD',
+  ].every((key) => keys.has(key));
+
+  if (hasMilvus === hasPgvector) {
+    return undefined;
+  }
+  return hasMilvus ? 'milvus' : 'pgvector';
+};
+
 /**
- * Fires when the user selects a vector I/O provider in the "Configure details" step of the
+ * Fires when the user selects a vector database Secret in the "Configure details" step of the
  * configure flow. Fires on every selection change (consistent with Knowledge/Evaluation Source,
  * which re-fire on every upload/replace), from the Select's `onSelect` handler only — never from
  * the effect that clears a stale selection when the provider list refreshes, and never from the
- * initial/reconfigure pre-fill of `vector_io_provider_id`. This is a pure local field selection
+ * initial/reconfigure pre-fill of `vector_db_secret_name`. This is a pure local field selection
  * with no direct backend call, so `outcome` is always `submit` and `success` is always `true`.
  */
 export const fireAutoragVectorStoreConfigured = (

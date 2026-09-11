@@ -44,10 +44,11 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const controller = useController({ control: form.control, name: 'test_data_key' });
   const { field } = controller;
 
-  const [testDataSecretName, displayName, inputDataKey] = useWatch({
+  const [testDataSecretName, displayName, inputDataKeys] = useWatch({
     control: form.control,
-    name: ['test_data_secret_name', 'display_name', 'input_data_key'],
+    name: ['test_data_secret_name', 'display_name', 'input_data_keys'],
   });
+  const inputDataKey = inputDataKeys[0] ?? '';
 
   const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
 

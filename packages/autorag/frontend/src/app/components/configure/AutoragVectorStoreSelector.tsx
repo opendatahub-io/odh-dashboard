@@ -1,172 +1,164 @@
-import { MenuToggle, Select, SelectList, SelectOption, Skeleton } from '@patternfly/react-core';
-import React, { useEffect, useState } from 'react';
-import { useController, useFormContext, useWatch } from 'react-hook-form';
-import { useParams } from 'react-router';
-import { useNotification } from '~/app/hooks/useNotification';
-import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import {
-  SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
-  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
-  // DEFAULT_IN_MEMORY_PROVIDER,
-  ConfigureSchema,
-} from '~/app/schemas/configure.schema';
-import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
-import { OgxVectorStoreProvider } from '~/app/types';
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  Flex,
+  FlexItem,
+  MenuToggle,
+  MenuToggleAction,
+} from '@patternfly/react-core';
+import React from 'react';
+import { Controller, useFormContext } from 'react-hook-form';
+import { useParams } from 'react-router';
+import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import VectorDbConnectionModal from '~/app/components/common/VectorDbConnectionModal';
+import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import type { SecretListItem } from '~/app/types';
 import {
   fireAutoragVectorStoreConfigured,
-  toVectorStoreProviderType,
+  getVectorStoreProviderTypeFromSecretData,
   TrackingOutcome,
 } from '~/app/utilities/tracking';
 
-/**
- * Formats a provider for display.
- * e.g. provider_id="milvus", provider_type="remote::milvus" → "milvus (remote Milvus)"
- * e.g. provider_id="faiss", provider_type="inline::faiss" → "faiss (inline Faiss)"
- * Falls back to provider_id if provider_type doesn't follow the expected "deployment::name" format.
- */
-const formatProviderDisplayName = (provider: OgxVectorStoreProvider): string => {
-  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
-  // Handle special case for IN_MEMORY provider
-  // if (provider.provider_type === 'IN_MEMORY') {
-  //   return 'ChromaDB (in-memory)';
-  // }
-
-  const [deployment, name] = provider.provider_type.split('::');
-  if (!deployment || !name) {
-    return provider.provider_id;
-  }
-  const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
-  return `${provider.provider_id} (${deployment} ${capitalizedName})`;
-};
-
 const AutoragVectorStoreSelector: React.FC = () => {
   const { namespace = '' } = useParams();
-  const [isOpen, setIsOpen] = useState(false);
-  const notification = useNotification();
-  const { onVectorStoreConfigured } = useRunTriggeredTracking();
-
-  const {
-    formState: { isSubmitting },
-    control,
-  } = useFormContext<ConfigureSchema>();
-
-  const {
-    field: { value: fieldValue, onChange: fieldOnChange },
-  } = useController<ConfigureSchema, 'vector_io_provider_id'>({
-    name: 'vector_io_provider_id',
-  });
-
-  const ogxSecretName = useWatch({ control, name: 'ogx_secret_name' });
-
-  const {
-    data: providersData,
-    isLoading,
-    isError,
-  } = useOgxVectorStoreProvidersQuery(
-    namespace,
-    ogxSecretName,
-    SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
+  const [selectedSecret, setSelectedSecret] = React.useState<SecretSelection>();
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
+  const [isAddDropdownOpen, setIsAddDropdownOpen] = React.useState(false);
+  const [modalProvider, setModalProvider] = React.useState<'milvus' | 'pgvector'>('milvus');
+  const secretsRefreshRef = React.useRef<(() => Promise<SecretListItem[] | undefined>) | null>(
+    null,
   );
-
-  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
-  // Inject the default in-memory provider at the beginning of the list.
-  // const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
-  const apiProviders = providersData?.vector_store_providers ?? [];
-  const providers = apiProviders;
-  const totalProviderCount = providersData?.totalProviderCount ?? 0;
-
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-    if (isError) {
-      notification.error(
-        'Failed to load vector I/O providers.',
-        <>
-          Check that the secret for the provided Open GenAI Stack connection is valid and the API
-          key has not expired.
-        </>,
-      );
-    } else if (totalProviderCount > 0 && providers.length === 0) {
-      notification.warning(
-        'No compatible vector I/O providers found.',
-        <>
-          Vector I/O providers were found on the Open GenAI Stack server, but none are compatible
-          with AutoRAG. Ensure a remote Milvus or PGVector provider is configured on your Open GenAI
-          Stack server.
-        </>,
-      );
-    }
-  }, [isLoading, isError, totalProviderCount, providers.length, notification]);
-  const selectedProvider = providers.find((p) => p.provider_id === fieldValue);
-
-  // Clear stale selection when the provider list changes and no longer includes
-  // the previously selected provider (e.g., Open GenAI Stack secret was changed or
-  // providers became empty). Skip while loading so reconfigure flows don't
-  // clear a valid initial value before providers have been fetched.
-  useEffect(() => {
-    if (!isLoading && fieldValue && !providers.some((p) => p.provider_id === fieldValue)) {
-      fieldOnChange('');
-    }
-  }, [providers, fieldValue, fieldOnChange, isLoading]);
-
-  if (isLoading) {
-    return <Skeleton width="200px" height="36px" />;
-  }
-
-  const noProviders = providers.length === 0;
+  const { onVectorStoreConfigured } = useRunTriggeredTracking();
+  const form = useFormContext<ConfigureSchema>();
 
   return (
-    <Select
-      aria-label="Vector I/O provider selector"
-      isOpen={isOpen}
-      onOpenChange={setIsOpen}
-      onSelect={(_e, selectedProviderId) => {
-        const provider = providers.find((p) => p.provider_id === selectedProviderId);
-        fieldOnChange(provider ? provider.provider_id : '');
-        setIsOpen(false);
-        if (provider) {
-          const providerType = toVectorStoreProviderType(provider.provider_type);
-          if (providerType) {
-            fireAutoragVectorStoreConfigured({
-              providerType,
-              countOfCompatibleProviders: providers.length,
-              outcome: TrackingOutcome.submit,
-              success: true,
-            });
-            onVectorStoreConfigured(providerType);
-          }
-        }
-      }}
-      selected={fieldValue}
-      toggle={(toggleRef) => (
-        <MenuToggle
-          ref={toggleRef}
-          onClick={() => setIsOpen((prev) => !prev)}
-          isExpanded={isOpen}
-          isDisabled={isSubmitting || isError || noProviders}
-          data-testid="vector-store-select-toggle"
-        >
-          {noProviders
-            ? 'No vector I/O providers available'
-            : selectedProvider
-              ? formatProviderDisplayName(selectedProvider)
-              : 'Select vector I/O provider'}
-        </MenuToggle>
-      )}
-    >
-      <SelectList data-testid="vector-store-select-list">
-        {providers.map((p) => (
-          <SelectOption
-            key={p.provider_id}
-            value={p.provider_id}
-            data-testid={`vector-store-option-${p.provider_id}`}
+    <Controller
+      control={form.control}
+      name="vector_db_secret_name"
+      render={({ field }) => (
+        <>
+          <Flex
+            direction={{ default: 'column', md: 'row' }}
+            gap={{ default: 'gapSm' }}
+            alignItems={{ default: 'alignItemsStretch', md: 'alignItemsFlexStart' }}
           >
-            {formatProviderDisplayName(p)}
-          </SelectOption>
-        ))}
-      </SelectList>
-    </Select>
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <SecretSelector
+                dataTestId="vector-db-secret-selector"
+                placeholder="Select vector database secret"
+                type="vector-db"
+                namespace={namespace}
+                value={selectedSecret?.uuid}
+                onChange={(secret: SecretSelection | undefined) => {
+                  setSelectedSecret(secret);
+                  field.onChange(!secret || secret.invalid ? '' : secret.name);
+                  if (secret && !secret.invalid) {
+                    const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
+                    if (providerType) {
+                      fireAutoragVectorStoreConfigured({
+                        providerType,
+                        outcome: TrackingOutcome.submit,
+                        success: true,
+                      });
+                      onVectorStoreConfigured(providerType);
+                    }
+                  }
+                }}
+                onRefreshReady={(refresh) => {
+                  secretsRefreshRef.current = refresh;
+                }}
+                isDisabled={form.formState.isSubmitting}
+              />
+            </FlexItem>
+            <FlexItem>
+              <Dropdown
+                isOpen={isAddDropdownOpen}
+                onOpenChange={setIsAddDropdownOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    variant="secondary"
+                    isExpanded={isAddDropdownOpen}
+                    isDisabled={form.formState.isSubmitting}
+                    splitButtonItems={[
+                      <MenuToggleAction
+                        key="add-vector-db"
+                        className="pf-v6-u-text-nowrap"
+                        data-testid="add-vector-db-connection-button"
+                        aria-label="Add new connection"
+                        onClick={() => {
+                          setModalProvider('milvus');
+                          setIsConnectionModalOpen(true);
+                        }}
+                      >
+                        Add new connection
+                      </MenuToggleAction>,
+                    ]}
+                    data-testid="add-vector-db-dropdown-toggle"
+                    aria-label="Add vector database connection options"
+                    onClick={() => setIsAddDropdownOpen((open) => !open)}
+                  />
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem
+                    data-testid="add-milvus-connection-option"
+                    onClick={() => {
+                      setModalProvider('milvus');
+                      setIsConnectionModalOpen(true);
+                      setIsAddDropdownOpen(false);
+                    }}
+                  >
+                    Add Milvus connection
+                  </DropdownItem>
+                  <DropdownItem
+                    data-testid="add-pgvector-connection-option"
+                    onClick={() => {
+                      setModalProvider('pgvector');
+                      setIsConnectionModalOpen(true);
+                      setIsAddDropdownOpen(false);
+                    }}
+                  >
+                    Add PGVector connection
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </FlexItem>
+          </Flex>
+          {isConnectionModalOpen && (
+            <VectorDbConnectionModal
+              namespace={namespace}
+              initialProvider={modalProvider}
+              onClose={() => setIsConnectionModalOpen(false)}
+              onSubmit={async (secretName) => {
+                const refresh = secretsRefreshRef.current;
+                if (!refresh) {
+                  return;
+                }
+                const list = await refresh();
+                const secret = list?.find((item) => item.name === secretName);
+                if (secret) {
+                  const selected = { ...secret, invalid: false };
+                  setSelectedSecret(selected);
+                  field.onChange(secret.name);
+                  const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
+                  if (providerType) {
+                    fireAutoragVectorStoreConfigured({
+                      providerType,
+                      outcome: TrackingOutcome.submit,
+                      success: true,
+                    });
+                    onVectorStoreConfigured(providerType);
+                  }
+                }
+              }}
+            />
+          )}
+        </>
+      )}
+    />
   );
 };
 
