@@ -2,11 +2,14 @@ import {
   EnvironmentVariableType,
   createDefaultEnvironmentVariable,
   formatEnvironmentVariableForReview,
+  isSecretEnvVar,
   isValidSecretDataKey,
   isValidSecretName,
+  isValueEnvVar,
   mapEnvironmentVariableToK8sEnv,
   mapEnvironmentVariablesToK8sEnv,
   mapK8sEnvToEnvironmentVariable,
+  mergeEnvironmentVariableUpdates,
   normalizeEnvironmentVariable,
 } from '../environmentVariablesUtils';
 
@@ -218,12 +221,70 @@ describe('formatEnvironmentVariableForReview', () => {
   });
 });
 
+describe('mergeEnvironmentVariableUpdates', () => {
+  it('should preserve optional when editing secret fields', () => {
+    expect(
+      mergeEnvironmentVariableUpdates(
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'HF_TOKEN',
+          secretName: 'hf-secret',
+          secretKey: 'HF_TOKEN',
+          optional: true,
+        },
+        { secretName: 'hf-secret-updated' },
+      ),
+    ).toEqual({
+      type: EnvironmentVariableType.Secret,
+      name: 'HF_TOKEN',
+      secretName: 'hf-secret-updated',
+      secretKey: 'HF_TOKEN',
+      optional: true,
+    });
+  });
+
+  it('should switch from value to secret type', () => {
+    expect(
+      mergeEnvironmentVariableUpdates(
+        { type: EnvironmentVariableType.Value, name: 'HF_TOKEN', value: 'plain' },
+        { type: EnvironmentVariableType.Secret },
+      ),
+    ).toEqual({
+      type: EnvironmentVariableType.Secret,
+      name: 'HF_TOKEN',
+      secretName: '',
+      secretKey: '',
+    });
+  });
+});
+
+describe('type guards', () => {
+  it('should identify secret and value env vars', () => {
+    expect(
+      isSecretEnvVar({
+        type: EnvironmentVariableType.Secret,
+        name: 'HF_TOKEN',
+        secretName: 'hf-secret',
+        secretKey: 'HF_TOKEN',
+      }),
+    ).toBe(true);
+    expect(
+      isValueEnvVar({
+        type: EnvironmentVariableType.Value,
+        name: 'MY_VAR',
+        value: 'hello',
+      }),
+    ).toBe(true);
+  });
+});
+
 describe('secret reference validation', () => {
   it('should accept valid secret names and keys', () => {
     expect(isValidSecretName('hf-token-test')).toBe(true);
     expect(isValidSecretName('my.secret.name')).toBe(true);
     expect(isValidSecretDataKey('HF_TOKEN')).toBe(true);
     expect(isValidSecretDataKey('tls.crt')).toBe(true);
+    expect(isValidSecretDataKey('.dockerconfigjson')).toBe(true);
   });
 
   it('should reject invalid secret names and keys', () => {
