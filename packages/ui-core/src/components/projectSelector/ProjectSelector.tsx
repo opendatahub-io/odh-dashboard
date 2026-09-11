@@ -25,6 +25,7 @@ type ProjectSelectorProps = {
   clearLabel?: string;
   primary?: boolean;
   showTitle?: boolean;
+  showProjectNavigatorLink?: boolean;
   selectorLabel?: string;
   isFullWidth?: boolean;
   placeholder?: string;
@@ -44,6 +45,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   clearLabel,
   primary,
   showTitle = false,
+  showProjectNavigatorLink = true,
   selectorLabel = 'Project',
   isFullWidth = false,
   placeholder = undefined,
@@ -182,7 +184,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }}>
             {selector}
-            <ProjectNavigatorLink namespace={selection} />
+            {showProjectNavigatorLink && <ProjectNavigatorLink namespace={selection} />}
           </FlexItem>
         </Flex>
       </Flex>

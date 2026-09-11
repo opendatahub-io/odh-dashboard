@@ -13,6 +13,7 @@ const ModelServingProjectSelection: React.FC<ModelServingProjectSelectionProps> 
     invalidDropdownPlaceholder="All projects"
     selectAllProjects
     showTitle
+    showProjectNavigatorLink={false}
   />
 );
 
