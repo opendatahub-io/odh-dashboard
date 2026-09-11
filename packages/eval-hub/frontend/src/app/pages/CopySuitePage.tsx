@@ -18,11 +18,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getCollection } from '~/app/api/k8s';
-import {
-  evaluationCollectionsRoute,
-  evaluationCuratedBenchmarkSuitesRoute,
-  evaluationsBaseRoute,
-} from '~/app/routes';
+import { evaluationCuratedBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
 import { CURATED_SUITE_PAGE_CONFIG, isCuratedAiEntity } from '~/app/curatedSuiteConfig';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
@@ -156,10 +152,13 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
               <Button
                 variant="primary"
                 component={(props) => (
-                  <Link {...props} to={evaluationCollectionsRoute(namespace)} />
+                  <Link
+                    {...props}
+                    to={{ pathname: evaluationsBaseRoute(namespace), search: '?tab=evaluate' }}
+                  />
                 )}
               >
-                Return to benchmark suites
+                Return to evaluations
               </Button>
             </EmptyStateActions>
           </EmptyStateFooter>
@@ -353,7 +352,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             trackingSource={isCreateMode ? 'create_suite' : 'copy_suite'}
             onSuccess={() => {
               setIsRunModalOpen(false);
-              navigate(evaluationsBaseRoute(namespace));
+              navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
             }}
           />
         ) : null}

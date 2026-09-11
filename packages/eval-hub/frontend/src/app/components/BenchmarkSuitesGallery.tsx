@@ -438,14 +438,15 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   }, [resetDeleteMutation]);
 
   const contextualActions: BenchmarkSuiteCardAction[] = [
-    {
-      id: 'edit',
-      label: 'Edit',
-      onSelect: () => {
-        // TODO: Redirect to the edit collection form once it is available.
-        // TODO: Use usePatchCollectionMutation to submit the form's JSON Patch operations.
-      },
-    },
+    // TODO: Reconsider enabling Edit if users request it.
+    // Product guidance is to create a new version and keep the original suite
+    // to avoid confusion when comparing results. Until that flow is defined,
+    // keep Edit disabled and use Duplicate to create a new suite.
+    // {
+    //   id: 'edit',
+    //   label: 'Edit',
+    //   onSelect: () => {},
+    // },
     {
       id: 'duplicate',
       label: 'Duplicate',

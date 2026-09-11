@@ -193,7 +193,7 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
 
-    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
     expect(screen.getByText('Duplicate')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 

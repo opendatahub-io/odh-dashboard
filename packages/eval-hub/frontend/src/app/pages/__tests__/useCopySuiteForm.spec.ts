@@ -335,7 +335,7 @@ describe('useCopySuiteForm', () => {
       'Suite created',
       '"New suite" has been added to your benchmark suites.',
     );
-    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/create/collections');
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
     expect(mockCloneCollection).not.toHaveBeenCalled();
   });
 
@@ -1227,7 +1227,7 @@ describe('useCopySuiteForm', () => {
       'Suite saved',
       '"Saved suite" has been added to your benchmark suites.',
     );
-    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/create/collections');
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
   });
 
   it('should remain submitting while a save-only clone is pending', async () => {

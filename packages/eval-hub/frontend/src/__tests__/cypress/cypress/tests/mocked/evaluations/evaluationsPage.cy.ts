@@ -60,12 +60,15 @@ describe('Evaluations Page - Tabs', () => {
     });
   });
 
-  it('should default to the Evaluate tab with the benchmark suite placeholder', () => {
+  it('should default to the Evaluate tab with the benchmark suite create link', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
     evaluationsPage.findEvaluateContent().should('exist');
     evaluationsPage.findCreateSuiteCard().should('exist');
-    evaluationsPage.findCreateSuiteButton().should('be.enabled');
+    evaluationsPage
+      .findCreateSuiteButton()
+      .should('have.attr', 'href', `/evaluation/${NAMESPACE}/create/collections/new`)
+      .and('not.have.attr', 'aria-disabled', 'true');
     evaluationsPage
       .findPageDescription()
       .should(
@@ -168,7 +171,6 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findBenchmarkSuiteMenu('model-suite-2').click();
 
-    evaluationsPage.findBenchmarkSuiteAction('edit', 'model-suite-2').should('be.visible');
     evaluationsPage.findBenchmarkSuiteAction('duplicate', 'model-suite-2').should('be.visible');
     evaluationsPage.findBenchmarkSuiteAction('delete', 'model-suite-2').click();
 

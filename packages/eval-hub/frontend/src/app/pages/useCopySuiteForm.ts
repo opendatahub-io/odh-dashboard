@@ -6,7 +6,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
-import { evaluationCollectionsRoute, evaluationsBaseRoute } from '~/app/routes';
+import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { cloneCollection, createCollection } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
@@ -860,7 +860,7 @@ export function useCopySuiteForm({
         isCreateMode ? 'Suite created' : 'Suite saved',
         `"${savedCollection.name}" has been added to your benchmark suites.`,
       );
-      navigate(evaluationCollectionsRoute(namespace));
+      navigate(evaluationBenchmarkSuitesRoute(namespace));
     } catch (e) {
       if (controller && !controller.signal.aborted) {
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';

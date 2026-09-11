@@ -4,7 +4,6 @@ import type { SourceMode } from '~/app/types';
 export const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
   { value: 'model', label: 'Model' },
   { value: 'agent', label: 'Agent' },
-  { value: 'prerecorded', label: 'Pre-recorded responses' },
 ];
 
 export const suiteEvaluatesToSourceMode = (

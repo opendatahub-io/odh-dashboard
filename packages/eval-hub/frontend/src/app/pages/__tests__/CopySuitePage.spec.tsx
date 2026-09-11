@@ -2,7 +2,7 @@ import * as React from 'react';
 import { fireEvent, render, renderHook, screen, within } from '@testing-library/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { useFetchState } from 'mod-arch-core';
 import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
@@ -126,7 +126,13 @@ jest.mock('~/app/components/BenchmarkWeightsModal', () => ({
 
 jest.mock('~/app/components/StartEvaluationRunModal', () => ({
   __esModule: true,
-  default: ({ onClonePendingChange }: { onClonePendingChange?: (isPending: boolean) => void }) => (
+  default: ({
+    onClonePendingChange,
+    onSuccess,
+  }: {
+    onClonePendingChange?: (isPending: boolean) => void;
+    onSuccess?: () => void;
+  }) => (
     <>
       <button
         type="button"
@@ -141,6 +147,9 @@ jest.mock('~/app/components/StartEvaluationRunModal', () => ({
         onClick={() => onClonePendingChange?.(false)}
       >
         Set clone complete
+      </button>
+      <button type="button" data-testid="copy-suite-run-success" onClick={onSuccess}>
+        Run success
       </button>
     </>
   ),
@@ -247,11 +256,17 @@ const makeForm = (overrides: Partial<Form> = {}): Form => {
   };
 };
 
+const LocationDisplay = () => {
+  const { pathname, search } = useLocation();
+  return <div data-testid="location-display">{pathname + search}</div>;
+};
+
 const renderPage = () =>
   render(
     <MemoryRouter
       initialEntries={['/evaluation/test-namespace/create/collections/source-collection/copy']}
     >
+      <LocationDisplay />
       <Routes>
         <Route
           path="/evaluation/:namespace/create/collections/:collectionId/copy"
@@ -264,6 +279,7 @@ const renderPage = () =>
 const renderCreatePage = () =>
   render(
     <MemoryRouter initialEntries={['/evaluation/test-namespace/create/collections/new']}>
+      <LocationDisplay />
       <Routes>
         <Route path="/evaluation/:namespace/create/collections/new" element={<CreateSuitePage />} />
       </Routes>
@@ -329,6 +345,24 @@ describe('CopySuitePage', () => {
     expect(form.handleSaveOnly).toHaveBeenCalledTimes(1);
   });
 
+  it('should navigate to the Runs tab after successfully running a created suite', () => {
+    const form = makeForm();
+    mockUseCopySuiteForm.mockImplementation((options) => ({
+      ...form,
+      handleSaveAndRun: () => options.onSaveAndRunRequest?.(),
+    }));
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+
+    renderCreatePage();
+    goToBenchmarksStep();
+    fireEvent.click(screen.getByTestId('create-suite-submit'));
+    fireEvent.click(screen.getByTestId('copy-suite-run-success'));
+
+    expect(screen.getByTestId('location-display')).toHaveTextContent(
+      '/evaluation/test-namespace?tab=runs',
+    );
+  });
+
   it('should show a loading state while the collection is loading', () => {
     mockUseFetchState.mockReturnValue([undefined, false, undefined, jest.fn()]);
 
@@ -349,7 +383,10 @@ describe('CopySuitePage', () => {
     renderPage();
 
     expect(screen.getByTestId('copy-suite-load-error')).toHaveTextContent('Collection not found');
-    expect(screen.getByText('Return to benchmark suites')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Return to evaluations' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace?tab=evaluate',
+    );
   });
 
   it('should show an error state when providers cannot be loaded', () => {
