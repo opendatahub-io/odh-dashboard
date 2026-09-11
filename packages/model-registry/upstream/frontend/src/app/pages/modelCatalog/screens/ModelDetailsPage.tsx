@@ -27,11 +27,13 @@ import useCatalogDeployPrefillData from '~/odh/hooks/useCatalogDeployPrefillData
 import {
   decodeParams,
   getModelName,
+  getSourceFromSourceId,
   hasModelArtifacts,
   isModelValidated,
   isRedHatModel,
   getHfAccessLabelVariant,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
@@ -39,7 +41,10 @@ import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
 import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
-import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import {
+  MODEL_CATALOG_GATED_ACCESS_REQUIRED,
+  MODEL_CATALOG_POPOVER_MESSAGES,
+} from '~/concepts/modelCatalog/const';
 import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
@@ -71,6 +76,11 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
     () => actionExtensions.some((action) => action.properties.group === MODEL_CATALOG_DEPLOY_GROUP),
     [actionExtensions],
   );
+  const { catalogSources } = React.useContext(ModelCatalogContext);
+  const hfUsername = getSourceFromSourceId(
+    decodedParams.sourceId || '',
+    catalogSources,
+  )?.hfUsername;
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
@@ -124,11 +134,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
 
   const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
     if (gatedAccessDenied) {
-      return (
-        <Button variant={variant} isDisabled data-testid="register-model-button">
-          Register model
-        </Button>
-      );
+      return registerButtonTooltip('', MODEL_CATALOG_GATED_ACCESS_REQUIRED.REGISTER_BUTTON_TOOLTIP);
     }
 
     if (!modelRegistriesLoaded || modelRegistriesLoadError) {
@@ -259,13 +265,16 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
           model && (
             <ActionList>
               <ActionListGroup>
-                {!gatedAccessDenied && (
-                  <ExtensibleActions
-                    actions={actionExtensions}
-                    group={MODEL_CATALOG_DEPLOY_GROUP}
-                    componentProps={catalogDeployProps}
-                  />
-                )}
+                <ExtensibleActions
+                  actions={actionExtensions}
+                  group={MODEL_CATALOG_DEPLOY_GROUP}
+                  componentProps={{
+                    ...catalogDeployProps,
+                    ...(gatedAccessDenied && {
+                      disabledTooltip: MODEL_CATALOG_GATED_ACCESS_REQUIRED.REGISTER_BUTTON_TOOLTIP,
+                    }),
+                  }}
+                />
                 {registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
               </ActionListGroup>
             </ActionList>
@@ -281,6 +290,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
             artifactLoaded={artifactLoaded}
             artifactsLoadError={artifactsLoadError}
             gatedAccessDenied={gatedAccessDenied}
+            hfUsername={hfUsername}
           />
         )}
       </ApplicationsPage>
