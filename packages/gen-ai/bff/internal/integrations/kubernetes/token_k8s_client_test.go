@@ -2232,9 +2232,10 @@ func TestEnsureOGXGatewayCABundle(t *testing.T) {
 			SAClient: serviceAccountClient,
 		}
 
-		name, err := kc.ensureOGXGatewayCABundle(context.Background(), namespace)
+		name, created, err := kc.ensureOGXGatewayCABundle(context.Background(), namespace)
 		require.NoError(t, err)
 		assert.Equal(t, ogxRouterCABundleName, name)
+		assert.True(t, created)
 
 		var bundle corev1.ConfigMap
 		require.NoError(t, dashboardClient.Get(context.Background(), types.NamespacedName{
@@ -2257,8 +2258,9 @@ func TestEnsureOGXGatewayCABundle(t *testing.T) {
 			SAClient: serviceAccountClient,
 		}
 
-		_, err := kc.ensureOGXGatewayCABundle(context.Background(), namespace)
+		_, created, err := kc.ensureOGXGatewayCABundle(context.Background(), namespace)
 		require.NoError(t, err)
+		assert.False(t, created)
 
 		var bundle corev1.ConfigMap
 		require.NoError(t, dashboardClient.Get(context.Background(), types.NamespacedName{

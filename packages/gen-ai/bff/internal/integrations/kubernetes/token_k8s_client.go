@@ -121,7 +121,7 @@ type TokenKubernetesClient struct {
 // dashboard-managed ConfigMap for the OGX operator to mount as SSL_CERT_FILE.
 // The source Secret is read through the dashboard service account because users
 // do not ordinarily have access to openshift-ingress-operator.
-func (kc *TokenKubernetesClient) ensureOGXGatewayCABundle(ctx context.Context, namespace string) (string, error) {
+func (kc *TokenKubernetesClient) ensureOGXGatewayCABundle(ctx context.Context, namespace string) (string, bool, error) {
 	secretReader := kc.SAClient
 	if secretReader == nil {
 		secretReader = kc.Client
@@ -132,12 +132,12 @@ func (kc *TokenKubernetesClient) ensureOGXGatewayCABundle(ctx context.Context, n
 		Namespace: ingressOperatorNamespace,
 		Name:      routerCASecretName,
 	}, &routerCA); err != nil {
-		return "", fmt.Errorf("failed to read OpenShift ingress router CA: %w", err)
+		return "", false, fmt.Errorf("failed to read OpenShift ingress router CA: %w", err)
 	}
 
 	certificate, found := routerCA.Data[routerCASecretKey]
 	if !found || len(certificate) == 0 {
-		return "", fmt.Errorf("OpenShift ingress router CA secret is missing %q", routerCASecretKey)
+		return "", false, fmt.Errorf("OpenShift ingress router CA secret is missing %q", routerCASecretKey)
 	}
 
 	bundleKey := types.NamespacedName{Namespace: namespace, Name: ogxRouterCABundleName}
@@ -156,12 +156,12 @@ func (kc *TokenKubernetesClient) ensureOGXGatewayCABundle(ctx context.Context, n
 			Data: map[string]string{"ca-bundle.crt": string(certificate)},
 		}
 		if err := kc.Client.Create(ctx, &bundle); err != nil {
-			return "", fmt.Errorf("failed to create OGX router CA bundle: %w", err)
+			return "", false, fmt.Errorf("failed to create OGX router CA bundle: %w", err)
 		}
-		return bundle.Name, nil
+		return bundle.Name, true, nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("failed to get OGX router CA bundle: %w", err)
+		return "", false, fmt.Errorf("failed to get OGX router CA bundle: %w", err)
 	}
 
 	if bundle.Data == nil {
@@ -174,10 +174,10 @@ func (kc *TokenKubernetesClient) ensureOGXGatewayCABundle(ctx context.Context, n
 	bundle.Labels[OpenDataHubDashboardLabelKey] = "true"
 	bundle.Labels["ogx.io/watch"] = "true"
 	if err := kc.Client.Update(ctx, &bundle); err != nil {
-		return "", fmt.Errorf("failed to update OGX router CA bundle: %w", err)
+		return "", false, fmt.Errorf("failed to update OGX router CA bundle: %w", err)
 	}
 
-	return bundle.Name, nil
+	return bundle.Name, false, nil
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
@@ -1835,6 +1835,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	// Prefer the DSCI-managed bundle. A newly created E2E namespace may not yet
 	// have one, so create an OpenShift-injected bundle as a fallback.
 	caBundleConfigMapName := "odh-trusted-ca-bundle"
+	fallbackCABundleCreated := false
 	var caBundleConfigMap corev1.ConfigMap
 	err = kc.Client.Get(ctx, types.NamespacedName{Name: caBundleConfigMapName, Namespace: namespace}, &caBundleConfigMap)
 	if err != nil || caBundleConfigMap.Data["ca-bundle.crt"] == "" {
@@ -1850,8 +1851,12 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			},
 			Data: map[string]string{},
 		}
-		if err := kc.Client.Create(ctx, caBundle); err != nil && !apierrors.IsAlreadyExists(err) {
-			return nil, rollbackPgvector(fmt.Errorf("failed to create CA trust ConfigMap: %w", err))
+		if err := kc.Client.Create(ctx, caBundle); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return nil, rollbackPgvector(fmt.Errorf("failed to create CA trust ConfigMap: %w", err))
+			}
+		} else {
+			fallbackCABundleCreated = true
 		}
 	} else {
 		if caBundleConfigMap.Labels == nil {
@@ -1867,11 +1872,13 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	caCertificates := []ogxapi.ConfigMapKeyRef{
 		{Name: caBundleConfigMapName, Key: "ca-bundle.crt"},
 	}
+	routerCABundleCreated := false
 	if kc.EnvConfig.GatewayDomain != "" {
-		routerCABundleName, err := kc.ensureOGXGatewayCABundle(ctx, namespace)
+		routerCABundleName, created, err := kc.ensureOGXGatewayCABundle(ctx, namespace)
 		if err != nil {
 			return nil, rollbackPgvector(err)
 		}
+		routerCABundleCreated = created
 		caCertificates = append(caCertificates, ogxapi.ConfigMapKeyRef{
 			Name: routerCABundleName,
 			Key:  "ca-bundle.crt",
@@ -1941,6 +1948,16 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			kc.Logger.Error("failed to clean up ConfigMap after OGXServer creation failure", "error", deleteErr, "namespace", namespace, "configMapName", configMapName)
 		} else {
 			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
+		}
+		if fallbackCABundleCreated {
+			if deleteErr := kc.Client.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: caBundleConfigMapName, Namespace: namespace}}); deleteErr != nil {
+				kc.Logger.Error("failed to clean up fallback CA bundle after OGXServer creation failure", "error", deleteErr, "namespace", namespace)
+			}
+		}
+		if routerCABundleCreated {
+			if deleteErr := kc.Client.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: ogxRouterCABundleName, Namespace: namespace}}); deleteErr != nil {
+				kc.Logger.Error("failed to clean up router CA bundle after OGXServer creation failure", "error", deleteErr, "namespace", namespace)
+			}
 		}
 
 		return nil, rollbackPgvector(fmt.Errorf("failed to create OGXServer: %w", err))
