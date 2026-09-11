@@ -12,9 +12,9 @@ const RESOURCES_PATH = 'resources/autorag';
  * Full configure flow for an AutoRAG run.
  *
  * Handles: login, wait for DSPA, navigate to experiments, create run,
- * fill name/description, select OGX secret, select S3 connection,
+ * fill name/description, select MaaS secret, select S3 connection,
  * upload document, browse and select it, upload evaluation dataset,
- * and select first available vector store.
+ * and select the vector database secret.
  *
  * After this, optionally configure metric/patterns, then call `submitAutoragRun()`.
  */
@@ -38,10 +38,12 @@ export const configureAutoragRun = (
   autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
-  cy.step('Select OGX secret');
-  autoragConfigurePage.findOgxSecretSelector().click();
-  autoragConfigurePage.findOgxSecretSelector().type(testData.ogxSecretName);
-  autoragConfigurePage.findSelectOption(new RegExp(testData.ogxSecretName, 'i')).click();
+  cy.step('Select MaaS secret');
+  // SecretSelector renders a skeleton until type=maas secrets load.
+  autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.findMaasSecretSelector().click();
+  autoragConfigurePage.findMaasSecretSelector().find('input').type(testData.maasSecretName);
+  autoragConfigurePage.findSelectOption(new RegExp(testData.maasSecretName, 'i')).click();
 
   cy.step('Click Next to go to Configure step');
   autoragConfigurePage.findNextButton().click();
@@ -111,12 +113,11 @@ export const configureAutoragRun = (
   cy.step('Wait for evaluation file upload to complete');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
-  cy.step('Select first available vector store');
-  autoragConfigurePage.findVectorStoreSelector().should('not.be.disabled').click();
-  autoragConfigurePage.findFirstVectorStoreOption().should('be.visible').click();
-  autoragConfigurePage
-    .findVectorStoreSelector()
-    .should('not.contain.text', 'Select vector I/O provider');
+  cy.step('Select vector database secret');
+  autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.findVectorStoreSelector().click();
+  autoragConfigurePage.findVectorStoreSelector().find('input').type(testData.vectorDbSecretName);
+  autoragConfigurePage.findSelectOption(new RegExp(testData.vectorDbSecretName, 'i')).click();
 };
 
 /**
@@ -125,7 +126,7 @@ export const configureAutoragRun = (
  */
 export const submitAutoragRun = (): void => {
   cy.step('Submit the form');
-  autoragConfigurePage.findCreateRunButton().click();
+  autoragConfigurePage.findCreateRunButton({ timeout: 120000 }).should('be.enabled').click();
 
   cy.step('Verify redirect to results page');
   cy.url().should('include', '/gen-ai-studio/autorag/results/');

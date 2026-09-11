@@ -63,7 +63,7 @@ import {
   MaaSTokenRequest,
   MaaSTokenResponse,
 } from '~/app/types';
-import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
+import { API_URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 import { GUARDRAIL_ERROR_CODES, GUARDRAIL_MESSAGES } from '~/app/Chatbot/const';
 import { ThinkTagParser } from './thinkTagParser';
 
@@ -897,7 +897,7 @@ const buildApiUrl = (
   path: string,
   queryParams: Record<string, unknown> = {},
 ): string => {
-  const base = hostPath && hostPath.length > 0 ? hostPath : URL_PREFIX;
+  const base = hostPath && hostPath.length > 0 ? hostPath : API_URL_PREFIX;
   const qs = new URLSearchParams();
   Object.entries(queryParams).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
@@ -1137,7 +1137,13 @@ export const getMCPServerStatus = (
 
       // Handle BFF-level errors
       if (status === 404) {
-        throw new Error(`Server not found in ConfigMap: ${queryParams.server_url}`);
+        const serverIdentifier =
+          typeof allQueryParams.server_name === 'string'
+            ? allQueryParams.server_name
+            : typeof allQueryParams.server_url === 'string'
+              ? allQueryParams.server_url
+              : '(unknown server)';
+        throw new Error(`MCP server not found: ${serverIdentifier}`);
       }
 
       if (status === 401) {

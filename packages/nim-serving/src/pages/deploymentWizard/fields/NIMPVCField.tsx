@@ -25,6 +25,7 @@ import useFetch, {
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { categorizePVCs, type ExistingPVCOption } from './nimPVCUtils';
+import { NIM_PVC_STORAGE_FIELD_ID } from '../../../constants';
 
 export {
   NIM_PVC_ANNOTATION,
@@ -164,7 +165,11 @@ type SubPathFieldProps = {
   isDisabled?: boolean;
 };
 
-const SubPathField: React.FC<SubPathFieldProps> = ({ subPath, onSubPathChange, isDisabled }) => (
+export const SubPathField: React.FC<SubPathFieldProps> = ({
+  subPath,
+  onSubPathChange,
+  isDisabled,
+}) => (
   <FormGroup label="Subpath" fieldId="nim-subpath">
     <TextInput
       id="nim-subpath"
@@ -379,7 +384,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
 export type NIMPVCFieldType = WizardField<NIMPVCFieldValue, NIMPVCExternalData, NIMPVCDependencies>;
 
 export const NIMPVCFieldWizardField: NIMPVCFieldType = {
-  id: 'nim-serving/pvcStorage',
+  id: NIM_PVC_STORAGE_FIELD_ID,
   step: 'modelDeployment',
   type: 'addition',
   isActive: (wizardFormData) =>

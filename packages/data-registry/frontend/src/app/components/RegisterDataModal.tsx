@@ -11,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useSettings } from 'mod-arch-core';
 import { createVolume, createGenericTable, createLabel, ApiError } from '~/app/api/dataRegistry';
 import { CreateVolumeRequest, CreateGenericTableRequest } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
@@ -42,6 +43,9 @@ const buildVolumeRequest = (data: RegisterDataFormData): CreateVolumeRequest => 
   };
   if (data.description) {
     request.description = data.description;
+  }
+  if (data.owner) {
+    request.owner = data.owner;
   }
   if (data.path && data.path !== '/') {
     request.location = data.path;
@@ -85,6 +89,9 @@ const buildTableRequest = (data: RegisterDataFormData): CreateGenericTableReques
   };
   if (data.description) {
     request.description = data.description;
+  }
+  if (data.owner) {
+    request.owner = data.owner;
   }
   if (data.path && data.path !== '/') {
     request.location = data.path;
@@ -140,22 +147,30 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   onCreated,
   onManageCollections,
 }) => {
+  const { userSettings } = useSettings();
+  const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
   const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
   const form = useForm<RegisterDataFormData>({
     resolver: zodResolver(registerDataSchema),
-    defaultValues: registerDataDefaults,
+    defaultValues: { ...registerDataDefaults, owner: '' },
     mode: 'onBlur',
   });
 
+  React.useEffect(() => {
+    if (userId && !form.getValues('owner')) {
+      form.setValue('owner', userId);
+    }
+  }, [userId, form]);
+
   const handleClose = React.useCallback(() => {
-    form.reset(registerDataDefaults);
+    form.reset({ ...registerDataDefaults, owner: userId });
     setIsSubmitting(false);
     setError('');
     onClose();
-  }, [form, onClose]);
+  }, [form, onClose, userId]);
 
   const handleSubmit = React.useCallback(
     async (data: RegisterDataFormData) => {
@@ -179,7 +194,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         } else {
           await createGenericTable(project, data.collection, buildTableRequest(data));
         }
-        form.reset(registerDataDefaults);
+        form.reset({ ...registerDataDefaults, owner: userId });
         onCreated();
         onClose();
       } catch (err) {
@@ -188,7 +203,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         setIsSubmitting(false);
       }
     },
-    [project, form, onCreated, onClose],
+    [project, form, onCreated, onClose, userId],
   );
 
   const assetType = form.watch('assetType');

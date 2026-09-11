@@ -19,6 +19,7 @@ import { createLineageTopologyControls } from './topologyControls';
 import { LineageClickProvider, useLineageClick } from './LineageClickContext';
 import { useLineageCenter } from './context/LineageCenterContext';
 import { useDebouncedCenter } from './useDebouncedCenter';
+import LineageNodeFocusOverlay from './LineageNodeFocusOverlay';
 
 const LineageInner: React.FC<LineageProps> = ({
   data,
@@ -31,6 +32,7 @@ const LineageInner: React.FC<LineageProps> = ({
   componentFactory,
   popoverComponent: PopoverComponent,
   toolbarComponent: ToolbarComponent,
+  legendComponent: LegendComponent,
   autoResetOnDataChange = false,
 }) => {
   const controller = useLineageController('lineage-graph', componentFactory);
@@ -233,6 +235,10 @@ const LineageInner: React.FC<LineageProps> = ({
             <VisualizationSurface state={{ selectedIds, highlightedIds }} />
           </VisualizationProvider>
         </TopologyView>
+
+        <LineageNodeFocusOverlay controller={controller} />
+
+        {LegendComponent && <LegendComponent />}
 
         {PopoverComponent && (
           <PopoverComponent

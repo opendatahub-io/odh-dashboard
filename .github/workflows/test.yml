@@ -10,6 +10,8 @@ concurrency:
 env:
   NODE_VERSION: 22
   DO_NOT_TRACK: 1
+  # Check if the PR is a draft to disable coverage reporting/upload
+  IS_DRAFT: ${{ github.event.pull_request.draft }}
 jobs:
   Setup:
     runs-on: ubuntu-latest
@@ -118,6 +120,7 @@ jobs:
         run: |
           npm run test-unit-coverage
       - name: Upload unit test coverage
+        if: env.IS_DRAFT != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: unit-coverage
@@ -346,6 +349,7 @@ jobs:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/results/mocked
       - name: Upload Cypress coverage
+        if: env.IS_DRAFT != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
@@ -354,6 +358,9 @@ jobs:
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -361,17 +368,21 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
+        if: env.IS_DRAFT != 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: all-artifacts
       - name: Install dependencies
+        if: env.IS_DRAFT != 'true'
         run: npm install nyc --no-save
 
       - name: Prepare unit coverage
+        if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./unit-coverage
           cp all-artifacts/unit-coverage/coverage-final.json ./unit-coverage/coverage-final.json || true
       - name: Upload unit coverage to Codecov
+        if: env.IS_DRAFT != 'true'
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -383,6 +394,7 @@ jobs:
           verbose: true
 
       - name: Merge Cypress coverage reports
+        if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./cypress-coverage
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
@@ -395,6 +407,7 @@ jobs:
           ls -la ./cypress-coverage/
           npx nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
       - name: Upload Cypress mock coverage to Codecov
+        if: env.IS_DRAFT != 'true'
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -406,6 +419,7 @@ jobs:
           verbose: true
 
       - name: Combine all coverage reports
+        if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./coverage
           cp ./unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
@@ -414,10 +428,12 @@ jobs:
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
+        if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./coverage/report
           npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
       - name: Upload combined results
+        if: env.IS_DRAFT != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: combined-coverage-results
