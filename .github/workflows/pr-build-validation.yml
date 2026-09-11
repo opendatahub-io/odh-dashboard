@@ -12,6 +12,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'manifests/**'
+      - 'dashboard-operator/**'
       - '.github/workflows/pr-build-validation.yml'
 
 env:
@@ -322,6 +323,196 @@ jobs:
           path: /tmp/odh-dashboard-rhoai.tar.gz
           retention-days: 1
 
+  # Phase 1 (operator): Build the dashboard-operator container image.
+  # The operator Dockerfile is built from the repo root because it COPYs both
+  # dashboard-operator/ sources and manifests/ into the image. The resulting image
+  # is loaded into the Kind cluster in Phase 4 for CRD/CR reconciliation validation.
+  operator-build:
+    name: "Phase 1: Operator Image Build"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # for upload-artifact
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Build operator image
+        run: |
+          set -euo pipefail
+          docker build \
+            --build-arg OPERATOR_VERSION=ci-test \
+            --tag dashboard-operator:sim-test \
+            --file dashboard-operator/Dockerfile \
+            .
+
+      - name: Save operator image
+        run: |
+          set -euo pipefail
+          docker save dashboard-operator:sim-test | gzip > /tmp/dashboard-operator.tar.gz
+
+      - name: Upload operator image artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: dashboard-operator-image
+          path: /tmp/dashboard-operator.tar.gz
+          retention-days: 1
+
+  # Phase 5: Manifest Validation
+  # Renders every deployable kustomize overlay and schema-validates the output with
+  # kubeconform. Catches broken kustomizations (bad paths, missing bases) and invalid
+  # resource schemas before they reach a cluster. CRDs without public schemas (Dashboard,
+  # OdhDashboardConfig, etc.) are skipped via -ignore-missing-schemas.
+  manifest-validation:
+    name: "Phase 5: Manifest Validation"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip != 'true'
+    env:
+      KUSTOMIZE_VERSION: v5.4.3
+      KUSTOMIZE_SHA256: 3669470b454d865c8184d6bce78df05e977c9aea31c30df3c669317d43bcc7a7
+      KUBECONFORM_VERSION: v0.6.7
+      KUBECONFORM_SHA256: 95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73
+      K8S_SCHEMA_VERSION: '1.31.0'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Install kustomize and kubeconform
+        run: |
+          set -euo pipefail
+          echo "::group::Installing kustomize ${KUSTOMIZE_VERSION}"
+          curl -sSLo /tmp/kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          echo "${KUSTOMIZE_SHA256}  /tmp/kustomize.tar.gz" | sha256sum --check --status
+          tar -xz -C /tmp -f /tmp/kustomize.tar.gz
+          sudo mv /tmp/kustomize /usr/local/bin/kustomize
+          kustomize version
+          echo "::endgroup::"
+
+          echo "::group::Installing kubeconform ${KUBECONFORM_VERSION}"
+          curl -sSLo /tmp/kubeconform.tar.gz "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  /tmp/kubeconform.tar.gz" | sha256sum --check --status
+          tar -xz -C /tmp -f /tmp/kubeconform.tar.gz kubeconform
+          sudo mv /tmp/kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
+          echo "::endgroup::"
+
+      - name: Validate kustomize overlays
+        run: |
+          set -euo pipefail
+          # Overlays that must render and schema-validate cleanly. This set mirrors what the
+          # dashboard-operator actually renders at runtime (see dashboard-operator/internal/
+          # controller/{actions,support,module_deploy}.go): the platform base overlays, the
+          # observability manifests, the MaaS consumer-portal ConsoleLink, and every module
+          # overlay (rendered per enabled module). Keeping these in sync means a broken
+          # resources: path in any of them is caught here instead of at deploy time.
+          OVERLAYS=(
+            manifests/base
+            manifests/odh
+            manifests/rhoai
+            manifests/observability/odh
+            manifests/observability/rhoai
+            manifests/maas-consumer-portal-consolelink/rhoai
+          )
+
+          # Dynamically append every module overlay (manifests/modules/<slug>) so newly
+          # added modules are validated automatically without editing this list.
+          while IFS= read -r kfile; do
+            OVERLAYS+=("$(dirname "$kfile")")
+          done < <(find manifests/modules -mindepth 2 -maxdepth 2 -name kustomization.yaml | sort)
+
+          FAILURES=0
+          for overlay in "${OVERLAYS[@]}"; do
+            echo "::group::Validating $overlay"
+            if [ ! -f "$overlay/kustomization.yaml" ]; then
+              echo "❌ FAIL: $overlay has no kustomization.yaml"
+              FAILURES=$((FAILURES + 1))
+              echo "::endgroup::"
+              continue
+            fi
+
+            RENDERED=$(mktemp)
+            if ! kustomize build "$overlay" > "$RENDERED" 2>/tmp/kustomize-err; then
+              echo "❌ FAIL: kustomize build failed for $overlay"
+              cat /tmp/kustomize-err
+              FAILURES=$((FAILURES + 1))
+              echo "::endgroup::"
+              continue
+            fi
+
+            DOC_COUNT=$(grep -c '^kind:' "$RENDERED" || true)
+            if [ "${DOC_COUNT:-0}" -eq 0 ]; then
+              echo "❌ FAIL: $overlay rendered no resources"
+              FAILURES=$((FAILURES + 1))
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Schema-validate. -ignore-missing-schemas lets custom resources with no public
+            # schema (Dashboard, ConsoleLink, route.openshift.io, ...) pass as "skipped".
+            # But that flag also silently skips a *misspelled* built-in kind/apiVersion
+            # (e.g. "Deploymnet" or "aps/v1"), masking real typos. To close that gap we
+            # emit JSON and fail if any skipped resource belongs to a core Kubernetes group
+            # (core "" or *.k8s.io or apps/batch/policy/autoscaling/extensions) — those
+            # always have a schema, so a skip there means the kind/apiVersion is wrong.
+            KC_JSON=$(mktemp)
+            set +e
+            kubeconform \
+                -strict \
+                -ignore-missing-schemas \
+                -kubernetes-version "$K8S_SCHEMA_VERSION" \
+                -output json \
+                "$RENDERED" > "$KC_JSON" 2>/tmp/kubeconform-err
+            KC_EXIT=$?
+            set -e
+            if [ "$KC_EXIT" -ne 0 ]; then
+              echo "❌ FAIL: kubeconform schema validation failed for $overlay"
+              jq -r '.resources[] | select(.status=="statusInvalid" or .status=="statusError") | "  \(.kind)/\(.name // "?") (\(.version)): \(.msg)"' "$KC_JSON" 2>/dev/null || cat /tmp/kubeconform-err
+              FAILURES=$((FAILURES + 1))
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Report which kinds were skipped (missing schema) for visibility.
+            SKIPPED_KINDS=$(jq -r '[.resources[] | select(.status=="statusSkipped") | .kind] | unique | join(", ")' "$KC_JSON" 2>/dev/null || echo "")
+            [ -n "$SKIPPED_KINDS" ] && echo "  ℹ️  skipped (no schema): $SKIPPED_KINDS"
+
+            # Fail if a *built-in* kind was skipped — that indicates a typo, not a CRD.
+            BAD_SKIPS=$(jq -r '
+              .resources[]
+              | select(.status=="statusSkipped")
+              | . as $r
+              | (if ($r.version | contains("/")) then ($r.version | split("/")[0]) else "" end) as $g
+              | select($g == "" or ($g | endswith(".k8s.io")) or ($g | IN("apps","batch","policy","autoscaling","extensions")))
+              | "  \($r.kind) (\($r.version))"
+            ' "$KC_JSON" 2>/dev/null || echo "")
+            if [ -n "$BAD_SKIPS" ]; then
+              echo "❌ FAIL: $overlay has built-in resources with no matching schema (likely a kind/apiVersion typo):"
+              echo "$BAD_SKIPS"
+              FAILURES=$((FAILURES + 1))
+              echo "::endgroup::"
+              continue
+            fi
+
+            echo "✅ PASS: $overlay ($DOC_COUNT resources)"
+            echo "::endgroup::"
+          done
+
+          if [ "$FAILURES" -gt 0 ]; then
+            echo ""
+            echo "❌ TOTAL: $FAILURES overlay(s) failed manifest validation."
+            exit 1
+          fi
+          echo ""
+          echo "✅ PASS: All overlays render and schema-validate cleanly"
+
   # Phase 2 & 3: Runtime and Module Federation Validation
   runtime-validation-odh:
     name: "Phase 2-3: Runtime & Module Federation (ODH)"
@@ -587,16 +778,27 @@ jobs:
     permissions:
       contents: read
       actions: read  # for download-artifact
-    needs: [check-skip, runtime-validation-odh, runtime-validation-rhoai]
+    needs: [check-skip, runtime-validation-odh, runtime-validation-rhoai, operator-build]
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
 
+      # This job loads two images into Kind (dashboard + operator) and the operator
+      # reconcile applies the base manifests, so free up runner disk before starting.
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
       - name: Download ODH image
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
         with:
           name: odh-dashboard-odh-image
+          path: /tmp
+
+      - name: Download operator image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        with:
+          name: dashboard-operator-image
           path: /tmp
 
       - name: Install Kind
@@ -869,14 +1071,135 @@ jobs:
           echo "✅ PASS: odh-dashboard container is running with 0 restarts"
           echo "::endgroup::"
 
+      # --- Operator CRD + CR reconciliation validation (reuses the odh-test Kind cluster) ---
+      - name: Load operator image to Kind
+        run: |
+          set -euo pipefail
+          docker load < /tmp/dashboard-operator.tar.gz
+          kind load docker-image dashboard-operator:sim-test --name odh-test
+
+      - name: Deploy operator CRD and RBAC
+        run: |
+          set -euo pipefail
+          echo "::group::Applying Dashboard CRD"
+          kubectl apply -f dashboard-operator/config/crd/bases/components.platform.opendatahub.io_dashboards.yaml
+          kubectl wait --for=condition=Established --timeout=60s \
+            crd/dashboards.components.platform.opendatahub.io
+          echo "::endgroup::"
+
+          echo "::group::Applying operator RBAC (ClusterRole + SA + binding in opendatahub)"
+          kubectl apply -f dashboard-operator/config/rbac/role.yaml
+          # SA + ClusterRoleBinding live in a checked-in file (.github/pr-build-simulation/)
+          # rather than an inline heredoc so they can be linted and reviewed independently.
+          kubectl apply -f .github/pr-build-simulation/operator-rbac.yaml
+          echo "::endgroup::"
+
+      - name: Deploy operator
+        run: |
+          set -euo pipefail
+          # The operator Deployment lives in a checked-in file
+          # (.github/pr-build-simulation/operator-deployment.yaml) rather than an inline
+          # heredoc so it can be linted and reviewed independently. See that file for why
+          # the deployment is minimal and how the dashboard image is pinned to the PR tag.
+          kubectl apply -f .github/pr-build-simulation/operator-deployment.yaml
+
+          echo "Waiting for operator rollout..."
+          # rollout status only prints a terse "timed out" on failure, and the log/describe
+          # dump lives in the *next* step which never runs once this one exits non-zero.
+          # Dump diagnostics inline so a failed rollout is debuggable from this step alone.
+          if ! kubectl rollout status deployment/dashboard-operator -n opendatahub --timeout=120s; then
+            echo "❌ FAIL: operator rollout did not complete within timeout"
+            echo "::group::Operator deployment"
+            kubectl describe deployment/dashboard-operator -n opendatahub || true
+            echo "::endgroup::"
+            echo "::group::Operator pods"
+            kubectl get pods -n opendatahub -l app.kubernetes.io/name=dashboard-operator -o wide || true
+            kubectl describe pods -n opendatahub -l app.kubernetes.io/name=dashboard-operator || true
+            echo "::endgroup::"
+            echo "::group::Operator logs (current + previous)"
+            kubectl logs -n opendatahub deploy/dashboard-operator --tail=100 || echo "No current logs"
+            kubectl logs -n opendatahub deploy/dashboard-operator --previous --tail=100 || echo "No previous logs"
+            echo "::endgroup::"
+            echo "::group::Recent events"
+            kubectl get events -n opendatahub --sort-by='.lastTimestamp' | tail -30 || true
+            echo "::endgroup::"
+            exit 1
+          fi
+
+      - name: Create Dashboard CR and verify reconciliation starts
+        run: |
+          set -euo pipefail
+          echo "::group::Creating minimal Dashboard CR"
+          kubectl apply -f - <<'EOF'
+          apiVersion: components.platform.opendatahub.io/v1alpha1
+          kind: Dashboard
+          metadata:
+            name: default-dashboard
+          spec:
+            managementState: Managed
+          EOF
+          echo "::endgroup::"
+
+          # A reconcile leaves observable evidence: the controller adds its cleanup
+          # finalizer and writes status.observedGeneration. We do NOT require Ready=True —
+          # the ODH manifests reference OpenShift-only namespaces (e.g. openshift-ingress)
+          # that don't exist in Kind, so full provisioning is expected to error. The point
+          # of this check is that the controller *started* reconciling the CR.
+          #
+          # Note on the dashboard image during reconcile: the operator SSA-applies the base
+          # manifests, taking ownership of the dashboard Deployment's image + imagePullPolicy
+          # (MergeDeployments only preserves resources/replicas). Because the operator's
+          # RELATED_IMAGE_ODH_DASHBOARD_IMAGE is pinned to the loaded PR tag
+          # (odh-dashboard:odh-test), it writes that tag instead of quay.io/.../:main — so no
+          # large :main image is pulled. The dashboard pod may ErrImagePull the local-only
+          # tag (base sets imagePullPolicy: Always, which the operator re-owns each reconcile,
+          # so patching it is futile); that is expected and irrelevant here — this step only
+          # asserts operator reconcile evidence, not dashboard pod health (already validated
+          # above against the PR image).
+          echo "Polling for reconciliation evidence (finalizer + observedGeneration)..."
+          RECONCILED=false
+          for i in {1..24}; do
+            FINALIZERS=$(kubectl get dashboard default-dashboard \
+              -o jsonpath='{.metadata.finalizers}' 2>/dev/null || echo "")
+            OBSERVED_GEN=$(kubectl get dashboard default-dashboard \
+              -o jsonpath='{.status.observedGeneration}' 2>/dev/null || echo "")
+            if [[ "$FINALIZERS" == *"components.platform.opendatahub.io/cleanup"* ]] \
+               && [ -n "$OBSERVED_GEN" ]; then
+              RECONCILED=true
+              break
+            fi
+            echo "  Waiting for reconcile... ($i/24)"
+            sleep 5
+          done
+
+          echo "::group::Operator logs"
+          kubectl logs -n opendatahub deploy/dashboard-operator --tail=50 || echo "No logs available"
+          echo "::endgroup::"
+
+          echo "::group::Dashboard CR status"
+          kubectl get dashboard default-dashboard -o yaml || true
+          echo "::endgroup::"
+
+          if [ "$RECONCILED" != "true" ]; then
+            echo "❌ FAIL: Dashboard CR was not reconciled within timeout"
+            echo "   Expected the controller to add its cleanup finalizer and set"
+            echo "   status.observedGeneration. Check the operator logs above."
+            exit 1
+          fi
+
+          # The controller must also stay healthy while reconciling.
+          OP_RESTARTS=$(kubectl get pod -n opendatahub -l app.kubernetes.io/name=dashboard-operator \
+            -o jsonpath='{.items[0].status.containerStatuses[0].restartCount}' 2>/dev/null || echo "-1")
+          if ! [[ "$OP_RESTARTS" =~ ^[0-9]+$ ]] || [ "$OP_RESTARTS" -gt 0 ]; then
+            echo "❌ FAIL: operator container restarted (${OP_RESTARTS}) — it is crashing, not just failing to provision"
+            exit 1
+          fi
+
+          echo "✅ PASS: operator reconciled the Dashboard CR (finalizer + observedGeneration set, 0 restarts)"
+
       - name: Cleanup
         if: always()
         run: kind delete cluster --name odh-test
-
-  # Phase 5 (Manifest Validation) is not yet included.
-  # manifests/overlays/dev has a known kustomization path issue
-  # (references ../common/crd but should be ../../common/crd).
-  # Add manifest validation once the upstream path is fixed.
 
   # BFF Module Validation: Build and smoke-test packages/*/Dockerfile.workspace images
   # Catches startup regressions (e.g. Go protobuf panics) that only surface when the
@@ -1059,6 +1382,8 @@ jobs:
       - hermetic-preflight
       - docker-build-odh
       - docker-build-rhoai
+      - operator-build
+      - manifest-validation
       - runtime-validation-odh
       - runtime-validation-rhoai
       - operator-integration
@@ -1075,9 +1400,11 @@ jobs:
           echo "Phase 0 (Hermetic Preflight): ${{ needs.hermetic-preflight.result }}"
           echo "Phase 1 (Docker Build ODH): ${{ needs.docker-build-odh.result }}"
           echo "Phase 1 (Docker Build RHOAI): ${{ needs.docker-build-rhoai.result }}"
+          echo "Phase 1 (Operator Image Build): ${{ needs.operator-build.result }}"
           echo "Phase 2-3 (Runtime ODH): ${{ needs.runtime-validation-odh.result }}"
           echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
           echo "Phase 4 (Operator Integration): ${{ needs.operator-integration.result }}"
+          echo "Phase 5 (Manifest Validation): ${{ needs.manifest-validation.result }}"
           echo "BFF Detection: ${{ needs.detect-bff-changes.result }}"
           echo "BFF Build Validation: ${{ needs.bff-build-validation.result }}"
 
@@ -1088,6 +1415,8 @@ jobs:
           for result in "${{ needs.hermetic-preflight.result }}" \
                         "${{ needs.docker-build-odh.result }}" \
                         "${{ needs.docker-build-rhoai.result }}" \
+                        "${{ needs.operator-build.result }}" \
+                        "${{ needs.manifest-validation.result }}" \
                         "${{ needs.runtime-validation-odh.result }}" \
                         "${{ needs.runtime-validation-rhoai.result }}" \
                         "${{ needs.operator-integration.result }}" \
