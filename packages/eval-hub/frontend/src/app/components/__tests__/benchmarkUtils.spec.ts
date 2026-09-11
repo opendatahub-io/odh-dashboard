@@ -121,6 +121,10 @@ describe('formatCollectionMetadataValue', () => {
     expect(formatCollectionMetadataValue('text-generation')).toBe('Text generation');
   });
 
+  it('should preserve supported metadata acronyms when formatting labels', () => {
+    expect(formatCollectionMetadataValue('qa-rag-vqa')).toBe('QA RAG VQA');
+  });
+
   it('should leave the value unchanged for payload use', () => {
     const value = 'grounded_document_understanding';
     expect(value).toBe('grounded_document_understanding');

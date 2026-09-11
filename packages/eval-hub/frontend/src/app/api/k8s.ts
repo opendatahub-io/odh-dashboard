@@ -87,6 +87,9 @@ const isString = (v: unknown): v is string => typeof v === 'string';
 const sanitizeStringArray = (value: unknown): string[] | undefined =>
   Array.isArray(value) ? value.filter(isString) : undefined;
 
+const sanitizeOptionalString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
 const isValidProviderItem = (p: unknown): p is Provider =>
   p != null &&
   typeof p === 'object' &&
@@ -131,6 +134,7 @@ const sanitizeProviders = (items: unknown[]): Provider[] =>
 const sanitizeCollectionItems = (items: unknown[]): Collection[] =>
   items.filter(isValidCollectionItem).map((c) => ({
     ...c,
+    category: sanitizeOptionalString(c.category),
     tags: sanitizeStringArray(c.tags),
     domains: sanitizeStringArray(c.domains),
     tasks: sanitizeStringArray(c.tasks),

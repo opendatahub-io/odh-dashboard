@@ -575,6 +575,44 @@ describe('getCollections', () => {
     expect(result.items[0].industries).toEqual(['healthcare']);
   });
 
+  it('should sanitize collection metadata arrays and invalid benchmark weights', async () => {
+    const items = [
+      {
+        resource: { id: 'col-1' },
+        name: 'Collection',
+        category: 123,
+        tags: ['curated', null],
+        domains: ['safety', 123],
+        tasks: ['question_answering', false],
+        modalities: ['text', {}],
+        industries: ['healthcare', undefined],
+        ai_entities: ['model', null],
+        benchmarks: [
+          { id: 'valid', weight: 0 },
+          { id: 'empty-id' },
+          { id: '' },
+          { id: 'negative-weight', weight: -1 },
+          { id: 'non-finite-weight', weight: Infinity },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items[0]).toMatchObject({
+      category: undefined,
+      tags: ['curated'],
+      domains: ['safety'],
+      tasks: ['question_answering'],
+      modalities: ['text'],
+      industries: ['healthcare'],
+      ai_entities: ['model'],
+      benchmarks: [{ id: 'valid', weight: 0 }, { id: 'empty-id' }],
+    });
+  });
+
   it('should return empty items when data is null', async () => {
     mockRestGET.mockResolvedValue({ data: null });
     mockIsModArchResponse.mockReturnValue(true);
@@ -635,6 +673,30 @@ describe('getCollections', () => {
         domains: 'agent_tools,tool_use',
         industries: 'healthcare',
         ai_entities: 'agent',
+      },
+      {},
+    );
+  });
+
+  it('should include name, category, and tag filters', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollections('', {
+      namespace: 'my-ns',
+      name: 'safety',
+      category: 'general',
+      tags: ['curated', 'validated'],
+    })({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      {
+        namespace: 'my-ns',
+        name: 'safety',
+        category: 'general',
+        tags: 'curated,validated',
       },
       {},
     );

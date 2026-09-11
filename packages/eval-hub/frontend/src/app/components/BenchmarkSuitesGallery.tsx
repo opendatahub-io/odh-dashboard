@@ -231,8 +231,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     : maxVisibleCollections;
   const queryOffset = showPagination && !isClientSideFiltering ? (page - 1) * pageSize : undefined;
   // Keep route-level filters such as the curated agent/model selection on the API request.
-  // User-selected gallery filters are applied locally against the full fetched collection set so
-  // the gallery does not depend on classification query parameters supported by the backend.
+  // User-selected gallery filters are applied locally against the fetched collection set. When a
+  // filter is active, that set is intentionally capped at COLLECTION_FETCH_LIMIT until filtering
+  // and filter-option discovery move fully to the API.
   const { data, isLoading, isFetching, error, refetch } = useCollectionsQuery(
     namespace,
     scope,
@@ -364,8 +365,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     });
   }, [categoryFilter, evaluatesFilter, industryFilter, nameFilter, sourceCollections]);
 
-  // Mock data, name searches, and classification-filtered results are loaded in full, so they
-  // need local slicing. Otherwise, API responses are already limited to the requested page.
+  // Mock data and client-side-filtered results need local slicing. The latter are limited to the
+  // first COLLECTION_FETCH_LIMIT API results by queryLimit above.
   const shouldUseClientSidePagination = isUsingMockCollections || isClientSideFiltering;
   const visibleCollections = showPagination
     ? shouldUseClientSidePagination

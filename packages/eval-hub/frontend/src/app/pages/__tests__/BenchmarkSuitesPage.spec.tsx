@@ -153,7 +153,7 @@ describe('BenchmarkSuitesPage', () => {
     expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
   });
 
-  it('should search all collections client-side when the name filter is used', () => {
+  it('should search the capped fetched collection set when the name filter is used', () => {
     const collections = mockBenchmarkSuiteCollections();
     const firstPageCollections = collections.slice(0, 6);
 
