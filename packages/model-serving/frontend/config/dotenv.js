@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
 const dotenvExpand = require('dotenv-expand');
-const Dotenv = require('dotenv-webpack');
+const { rspack } = require('@rspack/core');
 
 /**
  * Determine if the project is standalone or nested.
@@ -55,18 +55,15 @@ const getTsCompilerOptions = (directory) => {
  * @param {string} filePath
  * @returns {*}
  */
-const setupWebpackDotenvFile = (filePath) => {
-  const settings = {
-    systemvars: true,
-    silent: true,
-  };
-
-  if (filePath) {
-    settings.path = filePath;
-  }
-
-  return new Dotenv(settings);
-};
+function setupWebpackDotenvFile() {
+  // dotenv-webpack uses Webpack's DefinePlugin, which is incompatible with
+  // the Rspack compiler used by this frontend. The dotenv files are loaded
+  // into process.env by setupDotenvFilesForEnv before the config is created;
+  // expose that environment through Rspack's native DefinePlugin instead.
+  return new rspack.DefinePlugin({
+    'process.env': JSON.stringify({ ...process.env }),
+  });
+}
 
 /**
  * Setup multiple webpack dotenv file parameters.
