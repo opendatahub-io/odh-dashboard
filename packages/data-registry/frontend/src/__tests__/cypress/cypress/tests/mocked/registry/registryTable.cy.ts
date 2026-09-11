@@ -857,7 +857,10 @@ describe('Connection Selector', () => {
       expect(interception.request.body).to.deep.include({
         name: 'connected-volume',
         content_type: 'other',
-        connection_ref: 'my-s3-connection',
+        connection_ref: {
+          type: 'rhai',
+          secret_name: 'my-s3-connection',
+        },
       });
     });
   });
@@ -894,7 +897,10 @@ describe('Connection Selector', () => {
       expect(interception.request.body).to.deep.include({
         name: 'connected-table',
         format: 'iceberg',
-        connection_ref: 'my-uri-connection',
+        connection_ref: {
+          type: 'rhai',
+          secret_name: 'my-uri-connection',
+        },
       });
     });
   });
