@@ -2,6 +2,7 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { ModelRegistryMetadataType } from '@odh-dashboard/model-registry/types/types';
 import { asClusterAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import { API_VERSION, setupModelCatalogIntercepts } from '../catalogHelpers';
@@ -22,11 +23,11 @@ const gatedDeniedModel = {
   customProperties: {
     hf_access_type: {
       string_value: 'gated_auto',
-      metadataType: 'MetadataString',
+      metadataType: ModelRegistryMetadataType.STRING,
     },
     hf_gated_access_granted: {
       string_value: 'false',
-      metadataType: 'MetadataString',
+      metadataType: ModelRegistryMetadataType.STRING,
     },
   },
 };
@@ -81,7 +82,7 @@ const setupGatedAccessIntercepts = () => {
     'GET',
     `**/model-registry/api/${API_VERSION}/model_catalog/sources/${SOURCE_ID}/models/**`,
     { body: { data: gatedDeniedModel } },
-  );
+  ).as('getGatedModel');
 
   cy.intercept(
     'GET',
@@ -101,6 +102,7 @@ const setupGatedAccessIntercepts = () => {
 
 const visitGatedModelDetails = () => {
   cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
+  cy.wait('@getGatedModel');
   modelDetailsPage.findPageTitle().should('exist');
 };
 
