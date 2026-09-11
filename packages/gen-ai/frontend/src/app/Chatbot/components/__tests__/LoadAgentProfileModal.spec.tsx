@@ -102,6 +102,8 @@ describe('LoadAgentProfileModal', () => {
 
     const button = await screen.findByTestId('load-agent-profile-button-uuid-1');
     expect(button.parentElement).toHaveAttribute('tabIndex', '0');
+    expect(button.parentElement).toHaveAttribute('role', 'none');
+    expect(button).toHaveAttribute('tabIndex', '-1');
     await user.hover(button);
 
     await waitFor(() => {

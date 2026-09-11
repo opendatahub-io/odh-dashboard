@@ -451,11 +451,8 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
               variant="info"
               isInline
               isPlain
-              title="Playground guardrails cannot be saved with this agent"
-            >
-              Guardrails cannot yet be saved individually and are not included when saving an agent.
-              Any guardrail settings configured here will need to be reapplied in future sessions.
-            </Alert>
+              title="Guardrails cannot yet be saved individually and are not included when saving an agent. Any guardrail settings configured here will need to be reapplied in future sessions."
+            />
           </FormGroup>
         </Form>
       </ModalBody>
