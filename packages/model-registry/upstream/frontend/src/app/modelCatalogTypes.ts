@@ -49,6 +49,7 @@ export type CatalogSource = {
   assetType?: CatalogAssetType;
   hasApiKey?: boolean;
   authenticated?: boolean;
+  hfUsername?: string;
 };
 
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };
@@ -488,6 +489,8 @@ export type CatalogSourcePreviewRequest = {
 export type CatalogSourcePreviewModel = {
   name: string;
   included: boolean;
+  hfAccessType?: string;
+  hfGatedAccessGranted?: boolean;
 };
 
 export type CatalogSourcePreviewSummary = {

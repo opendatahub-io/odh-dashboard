@@ -1,4 +1,3 @@
-import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import {
   addSourceUrl,
   catalogSettingsUrl,
@@ -158,13 +157,7 @@ class CatalogSourceStatusErrorModal extends Modal {
 }
 
 class ModelCatalogSettings {
-  visit({
-    wait = true,
-    enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-  }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {}) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visit({ wait = true }: { wait?: boolean } = {}) {
     cy.visit(catalogSettingsUrl());
     if (wait) {
       this.wait();
@@ -248,29 +241,14 @@ class ModelCatalogSettings {
 }
 
 class ManageSourcePage {
-  visitAddSource({
-    wait = true,
-    enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-  }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {}) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visitAddSource({ wait = true }: { wait?: boolean } = {}) {
     cy.visit(addSourceUrl());
     if (wait) {
       this.wait();
     }
   }
 
-  visitManageSource(
-    catalogSourceId: string,
-    {
-      wait = true,
-      enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-    }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {},
-  ) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visitManageSource(catalogSourceId: string, { wait = true }: { wait?: boolean } = {}) {
     cy.visit(manageSourceUrl(catalogSourceId));
     if (wait) {
       this.wait();
@@ -526,6 +504,23 @@ class ManageSourcePage {
 
   findPreviewModelsIncludedSummary(count: number, total: number) {
     return cy.contains(`${count} of ${total} models included:`);
+  }
+
+  findPreviewModelsExcludedSummary(count: number, total: number) {
+    return cy.contains(`${count} of ${total} models excluded:`);
+  }
+
+  clickPreviewExcludedTab() {
+    this.findPreviewPanel().contains('Models excluded').click();
+    return this;
+  }
+
+  findPreviewModelRow(modelName: string) {
+    return this.findPreviewPanel().contains('li', modelName);
+  }
+
+  findPreviewGatedAccessWarningIcon(modelName: string) {
+    return this.findPreviewModelRow(modelName).findByLabelText('Gated access warning');
   }
 }
 

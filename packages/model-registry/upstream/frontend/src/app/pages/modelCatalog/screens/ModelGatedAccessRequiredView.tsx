@@ -11,6 +11,7 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { KubeflowDocs, WhosMyAdministrator } from 'mod-arch-shared';
 import type { CatalogModel } from '~/app/modelCatalogTypes';
+import { renderGatedAccessRequiredDescription } from '~/app/pages/modelCatalog/utils/gatedAccessRequiredUtils';
 import { getHuggingFaceModelUrl } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ExternalLink from '~/app/shared/components/ExternalLink';
 import { MODEL_CATALOG_GATED_ACCESS_REQUIRED } from '~/concepts/modelCatalog/const';
@@ -18,9 +19,13 @@ import { useAdminStatus } from '~/odh/context/AdminStatusContext';
 
 type ModelGatedAccessRequiredViewProps = {
   model: CatalogModel;
+  hfUsername?: string;
 };
 
-const ModelGatedAccessRequiredView: React.FC<ModelGatedAccessRequiredViewProps> = ({ model }) => {
+const ModelGatedAccessRequiredView: React.FC<ModelGatedAccessRequiredViewProps> = ({
+  model,
+  hfUsername,
+}) => {
   const { isAdmin, loaded } = useAdminStatus();
   const { isMUITheme } = useThemeContext();
   const isAdminUser = loaded && isAdmin;
@@ -36,7 +41,7 @@ const ModelGatedAccessRequiredView: React.FC<ModelGatedAccessRequiredViewProps> 
       >
         <EmptyStateBody>
           {isAdminUser
-            ? MODEL_CATALOG_GATED_ACCESS_REQUIRED.DESCRIPTION_ADMIN
+            ? renderGatedAccessRequiredDescription(hfUsername)
             : MODEL_CATALOG_GATED_ACCESS_REQUIRED.DESCRIPTION_NON_ADMIN}
         </EmptyStateBody>
         <EmptyStateFooter>
