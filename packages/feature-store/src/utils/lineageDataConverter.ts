@@ -4,7 +4,6 @@ import {
   LineageEdge,
   LineageNode,
 } from '@odh-dashboard/internal/components/lineage/types';
-import { LineageEntityType } from './featureStoreObjects';
 import { FeatureStoreLineage, LineageFeatureView, FeatureViewLineage } from '../types/lineage';
 import { Entity } from '../types/entities';
 import { DataSource } from '../types/dataSources';
@@ -313,11 +312,18 @@ export const convertFeatureViewLineageToVisualizationData = (
     if (obj.type === 'feature') {
       return;
     }
+
+    const config = getObjectTypeConfig(obj.type);
+    if (!config) {
+      return;
+    }
+
     const isFeatureViewNode = isFeatureViewType(obj.type);
     const isCurrentFeatureView = isFeatureViewNode && obj.name === featureViewName;
     const layer = getObjectLayer(obj.type, isCurrentFeatureView);
 
     const objectTypeForLabel = isCurrentFeatureView && featureViewType ? featureViewType : obj.type;
+    const featureViewConfig = featureViewType ? getObjectTypeConfig(featureViewType) : null;
 
     let nodeFeatures: FeatureColumns[] | undefined;
     if (isCurrentFeatureView && currentFeatureViewFeatures) {
@@ -329,11 +335,11 @@ export const convertFeatureViewLineageToVisualizationData = (
     nodes.push({
       id: mapObjectToNodeId(obj) || key,
       label: getObjectLabel(objectTypeForLabel, obj.name),
-      fsObjectTypes: mapTypeToFsObjectType(obj.type),
+      fsObjectTypes: config.fsObjectType,
       entityType:
-        isCurrentFeatureView && featureViewType
-          ? mapTypeToEntityType(featureViewType)
-          : mapTypeToEntityType(obj.type),
+        isCurrentFeatureView && featureViewConfig
+          ? featureViewConfig.entityType
+          : config.entityType,
       name: obj.name,
       truncateLength: 30,
       layer,
@@ -485,24 +491,6 @@ const getObjectLabel = (objectType: string, objectName: string): string => {
   const config = getObjectTypeConfig(objectType);
   const prefix = config ? config.labelPrefix : objectType;
   return `${prefix}: ${objectName}`;
-};
-
-/**
- * Maps object type to fsObjectTypes for feature store
- */
-const mapTypeToFsObjectType = (
-  objectType: string,
-): 'entity' | 'data_source' | 'feature_view' | 'feature_service' => {
-  const config = getObjectTypeConfig(objectType);
-  return config ? config.fsObjectType : 'data_source'; // Default fallback to a valid type
-};
-
-/**
- * Maps object type to entityType for visualization
- */
-const mapTypeToEntityType = (objectType: string): LineageEntityType => {
-  const config = getObjectTypeConfig(objectType);
-  return config ? config.entityType : 'batch_data_source'; // Default fallback to a valid type
 };
 
 /**

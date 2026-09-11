@@ -189,8 +189,8 @@ const createMockPattern = (name: string): AutoragPattern => ({
         embedding_model_id: 'test-model',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         chunk_size: 512,
         chunk_overlap: 50,
         chunking_method: 'fixed',
@@ -206,6 +206,9 @@ const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
 const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);
 const useAutoragTaskTopologyMock = jest.mocked(useAutoragTaskTopologyModule.useAutoragTaskTopology);
 const buildStageMapTopologyMock = jest.mocked(buildStageMapTopologyModule.buildStageMapTopology);
+
+const lastMockValue = <T,>(results: Array<{ value?: T }>): T | undefined =>
+  results[results.length - 1]?.value;
 
 const getPipelineVisualization = () => screen.getByTestId('autorag-pipeline-visualization');
 
@@ -688,7 +691,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(useAutoragTaskTopologyMock.mock.results),
         undefined,
       );
     });
@@ -741,7 +744,7 @@ describe('AutoragResults', () => {
       expect(buildStageMapTopologyMock).toHaveBeenCalled();
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(buildStageMapTopologyMock.mock.results),
         undefined,
       );
     });
@@ -773,7 +776,7 @@ describe('AutoragResults', () => {
 
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(useAutoragTaskTopologyMock.mock.results),
         undefined,
       );
     });
@@ -786,7 +789,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(useAutoragTaskTopologyMock.mock.results),
         undefined,
       );
     });
@@ -800,7 +803,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(useAutoragTaskTopologyMock.mock.results),
         undefined,
       );
     });

@@ -24,13 +24,21 @@ import {
 import useClusterStorageFormState from './useClusterStorageFormState';
 import ClusterStorageTable from './ClusterStorageTable';
 import { handleSubmit } from './submitUtils';
+import { StorageContextType } from './useStorageContextType';
 
 type ClusterStorageModalProps = {
   existingPvc?: PersistentVolumeClaimKind;
   onClose: (submit: boolean) => void;
+  storageContextTypes?: StorageContextType[];
+  storageContextTypesLoaded?: boolean;
 };
 
-const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, onClose }) => {
+const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({
+  existingPvc,
+  onClose,
+  storageContextTypes,
+  storageContextTypesLoaded,
+}) => {
   const {
     currentProject,
     notebooks: { data, loaded },
@@ -152,6 +160,8 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
       isValid={isValid}
       onClose={(submitted) => onClose(submitted)}
       existingPvc={existingPvc}
+      storageContextTypes={storageContextTypes}
+      storageContextTypesLoaded={storageContextTypesLoaded}
     >
       <>
         {workbenchEnabled && (

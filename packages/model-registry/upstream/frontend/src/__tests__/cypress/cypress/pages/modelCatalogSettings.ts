@@ -1,4 +1,3 @@
-import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import {
   addSourceUrl,
   catalogSettingsUrl,
@@ -115,16 +114,50 @@ class CatalogSourceConfigRow extends TableRow {
     this.findValidationStatusErrorLink().click();
     return this;
   }
+
+  findValidationStatusIndicator(testId: string) {
+    return this.findValidationStatus().findByTestId(testId);
+  }
+
+  findDeleteSourceMenuItem() {
+    return cy.findByRole('menuitem', { name: 'Delete source' });
+  }
+
+  clickDeleteSourceMenuItem() {
+    this.findDeleteSourceMenuItem().click();
+    return this;
+  }
+}
+
+class CatalogSourceStatusErrorModal extends Modal {
+  constructor() {
+    super('Source status');
+  }
+
+  find() {
+    return cy.findByTestId('catalog-source-status-error-modal');
+  }
+
+  findAlert() {
+    return cy.findByTestId('catalog-source-status-error-alert');
+  }
+
+  findMessage() {
+    return cy.findByTestId('catalog-source-status-error-message');
+  }
+
+  findCloseButton() {
+    return this.find().findByRole('button', { name: 'Close' });
+  }
+
+  clickClose() {
+    this.findCloseButton().click();
+    return this;
+  }
 }
 
 class ModelCatalogSettings {
-  visit({
-    wait = true,
-    enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-  }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {}) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visit({ wait = true }: { wait?: boolean } = {}) {
     cy.visit(catalogSettingsUrl());
     if (wait) {
       this.wait();
@@ -208,29 +241,14 @@ class ModelCatalogSettings {
 }
 
 class ManageSourcePage {
-  visitAddSource({
-    wait = true,
-    enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-  }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {}) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visitAddSource({ wait = true }: { wait?: boolean } = {}) {
     cy.visit(addSourceUrl());
     if (wait) {
       this.wait();
     }
   }
 
-  visitManageSource(
-    catalogSourceId: string,
-    {
-      wait = true,
-      enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-    }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {},
-  ) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visitManageSource(catalogSourceId: string, { wait = true }: { wait?: boolean } = {}) {
     cy.visit(manageSourceUrl(catalogSourceId));
     if (wait) {
       this.wait();
@@ -403,15 +421,110 @@ class ManageSourcePage {
     return cy.contains('To view the models from this source that will appear');
   }
 
-  findPreviewButtonHeader() {
-    return cy.findByTestId('preview-button-header');
+  findPreviewPanelHeaderButton() {
+    return this.findPreviewPanel().findByTestId('preview-button-header');
   }
 
-  findPreviewButtonPanel() {
-    return cy.findByTestId('preview-button-panel');
+  findPreviewPanelBodyButton() {
+    return this.findPreviewPanel().findByTestId('preview-button-panel');
+  }
+
+  findAccessTokenHiddenHelper() {
+    return cy.findByTestId('access-token-hidden-helper');
+  }
+
+  findClearAccessTokenModal() {
+    return cy.findByTestId('clear-access-token-modal');
+  }
+
+  findClearAccessTokenConfirmButton() {
+    return cy.findByTestId('clear-access-token-confirm-button');
+  }
+
+  findRefreshPreviewAlert() {
+    return cy.contains('Source configuration changed. Refresh the preview.');
+  }
+
+  findRefreshPreviewLink() {
+    return cy.findByTestId('refresh-preview-link');
+  }
+
+  findValidateButton() {
+    return cy.findByRole('button', { name: 'Validate' });
+  }
+
+  clickValidate() {
+    this.findValidateButton().click();
+    return this;
+  }
+
+  findShowAccessTokenButton() {
+    return cy.findByRole('button', { name: 'Show access token' });
+  }
+
+  findHideAccessTokenButton() {
+    return cy.findByRole('button', { name: 'Hide access token' });
+  }
+
+  clickShowAccessToken() {
+    this.findShowAccessTokenButton().click();
+    return this;
+  }
+
+  clickHideAccessToken() {
+    this.findHideAccessTokenButton().click();
+    return this;
+  }
+
+  findClearAccessTokenButton() {
+    return cy.findByRole('button', { name: 'Clear' });
+  }
+
+  clickClearAccessToken() {
+    this.findClearAccessTokenButton().click();
+    return this;
+  }
+
+  findClearAccessTokenModalCancelButton() {
+    return this.findClearAccessTokenModal().findByRole('button', { name: 'Cancel' });
+  }
+
+  clickClearAccessTokenModalCancel() {
+    this.findClearAccessTokenModalCancelButton().click();
+    return this;
+  }
+
+  findValidationSuccessAlert() {
+    return cy.contains('Credentials validated');
+  }
+
+  findValidationFailedAlert() {
+    return cy.contains('Credentials validation failed');
+  }
+
+  findPreviewModelsIncludedSummary(count: number, total: number) {
+    return cy.contains(`${count} of ${total} models included:`);
+  }
+
+  findPreviewModelsExcludedSummary(count: number, total: number) {
+    return cy.contains(`${count} of ${total} models excluded:`);
+  }
+
+  clickPreviewExcludedTab() {
+    this.findPreviewPanel().contains('Models excluded').click();
+    return this;
+  }
+
+  findPreviewModelRow(modelName: string) {
+    return this.findPreviewPanel().contains('li', modelName);
+  }
+
+  findPreviewGatedAccessWarningIcon(modelName: string) {
+    return this.findPreviewModelRow(modelName).findByLabelText('Gated access warning');
   }
 }
 
 export const modelCatalogSettings = new ModelCatalogSettings();
 export const manageSourcePage = new ManageSourcePage();
 export const deleteSourceModal = new DeleteSourceModal();
+export const catalogSourceStatusErrorModal = new CatalogSourceStatusErrorModal();

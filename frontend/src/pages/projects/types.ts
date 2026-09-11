@@ -78,6 +78,7 @@ export type StorageData = {
   id?: number;
   modelName?: string;
   modelPath?: string;
+  contextTypeAnnotations?: Record<string, string>;
 };
 
 export type SecretKeyRefEnvVar = {

@@ -20,7 +20,11 @@ const useMCPServerStatuses = (
 ): {
   serverStatuses: Map<string, ServerStatusInfo>;
   statusesLoading: Set<string>;
-  checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  checkServerStatus: (
+    serverUrl: string,
+    mcpBearerToken?: string,
+    serverName?: string,
+  ) => Promise<ServerStatusInfo>;
 } => {
   const { api, apiAvailable } = useGenAiAPI();
   const [serverStatuses, setServerStatuses] = React.useState<Map<string, ServerStatusInfo>>(
@@ -29,7 +33,11 @@ const useMCPServerStatuses = (
   const [statusesLoading, setStatusesLoading] = React.useState<Set<string>>(new Set());
 
   const checkServerStatus = React.useCallback(
-    async (serverUrl: string, mcpBearerToken?: string): Promise<ServerStatusInfo> => {
+    async (
+      serverUrl: string,
+      mcpBearerToken?: string,
+      serverName?: string,
+    ): Promise<ServerStatusInfo> => {
       if (!apiAvailable) {
         throw new Error('API is not available');
       }
@@ -46,10 +54,15 @@ const useMCPServerStatuses = (
         }
 
         const statusResponse: MCPConnectionStatus = await api.getMCPServerStatus(
-          {
-            // eslint-disable-next-line camelcase
-            server_url: serverUrl,
-          },
+          serverName
+            ? {
+                // eslint-disable-next-line camelcase
+                server_name: serverName,
+              }
+            : {
+                // eslint-disable-next-line camelcase
+                server_url: serverUrl,
+              },
           { headers },
         );
 
@@ -86,11 +99,15 @@ const useMCPServerStatuses = (
   React.useEffect(() => {
     if (loaded && servers && servers.length > 0) {
       Promise.allSettled(
-        servers.map((server) =>
-          checkServerStatus(server.url).catch(() => {
+        servers.map((server) => {
+          const statusCheck =
+            server.source === 'registry'
+              ? checkServerStatus(server.url, undefined, server.name)
+              : checkServerStatus(server.url);
+          return statusCheck.catch(() => {
             // Errors are handled in checkServerStatus
-          }),
-        ),
+          });
+        }),
       );
     }
   }, [loaded, servers, checkServerStatus]);

@@ -1,22 +1,35 @@
 import * as React from 'react';
-import { Popover, ClipboardCopy } from '@patternfly/react-core';
+import { Popover, ClipboardCopy, Content, ContentVariants } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
+
+const MCP_CATALOG_PATH = '/ai-hub/mcp-servers';
 
 interface MCPServerEndpointPopoverProps {
   connectionUrl: string;
+  source?: string;
   children: React.ReactElement;
 }
 
 const MCPServerEndpointPopover: React.FC<MCPServerEndpointPopoverProps> = ({
   connectionUrl,
   children,
+  source,
 }) => (
   <Popover
-    headerContent="Endpoint URL"
+    headerContent="Service endpoint"
     headerComponent="h2"
     bodyContent={
-      <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-        {connectionUrl}
-      </ClipboardCopy>
+      <div className="pf-v6-u-mt-md">
+        <ClipboardCopy isReadOnly hoverTip="Copy endpoint" clickTip="Copied">
+          {connectionUrl}
+        </ClipboardCopy>
+        {source === 'registry' && (
+          <Content component={ContentVariants.small} className="pf-v6-u-mt-md">
+            For authentication information refer to the{' '}
+            <Link to={MCP_CATALOG_PATH}>catalog listing</Link> for this server.
+          </Content>
+        )}
+      </div>
     }
     position="top-start"
   >

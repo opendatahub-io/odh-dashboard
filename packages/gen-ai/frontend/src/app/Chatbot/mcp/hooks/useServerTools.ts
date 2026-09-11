@@ -4,7 +4,7 @@ import { GenAiAPIs } from '~/app/types';
 export interface UseServerToolsReturn {
   serverToolsCount: Map<string, number>;
   fetchingToolsServers: Set<string>;
-  fetchToolsCount: (serverUrl: string, token?: string) => Promise<void>;
+  fetchToolsCount: (serverUrl: string, token?: string, serverName?: string) => Promise<void>;
 }
 
 export interface UseServerToolsProps {
@@ -24,7 +24,7 @@ const useServerTools = ({ api, apiAvailable }: UseServerToolsProps): UseServerTo
   const [fetchingToolsServers, setFetchingToolsServers] = React.useState<Set<string>>(new Set());
 
   const fetchToolsCount = React.useCallback(
-    async (serverUrl: string, token?: string) => {
+    async (serverUrl: string, token?: string, serverName?: string) => {
       if (!apiAvailable) {
         return;
       }
@@ -39,10 +39,15 @@ const useServerTools = ({ api, apiAvailable }: UseServerToolsProps): UseServerTo
         }
 
         const response = await api.getMCPServerTools(
-          {
-            // eslint-disable-next-line camelcase
-            server_url: serverUrl,
-          },
+          serverName
+            ? {
+                // eslint-disable-next-line camelcase
+                server_name: serverName,
+              }
+            : {
+                // eslint-disable-next-line camelcase
+                server_url: serverUrl,
+              },
           { headers },
         );
 
