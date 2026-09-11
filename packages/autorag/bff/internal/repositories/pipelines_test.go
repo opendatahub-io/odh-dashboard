@@ -302,13 +302,13 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 	})
 
-	t.Run("nil optimization_max_rag_patterns omitted", func(t *testing.T) {
+	t.Run("nil optimization_max_rag_patterns defaults", func(t *testing.T) {
 		req := validRequest()
 		kfp := BuildPipelineRunInput(req, "pid", "vid")
 		params := kfp.RuntimeConfig.Parameters
 
-		if _, ok := params["optimization_max_rag_patterns"]; ok {
-			t.Error("nil optimization_max_rag_patterns should be omitted")
+		if params["optimization_max_rag_patterns"] != constants.DefaultMaxRagPatterns {
+			t.Errorf("nil optimization_max_rag_patterns should default to %d, got %v", constants.DefaultMaxRagPatterns, params["optimization_max_rag_patterns"])
 		}
 	})
 }

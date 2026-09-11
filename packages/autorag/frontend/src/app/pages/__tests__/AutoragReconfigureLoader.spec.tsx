@@ -727,6 +727,38 @@ describe('AutoragReconfigureLoader', () => {
         expect.anything(),
       );
     });
+
+    it('should not show warning notification for a legacy run whose optimization_max_rag_patterns exceeds the current maximum', async () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Run' },
+          {
+            input_data_secret_name: 'my-secret',
+            input_data_bucket_name: 'my-bucket',
+            input_data_key: 'docs/input.pdf',
+            test_data_secret_name: 'my-secret',
+            test_data_bucket_name: 'my-bucket',
+            test_data_key: 'eval.json',
+            maas_secret_name: 'maas-secret',
+            optimization_metric: 'faithfulness',
+            // Created before MAX_RAG_PATTERNS was lowered from 20 to 10.
+            optimization_max_rag_patterns: 20,
+          },
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      expect(mockNotification.warning).not.toHaveBeenCalledWith(
+        'Unable to restore all settings',
+        expect.anything(),
+      );
+    });
   });
 
   describe('hook integration', () => {

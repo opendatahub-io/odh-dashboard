@@ -387,7 +387,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `embedding_models` | string[] | Yes | Embedding model identifiers (required; MaaS has no model-type metadata) |
 | `generation_models` | string[] | Yes | Generation model identifiers (required; MaaS has no model-type metadata) |
 | `optimization_metric` | string | No | Metric to optimize: `overall_score` (default), `faithfulness`, `answer_correctness`, or `context_correctness` |
-| `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 20) |
+| `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 10, default: 5) |
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)

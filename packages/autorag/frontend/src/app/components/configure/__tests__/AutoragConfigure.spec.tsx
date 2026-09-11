@@ -1046,12 +1046,12 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
     };
 
-    it('should render the max RAG patterns input with default value 8', () => {
+    it('should render the max RAG patterns input with default value 5', () => {
       renderComponent();
       selectSecretAndFile();
 
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
-      expect(input).toHaveValue(8);
+      expect(input).toHaveValue(5);
     });
 
     it('should increment value when plus button is clicked', () => {
@@ -1063,7 +1063,7 @@ describe('AutoragConfigure', () => {
       fireEvent.click(plusButton);
 
       const input = container.querySelector('input');
-      expect(input).toHaveValue(9);
+      expect(input).toHaveValue(6);
     });
 
     it('should decrement value when minus button is clicked', () => {
@@ -1075,7 +1075,7 @@ describe('AutoragConfigure', () => {
       fireEvent.click(minusButton);
 
       const input = container.querySelector('input');
-      expect(input).toHaveValue(7);
+      expect(input).toHaveValue(4);
     });
 
     it('should show error when value exceeds maximum', async () => {
@@ -1083,10 +1083,10 @@ describe('AutoragConfigure', () => {
       selectSecretAndFile();
 
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
-      fireEvent.change(input, { target: { value: '21' } });
+      fireEvent.change(input, { target: { value: '11' } });
 
       await waitFor(() => {
-        expect(screen.getByText('Maximum number of RAG patterns is 20')).toBeInTheDocument();
+        expect(screen.getByText('Maximum number of RAG patterns is 10')).toBeInTheDocument();
       });
     });
 
@@ -1365,7 +1365,7 @@ describe('AutoragConfigure', () => {
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
           optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 12,
+          optimization_max_rag_patterns: 9,
         },
         {
           input_data_secret_name: 'Test Secret 1',
@@ -1375,12 +1375,12 @@ describe('AutoragConfigure', () => {
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
           optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 12,
+          optimization_max_rag_patterns: 9,
         },
       );
 
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
-      expect(input).toHaveValue(12);
+      expect(input).toHaveValue(9);
     });
 
     it('should retain the previously selected foundation/embedding models instead of resetting to all models', () => {
