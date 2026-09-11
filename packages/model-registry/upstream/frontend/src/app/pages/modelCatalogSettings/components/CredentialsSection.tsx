@@ -40,6 +40,7 @@ type CredentialsSectionProps = {
   isValidationSuccess: boolean;
   onClearValidationSuccess: () => void;
   hasExistingApiKey?: boolean;
+  onClearCredentials?: () => Promise<void>;
 };
 
 const CredentialsSection: React.FC<CredentialsSectionProps> = ({
@@ -51,19 +52,36 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
   isValidationSuccess,
   onClearValidationSuccess,
   hasExistingApiKey = false,
+  onClearCredentials,
 }) => {
   const [isOrganizationTouched, setIsOrganizationTouched] = React.useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = React.useState(false);
+  const [clearError, setClearError] = React.useState<Error | undefined>();
+  const [isClearing, setIsClearing] = React.useState(false);
 
   const isOrganizationValid = validateOrganization(formData.organization);
 
   const isTokenLocked = hasExistingApiKey && !formData.tokenModified;
 
-  const onClearToken = React.useCallback(() => {
-    setData('accessToken', '');
-    setData('tokenModified', true);
-    onClearValidationSuccess();
-  }, [setData, onClearValidationSuccess]);
+  const handleClearTokenConfirm = React.useCallback(async () => {
+    setClearError(undefined);
+    setIsClearing(true);
+    try {
+      if (onClearCredentials) {
+        await onClearCredentials();
+      }
+      setData('accessToken', '');
+      setData('tokenModified', true);
+      onClearValidationSuccess();
+      setIsClearModalOpen(false);
+    } catch (error) {
+      setClearError(
+        error instanceof Error ? error : new Error(ERROR_MESSAGES.CLEAR_CREDENTIALS_FAILED),
+      );
+    } finally {
+      setIsClearing(false);
+    }
+  }, [setData, onClearValidationSuccess, onClearCredentials]);
 
   const accessTokenFeatureAvailable = useTempDevFeatureAvailable(
     TempDevFeature.CatalogHuggingFaceApiKey,
@@ -124,6 +142,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
       onChange={(_event, value) => setData('organization', value)}
       onBlur={() => setIsOrganizationTouched(true)}
       validated={isOrganizationTouched && !isOrganizationValid ? 'error' : 'default'}
+      isDisabled={isValidating}
     />
   );
 
@@ -187,10 +206,13 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
       name="access-token"
       data-testid="access-token-input"
       value={formData.accessToken}
-      onChange={(_event, value) => setData('accessToken', value)}
+      onChange={(_event, value) => {
+        setData('accessToken', value);
+        setData('tokenModified', true);
+      }}
       ariaLabelShow="Show access token"
       ariaLabelHide="Hide access token"
-      isDisabled={isValidationSuccess}
+      isDisabled={isValidating || isValidationSuccess}
       hideToggleButton={isValidationSuccess}
       forceHidden={isValidationSuccess}
     />
@@ -210,7 +232,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
   const tokenValidationBtn =
     isValidationSuccess || isTokenLocked ? undefined : (
       <Button
-        isDisabled={!isOrganizationValid || isValidating}
+        isDisabled={!isOrganizationValid || isValidating || !formData.accessToken.trim()}
         variant="link"
         onClick={onValidate}
         isLoading={isValidating}
@@ -241,27 +263,17 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
         {accessTokenInput}
       </ThemeAwareFormGroupWrapper>
       {validationError && (
-        <Alert
-          isInline
-          variant="danger"
-          title={ERROR_MESSAGES.VALIDATION_FAILED}
-          className="pf-v6-u-mt-md"
-        >
+        <Alert isInline variant="danger" title={ERROR_MESSAGES.VALIDATION_FAILED}>
           {validationError.message}
         </Alert>
       )}
       {isValidationSuccess && !isTokenLocked && (
-        <Alert
-          isInline
-          variant="success"
-          className="pf-v6-u"
-          title={SUCCESS_MESSAGES.VALIDATION_SUCCESSFUL}
-        >
+        <Alert isInline variant="success" title={SUCCESS_MESSAGES.VALIDATION_SUCCESSFUL}>
           {SUCCESS_MESSAGES.VALIDATION_SUCCESSFUL_BODY}
         </Alert>
       )}
 
-      <ActionList className="pf-v6-u">
+      <ActionList>
         {tokenValidationBtn}
         {tokenClearBtn}
       </ActionList>
@@ -277,23 +289,48 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
       <Modal
         variant={ModalVariant.small}
         isOpen={isClearModalOpen}
-        onClose={() => setIsClearModalOpen(false)}
+        onClose={() => {
+          if (!isClearing) {
+            setIsClearModalOpen(false);
+            setClearError(undefined);
+          }
+        }}
         data-testid="clear-access-token-modal"
       >
         <ModalHeader title={CLEAR_ACCESS_TOKEN_MODAL.MODAL_TITLE} />
-        <ModalBody>{CLEAR_ACCESS_TOKEN_MODAL.MODAL_BODY}</ModalBody>
+        <ModalBody>
+          {CLEAR_ACCESS_TOKEN_MODAL.MODAL_BODY}
+          {clearError && (
+            <Alert
+              isInline
+              variant="danger"
+              title={ERROR_MESSAGES.CLEAR_CREDENTIALS_FAILED}
+              className="pf-v6-u-mt-md"
+            >
+              {clearError.message}
+            </Alert>
+          )}
+        </ModalBody>
         <ModalFooter>
           <Button
             variant="danger"
+            isLoading={isClearing}
+            isDisabled={isClearing}
             onClick={() => {
-              onClearToken();
-              setIsClearModalOpen(false);
+              void handleClearTokenConfirm();
             }}
             data-testid="clear-access-token-confirm-button"
           >
             {CLEAR_ACCESS_TOKEN_MODAL.CONFIRM_BTN}
           </Button>
-          <Button variant="link" onClick={() => setIsClearModalOpen(false)}>
+          <Button
+            variant="link"
+            isDisabled={isClearing}
+            onClick={() => {
+              setIsClearModalOpen(false);
+              setClearError(undefined);
+            }}
+          >
             {CLEAR_ACCESS_TOKEN_MODAL.CANCEL_BTN}
           </Button>
         </ModalFooter>
