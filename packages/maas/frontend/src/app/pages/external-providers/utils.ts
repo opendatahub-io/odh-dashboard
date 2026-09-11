@@ -1,8 +1,54 @@
-import { K8sResourceCommon } from '@odh-dashboard/k8s-core';
-import { ExternalProvider, ProviderTypes } from '~/app/types/external-models';
+import { K8sNameDescriptionFieldData, K8sResourceCommon } from '@odh-dashboard/k8s-core';
+import {
+  CreateExternalProviderRequest,
+  ExternalProvider,
+  ProviderTypes,
+  SecretSummary,
+} from '~/app/types/external-models';
 import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
 import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
 import { ExternalProvidersFilterDataType, ExternalProvidersFilterOptions } from './const';
+import { ConfigPair } from './types';
+
+export const getSecretDisplayLabel = (
+  secret: Pick<SecretSummary, 'name' | 'displayName'>,
+): string => secret.displayName?.trim() || secret.name;
+
+export const configPairsToRecord = (pairs: ConfigPair[]): Record<string, string> | undefined => {
+  const config = pairs.reduce<Record<string, string>>((acc, { key, value }) => {
+    const trimmedKey = key.trim();
+    const trimmedValue = value.trim();
+    if (!trimmedKey || !trimmedValue) {
+      return acc;
+    }
+    acc[trimmedKey] = trimmedValue;
+    return acc;
+  }, {});
+
+  return Object.keys(config).length > 0 ? config : undefined;
+};
+
+export const toCreateExternalProviderRequest = (
+  namespace: string,
+  nameDescData: K8sNameDescriptionFieldData,
+  formData: {
+    provider: string;
+    endpointUrl: string;
+    authMechanism: CreateExternalProviderRequest['authMechanism'];
+    credentialSecretRef: string;
+  },
+  configPairs: ConfigPair[],
+): CreateExternalProviderRequest => ({
+  name: nameDescData.k8sName.value,
+  namespace,
+  displayName: nameDescData.name.trim() || undefined,
+  description: nameDescData.description.trim() || undefined,
+  endpointUrl: formData.endpointUrl.trim(),
+  authMechanism: formData.authMechanism,
+  credentialSecretRef: formData.credentialSecretRef.trim(),
+  provider: formData.provider,
+  config: configPairsToRecord(configPairs),
+});
 
 export const getExternalProviderResource = (provider: ExternalProvider): K8sResourceCommon => ({
   apiVersion: 'maas.opendatahub.io/v1alpha1',
