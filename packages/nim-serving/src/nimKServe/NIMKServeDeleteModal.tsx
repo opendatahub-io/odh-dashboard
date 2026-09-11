@@ -56,8 +56,13 @@ const NIMKServeDeleteModal: React.FC<Props> = ({
 
   const statusIsVisible = deletePVC && (loaded || !!dependentError);
   const isCheckingDependents = deletePVC && !loaded && !dependentError;
+  const isPVCDeletionBlocked = deletePVC && (isCheckingDependents || !!dependentError);
 
   const handleDelete = async () => {
+    if (isPVCDeletionBlocked) {
+      return;
+    }
+
     setIsDeleting(true);
     setDeleteError(undefined);
     try {
@@ -125,7 +130,7 @@ const NIMKServeDeleteModal: React.FC<Props> = ({
               }
             >
               {dependentError ? (
-                'The PVC dependencies could not be determined. Proceeding may affect other model deployments.'
+                'The PVC dependencies could not be determined. Uncheck PVC deletion to delete only this model deployment.'
               ) : dependentDeployments.length > 0 ? (
                 <>
                   Deleting this PVC may prevent these model deployments from loading their models:
@@ -157,6 +162,7 @@ const NIMKServeDeleteModal: React.FC<Props> = ({
       error={deleteError}
       deleteName={deploymentName}
       additionalContent={additionalContent}
+      isSubmitDisabled={isPVCDeletionBlocked}
     >
       The <strong>{deploymentName}</strong> model deployment and its API keys will be deleted, and
       its model endpoint will no longer be available as an AI asset or MaaS.
