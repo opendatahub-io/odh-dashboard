@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useK8sWatchResource, type K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   HostApiContext,
   HostApiCoreContext,
@@ -9,6 +10,7 @@ import {
   type ClusterSettingsType,
 } from '@odh-dashboard/plugin-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
 const ProjectDetailsContext = React.createContext(null);
@@ -18,36 +20,53 @@ const MODEL_SERVING_CONTEXT_VALUE = {
     loaded: true,
   },
 };
-const SKLEARN_SERVING_RUNTIME_TEMPLATE: TemplateKind = {
-  apiVersion: 'template.openshift.io/v1',
-  kind: 'Template',
-  metadata: {
-    name: 'kserve-sklearnserver',
-    namespace: 'opendatahub',
-    labels: { 'opendatahub.io/dashboard': 'true' },
-    annotations: {
-      'opendatahub.io/modelServingSupport': '["single"]',
-      'opendatahub.io/model-type': '["predictive"]',
-    },
-  },
-  objects: [
-    {
-      apiVersion: 'serving.kserve.io/v1alpha1',
-      kind: 'ServingRuntime',
-      metadata: { name: 'kserve-sklearnserver' },
-      spec: {
-        supportedModelFormats: [{ name: 'sklearn', version: '1', autoSelect: true }],
-        containers: [
-          {
-            name: 'kserve-container',
-            image: 'kserve/sklearnserver:v0.19.0',
-            args: ['--model_name={{.Name}}', '--model_dir=/mnt/models', '--http_port=8080'],
-          },
-        ],
+const ServingRuntimeModel: K8sModelCommon = {
+  apiVersion: 'serving.kserve.io/v1alpha1',
+  apiGroup: 'serving.kserve.io',
+  kind: 'ServingRuntime',
+  plural: 'servingruntimes',
+};
+
+const useServingRuntimeTemplates = (
+  namespace?: string,
+): ReturnType<HostApiServices['useTemplates']> => {
+  const resource = React.useMemo(
+    () =>
+      namespace
+        ? {
+            isList: true,
+            groupVersionKind: {
+              group: 'serving.kserve.io',
+              version: 'v1alpha1',
+              kind: 'ServingRuntime',
+              plural: 'servingruntimes',
+            },
+            namespace,
+          }
+        : null,
+    [namespace],
+  );
+  const [runtimes, loaded, error] = useK8sWatchResource<ServingRuntimeKind[]>(
+    resource,
+    ServingRuntimeModel,
+  );
+  const templates = runtimes.map(
+    (runtime): TemplateKind => ({
+      apiVersion: 'template.openshift.io/v1',
+      kind: 'Template',
+      metadata: {
+        ...runtime.metadata,
+        labels: { 'opendatahub.io/dashboard': 'true' },
+        annotations: {
+          'opendatahub.io/modelServingSupport': '["single"]',
+          'opendatahub.io/model-type': '["predictive"]',
+        },
       },
-    },
-  ],
-  parameters: [],
+      objects: [runtime],
+      parameters: [],
+    }),
+  );
+  return [templates, loaded, error instanceof Error ? error : undefined];
 };
 const ModelServingContext = React.createContext(MODEL_SERVING_CONTEXT_VALUE);
 
@@ -95,7 +114,7 @@ const infraApi: HostApiInfraServices = {
 };
 
 const hostApi: HostApiServices = {
-  useTemplates: () => [[SKLEARN_SERVING_RUNTIME_TEMPLATE], true, undefined],
+  useTemplates: (namespace) => useServingRuntimeTemplates(namespace),
   setProjectServingPlatform: (name) => Promise.resolve(name),
   useWatchConnectionTypes: () => [[], true, undefined, () => Promise.resolve([])],
   useServingConnections: () => [[], true, undefined, () => Promise.resolve([])],
