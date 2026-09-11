@@ -532,7 +532,7 @@ describe('Model Catalog Registration - Model Type Field', () => {
 });
 
 describe('Model Catalog Details Page - Gated access denied', () => {
-  it('shows gated access required state instead of model details', () => {
+  it('shows admin gated access required state with Hugging Face username guidance', () => {
     setupGatedDeniedDetailsIntercepts({ hfUsername: 'alice' });
 
     modelCatalog.visitModelDetails(GATED_DENIED_DETAILS_SOURCE_ID, GATED_DENIED_DETAILS_MODEL_NAME);
@@ -545,6 +545,7 @@ describe('Model Catalog Details Page - Gated access denied', () => {
       .should('contain.text', 'Log in to the Hugging Face account');
     modelCatalog.findGatedAccessRequiredState().should('contain.text', 'alice');
     modelCatalog.findGatedAccessRequestLink().should('be.visible');
+    modelCatalog.findWhosMyAdministratorLink().should('not.exist');
     modelCatalog.findDetailsDescription().should('not.exist');
     modelCatalog.findModelCardMarkdown().should('not.exist');
     modelCatalog.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
@@ -556,7 +557,7 @@ describe('Model Catalog Details Page - Gated access denied', () => {
     modelCatalog.findAccessLabelGatedDenied().should('be.visible');
   });
 
-  it('shows generic gated access guidance when hfUsername is unavailable', () => {
+  it('shows admin generic gated access guidance when hfUsername is unavailable', () => {
     setupGatedDeniedDetailsIntercepts();
 
     modelCatalog.visitModelDetails(GATED_DENIED_DETAILS_SOURCE_ID, GATED_DENIED_DETAILS_MODEL_NAME);
@@ -571,5 +572,7 @@ describe('Model Catalog Details Page - Gated access denied', () => {
     modelCatalog
       .findGatedAccessRequiredState()
       .should('not.contain.text', 'Log in to the Hugging Face account');
+    modelCatalog.findGatedAccessRequestLink().should('be.visible');
+    modelCatalog.findWhosMyAdministratorLink().should('not.exist');
   });
 });

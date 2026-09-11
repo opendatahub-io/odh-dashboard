@@ -132,7 +132,10 @@ describe('Model Catalog Details Page - Gated access denied', () => {
     modelDetailsPage.findGatedAccessRequiredState().should('be.visible');
     modelDetailsPage
       .findGatedAccessRequiredState()
-      .should('contain.text', 'Go to Hugging Face to request permission for this model.');
+      .should(
+        'contain.text',
+        'This model is gated on Hugging Face. Request access on Hugging Face.',
+      );
     modelDetailsPage.findGatedAccessRequestLink().should('be.visible');
     modelDetailsPage.findWhosMyAdministratorLink().should('not.exist');
     modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
