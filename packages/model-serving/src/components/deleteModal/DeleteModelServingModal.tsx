@@ -41,13 +41,16 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
     setError(undefined);
   };
 
-  const deletePrimaryResource = React.useCallback(async () => {
-    if (!deleteModal) {
-      throw new Error('The delete action is not available');
-    }
+  const deletePrimaryResource = React.useCallback(
+    async (options?: { dryRun?: boolean }) => {
+      if (!deleteModal) {
+        throw new Error('The delete action is not available');
+      }
 
-    await deleteModal.properties.onDelete(deployment);
-  }, [deleteModal, deployment]);
+      await deleteModal.properties.onDelete(deployment, options);
+    },
+    [deleteModal, deployment],
+  );
 
   const onDelete = async () => {
     if (!getDisplayNameFromK8sResource(deployment.model)) {

@@ -16,7 +16,8 @@ describe('deleteLegacyNIMDeployment', () => {
       deletePVCResource,
     });
 
-    expect(deletePrimaryDeployment).toHaveBeenCalledTimes(1);
+    expect(deletePrimaryDeployment).toHaveBeenNthCalledWith(1, { dryRun: true });
+    expect(deletePrimaryDeployment).toHaveBeenNthCalledWith(2);
     expect(deletePVCResource).not.toHaveBeenCalled();
   });
 
@@ -38,8 +39,11 @@ describe('deleteLegacyNIMDeployment', () => {
       deletePVCResource,
     });
 
-    expect(calls).toEqual(['primary', 'pvc']);
-    expect(deletePVCResource).toHaveBeenCalledWith('nim-cache', 'project');
+    expect(calls).toEqual(['primary', 'pvc', 'primary', 'pvc']);
+    expect(deletePVCResource).toHaveBeenNthCalledWith(1, 'nim-cache', 'project', {
+      dryRun: true,
+    });
+    expect(deletePVCResource).toHaveBeenNthCalledWith(2, 'nim-cache', 'project', undefined);
   });
 
   it.each([undefined, {}, { status: { phase: 'Pending' } }])(
@@ -61,7 +65,7 @@ describe('deleteLegacyNIMDeployment', () => {
 
   it('should not delete the PVC when the primary deployment fails', async () => {
     const deletePrimaryDeployment = jest.fn().mockRejectedValue(new Error('primary failed'));
-    const deletePVCResource = jest.fn();
+    const deletePVCResource = jest.fn().mockResolvedValue(undefined);
 
     await expect(
       deleteLegacyNIMDeployment({
@@ -73,7 +77,8 @@ describe('deleteLegacyNIMDeployment', () => {
       }),
     ).rejects.toThrow('primary failed');
 
-    expect(deletePVCResource).not.toHaveBeenCalled();
+    expect(deletePVCResource).toHaveBeenCalledWith('nim-cache', 'project', { dryRun: true });
+    expect(deletePrimaryDeployment).toHaveBeenCalledTimes(1);
   });
 
   it('should surface a failed PVC deletion status', async () => {
@@ -91,5 +96,9 @@ describe('deleteLegacyNIMDeployment', () => {
         deletePVCResource,
       }),
     ).rejects.toThrow('forbidden');
+
+    expect(deletePVCResource).toHaveBeenCalledWith('nim-cache', 'project', {
+      dryRun: true,
+    });
   });
 });
