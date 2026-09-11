@@ -329,20 +329,18 @@ class InferenceServiceModal extends ServingModal {
     cy.findByRole('option', { name }).click();
   }
 
-  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
+  selectPotentiallyDisabledProfile(profileDisplayName: string): void {
     const dropdown = this.findHardProfileSelection();
 
     dropdown.then(($el) => {
       if ($el.prop('disabled')) {
-        // If disabled, verify it contains the base profile name
-        // Use the shorter profileName if provided, otherwise use profileDisplayName
-        const nameToCheck = profileName || profileDisplayName;
-        cy.wrap($el).contains(nameToCheck).should('exist');
-        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+        cy.wrap($el).contains(profileDisplayName).should('exist');
+        cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
-        // If enabled, proceed with selection as before using the full display name
         dropdown.click();
-        cy.findByRole('option', { name: profileDisplayName }).click();
+        cy.findByRole('option', {
+          name: (content) => content.includes(profileDisplayName),
+        }).click();
       }
     });
   }
@@ -1258,7 +1256,7 @@ class ModelServingWizard extends Wizard {
     cy.findByRole('option', { name }).click();
   }
 
-  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
+  selectPotentiallyDisabledProfile(profileDisplayName: string): void {
     const dropdown = this.findHardProfileSelection();
 
     dropdown.then(($el) => {
@@ -1267,11 +1265,9 @@ class ModelServingWizard extends Wizard {
         cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
         dropdown.click();
-        if (profileName) {
-          cy.findByRole('option', { name: profileDisplayName }).click();
-        } else {
-          cy.findByTestId(profileDisplayName).click();
-        }
+        cy.findByRole('option', {
+          name: (content) => content.includes(profileDisplayName),
+        }).click();
       }
     });
   }
