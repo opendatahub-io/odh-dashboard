@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
 import { EventStatus } from '#~/types';
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import {
   buildInitialProgressSteps,

@@ -82,7 +82,7 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
               onChange={(_event, value) => doSetSearchDebounced(value)}
             />
           </MenuSearchInput>
-          <HelperText>
+          <HelperText className="pf-v6-u-mt-sm">
             <HelperTextItem>{`Type a name to search your ${resources.length} ${resourceName}.`}</HelperTextItem>
           </HelperText>
         </MenuSearch>

@@ -49,6 +49,7 @@ const ConfigureFormGroup: React.FC<ConfigureFormGroupProps> = (props: ConfigureF
     <Flex
       direction={{ default: 'column' }}
       gap={{ default: 'gapSm' }}
+      flexWrap={{ default: 'nowrap' }}
       data-testid={`configure-form-group-${testIdBase}`}
     >
       <Flex gap={{ default: 'gapXs' }}>

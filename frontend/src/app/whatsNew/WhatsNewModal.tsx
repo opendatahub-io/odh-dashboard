@@ -20,6 +20,7 @@ import {
 } from '@patternfly/react-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { ExternalLinkAltIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { useAppContext } from '#~/app/AppContext';
 import { useUser } from '#~/redux/selectors';
@@ -383,7 +384,7 @@ const ensureNavSidebarClosed = (): void => {
   }
 };
 
-const WhatsNewModal: React.FC = () => {
+const WhatsNewModalContent: React.FC = () => {
   const { isAdmin } = useUser();
   const [seen, setSeen] = useBrowserStorage<boolean>(TOUR_SEEN_STORAGE_KEY, false);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -876,6 +877,14 @@ const WhatsNewModal: React.FC = () => {
       <ModalFooter>{stepFooter}</ModalFooter>
     </Modal>
   );
+};
+
+const WhatsNewModal: React.FC = () => {
+  const isGuidedTourAvailable = useIsAreaAvailable(SupportedArea.GUIDED_TOUR).status;
+  if (!isGuidedTourAvailable) {
+    return null;
+  }
+  return <WhatsNewModalContent />;
 };
 
 export default WhatsNewModal;

@@ -14,6 +14,7 @@ import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8s
 import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { LocalQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts } from './workbenchTestUtils';
 import {
   NotebookModel,
@@ -21,11 +22,12 @@ import {
   PVCModel,
   ProjectModel,
   HardwareProfileModel,
-  LocalQueueModel,
 } from '../../../../utils/models';
 import { be } from '../../../../utils/should';
 import { verifyRelativeURL } from '../../../../utils/url';
 import { workbenchPage, notebookConfirmModal } from '../../../../pages/workbench';
+import { toastNotifications } from '../../../../pages/components/ToastNotifications';
+import { getK8sAPIResourceURL } from '../../../../utils/k8s';
 import { hardwareProfileSection } from '../../../../pages/components/HardwareProfileSection.ts';
 
 describe('Workbench page', () => {
@@ -247,6 +249,51 @@ describe('Workbench page', () => {
     });
 
     notebookRow.findNotebookStatusModal().should('exist');
+  });
+
+  it('Should report the failure and keep the workbench running when the stop request is rejected', () => {
+    initIntercepts({});
+    cy.intercept(
+      {
+        method: 'PATCH',
+        pathname: getK8sAPIResourceURL(NotebookModel, undefined, {
+          ns: 'test-project',
+          name: 'test-notebook',
+        }),
+      },
+      {
+        statusCode: 415,
+        body: {
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          code: 415,
+          reason: 'DashboardProxyError',
+          message: 'Unsupported Media Type: application/json-patch+json',
+          details: {
+            causes: [
+              {
+                reason: 'FST_ERR_CTP_INVALID_MEDIA_TYPE',
+                message: 'Unsupported Media Type: application/json-patch+json',
+              },
+            ],
+          },
+        },
+      },
+    ).as('stopWorkbenchRejected');
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
+
+    notebookRow.findNotebookStopToggle().click();
+    notebookConfirmModal.findStopWorkbenchButton().click();
+
+    cy.wait('@stopWorkbenchRejected');
+    toastNotifications
+      .findToastNotification(0)
+      .should('contain.text', 'Failed to stop workbench test-notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
+    notebookRow.findNotebookStopToggle().should('not.be.disabled');
   });
 
   it('Should stop a running workbench with a deleted hardware profile', () => {

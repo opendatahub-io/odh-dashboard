@@ -190,7 +190,7 @@ describe('PhaseLabel', () => {
     const subtext = screen.getByTestId('phase-label-subtext');
     expect(subtext).not.toBeNull();
   });
-  it('should not render subtext when status is pending', () => {
+  it('should render subtext when status is pending', () => {
     render(
       <PhaseLabel
         phase="Pending"
@@ -198,7 +198,8 @@ describe('PhaseLabel', () => {
         resourceName="Test Subscription"
       />,
     );
-    expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+    const subtext = screen.getByTestId('phase-label-subtext');
+    expect(subtext).not.toBeNull();
   });
   it('should not render subtext when status is active', () => {
     render(

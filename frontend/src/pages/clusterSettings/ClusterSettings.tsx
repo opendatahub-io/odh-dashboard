@@ -3,10 +3,13 @@ import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import type {
+  ClusterSettingsType,
+  ModelServingPlatformEnabled,
+} from '@odh-dashboard/plugin-core/host-api';
 import { useAppContext } from '#~/app/AppContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
-import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
 import { addNotification } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';

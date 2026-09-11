@@ -1,9 +1,12 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
+import {
+  getKueueWorkloadStatusWithMessage,
+  KUEUE_QUEUE_LABEL,
+} from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import { buildWorkloadMapForNotebooks, useWatchWorkloads } from '#~/api/k8s/workloads';
-import { getKueueWorkloadStatusWithMessage, KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import { NotebookState } from './types';
 
 export type KueueStatusForNotebooksResult = {

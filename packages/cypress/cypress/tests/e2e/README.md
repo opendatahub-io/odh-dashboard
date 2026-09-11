@@ -289,7 +289,7 @@ unset CY_TEST_CONFIG
 
 ---
 
-[Dev setup & Requirements]: docs/dev-setup.md
-[Dashboard documentation]: docs/README.md
-[contributing guidelines]: CONTRIBUTING.md
+[Dev setup & Requirements]: ../../../../../docs/dev-setup.md
+[Dashboard documentation]: ../../../../../docs/README.md
+[contributing guidelines]: ../../../../../CONTRIBUTING.md
 [issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose

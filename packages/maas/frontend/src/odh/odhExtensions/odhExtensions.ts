@@ -40,7 +40,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
-      id: 'maas-subscription-management-view',
+      id: 'maas-governance-view',
       title: 'MaaS governance',
       href: '/maas/maas-governance',
       section: 'settings',
@@ -113,7 +113,17 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID],
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
+    },
+    properties: {
+      path: '/ai-hub/models/deployments/external-providers/*',
+      component: () => import('./ExternalProvidersWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
     properties: {
       path: '/maas/tokens/*',

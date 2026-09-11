@@ -1,9 +1,10 @@
 ---
 description: Module Federation — how modules are exposed and consumed across packages in the modular architecture
-globs: "**/config/moduleFederation.js,**/config/webpack.*.js,**/module-federation.ts,**/useAppExtensions.ts,**/ExtensibilityContext.tsx,**/extensions.ts,**/extension-points.ts,**/odh/extensions.ts,**/odh/extension-points.ts"
+globs: "**/config/moduleFederation.js,**/config/rspack.*.js,**/config/webpack.*.js,**/module-federation.ts,**/useAppExtensions.ts,**/ExtensibilityContext.tsx,**/extensions.ts,**/extension-points.ts,**/odh/extensions.ts,**/odh/extension-points.ts"
 alwaysApply: false
 paths:
   - "**/config/moduleFederation.js"
+  - "**/config/rspack.*.js"
   - "**/config/webpack.*.js"
   - "**/module-federation.ts"
   - "**/useAppExtensions.ts"
@@ -17,14 +18,14 @@ paths:
 # Module Federation — Modular Architecture
 
 > **Canonical docs** — read these first for full details:
-> - [docs/module-federation.md](../../docs/module-federation.md) — MF config schema, shared deps, proxy flow, webpack setup, troubleshooting
+> - [docs/module-federation.md](../../docs/module-federation.md) — MF config schema, shared deps, proxy flow, rspack setup, troubleshooting
 > - [docs/extensibility.md](../../docs/extensibility.md) — extension points, code refs, lazy loading, helper components (`LazyCodeRefComponent`, `HookNotify`), hooks (`useExtensions`, `useResolvedExtensions`), type guards, best practices
 
 This rule provides a quick reference for working with Module Federation files. Defer to the docs above for full explanations and code examples.
 
 ## Architecture
 
-ODH Dashboard uses Webpack Module Federation (`@module-federation/enhanced`) to dynamically load remote modules at runtime. The host (`frontend/`) discovers and loads remote packages (`packages/*/`) that expose extensions via a plugin system.
+ODH Dashboard uses Module Federation (`@module-federation/enhanced`) to dynamically load remote modules at runtime. The host (`frontend/`) discovers and loads remote packages (`packages/*/`) that expose extensions via a plugin system. Upstream notebooks and model-registry still use webpack.
 
 | Role | Location | MF Name |
 |---|---|---|
@@ -35,7 +36,7 @@ The host never exposes modules (`exposes: {}`). Remotes expose `./extensions` an
 
 ## Registering a Federated Module
 
-See [docs/module-federation.md](../../docs/module-federation.md) for the full config schema and webpack template. In brief:
+See [docs/module-federation.md](../../docs/module-federation.md) for the full config schema and rspack template. In brief:
 
 1. **`package.json`** — add a `module-federation` key (name, remoteEntry, proxy, local port, service) and `"exports": { "./extensions": "..." }`
 2. **`moduleFederation.js`** — configure `OdhFederationPlugin` with `name`, `isHost`, `exposes` / `remotes`. Shared singletons are applied by the plugin.
@@ -48,7 +49,7 @@ All remotes **must** share as singletons: `react`, `react-dom`, `react-router`, 
 
 Include if used: `@openshift/dynamic-plugin-sdk`, `@openshift/dynamic-plugin-sdk-utils`, `@odh-dashboard/plugin-core`.
 
-All use `singleton: true` and `requiredVersion` from the `package.json` in webpack `compiler.context`.
+All use `singleton: true` and `requiredVersion` from the `package.json` in rspack `compiler.context`.
 
 ## Runtime Loading Flow
 
@@ -77,7 +78,7 @@ import('./bootstrap');
 - **Proxy paths** follow `/package-name/api` → `/api` rewrite pattern
 - **Local dev ports** are unique per package (9100+)
 - Pass `isHost: true` for the dashboard and for standalone remotes (`DEPLOYMENT_MODE=standalone`); federated remotes pass `isHost: false`
-- Set `output.publicPath = 'auto'` in webpack
+- Set `output.publicPath = 'auto'` in rspack
 - Lazy-load components in extensions via `component: () => import('./MyComponent')` (CodeRef pattern)
 - Use `@mf/*` TypeScript path alias for typed imports of remote modules (types in `frontend/@mf-types/`)
 

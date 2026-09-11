@@ -1,10 +1,9 @@
 /* eslint-disable camelcase */
-import type { AAModelResponse, MaaSModel } from '~/app/types';
+import type { AAModelResponse } from '~/app/types';
 import {
   mockNamespace,
   mockNamespaces,
   mockAAModels,
-  mockMaaSModels,
   mockEmptyList,
   mockStatus,
 } from '~/__tests__/cypress/cypress/__mocks__';
@@ -24,8 +23,7 @@ declare global {
 export interface ModelsTabTestOptions {
   namespace?: string;
   aiModels?: Partial<AAModelResponse>[];
-  maasModels?: Partial<MaaSModel>[];
-  maasError?: boolean;
+  maasModels?: Partial<AAModelResponse>[];
   lsdStatus?: 'Ready' | 'NotReady';
 }
 
@@ -38,19 +36,17 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(options.aiModels)).as('aaModels');
-
-  if (options.maasError) {
-    cy.interceptGenAi('GET /api/v1/maas/models', {
-      statusCode: 500,
-      body: { error: 'MaaS service unavailable' },
-    }).as('maasModels');
-  } else {
-    cy.interceptGenAi(
-      'GET /api/v1/maas/models',
-      options.maasModels ? mockMaaSModels(options.maasModels) : mockEmptyList(),
-    ).as('maasModels');
-  }
+  // Route handler that filters models by `sources` query param, matching real BFF behavior.
+  // When sources includes 'maas', return all models; otherwise return only non-MaaS models.
+  const aiModels = options.aiModels || [];
+  const maasModels = options.maasModels || [];
+  const allModels = [...aiModels, ...maasModels];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cy.interceptGenAi('GET /api/v1/aaa/models', (req: any) => {
+    const url = new URL(req.url, 'http://localhost');
+    const sources = url.searchParams.get('sources') ?? '';
+    req.reply(sources.includes('maas') ? mockAAModels(allModels) : mockAAModels(aiModels));
+  }).as('aaModels');
 
   cy.interceptGenAi('GET /api/v1/lsd/status', mockStatus(options.lsdStatus ?? 'Ready'));
 

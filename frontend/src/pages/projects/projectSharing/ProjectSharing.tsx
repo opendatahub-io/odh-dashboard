@@ -1,8 +1,9 @@
 import * as React from 'react';
+import { createRoleBinding } from '@odh-dashboard/k8s-core/api/roleBindings';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import RoleBindingPermissions from '#~/concepts/roleBinding/RoleBindingPermissions';
 import { RoleBindingPermissionsRoleType } from '#~/concepts/roleBinding/types';
-import { createRoleBinding, deleteRoleBinding } from '#~/api';
+import { deleteRoleBinding } from '#~/api';
 
 const ProjectSharing: React.FC = () => {
   const {

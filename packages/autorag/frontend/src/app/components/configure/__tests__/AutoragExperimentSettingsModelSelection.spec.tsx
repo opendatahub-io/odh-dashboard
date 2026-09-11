@@ -6,9 +6,9 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useMaasModelsQuery } from '~/app/hooks/queries';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
-import { OgxModelType } from '~/app/types';
+import { MaasModelType } from '~/app/types';
 
 jest.mock('~/app/hooks/queries');
 jest.mock('react-router', () => ({
@@ -25,7 +25,7 @@ jest.mock('mod-arch-shared', () => ({
   }) => <button {...props}>{icon}</button>,
 }));
 
-const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
+const mockUseMaasModelsQuery = jest.mocked(useMaasModelsQuery);
 
 const MOCK_MODELS = [
   { id: 'llama-8b', type: 'llm' as const, provider: 'ollama', resource_path: 'ollama://llama-8b' },
@@ -46,14 +46,14 @@ const MOCK_MODELS = [
 const mockModelsImplementation = (
   _namespace: string,
   _secretName?: string,
-  modelType?: OgxModelType,
+  modelType?: MaasModelType,
 ) =>
   ({
     data: {
       models: modelType ? MOCK_MODELS.filter((m) => m.type === modelType) : MOCK_MODELS,
     },
     isLoading: false,
-  }) as unknown as ReturnType<typeof useOgxModelsQuery>;
+  }) as unknown as ReturnType<typeof useMaasModelsQuery>;
 
 const configureSchema = createConfigureSchema();
 
@@ -80,15 +80,15 @@ const renderComponent = () =>
 describe('AutoragExperimentSettingsModelSelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseOgxModelsQuery.mockImplementation(mockModelsImplementation);
+    mockUseMaasModelsQuery.mockImplementation(mockModelsImplementation);
   });
 
   describe('Rendering', () => {
     it('should show a spinner when loading', () => {
-      mockUseOgxModelsQuery.mockReturnValue({
+      mockUseMaasModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: true,
-      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+      } as unknown as ReturnType<typeof useMaasModelsQuery>);
 
       renderComponent();
       expect(screen.getByLabelText('Loading models')).toBeInTheDocument();
@@ -254,17 +254,17 @@ describe('AutoragExperimentSettingsModelSelection', () => {
     const manyModelsImplementation = (
       _namespace: string,
       _secretName?: string,
-      modelType?: OgxModelType,
+      modelType?: MaasModelType,
     ) =>
       ({
         data: {
           models: modelType === 'llm' ? MANY_LLM_MODELS : [MOCK_MODELS[2]],
         },
         isLoading: false,
-      }) as unknown as ReturnType<typeof useOgxModelsQuery>;
+      }) as unknown as ReturnType<typeof useMaasModelsQuery>;
 
     const renderWithManyModels = () => {
-      mockUseOgxModelsQuery.mockImplementation(manyModelsImplementation);
+      mockUseMaasModelsQuery.mockImplementation(manyModelsImplementation);
 
       const FormWrapperMany: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         const form = useForm({
@@ -311,10 +311,10 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
   describe('Empty state', () => {
     it('should show empty message when no models are available', () => {
-      mockUseOgxModelsQuery.mockReturnValue({
+      mockUseMaasModelsQuery.mockReturnValue({
         data: { models: [] },
         isLoading: false,
-      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+      } as unknown as ReturnType<typeof useMaasModelsQuery>);
 
       renderComponent();
       expect(screen.getAllByText('No models available.').length).toBeGreaterThan(0);

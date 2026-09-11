@@ -12,7 +12,6 @@ import {
   LlamaStackDistributionModel,
   VectorStore,
 } from '~/app/types';
-import type { MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import useTracingEnabled from '~/app/Chatbot/hooks/useTracingEnabled';
@@ -115,16 +114,6 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   ...overrides,
 });
 
-const createMaaSModel = (overrides: Partial<MaaSModel>): MaaSModel => ({
-  id: 'maas-model',
-  object: 'model',
-  created: Date.now(),
-  owned_by: 'maas',
-  ready: true,
-  url: 'https://maas.example.com/v1',
-  ...overrides,
-});
-
 const createCollection = (
   overrides: Partial<ExternalVectorStoreSummary>,
 ): ExternalVectorStoreSummary => ({
@@ -152,7 +141,6 @@ const createLSDVectorStore = (id: string, overrides?: Partial<VectorStore>): Vec
 
 type RenderModalProps = {
   allModels: AIModel[];
-  maasModels?: MaaSModel[];
   existingModels?: LlamaModel[];
   extraSelectedModels?: AIModel[];
   allCollections?: ExternalVectorStoreSummary[];
@@ -170,7 +158,6 @@ const renderModal = (props: RenderModalProps) =>
         onClose={() => undefined}
         lsdStatus={props.lsdStatus ?? null}
         aiModels={props.allModels}
-        maasModels={props.maasModels}
         existingModels={props.existingModels}
         extraSelectedModels={props.extraSelectedModels}
         allCollections={props.allCollections ?? []}
@@ -190,7 +177,6 @@ const renderModalWithContext = (props: RenderModalProps) =>
           onClose={() => undefined}
           lsdStatus={props.lsdStatus ?? null}
           aiModels={props.allModels}
-          maasModels={props.maasModels}
           existingModels={props.existingModels}
           extraSelectedModels={props.extraSelectedModels}
           allCollections={props.allCollections ?? []}
@@ -296,11 +282,40 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
 
   it('should include both namespace and MaaS versions of the same model', () => {
     const namespaceModel = createAIModel({ model_name: 'granite-7b-lab' });
-    const maasModel = createMaaSModel({ id: 'granite-7b-lab' });
-    renderModal({ allModels: [namespaceModel], maasModels: [maasModel] });
+    const maasModel = createAIModel({
+      model_name: 'granite-7b-lab-maas',
+      model_id: 'granite-7b-lab',
+      model_source_type: 'maas',
+    });
+    renderModal({ allModels: [namespaceModel, maasModel] });
     const names = getSelectedModelNames();
     expect(names).toHaveLength(2);
     expect(names).toContain('granite-7b-lab');
+    expect(names).toContain('granite-7b-lab-maas');
+  });
+
+  it('produces exactly one installLSD payload entry for a single MaaS model', async () => {
+    const user = userEvent.setup();
+    const maasModel = createAIModel({
+      model_name: 'granite-maas',
+      model_id: 'granite-7b-lab',
+      model_source_type: 'maas',
+    });
+    renderModalWithContext({ allModels: [maasModel] });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledTimes(1);
+      const payload = mockInstallLSD.mock.calls[0][0];
+      expect(payload.models).toHaveLength(1);
+      expect(payload.models[0]).toEqual(
+        expect.objectContaining({
+          model_name: 'granite-7b-lab',
+          model_source_type: 'maas',
+        }),
+      );
+    });
   });
 });
 

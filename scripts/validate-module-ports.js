@@ -34,7 +34,7 @@ function getWorkspacePackages() {
 
 /**
  * Extracts all local dev ports from a module-federation config.
- * A single package may define multiple ports (e.g. webpack dev server + proxy target).
+ * A single package may define multiple ports (e.g. dev server + proxy target).
  * Returns an array of { port, source } objects.
  */
 function extractLocalPorts(mfConfig) {

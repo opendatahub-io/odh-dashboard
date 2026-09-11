@@ -1,0 +1,11 @@
+# POC host-script output for one review run on this fork. Not Fullsend
+# config and not an upstream layout.
+#
+# Our CLI adapters write `.fullsend/.run/<id>.json` (`producer_file` in
+# dimensions.json). Findings envelopes are also folded into
+# `.fullsend/.run/collected.json`. Fixtures, registry, and scripts stay
+# outside this directory.
+#
+# Generated JSON. Do not hand-edit or commit it.
+*
+!.gitignore

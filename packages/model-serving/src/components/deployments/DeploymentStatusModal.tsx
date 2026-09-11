@@ -40,10 +40,10 @@ import {
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import { ClusterQueueModel } from '@odh-dashboard/internal/api/models/kueue';
+import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
-import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/internal/concepts/kueue/types';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/k8s-core/kueue/types';
 import {
   ModelStatusIcon,
   getDeploymentStatusSubtitleColor,

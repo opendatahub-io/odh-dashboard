@@ -1,5 +1,5 @@
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import type { TrackEventFn } from './modelServingTrackingConstants';
 import type { DeploymentStrategy } from '../../components/settings/DeploymentStrategySettings';
 
 export enum GeneralSettingsTrackingEvent {
@@ -23,12 +23,16 @@ export type DeploymentStrategyChangedProperties = FormTrackingEventProperties & 
   strategy: DeploymentStrategy;
 };
 
-export const firePlatformSettingChanged = (properties: PlatformSettingChangedProperties): void => {
-  fireFormTrackingEvent(GeneralSettingsTrackingEvent.PLATFORM_SETTING_CHANGED, properties);
+export const firePlatformSettingChanged = (
+  trackEvent: TrackEventFn,
+  properties: PlatformSettingChangedProperties,
+): void => {
+  trackEvent(GeneralSettingsTrackingEvent.PLATFORM_SETTING_CHANGED, properties);
 };
 
 export const fireDeploymentStrategyChanged = (
+  trackEvent: TrackEventFn,
   properties: DeploymentStrategyChangedProperties,
 ): void => {
-  fireFormTrackingEvent(GeneralSettingsTrackingEvent.DEPLOYMENT_STRATEGY_CHANGED, properties);
+  trackEvent(GeneralSettingsTrackingEvent.DEPLOYMENT_STRATEGY_CHANGED, properties);
 };

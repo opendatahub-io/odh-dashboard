@@ -180,6 +180,15 @@ describe('collectDependenciesFromContext', () => {
     expect(collectDependenciesFromContext(frontendDir)).toEqual({ react: '^18.3.1' });
   });
 
+  it('should return an empty object when package.json has no dependencies key', () => {
+    fs.writeFileSync(
+      path.join(root, 'package.json'),
+      JSON.stringify({ name: 'test', devDependencies: { foo: '1.0.0' } }),
+    );
+
+    expect(collectDependenciesFromContext(root)).toEqual({});
+  });
+
   it('should return an empty object when no package.json exists', () => {
     const empty = path.join(root, 'empty');
     fs.mkdirSync(empty);
@@ -195,6 +204,8 @@ describe('OdhFederationPlugin share policy', () => {
       isHost: boolean;
       remotes?: Record<string, string>;
       exposes?: Record<string, string>;
+      filename?: string;
+      shared?: Record<string, Record<string, unknown>>;
     }) => {
       apply: (compiler: { options: { context?: string } }) => void;
     };
@@ -253,6 +264,7 @@ describe('OdhFederationPlugin share policy', () => {
       options: { context: root },
     });
 
+    expect(lastConfig).toBeDefined();
     expect(lastConfig?.name).toBe('host');
     expect(lastConfig?.runtime).toBe(false);
     expect(lastConfig?.exposes).toEqual({});
@@ -261,6 +273,7 @@ describe('OdhFederationPlugin share policy', () => {
       expect.objectContaining({ singleton: true, eager: true, requiredVersion: '^18.3.1' }),
     );
     expect(lastConfig?.shared.react.import).toBeUndefined();
+    expect(lastConfig?.shared['react-dom']).toBeUndefined();
     expect(lastConfig?.shared['@odh-dashboard/internal'].import).toBeUndefined();
     expect(lastConfig?.shared['@patternfly/react-table'].eager).toBeUndefined();
   });
@@ -272,7 +285,9 @@ describe('OdhFederationPlugin share policy', () => {
       exposes: { './extensions': './src/odh/extensions' },
     }).apply({ options: { context: root } });
 
+    expect(lastConfig).toBeDefined();
     expect(lastConfig?.name).toBe('maas');
+    expect(lastConfig?.filename).toBe('remoteEntry.js');
     expect(lastConfig?.runtime).toBe(false);
     expect(lastConfig?.exposes).toEqual({ './extensions': './src/odh/extensions' });
     expect(lastConfig?.remotes).toBeUndefined();
@@ -280,10 +295,30 @@ describe('OdhFederationPlugin share policy', () => {
       expect.objectContaining({ singleton: true, import: false, requiredVersion: '^18.3.1' }),
     );
     expect(lastConfig?.shared.react.eager).toBeUndefined();
+    expect(lastConfig?.shared['react-dom']).toBeUndefined();
     expect(lastConfig?.shared['@odh-dashboard/internal']).toEqual(
       expect.objectContaining({ singleton: true, requiredVersion: '*', import: false }),
     );
     expect(lastConfig?.shared['@odh-dashboard/maas'].import).toBeUndefined();
     expect(lastConfig?.shared['@patternfly/react-table'].import).toBeUndefined();
+  });
+
+  it('plugin-computed shared entries take precedence over additionalShared', () => {
+    new CapturePlugin({
+      name: 'maas',
+      isHost: false,
+      exposes: { './extensions': './src/odh/extensions' },
+      shared: {
+        react: { singleton: false },
+        'custom-lib': { singleton: true, requiredVersion: '^1.0.0' },
+      },
+    }).apply({ options: { context: root } });
+
+    expect(lastConfig).toBeDefined();
+    expect(lastConfig?.shared.react.singleton).toBe(true);
+    expect(lastConfig?.shared['custom-lib']).toEqual({
+      singleton: true,
+      requiredVersion: '^1.0.0',
+    });
   });
 });

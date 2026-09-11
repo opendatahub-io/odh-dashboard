@@ -12,6 +12,7 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import LightBulbIcon from '#~/images/icons/LightBulbIcon';
@@ -30,6 +31,7 @@ const TaskAssistantSection: React.FC = () => {
   const [isOpen, setIsOpen] = useBrowserStorage<boolean>(STORAGE_KEY, true, true, false);
   const { groups, groupedTasks, resolved } = useTaskAssistantData();
   const scrollTargetRef = React.useRef<string | null>(null);
+  const isGuidedTourAvailable = useIsAreaAvailable(SupportedArea.GUIDED_TOUR).status;
 
   React.useEffect(() => {
     if (isOpen && scrollTargetRef.current) {
@@ -107,17 +109,19 @@ const TaskAssistantSection: React.FC = () => {
             ) : null}
             <FlexItem align={{ default: 'alignRight' }}>
               <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem>
-                  <Button
-                    variant="link"
-                    isInline
-                    icon={<LightBulbIcon color="var(--pf-t--global--color--brand--default)" />}
-                    onClick={() => openWhatsNewTour('home-task-assistant')}
-                    data-testid="whats-new-task-link"
-                  >
-                    Take a guided tour
-                  </Button>
-                </FlexItem>
+                {isGuidedTourAvailable ? (
+                  <FlexItem>
+                    <Button
+                      variant="link"
+                      isInline
+                      icon={<LightBulbIcon color="var(--pf-t--global--color--brand--default)" />}
+                      onClick={() => openWhatsNewTour('home-task-assistant')}
+                      data-testid="whats-new-task-link"
+                    >
+                      Take a guided tour
+                    </Button>
+                  </FlexItem>
+                ) : null}
                 <FlexItem>
                   <TaskAssistantSearchDropdown
                     groups={groups.map((g) => g.properties)}

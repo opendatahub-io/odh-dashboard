@@ -15,7 +15,7 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
-import type { ModelServingPlatformEnabled } from '@odh-dashboard/internal/types';
+import type { ModelServingPlatformEnabled } from '@odh-dashboard/plugin-core/host-api';
 import useServingPlatformStatuses from '../../hooks/useServingPlatformStatuses';
 
 type ModelServingPlatformSettingsProps = {

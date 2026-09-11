@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
+import { ConfigMapModel } from '@odh-dashboard/k8s-core/api/models';
 import useNamespaceConfigMaps from '../useNamespaceConfigMaps';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({

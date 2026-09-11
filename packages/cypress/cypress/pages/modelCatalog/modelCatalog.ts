@@ -222,6 +222,10 @@ class ModelCatalog {
   findValidatedArgumentsFilterCheckbox() {
     return cy.findByTestId('Validated arguments-tool-calling-checkbox');
   }
+
+  findSearchInputContainer() {
+    return cy.findByTestId('search-input');
+  }
 }
 
 export const modelCatalog = new ModelCatalog();

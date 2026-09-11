@@ -3,6 +3,12 @@ import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/v
 import { WELL_KNOWN_ANNOTATION, DISABLED_ANNOTATION, DASHBOARD_RESOURCE_LABEL } from './const';
 import type { LLMInferenceServiceConfigKind } from './types';
 
+export const CONFIG_IN_USE_ERROR_MESSAGE =
+  'This configuration is currently in use by a deployment. Remove the deployment before deleting this configuration.';
+
+export const CONFIG_DELETION_PENDING_MESSAGE =
+  'This configuration is in use by a deployment. It will remain in a terminating state until that deployment is removed.';
+
 export const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
   typeof value === 'object' &&
   value !== null &&
@@ -104,3 +110,20 @@ export const cleanlyDuplicateConfig = (
     },
   };
 };
+
+const KSERVE_CONFIG_FINALIZER = 'serving.kserve.io/llmisvcconfig-finalizer';
+
+export const isDeletionBlockedByFinalizer = (result: unknown): boolean =>
+  isConfigObject(result) &&
+  !!result.metadata.deletionTimestamp &&
+  !!result.metadata.finalizers?.includes(KSERVE_CONFIG_FINALIZER);
+
+export type LlmConfigRefType = 'routing' | 'topology';
+
+export const isConfigReferencedInStatus = (config: LLMInferenceServiceConfigKind): boolean =>
+  (config.status?.referencedBy?.length ?? 0) > 0;
+
+export const isDeletionPendingDueToReferences = (result: unknown): boolean =>
+  isDeletionBlockedByFinalizer(result) &&
+  isConfigObject(result) &&
+  isConfigReferencedInStatus(result);

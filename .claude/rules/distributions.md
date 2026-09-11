@@ -52,8 +52,8 @@ For distribution-specific builds and BFF operations, work from within the distri
 `base/` is a library — run these commands for development and testing, not for standalone deployment. `rhaii/` is a deployable distribution that extends `base/`.
 
 ```bash
-npm run build         # Webpack production build
-npm run start:dev     # Webpack dev server (local development/testing only for base/)
+npm run build         # Rspack production build
+npm run start:dev     # Dev server (local development/testing only for base/)
 npx eslint src/       # Lint
 npx tsc --noEmit      # Type-check
 ```
@@ -97,7 +97,7 @@ npm run test:contract:xks       # Foundation + XKS tests
 
 ## Module Federation
 
-`base/` and `rhaii/` are Module Federation **hosts** — they load federated remotes at runtime. Webpack configs in `config/` define the host setup. `core-bff/frontend/` also supports federated mode via `config/moduleFederation.js`.
+`base/` and `rhaii/` are Module Federation **hosts** — they load federated remotes at runtime. Rspack configs in `config/` define the host setup. `core-bff/frontend/` also supports federated mode via `config/moduleFederation.js`.
 
 When modifying Module Federation config in distributions, verify that remote names and shared dependencies stay consistent with the host dashboard's expectations.
 

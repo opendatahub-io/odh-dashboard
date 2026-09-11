@@ -8,23 +8,23 @@ import {
 } from '@patternfly/react-tokens';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { getKueueStatusInfo } from '#~/concepts/kueue/index';
-import { EventStatus, NotebookStatus } from '#~/types';
-import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
-import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
-import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
+import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
 import {
   KueueWorkloadStatus,
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
-} from '#~/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/types';
 import {
   getHumanReadableKueueMessage,
   getRequeuedMessage,
   formatQueuePosition,
-} from '#~/concepts/kueue/messageUtils';
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
+import UnderlinedTruncateButton from '@odh-dashboard/ui-core/components/UnderlinedTruncateButton';
+import { EventStatus, NotebookStatus } from '#~/types';
+import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
+import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
+import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
   fireWorkbenchStatusModalAction,

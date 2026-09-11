@@ -29,12 +29,10 @@ import {
   isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
-  MaaSModel,
   VectorStore,
 } from '~/app/types';
 import {
   computeEmbeddingModelStatus,
-  convertMaaSModelToAIModel,
   isASROnlyModel,
   isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
@@ -61,10 +59,8 @@ type ModalStepConfig = {
 type ChatbotConfigurationModalProps = {
   onClose: () => void;
   lsdStatus: LlamaStackDistributionModel | null;
-  /** All available AI assets models in the namespace */
+  /** All available AI assets models in the namespace (includes MaaS models when enabled) */
   aiModels: AIModel[];
-  /** All available MaaS models in the namespace */
-  maasModels?: MaaSModel[];
   /** Models that are already available in the playground,
    * passing this means that the modal will be in update mode */
   existingModels?: LlamaModel[];
@@ -91,7 +87,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   onClose,
   lsdStatus,
   aiModels,
-  maasModels = [],
   existingModels = [],
   extraSelectedModels,
   redirectToPlayground,
@@ -107,15 +102,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const tracingEnabled = useTracingEnabled();
   const vectorStoresEnabled = useAiAssetVectorStoresEnabled();
 
-  const maasAsAIModels: AIModel[] = React.useMemo(
-    () => maasModels.map(convertMaaSModelToAIModel),
-    [maasModels],
-  );
-
-  // Merge all models, excluding ASR-only models (not usable in the playground)
+  // Exclude ASR-only models (not usable in the playground)
   const allModels = React.useMemo(
-    () => [...aiModels, ...maasAsAIModels].filter((model) => !isASROnlyModel(model)),
-    [aiModels, maasAsAIModels],
+    () => aiModels.filter((model) => !isASROnlyModel(model)),
+    [aiModels],
   );
 
   const preSelectedModels = React.useMemo(() => {

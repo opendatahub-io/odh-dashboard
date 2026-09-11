@@ -18,21 +18,32 @@ type PathModalProps = {
   path: string;
   isOpen: boolean;
   onClose: () => void;
-  providerRef: string;
+  title: string;
+  description: string;
+  inputTitle?: string;
+  subContentTitle?: string;
+  subContent?: string;
 };
 
-const PathModal: React.FC<PathModalProps> = ({ path, isOpen, onClose, providerRef }) => (
+const PathModal: React.FC<PathModalProps> = ({
+  path,
+  isOpen,
+  onClose,
+  title,
+  description,
+  inputTitle,
+  subContentTitle,
+  subContent,
+}) => (
   <Modal isOpen={isOpen} onClose={onClose} variant={ModalVariant.medium} data-testid="path-modal">
-    <ModalHeader title="Path" data-testid="path-modal-header" />
+    <ModalHeader title={title} data-testid="path-modal-header" />
     <ModalBody>
       <Stack hasGutter>
-        <StackItem>
-          The request path appended to the provider URL. If path variables were configured,
-          they&apos;re shown with resolved values.
-        </StackItem>
+        <StackItem>{description}</StackItem>
         <StackItem>
           <InputGroup>
             <InputGroupItem isFill>
+              {inputTitle && <strong>{inputTitle}</strong>}
               <TextInput
                 value={path}
                 readOnly
@@ -43,11 +54,9 @@ const PathModal: React.FC<PathModalProps> = ({ path, isOpen, onClose, providerRe
             </InputGroupItem>
           </InputGroup>
         </StackItem>
+        <StackItem>{subContentTitle && <strong>{subContentTitle}</strong>}</StackItem>
         <StackItem>
-          <strong>Provider</strong>
-        </StackItem>
-        <StackItem>
-          <Content data-testid="path-modal-provider-ref-content">{providerRef}</Content>
+          <Content data-testid="path-modal-sub-content">{subContent}</Content>
         </StackItem>
       </Stack>
     </ModalBody>

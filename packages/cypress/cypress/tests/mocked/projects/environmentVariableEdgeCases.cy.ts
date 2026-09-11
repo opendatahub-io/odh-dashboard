@@ -11,15 +11,14 @@ import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
 import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
-  ConfigMapModel,
   ImageStreamModel,
   NotebookModel,
   PVCModel,
   PodModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
   StorageClassModel,
   HardwareProfileModel,
 } from '../../../utils/models';
@@ -177,8 +176,8 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
       // Add 3 variables
       editSpawnerPage.findAddVariableButton().click();
       let envField = editSpawnerPage.getEnvironmentVariableTypeField(0);
-      envField.selectEnvironmentVariableType('Config Map');
-      envField.selectEnvDataType('Key / value');
+      envField.selectEnvironmentVariableType('ConfigMap');
+      envField.selectEnvDataType('Create');
       let keyValuePair = envField.getKeyValuePair(0);
       keyValuePair.findKeyInput().fill('VAR1_KEY');
       keyValuePair.findValueInput().fill('var1_value');
@@ -186,15 +185,15 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
       editSpawnerPage.findAddVariableButton().click();
       envField = editSpawnerPage.getEnvironmentVariableTypeField(1);
       envField.selectEnvironmentVariableType('Secret');
-      envField.selectEnvDataType('Key / value');
+      envField.selectEnvDataType('Create');
       keyValuePair = envField.getKeyValuePair(0);
       keyValuePair.findKeyInput().fill('VAR2_KEY');
       keyValuePair.findValueInput().fill('var2_value');
 
       editSpawnerPage.findAddVariableButton().click();
       envField = editSpawnerPage.getEnvironmentVariableTypeField(2);
-      envField.selectEnvironmentVariableType('Config Map');
-      envField.selectEnvDataType('Key / value');
+      envField.selectEnvironmentVariableType('ConfigMap');
+      envField.selectEnvDataType('Create');
       keyValuePair = envField.getKeyValuePair(0);
       keyValuePair.findKeyInput().fill('VAR3_KEY');
       keyValuePair.findValueInput().fill('var3_value');
@@ -247,7 +246,7 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
       editSpawnerPage.findAddVariableButton().click();
       envField = editSpawnerPage.getEnvironmentVariableTypeField(0);
       envField.selectEnvironmentVariableType('Secret');
-      envField.selectEnvDataType('Key / value');
+      envField.selectEnvDataType('Create');
       envField.getKeyValuePair(0).findKeyInput().fill('SECOND_KEY');
       envField.getKeyValuePair(0).findValueInput().fill('second_value');
 

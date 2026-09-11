@@ -1,18 +1,10 @@
 /* eslint-disable camelcase */
-import React from 'react';
-import { CubeIcon } from '@patternfly/react-icons';
-import {
-  chart_color_blue_200 as chartColorBlue,
-  chart_color_green_200 as chartColorGreen,
-  chart_color_purple_200 as chartColorPurple,
-  chart_color_black_500 as chartColorBlack,
-} from '@patternfly/react-tokens';
-import DataSourceIcon from '../icons/lineage-icons/DataSourceIcon';
-import FeatureViewIcon from '../icons/lineage-icons/FeatureViewIcon';
-import FeatureServiceIcon from '../icons/lineage-icons/FeatureServiceIcon';
-import EntityIcon from '../icons/lineage-icons/EntityIcon';
+import { FeatureStoreObjectType } from '../utils';
 
 export type FsObjectType = 'entity' | 'data_source' | 'feature_view' | 'feature_service';
+
+/** Compact badge for lineage pills; overview surfaces use FeatureStoreObjectIcon default (40px). */
+export const LINEAGE_PILL_ICON_SIZE = 24;
 
 export type LineageEntityType =
   | 'entity'
@@ -24,32 +16,32 @@ export type LineageEntityType =
   | 'stream_feature_view'
   | 'feature_service';
 
-export const getEntityTypeIcon = (
-  entityType: LineageEntityType,
-  selected = false,
-): React.ReactNode => {
-  const iconColor = selected ? '#ffffff' : undefined;
-  const iconSize = { width: '24px', height: '24px' };
+export const LINEAGE_OBJECT_TYPE_LEGEND: { type: FsObjectType; label: string }[] = [
+  { type: 'entity', label: 'Entity' },
+  { type: 'data_source', label: 'Data source' },
+  { type: 'feature_view', label: 'Feature view' },
+  { type: 'feature_service', label: 'Feature service' },
+];
 
+export const getEntityTypeFsObjectType = (entityType: LineageEntityType): FeatureStoreObjectType =>
+  entityTypeToFsObjectType(entityType);
+
+const entityTypeToFsObjectType = (entityType: LineageEntityType): FeatureStoreObjectType => {
   switch (entityType) {
     case 'entity':
-      return <EntityIcon style={{ color: iconColor || chartColorBlack.value, ...iconSize }} />;
+      return 'entity';
     case 'batch_data_source':
     case 'push_data_source':
     case 'request_data_source':
-      return <DataSourceIcon style={{ color: iconColor || chartColorBlue.value, ...iconSize }} />;
+      return 'data_source';
     case 'batch_feature_view':
     case 'on_demand_feature_view':
     case 'stream_feature_view':
-      return (
-        <FeatureViewIcon style={{ color: iconColor || chartColorPurple.value, ...iconSize }} />
-      );
+      return 'feature_view';
     case 'feature_service':
-      return (
-        <FeatureServiceIcon style={{ color: iconColor || chartColorGreen.value, ...iconSize }} />
-      );
+      return 'feature_service';
     default:
-      return <CubeIcon style={{ color: iconColor || chartColorBlack.value, ...iconSize }} />;
+      return 'feature_store';
   }
 };
 

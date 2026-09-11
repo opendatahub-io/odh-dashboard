@@ -8,6 +8,7 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { SecretKind, K8sAPIOptions, RouteKind } from '@odh-dashboard/k8s-core';
 import { kindApiVersion, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { getSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { DataSciencePipelineApplicationModel } from '#~/api/models';
 import {
   DSPipelineKind,
@@ -16,7 +17,6 @@ import {
   DSPipelineMlflowKind,
 } from '#~/k8sTypes';
 import { getRoute } from '#~/api/k8s/routes';
-import { getSecret } from '#~/api/k8s/secrets';
 import { DEFAULT_PIPELINE_DEFINITION_NAME } from '#~/concepts/pipelines/const';
 import { ELYRA_SECRET_NAME } from '#~/concepts/pipelines/elyra/const';
 import { DEV_MODE } from '#~/utilities/const';

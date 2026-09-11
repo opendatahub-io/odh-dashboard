@@ -7,7 +7,7 @@ import {
   getBackUrl,
   getBreadcrumbLabelFromState,
   getPreSelectedModelFromState,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import PolicyForm from './policyForm/PolicyForm';
 
 const CreateAuthPolicyPage: React.FC = () => {

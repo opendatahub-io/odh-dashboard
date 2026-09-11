@@ -325,10 +325,10 @@ cy.step('Verify project was created');
 7. **Use tags for organization** - Categorize tests for filtering
 8. **Use fixtures for test data** - Load from YAML files
 
-> **Cursor AI Rules:** For detailed guidelines when writing tests with AI assistance, see:
-> - [cypress-e2e.mdc](../.cursor/rules/cypress-e2e.mdc) - E2E test patterns and conventions
-> - [cypress-mock.mdc](../.cursor/rules/cypress-mock.mdc) - Mocked test patterns and intercepts
-> - [contract-tests.mdc](../.cursor/rules/contract-tests.mdc) - Contract test guidelines
+> **AI Rules:** For detailed guidelines when writing tests with AI assistance, see:
+> - [cypress-e2e.md](../.claude/rules/cypress-e2e.md) - E2E test patterns and conventions
+> - [cypress-mock.md](../.claude/rules/cypress-mock.md) - Mocked test patterns and intercepts
+> - [contract-tests.md](../.claude/rules/contract-tests.md) - Contract test guidelines
 
 ### Tags and Test Options
 
@@ -423,7 +423,7 @@ For mocked tests, use typed intercept commands:
 - `cy.interceptK8s()` / `cy.interceptOdh()` - Mock API calls
 - `cy.wsK8s()` - Simulate Kubernetes watch events
 
-**Reference:** See [.cursor/rules/cypress-mock.mdc](../.cursor/rules/cypress-mock.mdc) and `packages/cypress/cypress/tests/mocked/`.
+**Reference:** See [.claude/rules/cypress-mock.md](../.claude/rules/cypress-mock.md) and `packages/cypress/cypress/tests/mocked/`.
 
 ### Common Commands
 
@@ -527,7 +527,7 @@ The `packages/cypress/cypress/support/e2e.ts` file is automatically loaded befor
   - `beforeEach()`: Applies filtering, sets up mocks (`CY_MOCK=1`), configures module federation, logs test info
   - `afterEach()`: Handles skipped suites, tracks execution
   - `after()`: Runs soft assertions
-- **Error Handling**: Ignores `ChunkLoadError` and webpack-dev-server fallback errors
+- **Error Handling**: Ignores `ChunkLoadError` and dev-server fallback errors
 - **Command Logging**: Logs `cy.step()`, `cy.exec()`, and `cy.log()` to terminal
 
 #### Skipped Tests in JUnit Results
@@ -644,7 +644,7 @@ npm run cypress:run -- --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
 npm run cypress:run -- --spec "cypress/tests/e2e/testProjectCreation.cy.ts" --browser chrome
 ```
 
-**If using localhost with webpack** (dev workflow), start the dev server first:
+**If using localhost with rspack** (dev workflow), start the dev server first:
 
 ```bash
 npm run start:dev:ext  # Proxies to your logged-in cluster

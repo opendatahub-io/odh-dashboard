@@ -1,20 +1,28 @@
 import {
   mockNimInferenceService,
+  mockNimModelPVC,
+  mockNimProject,
   mockNimServingRuntime,
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
-import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockStorageClassList } from '@odh-dashboard/internal/__mocks__/mockStorageClasses';
+import { mockPrometheusQueryVectorResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryVectorResponse';
 import {
   initInterceptsToDeployNimInWizard,
   initInterceptsToEnableNim,
 } from '@odh-dashboard/cypress/cypress/utils/legacyNimUtils';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   InferenceServiceModel,
+  NotebookModel,
+  ProjectModel,
   PVCModel,
-  SecretModel,
   ServingRuntimeModel,
+  StorageClassModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {
   modelServingGlobal,
@@ -22,6 +30,10 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import {
+  clusterStorage,
+  updateClusterStorageModal,
+} from '@odh-dashboard/cypress/cypress/pages/clusterStorage';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -179,7 +191,13 @@ describe('NIM Models Deployments', () => {
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 4: Summary
+    // Step 4: Review
+    modelServingWizard.findReviewStep().should('be.enabled');
+    modelServingWizard
+      .findReviewStepModelDetailsSection()
+      .should('contain.text', ModelTypeLabel.NIM)
+      .and('contain.text', 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1')
+      .and('not.contain.text', 'Model location');
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // PVC creation — dry-run validates the PVC can be created
@@ -397,8 +415,25 @@ describe('NIM Models Deployments', () => {
     // The PVC must be in the fetched list for the existing-storage select to render its name
     cy.interceptK8sList(
       { model: PVCModel, ns: 'test-project' },
-      mockK8sResourceList([mockPVCK8sResource({ name: 'my-nim-wizard-pvc' })]),
+      mockK8sResourceList([
+        mockNimModelPVC({ name: 'my-nim-wizard-pvc' }),
+        mockNimModelPVC({ name: 'updated-nim-wizard-pvc' }),
+      ]),
     );
+    cy.interceptK8s(
+      'PUT',
+      { model: ServingRuntimeModel, ns: 'test-project', name: 'test-name' },
+      mockNimServingRuntime({
+        image: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
+        pvcName: 'updated-nim-wizard-pvc',
+        subPath: 'updated-cache-path',
+      }),
+    ).as('updateServingRuntime');
+    cy.interceptK8s(
+      'PUT',
+      { model: InferenceServiceModel, ns: 'test-project', name: 'test-name' },
+      mockNimInferenceService(),
+    ).as('updateInferenceService');
     // Auth is enabled by default on the NIM deployment (no enable-auth=false annotation), so the
     // token auth field reads the deployment's service-account token secret ("<deployment-name>-sa")
     // and prefills the existing service account name from the secret's display name.
@@ -428,11 +463,16 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit
       .findModelLocationSelect()
-      .should('contain.text', ModelLocationSelectOption.NIM);
+      .should('contain.text', ModelLocationSelectOption.NIM)
+      .should('be.disabled');
     modelServingWizardEdit.nim
       .findImageSelect()
       .find('input')
       .should('have.value', 'Snowflake Arctic Embed Large Embedding - 1.0.1');
+    modelServingWizardEdit.nim
+      .findImageSelect()
+      .find('[aria-label="Clear input value"]')
+      .should('not.exist');
     modelServingWizardEdit.nim.findImageNotFoundWarning().should('not.exist');
     // NIM forces the model type - it cannot be changed
     modelServingWizardEdit.findModelTypeSelect().should('contain.text', ModelTypeLabel.NIM);
@@ -451,8 +491,13 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.nim
       .findStorageModeSelect()
       .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
-    modelServingWizardEdit.nim.findExistingPVCSelect().should('contain.text', 'my-nim-wizard-pvc');
+    modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
+    modelServingWizardEdit.nim.selectExistingPVC('updated-nim-wizard-pvc');
+    modelServingWizardEdit.nim
+      .findSubPathInput()
+      .type('{selectall}updated-cache-path')
+      .should('have.value', 'updated-cache-path');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
@@ -469,5 +514,121 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findEnvVariableName('0').should('have.value', 'CUSTOM_VAR');
     modelServingWizardEdit.findEnvVariableValue('0').should('have.value', 'custom-value');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findDeployButton().should('be.enabled').click();
+
+    cy.wait('@updateServingRuntime').then((interception) => {
+      const pvcVolume = interception.request.body.spec.volumes.find(
+        (volume: { persistentVolumeClaim?: { claimName: string } }) =>
+          volume.persistentVolumeClaim?.claimName === 'updated-nim-wizard-pvc',
+      );
+      const cacheVolumeMount = interception.request.body.spec.containers[0].volumeMounts.find(
+        (volumeMount: { mountPath: string }) => volumeMount.mountPath === '/mnt/models/cache',
+      );
+
+      expect(pvcVolume?.persistentVolumeClaim?.claimName).to.equal('updated-nim-wizard-pvc');
+      expect(cacheVolumeMount).to.containSubset({
+        name: 'updated-nim-wizard-pvc',
+        mountPath: '/mnt/models/cache',
+        subPath: 'updated-cache-path',
+      });
+    });
+    cy.wait('@updateInferenceService');
+  });
+
+  it('should NOT manage NIM PVCs in cluster storage tab NIM is disabled', () => {
+    initInterceptsToEnableNim();
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableNIMModelServing: true }));
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptK8s(ProjectModel, mockNimProject({}));
+    cy.interceptK8sList(NotebookModel, mockK8sResourceList([]));
+    cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+    cy.interceptOdh('POST /api/prometheus/pvc', {
+      code: 200,
+      response: mockPrometheusQueryVectorResponse({ result: [] }),
+    });
+
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNimModelPVC({
+          displayName: 'NIM Cache',
+          name: 'nim-cache',
+        }),
+      ]),
+    );
+
+    clusterStorage.visit('test-project');
+
+    clusterStorage.getClusterStorageRow('NIM Cache').shouldHaveStorageTypeValue('General purpose');
+  });
+
+  it('should manage NIM PVCs in cluster storage tab', () => {
+    initInterceptsToEnableNim();
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptK8s(ProjectModel, mockNimProject({}));
+    // NotebookModel backs the per-row root-volume/delete-action logic and the connected resources
+    // column (useRelatedNotebooks) — mock it empty so those resolve instead of spinning
+    cy.interceptK8sList(NotebookModel, mockK8sResourceList([]));
+    cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+    // Mocks the "Storage size" column response
+    cy.interceptOdh('POST /api/prometheus/pvc', {
+      code: 200,
+      response: mockPrometheusQueryVectorResponse({ result: [] }),
+    });
+
+    // A PVC caching a NIM model is annotated by the NIM deploy path
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNimModelPVC({
+          displayName: 'NIM Cache',
+          name: 'nim-cache',
+          annotations: {
+            'dashboard.opendatahub.io/nim-subpath': 'arctic-embed-l',
+          },
+        }),
+      ]),
+    );
+    // KServe contributes the "Connected resources" column: a serving runtime mounting the PVC plus
+    // the inference service targeting that runtime surface the deployment on the PVC's row.
+    cy.interceptK8sList(
+      ServingRuntimeModel,
+      mockK8sResourceList([mockNimServingRuntime({ pvcName: 'nim-cache' })]),
+    );
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+
+    clusterStorage.visit('test-project');
+
+    // The nim-serving package contributes the "NIM storage" context, so the PVC is labelled by it
+    clusterStorage.getClusterStorageRow('NIM Cache').shouldHaveStorageTypeValue('NIM storage');
+
+    // The connected KServe deployment is listed by its inference service display name (not the
+    // serving runtime's generic "NVIDIA NIM" name)
+    clusterStorage
+      .getClusterStorageRow('NIM Cache')
+      .findConnectedResources()
+      .should('contain.text', 'Test Name');
+
+    const storageRow = clusterStorage.getClusterStorageRow('NIM Cache');
+    storageRow.findKebabAction('Edit storage').click();
+    updateClusterStorageModal.findNimSubpathInput().should('have.value', 'arctic-embed-l');
+    updateClusterStorageModal.findNimSubpathInput().fill('new-model-path');
+
+    cy.interceptK8s('PUT', PVCModel, mockNimModelPVC({ name: 'nim-cache' })).as('updateNimStorage');
+    updateClusterStorageModal.findSubmitButton().click();
+
+    cy.wait('@updateNimStorage').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'dashboard.opendatahub.io/nim-pvc': 'true',
+            'dashboard.opendatahub.io/nim-subpath': 'new-model-path',
+          },
+          name: 'nim-cache',
+          namespace: 'test-project',
+        },
+      });
+    });
   });
 });

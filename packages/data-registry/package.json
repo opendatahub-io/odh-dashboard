@@ -20,7 +20,7 @@
     },
     "service": {
       "name": "odh-dashboard-data-registry-ui",
-      "port": 9043
+      "port": 9143
     }
   },
   "exports": {

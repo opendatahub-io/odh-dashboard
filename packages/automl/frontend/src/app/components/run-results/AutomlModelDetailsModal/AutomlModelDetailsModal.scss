@@ -506,11 +506,6 @@
     display: block !important;
   }
 
-  /* Elements not needed in the print container */
-  .odh-autox-print-hide-element {
-    display: none;
-  }
-
   .automl-print-header {
     margin-bottom: var(--pf-t--global--spacer--md);
     padding-bottom: var(--pf-t--global--spacer--sm);
@@ -541,7 +536,33 @@
     font-size: var(--pf-t--global--font--size--xl);
     margin-bottom: var(--pf-t--global--spacer--md);
     padding-bottom: var(--pf-t--global--spacer--sm);
-    border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
+    border-bottom: var(--pf-t--global--border--width--divider--default) solid
+      var(--pf-t--global--border--color--default);
+  }
+
+  /* Firefox cannot paginate PatternFly's CSS-grid table layout (`pf-m-grid-*`):
+     thead is `display: none` and body cells do not paint, so Feature summary
+     and Model evaluation print as a blank page. Force native table display. */
+  .odh-autox-print-only .pf-v6-c-table {
+    display: table !important;
+    width: 100%;
+
+    thead {
+      display: table-header-group !important;
+    }
+
+    tbody {
+      display: table-row-group !important;
+    }
+
+    tr {
+      display: table-row !important;
+    }
+
+    th,
+    td {
+      display: table-cell !important;
+    }
   }
 
   /* Prevent backtest content from splitting across pages */

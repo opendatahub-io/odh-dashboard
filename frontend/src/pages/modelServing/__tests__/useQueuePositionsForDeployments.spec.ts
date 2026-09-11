@@ -1,6 +1,9 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import {
+  KueueWorkloadStatus,
+  type KueueWorkloadStatusWithMessage,
+} from '@odh-dashboard/k8s-core/kueue/types';
 import { getPendingWorkloads } from '#~/api/k8s/pendingWorkloads';
-import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import { useQueuePositionsForDeployments } from '#~/pages/modelServing/useQueuePositionsForDeployments';
 import { PendingWorkload } from '#~/k8sTypes';
 

@@ -8,6 +8,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { ValidatedConfigurationOptionCard } from './ValidatedConfigurationOptionCard';
 import type { ValidatedConfigurationsFieldHook } from './useValidatedConfigurationsField';
 import {
@@ -33,6 +34,7 @@ export const ValidatedArgumentsSection: React.FC<ValidatedArgumentsSectionProps>
   runtimeArgs,
   catalogModelId,
 }) => {
+  const trackEvent = useTrackEvent();
   return (
     <>
       {configurations.map((configuration) => (
@@ -67,7 +69,7 @@ export const ValidatedArgumentsSection: React.FC<ValidatedArgumentsSectionProps>
                         )}
                         catalogModelId={catalogModelId}
                         onSelectionChange={(checked) => {
-                          fireValidatedArgumentSelected({
+                          fireValidatedArgumentSelected(trackEvent, {
                             configurationName: option.title,
                             configurationIcon: slugifyValidatedOptionTitle(option.title),
                             isSelected: checked,

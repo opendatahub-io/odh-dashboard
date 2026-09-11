@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { getRole } from '@odh-dashboard/k8s-core/api/roles';
 import { mockRoleK8sResource } from '#~/__mocks__';
-import { getRole } from '#~/api';
 import DuplicateRolePage from '#~/pages/projects/projectRoles/DuplicateRolePage';
 
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/roles', () => ({
   getRole: jest.fn(),
 }));
 

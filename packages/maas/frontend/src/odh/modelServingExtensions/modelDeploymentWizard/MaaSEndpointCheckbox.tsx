@@ -133,10 +133,29 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
     getFieldOverrides: (fieldValue) => {
       const overrides: WizardStateOverrides = {};
       if (fieldValue.isChecked) {
-        overrides.tokenAuthentication = { isDisabled: true };
-        overrides['llmd-serving/gateway'] = { isDisabled: true, selection: MAAS_DEFAULT_GATEWAY };
+        overrides.tokenAuthentication = {
+          isDisabled: true,
+          disabledHelperText:
+            'Token authentication does not apply to MaaS models. Access is managed with API keys instead. Manage API keys in Gen AI Studio.',
+        };
+        overrides['llmd-serving/gateway'] = {
+          isDisabled: true,
+          selection: MAAS_DEFAULT_GATEWAY,
+          disabledTooltip:
+            'The MaaS gateway handles routing, API keys, and subscription access. You cannot select a different gateway while Publish as MaaS is on.',
+          labelHelpPopover: {
+            title: 'Gateway selection',
+            content:
+              'Models published as MaaS use the MaaS gateway. When Publish as MaaS is selected, this field is locked.',
+          },
+        };
       } else {
-        overrides['llmd-serving/gateway'] = { hiddenOptions: [MAAS_DEFAULT_GATEWAY] };
+        overrides['llmd-serving/gateway'] = {
+          hiddenOptions: [MAAS_DEFAULT_GATEWAY],
+          disabledTooltip: undefined,
+          labelHelpPopover: undefined,
+          labelOverrides: undefined,
+        };
       }
       return overrides;
     },

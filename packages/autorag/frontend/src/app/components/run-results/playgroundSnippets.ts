@@ -27,19 +27,19 @@ export const generateCurlSnippet = (
   if (credentials) {
     const hostname = escapeShellDoubleQuote(credentials.hostname);
     const apiKey = escapeShellDoubleQuote(credentials.apiKey);
+    const authHeader = apiKey ? `  -H "Authorization: Bearer ${apiKey}" \\\n` : '';
     return `curl -X POST "https://${hostname}/v1/responses" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${apiKey}" \\
-  -d '${body}'`;
+${authHeader}  -d '${body}'`;
   }
-  return `OGX_CLIENT_BASE_URL=$(oc get secret ${secretName} -n ${namespace} \\
-  -o jsonpath='{.data.OGX_CLIENT_BASE_URL}' | base64 -d)
-OGX_CLIENT_API_KEY=$(oc get secret ${secretName} -n ${namespace} \\
-  -o jsonpath='{.data.OGX_CLIENT_API_KEY}' | base64 -d)
+  return `MAAS_BASE_URL=$(oc get secret ${secretName} -n ${namespace} \\
+  -o jsonpath='{.data.MAAS_BASE_URL}' | base64 -d)
+MAAS_API_KEY=$(oc get secret ${secretName} -n ${namespace} \\
+  -o jsonpath='{.data.MAAS_API_KEY}' | base64 -d)
 
-curl -X POST "\${OGX_CLIENT_BASE_URL}/v1/responses" \\
+curl -X POST "\${MAAS_BASE_URL}/v1/responses" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer \${OGX_CLIENT_API_KEY}" \\
+  -H "Authorization: Bearer \${MAAS_API_KEY}" \\
   -d '${body}'`;
 };
 
@@ -54,6 +54,7 @@ export const generateNodeSnippet = (
   if (credentials) {
     const hostname = escapeDoubleQuotedString(credentials.hostname);
     const apiKey = escapeDoubleQuotedString(credentials.apiKey);
+    const authHeader = apiKey ? `\n    "Authorization": "Bearer ${apiKey}",` : '';
     return `// Build the JSON request body
 const payload = ${body};
 
@@ -61,8 +62,7 @@ const payload = ${body};
 const response = await fetch("https://${hostname}/v1/responses", {
   method: "POST",
   headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer ${apiKey}",
+    "Content-Type": "application/json",${authHeader}
   },
   body: JSON.stringify(payload),
   signal: AbortSignal.timeout(30_000),
@@ -86,16 +86,26 @@ const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 
-// Fetch the OGX credentials from the Kubernetes secret
+// Fetch the MaaS credentials from the Kubernetes secret
 const secret = await k8sApi.readNamespacedSecret({
   name: "${secretName}",
   namespace: "${namespace}",
 });
 
 // Secret values are base64-encoded; decode them to get the raw strings
-const decode = (key) => Buffer.from(secret.data[key], "base64").toString();
-const baseURL = decode("OGX_CLIENT_BASE_URL");
-const apiKey = decode("OGX_CLIENT_API_KEY");
+const decode = (key) => {
+  const raw = secret.data?.[key];
+  if (!raw) {
+    return "";
+  }
+  return Buffer.from(raw, "base64").toString();
+};
+const baseURL = decode("MAAS_BASE_URL");
+const apiKey = decode("MAAS_API_KEY");
+const headers = { "Content-Type": "application/json" };
+if (apiKey) {
+  headers.Authorization = \`Bearer \${apiKey}\`;
+}
 
 // Build the JSON request body
 const payload = ${body};
@@ -103,10 +113,7 @@ const payload = ${body};
 // Send a request to the Responses API
 const response = await fetch(\`\${baseURL}/v1/responses\`, {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": \`Bearer \${apiKey}\`,
-  },
+  headers,
   body: JSON.stringify(payload),
   signal: AbortSignal.timeout(30_000),
 });
@@ -207,15 +214,15 @@ export const generateGoSnippet = (
     '\t\tpanic(err)',
     '\t}',
     '',
-    '\t// Fetch the OGX credentials from the Kubernetes secret',
+    '\t// Fetch the MaaS credentials from the Kubernetes secret',
     `\tsecret, err := clientset.CoreV1().Secrets("${namespace}").Get(context.Background(), "${secretName}", metav1.GetOptions{})`,
     '\tif err != nil {',
     '\t\tpanic(err)',
     '\t}',
     '',
     '\t// secret.Data values are already raw bytes (the K8s client decodes base64 automatically)',
-    '\tbaseURL := string(secret.Data["OGX_CLIENT_BASE_URL"])',
-    '\tapiKey := string(secret.Data["OGX_CLIENT_API_KEY"])',
+    '\tbaseURL := string(secret.Data["MAAS_BASE_URL"])',
+    '\tapiKey := string(secret.Data["MAAS_API_KEY"])',
     '',
     '\t// Build the JSON request body',
     `${body})`,
@@ -290,10 +297,10 @@ export const generatePythonSnippet = (
   if (credentials) {
     const hostname = escapeDoubleQuotedString(credentials.hostname);
     const apiKey = escapeDoubleQuotedString(credentials.apiKey);
+    const authHeader = apiKey ? `\n        "Authorization": "Bearer ${apiKey}",` : '';
     return `import requests
 
 base_url = "https://${hostname}"
-api_key = "${apiKey}"
 
 # Build the request payload
 payload = ${params}
@@ -302,8 +309,7 @@ payload = ${params}
 response = requests.post(
     f"{base_url}/v1/responses",
     headers={
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",${authHeader}
     },
     json=payload,
     timeout=30,
@@ -323,12 +329,21 @@ from kubernetes import client, config
 config.load_config()
 v1 = client.CoreV1Api()
 
-# Fetch the OGX credentials from the Kubernetes secret
+# Fetch the MaaS credentials from the Kubernetes secret
 secret = v1.read_namespaced_secret("${secretName}", "${namespace}")
 
 # Secret values are base64-encoded; decode them to get the raw strings
-base_url = base64.b64decode(secret.data["OGX_CLIENT_BASE_URL"]).decode()
-api_key = base64.b64decode(secret.data["OGX_CLIENT_API_KEY"]).decode()
+def decode_secret(name):
+    raw = (secret.data or {}).get(name)
+    if not raw:
+        return ""
+    return base64.b64decode(raw).decode()
+
+base_url = decode_secret("MAAS_BASE_URL")
+api_key = decode_secret("MAAS_API_KEY")
+headers = {"Content-Type": "application/json"}
+if api_key:
+    headers["Authorization"] = f"Bearer {api_key}"
 
 # Build the request payload
 payload = ${params}
@@ -336,10 +351,7 @@ payload = ${params}
 # Send a request to the Responses API
 response = requests.post(
     f"{base_url}/v1/responses",
-    headers={
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-    },
+    headers=headers,
     json=payload,
     timeout=30,
 )

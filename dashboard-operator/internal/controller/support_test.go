@@ -83,6 +83,43 @@ func TestComputeKustomizeVariables(t *testing.T) {
 	}
 }
 
+func TestMaaSConsumerPortalManifestInfo(t *testing.T) {
+	info := maasConsumerPortalManifestInfo("/base")
+	assert.Equal(t, "/base", info.Path)
+	assert.Equal(t, "distributions", info.ContextDir)
+	assert.Equal(t, "maas-consumer-portal", info.SourcePath)
+}
+
+func TestMaaSConsumerPortalURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		domain  string
+		wantURL string
+		wantOK  bool
+	}{
+		{
+			name:    "derives path URL from gateway domain",
+			domain:  "rh-ai.apps.example.com",
+			wantURL: "https://rh-ai.apps.example.com/maas-consumer-portal/",
+			wantOK:  true,
+		},
+		{
+			name:    "empty domain cannot be derived",
+			domain:  "",
+			wantURL: "",
+			wantOK:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url, ok := maasConsumerPortalURL(tt.domain)
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Equal(t, tt.wantURL, url)
+		})
+	}
+}
+
 func TestReadExistingParams(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -137,12 +174,14 @@ func TestResolveImageParams(t *testing.T) {
 		t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:v1")
 		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "quay.io/automl-runtime:v2")
 		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "quay.io/autorag-runtime:v3")
+		t.Setenv("RELATED_IMAGE_POSTGRESQL_16_IMAGE", "registry.redhat.io/rhel9/postgresql-16@sha256:abc123")
 
 		got := resolveImageParams()
 		assert.Equal(t, "quay.io/dashboard:latest", got["odh-dashboard-image"])
 		assert.Equal(t, "quay.io/mr:v1", got["model-registry-ui-image"])
 		assert.Equal(t, "quay.io/automl-runtime:v2", got["automl-pipeline-runtime-image"])
 		assert.Equal(t, "quay.io/autorag-runtime:v3", got["autorag-pipeline-runtime-image"])
+		assert.Equal(t, "registry.redhat.io/rhel9/postgresql-16@sha256:abc123", got["pgvector-image"])
 		assert.NotContains(t, got, "gen-ai-ui-image", "unset env vars should not appear")
 	})
 

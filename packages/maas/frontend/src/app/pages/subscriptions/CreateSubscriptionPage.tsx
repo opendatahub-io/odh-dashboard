@@ -6,7 +6,7 @@ import {
   getBackUrl,
   getBreadcrumbLabelFromState,
   getPreSelectedModelFromState,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 

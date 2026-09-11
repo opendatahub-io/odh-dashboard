@@ -13,7 +13,6 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       exportCode: jest.fn().mockResolvedValue({ data: null }),
       createResponse: jest.fn().mockResolvedValue({ data: null }),
       generateMaaSToken: jest.fn().mockResolvedValue({ data: null }),
-      getMaaSModels: jest.fn().mockResolvedValue([]),
       getMCPServerTools: jest.fn().mockResolvedValue([]),
       getMCPServers: jest.fn().mockResolvedValue([]),
       getMCPServerStatus: jest.fn().mockResolvedValue({ data: null }),

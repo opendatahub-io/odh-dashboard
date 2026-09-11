@@ -2,3 +2,4 @@
   wbStatusTestNamespace: 'dsp-wb-status-test'
   wbStatusTestDescription: 'This is a test description'
   notebookImage: 'code-server-notebook'
+  hardwareProfileName: 'default-profile'

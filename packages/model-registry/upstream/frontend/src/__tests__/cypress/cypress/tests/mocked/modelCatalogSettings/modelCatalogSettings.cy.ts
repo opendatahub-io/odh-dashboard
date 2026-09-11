@@ -2,6 +2,7 @@ import {
   modelCatalogSettings,
   manageSourcePage,
   deleteSourceModal,
+  catalogSourceStatusErrorModal,
 } from '~/__tests__/cypress/cypress/pages/modelCatalogSettings';
 import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
@@ -363,9 +364,7 @@ describe('Catalog Source Configs Table', () => {
       row.findName().should('be.visible');
       row.shouldHaveKebab(true);
       row.findKebab().should('be.visible').click();
-      cy.findByRole('menuitem', { name: 'Delete source' })
-        .should('be.visible')
-        .and('not.be.disabled');
+      row.findDeleteSourceMenuItem().should('be.visible').and('not.be.disabled');
     });
 
     it('should not show kebab menu for default sources', () => {
@@ -391,7 +390,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete source' }).click();
+      row.clickDeleteSourceMenuItem();
 
       deleteSourceModal.shouldBeOpen();
       deleteSourceModal.find().should('contain', 'HuggingFace Google');
@@ -402,7 +401,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete source' }).click();
+      row.clickDeleteSourceMenuItem();
 
       deleteSourceModal.shouldBeOpen();
       deleteSourceModal.findDeleteButton().should('be.disabled');
@@ -418,7 +417,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete source' }).click();
+      row.clickDeleteSourceMenuItem();
 
       deleteSourceModal.shouldBeOpen();
       deleteSourceModal.findCancelButton().click();
@@ -440,7 +439,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('Custom YAML');
       row.findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete source' }).click();
+      row.clickDeleteSourceMenuItem();
 
       deleteSourceModal.shouldBeOpen();
       deleteSourceModal.typeConfirmation('Custom YAML');
@@ -510,7 +509,7 @@ describe('Catalog Source Configs Table', () => {
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
       row.shouldHaveValidationStatus('Ready');
-      row.findValidationStatus().findByTestId('source-status-connected-hf-google').should('exist');
+      row.findValidationStatusIndicator('source-status-connected-hf-google').should('exist');
     });
 
     it('should show "Starting" status when no matching source found', () => {
@@ -519,7 +518,7 @@ describe('Catalog Source Configs Table', () => {
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
       row.shouldHaveValidationStatus('Starting');
-      row.findValidationStatus().findByTestId('source-status-starting-hf-google').should('exist');
+      row.findValidationStatusIndicator('source-status-starting-hf-google').should('exist');
     });
 
     it('should show "Starting" status when source has no status field', () => {
@@ -546,7 +545,7 @@ describe('Catalog Source Configs Table', () => {
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
       row.shouldHaveValidationStatus('Starting');
-      row.findValidationStatus().findByTestId('source-status-starting-hf-google').should('exist');
+      row.findValidationStatusIndicator('source-status-starting-hf-google').should('exist');
     });
 
     it('should show "Failed" status with error message for error sources', () => {
@@ -561,7 +560,7 @@ describe('Catalog Source Configs Table', () => {
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
       row.shouldHaveValidationStatus('Failed');
-      row.findValidationStatus().findByTestId('source-status-failed-hf-google').should('exist');
+      row.findValidationStatusIndicator('source-status-failed-hf-google').should('exist');
       row.findValidationStatusErrorLink().should('exist');
     });
 
@@ -596,19 +595,14 @@ describe('Catalog Source Configs Table', () => {
       row.clickValidationStatusErrorLink();
 
       // Check modal is displayed
-      cy.findByTestId('catalog-source-status-error-modal').should('exist');
-      cy.findByTestId('catalog-source-status-error-modal')
-        .contains('Source status')
-        .should('exist');
-      cy.findByTestId('catalog-source-status-error-modal').contains('Failed').should('exist');
-      cy.findByTestId('catalog-source-status-error-alert').should('exist');
-      cy.findByTestId('catalog-source-status-error-alert')
-        .contains('Validation failed')
-        .should('exist');
-      cy.findByTestId('catalog-source-status-error-message').should(
-        'contain',
-        'The provided API key is invalid or has expired.',
-      );
+      catalogSourceStatusErrorModal.find().should('exist');
+      catalogSourceStatusErrorModal.find().contains('Source status').should('exist');
+      catalogSourceStatusErrorModal.find().contains('Failed').should('exist');
+      catalogSourceStatusErrorModal.findAlert().should('exist');
+      catalogSourceStatusErrorModal.findAlert().contains('Validation failed').should('exist');
+      catalogSourceStatusErrorModal
+        .findMessage()
+        .should('contain', 'The provided API key is invalid or has expired.');
     });
 
     it('should close error modal when clicking close button', () => {
@@ -623,11 +617,9 @@ describe('Catalog Source Configs Table', () => {
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.clickValidationStatusErrorLink();
 
-      cy.findByTestId('catalog-source-status-error-modal').should('exist');
-      cy.findByTestId('catalog-source-status-error-modal')
-        .findByRole('button', { name: 'Close' })
-        .click();
-      cy.findByTestId('catalog-source-status-error-modal').should('not.exist');
+      catalogSourceStatusErrorModal.find().should('exist');
+      catalogSourceStatusErrorModal.clickClose();
+      catalogSourceStatusErrorModal.find().should('not.exist');
     });
   });
 
@@ -703,7 +695,7 @@ describe('Catalog Source Configs Table', () => {
       });
 
       row.findKebab().click();
-      cy.findByRole('menuitem', { name: 'Delete source' }).click();
+      row.clickDeleteSourceMenuItem();
 
       deleteSourceModal.shouldBeOpen();
       deleteSourceModal.typeConfirmation('HuggingFace Google');
@@ -801,11 +793,43 @@ describe('Manage Source Page', () => {
       manageSourcePage.findSubmitButton().should('not.be.disabled');
     });
 
-    it('should enable Preview button when HF credentials are filled', () => {
+    it('should keep Preview disabled when HF credentials are filled but not validated', () => {
       manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
       manageSourcePage.fillAccessToken('test-token-123');
       manageSourcePage.fillOrganization('Google');
+      manageSourcePage.findPreviewButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelHeaderButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelBodyButton().should('be.disabled');
+    });
+
+    it('should enable Preview after HF credentials are validated', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        data: {
+          items: [{ name: 'Google/model-1', included: true }],
+          summary: { totalModels: 1, includedModels: 1, excludedModels: 0 },
+          nextPageToken: '',
+          pageSize: 20,
+          size: 1,
+        },
+      }).as('validateHfCredentials');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillAccessToken('test-token-123');
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.findPreviewButton().should('be.disabled');
+      manageSourcePage.clickValidate();
+      cy.wait('@validateHfCredentials');
       manageSourcePage.findPreviewButton().should('not.be.disabled');
+      manageSourcePage.findPreviewPanelHeaderButton().should('not.be.disabled');
+      manageSourcePage.findPreviewPanelBodyButton().should('not.be.disabled');
+    });
+
+    it('should enable Preview for HF when only organization is filled', () => {
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.findPreviewButton().should('not.be.disabled');
+      manageSourcePage.findPreviewPanelHeaderButton().should('not.be.disabled');
+      manageSourcePage.findPreviewPanelBodyButton().should('not.be.disabled');
     });
 
     it('should enable Add button when all required YAML fields are filled', () => {
@@ -968,25 +992,53 @@ describe('Manage Source Page', () => {
       // One in the action group (bottom left)
       manageSourcePage.findPreviewButton().should('exist');
       // One in the preview panel header (top right)
-      manageSourcePage.findPreviewButtonHeader().should('exist');
+      manageSourcePage.findPreviewPanelHeaderButton().should('exist');
       // One in the preview panel body (center)
-      manageSourcePage.findPreviewButtonPanel().should('exist');
+      manageSourcePage.findPreviewPanelBodyButton().should('exist');
     });
 
     it('should have all three preview buttons disabled by default', () => {
       manageSourcePage.visitAddSource();
       manageSourcePage.findPreviewButton().should('be.disabled');
-      manageSourcePage.findPreviewButtonHeader().should('be.disabled');
-      manageSourcePage.findPreviewButtonPanel().should('be.disabled');
+      manageSourcePage.findPreviewPanelHeaderButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelBodyButton().should('be.disabled');
     });
 
-    it('should enable all three preview buttons when credentials are filled', () => {
+    it('should keep all three preview buttons disabled when token is entered but not validated', () => {
       manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
       manageSourcePage.fillAccessToken('test-token');
       manageSourcePage.fillOrganization('Google');
+      manageSourcePage.findPreviewButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelHeaderButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelBodyButton().should('be.disabled');
+    });
+
+    it('should show refresh alert with enabled link when token is typed after preview without token', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        data: {
+          items: [{ name: 'Google/model-1', included: true }],
+          summary: { totalModels: 1, includedModels: 1, excludedModels: 0 },
+          nextPageToken: '',
+          pageSize: 20,
+          size: 1,
+        },
+      }).as('previewSource');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillOrganization('Google');
       manageSourcePage.findPreviewButton().should('not.be.disabled');
-      manageSourcePage.findPreviewButtonHeader().should('not.be.disabled');
-      manageSourcePage.findPreviewButtonPanel().should('not.be.disabled');
+      manageSourcePage.findPreviewButton().click();
+      cy.wait('@previewSource');
+
+      manageSourcePage.findPreviewModelsIncludedSummary(1, 1).should('exist');
+      manageSourcePage.fillAccessToken('new-token');
+
+      manageSourcePage.findPreviewButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelHeaderButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelBodyButton().should('not.exist');
+      manageSourcePage.findRefreshPreviewAlert().should('exist');
+      manageSourcePage.findRefreshPreviewLink().should('exist').and('not.be.disabled');
+      manageSourcePage.findPreviewModelsIncludedSummary(1, 1).should('exist');
     });
 
     it('submit add source form with yaml source type', () => {
@@ -1225,12 +1277,27 @@ describe('Manage Source Page', () => {
   });
 
   it('should successfully update the source with huggingface type', () => {
+    cy.interceptApi(
+      `GET /api/:apiVersion/model_catalog/sources`,
+      { path: { apiVersion: MODEL_CATALOG_API_VERSION } },
+      mockCatalogSourceList({
+        items: [
+          mockCatalogSource({
+            id: 'huggingface_source_3',
+            name: 'Huggingface source 3',
+            hasApiKey: true,
+          }),
+        ],
+      }),
+    );
+
     cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs/**', {
       data: mockHuggingFaceCatalogSourceConfig({
         id: 'huggingface_source_3',
         name: 'Huggingface source 3',
         allowedOrganization: 'org1',
         isDefault: false,
+        apiKey: undefined,
       }),
     });
 
@@ -1255,7 +1322,7 @@ describe('Manage Source Page', () => {
     });
     manageSourcePage.findNameInput().should('have.value', 'Huggingface source 3');
 
-    manageSourcePage.findAccessTokenInput().should('have.value', 'apikey');
+    manageSourcePage.findAccessTokenInput().should('have.value', '••••••••');
     manageSourcePage.findOrganizationInput().should('have.value', 'org1');
 
     manageSourcePage.toggleModelVisibility();
@@ -1270,17 +1337,14 @@ describe('Manage Source Page', () => {
     manageSourcePage.findSubmitButton().should('have.text', 'Save');
     manageSourcePage.findSubmitButton().click();
     cy.wait('@manageSourcewithHuggingFaceType').then((interception) => {
-      expect(interception.request.body).to.eql({
-        data: {
-          name: 'Huggingface source 3',
-          apiKey: 'apikey',
-          allowedOrganization: 'org1',
-          type: CatalogSourceType.HUGGING_FACE,
-          includedModels: ['model-1-*', 'model-2-*'],
-          excludedModels: ['model-3-*', 'model-4-*'],
-          enabled: false,
-          isDefault: false,
-        },
+      expect(interception.request.body.data).to.deep.include({
+        name: 'Huggingface source 3',
+        allowedOrganization: 'org1',
+        type: CatalogSourceType.HUGGING_FACE,
+        includedModels: ['model-1-*', 'model-2-*'],
+        excludedModels: ['model-3-*', 'model-4-*'],
+        enabled: false,
+        isDefault: false,
       });
     });
   });
@@ -1324,5 +1388,244 @@ describe('Manage Source Page', () => {
 
     cy.wait('@saveSource');
     cy.wait('@sourcesRefresh');
+  });
+});
+
+describe('HuggingFace Credentials Validation', () => {
+  const previewSuccessResponse = {
+    data: {
+      items: [{ name: 'google/gemma-2b', included: true }],
+      summary: { totalAssets: 1, includedAssets: 1, excludedAssets: 0 },
+      nextPageToken: '',
+      pageSize: 20,
+      size: 1,
+    },
+  };
+
+  const previewFailResponse = {
+    statusCode: 401,
+    body: {
+      code: 'UNAUTHORIZED',
+      message:
+        "Invalid credentials: the organization 'qwen' could not be validated with the provided access token",
+    },
+  };
+
+  beforeEach(() => {
+    setupMocks([], mockCatalogSourceConfigList({}));
+  });
+
+  describe('Feature flag behavior', () => {
+    it('should show credentials section when flag is enabled', () => {
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.findCredentialsSection().should('exist');
+      manageSourcePage.findAccessTokenInput().should('exist');
+    });
+
+    it('should hide credentials section when flag is disabled', () => {
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: false });
+      manageSourcePage.findCredentialsSection().should('not.exist');
+    });
+  });
+
+  describe('Validation success/fail (mocked with qwen)', () => {
+    it('should show success alert when org and token are valid', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        statusCode: 200,
+        body: previewSuccessResponse,
+      }).as('validateSuccess');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.fillAccessToken('valid-token-123');
+
+      manageSourcePage.clickValidate();
+      cy.wait('@validateSuccess');
+
+      manageSourcePage.findAccessTokenHiddenHelper().should('exist');
+      manageSourcePage.findValidationSuccessAlert().should('exist');
+    });
+
+    it('should show error alert when org is qwen (mocked failure)', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        statusCode: 401,
+        body: previewFailResponse,
+      }).as('validateFail');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillOrganization('qwen');
+      manageSourcePage.fillAccessToken('any-token');
+
+      manageSourcePage.clickValidate();
+      cy.wait('@validateFail');
+
+      manageSourcePage.findValidationFailedAlert().should('exist');
+    });
+
+    it('should keep Preview disabled after failed Validate', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        statusCode: 401,
+        body: previewFailResponse,
+      }).as('validateFail');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillOrganization('qwen');
+      manageSourcePage.fillAccessToken('any-token');
+
+      manageSourcePage.findPreviewButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelHeaderButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelBodyButton().should('be.disabled');
+
+      manageSourcePage.clickValidate();
+      cy.wait('@validateFail');
+
+      manageSourcePage.findValidationFailedAlert().should('exist');
+      manageSourcePage.findPreviewButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelHeaderButton().should('be.disabled');
+      manageSourcePage.findPreviewPanelBodyButton().should('be.disabled');
+    });
+  });
+
+  describe('Eye/mask toggle behavior', () => {
+    it('should toggle password visibility with eye button', () => {
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillAccessToken('my-secret-token');
+
+      manageSourcePage.findAccessTokenInput().should('have.attr', 'type', 'password');
+
+      manageSourcePage.clickShowAccessToken();
+      manageSourcePage.findAccessTokenInput().should('have.attr', 'type', 'text');
+
+      manageSourcePage.clickHideAccessToken();
+      manageSourcePage.findAccessTokenInput().should('have.attr', 'type', 'password');
+    });
+
+    it('should hide toggle button and force mask when validation succeeds', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        statusCode: 200,
+        body: previewSuccessResponse,
+      }).as('validateSuccess');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.fillAccessToken('my-secret-token');
+
+      manageSourcePage.clickShowAccessToken();
+      manageSourcePage.findAccessTokenInput().should('have.attr', 'type', 'text');
+
+      manageSourcePage.clickValidate();
+      cy.wait('@validateSuccess');
+
+      manageSourcePage.findShowAccessTokenButton().should('not.exist');
+      manageSourcePage.findHideAccessTokenButton().should('not.exist');
+      manageSourcePage.findAccessTokenInput().should('have.attr', 'type', 'password');
+    });
+  });
+
+  describe('Organization field read-only after validation success', () => {
+    it('should keep organization value visible after validation success', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        statusCode: 200,
+        body: previewSuccessResponse,
+      }).as('validateSuccess');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.fillAccessToken('valid-token-123');
+
+      manageSourcePage.clickValidate();
+      cy.wait('@validateSuccess');
+
+      manageSourcePage.findOrganizationInput().should('have.value', 'Google');
+    });
+  });
+
+  describe('Clear access token modal', () => {
+    beforeEach(() => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        statusCode: 200,
+        body: previewSuccessResponse,
+      }).as('validateSuccess');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.fillAccessToken('valid-token-123');
+      manageSourcePage.clickValidate();
+      cy.wait('@validateSuccess');
+    });
+
+    it('should open clear token modal when Clear button is clicked', () => {
+      manageSourcePage.clickClearAccessToken();
+      manageSourcePage.findClearAccessTokenModal().should('exist');
+    });
+
+    it('should close modal and keep org and token when Cancel is clicked', () => {
+      manageSourcePage.clickClearAccessToken();
+      manageSourcePage.findClearAccessTokenModal().should('exist');
+
+      manageSourcePage.clickClearAccessTokenModalCancel();
+      manageSourcePage.findClearAccessTokenModal().should('not.exist');
+
+      manageSourcePage.findOrganizationInput().should('have.value', 'Google');
+      manageSourcePage.findValidationSuccessAlert().should('exist');
+    });
+
+    it('should clear token and close preview when Confirm is clicked', () => {
+      manageSourcePage.clickClearAccessToken();
+      manageSourcePage.findClearAccessTokenModal().should('exist');
+
+      manageSourcePage.findClearAccessTokenConfirmButton().click();
+      manageSourcePage.findClearAccessTokenModal().should('not.exist');
+
+      manageSourcePage.findAccessTokenInput().should('have.value', '');
+      manageSourcePage.findValidationSuccessAlert().should('not.exist');
+    });
+  });
+
+  describe('Payload apiKey handling', () => {
+    it('should include apiKey in payload when token is provided', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_configs', {
+        data: mockHuggingFaceCatalogSourceConfig({}),
+      }).as('addSource');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillSourceName('My HF Source');
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.fillAccessToken('my-secret-token');
+
+      manageSourcePage.findSubmitButton().click();
+
+      cy.wait('@addSource').then((interception) => {
+        expect(interception.request.body.data).to.have.property('apiKey', 'my-secret-token');
+      });
+    });
+
+    it('should omit apiKey from payload when token is cleared after validation', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        statusCode: 200,
+        body: previewSuccessResponse,
+      }).as('validateSuccess');
+
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_configs', {
+        data: mockHuggingFaceCatalogSourceConfig({}),
+      }).as('addSource');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillSourceName('My HF Source');
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.fillAccessToken('my-secret-token');
+
+      manageSourcePage.clickValidate();
+      cy.wait('@validateSuccess');
+
+      manageSourcePage.clickClearAccessToken();
+      manageSourcePage.findClearAccessTokenConfirmButton().click();
+
+      manageSourcePage.findSubmitButton().click();
+
+      cy.wait('@addSource').then((interception) => {
+        expect(interception.request.body.data).to.not.have.property('apiKey');
+      });
+    });
   });
 });

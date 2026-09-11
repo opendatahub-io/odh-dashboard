@@ -5,7 +5,7 @@ import useFetchState, {
   FetchState,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { isK8sStatus } from '@odh-dashboard/k8s-core';
-import { getConfigMap } from '#~/api';
+import { getConfigMap } from '@odh-dashboard/k8s-core/api/configMaps';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { ModelCatalogSource, ModelCatalogSourcesObject } from './types';

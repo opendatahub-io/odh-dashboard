@@ -255,4 +255,12 @@ describe('FeatureSummaryTab', () => {
     expect(bar).toHaveClass('m-negative');
     expect(bar.getAttribute('style')).toContain('width: 100%');
   });
+
+  it('should omit search and keep native table layout in print mode', () => {
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} print />);
+
+    expect(screen.queryByTestId('feature-search')).not.toBeInTheDocument();
+    expect(screen.getByText('color')).toBeInTheDocument();
+    expect(screen.getByLabelText('Feature importance')).not.toHaveClass('pf-m-grid-md');
+  });
 });

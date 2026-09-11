@@ -690,6 +690,10 @@ class ModelServingRow extends TableRow {
     return this.find().find(`[data-label="Last deployed"]`);
   }
 
+  findStatusSubtitle() {
+    return this.find().findByTestId('deployment-status-subtitle');
+  }
+
   findConfirmStopModal() {
     return cy.findByTestId('stop-model-modal');
   }
@@ -1002,6 +1006,10 @@ class ModelServingWizard extends Wizard {
     return this.findStep('advanced-options-step');
   }
 
+  findReviewStep() {
+    return this.findStep('summary-step');
+  }
+
   findModelTypeSelect() {
     return cy.findByTestId('model-type-select');
   }
@@ -1254,25 +1262,26 @@ class ModelServingWizard extends Wizard {
     cy.findByRole('option', { name }).click();
   }
 
-  selectPotentiallyDisabledProfile(profileDisplayName: string): void {
+  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
     const dropdown = this.findHardProfileSelection();
 
     dropdown.then(($el) => {
       if ($el.prop('disabled')) {
-        // If disabled, verify it contains the base profile name
-        const nameToCheck = profileDisplayName;
-        cy.wrap($el).contains(nameToCheck).should('exist');
-        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+        cy.wrap($el).contains(profileDisplayName).should('exist');
+        cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
-        // If enabled, proceed with selection as before using the full display name
         dropdown.click();
-        cy.findByTestId(`${profileDisplayName}`).click();
+        cy.findByTestId(profileName || profileDisplayName).click();
       }
     });
   }
 
   findExternalRouteCheckbox() {
     return cy.findByTestId('model-access-checkbox');
+  }
+
+  findAuthenticationSection() {
+    return cy.findByTestId('auth-section');
   }
 
   findTokenAuthenticationCheckbox() {
@@ -1484,6 +1493,10 @@ class ModelServingWizard extends Wizard {
 
   findGatewaySelectOption(name: string) {
     return this.findGatewaySelect().findSelectOption(name);
+  }
+
+  findGatewaySelectTooltip() {
+    return cy.findByTestId('gateway-select-tooltip-wrapper');
   }
 
   findDeploymentStrategySection() {

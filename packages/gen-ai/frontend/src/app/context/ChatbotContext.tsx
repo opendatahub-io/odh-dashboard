@@ -4,12 +4,10 @@ import {
   AIModel,
   LlamaModel,
   LlamaStackDistributionModel,
-  MaaSModel,
   NemoGuardrailsStatus,
 } from '~/app/types';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
 import useFetchAIModels from '~/app/hooks/useFetchAIModels';
-import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import useFetchNemoGuardrailsStatus from '~/app/hooks/useFetchNemoGuardrailsStatus';
 
 type ChatbotContextProps = {
@@ -19,7 +17,7 @@ type ChatbotContextProps = {
   aiModels: AIModel[];
   aiModelsLoaded: boolean;
   aiModelsError: Error | undefined;
-  maasModels: MaaSModel[];
+  maasModels: AIModel[];
   maasModelsLoaded: boolean;
   maasModelsError: Error | undefined;
   models: LlamaModel[];
@@ -70,11 +68,12 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ 
 
   const { data: aiModels, loaded: aiModelsLoaded, error: aiModelsError } = useFetchAIModels();
 
-  const {
-    data: maasModels,
-    loaded: maasModelsLoaded,
-    error: maasModelsError,
-  } = useFetchMaaSModels();
+  const maasModels = React.useMemo(
+    () => aiModels.filter((m) => m.model_source_type === 'maas'),
+    [aiModels],
+  );
+  const maasModelsLoaded = aiModelsLoaded;
+  const maasModelsError = aiModelsError;
 
   const {
     data: nemoGuardrailsStatus,

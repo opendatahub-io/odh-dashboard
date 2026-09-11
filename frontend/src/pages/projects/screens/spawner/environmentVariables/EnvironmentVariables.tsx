@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Divider, HelperText, HelperTextItem } from '@patternfly/react-core';
-import { InfoCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon } from '@patternfly/react-icons';
 import { ConfigMapCategory, EnvVariable, SecretCategory } from '#~/pages/projects/types';
 import { UseExistingSecretsResult } from './useExistingSecrets';
 import EnvTypeSelectField from './EnvTypeSelectField';
@@ -55,6 +55,11 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
 
   return (
     <>
+      <HelperText data-testid="env-section-description">
+        <HelperTextItem>
+          Pass configuration values and credentials to your workbench at startup.
+        </HelperTextItem>
+      </HelperText>
       {envVariables.map((envVariable, i) => (
         <React.Fragment key={i}>
           <EnvTypeSelectField
@@ -78,9 +83,9 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
       ))}
       {envVariables.length > 0 ? (
         <HelperText data-testid="env-rotation-hint">
-          <HelperTextItem variant="indeterminate" icon={<InfoCircleIcon />}>
-            Environment variables are set at workbench start. If secret values change (e.g.,
-            credential rotation), restart the workbench to pick up new values.
+          <HelperTextItem>
+            Environment variables are set when the workbench starts. If secret values change,
+            restart the workbench to pick up the new values.
           </HelperTextItem>
         </HelperText>
       ) : null}
