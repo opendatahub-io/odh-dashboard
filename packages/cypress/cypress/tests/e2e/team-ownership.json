@@ -1,6 +1,6 @@
 {
   "description": "Maps Cypress E2E test directories to owning scrum teams. Used by the nightly test failure analyzer to route failures to the responsible team.",
-  "default_team": "Razzmatazz",
+  "default_team": "Unassigned",
   "teams": [
     {
       "name": "Green",
@@ -10,7 +10,7 @@
     {
       "name": "Razzmatazz",
       "ci_tags": ["AgentOpsCI", "ConnectionTypes", "HardwareProfiles", "MlflowEmbedded", "MLflowCI"],
-      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/", "mlflowExperiments/"]
+      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/", "mlflowExperiments/", "dashboardNavigation/", "learningResources/", "storageClasses/", "settings/"]
     },
     {
       "name": "Zaffre",
@@ -54,6 +54,11 @@
     },
     {
       "name": "Pewter",
+      "ci_tags": [],
+      "path_patterns": []
+    },
+    {
+      "name": "Unassigned",
       "ci_tags": [],
       "path_patterns": []
     }
