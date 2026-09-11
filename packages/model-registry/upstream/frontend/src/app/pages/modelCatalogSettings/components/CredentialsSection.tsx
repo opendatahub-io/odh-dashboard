@@ -12,6 +12,7 @@ import {
   ModalBody,
   ModalFooter,
   ModalVariant,
+  Flex,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue, ThemeAwareFormGroupWrapper } from 'mod-arch-shared';
@@ -146,23 +147,15 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
     />
   );
 
-  const organizationHelperTxtNode =
-    isOrganizationTouched && !isOrganizationValid ? (
-      <>
-        <FormHelperText>
-          <HelperText>
-            <HelperTextItem variant="error" data-testid="organization-error">
-              {VALIDATION_MESSAGES.ORGANIZATION_REQUIRED}
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
-      </>
-    ) : undefined;
-
-  const formGroupOrgHelpTextNode = (
+  const organizationHelperTxtNode = (
     <>
       <FormHelperText>
         <HelperText>
+          {isOrganizationTouched && !isOrganizationValid ? (
+            <HelperTextItem variant="error" data-testid="organization-error">
+              {VALIDATION_MESSAGES.ORGANIZATION_REQUIRED}
+            </HelperTextItem>
+          ) : undefined}
           <HelperTextItem>{HELPER_TEXT.ORGANIZATION_SLUG}</HelperTextItem>
         </HelperText>
       </FormHelperText>
@@ -175,13 +168,11 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
         label={FORM_LABELS.ORGANIZATION}
         fieldId="organization"
         isRequired
-        hasError={!!organizationHelperTxtNode}
         helperTextNode={organizationHelperTxtNode}
         popoverHelpText={DESCRIPTION_TEXT.ORGANIZATION}
       >
         {organizationInput}
       </ThemeAwareFormGroupWrapper>
-      {formGroupOrgHelpTextNode}
     </>
   );
 
@@ -254,29 +245,31 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
 
   const accessTokenFormGroup = (
     <>
-      <ThemeAwareFormGroupWrapper
-        label={FORM_LABELS.ACCESS_TOKEN}
-        fieldId="access-token"
-        helperTextNode={accessTokenHelperTxtNode}
-        popoverHelpText={DESCRIPTION_TEXT.ACCESS_TOKEN}
-      >
-        {accessTokenInput}
-      </ThemeAwareFormGroupWrapper>
-      {validationError && (
-        <Alert isInline variant="danger" title={ERROR_MESSAGES.VALIDATION_FAILED}>
-          {validationError.message}
-        </Alert>
-      )}
-      {isValidationSuccess && !isTokenLocked && (
-        <Alert isInline variant="success" title={SUCCESS_MESSAGES.VALIDATION_SUCCESSFUL}>
-          {SUCCESS_MESSAGES.VALIDATION_SUCCESSFUL_BODY}
-        </Alert>
-      )}
+      <Flex direction={{ default: 'column' }}>
+        <ThemeAwareFormGroupWrapper
+          label={FORM_LABELS.ACCESS_TOKEN}
+          fieldId="access-token"
+          helperTextNode={accessTokenHelperTxtNode}
+          popoverHelpText={DESCRIPTION_TEXT.ACCESS_TOKEN}
+        >
+          {accessTokenInput}
+        </ThemeAwareFormGroupWrapper>
+        {validationError && (
+          <Alert isInline variant="danger" title={ERROR_MESSAGES.VALIDATION_FAILED}>
+            {validationError.message}
+          </Alert>
+        )}
+        {isValidationSuccess && !isTokenLocked && (
+          <Alert isInline variant="success" title={SUCCESS_MESSAGES.VALIDATION_SUCCESSFUL}>
+            {SUCCESS_MESSAGES.VALIDATION_SUCCESSFUL_BODY}
+          </Alert>
+        )}
 
-      <ActionList>
-        {tokenValidationBtn}
-        {tokenClearBtn}
-      </ActionList>
+        <ActionList>
+          {tokenValidationBtn}
+          {tokenClearBtn}
+        </ActionList>
+      </Flex>
     </>
   );
 
