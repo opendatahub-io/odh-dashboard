@@ -3,7 +3,7 @@ import { WorkspaceListPage } from 'openshell-dashboard/pages';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { agentOpsWorkspaceDetailPath } from '~/app/utilities/routes';
 
-const WorkspacesListRoute: React.FC = () => {
+const OpenShellListRoute: React.FC = () => {
   const navigate = useNavigate();
 
   return (
@@ -13,11 +13,11 @@ const WorkspacesListRoute: React.FC = () => {
   );
 };
 
-const WorkspacesRoutes: React.FC = () => (
+const OpenShellRoutes: React.FC = () => (
   <Routes>
-    <Route index element={<WorkspacesListRoute />} />
+    <Route index element={<OpenShellListRoute />} />
     <Route path="*" element={<Navigate to="." replace />} />
   </Routes>
 );
 
-export default WorkspacesRoutes;
+export default OpenShellRoutes;

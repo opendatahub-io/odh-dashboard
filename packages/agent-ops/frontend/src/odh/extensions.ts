@@ -37,7 +37,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       pageId: AGENTS_TAB_PAGE,
       id: 'workspaces',
       title: 'Workspaces',
-      component: () => import('./WorkspacesWrapper.tsx'),
+      component: () => import('./OpenShellWrapper.tsx'),
       group: '1_workspaces',
     },
   },
@@ -48,7 +48,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     },
     properties: {
       path: agentOpsWorkspacesDetailPath,
-      component: () => import('./WorkspacesDetailRoutes.tsx'),
+      component: () => import('./OpenShellDetailRoutes.tsx'),
     },
   },
   // Deployments tab and breakout routes stay gated on agentOpsDeploy (hidden until follow-up).

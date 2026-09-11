@@ -6,14 +6,14 @@ import { URL_PREFIX } from '~/app/utilities/const';
 
 setApiBasePath(URL_PREFIX);
 
-type WorkspacesUpstreamProvidersProps = {
+type OpenShellUpstreamProvidersProps = {
   children: React.ReactNode;
 };
 
-const WorkspacesUpstreamProviders: React.FC<WorkspacesUpstreamProvidersProps> = ({ children }) => (
+const OpenShellUpstreamProviders: React.FC<OpenShellUpstreamProvidersProps> = ({ children }) => (
   <AlertProvider>
     <SlotProvider slots={{}}>{children}</SlotProvider>
   </AlertProvider>
 );
 
-export default WorkspacesUpstreamProviders;
+export default OpenShellUpstreamProviders;

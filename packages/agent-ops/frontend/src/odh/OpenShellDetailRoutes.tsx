@@ -6,7 +6,7 @@ import {
   agentOpsWorkspaceDetailPath,
   agentOpsWorkspacesPath,
 } from '~/app/utilities/routes';
-import WorkspacesFederatedProviders from './WorkspacesFederatedProviders';
+import OpenShellFederatedProviders from './OpenShellFederatedProviders';
 
 // Breakout routes render in the host router; plugin-core has no param-based redirect API.
 const WorkspaceDetailRoute: React.FC = () => {
@@ -45,13 +45,13 @@ const SandboxDetailRoute: React.FC = () => {
   return <SandboxDetailPage workspace={workspaceId} sandboxName={sandboxName} />;
 };
 
-const WorkspacesDetailRoutes: React.FC = () => (
-  <WorkspacesFederatedProviders>
+const OpenShellDetailRoutes: React.FC = () => (
+  <OpenShellFederatedProviders>
     <Routes>
       <Route path="sandboxes/:sandboxName/*" element={<SandboxDetailRoute />} />
       <Route path="*" element={<WorkspaceDetailRoute />} />
     </Routes>
-  </WorkspacesFederatedProviders>
+  </OpenShellFederatedProviders>
 );
 
-export default WorkspacesDetailRoutes;
+export default OpenShellDetailRoutes;

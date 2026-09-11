@@ -9,7 +9,7 @@ import {
 } from 'mod-arch-core';
 import { createWorkspacesQueryClient } from '~/app/hooks/queryClient';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import WorkspacesUpstreamProviders from './WorkspacesUpstreamProviders';
+import OpenShellUpstreamProviders from './OpenShellUpstreamProviders';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
@@ -17,11 +17,11 @@ const modularArchConfig: ModularArchConfig = {
   BFF_API_VERSION,
 };
 
-type WorkspacesFederatedProvidersProps = {
+type OpenShellFederatedProvidersProps = {
   children: React.ReactNode;
 };
 
-const WorkspacesFederatedProviders: React.FC<WorkspacesFederatedProvidersProps> = ({
+const OpenShellFederatedProviders: React.FC<OpenShellFederatedProvidersProps> = ({
   children,
 }) => {
   const [queryClient] = React.useState(createWorkspacesQueryClient);
@@ -31,7 +31,7 @@ const WorkspacesFederatedProviders: React.FC<WorkspacesFederatedProvidersProps> 
       <BrowserStorageContextProvider>
         <NotificationContextProvider>
           <QueryClientProvider client={queryClient}>
-            <WorkspacesUpstreamProviders>{children}</WorkspacesUpstreamProviders>
+            <OpenShellUpstreamProviders>{children}</OpenShellUpstreamProviders>
           </QueryClientProvider>
         </NotificationContextProvider>
       </BrowserStorageContextProvider>
@@ -39,4 +39,4 @@ const WorkspacesFederatedProviders: React.FC<WorkspacesFederatedProvidersProps> 
   );
 };
 
-export default WorkspacesFederatedProviders;
+export default OpenShellFederatedProviders;
