@@ -29,6 +29,10 @@ dest, reason = Path(sys.argv[1]), sys.argv[2]
 PY
 }
 
+has_failed_checks() {
+  jq -e '.pr_checks | (type == "array" and any(.[]; .bucket == "fail" or .bucket == "cancel"))' "$1" >/dev/null
+}
+
 normalize_results() {
   local raw_file="$1" classification_file="$2"
   python3 - "${RUN_DIR}" "${raw_file}" "${classification_file}" <<'PY'
@@ -126,7 +130,7 @@ run_producer() {
     return 0
   fi
 
-  if jq -e '(.pr_checks | type == "array") and any(.[]; .bucket == "fail" or .bucket == "cancel")' "${raw_file}" >/dev/null; then
+  if has_failed_checks "${raw_file}"; then
     if ! GH_TOKEN="${token}" python3 "${CLASSIFY_CI}" "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" > "${classifier_file}" || ! jq empty "${classifier_file}" >/dev/null 2>&1; then
       # Absence is deliberate: normalizer emits the explicit unavailable
       # classifier envelope rather than attempting to parse partial output.
@@ -143,6 +147,7 @@ run_self_test() {
   raw="${tmp}/raw.json"
   classified="${tmp}/classified.json"
   printf '%s' '{"pr_checks":[{"name":"unit","bucket":"fail"}],"failures":[],"local_workflows":[]}' > "${raw}"
+  has_failed_checks "${raw}"
   printf '%s' '{"classifications":[{"check_name":"unit","classification":"flaky","signals":[{"detail":"rerun passed"}]}]}' > "${classified}"
   RUN_DIR="${tmp}/out" normalize_results "${raw}" "${classified}"
   jq -e '.check.status == "warning" and .check.id == "ci-status-review"' "${tmp}/out/ci-status.json" >/dev/null
@@ -155,6 +160,10 @@ run_self_test() {
   jq -e '.check.status == "could-not-verify"' "${tmp}/unavailable/ci-status.json" >/dev/null
   jq -e '.classifier.status == "unavailable"' "${tmp}/unavailable/ci-flake-classifier.json" >/dev/null
   printf '%s' '{"pr_checks":[],"failures":[],"local_workflows":[]}' > "${raw}"
+  if has_failed_checks "${raw}"; then
+    echo "FAIL CI adapter: empty check list was classified as failed" >&2
+    return 1
+  fi
   RUN_DIR="${tmp}/empty" normalize_results "${raw}" "${classified}"
   jq -e '.check.status == "could-not-verify"' "${tmp}/empty/ci-status.json" >/dev/null
   rm -rf "${tmp}"

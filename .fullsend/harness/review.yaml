@@ -35,7 +35,9 @@ env:
 validation_loop:
   script: scripts/validate-output-schema.sh
   schema: schemas/review-result.schema.json
-  max_iterations: 1
+  # One retry lets the runtime repair a missing or malformed result instead of
+  # turning an otherwise-complete review into a terminal workflow failure.
+  max_iterations: 2
 
 post_script: scripts/post-review.sh
 pre_script: scripts/pre-review.sh

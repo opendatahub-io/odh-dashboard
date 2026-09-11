@@ -1151,6 +1151,11 @@ inherited `issue-labels` skill. Give it the PR metadata, changed files,
 and final findings. It may inspect existing repository labels and recent
 labeling conventions as its instructions require.
 
+The label recommendation is an intermediate result, not the completion of
+the review. After it returns—even when it recommends no labels—immediately
+continue to step 7 and write `agent-result.json`. Never end the agent run with
+only the label recommendation.
+
 - Copy a non-empty recommendation to `label_actions` in the result.
 - Do not invent labels or recommend Fullsend control labels.
 - If no existing contextual label clearly applies, omit `label_actions`.
