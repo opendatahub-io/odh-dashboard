@@ -143,9 +143,9 @@ class GenAiPlayground {
       .should('be.checked');
   }
 
-  selectModelFromDropdown(modelName: string) {
+  selectModelFromDropdown(modelName: string, options?: { timeout?: number }) {
     this.findModelToggleButton().click();
-    cy.get('[role="menuitem"]').contains(modelName).click();
+    cy.contains('[role="menuitem"]', modelName, options).should('be.visible').click();
   }
 
   verifyModelIsSelected(modelName: string) {
