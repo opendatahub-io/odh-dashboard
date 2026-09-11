@@ -8,6 +8,7 @@ import {
   type HostApiServices,
   type ClusterSettingsType,
 } from '@odh-dashboard/plugin-core';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
 const ProjectDetailsContext = React.createContext(null);
@@ -16,6 +17,37 @@ const MODEL_SERVING_CONTEXT_VALUE = {
     data: { items: [] },
     loaded: true,
   },
+};
+const SKLEARN_SERVING_RUNTIME_TEMPLATE: TemplateKind = {
+  apiVersion: 'template.openshift.io/v1',
+  kind: 'Template',
+  metadata: {
+    name: 'kserve-sklearnserver',
+    namespace: 'opendatahub',
+    labels: { 'opendatahub.io/dashboard': 'true' },
+    annotations: {
+      'opendatahub.io/modelServingSupport': '["single"]',
+      'opendatahub.io/model-type': '["predictive"]',
+    },
+  },
+  objects: [
+    {
+      apiVersion: 'serving.kserve.io/v1alpha1',
+      kind: 'ServingRuntime',
+      metadata: { name: 'kserve-sklearnserver' },
+      spec: {
+        supportedModelFormats: [{ name: 'sklearn', version: '1', autoSelect: true }],
+        containers: [
+          {
+            name: 'kserve-container',
+            image: 'kserve/sklearnserver:v0.19.0',
+            args: ['--model_name={{.Name}}', '--model_dir=/mnt/models', '--http_port=8080'],
+          },
+        ],
+      },
+    },
+  ],
+  parameters: [],
 };
 const ModelServingContext = React.createContext(MODEL_SERVING_CONTEXT_VALUE);
 
@@ -63,7 +95,7 @@ const infraApi: HostApiInfraServices = {
 };
 
 const hostApi: HostApiServices = {
-  useTemplates: () => [[], true, undefined],
+  useTemplates: () => [[SKLEARN_SERVING_RUNTIME_TEMPLATE], true, undefined],
   setProjectServingPlatform: (name) => Promise.resolve(name),
   useWatchConnectionTypes: () => [[], true, undefined, () => Promise.resolve([])],
   useServingConnections: () => [[], true, undefined, () => Promise.resolve([])],
