@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SUBAGENTS_DIR="${ROOT_DIR}/.fullsend/skills/pr-review/sub-agents"
+HOST_ADAPTERS_DIR="${ROOT_DIR}/.fullsend/skills/pr-review/host-adapters"
 EXPECTED_TARGET='../../../../.claude/skills'
 SKILLS=(style-review rbac-review jira-pr-review test-impact-review pr-description-review ci-status-review ci-flake-classifier)
 SANDBOX_SKILLS=(style-review rbac-review jira-pr-review test-impact-review pr-description-review)
@@ -13,13 +14,12 @@ fail=0
 for skill in "${SKILLS[@]}"; do
   if [[ " ${SANDBOX_SKILLS[*]} " == *" ${skill} "* ]]; then
     link="${SUBAGENTS_DIR}/${skill}"
-    target="${EXPECTED_TARGET}/${skill}"
     display_path=".fullsend/skills/pr-review/sub-agents/${skill}"
   else
-    link="${ROOT_DIR}/.fullsend/skills/${skill}"
-    target="../../.claude/skills/${skill}"
-    display_path=".fullsend/skills/${skill}"
+    link="${HOST_ADAPTERS_DIR}/${skill}"
+    display_path=".fullsend/skills/pr-review/host-adapters/${skill}"
   fi
+  target="${EXPECTED_TARGET}/${skill}"
   if [[ ! -L "${link}" ]]; then
     echo "FAIL ${skill}: expected repository-relative symlink at ${display_path}" >&2
     fail=1
@@ -35,12 +35,12 @@ for skill in "${SKILLS[@]}"; do
   else
     echo "PASS ${skill}: repository-relative link resolves to canonical SKILL.md"
   fi
+  if [[ -e "${ROOT_DIR}/.fullsend/skills/${skill}" || -L "${ROOT_DIR}/.fullsend/skills/${skill}" ]]; then
+    echo "FAIL ${skill}: review component must not also exist as a top-level Fullsend skill" >&2
+    fail=1
+  fi
   for sandbox_skill in "${SANDBOX_SKILLS[@]}"; do
     [[ "${skill}" == "${sandbox_skill}" ]] || continue
-    if [[ -e "${ROOT_DIR}/.fullsend/skills/${skill}" || -L "${ROOT_DIR}/.fullsend/skills/${skill}" ]]; then
-      echo "FAIL ${skill}: nested reviewer must not also exist as a top-level Fullsend skill" >&2
-      fail=1
-    fi
     if grep -Fqx "  - skills/${skill}" "${ROOT_DIR}/.fullsend/harness/review.yaml"; then
       echo "FAIL ${skill}: harness imports nested reviewer as a peer skill" >&2
       fail=1
