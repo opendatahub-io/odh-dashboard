@@ -1,4 +1,3 @@
-import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import {
   addSourceUrl,
   catalogSettingsUrl,
@@ -158,13 +157,7 @@ class CatalogSourceStatusErrorModal extends Modal {
 }
 
 class ModelCatalogSettings {
-  visit({
-    wait = true,
-    enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-  }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {}) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visit({ wait = true }: { wait?: boolean } = {}) {
     cy.visit(catalogSettingsUrl());
     if (wait) {
       this.wait();
@@ -248,29 +241,14 @@ class ModelCatalogSettings {
 }
 
 class ManageSourcePage {
-  visitAddSource({
-    wait = true,
-    enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-  }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {}) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visitAddSource({ wait = true }: { wait?: boolean } = {}) {
     cy.visit(addSourceUrl());
     if (wait) {
       this.wait();
     }
   }
 
-  visitManageSource(
-    catalogSourceId: string,
-    {
-      wait = true,
-      enableTempDevCatalogHuggingFaceApiKeyFeature = false,
-    }: { wait?: boolean; enableTempDevCatalogHuggingFaceApiKeyFeature?: boolean } = {},
-  ) {
-    if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
-      window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
-    }
+  visitManageSource(catalogSourceId: string, { wait = true }: { wait?: boolean } = {}) {
     cy.visit(manageSourceUrl(catalogSourceId));
     if (wait) {
       this.wait();

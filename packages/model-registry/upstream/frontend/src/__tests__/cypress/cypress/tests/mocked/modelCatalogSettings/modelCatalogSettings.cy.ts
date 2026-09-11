@@ -751,7 +751,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should show Hugging Face fields by default', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.findSourceTypeHuggingFace().should('be.checked');
       manageSourcePage.findCredentialsSection().should('exist');
       manageSourcePage.findAccessTokenInput().should('exist');
@@ -786,7 +786,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should enable Add button when all required HF fields are filled', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillSourceName('Test Source');
       manageSourcePage.fillAccessToken('test-token-123');
       manageSourcePage.fillOrganization('Google');
@@ -794,7 +794,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should keep Preview disabled when HF credentials are filled but not validated', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillAccessToken('test-token-123');
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.findPreviewButton().should('be.disabled');
@@ -813,7 +813,7 @@ describe('Manage Source Page', () => {
         },
       }).as('validateHfCredentials');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillAccessToken('test-token-123');
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.findPreviewButton().should('be.disabled');
@@ -825,7 +825,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should enable Preview for HF when only organization is filled', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.findPreviewButton().should('not.be.disabled');
       manageSourcePage.findPreviewPanelHeaderButton().should('not.be.disabled');
@@ -925,7 +925,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should maintain form state when switching between source types', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
 
       // Fill name and HF fields
       manageSourcePage.fillSourceName('Test Source');
@@ -1005,7 +1005,7 @@ describe('Manage Source Page', () => {
     });
 
     it('should keep all three preview buttons disabled when token is entered but not validated', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillAccessToken('test-token');
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.findPreviewButton().should('be.disabled');
@@ -1024,7 +1024,7 @@ describe('Manage Source Page', () => {
         },
       }).as('previewSource');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.findPreviewButton().should('not.be.disabled');
       manageSourcePage.findPreviewButton().click();
@@ -1082,7 +1082,7 @@ describe('Manage Source Page', () => {
       cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_configs', {
         data: mockHuggingFaceCatalogSourceConfig({}),
       }).as('addSourcewithHuggingFaceType');
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.findNameInput().type('sample source');
       manageSourcePage.selectSourceType('huggingface');
       manageSourcePage.findSourceTypeHuggingFace().should('be.checked');
@@ -1317,9 +1317,7 @@ describe('Manage Source Page', () => {
       },
     ).as('manageSourcewithHuggingFaceType');
 
-    manageSourcePage.visitManageSource('huggingface_source_3', {
-      enableTempDevCatalogHuggingFaceApiKeyFeature: true,
-    });
+    manageSourcePage.visitManageSource('huggingface_source_3');
     manageSourcePage.findNameInput().should('have.value', 'Huggingface source 3');
 
     manageSourcePage.findAccessTokenInput().should('have.value', '••••••••');
@@ -1415,19 +1413,6 @@ describe('HuggingFace Credentials Validation', () => {
     setupMocks([], mockCatalogSourceConfigList({}));
   });
 
-  describe('Feature flag behavior', () => {
-    it('should show credentials section when flag is enabled', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
-      manageSourcePage.findCredentialsSection().should('exist');
-      manageSourcePage.findAccessTokenInput().should('exist');
-    });
-
-    it('should hide credentials section when flag is disabled', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: false });
-      manageSourcePage.findCredentialsSection().should('not.exist');
-    });
-  });
-
   describe('Validation success/fail (mocked with qwen)', () => {
     it('should show success alert when org and token are valid', () => {
       cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
@@ -1435,7 +1420,7 @@ describe('HuggingFace Credentials Validation', () => {
         body: previewSuccessResponse,
       }).as('validateSuccess');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.fillAccessToken('valid-token-123');
 
@@ -1452,7 +1437,7 @@ describe('HuggingFace Credentials Validation', () => {
         body: previewFailResponse,
       }).as('validateFail');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillOrganization('qwen');
       manageSourcePage.fillAccessToken('any-token');
 
@@ -1468,7 +1453,7 @@ describe('HuggingFace Credentials Validation', () => {
         body: previewFailResponse,
       }).as('validateFail');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillOrganization('qwen');
       manageSourcePage.fillAccessToken('any-token');
 
@@ -1488,7 +1473,7 @@ describe('HuggingFace Credentials Validation', () => {
 
   describe('Eye/mask toggle behavior', () => {
     it('should toggle password visibility with eye button', () => {
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillAccessToken('my-secret-token');
 
       manageSourcePage.findAccessTokenInput().should('have.attr', 'type', 'password');
@@ -1506,7 +1491,7 @@ describe('HuggingFace Credentials Validation', () => {
         body: previewSuccessResponse,
       }).as('validateSuccess');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.fillAccessToken('my-secret-token');
 
@@ -1529,7 +1514,7 @@ describe('HuggingFace Credentials Validation', () => {
         body: previewSuccessResponse,
       }).as('validateSuccess');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.fillAccessToken('valid-token-123');
 
@@ -1547,7 +1532,7 @@ describe('HuggingFace Credentials Validation', () => {
         body: previewSuccessResponse,
       }).as('validateSuccess');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.fillAccessToken('valid-token-123');
       manageSourcePage.clickValidate();
@@ -1588,7 +1573,7 @@ describe('HuggingFace Credentials Validation', () => {
         data: mockHuggingFaceCatalogSourceConfig({}),
       }).as('addSource');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillSourceName('My HF Source');
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.fillAccessToken('my-secret-token');
@@ -1610,7 +1595,7 @@ describe('HuggingFace Credentials Validation', () => {
         data: mockHuggingFaceCatalogSourceConfig({}),
       }).as('addSource');
 
-      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.visitAddSource();
       manageSourcePage.fillSourceName('My HF Source');
       manageSourcePage.fillOrganization('Google');
       manageSourcePage.fillAccessToken('my-secret-token');
