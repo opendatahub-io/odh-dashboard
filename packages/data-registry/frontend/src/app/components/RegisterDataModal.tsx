@@ -52,7 +52,7 @@ const buildVolumeRequest = (data: RegisterDataFormData): CreateVolumeRequest => 
   }
   if (data.connection) {
     // eslint-disable-next-line camelcase
-    request.connection_ref = data.connection;
+    request.connection_ref = { type: 'rhai', secret_name: data.connection };
   }
   if (data.labels.length > 0) {
     request.labels = data.labels;
@@ -98,7 +98,7 @@ const buildTableRequest = (data: RegisterDataFormData): CreateGenericTableReques
   }
   if (data.connection) {
     // eslint-disable-next-line camelcase
-    request.connection_ref = data.connection;
+    request.connection_ref = { type: 'rhai', secret_name: data.connection };
   }
   if (data.labels.length > 0) {
     request.labels = data.labels;
