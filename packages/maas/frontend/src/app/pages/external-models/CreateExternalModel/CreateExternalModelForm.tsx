@@ -29,7 +29,11 @@ import { APIOptions } from 'mod-arch-core';
 import { z } from 'zod';
 import { createExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
-import { CreateExternalModelRequest, ExternalProvider, ProviderRef } from '~/app/types/external-models';
+import {
+  CreateExternalModelRequest,
+  ExternalProvider,
+  ProviderRef,
+} from '~/app/types/external-models';
 import AddProviderReferenceWizard from './AddProviderReferenceWizard';
 import EditProviderReferenceModal from './EditProviderReferenceModal';
 import ProviderReferencesTable from './ProviderReferencesTable';

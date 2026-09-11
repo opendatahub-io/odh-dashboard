@@ -61,10 +61,10 @@ export const extractPathPlaceholders = (path: string): string[] => {
 };
 
 export const mergeProviderReferenceConfig = (
-  inheritedConfig: Record<string, string> = {},
   configPairs: ConfigPair[],
+  inheritedConfig?: Record<string, string>,
 ): Record<string, string> => {
-  const merged = { ...inheritedConfig };
+  const merged = { ...(inheritedConfig ?? {}) };
   configPairs.forEach((pair) => {
     const key = pair.key.trim();
     if (key) {
@@ -98,7 +98,7 @@ export const validateProviderReferencePathPlaceholders = (
     return undefined;
   }
 
-  const mergedConfig = mergeProviderReferenceConfig(inheritedConfig, configPairs);
+  const mergedConfig = mergeProviderReferenceConfig(configPairs, inheritedConfig);
   const missingPlaceholders = getMissingPathPlaceholders(trimmedPath, mergedConfig);
   if (missingPlaceholders.length === 0) {
     return undefined;
@@ -112,7 +112,11 @@ export const validateProviderRefPathPlaceholders = (
   inheritedConfig?: Record<string, string>,
   modelConfig?: Record<string, string>,
 ): string | undefined =>
-  validateProviderReferencePathPlaceholders(path, inheritedConfig, recordToConfigPairs(modelConfig));
+  validateProviderReferencePathPlaceholders(
+    path,
+    inheritedConfig,
+    recordToConfigPairs(modelConfig),
+  );
 
 export const PROVIDER_REFERENCE_API_FORMATS = {
   'openai-chat': {
