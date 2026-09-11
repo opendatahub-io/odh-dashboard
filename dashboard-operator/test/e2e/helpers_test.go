@@ -4,13 +4,13 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	dashboardv1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	"github.com/opendatahub-io/odh-platform-utilities/api/common/validation"
-	"github.com/opendatahub-io/odh-platform-utilities/framework/utils/test/matchers/jq"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -18,11 +18,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//nolint:unused // Shared E2E framework constants are consumed by follow-up scenario stories.
 const (
 	e2eFieldOwner     = "dashboard-operator-e2e"
 	e2eManagedByKey   = "app.kubernetes.io/managed-by"
@@ -30,7 +30,6 @@ const (
 	e2eCleanupTimeout = 5 * time.Minute
 )
 
-//nolint:unused // Shared E2E helper for follow-up scenario stories.
 func waitForCondition(
 	c client.Client,
 	name string,
@@ -90,6 +89,16 @@ func waitForDeploymentReady(c client.Client, namespace, name string, timeout tim
 				return false, err
 			}
 
+			desiredReplicas := int32(1)
+			if deployment.Spec.Replicas != nil {
+				desiredReplicas = *deployment.Spec.Replicas
+			}
+			if deployment.Status.ObservedGeneration < deployment.Generation ||
+				deployment.Status.UpdatedReplicas != desiredReplicas ||
+				deployment.Status.ReadyReplicas != desiredReplicas {
+				return false, nil
+			}
+
 			for _, condition := range deployment.Status.Conditions {
 				if condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
 					return true, nil
@@ -106,11 +115,19 @@ func waitForDeploymentReady(c client.Client, namespace, name string, timeout tim
 	return nil
 }
 
-//nolint:unused // Shared E2E helper for follow-up scenario stories.
-func applyDashboardCR(c client.Client, spec dashboardv1alpha1.DashboardSpec) error {
+func applyDashboardCR(c client.Client, spec dashboardv1alpha1.DashboardSpec) (types.UID, error) {
+	ctx := context.Background()
+	key := client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}
+	existing := &dashboardv1alpha1.Dashboard{}
+	if err := c.Get(ctx, key, existing); err == nil {
+		return "", fmt.Errorf("refuse to apply Dashboard %q because it already exists", key.Name)
+	} else if !apierrors.IsNotFound(err) {
+		return "", fmt.Errorf("check for existing Dashboard %q: %w", key.Name, err)
+	}
+
 	specObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&spec)
 	if err != nil {
-		return fmt.Errorf("convert Dashboard spec for server-side apply: %w", err)
+		return "", fmt.Errorf("convert Dashboard spec for server-side apply: %w", err)
 	}
 
 	dashboard := &unstructured.Unstructured{
@@ -129,18 +146,29 @@ func applyDashboardCR(c client.Client, spec dashboardv1alpha1.DashboardSpec) err
 	applyConfiguration := client.ApplyConfigurationFromUnstructured(dashboard)
 
 	if err := c.Apply(
-		context.Background(),
+		ctx,
 		applyConfiguration,
 		client.FieldOwner(e2eFieldOwner),
 	); err != nil {
-		return fmt.Errorf("server-side apply Dashboard %q: %w", dashboard.GetName(), err)
+		return "", fmt.Errorf("server-side apply Dashboard %q: %w", dashboard.GetName(), err)
 	}
 
-	return nil
+	created := &dashboardv1alpha1.Dashboard{}
+	if err := c.Get(ctx, key, created); err != nil {
+		return "", fmt.Errorf("get applied Dashboard %q: %w", key.Name, err)
+	}
+	if created.Labels[e2eManagedByKey] != e2eFieldOwner {
+		return "", fmt.Errorf("applied Dashboard %q is missing the E2E ownership label", key.Name)
+	}
+
+	return created.UID, nil
 }
 
-//nolint:unused // Shared E2E helper for follow-up scenario stories.
-func cleanupDashboardCR(c client.Client) error {
+func cleanupDashboardCR(c client.Client, expectedUID types.UID) error {
+	if expectedUID == "" {
+		return errors.New("refuse to clean up Dashboard without its expected UID")
+	}
+
 	ctx := context.Background()
 	dashboard := &dashboardv1alpha1.Dashboard{}
 	key := client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}
@@ -160,10 +188,16 @@ func cleanupDashboardCR(c client.Client) error {
 			e2eFieldOwner,
 		)
 	}
+	if dashboard.UID != expectedUID {
+		return fmt.Errorf(
+			"refuse to delete Dashboard %q with UID %q; expected UID %q",
+			key.Name,
+			dashboard.UID,
+			expectedUID,
+		)
+	}
 
-	uid := dashboard.UID
-	resourceVersion := dashboard.ResourceVersion
-	preconditions := client.Preconditions{UID: &uid, ResourceVersion: &resourceVersion}
+	preconditions := client.Preconditions{UID: &expectedUID}
 	if err := c.Delete(ctx, dashboard, preconditions); err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("delete Dashboard %q: %w", key.Name, err)
 	}
@@ -227,55 +261,12 @@ func waitForServiceEndpoints(c client.Client, namespace, name string, timeout ti
 }
 
 //nolint:unused // Shared E2E helper for follow-up scenario stories.
-func assertJQMatch(t *testing.T, actual any, expression string, args ...any) {
+func assertJQMatch(t *testing.T, actual any, expression string) {
 	t.Helper()
 
-	matched, failureMessage := evaluateJQMatch(actual, expression, args...)
+	matched, failureMessage := evaluateJQMatch(actual, expression)
 	if !matched {
 		t.Fatal(failureMessage)
-	}
-}
-
-func evaluateJQMatch(actual any, expression string, args ...any) (bool, string) {
-	matcher := jq.Match(expression, args...)
-	matched, err := matcher.Match(actual)
-	if err != nil {
-		return false, "failed to evaluate JQ assertion"
-	}
-	if !matched {
-		return false, "JQ assertion did not match"
-	}
-
-	return true, ""
-}
-
-func TestEvaluateJQMatchRedactsSensitiveValues(t *testing.T) {
-	testCases := []struct {
-		name       string
-		actual     any
-		expression string
-		sensitive  string
-	}{
-		{
-			name:       "mismatch",
-			actual:     map[string]any{"token": "secret-token"},
-			expression: `.token == "different-token"`,
-			sensitive:  "secret-token",
-		},
-		{
-			name:       "evaluation error",
-			actual:     "secret-token",
-			expression: `.token == "ready"`,
-			sensitive:  "secret-token",
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			matched, failureMessage := evaluateJQMatch(testCase.actual, "%s", testCase.expression)
-			require.False(t, matched)
-			require.NotContains(t, failureMessage, testCase.sensitive)
-		})
 	}
 }
 

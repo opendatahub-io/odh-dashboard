@@ -18,6 +18,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 const (
@@ -127,6 +128,7 @@ func newE2EScheme() (*runtime.Scheme, error) {
 		{name: "Kubernetes", addToScheme: clientgoscheme.AddToScheme},
 		{name: "apiextensions", addToScheme: apiextensionsv1.AddToScheme},
 		{name: "Dashboard", addToScheme: dashboardv1alpha1.AddToScheme},
+		{name: "Gateway API", addToScheme: gatewayv1.Install},
 	}
 	for _, registration := range registrations {
 		if err := registration.addToScheme(scheme); err != nil {

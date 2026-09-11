@@ -14,6 +14,8 @@ delete that singleton resource.
 - A cluster with dashboard-operator and the Dashboard CRD installed.
 - The platform controller that normally creates `default-dashboard` scaled down
   for lifecycle scenarios, so it cannot recreate the singleton during cleanup.
+- No existing `default-dashboard` for the lifecycle scenario. The apply helper
+  refuses to adopt or modify an existing singleton.
 - A dedicated, existing namespace for namespaced test resources.
 - A kubeconfig stored in one file.
 - RBAC to get the test Namespace and Dashboard CRD; get, create, patch, and
@@ -42,13 +44,13 @@ Pass standard `go test` options through `E2E_TEST_ARGS`, including a selective
 test run:
 
 ```bash
-make test-e2e E2E_TEST_ARGS='-run TestE2EOperand'
+make test-e2e E2E_TEST_ARGS='-run TestE2EDashboardLifecycle'
 ```
 
 The equivalent direct command is:
 
 ```bash
-go test -v -count=1 -tags=e2e -timeout=30m -run TestE2EOperand ./test/e2e/...
+go test -v -count=1 -tags=e2e -timeout=30m -run TestE2EDashboardLifecycle ./test/e2e/...
 ```
 
 ## Compile and Run in a Container
@@ -64,7 +66,7 @@ kubeconfig, set both required environment variables, and run it with standard
 testing flags:
 
 ```bash
-./bin/e2e.test -test.v -test.run TestE2EOperand
+./bin/e2e.test -test.v -test.run TestE2EDashboardLifecycle
 ```
 
 Embed small fixtures with `//go:embed`, or mount them at a path supplied by an
@@ -84,11 +86,12 @@ helpers for:
 - matching unstructured Kubernetes data with JQ expressions; and
 - validating the Dashboard platform contract.
 
-The apply helper uses the `dashboard-operator-e2e` field manager and does not
-force ownership. Conflicts with fields owned by another manager fail the test.
-The cleanup helper refuses to delete a Dashboard unless it carries the E2E
-ownership label applied by the framework. A test that applies the Dashboard
-must register cleanup immediately and surface cleanup failures.
+The apply helper refuses to modify a pre-existing singleton, uses the
+`dashboard-operator-e2e` field manager, and does not force ownership. Conflicts
+with fields owned by another manager fail the test. It returns the UID of the
+Dashboard it created; cleanup requires that UID and refuses to delete a
+different or unlabeled object. A test that applies the Dashboard must register
+cleanup immediately and surface cleanup failures.
 
 Keep each scenario independent and runnable with `-run`. Tests must wait for
 observable conditions instead of sleeping, clean up resources they own, and
