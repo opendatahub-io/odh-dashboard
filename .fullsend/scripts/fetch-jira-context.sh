@@ -100,9 +100,9 @@ def snapshot_from_issue(data, key):
 title = os.environ.get("REVIEW_PR_TITLE") or ""
 body = os.environ.get("REVIEW_PR_BODY") or ""
 key = pick_key(title, body)
-base = (os.environ.get("JIRA_URL") or "").rstrip("/")
-user = os.environ.get("JIRA_USERNAME") or ""
-token = os.environ.get("JIRA_API_TOKEN") or ""
+base = (os.environ.get("FULLSEND_ADAPTER_URL") or os.environ.get("JIRA_URL") or "").rstrip("/")
+user = os.environ.get("FULLSEND_ADAPTER_USERNAME") or os.environ.get("JIRA_USERNAME") or ""
+token = os.environ.get("FULLSEND_ADAPTER_TOKEN") or os.environ.get("JIRA_API_TOKEN") or ""
 
 if os.environ.get("FULLSEND_JIRA_SNAPSHOT_READY") == "1" and dest.is_file():
     allowed = {

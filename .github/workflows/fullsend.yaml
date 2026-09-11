@@ -1,6 +1,6 @@
-# Based on the Fullsend-managed scaffold, with repository-owned Jira context
-# preparation for Jira-aware PR reviews. Keep this extension in sync with the
-# upstream scaffold when Fullsend is upgraded.
+# Based on the Fullsend-managed scaffold, with registry-driven host-adapter
+# preparation for PR reviews. Keep this extension in sync with the upstream
+# scaffold when Fullsend is upgraded.
 # Upstream: https://github.com/fullsend-ai/fullsend/blob/main/internal/scaffold/fullsend-repo/.github/workflows/fullsend.yaml
 ---
 # fullsend shim workflow (per-repo installation mode)
@@ -10,8 +10,9 @@
 #
 # Security: pull_request_target runs the BASE branch version of this workflow,
 # preventing PRs from modifying it to exfiltrate credentials.
-# This shim never checks out PR code, so it is not vulnerable to "pwn request"
-# attacks.
+# The dispatch shim never checks out PR code. Registered host adapters may opt
+# into an isolated, credential-scoped PR checkout; only their normalized JSON
+# artifacts cross into the review job.
 #
 # Routing: this shim forwards the raw event context to reusable-dispatch.yml,
 # which determines the stage and runs the agent inline (ADR 62).
@@ -34,8 +35,8 @@ on:
 permissions: {}
 
 jobs:
-  jira-context:
-    name: Prepare Jira review context
+  adapter-plan:
+    name: Plan host adapters
     if: >-
       (github.event_name == 'pull_request_target'
        && contains(github.event.pull_request.labels.*.name, 'fullsend')
@@ -53,6 +54,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+    outputs:
+      matrix: ${{ steps.adapters.outputs.matrix }}
     steps:
       - name: Checkout trusted review integration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -60,53 +63,42 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
           persist-credentials: false
 
-      - name: Fetch sanitized Jira snapshot
+      - name: Build adapter matrix from registry
+        id: adapters
         env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_ACTIONS: "true"
-          JIRA_URL: ${{ secrets.JIRA_URL }}
-          JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-          REPO_FULL_NAME: ${{ github.repository }}
-          EVENT_PR_BODY: ${{ github.event.pull_request.body }}
-          EVENT_PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
-          export REVIEW_PR_TITLE="${EVENT_PR_TITLE}"
-          export REVIEW_PR_BODY="${EVENT_PR_BODY}"
-          if [[ -z "${REVIEW_PR_TITLE}" || -z "${REVIEW_PR_BODY}" ]]; then
-            PR_JSON="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json title,body)"
-            export REVIEW_PR_TITLE="$(jq -r '.title // empty' <<<"${PR_JSON}")"
-            export REVIEW_PR_BODY="$(jq -r '.body // empty' <<<"${PR_JSON}")"
-          fi
-          bash .fullsend/scripts/fetch-jira-context.sh
+          bash .fullsend/scripts/pre-review.sh --validate-adapters
+          matrix="$(jq -c --arg pr_number "${PR_NUMBER}" '
+            {
+              include: [
+                .dimensions[]
+                | select(.kind == "cli-adapter")
+                | {
+                    id,
+                    runner,
+                    producer_file,
+                    artifact_name: (.host.artifact_name | gsub("\\{pr_number\\}"; $pr_number)),
+                    artifact_file: .host.artifact_file,
+                    checkout_pr: .host.checkout_pr,
+                    setup_runner: .host.setup_runner,
+                    url_secret: .host.credentials.url_secret,
+                    username_secret: .host.credentials.username_secret,
+                    token_secret: .host.credentials.token_secret
+                  }
+              ]
+            }
+          ' .fullsend/dimensions.json)"
+          echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
 
-      - name: Upload sanitized Jira snapshot
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: fullsend-jira-context-${{ github.event.pull_request.number || github.event.issue.number }}
-          path: .fullsend/.run/jira.json
-          if-no-files-found: error
-          include-hidden-files: true
-          retention-days: 1
-
-  coderabbit-context:
-    name: Prepare CodeRabbit review context
-    if: >-
-      (github.event_name == 'pull_request_target'
-       && contains(github.event.pull_request.labels.*.name, 'fullsend')
-       && (github.event.action == 'opened'
-        || github.event.action == 'synchronize'
-        || github.event.action == 'ready_for_review'
-        || github.event.action == 'labeled'))
-      || (github.event_name == 'pull_request_review'
-       && contains(github.event.pull_request.labels.*.name, 'fullsend'))
-      || (github.event_name == 'issue_comment'
-       && github.event.issue.pull_request
-       && github.event.comment.user.type != 'Bot'
-       && github.event.comment.body == '/fs-review')
+  adapter-context:
+    name: Prepare ${{ matrix.id }} context
+    needs: adapter-plan
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.adapter-plan.outputs.matrix) }}
     permissions:
       contents: read
       pull-requests: read
@@ -117,7 +109,7 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
           persist-credentials: false
 
-      - name: Resolve pull request revisions
+      - name: Resolve pull request context
         id: revisions
         env:
           GH_TOKEN: ${{ github.token }}
@@ -135,53 +127,56 @@ jobs:
           echo "base_sha=${BASE_SHA}" >> "${GITHUB_OUTPUT}"
           echo "head_sha=${HEAD_SHA}" >> "${GITHUB_OUTPUT}"
 
-      - name: Checkout pull request for CodeRabbit
-        # CodeRabbit reads the untrusted checkout but never executes repository
-        # scripts. The only output passed to Fullsend is the normalized artifact.
+      - name: Checkout pull request for adapter
+        if: ${{ matrix.checkout_pr }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.revisions.outputs.head_sha }}
-          path: coderabbit-target
+          path: adapter-target
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Install pinned CodeRabbit CLI
+      - name: Set up adapter
+        if: ${{ matrix.setup_runner != '' }}
         env:
-          CODERABBIT_VERSION: "0.7.6"
-          CODERABBIT_INSTALL_DIR: ${{ runner.temp }}/coderabbit-bin
-          # Update this digest deliberately when upgrading the installer or CLI.
-          CODERABBIT_INSTALLER_SHA256: "d7750952836a5082986e9168e1858d2871ae2d0bf929cf8ea607ac33a17ab8db"
-          CI: "true"
+          ADAPTER_SETUP_RUNNER: ${{ matrix.setup_runner }}
+        run: bash ".fullsend/${ADAPTER_SETUP_RUNNER}"
+
+      - name: Run registered adapter
+        env:
+          FULLSEND_ADAPTER_URL: ${{ secrets[matrix.url_secret] }}
+          FULLSEND_ADAPTER_USERNAME: ${{ secrets[matrix.username_secret] }}
+          FULLSEND_ADAPTER_TOKEN: ${{ secrets[matrix.token_secret] }}
+          FULLSEND_ADAPTER_TARGET_REPO: ${{ matrix.checkout_pr && format('{0}/adapter-target', github.workspace) || '' }}
+          FULLSEND_ADAPTER_BASE_SHA: ${{ steps.revisions.outputs.base_sha }}
+          ADAPTER_RUNNER: ${{ matrix.runner }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REPO_FULL_NAME: ${{ github.repository }}
+          EVENT_PR_BODY: ${{ github.event.pull_request.body }}
+          EVENT_PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
-          export CODERABBIT_VERSION CODERABBIT_INSTALL_DIR CI
-          installer="${RUNNER_TEMP}/coderabbit-install.sh"
-          curl -fsSL https://cli.coderabbit.ai/install.sh -o "${installer}"
-          echo "${CODERABBIT_INSTALLER_SHA256}  ${installer}" | sha256sum --check --status
-          bash "${installer}"
-          installed_version="$("${CODERABBIT_INSTALL_DIR}/coderabbit" --version | head -n 1)"
-          [[ "${installed_version}" == *"${CODERABBIT_VERSION}"* ]]
+          export REVIEW_PR_TITLE="${EVENT_PR_TITLE}"
+          export REVIEW_PR_BODY="${EVENT_PR_BODY}"
+          if [[ -z "${REVIEW_PR_TITLE}" || -z "${REVIEW_PR_BODY}" ]]; then
+            PR_JSON="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json title,body)"
+            export REVIEW_PR_TITLE="$(jq -r '.title // empty' <<<"${PR_JSON}")"
+            export REVIEW_PR_BODY="$(jq -r '.body // empty' <<<"${PR_JSON}")"
+          fi
+          bash ".fullsend/${ADAPTER_RUNNER}"
 
-      - name: Fetch sanitized CodeRabbit findings
-        env:
-          CODERABBIT_API_KEY: ${{ secrets.CODERABBIT_API_KEY }}
-          CODERABBIT_BIN: ${{ runner.temp }}/coderabbit-bin/coderabbit
-          CODERABBIT_TARGET_REPO: ${{ github.workspace }}/coderabbit-target
-          CODERABBIT_BASE_SHA: ${{ steps.revisions.outputs.base_sha }}
-        run: bash .fullsend/scripts/fetch-coderabbit-context.sh
-
-      - name: Upload sanitized CodeRabbit findings
+      - name: Upload sanitized adapter output
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: fullsend-coderabbit-context-${{ github.event.pull_request.number || github.event.issue.number }}
-          path: |
-            .fullsend/.run/coderabbit.json
+          name: ${{ matrix.artifact_name }}
+          path: .fullsend/${{ matrix.producer_file }}
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
 
   dispatch:
-    needs: [jira-context, coderabbit-context]
+    needs: [adapter-plan, adapter-context]
     if: >-
       always()
       && (github.event_name != 'pull_request_target' && github.event_name != 'pull_request_review'

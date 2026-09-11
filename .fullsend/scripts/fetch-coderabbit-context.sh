@@ -105,32 +105,37 @@ normalize_stream() {
 }
 
 run_producer() {
-  local raw exit_code
+  local raw exit_code api_key coderabbit_bin target_repo base_sha
   raw="$(mktemp)"
   trap 'rm -f "${raw}"' RETURN
 
-  if [[ -z "${CODERABBIT_API_KEY:-}" ]]; then
+  api_key="${FULLSEND_ADAPTER_TOKEN:-${CODERABBIT_API_KEY:-}}"
+  coderabbit_bin="${FULLSEND_ADAPTER_BIN:-${CODERABBIT_BIN:-}}"
+  target_repo="${FULLSEND_ADAPTER_TARGET_REPO:-${CODERABBIT_TARGET_REPO:-}}"
+  base_sha="${FULLSEND_ADAPTER_BASE_SHA:-${CODERABBIT_BASE_SHA:-}}"
+
+  if [[ -z "${api_key}" ]]; then
     write_envelope "skipped" "api-key-unset"
     return 0
   fi
-  if [[ ! -x "${CODERABBIT_BIN:-}" ]]; then
+  if [[ ! -x "${coderabbit_bin}" ]]; then
     write_envelope "error" "cli-unavailable"
     return 0
   fi
-  if [[ ! -d "${CODERABBIT_TARGET_REPO:-}" ]] || ! git -C "${CODERABBIT_TARGET_REPO}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [[ ! -d "${target_repo}" ]] || ! git -C "${target_repo}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     write_envelope "error" "target-repository-unavailable"
     return 0
   fi
-  if [[ ! "${CODERABBIT_BASE_SHA:-}" =~ ^[0-9a-f]{40}$ ]]; then
+  if [[ ! "${base_sha}" =~ ^[0-9a-f]{40}$ ]]; then
     write_envelope "error" "base-revision-invalid"
     return 0
   fi
 
   set +e
-  timeout 20m "${CODERABBIT_BIN}" review --agent \
-    --dir "${CODERABBIT_TARGET_REPO}" \
-    --base-commit "${CODERABBIT_BASE_SHA}" \
-    --api-key "${CODERABBIT_API_KEY}" > "${raw}" 2>/dev/null
+  timeout 20m "${coderabbit_bin}" review --agent \
+    --dir "${target_repo}" \
+    --base-commit "${base_sha}" \
+    --api-key "${api_key}" > "${raw}" 2>/dev/null
   exit_code=$?
   set -e
 
@@ -176,6 +181,10 @@ run_self_test() {
   ' "${_OUT}" >/dev/null
   write_envelope "skipped" "api-key-unset"
   jq -e '.status == "skipped" and .reason == "api-key-unset"' "${_OUT}" >/dev/null
+  FULLSEND_ADAPTER_TOKEN='test-token' \
+  FULLSEND_ADAPTER_BIN="${temp_dir}/missing-coderabbit" \
+    run_producer
+  jq -e '.status == "error" and .reason == "cli-unavailable"' "${_OUT}" >/dev/null
   echo "PASS CodeRabbit context normalization"
 }
 
