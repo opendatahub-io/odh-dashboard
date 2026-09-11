@@ -127,7 +127,7 @@ export const normalizeEnvironmentVariable = (
   return {
     type: EnvironmentVariableType.Value,
     name: envVar.name,
-    value: envVar.value ?? '',
+    value: 'value' in envVar ? envVar.value ?? '' : '',
   };
 };
 
