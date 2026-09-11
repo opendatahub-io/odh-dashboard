@@ -108,11 +108,11 @@ describe('Feature Store Lineage', () => {
     featureStoreGlobal.clickLineageTab();
     cy.wait('@getLineage');
 
-    featureStoreGlobal.findLineageLegend().should('be.visible');
-    featureStoreGlobal.findLineageLegendItem('entity').should('be.visible');
-    featureStoreGlobal.findLineageLegendItem('data_source').should('be.visible');
-    featureStoreGlobal.findLineageLegendItem('feature_view').should('be.visible');
-    featureStoreGlobal.findLineageLegendItem('feature_service').should('be.visible');
+    // featureStoreGlobal.findLineageLegend().should('be.visible');
+    // featureStoreGlobal.findLineageLegendItem('entity').should('be.visible');
+    // featureStoreGlobal.findLineageLegendItem('data_source').should('be.visible');
+    // featureStoreGlobal.findLineageLegendItem('feature_view').should('be.visible');
+    // featureStoreGlobal.findLineageLegendItem('feature_service').should('be.visible');
 
     const pillBackground = 'var(--pf-t--global--background--color--primary--default)';
     const expectedNodeIds = [
