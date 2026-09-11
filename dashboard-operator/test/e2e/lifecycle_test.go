@@ -23,7 +23,7 @@ func TestE2EDashboardLifecycle(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	uid, err := applyDashboardCR(k8sClient, dashboardv1alpha1.DashboardSpec{
+	uid, err := createDashboardCR(k8sClient, dashboardv1alpha1.DashboardSpec{
 		ManagementSpec: common.ManagementSpec{ManagementState: common.Removed},
 	})
 	require.NoError(t, err)

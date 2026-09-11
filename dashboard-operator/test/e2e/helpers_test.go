@@ -16,8 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -115,53 +113,33 @@ func waitForDeploymentReady(c client.Client, namespace, name string, timeout tim
 	return nil
 }
 
-func applyDashboardCR(c client.Client, spec dashboardv1alpha1.DashboardSpec) (types.UID, error) {
+func createDashboardCR(c client.Client, spec dashboardv1alpha1.DashboardSpec) (types.UID, error) {
 	ctx := context.Background()
-	key := client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}
-	existing := &dashboardv1alpha1.Dashboard{}
-	if err := c.Get(ctx, key, existing); err == nil {
-		return "", fmt.Errorf("refuse to apply Dashboard %q because it already exists", key.Name)
-	} else if !apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("check for existing Dashboard %q: %w", key.Name, err)
-	}
-
-	specObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&spec)
-	if err != nil {
-		return "", fmt.Errorf("convert Dashboard spec for server-side apply: %w", err)
-	}
-
-	dashboard := &unstructured.Unstructured{
-		Object: map[string]any{
-			"apiVersion": dashboardv1alpha1.GroupVersion.String(),
-			"kind":       dashboardv1alpha1.DashboardKind,
-			"metadata": map[string]any{
-				"name": dashboardv1alpha1.DashboardInstanceName,
-				"labels": map[string]any{
-					e2eManagedByKey: e2eFieldOwner,
-				},
-			},
-			"spec": specObject,
+	dashboard := &dashboardv1alpha1.Dashboard{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: dashboardv1alpha1.GroupVersion.String(),
+			Kind:       dashboardv1alpha1.DashboardKind,
 		},
-	}
-	applyConfiguration := client.ApplyConfigurationFromUnstructured(dashboard)
-
-	if err := c.Apply(
-		ctx,
-		applyConfiguration,
-		client.FieldOwner(e2eFieldOwner),
-	); err != nil {
-		return "", fmt.Errorf("server-side apply Dashboard %q: %w", dashboard.GetName(), err)
+		ObjectMeta: metav1.ObjectMeta{
+			Name: dashboardv1alpha1.DashboardInstanceName,
+			Labels: map[string]string{
+				e2eManagedByKey: e2eFieldOwner,
+			},
+		},
+		Spec: spec,
 	}
 
-	created := &dashboardv1alpha1.Dashboard{}
-	if err := c.Get(ctx, key, created); err != nil {
-		return "", fmt.Errorf("get applied Dashboard %q: %w", key.Name, err)
+	if err := c.Create(ctx, dashboard); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return "", fmt.Errorf("refuse to create Dashboard %q because it already exists", dashboard.Name)
+		}
+		return "", fmt.Errorf("create Dashboard %q: %w", dashboard.Name, err)
 	}
-	if created.Labels[e2eManagedByKey] != e2eFieldOwner {
-		return "", fmt.Errorf("applied Dashboard %q is missing the E2E ownership label", key.Name)
+	if dashboard.UID == "" {
+		return "", fmt.Errorf("created Dashboard %q has no UID", dashboard.Name)
 	}
 
-	return created.UID, nil
+	return dashboard.UID, nil
 }
 
 func cleanupDashboardCR(c client.Client, expectedUID types.UID) error {

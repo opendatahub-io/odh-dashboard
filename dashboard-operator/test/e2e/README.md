@@ -14,7 +14,7 @@ delete that singleton resource.
 - A cluster with dashboard-operator and the Dashboard CRD installed.
 - The platform controller that normally creates `default-dashboard` scaled down
   for lifecycle scenarios, so it cannot recreate the singleton during cleanup.
-- No existing `default-dashboard` for the lifecycle scenario. The apply helper
+- No existing `default-dashboard` for the lifecycle scenario. The create helper
   refuses to adopt or modify an existing singleton.
 - A dedicated, existing namespace for namespaced test resources.
 - A kubeconfig stored in one file.
@@ -80,18 +80,16 @@ helpers for:
 
 - waiting for a Dashboard condition;
 - waiting for an available Deployment;
-- applying the singleton Dashboard through server-side apply;
+- creating the singleton Dashboard atomically;
 - deleting an E2E-owned Dashboard and waiting for its removal;
 - waiting for ready Service Endpoints;
 - matching unstructured Kubernetes data with JQ expressions; and
 - validating the Dashboard platform contract.
 
-The apply helper refuses to modify a pre-existing singleton, uses the
-`dashboard-operator-e2e` field manager, and does not force ownership. Conflicts
-with fields owned by another manager fail the test. It returns the UID of the
-Dashboard it created; cleanup requires that UID and refuses to delete a
-different or unlabeled object. A test that applies the Dashboard must register
-cleanup immediately and surface cleanup failures.
+The create helper atomically creates the singleton and fails if it already
+exists. It returns the API-assigned UID; cleanup requires that UID and refuses
+to delete a different or unlabeled object. A test that creates the Dashboard
+must register cleanup immediately and surface cleanup failures.
 
 Keep each scenario independent and runnable with `-run`. Tests must wait for
 observable conditions instead of sleeping, clean up resources they own, and
