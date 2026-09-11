@@ -5,21 +5,7 @@ import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import fetchNamespaces, { FETCH_TIMEOUT_MS } from './fetchNamespaces';
-/** Local-development fallback when the BFF status endpoint is unavailable. */
-const DEFAULT_DASHBOARD_NAMESPACE = 'opendatahub';
-
-const getDashboardNamespace = (value: unknown): string | undefined => {
-  if (typeof value !== 'object' || value === null || !('kube' in value)) {
-    return undefined;
-  }
-  const { kube } = value;
-  if (typeof kube !== 'object' || kube === null || !('namespace' in kube)) {
-    return undefined;
-  }
-  return typeof kube.namespace === 'string' && kube.namespace.length > 0
-    ? kube.namespace
-    : undefined;
-};
+import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
 const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
 const WAIT_FOR_PROJECT_POLL_MS = 2_000;
@@ -35,10 +21,10 @@ type ProjectsContextProviderProps = {
  * the OpenShift Project watch used by the main ODH frontend.
  */
 const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ children }) => {
+  const dashboardNamespace = React.useContext(DashboardNamespaceContext);
   const [projectData, setProjectData] = React.useState<ProjectKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
-  const [dashboardNamespace, setDashboardNamespace] = React.useState(DEFAULT_DASHBOARD_NAMESPACE);
   const [storedPreferredName, setStoredPreferredName] = useBrowserStorage<string>(
     PREFERRED_NAMESPACE_STORAGE_KEY,
     '',
@@ -77,20 +63,6 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
 
     setLoaded(false);
     void load();
-
-    void fetch('/api/status', { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) {
-          return undefined;
-        }
-        return getDashboardNamespace(await response.json().catch(() => undefined));
-      })
-      .then((namespace) => {
-        if (!unmounted && namespace) {
-          setDashboardNamespace(namespace);
-        }
-      })
-      .catch(() => undefined);
 
     return () => {
       unmounted = true;
