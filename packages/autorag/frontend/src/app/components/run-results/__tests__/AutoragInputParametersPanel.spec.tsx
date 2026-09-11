@@ -128,7 +128,7 @@ describe('AutoragInputParametersPanel', () => {
       },
     });
 
-    expect(screen.getByText('Selected corpus locations')).toBeInTheDocument();
+    expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
     expect(screen.getByText('MaaS connection')).toBeInTheDocument();
     expect(screen.getByText('Vector database connection')).toBeInTheDocument();
     expect(screen.getByText('documents/a.pdf')).toBeInTheDocument();
