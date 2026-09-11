@@ -5,6 +5,7 @@ import (
 
 	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func ptr[T any](v T) *T { return &v }
@@ -239,6 +240,131 @@ func TestConvertToMCPServer_ConfigMapMountedAsFile(t *testing.T) {
 	assert.Equal(t, "/etc/rules", s.Path)
 	assert.Equal(t, "ConfigMap", s.Source.Type)
 	assert.Equal(t, "rules", s.Source.ConfigMap.Name)
+}
+
+func TestConvertToMCPServer_ExplicitStorageOverridesPrerequisiteMount(t *testing.T) {
+	configMap := &corev1.ConfigMapVolumeSource{
+		LocalObjectReference: corev1.LocalObjectReference{Name: "rules"},
+		Items:                []corev1.KeyToPath{{Key: "rules.yaml", Path: "active.yaml"}},
+		DefaultMode:          ptr(int32(0440)),
+	}
+	metadata := &models.McpRuntimeMetadata{
+		Prerequisites: &models.McpPrerequisites{
+			ConfigMaps: []models.McpConfigMapRequirement{
+				{Name: "rules", MountAsFile: ptr(true), MountPath: ptr("/etc/rules")},
+				{Name: "settings", MountAsFile: ptr(true), MountPath: ptr("/etc/settings")},
+			},
+		},
+		Storage: []models.McpStorageMount{
+			{
+				Path:        "/etc/rules",
+				Permissions: "ReadOnly",
+				Source:      models.McpStorageSource{Type: "ConfigMap", ConfigMap: configMap},
+			},
+			{
+				Path:        "/app/logs",
+				Permissions: "ReadWrite",
+				Source:      models.McpStorageSource{Type: "EmptyDir", EmptyDir: &corev1.EmptyDirVolumeSource{}},
+			},
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "storage-override", ContainerImage: "img:v1"})
+
+	assert.Equal(t, []models.MCPStorageMount{
+		{
+			Path:        "/etc/rules",
+			Permissions: "ReadOnly",
+			Source:      models.MCPStorageSource{Type: "ConfigMap", ConfigMap: configMap},
+		},
+		{
+			Path: "/etc/settings",
+			Source: models.MCPStorageSource{
+				Type:      "ConfigMap",
+				ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: "settings"}},
+			},
+		},
+		{
+			Path:        "/app/logs",
+			Permissions: "ReadWrite",
+			Source:      models.MCPStorageSource{Type: "EmptyDir", EmptyDir: &corev1.EmptyDirVolumeSource{}},
+		},
+	}, result.MCPServer.Spec.Config.Storage)
+}
+
+func TestConvertToMCPServer_StorageEmptyDir(t *testing.T) {
+	metadata := &models.McpRuntimeMetadata{
+		Storage: []models.McpStorageMount{
+			{
+				Path:        "/app/logs",
+				Permissions: "ReadWrite",
+				Source: models.McpStorageSource{
+					Type:     "EmptyDir",
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "storage-test", ContainerImage: "img:v1"})
+
+	assert.Len(t, result.MCPServer.Spec.Config.Storage, 1)
+	s := result.MCPServer.Spec.Config.Storage[0]
+	assert.Equal(t, "/app/logs", s.Path)
+	assert.Equal(t, "ReadWrite", s.Permissions)
+	assert.Equal(t, "EmptyDir", s.Source.Type)
+	assert.NotNil(t, s.Source.EmptyDir)
+}
+
+func TestConvertToMCPServer_RequiresFileSystemAddsTmpEmptyDir(t *testing.T) {
+	metadata := &models.McpRuntimeMetadata{
+		Capabilities: &models.McpRuntimeMetadataCapabilities{
+			RequiresFileSystem: ptr(true),
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "fs-test", ContainerImage: "img:v1"})
+
+	assert.Len(t, result.MCPServer.Spec.Config.Storage, 1)
+	s := result.MCPServer.Spec.Config.Storage[0]
+	assert.Equal(t, "/tmp", s.Path)
+	assert.Equal(t, "ReadWrite", s.Permissions)
+	assert.Equal(t, "EmptyDir", s.Source.Type)
+	assert.NotNil(t, s.Source.EmptyDir)
+}
+
+func TestConvertToMCPServer_RequiresFileSystemDoesNotDuplicateExplicitTmp(t *testing.T) {
+	metadata := &models.McpRuntimeMetadata{
+		Capabilities: &models.McpRuntimeMetadataCapabilities{
+			RequiresFileSystem: ptr(true),
+		},
+		Storage: []models.McpStorageMount{
+			{
+				Path:        "/tmp",
+				Permissions: "ReadWrite",
+				Source: models.McpStorageSource{
+					Type:     "EmptyDir",
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "fs-dup-test", ContainerImage: "img:v1"})
+
+	assert.Len(t, result.MCPServer.Spec.Config.Storage, 1, "explicit /tmp mount should not be duplicated")
+}
+
+func TestConvertToMCPServer_RequiresFileSystemFalseAddsNoStorage(t *testing.T) {
+	metadata := &models.McpRuntimeMetadata{
+		Capabilities: &models.McpRuntimeMetadataCapabilities{
+			RequiresFileSystem: ptr(false),
+		},
+	}
+
+	result := ConvertToMCPServer(metadata, ConversionOptions{Name: "fs-off-test", ContainerImage: "img:v1"})
+
+	assert.Empty(t, result.MCPServer.Spec.Config.Storage)
 }
 
 func TestConvertToMCPServer_NilMetadata(t *testing.T) {

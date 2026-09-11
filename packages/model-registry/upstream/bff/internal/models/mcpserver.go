@@ -57,6 +57,7 @@ type MCPStorageSource struct {
 	Type      string                        `json:"type" yaml:"type"`
 	ConfigMap *corev1.ConfigMapVolumeSource `json:"configMap,omitempty" yaml:"configmap,omitempty"`
 	Secret    *corev1.SecretVolumeSource    `json:"secret,omitempty" yaml:"secret,omitempty"`
+	EmptyDir  *corev1.EmptyDirVolumeSource  `json:"emptyDir,omitempty" yaml:"emptydir,omitempty"`
 }
 
 type MCPRuntimeSpec struct {
