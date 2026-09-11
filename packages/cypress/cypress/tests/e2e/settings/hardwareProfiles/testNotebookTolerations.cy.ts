@@ -72,10 +72,7 @@ describe('Notebooks - tolerations tests', () => {
 
       // Select an Hardware Profile
       cy.step('Select the hardware profile');
-      notebookServer.selectPotentiallyDisabledProfile(
-        testData.hardwareProfileDeploymentSize,
-        testData.hardwareProfileName,
-      );
+      notebookServer.selectPotentiallyDisabledProfile(testData.hardwareProfileName);
 
       // Verify that 'Start Server button' is enabled
       cy.step('Check Start server button is enabled');
