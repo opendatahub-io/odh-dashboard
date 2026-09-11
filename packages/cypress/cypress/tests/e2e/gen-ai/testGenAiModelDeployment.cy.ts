@@ -38,7 +38,23 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
           if (existing) {
             projectName = existing;
             cy.log(`Reusing existing project: ${projectName}`);
-            return;
+            return waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME).then(
+              () =>
+                cy
+                  .exec(
+                    `oc get inferenceservices -n ${projectName} -o jsonpath='{.items[?(@.metadata.name=="${genAiTestData.inferenceServiceName}")].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null`,
+                    {
+                      failOnNonZeroExit: false,
+                    },
+                  )
+                  .then((isResult) => {
+                    if (isResult.stdout.trim() === 'True') {
+                      return;
+                    }
+                    cy.step('Deploy Gen AI model via oc commands');
+                    deployGenAiModel(projectName, genAiTestData);
+                  }),
+            );
           }
 
           projectName = `${prefix}-${generateTestUUID()}`;
