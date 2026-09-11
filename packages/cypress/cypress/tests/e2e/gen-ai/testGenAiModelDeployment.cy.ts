@@ -15,7 +15,7 @@ import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
-import { createCleanProject } from '../../../utils/projectChecker';
+import { createCleanProject, findActiveProjectByPrefix } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
@@ -40,29 +40,40 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
       })
       .then(() => {
         const prefix = genAiTestData.projectNamePrefix;
-        return cy
-          .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, {
-            failOnNonZeroExit: false,
-          })
-          .then((result) => {
-            const existing = result.stdout.split(' ').find((name) => name.startsWith(prefix));
-            if (existing) {
-              projectName = existing;
-              cy.log(`Reusing existing project: ${projectName}`);
-              return;
-            }
-
-            projectName = `${prefix}-${generateTestUUID()}`;
-            cy.step(`Create project ${projectName}`);
-            createCleanProject(projectName);
-
+        return findActiveProjectByPrefix(prefix).then((existing) => {
+          if (existing) {
+            projectName = existing;
+            cy.log(`Reusing existing project: ${projectName}`);
             return waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME).then(
-              () => {
-                cy.step('Deploy Gen AI model via oc commands');
-                deployGenAiModel(projectName, genAiTestData);
-              },
+              () =>
+                cy
+                  .exec(
+                    `oc get inferenceservices -n ${projectName} -o jsonpath='{.items[?(@.metadata.name=="${genAiTestData.inferenceServiceName}")].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null`,
+                    {
+                      failOnNonZeroExit: false,
+                    },
+                  )
+                  .then((isResult) => {
+                    if (isResult.stdout.trim() === 'True') {
+                      return;
+                    }
+                    cy.step('Deploy Gen AI model via oc commands');
+                    deployGenAiModel(projectName, genAiTestData);
+                  }),
             );
-          });
+          }
+
+          projectName = `${prefix}-${generateTestUUID()}`;
+          cy.step(`Create project ${projectName}`);
+          createCleanProject(projectName);
+
+          return waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME).then(
+            () => {
+              cy.step('Deploy Gen AI model via oc commands');
+              deployGenAiModel(projectName, genAiTestData);
+            },
+          );
+        });
       });
   });
 

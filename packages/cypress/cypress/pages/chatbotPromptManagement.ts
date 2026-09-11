@@ -1,4 +1,4 @@
-class PromptManagementModal {
+class ChatbotPromptManagementModal {
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-management-modal');
   }
@@ -15,28 +15,12 @@ class PromptManagementModal {
     return cy.findByTestId(`prompt-table-row-${name}`);
   }
 
-  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-table-empty-state');
-  }
-
-  findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-table-error-state');
-  }
-
-  findLoading(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-table-loading');
-  }
-
   findLoadButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-load-button');
   }
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-cancel-button');
-  }
-
-  findPagination(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByLabelText('top pagination');
   }
 
   findProjectPromptsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -48,7 +32,7 @@ class PromptManagementModal {
   }
 }
 
-class PromptDrawer {
+class ChatbotPromptDrawer {
   findPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-drawer-panel');
   }
@@ -60,17 +44,9 @@ class PromptDrawer {
   findTemplate(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-drawer-template');
   }
-
-  findClearSelectionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-drawer-clear-selection');
-  }
-
-  findLoading(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-drawer-loading');
-  }
 }
 
-class CreatePromptModal {
+class ChatbotCreatePromptModal {
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-create-modal');
   }
@@ -79,24 +55,12 @@ class CreatePromptModal {
     return cy.findByTestId('prompt-name-input');
   }
 
-  findVersionField(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-version-field');
-  }
-
-  findTemplateInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-template-input');
-  }
-
   findCommitMessageInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-commit-message-input');
   }
 
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-save-button');
-  }
-
-  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-create-cancel-button');
   }
 
   findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -108,7 +72,7 @@ class CreatePromptModal {
   }
 }
 
-class PromptAssistant {
+class ChatbotPromptAssistant {
   findTextarea(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('system-instructions-input');
   }
@@ -125,20 +89,8 @@ class PromptAssistant {
     return cy.findByTestId('prompt-save-as-button');
   }
 
-  findRevertButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-revert-button');
-  }
-
-  findResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-reset-button');
-  }
-
   findNameTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-name-title');
-  }
-
-  findVersionLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-version-label');
   }
 
   findUnsavedIndicator(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -147,22 +99,6 @@ class PromptAssistant {
 
   findLoadPromptButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('load-prompt-button');
-  }
-
-  findPromptInstructionsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-instructions-section');
-  }
-
-  findSystemInstructionsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('system-instructions-section');
-  }
-
-  findConfirmationModal(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('confirmation-modal');
-  }
-
-  findConfirmationModalConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('confirmation-modal-confirm');
   }
 
   findScopeLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -178,7 +114,7 @@ class PromptAssistant {
   }
 }
 
-export const promptManagementModal = new PromptManagementModal();
-export const promptDrawer = new PromptDrawer();
-export const createPromptModal = new CreatePromptModal();
-export const promptAssistant = new PromptAssistant();
+export const chatbotPromptModal = new ChatbotPromptManagementModal();
+export const chatbotPromptDrawer = new ChatbotPromptDrawer();
+export const chatbotCreatePromptModal = new ChatbotCreatePromptModal();
+export const chatbotPromptAssistant = new ChatbotPromptAssistant();
