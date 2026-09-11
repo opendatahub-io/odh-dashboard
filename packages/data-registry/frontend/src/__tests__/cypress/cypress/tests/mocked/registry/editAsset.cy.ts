@@ -57,7 +57,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should open edit modal and display pre-populated fields', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -75,7 +75,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should edit description and save table', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -99,7 +99,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should clear the purpose when it is removed', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -124,7 +124,7 @@ describe('Edit Table Asset', () => {
       `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/unclassified-data`,
       { body: tableWithoutOptionalMetadataResponse },
     ).as('getTableWithoutOptionalMetadata');
-    cy.visit('/main-view/assets/table/test-project/analytics/unclassified-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/unclassified-data');
     cy.wait('@getTableWithoutOptionalMetadata');
 
     cy.intercept(
@@ -147,7 +147,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should add and remove labels', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -182,7 +182,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should add and remove custom properties', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -214,7 +214,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should display schema section and add a column', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.intercept(
@@ -244,7 +244,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should clear the final custom property', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
     cy.intercept(
       'PATCH',
@@ -263,7 +263,7 @@ describe('Edit Table Asset', () => {
   });
 
   it('should close modal on cancel', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -296,7 +296,7 @@ describe('Edit Volume Asset', () => {
   });
 
   it('should open edit modal for volume with pre-populated fields', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-docs');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -312,7 +312,7 @@ describe('Edit Volume Asset', () => {
   });
 
   it('should edit volume and save', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-docs');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
     cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
@@ -336,7 +336,7 @@ describe('Edit Volume Asset', () => {
   });
 
   it('should preserve the raw content type when only the description changes', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-docs');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
     cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
@@ -358,7 +358,7 @@ describe('Edit Volume Asset', () => {
   });
 
   it('should clear the purpose when it is removed', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-docs');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-docs');
     cy.wait('@getVolume');
 
     cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {

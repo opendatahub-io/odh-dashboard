@@ -1,0 +1,13 @@
+# API paths
+namespacesApi: /api/dr/v1/test-project/namespaces
+assetsApi: /api/dr/v1/test-project/namespaces/default/generic-tables
+collectionsApi: /api/dr/v1/test-project/namespaces
+labelsApi: /api/dr/v1/test-project/labels
+
+# Error messages
+serviceUnavailableMessage: Data Registry service is temporarily unavailable
+accessDeniedMessage: You do not have access to this project in Data Registry.
+connectionFailedMessage: Connection failed
+
+# Test project
+project: test-project
