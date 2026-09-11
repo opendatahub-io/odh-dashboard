@@ -2,8 +2,8 @@
 # Vendored from fullsend-ai/agents scripts/pre-review.sh
 # @ 91f61f3441baedf3f912c9afd4bd574c98793b96 (harness review.yaml base).
 #
-# Local change from the stock script: hydrate trusted Jira and CodeRabbit
-# artifacts. The sandbox receives sanitized context only, never credentials.
+# Local change from the stock script: hydrate registered host-adapter artifacts.
+# The sandbox receives sanitized adapter envelopes only, never credentials.
 #
 # Usage:
 #   pre-review.sh              # CI / harness pre_script
@@ -39,24 +39,132 @@ normalize_dispatch_context() {
   fi
 }
 
-aggregate_findings() {
+validate_adapter_registry() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  local runner setup_runner
+  if ! jq -e '
+    . as $registry |
+    (.dimensions | type == "array") and
+    (([.dimensions[] | select(.kind == "cli-adapter") | .id] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
+    (([.dimensions[] | select(.kind == "cli-adapter") | .producer_file] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
+    (([.dimensions[] | select(.kind == "cli-adapter") | .host.artifact_name] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
+    all(
+      .dimensions[] | select(.kind == "cli-adapter");
+      (.id | type == "string" and test("^[a-z0-9][a-z0-9-]*$")) and
+      (.output == "context" or .output == "findings") and
+      (.runner | type == "string" and test("^scripts/[A-Za-z0-9._/-]+\\.sh$")) and
+      (.producer_file | type == "string" and test("^\\.run/[A-Za-z0-9._-]+\\.json$")) and
+      (.host.artifact_name | type == "string" and test("^[A-Za-z0-9._{}-]+$") and contains("{pr_number}")) and
+      (.host.artifact_file | type == "string" and test("^[A-Za-z0-9._-]+\\.json$")) and
+      (.host.artifact_file == (.producer_file | split("/") | last)) and
+      (.host.checkout_pr | type == "boolean") and
+      (.host.setup_runner | type == "string" and
+        (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
+      all(
+        [.host.credentials.url_secret, .host.credentials.username_secret, .host.credentials.token_secret][];
+        type == "string" and test("^[A-Z][A-Z0-9_]*$")
+      )
+    ) and
+    all(
+      .dimensions[] | select(.context_dimension? != null);
+      .context_dimension as $context_dimension |
+      any(
+        $registry.dimensions[];
+        .kind == "cli-adapter" and .id == $context_dimension and .output == "context"
+      )
+    )
+  ' "${registry}" >/dev/null; then
+    return 1
+  fi
+
+  while IFS=$'\t' read -r runner setup_runner; do
+    [[ -f "${_SCRIPT_DIR}/../${runner}" ]] || return 1
+    [[ -z "${setup_runner}" || -f "${_SCRIPT_DIR}/../${setup_runner}" ]] || return 1
+  done < <(jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter")
+    | [.runner, .host.setup_runner]
+    | @tsv
+  ' "${registry}")
+}
+
+adapter_rows() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter")
+    | [.id, .producer_file, .host.artifact_name, .host.artifact_file, .output]
+    | @tsv
+  ' "${registry}"
+}
+
+aggregate_cli_adapters() {
   local run_dir="${_SCRIPT_DIR}/../.run"
-  local file
+  local id producer_file artifact_template artifact_file declared_output file
   local files=()
 
-  shopt -s nullglob
-  for file in "${run_dir}"/*.json; do
-    [[ "${file}" == "${run_dir}/collected.json" ]] || files+=("${file}")
-  done
-  shopt -u nullglob
+  while IFS=$'\t' read -r id producer_file artifact_template artifact_file declared_output; do
+    file="${_SCRIPT_DIR}/../${producer_file}"
+    [[ -f "${file}" ]] && files+=("${file}")
+  done < <(adapter_rows)
 
   mkdir -p "${run_dir}"
   if ((${#files[@]} == 0)); then
     printf '[]\n' > "${run_dir}/collected.json"
   else
-    jq -s '[.[] | select(.output == "findings" and (.findings | type == "array"))]' \
+    jq -s '[.[] | select(
+      type == "object" and
+      .kind == "cli-adapter" and
+      (.output == "context" or .output == "findings")
+    )]' \
       "${files[@]}" > "${run_dir}/collected.json"
   fi
+}
+
+hydrate_cli_adapters() {
+  local id producer_file artifact_template artifact_file declared_output artifact_name
+  local artifact_dir source_file destination_file
+
+  if ! validate_adapter_registry; then
+    echo "::error::Invalid cli-adapter host metadata in .fullsend/dimensions.json"
+    return 1
+  fi
+
+  while IFS=$'\t' read -r id producer_file artifact_template artifact_file declared_output; do
+    artifact_name="${artifact_template//\{pr_number\}/${PR_NUMBER}}"
+    artifact_dir="$(mktemp -d)"
+    source_file="${artifact_dir}/${artifact_file}"
+    destination_file="${_SCRIPT_DIR}/../${producer_file}"
+    rm -f "${destination_file}"
+
+    if GH_TOKEN="${_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
+      --repo "${REPO_FULL_NAME}" \
+      --name "${artifact_name}" \
+      --dir "${artifact_dir}" >/dev/null 2>&1; then
+      if [[ -f "${source_file}" ]] && jq -e --arg id "${id}" --arg output "${declared_output}" '
+        type == "object" and
+        .id == $id and
+        .dimension == $id and
+        .kind == "cli-adapter" and
+        .output == $output and
+        (.output == "context" or (.output == "findings" and (.findings | type == "array")))
+      ' "${source_file}" >/dev/null; then
+        mkdir -p "$(dirname "${destination_file}")"
+        cp "${source_file}" "${destination_file}"
+        echo "Loaded sanitized ${id} adapter output from workflow artifact ${artifact_name}"
+      else
+        echo "::warning::Adapter artifact ${artifact_name} did not contain a valid ${artifact_file} envelope"
+      fi
+    else
+      echo "::warning::Could not download adapter artifact ${artifact_name}; continuing without ${id}"
+    fi
+    rm -rf "${artifact_dir}"
+  done < <(adapter_rows)
+
+  aggregate_cli_adapters
 }
 
 run_self_test() {
@@ -78,18 +186,29 @@ run_self_test() {
   temp_dir="$(mktemp -d)"
   _SCRIPT_DIR="${temp_dir}/scripts"
   mkdir -p "${_SCRIPT_DIR}/../.run"
-  printf '%s\n' '{"output":"context","findings":[{"severity":"info"}]}' > "${_SCRIPT_DIR}/../.run/jira.json"
-  printf '%s\n' '{"output":"findings","findings":[{"severity":"medium","file":"src/example.ts"}]}' > "${_SCRIPT_DIR}/../.run/coderabbit.json"
-  aggregate_findings
-  if jq -e 'length == 1 and .[0].findings[0].file == "src/example.ts"' \
+  printf '%s\n' '{"dimensions":[{"id":"jira-snapshot","kind":"cli-adapter","output":"context","producer_file":".run/jira.json","host":{"artifact_name":"jira-{pr_number}","artifact_file":"jira.json"}},{"id":"coderabbit","kind":"cli-adapter","output":"findings","producer_file":".run/coderabbit.json","host":{"artifact_name":"coderabbit-{pr_number}","artifact_file":"coderabbit.json"}}]}' > "${_SCRIPT_DIR}/../dimensions.json"
+  printf '%s\n' '{"id":"jira-snapshot","dimension":"jira-snapshot","kind":"cli-adapter","output":"context","status":"ok"}' > "${_SCRIPT_DIR}/../.run/jira.json"
+  printf '%s\n' '{"id":"coderabbit","dimension":"coderabbit","kind":"cli-adapter","output":"findings","status":"ok","findings":[{"severity":"medium","file":"src/example.ts"}]}' > "${_SCRIPT_DIR}/../.run/coderabbit.json"
+  aggregate_cli_adapters
+  if jq -e '
+    length == 2 and
+    (map(select(.output == "context" and .dimension == "jira-snapshot")) | length == 1) and
+    (map(select(.output == "findings" and .dimension == "coderabbit"))[0].findings[0].file == "src/example.ts")
+  ' \
     "${_SCRIPT_DIR}/../.run/collected.json" >/dev/null; then
-    echo "PASS findings aggregation"
+    echo "PASS cli-adapter aggregation"
   else
-    echo "FAIL findings aggregation" >&2
+    echo "FAIL cli-adapter aggregation" >&2
     fail=1
   fi
   _SCRIPT_DIR="${original_script_dir}"
   rm -rf "${temp_dir}"
+  if validate_adapter_registry; then
+    echo "PASS cli-adapter registry validation"
+  else
+    echo "FAIL cli-adapter registry validation" >&2
+    fail=1
+  fi
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -98,6 +217,11 @@ run_self_test() {
 
 if [[ "${1:-}" == "--self-test" ]]; then
   run_self_test
+  exit 0
+fi
+
+if [[ "${1:-}" == "--validate-adapters" ]]; then
+  validate_adapter_registry
   exit 0
 fi
 
@@ -211,52 +335,11 @@ PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
-# The pinned reusable dispatcher currently forwards Jira credentials only to
-# its generic matrix runner, not to the normal review job. The trusted shim
-# therefore fetches Jira before dispatch and uploads only the sanitized JSON
-# snapshot. Hydrate that artifact on the host before CLI producers run; Jira
-# credentials never enter this process or the sandbox.
+# Host adapters run in isolated workflow matrix jobs. Hydrate every registered
+# artifact generically, then copy one collected envelope file into the sandbox;
+# adapter credentials never enter this process or the sandbox.
 if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
-  _JIRA_ARTIFACT="fullsend-jira-context-${PR_NUMBER}"
-  _JIRA_ARTIFACT_DIR="$(mktemp -d)"
-  if GH_TOKEN="${_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
-    --repo "${REPO_FULL_NAME}" \
-    --name "${_JIRA_ARTIFACT}" \
-    --dir "${_JIRA_ARTIFACT_DIR}" >/dev/null 2>&1; then
-    _JIRA_ARTIFACT_FILE="${_JIRA_ARTIFACT_DIR}/jira.json"
-    if [[ -f "${_JIRA_ARTIFACT_FILE}" ]]; then
-      mkdir -p "${_SCRIPT_DIR}/../.run"
-      cp "${_JIRA_ARTIFACT_FILE}" "${_SCRIPT_DIR}/../.run/jira.json"
-      export FULLSEND_JIRA_SNAPSHOT_READY=1
-      echo "Loaded sanitized Jira snapshot from workflow artifact ${_JIRA_ARTIFACT}"
-    else
-      echo "::warning::Jira context artifact did not contain jira.json"
-    fi
-  else
-    echo "::warning::Could not download Jira context artifact ${_JIRA_ARTIFACT}; continuing without Jira context"
-  fi
-  rm -rf "${_JIRA_ARTIFACT_DIR}"
-
-  _CODERABBIT_ARTIFACT="fullsend-coderabbit-context-${PR_NUMBER}"
-  _CODERABBIT_ARTIFACT_DIR="$(mktemp -d)"
-  if GH_TOKEN="${_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
-    --repo "${REPO_FULL_NAME}" \
-    --name "${_CODERABBIT_ARTIFACT}" \
-    --dir "${_CODERABBIT_ARTIFACT_DIR}" >/dev/null 2>&1; then
-    _CODERABBIT_FILE="${_CODERABBIT_ARTIFACT_DIR}/coderabbit.json"
-    if [[ -f "${_CODERABBIT_FILE}" ]]; then
-      mkdir -p "${_SCRIPT_DIR}/../.run"
-      cp "${_CODERABBIT_FILE}" "${_SCRIPT_DIR}/../.run/coderabbit.json"
-      export FULLSEND_CODERABBIT_CONTEXT_READY=1
-      echo "Loaded sanitized CodeRabbit findings from workflow artifact ${_CODERABBIT_ARTIFACT}"
-    else
-      echo "::warning::CodeRabbit context artifact did not contain coderabbit.json"
-    fi
-  else
-    echo "::warning::Could not download CodeRabbit context artifact ${_CODERABBIT_ARTIFACT}; continuing without CodeRabbit findings"
-  fi
-  rm -rf "${_CODERABBIT_ARTIFACT_DIR}"
-  aggregate_findings
+  hydrate_cli_adapters
 fi
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"

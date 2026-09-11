@@ -45,6 +45,11 @@ post-script to post. In interactive mode, it posts directly via
 only roster. Do not assume how many rows there are, what they are
 named, or that every producer is an LLM sub-agent.
 
+Also read `/sandbox/workspace/.fullsend/.run/collected.json` once when it
+exists and index its adapter envelopes by `dimension`. Treat a missing file as
+an empty adapter set. Use this index for both `context_dimension` lookup and
+findings collection; never invoke a host adapter from the sandbox.
+
 Each `dimensions[]` object:
 
 | Field | Meaning |
@@ -63,16 +68,18 @@ Each `dimensions[]` object:
 | `fallback` | If true, unrecognized prior-finding categories go here |
 | `budget_priority` | Lower runs deeper when attention is scarce (**findings** LLM only) |
 | `re_review` | `full` / `trivial` / `skip-unless-requalified` when this **findings** dimension had no prior findings |
-| `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. Findings payloads also appear in `.fullsend/.run/collected.json` |
-| `context_file` | Optional trusted-host snapshot an LLM must read (do not fetch it yourself) |
+| `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. Every adapter envelope also appears in `.fullsend/.run/collected.json` |
+| `host` | Trusted workflow metadata for a `cli-adapter`: artifact name/file, optional setup runner and PR checkout, and credential secret names |
+| `context_dimension` | Optional `cli-adapter` dimension whose context envelope is supplied to an LLM (do not fetch it yourself) |
 
 **Not in the registry as dimensions:**
 
 - **Challenger** — sequential after collect (step 6d). Definition:
   `sub-agents/challenger.md`. Sees **findings** only.
 - **CLI adapters** — do not `Task()` them and do not invoke their
-  CLIs. The host already wrote JSON. Include **findings** payloads at
-  collect. Copy `output: context` files from disk; do not send them
+  CLIs. The host already wrote their envelopes into `collected.json`.
+  Include **findings** payloads at collect. Supply `output: context`
+  envelopes only to rows that name them with `context_dimension`; do not send them
   through the challenger.
 
 Treat missing `output` as `findings`.
@@ -313,8 +320,9 @@ Analyze the diff and changed file list. For each registry row with
 - `dispatch: conditional` → in scope only when the PR matches that
   row's `when` text.
 
-For a findings row with `context_file`, also inspect that JSON before
-selection. Skip the row when the file is missing or its `status` is
+For a findings row with `context_dimension`, select that dimension's envelope
+from `.fullsend/.run/collected.json` before selection. Skip the row when the
+envelope is missing or its `status` is
 `none` / `error`. Never replace missing trusted context by calling the
 external service from the sandbox.
 
@@ -331,7 +339,7 @@ parallel with section LLMs (step 4b). Challenger runs later (step
 
 **Section LLMs** (`output` starts with `section:`): dispatch when
 `dispatch` is `always`, or when `conditional` matches `when`. Skip
-spawn when the row's `context_file` is missing or its JSON `status`
+spawn when the row's `context_dimension` envelope is missing or its JSON `status`
 is `none` / `error` — write that schema field as
 `{"status":"none"}` yourself. Do **not** apply `re_review` skips to
 section rows; they are cheap and must re-run. Do **not** attach the
@@ -523,8 +531,8 @@ For each selected sub-agent, assemble a context package containing:
 - `changed_since_prior`: file set that changed since prior review
 - `pr_metadata`: title, body, author, labels, draft status
 - `issue_context`: linked issue title, body, comments
-- `trusted_context`: for a row with `context_file`, the exact sanitized
-  JSON loaded from that file; otherwise `none`
+- `trusted_context`: for a row with `context_dimension`, the exact sanitized
+  envelope selected from `.fullsend/.run/collected.json`; otherwise `none`
 - `cross_repo_context`: prior findings from 3a for this dimension when
   relevant
 - `scope_constraint`: exploration limit for this sub-agent (see 3e)
@@ -658,7 +666,7 @@ For each selected **findings** `llm-subagent` (from step 3c — excludes
    <linked issue content or "no linked issue">
 
    ### Trusted context
-   <sanitized JSON from this row's context_file or "none">
+   <sanitized JSON from this row's context_dimension envelope or "none">
 
    ### Scope constraint
    <scope_constraint value or "none">
@@ -690,10 +698,10 @@ was selected in step 3c (snapshot present and `status` is `ok`):
 1. Unless `include_findings` is true, **do not** include the diff,
    source files, or `meta-prompt.md`. When it is true, include the same
    verified diff and PR-head source context used by findings dimensions.
-2. Compose the prompt from the row's `definition`, PR title/body, and
-   an instruction to read `context_file` (e.g.
-   `/sandbox/workspace/.fullsend/.run/jira.json`). Do not call Jira or GitHub issue
-   APIs. When `include_findings` is true, require an object containing
+2. Compose the prompt from the row's `definition`, PR title/body, and the
+   sanitized envelope selected by `context_dimension` from
+   `/sandbox/workspace/.fullsend/.run/collected.json`. Do not call Jira or
+   GitHub issue APIs. When `include_findings` is true, require an object containing
    the named section plus `findings[]`; otherwise require only the section object.
 3. Copy the named schema object (for `section:product_ask`, the
    `product_ask` member) onto `agent-result.json` in step 7. When
@@ -712,9 +720,9 @@ Do **not** include section payloads or context snapshots.
    JSON array of findings in the standard format. Ignore `section:*`
    returns here (those are step 4b / 7).
 2. **CLI adapters** from `/sandbox/workspace/.fullsend/.run/collected.json` (array
-   of envelopes `{dimension, findings[]}`). The host only put
-   payloads that already have a `findings` key in that file. Do not
-   re-run those tools. If the file is missing, treat CLI input as
+   of envelopes). Select only entries with `output: findings` and a
+   `findings[]` array; context envelopes are handled through `context_dimension`
+   and never enter synthesis. Do not re-run those tools. If the file is missing, treat CLI input as
    empty (do not fail the whole review). If an envelope `status` is
    `empty` / `skipped`, continue. If `status` is `error` and there is
    one `info` finding, keep it. CLI findings are external evidence,

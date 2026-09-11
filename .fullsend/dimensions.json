@@ -133,6 +133,17 @@
       "dispatch": "always",
       "runner": "scripts/fetch-jira-context.sh",
       "producer_file": ".run/jira.json",
+      "host": {
+        "artifact_name": "fullsend-jira-context-{pr_number}",
+        "artifact_file": "jira.json",
+        "checkout_pr": false,
+        "setup_runner": "",
+        "credentials": {
+          "url_secret": "JIRA_URL",
+          "username_secret": "JIRA_USERNAME",
+          "token_secret": "JIRA_API_TOKEN"
+        }
+      },
       "failure_severity": "info",
       "notes": "Trusted host snapshot of the linked issue. It contains context only and never enters challenger synthesis directly."
     },
@@ -143,9 +154,20 @@
       "dispatch": "always",
       "runner": "scripts/fetch-coderabbit-context.sh",
       "producer_file": ".run/coderabbit.json",
+      "host": {
+        "artifact_name": "fullsend-coderabbit-context-{pr_number}",
+        "artifact_file": "coderabbit.json",
+        "checkout_pr": true,
+        "setup_runner": "scripts/setup-coderabbit-cli.sh",
+        "credentials": {
+          "url_secret": "FULLSEND_UNUSED",
+          "username_secret": "FULLSEND_UNUSED",
+          "token_secret": "CODERABBIT_API_KEY"
+        }
+      },
       "failure_severity": "info",
       "categories": ["coderabbit"],
-      "notes": "Trusted host-side CodeRabbit CLI output, normalized without credentials before challenger synthesis."
+      "notes": "Host-side CodeRabbit CLI output, normalized without credentials before challenger synthesis. The transport is trusted; finding text is external review evidence that must be verified against repository source."
     },
     {
       "id": "description-jira",
@@ -153,7 +175,7 @@
       "output": "section:product_ask",
       "dispatch": "always",
       "definition": "skills/pr-review/sub-agents/description-jira.md",
-      "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
+      "context_dimension": "jira-snapshot",
       "include_findings": true,
       "failure_severity": "info",
       "re_review": "full",

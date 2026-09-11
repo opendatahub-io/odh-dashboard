@@ -10,12 +10,6 @@ skills:
 host_files:
   - src: dimensions.json
     dest: /sandbox/workspace/.fullsend/dimensions.json
-  - src: .run/jira.json
-    dest: /sandbox/workspace/.fullsend/.run/jira.json
-    optional: true
-  - src: .run/coderabbit.json
-    dest: /sandbox/workspace/.fullsend/.run/coderabbit.json
-    optional: true
   - src: .run/collected.json
     dest: /sandbox/workspace/.fullsend/.run/collected.json
     optional: true

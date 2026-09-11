@@ -9,7 +9,7 @@ background: true
 
 # Jira product-ask and acceptance-criteria review
 
-Read Jira only from the trusted `context_file` supplied by the orchestrator.
+Read Jira only from the trusted context envelope supplied by the orchestrator.
 Never call Jira, inspect credentials, or infer requirements from an issue
 summary alone. The PR description is the source of truth for explaining the
 change; explicit Jira criteria remain evidence for evaluating implementation.
