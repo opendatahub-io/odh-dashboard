@@ -1,13 +1,11 @@
-# Label-only enqueue (@Mergifyio queue / requeue disabled via commands_restrictions).
+# Enqueue via pull_request_rules; @Mergifyio queue/requeue disabled (commands_restrictions).
 #
-# Two-label handoff (see .github/workflows/mergify-clear-queue-eligibility.yml):
-#   lgtm          — Prow trigger to enter the merge queue; removed on handoff so Tide
-#                   does not merge the PR.
-#   mergify-lgtm  — Sticky queue-eligibility token: survives flake dequeue + CI rerun;
-#                   cleared on author push (not Mergify rebase) so a fresh /lgtm is
-#                   required before re-queue.
+# Two-label handoff (.github/workflows/mergify-clear-queue-eligibility.yml):
+#   lgtm          — Prow /lgtm; stripped on handoff so Tide does not merge the PR.
+#   mergify-lgtm  — Queue-eligibility token; survives flake dequeue; cleared on author
+#                   push (not Mergify update) so /lgtm is required before re-queue.
 #
-# Pilot gate: only PRs labeled mergify-testing are managed by Mergify.
+# Pilot: only PRs labeled mergify-testing are managed by Mergify.
 commands_restrictions:
   queue:
     conditions:
@@ -22,32 +20,44 @@ merge_queue:
   status_comments: outcomes
   queue_controls_comment: false
 
+# YAML anchors for conditions reused across queue_rules and pull_request_rules.
+# https://docs.mergify.com/configuration/sharing/
+shared:
+  review_ready: &review-ready
+    - base = main
+    - -draft
+    - -conflict
+    - label = mergify-testing
+    - label = mergify-lgtm
+    - label = approved
+    - -label ~= ^do-not-merge/
+    - label != needs-rebase
+    - "#changes-requested-reviews-by = 0"
+    - "#approved-reviews-by >= 1"
+  ci_checks: &ci-checks
+    - check-success = Tests
+    - check-success = ci/prow/images
+    - -check-failure ~= ^ci/prow
+  # Proactive update gate: same checks as ci_checks, failures only (merge still requires green).
+  ci_checks_updateable: &ci-checks-updateable
+    - -check-failure = Tests
+    - -check-failure ~= ^ci/prow
+
 queue_rules:
   - name: default
     max_checks_retries: 0
     merge_method: squash
     batch_size: 1
-    update_method: rebase
+    update_method: merge
     branch_protection_injection_mode: queue
-    # In-place checks: merge_conditions must match queue_conditions (no draft PRs).
+    # In-place checks (branch_protection_injection_mode: queue): merge_conditions = queue_conditions.
     queue_conditions: &default-queue-conditions
-      - base = main
-      - -draft
-      - -conflict
-      - label = mergify-testing
-      - label = mergify-lgtm
-      - label = approved
-      - -label ~= ^do-not-merge/
-      - label != needs-rebase
-      - "#changes-requested-reviews-by = 0"
-      - "#approved-reviews-by >= 1"
-      - check-success = Tests
-      - check-success = ci/prow/images
-      - -check-failure ~= ^ci/prow
+      - and: *review-ready
+      - and: *ci-checks
     merge_conditions: *default-queue-conditions
 
 pull_request_rules:
-  # Intentionally does not remove mergify-lgtm on checks-failed dequeue (flake retry).
+  # Review/conflict gates only — not CI failure (mergify-lgtm survives flake dequeue).
   - name: Remove mergify-lgtm when no longer merge-ready
     conditions:
       - label = mergify-lgtm
@@ -63,8 +73,9 @@ pull_request_rules:
       label:
         remove:
           - mergify-lgtm
+          - lgtm
 
-  # Pilot scope only: stripping lgtm here would block Tide on non-pilot PRs.
+  # Pilot only — do not strip lgtm on non-pilot PRs (would block Tide).
   - name: Hand off lgtm to mergify-lgtm
     conditions:
       - label = mergify-testing
@@ -76,15 +87,20 @@ pull_request_rules:
         remove:
           - lgtm
 
-  - name: Queue on mergify-lgtm
+  # Merge main before queue so CI runs on current code. Bot update preserves mergify-lgtm;
+  # not queued (queue-position = -1; in-queue updates use update_method: merge).
+  - name: Update when review-ready and behind
     conditions:
-      - base = main
-      - -draft
-      - -conflict
-      - label = mergify-testing
-      - label = mergify-lgtm
-      - -label ~= ^do-not-merge/
-      - label != needs-rebase
+      - and: *review-ready
+      - queue-position = -1
+      - "#commits-behind > 0"
+      - and: *ci-checks-updateable
+    actions:
+      update:
+
+  # Enqueue on approval readiness; queue_conditions require green CI before merge.
+  - name: Queue on review approval
+    conditions: *review-ready
     actions:
       queue:
         name: default
