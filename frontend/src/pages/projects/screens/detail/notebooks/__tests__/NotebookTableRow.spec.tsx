@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import NotebookTableRow from '#~/pages/projects/screens/detail/notebooks/NotebookTableRow';
@@ -15,6 +15,19 @@ import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockNotebookState } from '#~/__mocks__/mockNotebookState';
 import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
+import { stopNotebook } from '#~/api';
+import useNotification from '#~/utilities/useNotification';
+import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
+
+jest.mock('#~/utilities/useNotification', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+    info: jest.fn(),
+  })),
+}));
 
 jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
   ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
@@ -43,8 +56,19 @@ jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileBindingState', () => (
 }));
 
 jest.mock('#~/pages/projects/notebook/useStopNotebookModalAvailability', () =>
-  jest.fn(() => [false]),
+  jest.fn(() => [true]),
 );
+
+jest.mock('#~/pages/projects/notebook/utils', () => ({
+  fireNotebookTrackingEvent: jest.fn(),
+}));
+
+jest.mock('#~/api', () => ({
+  ...jest.requireActual('#~/api'),
+  getMlflowInstancePatch: jest.fn(() => []),
+  startNotebook: jest.fn(),
+  stopNotebook: jest.fn(),
+}));
 
 jest.mock('#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores', () => ({
   useWorkbenchFeatureStores: jest.fn(() => ({ featureStores: [], loaded: true })),
@@ -76,7 +100,11 @@ jest.mock('#~/pages/projects/notebook/NotebookActionsColumn', () => ({
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
-  StateActionToggle: () => <div>toggle</div>,
+  StateActionToggle: ({ onStop, isDisabled }: { onStop: () => void; isDisabled: boolean }) => (
+    <button type="button" aria-label="stop notebook" onClick={onStop} disabled={isDisabled}>
+      stop
+    </button>
+  ),
   ResourceNameTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
@@ -100,6 +128,15 @@ jest.mock('#~/pages/projects/screens/detail/notebooks/NotebookFeatureStoreList',
 }));
 
 const mockUseKueueConfiguration = jest.mocked(useKueueConfiguration);
+const mockStopNotebook = jest.mocked(stopNotebook);
+const mockUseNotification = jest.mocked(useNotification);
+const mockUseStopNotebookModalAvailability = jest.mocked(useStopNotebookModalAvailability);
+const notification = {
+  success: jest.fn(),
+  error: jest.fn(),
+  warning: jest.fn(),
+  info: jest.fn(),
+};
 
 const kueueEnabledConfig = {
   isKueueDisabled: false,
@@ -182,6 +219,8 @@ const renderRow = (notebook = mockNotebookK8sResource({})) => {
 describe('NotebookTableRow — Kueue anomaly indicator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseNotification.mockReturnValue(notification);
+    mockUseStopNotebookModalAvailability.mockReturnValue([true]);
   });
 
   it('shows the anomaly indicator when project is Kueue-enabled and notebook has no queue label', () => {
@@ -213,5 +252,22 @@ describe('NotebookTableRow — Kueue anomaly indicator', () => {
     renderRow();
 
     expect(screen.queryByTestId('kueue-anomaly-indicator')).not.toBeInTheDocument();
+  });
+
+  it('should report a rejected stop request and re-enable the action', async () => {
+    mockUseKueueConfiguration.mockReturnValue(kueueDisabledConfig);
+    mockStopNotebook.mockRejectedValue(new Error('Unsupported Media Type'));
+
+    renderRow(mockNotebookK8sResource({ k8sName: 'test-notebook' }));
+    const stopButton = screen.getByRole('button', { name: 'stop notebook' });
+    fireEvent.click(stopButton);
+
+    await waitFor(() => {
+      expect(notification.error).toHaveBeenCalledWith(
+        'Failed to stop workbench test-notebook',
+        'Unsupported Media Type',
+      );
+    });
+    expect(stopButton).not.toBeDisabled();
   });
 });
