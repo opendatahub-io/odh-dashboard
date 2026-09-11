@@ -32,6 +32,42 @@ interface FormatError {
   locations: UrlLocation[];
 }
 
+const isUrlLocation = (value: unknown): value is UrlLocation => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const loc = value as Record<string, unknown>;
+  return (
+    typeof loc.url === 'string' &&
+    loc.url.length > 0 &&
+    typeof loc.file === 'string' &&
+    loc.file.length > 0 &&
+    typeof loc.line === 'number'
+  );
+};
+
+const parseUrlLocations = (value: unknown): UrlLocation[] => {
+  if (!Array.isArray(value) || !value.every(isUrlLocation)) {
+    throw new Error('Invalid URL location format from extractor task');
+  }
+  return value;
+};
+
+const isUrlValidationResult = (value: unknown): value is UrlValidationResult => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const result = value as Record<string, unknown>;
+  return typeof result.url === 'string' && typeof result.status === 'number';
+};
+
+const parseUrlValidationResults = (value: unknown): UrlValidationResult[] => {
+  if (!Array.isArray(value) || !value.every(isUrlValidationResult)) {
+    throw new Error('Invalid validation result format from validateHttpsUrls task');
+  }
+  return value;
+};
+
 /**
  * Extract and filter URLs from manifest directory
  */
@@ -39,37 +75,16 @@ const extractAndFilterUrls = (
   manifestsDir: string,
   excludedSubstrings: string[],
 ): Cypress.Chainable<UrlExtractionResult> => {
-  return cy.task<UrlLocation[]>('extractHttpsUrls', manifestsDir).then((urlLocations) => {
-    // Validate payload shape
-    if (!Array.isArray(urlLocations)) {
-      throw new Error('Failed to extract URLs from manifests directory');
-    }
-    // Runtime validation - task could return wrong shape despite types
-    /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-    if (
-      urlLocations.length > 0 &&
-      !urlLocations.every(
-        (loc) =>
-          typeof loc === 'object' &&
-          loc !== null &&
-          typeof loc.url === 'string' &&
-          loc.url.length > 0 &&
-          typeof loc.file === 'string' &&
-          loc.file.length > 0 &&
-          typeof loc.line === 'number',
-      )
-    ) {
-      throw new Error('Invalid URL location format from extractor task');
-    }
-    /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+  return cy.task<unknown>('extractHttpsUrls', manifestsDir).then((urlLocations) => {
+    const parsedUrlLocations = parseUrlLocations(urlLocations);
 
-    const filteredUrlLocations = urlLocations.filter(
+    const filteredUrlLocations = parsedUrlLocations.filter(
       (urlLocation) => urlLocation.url && !isUrlExcluded(urlLocation.url, excludedSubstrings),
     );
 
     const uniqueUrls = [...new Set(filteredUrlLocations.map((loc) => loc.url))];
 
-    return { urlLocations, filteredUrlLocations, uniqueUrls };
+    return { urlLocations: parsedUrlLocations, filteredUrlLocations, uniqueUrls };
   });
 };
 
@@ -200,42 +215,33 @@ export const validateManifestUrlReachability = (
           )}\n\nURLs to verify:\n${formatUrlLocationsByFile(filteredUrlLocations)}`,
         );
 
-        return cy.task<UrlValidationResult[]>('validateHttpsUrls', uniqueUrls).then((results) => {
-          // Validate results payload immediately - task could return wrong shape despite types
-          if (!Array.isArray(results)) {
-            throw new Error('validateHttpsUrls task did not return an array');
-          }
-          /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-          if (
-            results.length > 0 &&
-            !results.every(
-              (r) =>
-                typeof r === 'object' &&
-                r !== null &&
-                typeof r.url === 'string' &&
-                typeof r.status === 'number',
-            )
-          ) {
-            throw new Error('Invalid validation result format from validateHttpsUrls task');
-          }
-          /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+        // Default cy.task timeout is 60s; retries on slow domains can exceed that
+        // even after we stop downloading bodies.
+        return cy
+          .task<unknown>('validateHttpsUrls', uniqueUrls, { timeout: 180000 })
+          .then((results) => {
+            const parsedResults = parseUrlValidationResults(results);
 
-          const resultsWithLocation: UrlValidationResultWithLocation[] = results.map((result) => {
-            // Use originalUrl for location lookup (in case of redirects), fall back to url
-            const finalUrlLocations =
-              urlToLocationsMap.get(result.originalUrl || result.url) ||
-              urlToLocationsMap.get(result.url);
-            const location =
-              finalUrlLocations && finalUrlLocations.length > 0 ? finalUrlLocations[0] : undefined;
+            const resultsWithLocation: UrlValidationResultWithLocation[] = parsedResults.map(
+              (result) => {
+                // Use originalUrl for location lookup (in case of redirects), fall back to url
+                const finalUrlLocations =
+                  urlToLocationsMap.get(result.originalUrl || result.url) ||
+                  urlToLocationsMap.get(result.url);
+                const location =
+                  finalUrlLocations && finalUrlLocations.length > 0
+                    ? finalUrlLocations[0]
+                    : undefined;
 
-            return {
-              ...result,
-              location,
-            };
+                return {
+                  ...result,
+                  location,
+                };
+              },
+            );
+
+            return { resultsWithLocation, urlToLocationsMap };
           });
-
-          return { resultsWithLocation, urlToLocationsMap };
-        });
       })
       .then(({ resultsWithLocation, urlToLocationsMap }): void => {
         // Process and validate all results (categorize, log, assert)
