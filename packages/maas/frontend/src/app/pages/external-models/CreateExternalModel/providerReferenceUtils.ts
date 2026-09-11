@@ -47,6 +47,73 @@ export const validateProviderReferencePath = (value: string): string | undefined
   return undefined;
 };
 
+/** Resolved automatically from Target model ID; not required in provider/model config. */
+export const PROVIDER_REFERENCE_PATH_MODEL_PLACEHOLDER = 'model';
+
+const PATH_PLACEHOLDER_PATTERN = /\{([^{}]+)\}/g;
+
+export const extractPathPlaceholders = (path: string): string[] => {
+  const placeholders = [...path.matchAll(PATH_PLACEHOLDER_PATTERN)]
+    .map((match) => match[1].trim())
+    .filter(Boolean);
+
+  return [...new Set(placeholders)];
+};
+
+export const mergeProviderReferenceConfig = (
+  inheritedConfig: Record<string, string> = {},
+  configPairs: ConfigPair[],
+): Record<string, string> => {
+  const merged = { ...inheritedConfig };
+  configPairs.forEach((pair) => {
+    const key = pair.key.trim();
+    if (key) {
+      merged[key] = pair.value;
+    }
+  });
+  return merged;
+};
+
+export const getMissingPathPlaceholders = (
+  path: string,
+  config: Record<string, string>,
+): string[] =>
+  extractPathPlaceholders(path).filter(
+    (placeholder) =>
+      placeholder !== PROVIDER_REFERENCE_PATH_MODEL_PLACEHOLDER && !(placeholder in config),
+  );
+
+export const formatMissingPathPlaceholderError = (missingPlaceholders: string[]): string => {
+  const formattedPlaceholders = missingPlaceholders.map((key) => `{${key}}`).join(', ');
+  return `Missing values for: ${formattedPlaceholders}. Set them in Advanced settings under Model configuration, or on the provider.`;
+};
+
+export const validateProviderReferencePathPlaceholders = (
+  path: string,
+  inheritedConfig?: Record<string, string>,
+  configPairs: ConfigPair[] = [],
+): string | undefined => {
+  const trimmedPath = path.trim();
+  if (!trimmedPath) {
+    return undefined;
+  }
+
+  const mergedConfig = mergeProviderReferenceConfig(inheritedConfig, configPairs);
+  const missingPlaceholders = getMissingPathPlaceholders(trimmedPath, mergedConfig);
+  if (missingPlaceholders.length === 0) {
+    return undefined;
+  }
+
+  return formatMissingPathPlaceholderError(missingPlaceholders);
+};
+
+export const validateProviderRefPathPlaceholders = (
+  path: string,
+  inheritedConfig?: Record<string, string>,
+  modelConfig?: Record<string, string>,
+): string | undefined =>
+  validateProviderReferencePathPlaceholders(path, inheritedConfig, recordToConfigPairs(modelConfig));
+
 export const PROVIDER_REFERENCE_API_FORMATS = {
   'openai-chat': {
     label: 'OpenAI Chat',

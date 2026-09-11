@@ -19,6 +19,7 @@ import ModelConfigPairsEditor from './ModelConfigPairsEditor';
 import {
   ProviderReferenceFieldErrors,
   ProviderReferenceFormData,
+  ProviderReferenceHelperVariant,
 } from './providerReferenceFormTypes';
 import {
   EXTERNAL_MODEL_FIELD_MAX_LENGTH,
@@ -38,6 +39,9 @@ const EDIT_PATH_PLACEHOLDER_HELPER =
 
 const EDIT_KEY_VALUE_PAIRS_DESCRIPTION =
   'Configuration keys and values for this model reference. These can be used as {key} placeholders in the path below. Inherited values from the provider you select or create above will appear here. To change provider-level key-value pairs, update them in the provider section above. Use model configuration to override inherited values or add new ones.';
+
+const EDIT_INHERITED_CONFIG_HELPER =
+  'These values come from the external provider and are available for {key} resolution in the path. Add an override below to change a value for this model.';
 
 const CONFIG_EXAMPLES_HELPER = (
   <>
@@ -142,7 +146,7 @@ export const ProviderReferenceTargetModelField: React.FC<
 
 type ProviderReferencePathFieldProps = ProviderReferenceValidatedFieldProps & {
   showResetButton?: boolean;
-  pathHelperVariant: 'add' | 'edit';
+  pathHelperVariant: ProviderReferenceHelperVariant;
 };
 
 export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProps> = ({
@@ -199,6 +203,7 @@ type ProviderReferenceConfigSectionProps = {
   onChange: (updates: Partial<ProviderReferenceFormData>) => void;
   selectedProvider?: ExternalProvider;
   variant: 'advanced' | 'edit';
+  helperVariant?: ProviderReferenceHelperVariant;
 };
 
 export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSectionProps> = ({
@@ -206,6 +211,7 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
   onChange,
   selectedProvider,
   variant,
+  helperVariant = 'add',
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const inheritedConfig = selectedProvider?.config ?? {};
@@ -218,8 +224,9 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
       <FormHelperText>
         <HelperText>
           <HelperTextItem>
-            These values come from the provider and are available for {'{key}'} resolution in the
-            path. Add an override below to change a value for this model.
+            {helperVariant === 'edit'
+              ? EDIT_INHERITED_CONFIG_HELPER
+              : 'These values come from the provider and are available for {key} resolution in the path. Add an override below to change a value for this model.'}
           </HelperTextItem>
         </HelperText>
       </FormHelperText>
@@ -235,12 +242,21 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
       {variant === 'advanced' && (
         <FormHelperText>
           <HelperText>
-            <HelperTextItem>
-              Add key-value pairs specific to this model reference. Values are only used as{' '}
-              {'{key}'} placeholders in the path field – they do not affect other configuration.
-              Inherited values from the provider appear here and can be overridden per-model.
-            </HelperTextItem>
-            <HelperTextItem>{CONFIG_EXAMPLES_HELPER}</HelperTextItem>
+            {helperVariant === 'edit' ? (
+              <>
+                <HelperTextItem>{EDIT_KEY_VALUE_PAIRS_DESCRIPTION}</HelperTextItem>
+                <HelperTextItem>{CONFIG_EXAMPLES_HELPER}</HelperTextItem>
+              </>
+            ) : (
+              <>
+                <HelperTextItem>
+                  Add key-value pairs specific to this model reference. Values are only used as{' '}
+                  {'{key}'} placeholders in the path field – they do not affect other configuration.
+                  Inherited values from the provider appear here and can be overridden per-model.
+                </HelperTextItem>
+                <HelperTextItem>{CONFIG_EXAMPLES_HELPER}</HelperTextItem>
+              </>
+            )}
           </HelperText>
         </FormHelperText>
       )}

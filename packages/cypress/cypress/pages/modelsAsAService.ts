@@ -1974,7 +1974,25 @@ class ProviderReferenceModalBase extends Modal {
 
   fillPath(path: string): void {
     this.findPathInput().clear();
-    this.findPathInput().type(path);
+    this.findPathInput().type(path, { parseSpecialCharSequences: false });
+  }
+
+  expandAdvancedSettings(): void {
+    this.find().findByTestId('provider-ref-advanced-settings').click();
+  }
+
+  findAddConfigurationPairButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('add-configuration-pair-button');
+  }
+
+  addModelConfigPair(index: number, key: string, value: string): void {
+    this.findAddConfigurationPairButton().click();
+    this.find()
+      .findByTestId(`provider-ref-config-key-${index}`)
+      .type(key, { parseSpecialCharSequences: false });
+    this.find()
+      .findByTestId(`provider-ref-config-value-${index}`)
+      .type(value, { parseSpecialCharSequences: false });
   }
 
   findInheritedProviderConfig(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2026,10 +2044,6 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
 
   goToConfigureStep(): void {
     this.findNextButton().click();
-  }
-
-  expandAdvancedSettings(): void {
-    this.find().findByTestId('provider-ref-advanced-settings').click();
   }
 
   addProviderReference(providerDisplayName: string, targetModel: string): void {

@@ -12,13 +12,8 @@ import {
 } from '@patternfly/react-core';
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
+import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
 import { configPairsToRecord } from './ModelConfigPairsEditor';
-import {
-  ProviderReferenceApiFormatField,
-  ProviderReferenceConfigSection,
-  ProviderReferencePathField,
-  ProviderReferenceTargetModelField,
-} from './ProviderReferenceStep2Fields';
 import {
   getProviderReferenceFieldErrors,
   hasProviderReferenceFieldErrors,
@@ -74,8 +69,12 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
   );
 
   const providerDisplayName = getProviderDisplayName(providerRef.providerName, selectedProvider);
+  const validationContext = React.useMemo(
+    () => ({ inheritedConfig: selectedProvider?.config }),
+    [selectedProvider?.config],
+  );
   const isFormIncomplete = isProviderReferenceFormIncomplete(form);
-  const fieldErrors = getProviderReferenceFieldErrors(form);
+  const fieldErrors = getProviderReferenceFieldErrors(form, validationContext);
   const visibleFieldErrors = touched ? fieldErrors : undefined;
 
   const handleChange = (updates: Partial<ProviderReferenceFormData>) => {
@@ -84,7 +83,10 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
 
   const handleSave = () => {
     setTouched(true);
-    if (isProviderReferenceFormIncomplete(form) || hasProviderReferenceFieldErrors(form)) {
+    if (
+      isProviderReferenceFormIncomplete(form) ||
+      hasProviderReferenceFieldErrors(form, validationContext)
+    ) {
       return;
     }
 
@@ -122,29 +124,13 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
           </FormSection>
 
           <FormSection title="Provider reference configuration" titleElement="h3">
-            <ProviderReferenceApiFormatField form={form} onChange={handleChange} />
-            <ProviderReferenceTargetModelField
+            <ProviderReferenceStep2Form
               form={form}
-              onChange={handleChange}
-              fieldErrors={visibleFieldErrors}
-            />
-          </FormSection>
-
-          <FormSection title="Key-value pairs" titleElement="h3">
-            <ProviderReferenceConfigSection
-              form={form}
-              onChange={handleChange}
               selectedProvider={selectedProvider}
-              variant="edit"
-            />
-          </FormSection>
-
-          <FormSection title="Path configuration" titleElement="h3">
-            <ProviderReferencePathField
-              form={form}
               onChange={handleChange}
               fieldErrors={visibleFieldErrors}
-              pathHelperVariant="edit"
+              helperVariant="edit"
+              wrapInForm={false}
             />
           </FormSection>
         </Form>

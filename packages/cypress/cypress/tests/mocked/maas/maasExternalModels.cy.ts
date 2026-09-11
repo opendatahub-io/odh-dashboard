@@ -341,6 +341,36 @@ describe('External Models Page', () => {
       createExternalModelPage.findProviderReferencesTable().should('not.exist');
     });
 
+    it('should show a field error for unresolved path placeholders and clear it after adding config', () => {
+      const missingPlaceholderError =
+        'Missing values for: {key}. Set them in Advanced settings under Model configuration, or on the provider.';
+
+      createExternalModelPage.visit();
+
+      createExternalModelPage.findAddProviderReferenceButton().click();
+      addProviderReferenceWizard.shouldBeOpen();
+      addProviderReferenceWizard.selectProvider('Anthropic Provider');
+      addProviderReferenceWizard.findNextButton().click();
+
+      addProviderReferenceWizard.fillTargetModel('claude-sonnet-4');
+      addProviderReferenceWizard.fillPath('/{key}/v1/chat/completions');
+
+      addProviderReferenceWizard.findAddButton().should('not.be.disabled').click();
+      addProviderReferenceWizard.shouldBeOpen();
+      addProviderReferenceWizard.find().should('contain.text', missingPlaceholderError);
+      createExternalModelPage.findProviderReferencesTable().should('not.exist');
+
+      addProviderReferenceWizard.expandAdvancedSettings();
+      addProviderReferenceWizard.addModelConfigPair(0, 'key', 'my-key');
+      addProviderReferenceWizard.find().should('not.contain.text', missingPlaceholderError);
+
+      addProviderReferenceWizard.findAddButton().click();
+      addProviderReferenceWizard.shouldBeOpen(false);
+
+      createExternalModelPage.findProviderReferencesTable().should('exist');
+      createExternalModelPage.findProviderRefRow(0).should('contain.text', '/{key}/v1/chat/completions');
+    });
+
     it('should edit a provider reference', () => {
       createExternalModelPage.visit();
 

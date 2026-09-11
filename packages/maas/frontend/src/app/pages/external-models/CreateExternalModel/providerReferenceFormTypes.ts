@@ -3,7 +3,10 @@ import {
   ProviderReferenceApiFormat,
   validateExternalModelFieldLength,
   validateProviderReferencePath,
+  validateProviderReferencePathPlaceholders,
 } from './providerReferenceUtils';
+
+export type ProviderReferenceHelperVariant = 'add' | 'edit';
 
 export type ProviderReferenceFormData = {
   apiFormat: ProviderReferenceApiFormat;
@@ -18,6 +21,10 @@ export type ProviderReferenceFieldErrors = {
   path?: string;
 };
 
+export type ProviderReferenceValidationContext = {
+  inheritedConfig?: Record<string, string>;
+};
+
 /** True when a required field is empty — used to disable Add/Save. */
 export const isProviderReferenceFormIncomplete = (form: ProviderReferenceFormData): boolean =>
   !form.targetModel.trim() || !form.path.trim();
@@ -25,6 +32,7 @@ export const isProviderReferenceFormIncomplete = (form: ProviderReferenceFormDat
 /** Format/length errors for non-empty fields only (empty required fields are handled via incomplete). */
 export const getProviderReferenceFieldErrors = (
   form: ProviderReferenceFormData,
+  context?: ProviderReferenceValidationContext,
 ): ProviderReferenceFieldErrors => {
   const errors: ProviderReferenceFieldErrors = {};
 
@@ -44,17 +52,29 @@ export const getProviderReferenceFieldErrors = (
     const pathError = validateProviderReferencePath(form.path);
     if (pathError && pathError !== 'Path is required') {
       errors.path = pathError;
+    } else {
+      const placeholderError = validateProviderReferencePathPlaceholders(
+        form.path,
+        context?.inheritedConfig,
+        form.configPairs,
+      );
+      if (placeholderError) {
+        errors.path = placeholderError;
+      }
     }
   }
 
   return errors;
 };
 
-export const hasProviderReferenceFieldErrors = (form: ProviderReferenceFormData): boolean =>
-  Object.keys(getProviderReferenceFieldErrors(form)).length > 0;
+export const hasProviderReferenceFieldErrors = (
+  form: ProviderReferenceFormData,
+  context?: ProviderReferenceValidationContext,
+): boolean => Object.keys(getProviderReferenceFieldErrors(form, context)).length > 0;
 
 export const validateProviderReferenceForm = (
   form: ProviderReferenceFormData,
+  context?: ProviderReferenceValidationContext,
 ): string | undefined => {
   if (!form.apiFormat.trim()) {
     return 'API format is required';
@@ -65,7 +85,7 @@ export const validateProviderReferenceForm = (
     }
     return 'Path is required';
   }
-  const fieldErrors = getProviderReferenceFieldErrors(form);
+  const fieldErrors = getProviderReferenceFieldErrors(form, context);
   if (fieldErrors.targetModel) {
     return fieldErrors.targetModel;
   }

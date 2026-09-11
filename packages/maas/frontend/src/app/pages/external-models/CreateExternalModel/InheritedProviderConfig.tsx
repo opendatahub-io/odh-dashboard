@@ -37,32 +37,34 @@ const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
   return (
     <Stack hasGutter data-testid="inherited-provider-config">
       <StackItem>
-        <Flex gap={{ default: 'gapSm' }}>
+        <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-w-100">
           <FlexItem flex={{ default: 'flex_1' }}>
             <strong>Key</strong>
           </FlexItem>
-          <FlexItem flex={{ default: 'flex_2' }}>
+          <FlexItem flex={{ default: 'flex_1' }}>
             <strong>Value</strong>
           </FlexItem>
         </Flex>
       </StackItem>
       {visibleEntries.map(([key, value]) => (
         <StackItem key={key}>
-          <Flex gap={{ default: 'gapSm' }}>
-            <FlexItem flex={{ default: 'flex_1' }}>
+          <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-w-100">
+            <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
               <TextInput
                 value={key}
                 readOnlyVariant="default"
                 aria-label={`Key ${key}`}
                 data-testid={`inherited-config-key-${key}`}
+                isFullWidth
               />
             </FlexItem>
-            <FlexItem flex={{ default: 'flex_2' }}>
+            <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
               <TextInput
                 value={value}
                 readOnlyVariant="default"
                 aria-label={`Value for ${key}`}
                 data-testid={`inherited-config-value-${key}`}
+                isFullWidth
               />
             </FlexItem>
           </Flex>

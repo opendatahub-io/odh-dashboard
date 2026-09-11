@@ -29,7 +29,7 @@ import { APIOptions } from 'mod-arch-core';
 import { z } from 'zod';
 import { createExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
-import { CreateExternalModelRequest, ProviderRef } from '~/app/types/external-models';
+import { CreateExternalModelRequest, ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import AddProviderReferenceWizard from './AddProviderReferenceWizard';
 import EditProviderReferenceModal from './EditProviderReferenceModal';
 import ProviderReferencesTable from './ProviderReferencesTable';
@@ -43,46 +43,71 @@ import {
   setProviderRefWeightsEqually,
   validateExternalModelFieldLength,
   validateProviderReferencePath,
+  validateProviderRefPathPlaceholders,
 } from './providerReferenceUtils';
 
-const externalModelFormSchema = z.object({
-  modelName: z
-    .string()
-    .trim()
-    .min(1, 'Name is required')
-    .refine((value) => getUtf8ByteLength(value) <= EXTERNAL_MODEL_FIELD_MAX_LENGTH, {
-      message: `Cannot exceed ${EXTERNAL_MODEL_FIELD_MAX_LENGTH} bytes`,
-    })
-    .refine((value) => !hasControlCharacters(value), {
-      message: 'Name cannot contain control characters or newlines',
-    }),
-  providerRefs: z
-    .array(z.object({ targetModel: z.string(), path: z.string() }).passthrough())
-    .superRefine((refs, ctx) => {
-      refs.forEach((ref, index) => {
-        const targetModelError = validateExternalModelFieldLength(
-          ref.targetModel.trim(),
-          'Target model ID',
-        );
-        if (targetModelError) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: targetModelError,
-            path: [index, 'targetModel'],
-          });
-        }
+const createExternalModelFormSchema = (externalProviders: ExternalProvider[]) =>
+  z.object({
+    modelName: z
+      .string()
+      .trim()
+      .min(1, 'Name is required')
+      .refine((value) => getUtf8ByteLength(value) <= EXTERNAL_MODEL_FIELD_MAX_LENGTH, {
+        message: `Cannot exceed ${EXTERNAL_MODEL_FIELD_MAX_LENGTH} bytes`,
+      })
+      .refine((value) => !hasControlCharacters(value), {
+        message: 'Name cannot contain control characters or newlines',
+      }),
+    providerRefs: z
+      .array(
+        z
+          .object({
+            targetModel: z.string(),
+            path: z.string(),
+            providerName: z.string(),
+            config: z.record(z.string()).optional(),
+          })
+          .passthrough(),
+      )
+      .superRefine((refs, ctx) => {
+        refs.forEach((ref, index) => {
+          const targetModelError = validateExternalModelFieldLength(
+            ref.targetModel.trim(),
+            'Target model ID',
+          );
+          if (targetModelError) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: targetModelError,
+              path: [index, 'targetModel'],
+            });
+          }
 
-        const pathError = validateProviderReferencePath(ref.path);
-        if (pathError) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: pathError,
-            path: [index, 'path'],
-          });
-        }
-      });
-    }),
-});
+          const pathError = validateProviderReferencePath(ref.path);
+          if (pathError) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: pathError,
+              path: [index, 'path'],
+            });
+          } else {
+            const provider = externalProviders.find((item) => item.name === ref.providerName);
+            const placeholderError = validateProviderRefPathPlaceholders(
+              ref.path,
+              provider?.config,
+              ref.config,
+            );
+            if (placeholderError) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: placeholderError,
+                path: [index, 'path'],
+              });
+            }
+          }
+        });
+      }),
+  });
 
 type CreateExternalModelFormProps = {
   namespace: string;
@@ -115,6 +140,11 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
       providerRefs,
     }),
     [nameDescData.name, providerRefs],
+  );
+
+  const externalModelFormSchema = React.useMemo(
+    () => createExternalModelFormSchema(externalProviders),
+    [externalProviders],
   );
 
   const { getFieldValidation } = useZodFormValidation(formData, externalModelFormSchema);

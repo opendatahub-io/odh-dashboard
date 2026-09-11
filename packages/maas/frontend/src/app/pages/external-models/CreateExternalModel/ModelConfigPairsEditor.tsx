@@ -34,27 +34,29 @@ const ModelConfigPairsEditor: React.FC<ModelConfigPairsEditorProps> = ({ pairs, 
           isStack
         >
           <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-w-100">
-            <FlexItem flex={{ default: 'flex_1' }}>
+            <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
               <TextInput
                 id={`provider-ref-config-key-${index}`}
                 data-testid={`provider-ref-config-key-${index}`}
                 aria-label="Configuration key"
                 placeholder="Key"
                 value={pair.key}
+                isFullWidth
                 onChange={(_event, value) => handlePairChange(index, 'key', value)}
               />
             </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }}>
+            <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
               <TextInput
                 id={`provider-ref-config-value-${index}`}
                 data-testid={`provider-ref-config-value-${index}`}
                 aria-label="Configuration value"
                 placeholder="Value"
                 value={pair.value}
+                isFullWidth
                 onChange={(_event, value) => handlePairChange(index, 'value', value)}
               />
             </FlexItem>
-            <FlexItem>
+            <FlexItem flex={{ default: 'flexNone' }}>
               <Button
                 variant="plain"
                 aria-label="Remove configuration pair"
