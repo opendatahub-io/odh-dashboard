@@ -618,6 +618,8 @@ export type ClusterQueueKind = K8sResourceCommon & {
         resources: {
           name: ContainerResourceAttributes;
           nominalQuota: string | number;
+          borrowingLimit?: string | number;
+          lendingLimit?: string | number;
         }[];
       }[];
     }[];

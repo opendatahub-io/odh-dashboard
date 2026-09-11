@@ -573,10 +573,14 @@ describe('Model Catalog Details Page - Gated access denied', () => {
 
     modelCatalog.findGatedAccessRequiredState().should('be.visible');
     modelCatalog.findGatedAccessRequiredState().should('contain.text', 'Model access required');
-    modelCatalog.findGatedAccessRequestLink().should('be.visible');
+    modelCatalog
+      .findGatedAccessRequiredState()
+      .should('contain.text', 'To request access, contact your administrator.');
+    modelCatalog.findWhosMyAdministratorLink().should('be.visible');
+    modelCatalog.findGatedAccessRequestLink().should('not.exist');
     modelCatalog.findDetailsDescription().should('not.exist');
     modelCatalog.findModelCardMarkdown().should('not.exist');
-    modelCatalog.findRegisterModelButton().should('be.disabled');
+    modelCatalog.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
     modelCatalog.findAccessLabelGatedDenied().should('be.visible');
   });
 });

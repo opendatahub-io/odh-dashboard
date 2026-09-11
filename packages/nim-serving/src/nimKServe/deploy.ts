@@ -88,5 +88,6 @@ export const deployNIMKServeDeployment = async (
     overwrite,
     initialWizardData,
     applyFieldData,
+    true,
   );
 };

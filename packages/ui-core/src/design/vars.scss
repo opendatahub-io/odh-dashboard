@@ -112,6 +112,8 @@
   --ai-group--IconColor: var(--ai-set-up--IconColor);
 
   /* Feature Store specific colors */
+  --ai-fs-lineage-pill--AccentIconColor: var(--pf-t--color--white);
+
   --ai-fs-entity--BackgroundColor: var(--pf-t--color--gray--10);
   --ai-fs-entity--IconColor: var(--pf-t--global--text--color--regular);
 
@@ -153,6 +155,8 @@
   --ai-general--IconColor: var(--pf-t--color--white);
 
   /* Feature Store dark theme colors */
+  --ai-fs-lineage-pill--AccentIconColor: var(--pf-t--color--white);
+
   --ai-fs-entity--BackgroundColor: var(--pf-t--color--gray--50);
   --ai-fs-entity--IconColor: var(--pf-t--color--white);
 

@@ -40,4 +40,6 @@ export type DeployPrefillActionProps = {
   deployPrefill: DeployPrefillData;
   deployPrefillLoaded: boolean;
   deployPrefillError?: Error;
+  /** When set, the deploy action is disabled and shows this tooltip (e.g. gated catalog access). */
+  disabledTooltip?: string;
 };

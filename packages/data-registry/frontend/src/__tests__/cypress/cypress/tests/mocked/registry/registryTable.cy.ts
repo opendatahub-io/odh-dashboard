@@ -111,7 +111,7 @@ const initIntercepts = (options = {}) => {
 };
 
 const visitWithData = () => {
-  cy.visit('/main-view?project=test-project');
+  cy.visit('/ai-hub/data/browse?project=test-project');
   cy.findByTestId('registry-table', { timeout: 15000 }).should('exist');
 };
 
@@ -128,7 +128,7 @@ describe('Registry Table', () => {
   });
 
   it('should show empty state when no project selected', () => {
-    cy.visit('/main-view');
+    cy.visit('/ai-hub/data/browse');
     cy.contains('Select a project').should('exist');
   });
 
@@ -189,7 +189,7 @@ describe('Registry Table', () => {
     cy.findByTestId('asset-edit-table-analytics-claims-data').click();
     cy.url().should(
       'include',
-      '/main-view/assets/table/test-project/analytics/claims-data?edit=true',
+      '/ai-hub/data/browse/assets/table/test-project/analytics/claims-data?edit=true',
     );
     cy.wait('@getTable');
     cy.findByTestId('edit-asset-modal').should('exist');

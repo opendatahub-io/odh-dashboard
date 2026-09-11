@@ -49,7 +49,7 @@ export type UnifiedCohort = {
   effectivePool: FlavorQuota[];
 };
 
-/** null = still loading; undefined = loaded but no telemetry data for this model */
+/** null = still loading; undefined = loaded but no telemetry data for this model (render as 0%) */
 export type CQDcgmResult = {
   computePercentage: number | null | undefined;
   memoryPercentage: number | null | undefined;
@@ -200,3 +200,59 @@ export type WorkloadRowsFetchResult =
       mode: 'namespace';
       workloads: ClusterQueueWorkloadRow[];
     };
+
+/** Aggregated summary metrics for the Quota usage detail panel (RHOAIENG-88178). */
+export type QuotaUsageSummary = {
+  admittedWorkloads: number;
+  pendingWorkloads: number;
+  workloadSummaryLine: string;
+  totalUsed: number;
+  totalNominal: number;
+  /** Denominator for capacity meter label (handles pure-borrower fallback). */
+  capacityDisplayNominal: number;
+  totalBorrowed: number;
+  isOverQuota: boolean;
+  isBorrowing: boolean;
+  /** True when any selected CQ is in a cohort and has accelerator borrowing or lending configured. */
+  borrowingEnabled: boolean;
+  /** True when any selected CQ belongs to a Kueue cohort and is borrowing. */
+  showBorrowingInfo: boolean;
+  /** Parent cohort name for borrowing copy (from selection path). */
+  borrowSourceCohortName?: string;
+  /** Member cluster queues currently borrowing, when viewing a cohort selection. */
+  borrowingClusterQueues: QuotaUsageBorrowingClusterQueue[];
+  computeUtilization: number | null | undefined;
+  memoryUtilization: number | null | undefined;
+};
+
+/** A cluster queue borrowing accelerators within the current cohort scope. */
+export type QuotaUsageBorrowingClusterQueue = {
+  clusterQueueName: string;
+  borrowedCount: number;
+  path: string[];
+};
+
+/** Per-model row for the Accelerator usage table. */
+export type QuotaUsageAcceleratorRow = {
+  model: string;
+  used: number;
+  nominal: number;
+  borrowed?: number;
+  computePercentage: number | null | undefined;
+  memoryPercentage: number | null | undefined;
+};
+
+export type QuotaUsageMeterVariant = 'capacity' | 'utilization';
+
+export const QUOTA_USAGE_METER_VARIANT = {
+  capacity: 'capacity',
+  utilization: 'utilization',
+} as const satisfies Record<QuotaUsageMeterVariant, QuotaUsageMeterVariant>;
+
+export type QuotaUsageMeterSegments = {
+  withinQuotaValue: number;
+  overQuotaValue: number;
+  capacity: number;
+  valueLabel: string;
+  isOverQuota: boolean;
+};

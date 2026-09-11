@@ -16,6 +16,20 @@ const GPU_PRODUCT_LABELS = [
   'intel.com/gpu.product',
 ] as const;
 
+export const UNKNOWN_ACCELERATOR = 'Unknown accelerator';
+
+export const getAcceleratorDisplayName = (
+  resourceFlavor: ResourceFlavorKind | undefined,
+  resourceFlavorName: string | undefined,
+  acceleratorResourceName: string | undefined,
+): string => {
+  const productLabel = GPU_PRODUCT_LABELS.map(
+    (label) => resourceFlavor?.spec.nodeLabels?.[label],
+  ).find((value) => Boolean(value));
+
+  return productLabel || resourceFlavorName || acceleratorResourceName || UNKNOWN_ACCELERATOR;
+};
+
 /** Same annotation pair the dashboard stamps on notebook Pod templates when a HardwareProfile is assigned. */
 export const HARDWARE_PROFILE_NAME_ANNOTATION = 'opendatahub.io/hardware-profile-name';
 export const HARDWARE_PROFILE_NAMESPACE_ANNOTATION = 'opendatahub.io/hardware-profile-namespace';
@@ -146,23 +160,16 @@ export const resolvePerModelGpuCounts = (
     for (const rg of cq.spec.resourceGroups ?? []) {
       for (const flavor of rg.flavors) {
         const rf = flavorMap.get(flavor.name);
-        let model: string | undefined;
-        for (const label of GPU_PRODUCT_LABELS) {
-          const value = rf?.spec.nodeLabels?.[label];
-          if (value) {
-            model = value;
-            break;
-          }
-        }
-        if (!model) {
+        const nominalRes = flavor.resources.find((r) => ACCELERATOR_RE.test(r.name));
+        if (!nominalRes) {
           continue;
         }
+        const model = getAcceleratorDisplayName(rf, flavor.name, nominalRes.name);
 
-        const nominalRes = flavor.resources.find((r) => ACCELERATOR_RE.test(r.name));
         const usageEntry = cq.status?.flavorsUsage?.find((f) => f.name === flavor.name);
         const usedRes = usageEntry?.resources.find((r) => ACCELERATOR_RE.test(r.name));
 
-        const nominal = parseK8sQuantity(nominalRes?.nominalQuota ?? '0');
+        const nominal = parseK8sQuantity(nominalRes.nominalQuota);
         const used = parseK8sQuantity(usedRes?.total ?? '0');
         const borrowed =
           usedRes?.borrowed !== undefined ? parseK8sQuantity(usedRes.borrowed) : undefined;
