@@ -85,7 +85,7 @@ import {
   METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
-import { OgxModel, SecretListItem } from '~/app/types';
+import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
@@ -223,12 +223,6 @@ function AutoragConfigure({
   const inputDataKey = inputDataKeys[0] ?? '';
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
   // Model discovery is intentionally deferred to the MaaS model-table migration.
-  const modelDiscoveryState: { isLoading: boolean; isError: boolean; models: OgxModel[] } = {
-    isLoading: false,
-    isError: false,
-    models: [],
-  };
-  const { models } = modelDiscoveryState;
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
@@ -985,8 +979,7 @@ function AutoragConfigure({
                                       isDisabled={
                                         !inputDataBucketName ||
                                         inputDataKeyValue.length === 0 ||
-                                        form.formState.isSubmitting ||
-                                        !models.length
+                                        form.formState.isSubmitting
                                       }
                                     >
                                       Edit

@@ -144,6 +144,18 @@ export type OgxModelsResponse = {
   models: OgxModel[];
 };
 
+export type MaaSModel = {
+  id: string;
+  display_name?: string;
+  description?: string;
+  owned_by?: string;
+  ready: boolean;
+};
+
+export type MaaSModelsResponse = {
+  models: MaaSModel[];
+};
+
 export type OgxVectorStoreProvider = {
   provider_id: string;
   provider_type: string;
