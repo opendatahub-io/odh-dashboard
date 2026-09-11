@@ -81,7 +81,7 @@ custom notes in Known Issues / Gotchas or a separate doc if they should survive 
 | Term | Definition |
 |------|-----------|
 | **BFF** | Backend-for-Frontend — a Go HTTP server that serves frontend assets, handles auth, and proxies k8s/external API calls. |
-| **Module Federation** | Webpack 5 feature loading packages as micro-frontends at runtime. |
+| **Module Federation** | Runtime feature loading packages as micro-frontends (Rspack / `@module-federation/enhanced`). |
 | **PatternFly (PF)** | Primary React component library (v6). |
 | **Material UI (MUI)** | Secondary UI library used in Kubeflow deployment mode. |
 | **SSAR** | SelfSubjectAccessReview — k8s API for permission checks without Group API. |

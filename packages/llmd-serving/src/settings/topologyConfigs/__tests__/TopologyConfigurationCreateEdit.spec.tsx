@@ -57,7 +57,7 @@ const renderAtDuplicate = (config: LLMInferenceServiceConfigKind) =>
     </MemoryRouter>,
   );
 
-// Renders the add route with an arbitrary :topologyType, plus a sentinel list
+// Renders the add route with an arbitrary :topologyType, plus a placeholder list
 // route so a redirect away from the form lands somewhere assertable.
 const renderAtAdd = (topologyType: string) =>
   render(
@@ -75,7 +75,7 @@ const renderAtAdd = (topologyType: string) =>
   );
 
 // Renders the edit route for a configName with the given configs available in
-// context, plus a sentinel list route.
+// context, plus a placeholder list route.
 const renderAtEdit = (configName: string, configs: LLMInferenceServiceConfigKind[]) =>
   render(
     <MemoryRouter initialEntries={[`${TOPOLOGY_CONFIGS_TAB_PATH}/edit/${configName}`]}>
@@ -92,7 +92,7 @@ const renderAtEdit = (configName: string, configs: LLMInferenceServiceConfigKind
   );
 
 // Renders the duplicate route for a configName with the given configs available
-// in context, plus a sentinel list route.
+// in context, plus a placeholder list route.
 const renderAtDuplicateByName = (configName: string, configs: LLMInferenceServiceConfigKind[]) =>
   render(
     <MemoryRouter initialEntries={[`${TOPOLOGY_CONFIGS_TAB_PATH}/duplicate/${configName}`]}>

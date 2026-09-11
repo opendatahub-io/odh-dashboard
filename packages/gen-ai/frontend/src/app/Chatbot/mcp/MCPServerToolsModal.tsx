@@ -66,7 +66,12 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     toolsLoadError,
     toolsStatus,
     isLoading,
-  } = useMCPServerTools(server.connectionUrl, mcpBearerToken, isOpen);
+  } = useMCPServerTools(
+    server.connectionUrl,
+    mcpBearerToken,
+    server.source === 'registry' ? server.name : undefined,
+    isOpen,
+  );
 
   const [searchValue, setSearchValue] = React.useState('');
   const hasTrackedSearch = React.useRef(false);

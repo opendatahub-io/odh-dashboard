@@ -12,12 +12,12 @@ class MaaSWizardField {
 }
 
 class APIKeysPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/keys-and-subs');
     this.wait();
   }
 
-  visitKeysAndSubsWithoutLogin(): void {
+  visit(): void {
     cy.visit('/maas/keys-and-subs');
     this.wait();
   }
@@ -136,7 +136,12 @@ class APIKeysPage {
 
 class MySubscriptionsPage {
   visit(subName: string): void {
-    cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`);
+    cy.visit(`/maas/keys-and-subs/subscriptions/${subName}`);
+    this.wait();
+  }
+
+  visitWithLogin(subName: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`, credentials);
     this.wait();
   }
 
@@ -488,8 +493,13 @@ class AdminBulkRevokeAPIKeyModal extends Modal {
 }
 
 class SubscriptionsPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/maas-governance/subscriptions');
+    this.wait();
+  }
+
+  visit(): void {
+    cy.visit('/maas/maas-governance/subscriptions');
     this.wait();
   }
 
@@ -709,7 +719,12 @@ class PhaseModal extends Modal {
 }
 class CreateSubscriptionPage {
   visit(): void {
-    cy.visitWithLogin('/maas/maas-governance/subscriptions/create');
+    cy.visit('/maas/maas-governance/subscriptions/create');
+    this.wait();
+  }
+
+  visitWithLogin(credentials?: UserAuthConfig): void {
+    cy.visitWithLogin('/maas/maas-governance/subscriptions/create', credentials);
     this.wait();
   }
 
@@ -802,7 +817,12 @@ class CreateSubscriptionPage {
 
 class EditSubscriptionPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/subscriptions/edit/${name}`);
+    cy.visit(`/maas/maas-governance/subscriptions/edit/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/subscriptions/edit/${name}`, credentials);
     this.wait();
   }
 
@@ -959,7 +979,12 @@ class DeleteSubscriptionModal extends DeleteModal {
 }
 class ViewSubscriptionPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/subscriptions/view/${name}`);
+    cy.visit(`/maas/maas-governance/subscriptions/view/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/subscriptions/view/${name}`, credentials);
     this.wait();
   }
 
@@ -1038,7 +1063,15 @@ class PolicyPage {
     const path = policyName
       ? `/maas/maas-governance/auth-policies/edit/${encodeURIComponent(policyName)}`
       : '/maas/maas-governance/auth-policies/create';
-    cy.visitWithLogin(path);
+    cy.visit(path);
+    this.wait();
+  }
+
+  visitWithLogin(policyName?: string, credentials?: UserAuthConfig): void {
+    const path = policyName
+      ? `/maas/maas-governance/auth-policies/edit/${encodeURIComponent(policyName)}`
+      : '/maas/maas-governance/auth-policies/create';
+    cy.visitWithLogin(path, credentials);
     this.wait();
   }
 
@@ -1102,8 +1135,13 @@ class PolicyPage {
 }
 
 class AuthPoliciesPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/maas-governance/auth-policies');
+    this.wait();
+  }
+
+  visit(): void {
+    cy.visit('/maas/maas-governance/auth-policies');
     this.wait();
   }
 
@@ -1292,7 +1330,12 @@ class DeleteAuthPolicyModal extends DeleteModal {
 
 class ViewAuthPolicyPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/auth-policies/view/${name}`);
+    cy.visit(`/maas/maas-governance/auth-policies/view/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/auth-policies/view/${name}`, credentials);
     this.wait();
   }
 
@@ -1675,10 +1718,16 @@ class OverviewTabPage {
   }
 }
 
-class SubscriptionManagementPage {
+class MaaSGovernancePage {
   visit(tab?: string): void {
     const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
-    cy.visitWithLogin(path);
+    cy.visit(path);
+    this.wait();
+  }
+
+  visitWithLogin(tab?: string, credentials?: UserAuthConfig): void {
+    const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
+    cy.visitWithLogin(path, credentials);
     this.wait();
   }
 
@@ -1759,7 +1808,7 @@ class ExternalModelsPage {
   }
 
   findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('external-models-project-selector');
+    return cy.findByTestId('maas-external-resources-project-selector');
   }
 
   findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1808,6 +1857,10 @@ class ExternalModelsPage {
       this.findRows().filter(`:contains("${name}")`).first().find('tr').first(),
     );
   }
+
+  findExternalProvidersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('manage-external-providers-button');
+  }
 }
 
 class ExternalModelTableRow extends TableRow {
@@ -1830,10 +1883,6 @@ class ExternalModelTableRow extends TableRow {
 
   findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('phase-label');
-  }
-
-  findPhasePopover(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('phase-popover');
   }
 
   findGovernanceWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1920,7 +1969,7 @@ class DeleteExternalModelModal extends DeleteModal {
   }
 }
 
-class ExternalModelPathModal extends Modal {
+class PathModal extends Modal {
   constructor() {
     super('Path');
   }
@@ -1933,8 +1982,8 @@ class ExternalModelPathModal extends Modal {
     return this.find().findByTestId('path-modal-input-value');
   }
 
-  findProviderRef(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('path-modal-provider-ref-content');
+  findSubContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('path-modal-sub-content');
   }
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1968,6 +2017,188 @@ class ExternalModelProviderUrlModal extends Modal {
   }
 }
 
+class ExternalProvidersPage {
+  visit(): void {
+    cy.visitWithLogin('/ai-hub/models/deployments/external-providers');
+    cy.testA11y();
+  }
+
+  visitAsUser(
+    user: UserAuthConfig,
+    options?: { enableExternalModelsFlag?: boolean; projectName?: string },
+  ): void {
+    const projectSegment = options?.projectName ? `/${options.projectName}` : '';
+    const flagQuery = options?.enableExternalModelsFlag
+      ? '?devFeatureFlags=externalModels=true'
+      : '';
+    cy.visitWithLogin(
+      `/ai-hub/models/deployments/external-providers${projectSegment}${flagQuery}`,
+      user,
+    );
+    cy.testA11y();
+  }
+
+  findPageTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findPage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('all-external-providers-page');
+  }
+
+  findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('maas-external-resources-project-selector');
+  }
+
+  findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findProjectSelector().findByTestId('project-selector-toggle');
+  }
+
+  findProjectSelectorOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
+  selectProject(name: string): void {
+    this.findProjectSelectorToggle().click();
+    this.findProjectSelectorOption(name).click();
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-external-providers-page');
+  }
+
+  findNoProjectsPage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-providers-no-projects');
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-providers-table');
+  }
+
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().findAllByTestId('external-provider-row');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`external-providers-filter-input`);
+  }
+
+  openFilterSelect(testId: string): void {
+    cy.findByTestId(`${testId}-toggle`).click();
+  }
+
+  selectFilterOption(testId: string, value: string): void {
+    cy.findByTestId(`${testId}-option-${value}`).click();
+  }
+
+  selectProviderTypeFilter(value: string): void {
+    this.openFilterSelect('external-providers-provider-type-filter');
+    this.selectFilterOption('external-providers-provider-type-filter', value);
+  }
+
+  selectAuthenticationFilter(value: string): void {
+    this.openFilterSelect('external-providers-authentication-filter');
+    this.selectFilterOption('external-providers-authentication-filter', value);
+  }
+
+  selectStatusFilter(value: string): void {
+    this.openFilterSelect('external-providers-status-filter');
+    this.selectFilterOption('external-providers-status-filter', value);
+  }
+
+  selectMultipleStatusFilters(values: string[]): void {
+    this.openFilterSelect('external-providers-status-filter');
+    values.forEach((value) => {
+      this.selectFilterOption('external-providers-status-filter', value);
+    });
+  }
+
+  findFilterDropdownButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('filter-toolbar-dropdown');
+  }
+
+  findFilterDropdownItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`filter-toolbar-option-${name}`);
+  }
+
+  findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Clear all filters' });
+  }
+
+  findEmptyFilterState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
+  findColumnSortButton(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable()
+      .find('thead')
+      .findByRole('button', { name: new RegExp(`^${label}$`, 'i') });
+  }
+
+  getRow(name: string): ExternalProviderTableRow {
+    return new ExternalProviderTableRow(() =>
+      this.findRows().filter(`:contains("${name}")`).first().find('tr').first(),
+    );
+  }
+}
+
+class ExternalProviderTableRow extends TableRow {
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-name');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
+  findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-label');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-actions-toggle');
+  }
+
+  findCredentialSecretRef(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-credential-secret-ref');
+  }
+
+  findEndpointUrlLink(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`external-provider-view-endpoint-button-${name}`);
+  }
+
+  findAuthMechanism(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-auth-mechanism');
+  }
+
+  findProviderType(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-provider-type');
+  }
+
+  findStatusSubtext(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-label-subtext');
+  }
+}
+
+class DeleteExternalProviderModal extends DeleteModal {
+  constructor() {
+    super('Delete external provider?');
+  }
+
+  findConfirmationMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('delete-modal-confirmation-message');
+  }
+
+  shouldShowResourceName(name: string): this {
+    this.findConfirmationMessage().find('strong').should('contain.text', name);
+    return this;
+  }
+}
+
 export const maasWizardField = new MaaSWizardField();
 export const apiKeysPage = new APIKeysPage();
 export const subscriptionsTab = new SubscriptionsTab();
@@ -1989,10 +2220,12 @@ export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
 export const viewAuthPolicyPage = new ViewAuthPolicyPage();
 export const mySubscriptionsPage = new MySubscriptionsPage();
 export const overviewTabPage = new OverviewTabPage();
-export const subscriptionManagementPage = new SubscriptionManagementPage();
+export const maasGovernancePage = new MaaSGovernancePage();
 export const externalModelsPage = new ExternalModelsPage();
 export const deleteExternalModelModal = new DeleteExternalModelModal();
-export const externalModelPathModal = new ExternalModelPathModal();
+export const pathModal = new PathModal();
 export const externalModelProviderUrlModal = new ExternalModelProviderUrlModal();
 export const modelInfoPopover = new ModelInfoPopover();
 export const phaseModal = new PhaseModal();
+export const externalProvidersPage = new ExternalProvidersPage();
+export const deleteExternalProviderModal = new DeleteExternalProviderModal();

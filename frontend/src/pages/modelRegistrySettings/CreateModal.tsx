@@ -445,7 +445,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         },
       ]}
       contents={
-        <Form>
+        <Form onSubmit={(e) => e.preventDefault()}>
           <K8sNameDescriptionField
             dataTestId="mr"
             data={nameDesc}

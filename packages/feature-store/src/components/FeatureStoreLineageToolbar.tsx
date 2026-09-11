@@ -4,7 +4,7 @@ import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import {
   MultiSelection,
   type SelectionOptions,
-} from '@odh-dashboard/internal/components/MultiSelection';
+} from '@odh-dashboard/ui-core/components/MultiSelection';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   extractFilterOptionsFromLineage,

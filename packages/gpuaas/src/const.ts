@@ -1,13 +1,163 @@
+import type { SortableData } from '@odh-dashboard/ui-core';
+import type { QuotaUsageAcceleratorRow } from './types';
+
+export const INFRASTRUCTURE_PAGE_DESCRIPTION =
+  'View accelerator utilization, cluster queue cohort configuration, and workload details.';
+
+export const KUEUE_HELP_LINK_TEXT = "Not seeing what you're looking for?";
+export const KUEUE_HELP_POPOVER_BODY =
+  "This page shows data from projects managed by Kueue. Projects without a local queue aren't part of queue-based resource management.";
+export const KUEUE_HELP_VIEW_PROJECTS_LINK = 'View projects not managed by Kueue';
+export const NON_KUEUE_PROJECTS_MODAL_TITLE = 'Projects not managed by Kueue';
+export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION =
+  'Data from the following projects is not displayed on the Infrastructure page because they do not use Kueue for workload admission.';
+export const NON_KUEUE_PROJECT_STATUS_LABEL = 'not Kueue-managed';
+
+export const CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE = 'Workloads';
+export const CLUSTER_QUEUE_WORKLOADS_TABLE_DESCRIPTION =
+  'Workloads admitted or waiting in this cluster queue.';
+export const CLUSTER_QUEUE_WORKLOADS_EMPTY_TITLE = 'No workloads';
+export const CLUSTER_QUEUE_WORKLOADS_EMPTY_BODY = 'Admitted or waiting workloads will appear here.';
+export const CLUSTER_QUEUE_WORKLOADS_TYPE_HELP =
+  'The type of workload: train job, Ray job, notebook, inference, or Ray cluster.';
+
+export enum ClusterQueueWorkloadsToolbarFilterOptions {
+  status = 'status',
+  priority = 'priority',
+  hardwareProfile = 'hardwareProfile',
+}
+
+export const clusterQueueWorkloadsFilterOptions: Record<
+  ClusterQueueWorkloadsToolbarFilterOptions,
+  string
+> = {
+  [ClusterQueueWorkloadsToolbarFilterOptions.status]: 'Status',
+  [ClusterQueueWorkloadsToolbarFilterOptions.priority]: 'Priority',
+  [ClusterQueueWorkloadsToolbarFilterOptions.hardwareProfile]: 'Hardware profile',
+};
+
+export const clusterQueueWorkloadsFilterPlaceholders: Record<
+  ClusterQueueWorkloadsToolbarFilterOptions,
+  string
+> = {
+  [ClusterQueueWorkloadsToolbarFilterOptions.status]: 'Filter by status',
+  [ClusterQueueWorkloadsToolbarFilterOptions.priority]: 'Filter by priority',
+  [ClusterQueueWorkloadsToolbarFilterOptions.hardwareProfile]: 'Filter by hardware profile',
+};
+
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 
+/** Pass to useFetch refreshRate to disable polling; initial load + manual refresh only. */
+export const INFRASTRUCTURE_MANUAL_REFRESH_ONLY = -1;
+
+/** 5m polling for trend charts and quota-usage workload tables (see useBorrowingLendingMetrics). */
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 export const PROMETHEUS_CLUSTER_QUERY_PATH = '/api/prometheus/cluster/query';
 export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/queryRange';
 
 export const INFRASTRUCTURE_TABS = [
-  { id: 'utilization', title: 'Utilization' },
-  { id: 'cluster-queue-utilization', title: 'Compute profile utilization' },
+  { id: 'utilization', title: 'Accelerator utilization' },
+  { id: 'quota-usage', title: 'Quota usage' },
 ] as const;
+
+export type InfrastructureTabId = (typeof INFRASTRUCTURE_TABS)[number]['id'];
+
+export const QUOTA_USAGE_DESCRIPTION =
+  'View quota usage across cluster queues, which are entry points for workloads to access defined pools of hardware resources. Cluster queues organized into cohorts can borrow accelerators from the defined pool.';
+
+export const QUOTA_USAGE_EMPTY_TITLE = 'No accelerator cluster queues found';
+export const QUOTA_USAGE_EMPTY_BODY =
+  'No cluster queues with accelerator resources were detected. Configure cluster queues with GPU resource quotas to see utilization here.';
+export const QUOTA_USAGE_ERROR_TITLE = 'Error loading cluster queue data';
+
+export const QUOTA_UNASSIGNED_NODE_ID = 'quota-unassigned';
+export const QUOTA_UNASSIGNED_LABEL = 'Unassigned';
+export const QUOTA_UNASSIGNED_TOOLTIP = 'Cluster queues not assigned to a cohort.';
+export const QUOTA_USAGE_TREE_DRAWER_PANEL_ID = 'quota-usage-tree-drawer-panel';
+
+export const QUOTA_USAGE_SUMMARY = {
+  title: 'Summary',
+  workloads: 'Workloads',
+  acceleratorTableTitle: 'Accelerator usage',
+  viewKueueProjects: 'View Kueue projects',
+  capacity: 'Accelerators allocated',
+  compute: 'Accelerator compute',
+  memory: 'Accelerator memory',
+  help: {
+    capacity: 'GPU units in use compared to nominal quota from the cluster queue resource groups.',
+    compute: 'Average DCGM compute utilization across accelerator models in this selection.',
+    memory: 'Average DCGM memory utilization across accelerator models in this selection.',
+  },
+} as const;
+
+export const QUOTA_USAGE_ACCELERATOR_TABLE = {
+  acceleratorTableTitle: 'Accelerator usage',
+  acceleratorTableSubtitle: 'Accelerator capacity, compute, and memory usage.',
+  empty: 'No accelerator model details are available for this selection.',
+  columnLabels: {
+    accelerator: 'Accelerator',
+    capacity: 'Capacity',
+    compute: 'Compute',
+    memory: 'Memory',
+  },
+  help: {
+    capacity: 'In-use GPU units compared to nominal quota for this model.',
+    compute: 'DCGM compute utilization for this accelerator model.',
+    memory: 'DCGM memory utilization for this accelerator model.',
+  },
+} as const;
+
+export const QUOTA_USAGE_ACCELERATOR_TABLE_COLUMNS: SortableData<QuotaUsageAcceleratorRow>[] = [
+  { label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.accelerator, field: 'model', sortable: true },
+  {
+    label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.capacity,
+    field: 'nominal',
+    sortable: true,
+    info: {
+      popover:
+        'The number of accelerators that are in use (blue) of the total quota allocated for each accelerator.',
+      popoverProps: {
+        position: 'top',
+      },
+    },
+  },
+  {
+    label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.compute,
+    field: 'computePercentage',
+    sortable: true,
+    info: {
+      popover: "The percentage of the accelerator's total processing power being used",
+      popoverProps: {
+        position: 'top',
+      },
+    },
+  },
+  {
+    label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.memory,
+    field: 'memoryPercentage',
+    sortable: true,
+    info: {
+      popover: "The percentage of the accelerator's memory being used.",
+      popoverProps: {
+        position: 'top',
+      },
+    },
+  },
+];
+
+export const QUOTA_USAGE_METER = {
+  overQuotaTooltip: 'Over quota',
+} as const;
+
+export const QUOTA_USAGE_BORROWING = {
+  enabledLabel: 'Borrowing enabled',
+  label: (count: number, cohortName: string): string =>
+    `Borrowing ${count} ${cohortName} accelerators`,
+  popoverBorrowingLabel: 'Borrowing:',
+  popoverSinceLabel: 'Since:',
+  popoverModelLine: (count: number, model: string): string => `${count} x ${model}`,
+  cohortCalloutSuffix: (cohortName: string): string => ` is borrowing ${cohortName} accelerators`,
+} as const;
 
 export const INFRASTRUCTURE_SECTIONS = [
   {
@@ -16,6 +166,8 @@ export const INFRASTRUCTURE_SECTIONS = [
     title: 'Summary',
     description: 'Cluster-wide accelerator allocation and average compute and memory consumption.',
     isPlain: true,
+    refreshBadgeTestId: undefined,
+    showKueueHelpLink: false,
   },
   {
     id: 'hardware-usage',
@@ -23,6 +175,8 @@ export const INFRASTRUCTURE_SECTIONS = [
     title: 'Hardware usage',
     description: 'Accelerator counts by hardware type.',
     isPlain: false,
+    refreshBadgeTestId: undefined,
+    showKueueHelpLink: false,
   },
   {
     id: 'borrowing',
@@ -31,13 +185,17 @@ export const INFRASTRUCTURE_SECTIONS = [
     description:
       '7-day borrowing trends by cluster queue. When a cluster queue uses its full quota, it can borrow accelerators from other queues.',
     isPlain: false,
+    refreshBadgeTestId: undefined,
+    showKueueHelpLink: false,
   },
   {
-    id: 'cluster-queue-utilization',
-    tab: 'cluster-queue-utilization',
-    title: 'Compute profile utilization',
-    description: 'Compute profile accelerator utilization grouped by Kueue cohort.',
+    id: 'quota-usage',
+    tab: 'quota-usage',
+    title: 'Quota usage',
+    description: QUOTA_USAGE_DESCRIPTION,
     isPlain: true,
+    refreshBadgeTestId: 'quota-usage-refresh-badge',
+    showKueueHelpLink: true,
   },
 ] as const;
 

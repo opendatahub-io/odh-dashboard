@@ -7,20 +7,23 @@ import {
   type HostApiCoreServices,
   type HostApiInfraServices,
 } from '@odh-dashboard/plugin-core/host-api';
-import { useDashboardNamespace } from '#~/redux/selectors/project';
-import { useUser } from '#~/redux/selectors';
-import { checkAccess } from '#~/api/checkAccess';
 import {
   getSecretsByLabel,
   createSecret,
   getSecret,
   deleteSecret,
+} from '@odh-dashboard/k8s-core/api/secrets';
+import { useDashboardNamespace } from '#~/redux/selectors/project';
+import { useUser } from '#~/redux/selectors';
+import { checkAccess } from '#~/api/checkAccess';
+import {
   patchSecretWithOwnerReference,
   patchSecretWithProtocolAnnotation,
 } from '#~/api/k8s/secrets';
 import { getDashboardPvcs } from '#~/api/k8s/pvcs';
 import { addSupportServingPlatformProject, createProject } from '#~/api/k8s/projects';
 import { fetchDashboardConfig } from '#~/services/dashboardConfigService';
+import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { useTemplates } from '#~/api/k8s/templates';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
@@ -50,6 +53,8 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
       checkAccess,
       trackEvent: fireMiscTrackingEvent,
       fetchDashboardConfig,
+      fetchClusterSettings,
+      updateClusterSettings,
     }),
     [dashboardNamespace],
   );

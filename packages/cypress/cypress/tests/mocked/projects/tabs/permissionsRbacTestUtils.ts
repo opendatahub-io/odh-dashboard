@@ -11,12 +11,8 @@ import {
 } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
-import {
-  ClusterRoleModel,
-  ProjectModel,
-  RoleBindingModel,
-  RoleModel,
-} from '../../../../utils/models';
+import { RoleBindingModel, RoleModel } from '@odh-dashboard/k8s-core/api/models';
+import { ClusterRoleModel, ProjectModel } from '../../../../utils/models';
 
 export const NAMESPACE = 'test-project';
 

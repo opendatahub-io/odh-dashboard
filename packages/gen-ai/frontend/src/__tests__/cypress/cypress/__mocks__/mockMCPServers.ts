@@ -10,6 +10,7 @@ export type MCPServer = {
   description: string;
   logo: string | null;
   status: 'healthy' | 'error' | 'unknown';
+  source?: 'registry' | 'configmap';
 };
 
 export type MCPConfigMapInfo = {
@@ -22,6 +23,8 @@ export type MCPServersData = {
   servers: MCPServer[];
   total_count: number;
   config_map_info: MCPConfigMapInfo;
+  registry_available?: boolean;
+  configmap_available?: boolean;
 };
 
 // The API returns data wrapped in { data: ... } which modArchRestGET unwraps
@@ -36,6 +39,7 @@ export const mockMCPServer = ({
   status = 'healthy',
   description = 'Test MCP server',
   logo = null,
+  source,
 }: Partial<MCPServer> = {}): MCPServer => ({
   name,
   url,
@@ -43,6 +47,7 @@ export const mockMCPServer = ({
   description,
   logo,
   status,
+  ...(source !== undefined && { source }),
 });
 
 export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
@@ -74,6 +79,46 @@ export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
         namespace: 'crimson-show',
         last_updated: new Date().toISOString(),
       },
+    },
+  };
+};
+
+export const mockMCPServersWithRegistry = (
+  registryServers?: MCPServer[],
+  configmapServers?: MCPServer[],
+): MCPServersResponse => {
+  const regServers = registryServers ?? [
+    mockMCPServer({
+      name: 'Registry-MCP-Server',
+      url: 'http://registry-mcp-server.test.svc.cluster.local:8080/mcp',
+      transport: 'streamable-http',
+      status: 'healthy',
+      description: 'MCP server from registry',
+      source: 'registry',
+    }),
+  ];
+  const cmServers = configmapServers ?? [
+    mockMCPServer({
+      name: 'ConfigMap-MCP-Server',
+      url: 'http://configmap-mcp-server.test.svc.cluster.local:8080/sse',
+      transport: 'sse',
+      status: 'healthy',
+      description: 'MCP server from configmap',
+      source: 'configmap',
+    }),
+  ];
+  const allServers = [...regServers, ...cmServers];
+  return {
+    data: {
+      servers: allServers,
+      total_count: allServers.length,
+      config_map_info: {
+        name: 'mcp-servers-config',
+        namespace: 'crimson-show',
+        last_updated: new Date().toISOString(),
+      },
+      registry_available: true,
+      configmap_available: true,
     },
   };
 };

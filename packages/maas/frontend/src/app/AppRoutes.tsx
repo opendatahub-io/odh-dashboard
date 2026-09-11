@@ -10,20 +10,20 @@ import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage
 import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
 import ViewMySubscriptionPage from './pages/keys-and-subs/mySubscriptions/ViewMySubscriptionPage';
-import SubscriptionManagementPage from './pages/subscription-management/SubscriptionManagementPage';
 import { MaaSGovernanceProvider } from './context/MaaSGovernanceContext';
+import MaaSGovernancePage from './pages/maas-governance/MaaSGovernancePage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
   const isKeysAndSubs = pathname.startsWith(`${URL_PREFIX}/keys-and-subs`);
-  const isSubscriptionManagement = pathname.startsWith(`${URL_PREFIX}/maas-governance`);
+  const isMaaSGovernance = pathname.startsWith(`${URL_PREFIX}/maas-governance`);
 
-  if (isSubscriptionManagement) {
+  if (isMaaSGovernance) {
     return (
       <MaaSGovernanceProvider>
         <Routes>
-          <Route path="/" element={<SubscriptionManagementPage />} />
-          <Route path="/:tab" element={<SubscriptionManagementPage />} />
+          <Route path="/" element={<MaaSGovernancePage />} />
+          <Route path="/:tab" element={<MaaSGovernancePage />} />
           <Route path="/subscriptions/create" element={<CreateSubscriptionPage />} />
           <Route path="/subscriptions/view/:subscriptionName" element={<ViewSubscriptionPage />} />
           <Route path="/subscriptions/edit/:subscriptionName" element={<EditSubscriptionPage />} />

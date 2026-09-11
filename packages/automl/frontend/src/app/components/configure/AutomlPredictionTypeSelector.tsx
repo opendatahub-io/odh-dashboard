@@ -87,6 +87,7 @@ const PredictionTypeCard: React.FC<PredictionTypeCardProps> = ({
           alignItems={{ default: 'alignItemsFlexStart' }}
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           gap={{ default: 'gapMd' }}
+          flexWrap={{ default: 'nowrap' }}
           className="pf-v6-u-w-100"
         >
           <FlexItem grow={{ default: 'grow' }}>

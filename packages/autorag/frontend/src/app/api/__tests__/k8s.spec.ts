@@ -22,7 +22,7 @@ describe('getSecretByName', () => {
   });
 
   it('should call restGET with correct URL and namespace query param', async () => {
-    const mockData = { OGX_CLIENT_API_KEY: 'key', OGX_CLIENT_BASE_URL: 'url' };
+    const mockData = { MAAS_API_KEY: 'key', MAAS_BASE_URL: 'url' };
     const mockResponse = { data: mockData };
     mockRestGET.mockReturnValue(Promise.resolve(mockResponse) as never);
     mockHandleRestFailures.mockImplementation((p) => p as never);

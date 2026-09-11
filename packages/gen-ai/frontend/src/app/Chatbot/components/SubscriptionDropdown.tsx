@@ -20,6 +20,15 @@ interface SubscriptionDropdownProps {
   className?: string;
 }
 
+const isValidSubscription = (s: unknown): s is SubscriptionInfo =>
+  s != null &&
+  typeof s === 'object' &&
+  'name' in s &&
+  typeof s.name === 'string' &&
+  s.name.trim() !== '' &&
+  (!('displayName' in s) || s.displayName == null || typeof s.displayName === 'string') &&
+  (!('description' in s) || s.description == null || typeof s.description === 'string');
+
 const DEFAULT_HELP_TEXT =
   'Select the subscription to use for this model. Subscriptions control access and rate limits for model endpoints.';
 
@@ -44,8 +53,10 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
       return [];
     }
     const maasModelId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
-    const matchingModel = maasModels.find((m) => m.id === maasModelId);
-    return matchingModel?.subscriptions ?? [];
+    const matchingModel = maasModels.find((m) => m.model_id === maasModelId);
+    const subs = matchingModel?.subscriptions;
+    // Validate each subscription has the required name field before returning
+    return Array.isArray(subs) ? subs.filter(isValidSubscription) : [];
   }, [selectedModel, isMaaSModel, maasModels]);
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
@@ -99,7 +110,7 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
             isDisabled={isDisabled}
-            style={{ width: '100%' }}
+            isFullWidth
             data-testid="subscription-selector-toggle"
           >
             {toggleLabel}

@@ -67,7 +67,6 @@ import type { AllowedUser } from '@odh-dashboard/internal/pages/notebookControll
 import type { StatusResponse } from '@odh-dashboard/internal/redux/types';
 import type {
   BYONImage,
-  ClusterSettingsType,
   DetectedAccelerators,
   ImageInfo,
   OdhDocument,
@@ -75,6 +74,7 @@ import type {
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
+import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import type { PrometheusQueryRangeResponse } from '@odh-dashboard/ui-core/types/metrics';
 import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {
@@ -109,7 +109,7 @@ import type {
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
-import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
+import type { ExternalModel, ExternalProvider } from '@odh-dashboard/maas/types/external-models';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1251,6 +1251,16 @@ declare global {
           type: 'DELETE /maas/api/v1/delete-policy/:name',
           options: { path: { name: string } },
           response: OdhResponse<{ data: { message: string } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/externalprovider/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<{ data: null }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/externalprovider',
+          options: { query: { namespace: string } },
+          response: OdhResponse<{ data: ExternalProvider[] }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/subscriptions/:id',

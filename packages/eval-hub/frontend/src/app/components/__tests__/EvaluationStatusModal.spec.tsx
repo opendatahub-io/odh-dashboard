@@ -81,6 +81,18 @@ describe('EvaluationStatusModal tab defaults', () => {
     expect(screen.getByTestId('progress-tab')).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('should only apply full-height on the events-log tab', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+    expect(screen.getByTestId('evaluation-status-modal')).not.toHaveClass(
+      'evalhub-status-modal--full-height',
+    );
+
+    switchToEventsLog();
+    expect(screen.getByTestId('evaluation-status-modal')).toHaveClass(
+      'evalhub-status-modal--full-height',
+    );
+  });
+
   it('should not show the failure-info tab for a failed job', () => {
     renderModal(mockEvaluationJob({ state: 'failed' }));
     expect(screen.queryByTestId('failure-info-tab')).not.toBeInTheDocument();
@@ -433,6 +445,11 @@ describe('EvaluationStatusModal running state header', () => {
 
     expect(screen.getByTestId('modal-title-name')).toHaveTextContent('Safety and fairness');
     expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
+  });
+
+  it('should truncate the benchmark name on the header paragraph', () => {
+    renderModal();
+    expect(screen.getByTestId('benchmark-name-header')).toHaveClass('pf-v6-u-text-truncate');
   });
 
   it('should show "Evaluation job is running." in description', () => {

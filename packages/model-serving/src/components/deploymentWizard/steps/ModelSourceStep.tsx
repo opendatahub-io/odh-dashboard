@@ -92,6 +92,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
             fieldId={field.id}
             wizardState={wizardState}
             externalData={externalData}
+            isEditing={wizardState.initialData?.isEditing}
           />
         ))}
         <ModelTypeSelectField

@@ -20,16 +20,17 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
-import { isNavigateToDeploymentWizardWithDataExtension } from '~/odh/extension-points';
+import useCatalogDeployPrefillData from '~/odh/hooks/useCatalogDeployPrefillData';
 import {
   decodeParams,
   getModelName,
   hasModelArtifacts,
   isModelValidated,
   isRedHatModel,
+  getHfAccessLabelVariant,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
@@ -38,19 +39,24 @@ import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
 import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
-import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import {
+  MODEL_CATALOG_GATED_ACCESS_REQUIRED,
+  MODEL_CATALOG_POPOVER_MESSAGES,
+} from '~/concepts/modelCatalog/const';
 import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
+import ModelCatalogAccessLabel from '~/app/pages/modelCatalog/components/ModelCatalogAccessLabel';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
 const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
 
 type ModelDetailsPageProps = {
   tab: string;
+  customNoRegistriesButton?: (variant: 'primary' | 'secondary') => React.ReactNode;
 };
 
-const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
+const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegistriesButton }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
@@ -64,15 +70,27 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     ModelRegistrySelectorContext,
   );
   const actionExtensions = useExtensions(isActionExtension);
-  const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(
-    isNavigateToDeploymentWizardWithDataExtension,
+  const isDeployAvailable = React.useMemo(
+    () => actionExtensions.some((action) => action.properties.group === MODEL_CATALOG_DEPLOY_GROUP),
+    [actionExtensions],
   );
-  const isDeployAvailable = navigateExtensionsLoaded && navigateExtensions.length > 0;
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
   );
+
+  const catalogDeployProps = useCatalogDeployPrefillData(
+    model,
+    artifacts,
+    artifactLoaded,
+    artifactsLoadError,
+    decodedParams.sourceId || '',
+    decodedParams.modelName || '',
+  );
+
+  const accessLabelVariant = model ? getHfAccessLabelVariant(model) : null;
+  const gatedAccessDenied = accessLabelVariant === 'gated-denied';
 
   const handleValidatedLabelClicked = React.useCallback(() => {
     if (!model) {
@@ -108,6 +126,16 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
   );
 
   const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
+    if (gatedAccessDenied) {
+      return (
+        <Tooltip content={MODEL_CATALOG_GATED_ACCESS_REQUIRED.REQUEST_ACCESS_BUTTON_TOOLTIP}>
+          <Button variant={variant} isAriaDisabled data-testid="register-model-button">
+            Register model
+          </Button>
+        </Tooltip>
+      );
+    }
+
     if (!modelRegistriesLoaded || modelRegistriesLoadError) {
       return null;
     }
@@ -128,10 +156,14 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     }
 
     return modelRegistries.length === 0 ? (
-      registerButtonTooltip(
-        'Request access to a model registry',
-        'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
-        variant,
+      customNoRegistriesButton ? (
+        customNoRegistriesButton(variant)
+      ) : (
+        registerButtonTooltip(
+          'Request access to a model registry',
+          'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
+          variant,
+        )
       )
     ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
       registerButtonTooltip('', 'Model location is unavailable', variant)
@@ -183,7 +215,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                     alignItems={{ default: 'alignItemsCenter' }}
                   >
                     <FlexItem>{getModelName(model.name)}</FlexItem>
-                    {isModelValidated(model) && (
+                    {isModelValidated(model) ? (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
                         <Label
                           variant="outline"
@@ -195,7 +227,9 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                           Validated
                         </Label>
                       </Popover>
-                    )}
+                    ) : accessLabelVariant ? (
+                      <ModelCatalogAccessLabel variant={accessLabelVariant} />
+                    ) : null}
                     {isRedHatModel(model) && (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.RED_HAT}>
                         <Label color="grey" isClickable>
@@ -233,7 +267,13 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                 <ExtensibleActions
                   actions={actionExtensions}
                   group={MODEL_CATALOG_DEPLOY_GROUP}
-                  componentProps={{ model }}
+                  componentProps={{
+                    ...catalogDeployProps,
+                    ...(gatedAccessDenied && {
+                      disabledTooltip:
+                        MODEL_CATALOG_GATED_ACCESS_REQUIRED.REQUEST_ACCESS_BUTTON_TOOLTIP,
+                    }),
+                  }}
                 />
                 {registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
               </ActionListGroup>
@@ -249,6 +289,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
             artifacts={artifacts}
             artifactLoaded={artifactLoaded}
             artifactsLoadError={artifactsLoadError}
+            gatedAccessDenied={gatedAccessDenied}
           />
         )}
       </ApplicationsPage>

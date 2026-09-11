@@ -4,7 +4,7 @@ Read-only UI for browsing and inspecting ML features backed by a [Feast](https:/
 
 ## Architecture
 
-Feature Store is a **bundled library package** -- not a Module Federation remote. It compiles directly into the main dashboard bundle at build time. There is no separate webpack config, dev server, or `remoteEntry.js`.
+Feature Store is a **bundled library package** -- not a Module Federation remote. It compiles directly into the main dashboard bundle at build time. There is no separate rspack config, dev server, or `remoteEntry.js`.
 
 - **No BFF**: All API calls use `proxyGET` from `@odh-dashboard/internal/api/proxyUtils`. Traffic flows: browser -> main dashboard backend -> Feast REST API (`/api/v1/...`).
 - **Read-only**: List and inspect projects, entities, feature views, features, feature services, data sources, saved datasets, lineage, and metrics. No create/update/delete.
@@ -47,7 +47,7 @@ No separate dev server is needed. Feature Store code is compiled into the host d
 
 ### Prerequisites
 
-- Node.js >= 22, npm >= 10
+- Node.js >= 22.18.0, npm 11.8.0
 - A cluster with a Feast service deployed (`FeatureStore` CR with label `feature-store-ui=enabled`)
 
 ### Running locally

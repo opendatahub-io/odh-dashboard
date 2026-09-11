@@ -1,0 +1,113 @@
+name: Fast-forward main to stable
+
+on:
+  workflow_dispatch:
+    inputs:
+      SYNC_STABLE:
+        description: 'Type SYNC_STABLE to confirm manual fast-forward of main to stable'
+        required: true
+        type: string
+      target_commit:
+        description: 'Commit SHA on main to fast-forward stable to (from Jenkins)'
+        required: true
+        type: string
+
+concurrency:
+  group: stable-ff-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate dispatch inputs
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Validate workflow dispatch inputs
+        env:
+          SYNC_STABLE_INPUT: ${{ github.event.inputs.SYNC_STABLE }}
+          TARGET_COMMIT: ${{ github.event.inputs.target_commit }}
+          WORKFLOW_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$WORKFLOW_REF" != "refs/heads/main" ]]; then
+            echo "ERROR: workflow must be dispatched from main, got: $WORKFLOW_REF"
+            exit 1
+          fi
+
+          if [[ "$SYNC_STABLE_INPUT" != "SYNC_STABLE" ]]; then
+            echo "ERROR: SYNC_STABLE must be 'SYNC_STABLE', got: $SYNC_STABLE_INPUT"
+            exit 1
+          fi
+
+          if [[ ! "$TARGET_COMMIT" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "ERROR: target_commit must be a full 40-character SHA, got: $TARGET_COMMIT"
+            exit 1
+          fi
+
+  fast-forward:
+    name: Fast-forward main to stable
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check stable branch exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh api "repos/${{ github.repository }}/branches/stable" --silent 2>/dev/null; then
+            echo "ERROR: Branch 'stable' does not exist. Skipping sync."
+            exit 1
+          fi
+          echo "Branch 'stable' exists."
+
+      - name: Checkout stable
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: stable
+          fetch-depth: 0
+          # Uses automatic GITHUB_TOKEN - no manual secrets needed!
+
+      - name: Fast-forward main to stable
+        env:
+          TARGET_COMMIT: ${{ github.event.inputs.target_commit }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
+
+          if ! git cat-file -e "$TARGET_COMMIT^{commit}" 2>/dev/null; then
+            echo "ERROR: target_commit $TARGET_COMMIT not found after fetch"
+            exit 1
+          fi
+
+          MAIN_TIP="$(git rev-parse origin/main)"
+          echo "origin/main tip: $MAIN_TIP"
+
+          # Do not use `rev-list | grep -q` with pipefail: grep exits early and rev-list gets SIGPIPE (141).
+          if ! git merge-base --is-ancestor "$TARGET_COMMIT" "$MAIN_TIP"; then
+            echo "ERROR: target_commit $TARGET_COMMIT is not an ancestor of origin/main ($MAIN_TIP)"
+            exit 1
+          fi
+
+          echo "stable before: $(git rev-parse HEAD)"
+          echo "main target:   $TARGET_COMMIT"
+
+          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse "$TARGET_COMMIT")" ]]; then
+            echo "No changes — stable is already at target commit"
+            exit 0
+          fi
+
+          if ! git merge-base --is-ancestor HEAD "$TARGET_COMMIT"; then
+            echo "ERROR: Cannot fast-forward. stable has diverged from target commit or target is behind stable."
+            echo "Manual intervention required."
+            exit 1
+          fi
+
+          git merge --ff-only "$TARGET_COMMIT"
+          echo "stable after:  $(git rev-parse HEAD)"
+          git push origin stable
+          echo "Fast-forwarded stable to $TARGET_COMMIT"

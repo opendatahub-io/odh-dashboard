@@ -20,9 +20,11 @@ const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset 
   assetType: 'table',
   location: asset.location || '',
   connectionRef: asset.connection_ref
-    ? asset.connection_ref.type === 'rhai'
-      ? asset.connection_ref.secret_name
-      : asset.connection_ref.id
+    ? typeof asset.connection_ref === 'string'
+      ? asset.connection_ref
+      : asset.connection_ref.type === 'rhai'
+        ? asset.connection_ref.secret_name
+        : asset.connection_ref.id
     : '',
   labels: asset.labels || [],
   collection,
@@ -35,7 +37,7 @@ const mapVolumeAsset = (volume: VolumeInfo, collection: string): RegistryAsset =
   assetType: 'volume',
   location: volume['storage-location'] || '',
   connectionRef: volume.properties?.['connection-ref'] || '',
-  labels: [],
+  labels: volume.labels || [],
   collection,
 });
 
@@ -75,8 +77,12 @@ export const useAssets = (
               fetchVolumes(project, collection),
             ]);
 
-            const tableAssets = assetsResponse.assets.map((a) => mapTableAsset(a, collection));
-            const volumeAssets = volumesResponse.volumes.map((v) => mapVolumeAsset(v, collection));
+            const tableAssets = (assetsResponse.assets ?? []).map((a) =>
+              mapTableAsset(a, collection),
+            );
+            const volumeAssets = (volumesResponse.volumes ?? []).map((v) =>
+              mapVolumeAsset(v, collection),
+            );
 
             return [...tableAssets, ...volumeAssets];
           }),

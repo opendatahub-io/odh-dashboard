@@ -25,6 +25,16 @@ describe('ConfigureFormGroup', () => {
     expect(screen.getByTestId('test-child')).toHaveTextContent('Child content');
   });
 
+  it('should not wrap so nested cards stay left-aligned with the label', () => {
+    render(
+      <ConfigureFormGroup label="Test Label">
+        <div data-testid="test-child">Child content</div>
+      </ConfigureFormGroup>,
+    );
+
+    expect(screen.getByTestId('configure-form-group-test-label')).toHaveClass('pf-m-nowrap');
+  });
+
   it('should render required asterisk when isRequired is true', () => {
     render(
       <ConfigureFormGroup label="Required Field" isRequired>

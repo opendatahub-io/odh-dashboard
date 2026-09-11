@@ -1,6 +1,7 @@
 import { useLocation, useNavigate, type NavigateFunction } from 'react-router-dom';
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
 import { InitialWizardFormData } from '../../shared/types/form-data';
@@ -62,6 +63,7 @@ export const useNavigateToDeploymentWizard = (
   navSource?: DeployWizardNavSource,
 ): ((projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null) => void) => {
   const navigate: NavigateFunction = useNavigate();
+  const trackEvent = useTrackEvent();
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
   const fromCatalog = navSource?.fromCatalog;
   const catalogModelId = navSource?.catalogModelId;
@@ -97,6 +99,7 @@ export const useNavigateToDeploymentWizard = (
       };
 
       fireDeployWizardStarted(
+        trackEvent,
         getDeployWizardStartedProperties({
           navSource: {
             fromCatalog,
@@ -132,6 +135,7 @@ export const useNavigateToDeploymentWizard = (
       deployment,
       returnRoute,
       cancelReturnRoute,
+      trackEvent,
       error,
       isYAMLViewerEnabled,
       fromCatalog,

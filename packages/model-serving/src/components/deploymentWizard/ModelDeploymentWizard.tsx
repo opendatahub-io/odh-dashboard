@@ -56,7 +56,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
 }) => {
   const onRefresh = useRefreshWizardPage(existingDeployment);
   const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
-    useExitDeploymentWizard({ returnRoute, cancelReturnRoute });
+    useExitDeploymentWizard({ returnRoute, cancelReturnRoute, isEdit: !!existingDeployment });
 
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
   const [viewMode, setViewMode] = React.useState<ModelDeploymentWizardViewMode>(

@@ -50,6 +50,7 @@ export type TokenAuthenticationFieldHook = {
   setData: (data: TokenAuthenticationFieldData) => void;
   shouldAutoCheck: boolean;
   isDisabled: boolean;
+  disabledHelperText?: string;
 };
 
 export const useTokenAuthenticationField = (
@@ -198,6 +199,7 @@ type TokenAuthenticationFieldProps = {
   shouldAutoCheck: boolean;
   isExternalRouteVisible: boolean;
   externalRouteData?: boolean;
+  disabledHelperText?: string;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
@@ -207,6 +209,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   shouldAutoCheck,
   isExternalRouteVisible,
   externalRouteData,
+  disabledHelperText,
 }) => {
   const isDisabled = !allowCreate;
   const createNewToken = React.useCallback(() => {
@@ -233,8 +236,12 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           label={
             <>
               <div className="pf-v6-c-form__label-text">Require token authentication</div>
-              Requiring token authentication provides added security if you make your model
-              available to users outside of your cluster.
+              {!(isDisabled && disabledHelperText) ? (
+                <>
+                  Requiring token authentication provides added security if you make your model
+                  available to users outside of your cluster.
+                </>
+              ) : null}
             </>
           }
           id="alt-form-checkbox-auth"
@@ -250,6 +257,13 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
             }
           }}
         />
+        {isDisabled && disabledHelperText ? (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>{disabledHelperText}</HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        ) : null}
       </StackItem>
       {tokens.length > 0 && (
         <StackItem>

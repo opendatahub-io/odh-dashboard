@@ -70,9 +70,9 @@ mod-arch-starter/
 │   │   ├── __tests__/           # Test files
 │   │   └── images/              # Image assets
 │   ├── config/
-│   │   ├── webpack.common.js    # Shared webpack config
-│   │   ├── webpack.dev.js       # Development webpack config
-│   │   ├── webpack.prod.js      # Production webpack config
+│   │   ├── rspack.common.js    # Shared rspack config
+│   │   ├── rspack.dev.js       # Development rspack config
+│   │   ├── rspack.prod.js      # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
 │   ├── docs/                    # Frontend documentation
 │   ├── package.json             # NPM dependencies and scripts
@@ -97,8 +97,8 @@ mod-arch-starter/
 
 ### Frontend
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.8.2
+- **Node.js**: >= 22.18.0
+- **npm**: 11.8.0
 
 ### BFF
 
@@ -260,7 +260,7 @@ Data Registry API contract that the proxy routes forward to lives alongside it a
 - React 18 + TypeScript
 - PatternFly v6 (primary UI framework)
 - Material UI v7 (Kubeflow flavor only)
-- Webpack with Module Federation
+- Rspack with Module Federation
 - **mod-arch-core** - Always included (core functionality, hooks, context providers)
 - **mod-arch-shared** - Kubeflow flavor only (shared UI components)
 - **mod-arch-kubeflow** - Kubeflow flavor only (MUI theming, Kubeflow-specific utilities)
@@ -397,7 +397,7 @@ make test   # Run tests
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.24+** for the BFF and **Node 22+** for the frontend
+1. Use **Go 1.24+** for the BFF and **Node 22.18+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor
    explicitly requires it

@@ -1,8 +1,9 @@
 import React from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { useNamespaceSelector } from 'mod-arch-core';
-import { useListExternalModels } from '~/app/hooks/useListExternalModels';
+import { ExternalModel } from '~/app/types/external-models';
+import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
+import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -13,14 +14,11 @@ import {
 } from './const';
 import { ExternalModelsTable } from './ExternalModelsTable';
 import ExternalModelsToolBar from './ExternalModelsToolBar';
-import ExternalModelsProjectSelector from './ExternalModelsProjectSelector';
+import MaaSExternalResourcesProjectSelector from './MaaSExternalResourcesProjectSelector';
 import { filterExternalModelsByKeyword } from './utils';
+import DeleteExternalModelModal from './DeleteExternalModelModal';
 
 const AllExternalModelsPage: React.FC = () => {
-  const { namespace: urlNamespace } = useParams<{ namespace?: string }>();
-  const { namespaces, namespacesLoaded, preferredNamespace, namespacesLoadError } =
-    useNamespaceSelector();
-
   const [filterData, setFilterData] = React.useState<ExternalModelsFilterDataType>(
     initialExternalModelsFilterData,
   );
@@ -36,13 +34,12 @@ const AllExternalModelsPage: React.FC = () => {
     [],
   );
 
-  const noProjects = namespacesLoaded && namespaces.length === 0;
-  const validUrlNamespace =
-    urlNamespace && namespaces.some((ns) => ns.name === urlNamespace) ? urlNamespace : undefined;
-  const fallbackNamespace = preferredNamespace?.name ?? namespaces[0]?.name;
-  const resolvedNamespace = validUrlNamespace ?? fallbackNamespace;
+  const { externalModels, externalModelsLoaded, externalModelsError, refreshExternalModels } =
+    useExternalModelsContext();
 
-  const [externalModels, loaded, error] = useListExternalModels(resolvedNamespace || '');
+  const [deleteExternalModel, setDeleteExternalModel] = React.useState<ExternalModel | undefined>(
+    undefined,
+  );
 
   const filteredExternalModels = React.useMemo(
     () =>
@@ -53,16 +50,23 @@ const AllExternalModelsPage: React.FC = () => {
     [externalModels, filterData],
   );
 
-  if (namespacesLoaded && !noProjects && resolvedNamespace && resolvedNamespace !== urlNamespace) {
+  const { resolvedNamespace, noProjects, namespacesLoaded, namespacesLoadError, shouldRedirect } =
+    useExternalModelsNamespace();
+  if (shouldRedirect && resolvedNamespace) {
     return <Navigate to={deploymentsExternalPath(resolvedNamespace)} replace />;
   }
 
   return (
     <>
-      {resolvedNamespace && <ExternalModelsProjectSelector namespace={resolvedNamespace} />}
+      {resolvedNamespace && (
+        <MaaSExternalResourcesProjectSelector
+          namespace={resolvedNamespace}
+          pathFunction={deploymentsExternalPath}
+        />
+      )}
       <ApplicationsPage
-        loaded={namespacesLoaded && (noProjects || loaded || !!error)}
-        loadError={namespacesLoadError || error}
+        loaded={namespacesLoaded && (noProjects || externalModelsLoaded || !!externalModelsError)}
+        loadError={namespacesLoadError || externalModelsError}
         errorMessage="Error loading external models"
         empty={noProjects}
         emptyStatePage={<NoProjectsPage />}
@@ -72,18 +76,34 @@ const AllExternalModelsPage: React.FC = () => {
         provideChildrenPadding
         data-testid="all-external-models-page"
       >
-        {!noProjects && resolvedNamespace && loaded && !error && (
+        {!noProjects && resolvedNamespace && externalModelsLoaded && !externalModelsError && (
           <ExternalModelsTable
             externalModels={filteredExternalModels}
             onClearFilters={onClearFilters}
+            setDeleteExternalModel={setDeleteExternalModel}
             toolbarContent={
-              <ExternalModelsToolBar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+              <ExternalModelsToolBar
+                namespace={resolvedNamespace}
+                filterData={filterData}
+                onFilterUpdate={onFilterUpdate}
+              />
             }
             emptyTableView={
               filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
                 <EmptyExternalModelsPage />
               )
             }
+          />
+        )}
+        {deleteExternalModel && (
+          <DeleteExternalModelModal
+            externalModel={deleteExternalModel}
+            onClose={(deleted) => {
+              setDeleteExternalModel(undefined);
+              if (deleted) {
+                refreshExternalModels();
+              }
+            }}
           />
         )}
       </ApplicationsPage>

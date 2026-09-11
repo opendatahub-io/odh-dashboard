@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AIModel, MaaSModel } from '~/app/types';
+import { type AAModelResponse, AIModel } from '~/app/types';
 import { isASRModel, isVisionModel } from '~/app/utilities/utils';
 
 export interface WorkspaceCapabilities {
@@ -14,7 +14,7 @@ const useWorkspaceCapabilities = (
   aiModelsLoaded: boolean,
   maasModelsLoaded: boolean,
   aiModelsError: Error | undefined,
-  maasModels: MaaSModel[] = [],
+  maasModels: AAModelResponse[] = [],
 ): WorkspaceCapabilities => {
   const capabilitiesReady = aiModelsLoaded && maasModelsLoaded;
   const capabilitiesError = !!aiModelsError;

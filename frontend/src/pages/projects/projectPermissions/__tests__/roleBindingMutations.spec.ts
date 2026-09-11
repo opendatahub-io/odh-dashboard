@@ -1,4 +1,5 @@
 import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { createRoleBinding } from '@odh-dashboard/k8s-core/api/roleBindings';
 import { mockRoleBindingK8sResource, mockUserRoleBindingSubject } from '#~/__mocks__';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
@@ -12,20 +13,21 @@ import {
 import type { RoleAssignmentChanges } from '#~/pages/projects/projectPermissions/manageRoles/types';
 import type { ManageRolesRow } from '#~/pages/projects/projectPermissions/manageRoles/columns';
 import { AssignmentStatus } from '#~/pages/projects/projectPermissions/types';
-
-jest.mock('#~/api', () => ({
-  createRoleBinding: jest.fn(),
-  deleteRoleBinding: jest.fn(),
-  generateRoleBindingPermissions: jest.fn(),
-  patchRoleBindingSubjects: jest.fn(),
-}));
-
 import {
-  createRoleBinding,
   deleteRoleBinding,
   generateRoleBindingPermissions,
   patchRoleBindingSubjects,
 } from '#~/api';
+
+jest.mock('@odh-dashboard/k8s-core/api/roleBindings', () => ({
+  createRoleBinding: jest.fn(),
+}));
+
+jest.mock('#~/api', () => ({
+  deleteRoleBinding: jest.fn(),
+  generateRoleBindingPermissions: jest.fn(),
+  patchRoleBindingSubjects: jest.fn(),
+}));
 
 const createRoleBindingMock = jest.mocked(createRoleBinding);
 const deleteRoleBindingMock = jest.mocked(deleteRoleBinding);

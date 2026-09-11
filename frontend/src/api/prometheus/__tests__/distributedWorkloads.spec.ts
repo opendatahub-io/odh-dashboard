@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { mockPrometheusQueryVectorResponse } from '#~/__mocks__/mockPrometheusQueryVectorResponse';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import { WorkloadKind, WorkloadOwnerType } from '#~/k8sTypes';
@@ -375,7 +375,7 @@ describe('getTopResourceConsumingWorkloads', () => {
   });
 });
 
-jest.mock('#~/utilities/axios', () => ({
+jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
   post: jest.fn(),
 }));
 

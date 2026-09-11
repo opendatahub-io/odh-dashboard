@@ -58,9 +58,7 @@ export type AutomlRawTabularModelV34 = z.infer<typeof AutomlTabularModelSchemaV3
 export type AutomlRawTimeseriesModelV34 = z.infer<typeof AutomlTimeseriesModelSchemaV34>;
 export type AutomlRawModelV35 = z.infer<typeof AutomlModelSchemaV35>;
 export type AutomlRawModel =
-  | AutomlRawModelV35
-  | AutomlRawTabularModelV34
-  | AutomlRawTimeseriesModelV34;
+  AutomlRawModelV35 | AutomlRawTabularModelV34 | AutomlRawTimeseriesModelV34;
 
 export const isRawTimeseriesModelV34 = (
   model: AutomlRawModel,

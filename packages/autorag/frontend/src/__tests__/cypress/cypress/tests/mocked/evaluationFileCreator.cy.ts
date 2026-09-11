@@ -7,8 +7,8 @@ import {
 // my-project is the only fake namespace with a DSPA and secrets
 // (packages/autorag/bff/internal/fake/k8s.go)
 const NAMESPACE = 'my-project';
-// Real fake secrets: an "ogx" secret and a "data-connection" storage secret with a bucket set
-const OGX_SECRET = 'ogx';
+// Real fake secrets: an "maas" secret and a "data-connection" storage secret with a bucket set
+const MAAS_SECRET = 'maas';
 const STORAGE_SECRET = 'data-connection';
 
 // Real seed data under the fake S3 bucket (packages/autorag/bff/internal/fake/s3-bucket/):
@@ -28,10 +28,10 @@ const navigateToConfigure = () => {
   cy.testA11y();
 };
 
-const selectOgxAndStorageSecrets = () => {
+const selectMaasAndStorageSecrets = () => {
   cy.findByTestId('autorag-name-input').type('Test Experiment');
-  cy.findByTestId('ogx-secret-selector').click();
-  cy.findByRole('option', { name: new RegExp(OGX_SECRET, 'i') }).click();
+  cy.findByTestId('maas-secret-selector').click();
+  cy.findByRole('option', { name: new RegExp(MAAS_SECRET, 'i') }).click();
   cy.findByTestId('autorag-next-button').click();
   cy.findByTestId('configure-step-subtitle').should('be.visible');
 
@@ -53,7 +53,7 @@ const browseToSeedFolder = () => {
 };
 
 const advanceToStep2 = () => {
-  selectOgxAndStorageSecrets();
+  selectMaasAndStorageSecrets();
   browseToSeedFolder();
   fileExplorer.navigateIntoFolder(DOCUMENTS_FOLDER_NAME);
 
@@ -66,7 +66,7 @@ const advanceToStep2 = () => {
 };
 
 const advanceToStep2WithFolder = () => {
-  selectOgxAndStorageSecrets();
+  selectMaasAndStorageSecrets();
   browseToSeedFolder();
 
   // Select a folder as input data (not a file)

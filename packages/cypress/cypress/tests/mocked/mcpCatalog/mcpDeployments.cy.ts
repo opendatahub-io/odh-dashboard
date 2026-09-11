@@ -5,6 +5,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { McpDeployment } from '@odh-dashboard/model-registry/types/mcpDeploymentTypes';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   mcpDeploymentsPage,
   mcpDeployModal,
@@ -24,7 +25,6 @@ import {
   ProjectModel,
   ServingRuntimeModel,
   InferenceServiceModel,
-  SecretModel,
   TemplateModel,
 } from '../../../utils/models';
 
@@ -627,7 +627,7 @@ describe('MCP Deploy from Catalog', () => {
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
 
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
     cy.wait('@getConverter');
     mcpDeployModal.shouldBeOpen();
     mcpDeployModal.findCloseButton().click();
@@ -647,7 +647,7 @@ describe('MCP Deploy from Catalog', () => {
     ).as('getConverterSlow');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
 
     mcpDeployModal.shouldBeOpen();
     mcpDeployModal.findLoadingSpinner().should('exist');
@@ -661,7 +661,7 @@ describe('MCP Deploy from Catalog', () => {
     }).as('getConverterError');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
 
     cy.wait('@getConverterError');
     mcpDeployModal.shouldBeOpen();
@@ -679,7 +679,7 @@ describe('MCP Deploy from Catalog', () => {
     }).as('createDeployment');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
     cy.wait('@getConverter');
     mcpDeployModal.shouldBeOpen();
     mcpDeployModal.findSubmitButton().should('be.disabled');
@@ -704,7 +704,7 @@ describe('MCP Deploy from Catalog', () => {
     }).as('createDeployment');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
     cy.wait('@getConverter');
     mcpDeployModal.shouldBeOpen();
 

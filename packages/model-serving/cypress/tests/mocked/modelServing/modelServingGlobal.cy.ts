@@ -37,11 +37,11 @@ import {
   modelServingGlobal,
   modelServingSection,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
-  SecretModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';

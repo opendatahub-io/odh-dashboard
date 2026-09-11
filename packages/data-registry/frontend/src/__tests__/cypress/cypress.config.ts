@@ -16,7 +16,7 @@ const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' 
 
 export default defineConfig({
   experimentalMemoryManagement: true,
-  reporter: 'mocha-junit-reporter',
+  reporter: '../../../node_modules/mocha-junit-reporter',
   reporterOptions: {
     mochaFile: `${resultsDir}/junit/junit-[hash].xml`,
   },
@@ -36,6 +36,7 @@ export default defineConfig({
     resolution: 'high',
   },
   defaultCommandTimeout: 10000,
+  requestTimeout: 10000,
   e2e: {
     baseUrl: BASE_URL,
     specPattern: env.CY_MOCK ? `cypress/tests/mocked/**/*.cy.ts` : `cypress/tests/e2e/**/*.cy.ts`,

@@ -126,7 +126,7 @@ const MlflowExperimentSelector: React.FC<MlflowExperimentSelectorProps> = ({
                 value={search}
               />
             </MenuSearchInput>
-            <HelperText>
+            <HelperText className="pf-v6-u-mt-sm">
               <HelperTextItem data-testid="mlflow-experiment-selector-searchHelpText">
                 {`Type a name to search your ${experimentCount} ${experimentLabel}.`}
               </HelperTextItem>

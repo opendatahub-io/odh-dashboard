@@ -5,7 +5,12 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { waitForResource } from '../../../utils/oc_commands/baseCommands';
+import {
+  startPortForward,
+  stopPortForward,
+  waitForResource,
+  type PortForwardHandle,
+} from '../../../utils/oc_commands/baseCommands';
 import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -20,6 +25,7 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
   let projectName: string;
   let servingRuntimeName: string;
   let hardwareProfileName: string;
+  let portForwardHandle: PortForwardHandle | null = null;
 
   retryableBefore(() => {
     cy.fixture('e2e/genAi/testGenAiModelDeployment.yaml', 'utf8')
@@ -72,6 +78,8 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
   });
 
   after(() => {
+    stopPortForward(portForwardHandle);
+
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
@@ -96,7 +104,7 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
         '@ModelServing',
         '@Deployment',
         '@Playground',
-        '@NonConcurrent',
+        '@GenAICI',
       ],
     },
     () => {
@@ -127,6 +135,11 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
 
       cy.step('Wait for playground service to be created');
       waitForResource('service', genAiTestData.playgroundServiceName, projectName);
+
+      cy.step('Start port-forward for LSD service');
+      startPortForward(projectName, genAiTestData.playgroundServiceName, 8321).then((handle) => {
+        portForwardHandle = handle;
+      });
 
       cy.step('Navigate to playground');
       genAiPlayground.navigate(projectName);

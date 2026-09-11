@@ -60,21 +60,6 @@ export type NotebookTolerationFormSettings = TolerationSettings & {
   error?: string;
 };
 
-export type ClusterSettingsType = {
-  userTrackingEnabled: boolean;
-  pvcSize: number;
-  cullerTimeout: number;
-  modelServingPlatformEnabled: ModelServingPlatformEnabled;
-  isDistributedInferencingDefault?: boolean;
-  defaultDeploymentStrategy?: string;
-  globalMLflowNamespaces?: string[];
-};
-
-export type ModelServingPlatformEnabled = {
-  kServe: boolean;
-  LLMd: boolean;
-};
-
 /** @deprecated -- use SDK type */
 export type Secret = {
   data?: Record<string, string>;

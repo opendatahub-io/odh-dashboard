@@ -30,7 +30,7 @@ For general ODH Dashboard contribution guidelines, refer to [ODH CONTRIBUTING.md
 
 ## Prerequisites
 
-- **[Node.js](https://nodejs.org/)**: v22.0.0 or later
+- **[Node.js](https://nodejs.org/)**: v22.18.0 or later
 - **[Go](https://go.dev/)**: v1.26 or later
 - **[Docker](https://www.docker.com/)**/**[Podman](https://podman.io/)**: For containerized deployment
 
@@ -47,7 +47,7 @@ packages/autorag/
 │   └── Makefile             # BFF build commands
 ├── frontend/                # React Frontend application
 │   ├── src/                 # Source code
-│   ├── config/              # Webpack & Module Federation
+│   ├── config/              # Rspack & Module Federation
 │   └── package.json         # Frontend dependencies
 ├── docs/                    # Documentation
 ├── Dockerfile               # Multi-stage container build

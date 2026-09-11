@@ -4,12 +4,18 @@
 
   .pf-v6-c-card__header {
     align-items: flex-start;
+    column-gap: var(--pf-t--global--spacer--sm);
   }
 
   .pf-v6-c-card__actions {
     order: -1;
+    margin-inline-start: 0;
     padding-inline-start: 0;
-    padding-inline-end: var(--pf-t--global--spacer--md);
+    padding-inline-end: 0;
+  }
+
+  .pf-v6-c-card__header-main {
+    min-width: 0;
   }
 }
 

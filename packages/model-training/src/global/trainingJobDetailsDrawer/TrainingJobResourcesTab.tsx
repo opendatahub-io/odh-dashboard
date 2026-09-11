@@ -5,13 +5,15 @@ import {
   DescriptionListTerm,
   DescriptionListDescription,
   Title,
-  Button,
+  // RHOAIENG-88673: Button unused while scale affordance is disabled
+  // Button,
   StackItem,
   Stack,
   Skeleton,
   Content,
 } from '@patternfly/react-core';
-import { PencilAltIcon } from '@patternfly/react-icons';
+// RHOAIENG-88673: scale affordance disabled - see note below
+// import { PencilAltIcon } from '@patternfly/react-icons';
 import { getAllConsumedResources } from './utils';
 import useClusterQueueFromLocalQueue from '../../hooks/useClusterQueueFromLocalQueue';
 import useClusterQueue from '../../hooks/useClusterQueue';
@@ -22,15 +24,16 @@ import { KUEUE_MANAGED_LABEL, KUEUE_QUEUE_LABEL } from '../../const';
 type TrainingJobResourcesTabProps = {
   job: TrainJobKind;
   nodesCount: number;
-  canScaleNodes?: boolean;
-  onScaleNodes?: () => void;
+  // RHOAIENG-88673: scale props disabled - see note below
+  // canScaleNodes?: boolean;
+  // onScaleNodes?: () => void;
 };
 
 const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
   job,
   nodesCount,
-  canScaleNodes = false,
-  onScaleNodes,
+  // canScaleNodes = false,
+  // onScaleNodes,
 }) => {
   const { project, projects } = useModelTrainingContext();
 
@@ -63,6 +66,10 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>Nodes:</DescriptionListTerm>
             <DescriptionListDescription data-testid="nodes-value">
+              {/* RHOAIENG-88673: TrainJob node scaling disabled for RHOAI 3.6 - Kubeflow
+                  Trainer 2.2 made `spec.trainer` immutable (kubeflow/trainer#3157), so the
+                  numNodes PATCH is rejected by the TrainJob validating webhook. Node count is
+                  read-only until upstream supports post-create scaling.
               <Button
                 variant="link"
                 isInline
@@ -75,6 +82,8 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
               >
                 {nodesCount || '-'}
               </Button>
+              */}
+              {nodesCount || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>

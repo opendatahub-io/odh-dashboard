@@ -22,67 +22,42 @@ import {
   FlexItem,
   Pagination,
   Dropdown,
-  DropdownItem,
   DropdownList,
+  DropdownItem,
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
+import { Link, useNavigate } from 'react-router-dom';
 import { RegistryAsset } from '~/app/hooks/useAssets';
+import {
+  deleteGenericTable,
+  deleteVolume,
+  is503Error,
+  is403Error,
+  isConnectionError,
+} from '~/app/api/dataRegistry';
+import { useNotification } from '~/app/hooks/useNotification';
+import { assetDetailUrl } from '~/app/utilities/routes';
+import { getFormatBadge, isStructured, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
+import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
+import ConnectionError from '~/app/components/errors/ConnectionError';
+import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
+import DeleteAssetModal from './DeleteAssetModal';
 
 type RegistryTableProps = {
   assets: RegistryAsset[];
   loaded: boolean;
   error: Error | undefined;
   labels: string[];
+  project: string;
   onManageCollections: () => void;
+  onManageLabels: () => void;
+  onRegisterData: () => void;
+  onRetry: () => void;
+  hasWriteAccess?: boolean;
 };
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
-
-const FORMAT_LABELS: Record<
-  string,
-  { text: string; color: 'blue' | 'green' | 'orange' | 'purple' | 'grey' }
-> = {
-  iceberg: { text: 'Structured', color: 'blue' },
-  parquet: { text: 'Structured', color: 'blue' },
-  csv: { text: 'Structured', color: 'blue' },
-  postgresql: { text: 'Structured', color: 'blue' },
-  mysql: { text: 'Structured', color: 'blue' },
-  milvus: { text: 'Structured', color: 'blue' },
-  delta: { text: 'Structured', color: 'blue' },
-  'application/pdf': { text: 'Unstructured', color: 'orange' },
-  pdf: { text: 'Unstructured', color: 'orange' },
-  documents: { text: 'Unstructured', color: 'orange' },
-  images: { text: 'Unstructured', color: 'orange' },
-  audio: { text: 'Unstructured', color: 'orange' },
-  video: { text: 'Unstructured', color: 'orange' },
-  binary: { text: 'Unstructured', color: 'orange' },
-};
-
-const UNSTRUCTURED_FORMATS = [
-  'documents',
-  'images',
-  'audio',
-  'video',
-  'binary',
-  'application/pdf',
-  'pdf',
-];
-
-const FORMAT_OPTIONS: { key: string; label: string }[] = [
-  { key: 'iceberg', label: 'Apache Iceberg' },
-  { key: 'parquet', label: 'Apache Parquet' },
-  { key: 'csv', label: 'CSV' },
-  { key: 'delta', label: 'Delta Lake' },
-  { key: 'postgresql', label: 'PostgreSQL' },
-  { key: 'milvus', label: 'Milvus' },
-  { key: 'documents', label: 'Documents' },
-  { key: 'images', label: 'Images' },
-  { key: 'audio', label: 'Audio' },
-  { key: 'video', label: 'Video' },
-  { key: 'binary', label: 'Binary' },
-  { key: 'other', label: 'Other' },
-];
 
 const CATEGORY_LABELS: Record<FilterCategory, string> = {
   labels: 'Labels',
@@ -90,21 +65,20 @@ const CATEGORY_LABELS: Record<FilterCategory, string> = {
   format: 'Format',
 };
 
-const getFormatBadge = (
-  format: string,
-): { text: string; color: 'blue' | 'green' | 'orange' | 'purple' | 'grey' } =>
-  FORMAT_LABELS[format.toLowerCase()] ?? { text: 'Unknown', color: 'grey' };
-
-const isStructured = (format: string): boolean =>
-  !UNSTRUCTURED_FORMATS.includes(format.toLowerCase());
-
 const RegistryTable: React.FC<RegistryTableProps> = ({
   assets,
   loaded,
   error,
   labels,
+  project,
   onManageCollections,
+  onManageLabels,
+  onRegisterData,
+  onRetry,
+  hasWriteAccess = true,
 }) => {
+  const navigate = useNavigate();
+  const notification = useNotification();
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
@@ -113,6 +87,8 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   const [selectedAssetType, setSelectedAssetType] = React.useState('');
   const [selectedFormat, setSelectedFormat] = React.useState('');
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [activeActionsAsset, setActiveActionsAsset] = React.useState<string>();
+  const [deleteAsset, setDeleteAsset] = React.useState<RegistryAsset | null>(null);
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(undefined);
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const [page, setPage] = React.useState(1);
@@ -175,6 +151,17 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     activeSortDirection,
   ]);
 
+  const maxPage = Math.max(1, Math.ceil(filteredAssets.length / perPage));
+  const currentPage = Math.min(page, maxPage);
+
+  React.useEffect(() => {
+    if (page !== currentPage) {
+      setPage(currentPage);
+    }
+  }, [currentPage, page]);
+
+  const paginatedAssets = filteredAssets.slice((currentPage - 1) * perPage, currentPage * perPage);
+
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: { index: activeSortIndex, direction: activeSortDirection },
     onSort: (_event, index, direction) => {
@@ -184,12 +171,27 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     columnIndex,
   });
 
+  const handleDelete = React.useCallback(
+    async (asset: RegistryAsset) => {
+      if (asset.assetType === 'volume') {
+        await deleteVolume(project, asset.collection, asset.name);
+      } else {
+        await deleteGenericTable(project, asset.collection, asset.name);
+      }
+      notification.success('Asset deleted', `${asset.name} was deleted successfully.`);
+      setDeleteAsset(null);
+      onRetry();
+    },
+    [notification, onRetry, project],
+  );
+
   // Value dropdown content based on category
   const renderValueDropdown = () => {
     if (filterCategory === 'labels') {
       return (
         <Select
           isOpen={isValueOpen}
+          maxMenuHeight="300px"
           onSelect={(_event, value) => {
             const val = String(value);
             setSelectedLabels((prev) =>
@@ -214,7 +216,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             </MenuToggle>
           )}
         >
-          <SelectList style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <SelectList>
             {labels.map((label) => (
               <SelectOption
                 key={label}
@@ -264,6 +266,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       <Select
         isOpen={isValueOpen}
         selected={selectedFormat}
+        maxMenuHeight="300px"
         onSelect={(_event, value) => {
           setSelectedFormat(value === selectedFormat ? '' : String(value));
           setIsValueOpen(false);
@@ -283,7 +286,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           </MenuToggle>
         )}
       >
-        <SelectList style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <SelectList>
           {FORMAT_OPTIONS.map((f) => (
             <SelectOption key={f.key} value={f.key}>
               {f.label}
@@ -295,6 +298,27 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   };
 
   if (error) {
+    if (is503Error(error)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <ServiceUnavailableError onRetry={onRetry} />
+        </PageSection>
+      );
+    }
+    if (is403Error(error)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <AccessDeniedError resourceName="this project" />
+        </PageSection>
+      );
+    }
+    if (isConnectionError(error)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <ConnectionError onRetry={onRetry} />
+        </PageSection>
+      );
+    }
     return (
       <PageSection hasBodyWrapper={false} isFilled>
         <EmptyState
@@ -380,6 +404,17 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 data-testid="asset-search"
               />
             </ToolbarItem>
+            {/* Register data button */}
+            <ToolbarItem>
+              <Button
+                variant="primary"
+                onClick={onRegisterData}
+                isDisabled={!hasWriteAccess}
+                data-testid="register-data-button"
+              >
+                Register data
+              </Button>
+            </ToolbarItem>
             {/* Kebab */}
             <ToolbarItem>
               <Dropdown
@@ -403,9 +438,18 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                   <DropdownItem
                     key="manage-collections"
                     onClick={onManageCollections}
+                    isDisabled={!hasWriteAccess}
                     data-testid="manage-collections-action"
                   >
                     Manage collections
+                  </DropdownItem>
+                  <DropdownItem
+                    key="manage-labels"
+                    onClick={onManageLabels}
+                    isDisabled={!hasWriteAccess}
+                    data-testid="manage-labels-action"
+                  >
+                    Manage labels
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>
@@ -473,7 +517,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           <Pagination
             itemCount={filteredAssets.length}
             perPage={perPage}
-            page={page}
+            page={currentPage}
             onSetPage={(_event, p) => setPage(p)}
             onPerPageSelect={(_event, pp) => {
               setPerPage(pp);
@@ -516,12 +560,29 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 </Td>
               </Tr>
             ) : (
-              filteredAssets.slice((page - 1) * perPage, page * perPage).map((asset) => {
+              paginatedAssets.map((asset) => {
                 const badge = getFormatBadge(asset.format);
+                const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
+                const assetTestId = (prefix: string) =>
+                  `${prefix}-${asset.assetType}-${asset.collection}-${asset.name}`;
                 return (
-                  <Tr key={`${asset.collection}-${asset.name}`}>
+                  <Tr key={assetKey}>
                     <Td dataLabel="Name">
-                      <Button variant="link" isInline>
+                      <Button
+                        variant="link"
+                        isInline
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={assetDetailUrl(
+                              project,
+                              asset.collection,
+                              asset.name,
+                              asset.assetType,
+                            )}
+                          />
+                        )}
+                      >
                         {asset.name}
                       </Button>
                       {asset.description ? (
@@ -544,8 +605,58 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                         </LabelGroup>
                       ) : null}
                     </Td>
-                    {/* TODO: Wire up per-row actions (edit, delete) when detail view is implemented */}
-                    <Td isActionCell />
+                    <Td isActionCell data-testid={assetTestId('asset-actions-cell')}>
+                      <Dropdown
+                        isOpen={activeActionsAsset === assetKey}
+                        onSelect={() => setActiveActionsAsset(undefined)}
+                        onOpenChange={(isOpen) =>
+                          setActiveActionsAsset(isOpen ? assetKey : undefined)
+                        }
+                        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            variant="plain"
+                            isExpanded={activeActionsAsset === assetKey}
+                            aria-label={`Actions for ${asset.name}`}
+                            data-testid={assetTestId('asset-actions')}
+                            onClick={() =>
+                              setActiveActionsAsset((current) =>
+                                current === assetKey ? undefined : assetKey,
+                              )
+                            }
+                          >
+                            <EllipsisVIcon />
+                          </MenuToggle>
+                        )}
+                        popperProps={{ position: 'right' }}
+                      >
+                        <DropdownList>
+                          <DropdownItem
+                            key="edit"
+                            onClick={() =>
+                              navigate(
+                                `${assetDetailUrl(
+                                  project,
+                                  asset.collection,
+                                  asset.name,
+                                  asset.assetType,
+                                )}?edit=true`,
+                              )
+                            }
+                            data-testid={assetTestId('asset-edit')}
+                          >
+                            Edit
+                          </DropdownItem>
+                          <DropdownItem
+                            key="delete"
+                            onClick={() => setDeleteAsset(asset)}
+                            data-testid={assetTestId('asset-delete')}
+                          >
+                            Delete
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </Td>
                   </Tr>
                 );
               })
@@ -553,6 +664,14 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           </Tbody>
         </Table>
       </PageSection>
+      {deleteAsset ? (
+        <DeleteAssetModal
+          assetName={deleteAsset.name}
+          assetType={deleteAsset.assetType}
+          onDelete={() => handleDelete(deleteAsset)}
+          onClose={() => setDeleteAsset(null)}
+        />
+      ) : null}
     </>
   );
 };

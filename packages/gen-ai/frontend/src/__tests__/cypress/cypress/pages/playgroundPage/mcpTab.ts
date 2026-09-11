@@ -31,11 +31,18 @@ class MCPTab {
     this.findMCPTab().click();
   }
 
-  // The table inside the MCP tab (testId unchanged in component)
+  // The Manual Connection section table
   findMCPServersTable(
     options?: Partial<Cypress.Loggable & Cypress.Timeoutable>,
   ): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-servers-panel-table', options);
+    return cy.findByTestId('mcp-manual-servers-table', options);
+  }
+
+  // The Registered section table
+  findMCPRegisteredServersTable(
+    options?: Partial<Cypress.Loggable & Cypress.Timeoutable>,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-servers-table', options);
   }
 
   openMCPTab(): void {
@@ -45,7 +52,42 @@ class MCPTab {
   }
 
   verifyMCPTabVisible(): void {
-    this.findMCPServersTable({ timeout: 30000 }).should('exist').and('be.visible');
+    // Check for either the servers table or the manual connection section
+    cy.findByTestId('mcp-manual-section', { timeout: 30000 }).should('exist');
+  }
+
+  // Registered section
+  findRegisteredSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-section');
+  }
+
+  findRegisteredToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-toggle');
+  }
+
+  findRegisteredCountBadge(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-count-badge');
+  }
+
+  findRegisteredKebab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-kebab');
+  }
+
+  findManageServersLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-manage-servers-link');
+  }
+
+  // Manual Connection section
+  findManualSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-manual-section');
+  }
+
+  findManualToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-manual-toggle');
+  }
+
+  findManualEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-manual-empty-state');
   }
 
   private findCheckedCheckboxes(): Cypress.Chainable<JQuery<HTMLElement>> {

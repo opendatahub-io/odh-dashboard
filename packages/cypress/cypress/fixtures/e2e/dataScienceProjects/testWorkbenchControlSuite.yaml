@@ -2,3 +2,4 @@
 controlSuiteTestNamespace: 'dsp-wb-controls-test'
 controlSuiteTestDescription: 'This is a test description.'
 notebookImage: 'code-server-notebook'
+hardwareProfileName: 'default-profile'
