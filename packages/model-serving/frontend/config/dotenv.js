@@ -52,7 +52,6 @@ const getTsCompilerOptions = (directory) => {
 /**
  * Setup a webpack dotenv plugin config.
  *
- * @param {string} filePath
  * @returns {*}
  */
 function setupWebpackDotenvFile() {
@@ -77,40 +76,9 @@ function setupWebpackDotenvFile() {
 /**
  * Setup multiple webpack dotenv file parameters.
  *
- * @param {string} directory
- * @param {string} env
- * @param {boolean} isRoot
  * @returns {Array}
  */
-const setupWebpackDotenvFilesForEnv = ({ directory, env, isRoot = true }) => {
-  const dotenvWebpackSettings = [];
-
-  if (env) {
-    dotenvWebpackSettings.push(
-      setupWebpackDotenvFile(path.resolve(directory, `.env.${env}.local`)),
-    );
-    dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, `.env.${env}`)));
-  }
-
-  dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '.env.local')));
-  dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '.env')));
-
-  if (!isRoot) {
-    if (env) {
-      dotenvWebpackSettings.push(
-        setupWebpackDotenvFile(path.resolve(directory, '..', `.env.${env}.local`)),
-      );
-      dotenvWebpackSettings.push(
-        setupWebpackDotenvFile(path.resolve(directory, '..', `.env.${env}`)),
-      );
-    }
-
-    dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '..', '.env.local')));
-    dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '..', '.env')));
-  }
-
-  return dotenvWebpackSettings;
-};
+const setupWebpackDotenvFilesForEnv = () => [setupWebpackDotenvFile()];
 
 /**
  * Setup, and access, a dotenv file and the related set of parameters.
