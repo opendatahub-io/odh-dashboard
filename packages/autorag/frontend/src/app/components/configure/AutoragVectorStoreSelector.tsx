@@ -21,9 +21,15 @@ import {
   TrackingOutcome,
 } from '~/app/utilities/tracking';
 
-const AutoragVectorStoreSelector: React.FC = () => {
+type Props = {
+  initialSecret?: SecretSelection;
+};
+
+const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
   const { namespace = '' } = useParams();
-  const [selectedSecret, setSelectedSecret] = React.useState<SecretSelection>();
+  const [selectedSecret, setSelectedSecret] = React.useState<SecretSelection | undefined>(
+    initialSecret,
+  );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const [isAddDropdownOpen, setIsAddDropdownOpen] = React.useState(false);
   const [modalProvider, setModalProvider] = React.useState<'milvus' | 'pgvector'>('milvus');

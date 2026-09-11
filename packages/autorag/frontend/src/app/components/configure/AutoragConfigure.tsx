@@ -140,11 +140,13 @@ const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be sel
 type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema> & Record<string, unknown>;
   initialInputDataSecret?: SecretSelection;
+  initialVectorDbSecret?: SecretSelection;
 };
 
 function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
+  initialVectorDbSecret,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -734,7 +736,7 @@ function AutoragConfigure({
                         label="Vector database connection"
                         description="Provide connection details for a vector database."
                       >
-                        <AutoragVectorStoreSelector />
+                        <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />
                       </ConfigureFormGroup>
                     </FlexItem>
 

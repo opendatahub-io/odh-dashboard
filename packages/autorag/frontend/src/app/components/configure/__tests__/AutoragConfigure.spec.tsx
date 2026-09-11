@@ -1249,6 +1249,48 @@ describe('AutoragConfigure', () => {
   });
 
   describe('reconfigure with initialValues', () => {
+    it('should render the first canonical input_data_keys location', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_keys: ['my-data/input.pdf', 'my-data/second.pdf'],
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          maas_secret_name: 'maas-secret',
+          vector_db_secret_name: 'vector-db-secret',
+          generation_models: ['model-a'],
+          embedding_models: ['model-b'],
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_keys: ['my-data/input.pdf', 'my-data/second.pdf'],
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          maas_secret_name: 'maas-secret',
+          vector_db_secret_name: 'vector-db-secret',
+          generation_models: ['model-a'],
+          embedding_models: ['model-b'],
+        },
+      );
+
+      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
+      expect(screen.getByText('input.pdf')).toBeInTheDocument();
+      expect(screen.queryByText('second.pdf')).not.toBeInTheDocument();
+    });
+
     it('should show the selected secret value when initialInputDataSecret is provided', () => {
       renderWithInitialValues(
         {

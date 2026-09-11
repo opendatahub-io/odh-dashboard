@@ -68,6 +68,8 @@ type AutoragConfigurePageProps = {
   initialValues?: ConfigureInitialValues;
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
+  initialMaaSSecret?: SecretSelection;
+  initialVectorDbSecret?: SecretSelection;
   /** Legacy prop name retained until the reconfigure loader migrates to MaaS. */
   initialOgxSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
@@ -79,6 +81,8 @@ type AutoragConfigurePageProps = {
 function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
+  initialMaaSSecret,
+  initialVectorDbSecret,
   initialOgxSecret,
   sourceRunId,
   sourceRunName,
@@ -559,11 +563,12 @@ function AutoragConfigurePage({
                 hasBodyWrapper={false}
               >
                 {step === 'create' ? (
-                  <AutoragCreate initialMaaSSecret={initialOgxSecret} />
+                  <AutoragCreate initialMaaSSecret={initialMaaSSecret ?? initialOgxSecret} />
                 ) : (
                   <AutoragConfigure
                     initialValues={initialValues}
                     initialInputDataSecret={initialInputDataSecret}
+                    initialVectorDbSecret={initialVectorDbSecret}
                   />
                 )}
               </PageSection>
