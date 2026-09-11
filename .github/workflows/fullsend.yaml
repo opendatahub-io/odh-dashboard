@@ -74,7 +74,7 @@ jobs:
             {
               include: [
                 .dimensions[]
-                | select(.kind == "cli-adapter")
+                | select(.kind == "cli-adapter" and .host.execution == "workflow")
                 | {
                     id,
                     runner,

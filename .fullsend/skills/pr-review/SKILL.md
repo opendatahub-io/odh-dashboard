@@ -69,7 +69,7 @@ Each `dimensions[]` object:
 | `budget_priority` | Lower runs deeper when attention is scarce (**findings** LLM only) |
 | `re_review` | `full` / `trivial` / `skip-unless-requalified` when this **findings** dimension had no prior findings |
 | `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. Every adapter envelope also appears in `.fullsend/.run/collected.json` |
-| `host` | Trusted workflow metadata for a `cli-adapter`: artifact name/file, optional setup runner and PR checkout, and credential secret names |
+| `host` | Trusted execution metadata for a `cli-adapter`: `workflow` or `pre_review` execution plus any artifact, setup, checkout, and credential-name requirements |
 | `context_dimension` | Optional `cli-adapter` dimension whose context envelope is supplied to an LLM (do not fetch it yourself) |
 
 **Not in the registry as dimensions:**

@@ -49,24 +49,27 @@ validate_adapter_registry() {
       ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
     (([.dimensions[] | select(.kind == "cli-adapter") | .producer_file] | unique | length) ==
       ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
-    (([.dimensions[] | select(.kind == "cli-adapter") | .host.artifact_name] | unique | length) ==
-      ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
+    (([.dimensions[] | select(.kind == "cli-adapter" and .host.execution == "workflow") | .host.artifact_name] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter" and .host.execution == "workflow")] | length)) and
     all(
       .dimensions[] | select(.kind == "cli-adapter");
       (.id | type == "string" and test("^[a-z0-9][a-z0-9-]*$")) and
-      (.output == "context" or .output == "findings") and
+      (.output | type == "string" and test("^(context|findings|check:[a-z0-9-]+|classifier:[a-z0-9-]+)$")) and
       (.runner | type == "string" and test("^scripts/[A-Za-z0-9._/-]+\\.sh$")) and
       (.producer_file | type == "string" and test("^\\.run/[A-Za-z0-9._-]+\\.json$")) and
-      (.host.artifact_name | type == "string" and test("^[A-Za-z0-9._{}-]+$") and contains("{pr_number}")) and
-      (.host.artifact_file | type == "string" and test("^[A-Za-z0-9._-]+\\.json$")) and
-      (.host.artifact_file == (.producer_file | split("/") | last)) and
-      (.host.checkout_pr | type == "boolean") and
-      (.host.setup_runner | type == "string" and
-        (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
-      all(
-        [.host.credentials.url_secret, .host.credentials.username_secret, .host.credentials.token_secret][];
-        type == "string" and test("^[A-Z][A-Z0-9_]*$")
-      )
+      (.host.execution == "workflow" or .host.execution == "pre_review") and
+      (if .host.execution == "workflow" then
+        (.host.artifact_name | type == "string" and test("^[A-Za-z0-9._{}-]+$") and contains("{pr_number}")) and
+        (.host.artifact_file | type == "string" and test("^[A-Za-z0-9._-]+\\.json$")) and
+        (.host.artifact_file == (.producer_file | split("/") | last)) and
+        (.host.checkout_pr | type == "boolean") and
+        (.host.setup_runner | type == "string" and
+          (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
+        all(
+          [.host.credentials.url_secret, .host.credentials.username_secret, .host.credentials.token_secret][];
+          type == "string" and test("^[A-Z][A-Z0-9_]*$")
+        )
+      else true end)
     ) and
     all(
       .dimensions[] | select(.context_dimension? != null);
@@ -86,7 +89,7 @@ validate_adapter_registry() {
   done < <(jq -r '
     .dimensions[]
     | select(.kind == "cli-adapter")
-    | [.runner, .host.setup_runner]
+    | [.runner, (.host.setup_runner // "")]
     | @tsv
   ' "${registry}")
 }
@@ -96,6 +99,16 @@ adapter_rows() {
   jq -r '
     .dimensions[]
     | select(.kind == "cli-adapter")
+    | [.id, .producer_file, .output]
+    | @tsv
+  ' "${registry}"
+}
+
+workflow_adapter_rows() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter" and .host.execution == "workflow")
     | [.id, .producer_file, .host.artifact_name, .host.artifact_file, .output]
     | @tsv
   ' "${registry}"
@@ -103,10 +116,10 @@ adapter_rows() {
 
 aggregate_cli_adapters() {
   local run_dir="${_SCRIPT_DIR}/../.run"
-  local id producer_file artifact_template artifact_file declared_output file
+  local id producer_file declared_output file
   local files=()
 
-  while IFS=$'\t' read -r id producer_file artifact_template artifact_file declared_output; do
+  while IFS=$'\t' read -r id producer_file declared_output; do
     file="${_SCRIPT_DIR}/../${producer_file}"
     [[ -f "${file}" ]] && files+=("${file}")
   done < <(adapter_rows)
@@ -118,13 +131,25 @@ aggregate_cli_adapters() {
     jq -s '[.[] | select(
       type == "object" and
       .kind == "cli-adapter" and
-      (.output == "context" or .output == "findings")
+      (.output | type == "string")
     )]' \
       "${files[@]}" > "${run_dir}/collected.json"
   fi
 }
 
-hydrate_cli_adapters() {
+run_pre_review_adapters() {
+  local runner
+  while IFS= read -r runner; do
+    [[ -n "${runner}" ]] && bash "${_SCRIPT_DIR}/../${runner}"
+  done < <(jq -r '
+    [.dimensions[]
+      | select(.kind == "cli-adapter" and .host.execution == "pre_review")
+      | .runner]
+    | unique[]
+  ' "${_SCRIPT_DIR}/../dimensions.json")
+}
+
+hydrate_workflow_adapters() {
   local id producer_file artifact_template artifact_file declared_output artifact_name
   local artifact_dir source_file destination_file
 
@@ -150,7 +175,7 @@ hydrate_cli_adapters() {
         .dimension == $id and
         .kind == "cli-adapter" and
         .output == $output and
-        (.output == "context" or (.output == "findings" and (.findings | type == "array")))
+        (.output != "findings" or (.findings | type == "array"))
       ' "${source_file}" >/dev/null; then
         mkdir -p "$(dirname "${destination_file}")"
         cp "${source_file}" "${destination_file}"
@@ -162,8 +187,15 @@ hydrate_cli_adapters() {
       echo "::warning::Could not download adapter artifact ${artifact_name}; continuing without ${id}"
     fi
     rm -rf "${artifact_dir}"
-  done < <(adapter_rows)
+  done < <(workflow_adapter_rows)
+}
 
+prepare_cli_adapters() {
+  validate_adapter_registry
+  run_pre_review_adapters
+  if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
+    hydrate_workflow_adapters
+  fi
   aggregate_cli_adapters
 }
 
@@ -335,11 +367,9 @@ PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
-# Host adapters run in isolated workflow matrix jobs. Hydrate every registered
-# artifact generically, then copy one collected envelope file into the sandbox;
-# adapter credentials never enter this process or the sandbox.
-if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
-  hydrate_cli_adapters
-fi
+# Run registered pre-review adapters, hydrate outputs from isolated workflow
+# adapter jobs, and collect every resulting envelope generically. Adapter
+# credentials never enter the sandbox.
+prepare_cli_adapters
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"

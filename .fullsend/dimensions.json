@@ -134,6 +134,7 @@
       "runner": "scripts/fetch-jira-context.sh",
       "producer_file": ".run/jira.json",
       "host": {
+        "execution": "workflow",
         "artifact_name": "fullsend-jira-context-{pr_number}",
         "artifact_file": "jira.json",
         "checkout_pr": false,
@@ -155,6 +156,7 @@
       "runner": "scripts/fetch-coderabbit-context.sh",
       "producer_file": ".run/coderabbit.json",
       "host": {
+        "execution": "workflow",
         "artifact_name": "fullsend-coderabbit-context-{pr_number}",
         "artifact_file": "coderabbit.json",
         "checkout_pr": true,
