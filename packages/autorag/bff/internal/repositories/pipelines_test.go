@@ -289,8 +289,8 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if _, ok := params["vector_io_provider_id"]; ok {
 			t.Error("empty vector_io_provider_id should be omitted")
 		}
-		if _, ok := params["optimization_max_rag_patterns"]; ok {
-			t.Error("nil optimization_max_rag_patterns should be omitted")
+		if params["optimization_max_rag_patterns"] != constants.DefaultMaxRagPatterns {
+			t.Errorf("nil optimization_max_rag_patterns should default to %d, got %v", constants.DefaultMaxRagPatterns, params["optimization_max_rag_patterns"])
 		}
 	})
 }

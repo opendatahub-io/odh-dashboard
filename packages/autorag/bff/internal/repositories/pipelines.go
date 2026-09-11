@@ -418,9 +418,11 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		params["vector_io_provider_id"] = req.VectorIOProviderID
 	}
 
+	maxRagPatterns := constants.DefaultMaxRagPatterns
 	if req.OptimizationMaxRagPatterns != nil {
-		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns
+		maxRagPatterns = *req.OptimizationMaxRagPatterns
 	}
+	params["optimization_max_rag_patterns"] = maxRagPatterns
 
 	return &pipelines.CreatePipelineRunInput{
 		DisplayName: req.DisplayName,

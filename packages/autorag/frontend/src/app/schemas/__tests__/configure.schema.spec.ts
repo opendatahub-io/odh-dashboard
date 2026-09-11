@@ -362,6 +362,55 @@ describe('Configure Schema', () => {
       const result = schema.full.safeParse(data);
       expect(result.success).toBe(false);
     });
+
+    it('should reject optimization_max_rag_patterns above the current maximum on the full (submit) schema', () => {
+      const data = {
+        display_name: 'Test Run',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 20,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('optimization_max_rag_patterns');
+      }
+    });
+
+    it('should still parse a legacy optimization_max_rag_patterns value above the current maximum on the base (read) schema', () => {
+      const data = {
+        display_name: 'Test Run',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 20,
+      };
+
+      const result = schema.base.partial().safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.optimization_max_rag_patterns).toBe(20);
+      }
+    });
   });
 
   describe('Transformers', () => {

@@ -9,8 +9,9 @@ const (
 	DefaultOptimizationMetric = MetricOverallScore
 	DefaultPreset             = "speed"
 
-	MinRagPatterns = 4
-	MaxRagPatterns = 20
+	MinRagPatterns        = 1
+	MaxRagPatterns        = 10
+	DefaultMaxRagPatterns = 5
 
 	// PipelineTypeAutoRAG identifies the AutoRAG pipeline type used during discovery and in run responses.
 	PipelineTypeAutoRAG = "autorag"

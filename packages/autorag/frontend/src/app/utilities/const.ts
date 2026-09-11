@@ -36,7 +36,7 @@ export const FindAdministratorOptions = [
 
 export const MAX_DISPLAY_NAME_LENGTH = 250;
 export const MAX_DESCRIPTION_LENGTH = 255;
-export const MIN_RAG_PATTERNS = 4;
+export const MIN_RAG_PATTERNS = 1;
 export const MAX_RAG_PATTERNS = 10;
 
 // Presets
