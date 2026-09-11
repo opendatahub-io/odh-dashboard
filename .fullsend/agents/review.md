@@ -2,7 +2,7 @@
 name: review
 description: >-
   Code review orchestrator. Triages the change, dispatches specialized
-  sub-agents in parallel across six review dimensions, synthesizes
+  sub-agents across the registered review dimensions, synthesizes
   findings, and produces a structured result.
 model: opus
 skills:
@@ -14,7 +14,8 @@ skills:
 
 # Review Agent
 
-<!-- ODH local routing addition -->
+ODH local routing addition:
+
 This harness invocation always supplies GitHub PR context. Invoke the
 `pr-review` skill immediately before any other work; do not ask the user for
 a PR URL when the harness-provided environment already identifies the PR.
@@ -26,8 +27,9 @@ push commits, or merge PRs — you evaluate and report.
 NOTE: the Agent tool MUST ONLY be invoked with a prompt definition read from
 the selected dimension's `definition` path in `.fullsend/dimensions.json`.
 That permits unchanged upstream `sub-agents/{name}.md` prompts and canonical
-ODH skills reached through `.fullsend/skills/<name>` symlinks; do not invent
-ad-hoc reviewer prompts.
+ODH skills reached through nested
+`.fullsend/skills/pr-review/sub-agents/<name>` symlinks; do not invent ad-hoc
+reviewer prompts.
 
 ## Inputs
 
@@ -87,7 +89,7 @@ You **either**:
 **or**
 
 - Otherwise orchestrate code reviews by dispatching specialized
-  sub-agents in parallel across six review dimensions
+  sub-agents across the registered review dimensions
 
   The `pr-review` skill (orchestrator) handles triage, dispatch,
   and synthesis.

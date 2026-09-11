@@ -4,20 +4,24 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-SKILLS_DIR="${ROOT_DIR}/.fullsend/skills"
-EXPECTED_TARGET='../../.claude/skills'
+SUBAGENTS_DIR="${ROOT_DIR}/.fullsend/skills/pr-review/sub-agents"
+EXPECTED_TARGET='../../../../.claude/skills'
 SKILLS=(style-review rbac-review jira-pr-review test-impact-review pr-description-review ci-status-review ci-flake-classifier)
 SANDBOX_SKILLS=(style-review rbac-review jira-pr-review test-impact-review pr-description-review)
 
-package_dir=$(mktemp -d)
-trap 'rm -rf "${package_dir}"' EXIT
-
 fail=0
 for skill in "${SKILLS[@]}"; do
-  link="${SKILLS_DIR}/${skill}"
-  target="${EXPECTED_TARGET}/${skill}"
+  if [[ " ${SANDBOX_SKILLS[*]} " == *" ${skill} "* ]]; then
+    link="${SUBAGENTS_DIR}/${skill}"
+    target="${EXPECTED_TARGET}/${skill}"
+    display_path=".fullsend/skills/pr-review/sub-agents/${skill}"
+  else
+    link="${ROOT_DIR}/.fullsend/skills/${skill}"
+    target="../../.claude/skills/${skill}"
+    display_path=".fullsend/skills/${skill}"
+  fi
   if [[ ! -L "${link}" ]]; then
-    echo "FAIL ${skill}: expected repository-relative symlink at .fullsend/skills/${skill}" >&2
+    echo "FAIL ${skill}: expected repository-relative symlink at ${display_path}" >&2
     fail=1
     continue
   fi
@@ -33,19 +37,39 @@ for skill in "${SKILLS[@]}"; do
   fi
   for sandbox_skill in "${SANDBOX_SKILLS[@]}"; do
     [[ "${skill}" == "${sandbox_skill}" ]] || continue
-    if ! grep -Fqx "  - skills/${skill}" "${ROOT_DIR}/.fullsend/harness/review.yaml"; then
-      echo "FAIL ${skill}: harness does not declare skills/${skill} for sandbox packaging" >&2
+    if [[ -e "${ROOT_DIR}/.fullsend/skills/${skill}" || -L "${ROOT_DIR}/.fullsend/skills/${skill}" ]]; then
+      echo "FAIL ${skill}: nested reviewer must not also exist as a top-level Fullsend skill" >&2
+      fail=1
+    fi
+    if grep -Fqx "  - skills/${skill}" "${ROOT_DIR}/.fullsend/harness/review.yaml"; then
+      echo "FAIL ${skill}: harness imports nested reviewer as a peer skill" >&2
       fail=1
       continue 2
     fi
-    if ! cp -RL "${link}" "${package_dir}/${skill}" || [[ ! -f "${package_dir}/${skill}/SKILL.md" ]]; then
-      echo "FAIL ${skill}: a dereferenced sandbox package cannot include its canonical target" >&2
+    expected_definition="skills/pr-review/sub-agents/${skill}/SKILL.md"
+    if ! jq -e --arg skill "${skill}" --arg definition "${expected_definition}" \
+      '.dimensions[] | select(.id == $skill) | .definition == $definition' \
+      "${ROOT_DIR}/.fullsend/dimensions.json" >/dev/null; then
+      echo "FAIL ${skill}: dimension definition must be ${expected_definition}" >&2
       fail=1
-    else
-      echo "PASS ${skill}: dereferenced sandbox-package fixture includes canonical SKILL.md"
     fi
   done
 done
+
+if ! grep -Fqx "  - skills/pr-review" "${ROOT_DIR}/.fullsend/harness/review.yaml"; then
+  echo "FAIL pr-review: harness must package the orchestrator skill" >&2
+  fail=1
+else
+  for skill in "${SANDBOX_SKILLS[@]}"; do
+    definition="${ROOT_DIR}/.fullsend/skills/pr-review/sub-agents/${skill}/SKILL.md"
+    if [[ ! -f "${definition}" ]]; then
+      echo "FAIL ${skill}: target-checkout definition cannot resolve canonical SKILL.md" >&2
+      fail=1
+    else
+      echo "PASS ${skill}: nested definition resolves from target checkout"
+    fi
+  done
+fi
 
 if [[ "${fail}" -ne 0 ]]; then
   exit 1

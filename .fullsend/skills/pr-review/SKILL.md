@@ -80,9 +80,17 @@ Each `dimensions[]` object:
 
 Treat missing `output` as `findings`. Treat `llm-subagent` and
 `llm-skill` identically for selection and dispatch: the distinction is
-ownership only. Upstream sub-agent definitions remain in
-`skills/pr-review/sub-agents`; `llm-skill` definitions resolve through
-the repository-relative canonical-skill links in `skills/`.
+ownership only. All spawned reviewer definitions live beneath
+`skills/pr-review/sub-agents`. Upstream definitions are regular markdown
+files; ODH-owned definitions are repository-relative symlinks to their
+canonical directories in `.claude/skills`. The harness imports only this
+orchestrator skill, so nested reviewer definitions do not become peer skills
+or collide with inherited Fullsend skill names. Resolve every registry
+`definition` from the target repository checkout under
+`/sandbox/workspace/target-repo/.fullsend/`; do not look for nested definitions
+inside Claude's uploaded personal-skill copy, where Fullsend preserves the
+repository-relative links without also uploading their `.claude/skills`
+targets.
 
 If `dimensions.json` is missing or `dimensions` is empty, fail the
 review (`action: failure`, `reason: missing-context`). Do not fall

@@ -4,15 +4,10 @@ agent: agents/review.md
 
 skills:
   # This local skill replaces Fullsend's inherited pr-review with the
-  # registry-driven dimensions orchestrator.
+  # registry-driven dimensions orchestrator. ODH-owned reviewer skills are
+  # packaged as nested sub-agent definitions inside this skill, rather than
+  # imported as peer skills into the agent's global skill namespace.
   - skills/pr-review
-  # ODH-owned review policy is canonical in .claude/skills. These entries
-  # deliberately resolve through repository-relative symlinks in .fullsend.
-  - skills/style-review
-  - skills/rbac-review
-  - skills/jira-pr-review
-  - skills/test-impact-review
-  - skills/pr-description-review
 
 host_files:
   - src: dimensions.json
