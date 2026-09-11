@@ -98,10 +98,15 @@ class McpManageSourcePage {
     this.waitForAddSource();
   }
 
-  visitManageSource(catalogSourceId: string) {
-    mcpPreviewIntercept();
+  visitManageSource(
+    catalogSourceId: string,
+    { sourcePreviewStub = true }: { sourcePreviewStub?: boolean } = {},
+  ) {
+    if (sourcePreviewStub) {
+      mcpPreviewIntercept();
+    }
     cy.visit(`${mcpCatalogSettingsUrl()}/manage-source/${encodeURIComponent(catalogSourceId)}`);
-    this.waitForManageSource();
+    this.waitForManageSource({ waitForSourcePreview: sourcePreviewStub });
   }
 
   private waitForAddSource() {
@@ -109,9 +114,13 @@ class McpManageSourcePage {
     cy.testA11y();
   }
 
-  private waitForManageSource() {
+  private waitForManageSource({
+    waitForSourcePreview = true,
+  }: { waitForSourcePreview?: boolean } = {}) {
     this.findHeading();
-    cy.wait('@mcpSourcePreview');
+    if (waitForSourcePreview) {
+      cy.wait('@mcpSourcePreview');
+    }
     // Preview panel uses decorative status icons; scan the form only.
     cy.testA11y({ exclude: ['[data-testid="mcp-preview-panel"]'] });
   }
