@@ -7,7 +7,7 @@
   flex-direction: column;
   height: calc(100dvh - var(--gpuaas-infrastructure-viewport-chrome-offset));
   max-height: calc(100dvh - var(--gpuaas-infrastructure-viewport-chrome-offset));
-  min-height: 28.4375rem;
+  min-height: min(28.4375rem, calc(100dvh - var(--gpuaas-infrastructure-viewport-chrome-offset)));
   overflow: hidden;
 
   .gpuaas-quota-usage-tab__header {
