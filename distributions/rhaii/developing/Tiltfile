@@ -82,10 +82,9 @@ local_resource(
     labels=["model-serving"],
 )
 
-# Stream logs from the externally-installed KServe controller for visibility
+# Track readiness of the externally-installed KServe controller.
 local_resource(
     "kserve-controller",
-    cmd="kubectl get deployment -n kserve kserve-controller-manager -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo 'not installed'",
-    serve_cmd="kubectl logs -n kserve deployment/kserve-controller-manager -f --tail=50",
+    cmd="kubectl wait --for=condition=Available --timeout=120s -n kserve deployment/kserve-controller-manager",
     labels=["model-serving"],
 )
