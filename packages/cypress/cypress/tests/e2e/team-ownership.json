@@ -4,7 +4,7 @@
   "teams": [
     {
       "name": "Green",
-      "ci_tags": ["ModelRegistryCI"],
+      "ci_tags": ["ModelRegistryCI", "ModelCatalogCI"],
       "path_patterns": ["modelRegistry/", "modelCatalog/"]
     },
     {
@@ -50,7 +50,7 @@
     {
       "name": "Tangerine",
       "ci_tags": ["FeatureStoreCI", "ModelTrainingCI", "GpuaasCI"],
-      "path_patterns": ["featureStore/", "modelTraining/", "rayjob/"]
+      "path_patterns": ["featureStore/", "modelTraining/", "gpuaas/"]
     },
     {
       "name": "Pewter",
