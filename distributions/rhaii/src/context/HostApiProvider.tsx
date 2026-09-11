@@ -25,16 +25,7 @@ import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/mo
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
 const ProjectDetailsContext = React.createContext(null);
-
-type ModelServingContextValue = {
-  inferenceServices: {
-    data: { items: InferenceServiceKind[] };
-    loaded: boolean;
-    error?: Error;
-  };
-};
-
-const MODEL_SERVING_CONTEXT_VALUE: ModelServingContextValue = {
+const MODEL_SERVING_CONTEXT_VALUE = {
   inferenceServices: {
     data: { items: [] },
     loaded: true,
@@ -114,9 +105,7 @@ const useInferenceServices = (namespace?: string) => {
   );
   return useK8sWatchResource<InferenceServiceKind[]>(resource, InferenceServiceModel);
 };
-const ModelServingContext = React.createContext<ModelServingContextValue>(
-  MODEL_SERVING_CONTEXT_VALUE,
-);
+const ModelServingContext = React.createContext(MODEL_SERVING_CONTEXT_VALUE);
 
 const ModelServingContextProvider: HostApiServices['contexts']['ModelServingContextProvider'] = ({
   children,
