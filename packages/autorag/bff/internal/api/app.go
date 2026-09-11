@@ -86,6 +86,7 @@ type App struct {
 	s3          *S3Handler
 	pipelines   *PipelinesHandler
 	maas        *MaaSHandler
+	responses   *ResponsesHandler
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -258,6 +259,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			logger: logger,
 			repo:   repositories.NewMaaSRepository(logger, maasClient, k8sService),
 		},
+		responses: &ResponsesHandler{
+			logger: logger,
+			repo:   repositories.NewResponsesRepository(logger, k8sService),
+		},
 	}
 	return app, nil
 }
@@ -312,6 +317,9 @@ func (app *App) Routes() http.Handler {
 	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
 	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))
 	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
+
+	// RAG responses — vector search + MaaS generation
+	apiRouter.POST(ApiPathPrefix+"/responses", app.mw.AttachNamespace(app.responses.HandleResponsesEndpoint))
 
 	// App Router
 	appMux := http.NewServeMux()
