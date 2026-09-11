@@ -1,0 +1,94 @@
+.evalhub-copy-suite-benchmarks-step__fields {
+  min-inline-size: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.evalhub-copy-suite-benchmarks-step__header {
+  margin-block-end: var(--pf-t--global--spacer--lg);
+}
+
+.evalhub-copy-suite-benchmarks-step__layout {
+  margin-block-end: var(--pf-t--global--spacer--xl);
+
+  .pf-v6-c-sidebar__panel {
+    min-width: 0;
+  }
+
+  .pf-v6-c-sidebar__content {
+    min-width: 0;
+  }
+}
+
+.evalhub-copy-suite-benchmarks-step__nav {
+  width: 220px;
+  max-width: 220px;
+  flex: 0 0 220px;
+  min-width: 0;
+  overflow: hidden;
+
+  .pf-v6-c-jump-links,
+  .pf-v6-c-jump-links__main,
+  .pf-v6-c-jump-links__list,
+  .pf-v6-c-jump-links__item {
+    min-width: 0;
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .pf-v6-c-jump-links__list {
+    align-items: stretch;
+  }
+
+  .pf-v6-c-jump-links__item {
+    width: 100%;
+  }
+
+  .pf-v6-c-jump-links__link {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .pf-v6-c-button.pf-m-link {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .pf-v6-c-button__text,
+  .pf-v6-c-jump-links__link-text {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+  }
+}
+
+.evalhub-copy-suite-benchmarks-step__jump-link-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.evalhub-copy-suite-benchmarks-step__jump-link-disabled {
+  color: var(--pf-t--global--text--color--disabled);
+}
+
+.evalhub-copy-suite-benchmarks-step__sections {
+  display: flex;
+  flex-direction: column;
+}

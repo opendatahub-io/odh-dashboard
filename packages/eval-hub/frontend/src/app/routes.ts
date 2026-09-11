@@ -14,11 +14,25 @@ export const evaluationCreateRoute = (namespace?: string): string =>
 export const evaluationCollectionsRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/collections`;
 
+export const evaluationBenchmarkSuitesRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}/collections`;
+
+export const evaluationCuratedBenchmarkSuitesRoute = (
+  namespace?: string,
+  aiEntity?: string,
+): string => `${evaluationBenchmarkSuitesRoute(namespace)}/${aiEntity ?? ':aiEntity'}`;
+
 export const evaluationBenchmarksRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/benchmarks`;
 
 export const evaluationStartRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/start`;
+
+export const evaluationCopySuiteRoute = (namespace?: string, collectionId?: string): string =>
+  `${evaluationCollectionsRoute(namespace)}/${collectionId ?? ':collectionId'}/copy`;
+
+export const evaluationCreateSuiteRoute = (namespace?: string): string =>
+  `${evaluationCollectionsRoute(namespace)}/new`;
 
 export const evaluationResultsRoute = (namespace?: string, jobId?: string): string =>
   `${evaluationsBaseRoute(namespace)}/results/${jobId ?? ':jobId'}`;

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -13,6 +14,100 @@ import (
 
 type CollectionsEnvelope Envelope[evalhub.CollectionsResponse, None]
 type CollectionEnvelope Envelope[evalhub.Collection, None]
+
+func validateCollectionPatchOperations(operations []evalhub.CollectionPatchOperation) error {
+	if len(operations) == 0 {
+		return fmt.Errorf("at least one patch operation is required")
+	}
+
+	for index, operation := range operations {
+		if operation.Op != "add" && operation.Op != "replace" && operation.Op != "remove" {
+			return fmt.Errorf("invalid patch operation at index %d: op must be add, replace, or remove", index)
+		}
+		if strings.TrimSpace(operation.Path) == "" {
+			return fmt.Errorf("invalid patch operation at index %d: path is required", index)
+		}
+		if (operation.Op == "add" || operation.Op == "replace") && len(operation.Value) == 0 {
+			return fmt.Errorf("invalid patch operation at index %d: value is required for %s", index, operation.Op)
+		}
+		if operation.Op == "remove" && len(operation.Value) > 0 {
+			return fmt.Errorf("invalid patch operation at index %d: value is not allowed for remove", index)
+		}
+	}
+
+	return nil
+}
+
+func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	id := strings.TrimPrefix(ps.ByName("id"), "/")
+	if id == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
+		return
+	}
+
+	var operations []evalhub.CollectionPatchOperation
+	if err := app.ReadJSON(w, r, &operations); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if err := validateCollectionPatchOperations(operations); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	collection, err := client.PatchCollection(ctx, id, namespace, operations)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to patch collection")
+		return
+	}
+	if collection == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	if collection.Resource.ID == "" || collection.Name == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned collection with missing required fields (id=%q, name=%q)", collection.Resource.ID, collection.Name))
+		return
+	}
+
+	envelope := CollectionEnvelope{Data: *collection}
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) DeleteCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	id := strings.TrimPrefix(ps.ByName("id"), "/")
+	if id == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if err := client.DeleteCollection(ctx, id, namespace); err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to delete collection")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
 
 func (app *App) GetCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
@@ -62,13 +157,22 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 	}
 
 	query := r.URL.Query()
+	sortBy := query.Get("sort_by")
+	if sortBy != "" && sortBy != "curation_order" {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid sort_by parameter: must be curation_order"))
+		return
+	}
 
 	params := evalhub.ListCollectionsParams{
-		Namespace: query.Get("namespace"),
-		Name:      query.Get("name"),
-		Category:  query.Get("category"),
-		Tags:      query.Get("tags"),
-		Scope:     query.Get("scope"),
+		Namespace:  query.Get("namespace"),
+		Name:       query.Get("name"),
+		Category:   query.Get("category"),
+		Tags:       query.Get("tags"),
+		Scope:      query.Get("scope"),
+		SortBy:     sortBy,
+		Domains:    query.Get("domains"),
+		Industries: query.Get("industries"),
+		AIEntities: query.Get("ai_entities"),
 	}
 
 	if limitStr := query.Get("limit"); limitStr != "" {
@@ -97,6 +201,137 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 
 	envelope := CollectionsEnvelope{Data: result}
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
+	var input evalhub.CreateCollectionRequest
+	if err := app.ReadJSON(w, r, &input); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if strings.TrimSpace(input.Name) == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("name is required"))
+		return
+	}
+	if len(input.Benchmarks) == 0 {
+		app.badRequestResponse(w, r, fmt.Errorf("at least one benchmark is required"))
+		return
+	}
+	for _, benchmark := range input.Benchmarks {
+		if strings.TrimSpace(benchmark.ID) == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+			return
+		}
+		if benchmark.Weight < 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
+			return
+		}
+	}
+	// TODO: Remove this temporary mapping once the EvalHub API is deployed.
+	input.Category = strings.TrimSpace(input.Category)
+	if input.Category == "" && len(input.AIEntities) > 0 {
+		input.Category = input.AIEntities[0]
+	}
+
+	collection, err := client.CreateCollection(ctx, namespace, input)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to create collection")
+		return
+	}
+	if collection == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned empty response for collection"))
+		return
+	}
+
+	if collection.Resource.ID == "" || collection.Name == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned collection with missing required fields (id=%q, name=%q)", collection.Resource.ID, collection.Name))
+		return
+	}
+
+	envelope := CollectionEnvelope{Data: *collection}
+	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	id := strings.TrimSuffix(ps.ByName("id"), "/")
+	if !strings.HasSuffix(id, "/clones") {
+		app.notFoundResponse(w, r)
+		return
+	}
+	id = strings.TrimPrefix(strings.TrimSuffix(id, "/clones"), "/")
+	if id == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
+	var input evalhub.CloneCollectionRequest
+	if r.Body != http.NoBody {
+		var request *evalhub.CloneCollectionRequest
+		if err := app.ReadJSON(w, r, &request); err != nil {
+			if !errors.Is(err, errEmptyBody) {
+				app.badRequestResponse(w, r, err)
+				return
+			}
+		} else if request == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("body must not be null"))
+			return
+		} else {
+			input = *request
+		}
+	}
+	for _, benchmark := range input.Benchmarks {
+		if strings.TrimSpace(benchmark.ID) == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+			return
+		}
+		if benchmark.Weight < 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
+			return
+		}
+	}
+
+	collection, err := client.CloneCollection(ctx, id, namespace, input)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to clone collection")
+		return
+	}
+	if collection == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	if collection.Resource.ID == "" || collection.Name == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned cloned collection with missing required fields (id=%q, name=%q)", collection.Resource.ID, collection.Name))
+		return
+	}
+
+	envelope := CollectionEnvelope{Data: *collection}
+	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

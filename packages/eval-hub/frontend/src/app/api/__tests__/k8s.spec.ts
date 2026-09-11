@@ -1,6 +1,17 @@
 /* eslint-disable camelcase */
-import { handleRestFailures, restGET, restCREATE, isModArchResponse } from 'mod-arch-core';
 import {
+  handleRestFailures,
+  restGET,
+  restCREATE,
+  restDELETE,
+  restPATCH,
+  isModArchResponse,
+} from 'mod-arch-core';
+import {
+  deleteCollection,
+  patchCollection,
+  cloneCollection,
+  createCollection,
   getCollection,
   getCollections,
   getEvalHubCRStatus,
@@ -15,6 +26,7 @@ import {
 } from '~/app/api/k8s';
 import type {
   Collection,
+  CreateCollectionRequest,
   CreateEvaluationJobRequest,
   EvalHubCRStatus,
   EvaluationJob,
@@ -30,11 +42,15 @@ jest.mock('mod-arch-core', () => ({
   handleRestFailures: jest.fn((promise: Promise<unknown>) => promise),
   restGET: jest.fn(),
   restCREATE: jest.fn(),
+  restDELETE: jest.fn(),
+  restPATCH: jest.fn(),
   isModArchResponse: jest.fn(),
 }));
 
 const mockRestGET = jest.mocked(restGET);
 const mockRestCREATE = jest.mocked(restCREATE);
+const mockRestDELETE = jest.mocked(restDELETE);
+const mockRestPATCH = jest.mocked(restPATCH);
 const mockIsModArchResponse = jest.mocked(isModArchResponse);
 // handleRestFailures is mocked to pass through the promise — no need to assert on it directly
 
@@ -306,6 +322,195 @@ describe('getCollection', () => {
   });
 });
 
+describe('deleteCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should call restDELETE without parsing the empty 204 response', async () => {
+    mockRestDELETE.mockResolvedValue({});
+
+    const opts = {};
+    await deleteCollection('', 'my-ns', 'col-1')(opts);
+
+    expect(mockRestDELETE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1',
+      {},
+      { namespace: 'my-ns' },
+      { ...opts, parseJSON: false },
+    );
+  });
+
+  it('should resolve when the BFF returns no content', async () => {
+    mockRestDELETE.mockResolvedValue('');
+
+    await expect(deleteCollection('', 'my-ns', 'col-1')({})).resolves.toBeUndefined();
+  });
+
+  it('should encode the collection ID in the URL', async () => {
+    mockRestDELETE.mockResolvedValue({});
+
+    await deleteCollection('', 'ns', 'col/special')({});
+
+    expect(mockRestDELETE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col%2Fspecial',
+      {},
+      { namespace: 'ns' },
+      expect.any(Object),
+    );
+  });
+
+  it('should reject when collectionId is empty', async () => {
+    await expect(deleteCollection('', 'test-ns', '')({})).rejects.toThrow(
+      'collectionId must not be empty',
+    );
+
+    expect(mockRestDELETE).not.toHaveBeenCalled();
+  });
+});
+
+describe('patchCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should call restPATCH with JSON Patch operations and the namespace', async () => {
+    const collection: Collection = { resource: { id: 'col-1' }, name: 'Updated suite' };
+    const operations = [{ op: 'replace' as const, path: '/name', value: 'Updated suite' }];
+    mockRestPATCH.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const opts = {};
+    const result = await patchCollection('', 'my-ns', 'col-1', operations)(opts);
+
+    expect(result).toEqual(collection);
+    expect(mockRestPATCH).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1',
+      operations,
+      { namespace: 'my-ns' },
+      opts,
+    );
+  });
+
+  it('should encode the collection ID in the URL', async () => {
+    mockRestPATCH.mockResolvedValue({ data: { resource: { id: 'col/special' }, name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await patchCollection('', 'ns', 'col/special', [
+      { op: 'replace', path: '/name', value: 'Test' },
+    ])({});
+
+    expect(mockRestPATCH).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col%2Fspecial',
+      expect.any(Array),
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  it('should reject when collectionId is empty', async () => {
+    await expect(
+      patchCollection('', 'test-ns', '', [{ op: 'replace', path: '/name', value: 'Test' }])({}),
+    ).rejects.toThrow('collectionId must not be empty');
+
+    expect(mockRestPATCH).not.toHaveBeenCalled();
+  });
+});
+
+describe('cloneCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should reject cloned collections with invalid benchmark entries', async () => {
+    mockRestCREATE.mockResolvedValue({
+      data: {
+        name: 'Cloned suite',
+        resource: { id: 'cloned-col-1' },
+        benchmarks: [null],
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(
+      cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
+    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+  });
+});
+
+describe('createCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should create a collection with metadata and AI entity arrays', async () => {
+    const request: CreateCollectionRequest = {
+      name: 'New suite',
+      domains: ['safety'],
+      ai_entities: ['model'],
+      benchmarks: [{ id: 'benchmark-001' }],
+    };
+    const collection: Collection = {
+      resource: { id: 'created-collection' },
+      name: 'New suite',
+      domains: ['safety'],
+      ai_entities: ['model'],
+      benchmarks: [{ id: 'benchmark-001' }],
+    };
+    mockRestCREATE.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(createCollection('', 'test-ns', request)({})).resolves.toEqual(collection);
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      request,
+      { namespace: 'test-ns' },
+      {},
+    );
+  });
+
+  it('should reject created collections with invalid benchmark entries', async () => {
+    mockRestCREATE.mockResolvedValue({
+      data: {
+        name: 'New suite',
+        resource: { id: 'created-collection' },
+        benchmarks: [null],
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(
+      createCollection('', 'test-ns', {
+        name: 'New suite',
+        benchmarks: [{ id: 'benchmark-001' }],
+      })({}),
+    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+  });
+
+  it('should reject a created collection with missing resource metadata', async () => {
+    mockRestCREATE.mockResolvedValue({
+      data: { name: 'New suite', resource: {} },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(
+      createCollection('', 'test-ns', {
+        name: 'New suite',
+        benchmarks: [{ id: 'benchmark-001' }],
+      })({}),
+    ).rejects.toThrow('Invalid collection: missing resource.id');
+  });
+});
+
 describe('getCollections', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -350,6 +555,85 @@ describe('getCollections', () => {
     expect(result).toEqual({ items: [] });
   });
 
+  it('should return empty items when items is missing', async () => {
+    mockRestGET.mockResolvedValue({ data: {} });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'test-ns' })({});
+
+    expect(result).toEqual({ items: [] });
+  });
+
+  it.each([{}, 'not-an-array', 123, false])(
+    'should reject non-array items value %p',
+    async (items) => {
+      mockRestGET.mockResolvedValue({ data: { items } });
+      mockIsModArchResponse.mockReturnValue(true);
+
+      await expect(getCollections('', { namespace: 'test-ns' })({})).rejects.toThrow(
+        'Invalid response format',
+      );
+    },
+  );
+
+  it('should sanitize malformed collection string arrays', async () => {
+    const items = [
+      {
+        resource: { id: 'col-1' },
+        name: 'Collection',
+        domains: ['safety', 123],
+        ai_entities: 'model',
+        industries: [null, 'healthcare'],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items[0].domains).toEqual(['safety']);
+    expect(result.items[0].ai_entities).toBeUndefined();
+    expect(result.items[0].industries).toEqual(['healthcare']);
+  });
+
+  it('should sanitize collection metadata arrays and invalid benchmark weights', async () => {
+    const items = [
+      {
+        resource: { id: 'col-1' },
+        name: 'Collection',
+        category: 123,
+        tags: ['curated', null],
+        domains: ['safety', 123],
+        tasks: ['question_answering', false],
+        modalities: ['text', {}],
+        industries: ['healthcare', undefined],
+        ai_entities: ['model', null],
+        benchmarks: [
+          { id: 'valid', weight: 0 },
+          { id: 'empty-id' },
+          { id: '' },
+          { id: 'negative-weight', weight: -1 },
+          { id: 'non-finite-weight', weight: Infinity },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items[0]).toMatchObject({
+      category: undefined,
+      tags: ['curated'],
+      domains: ['safety'],
+      tasks: ['question_answering'],
+      modalities: ['text'],
+      industries: ['healthcare'],
+      ai_entities: ['model'],
+      benchmarks: [{ id: 'valid', weight: 0 }, { id: 'empty-id' }],
+    });
+  });
+
   it('should return empty items when data is null', async () => {
     mockRestGET.mockResolvedValue({ data: null });
     mockIsModArchResponse.mockReturnValue(true);
@@ -357,6 +641,86 @@ describe('getCollections', () => {
     const result = await getCollections('', { namespace: 'test-ns' })({});
 
     expect(result).toEqual({ items: [] });
+  });
+
+  it('should include the collection scope query param', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollections('', { namespace: 'my-ns', scope: 'tenant' })({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      { namespace: 'my-ns', scope: 'tenant' },
+      {},
+    );
+  });
+
+  it('should include the collection sort query param', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollections('', {
+      namespace: 'my-ns',
+      scope: 'curated',
+      sortBy: 'curation_order',
+    })({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      { namespace: 'my-ns', scope: 'curated', sort_by: 'curation_order' },
+      {},
+    );
+  });
+
+  it('should include collection classification filters', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollections('', {
+      namespace: 'my-ns',
+      domains: ['agent_tools', 'tool_use'],
+      industries: ['healthcare'],
+      aiEntities: ['agent'],
+    })({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      {
+        namespace: 'my-ns',
+        domains: 'agent_tools,tool_use',
+        industries: 'healthcare',
+        ai_entities: 'agent',
+      },
+      {},
+    );
+  });
+
+  it('should include name, category, and tag filters', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollections('', {
+      namespace: 'my-ns',
+      name: 'safety',
+      category: 'general',
+      tags: ['curated', 'validated'],
+    })({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      {
+        namespace: 'my-ns',
+        name: 'safety',
+        category: 'general',
+        tags: 'curated,validated',
+      },
+      {},
+    );
   });
 
   it('should throw when response is not a valid mod-arch response', async () => {
@@ -368,17 +732,17 @@ describe('getCollections', () => {
     );
   });
 
-  it('should call restGET with namespace and limit query params', async () => {
+  it('should call restGET with namespace and pagination query params', async () => {
     mockRestGET.mockResolvedValue({ data: { items: [] } });
     mockIsModArchResponse.mockReturnValue(true);
 
     const opts = {};
-    await getCollections('', { namespace: 'my-ns', limit: 200 })(opts);
+    await getCollections('', { namespace: 'my-ns', limit: 6, offset: 6 })(opts);
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
       '/eval-hub/api/v1/evaluations/collections',
-      { namespace: 'my-ns', limit: '200' },
+      { namespace: 'my-ns', limit: '6', offset: '6' },
       opts,
     );
   });

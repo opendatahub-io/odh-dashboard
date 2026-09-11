@@ -31,7 +31,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import {
   MlflowExperimentSelector,
@@ -41,7 +41,6 @@ import {
   evaluationsBaseRoute,
   evaluationBenchmarksRoute,
   evaluationCollectionsRoute,
-  evaluationCreateRoute,
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
@@ -55,6 +54,7 @@ import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import type { SourceMode } from '~/app/types';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import { SOURCE_OPTIONS } from '~/app/utilities/startEvaluationRunUtils';
 import {
   useStartEvaluationRunForm,
   DEFAULT_EXPERIMENT_NAME,
@@ -63,11 +63,11 @@ import {
 
 import './StartEvaluationRunPage.css';
 
-const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
-  { value: 'model', label: 'Model' },
-  { value: 'agent', label: 'Agent' },
-  { value: 'prerecorded', label: 'Pre-recorded responses' },
-];
+const SOURCE_MODE_LABELS: Record<SourceMode, string> = {
+  model: 'Model',
+  agent: 'Agent',
+  prerecorded: 'Pre-recorded responses',
+};
 
 type StartEvaluationRunPageProps = {
   initialValues?: ReconfigureFormData;
@@ -79,6 +79,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   sourceJobId,
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
+  const navigate = useNavigate();
   const isReconfigure = !!sourceJobId;
 
   const selectionResult = useEvaluationSelection(namespace, isReconfigure);
@@ -102,6 +103,11 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     warning: isWarning,
   } = useInferenceServices(namespace ?? '');
 
+  const previousRoute = isCollectionFlow
+    ? evaluationCollectionsRoute(namespace)
+    : evaluationBenchmarksRoute(namespace);
+  const handleCancel = React.useCallback(() => navigate(previousRoute), [navigate, previousRoute]);
+
   const form = useStartEvaluationRunForm({
     namespace,
     benchmark,
@@ -110,6 +116,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     experiments,
     experimentsLoaded,
     initialValues,
+    onCancel: isReconfigure ? undefined : handleCancel,
   });
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
@@ -130,22 +137,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     } else {
       items.push(
         <BreadcrumbItem
-          key="type"
-          render={() => <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>}
-        />,
-        <BreadcrumbItem
           key="suite"
-          render={() => (
-            <Link
-              to={
-                isCollectionFlow
-                  ? evaluationCollectionsRoute(namespace)
-                  : evaluationBenchmarksRoute(namespace)
-              }
-            >
-              {breadcrumbFlowLabel}
-            </Link>
-          )}
+          render={() => <Link to={previousRoute}>{breadcrumbFlowLabel}</Link>}
         />,
         <BreadcrumbItem key="active" isActive>
           Start evaluation run
@@ -321,7 +314,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             label={
               <FormGroupLabel
                 label="Evaluating"
-                description="Select the model, agent, or dataset to evaluate."
+                description="Select the model or agent to evaluate."
                 isRequired
               />
             }
@@ -343,7 +336,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
                   isFullWidth
                   data-testid="source-mode-toggle"
                 >
-                  {SOURCE_OPTIONS.find((o) => o.value === form.sourceMode)?.label}
+                  {SOURCE_MODE_LABELS[form.sourceMode]}
                 </MenuToggle>
               )}
               shouldFocusToggleOnSelect
@@ -353,6 +346,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
                   <SelectOption
                     key={opt.value}
                     value={opt.value}
+                    data-testid={`source-mode-option-${opt.value}`}
                     isSelected={opt.value === form.sourceMode}
                   >
                     {opt.label}
@@ -597,7 +591,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             <Button
               variant="primary"
               data-testid="start-evaluation-submit"
-              onClick={form.handleSubmit}
+              onClick={() => form.handleSubmit()}
               isDisabled={!form.isValid || form.isSubmitting}
               isLoading={form.isSubmitting}
             >

@@ -2,15 +2,21 @@ package ehmocks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
-	collectionOverrides map[string]*evalhub.Collection
+	mu                        sync.RWMutex
+	collectionOverrides       map[string]*evalhub.Collection
+	deletedCollections        map[string]bool
+	LastListCollectionsParams *evalhub.ListCollectionsParams
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -18,6 +24,12 @@ func NewMockEvalHubClient() *MockEvalHubClient {
 }
 
 func (m *MockEvalHubClient) SetCollection(id string, c *evalhub.Collection) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.setCollection(id, c)
+}
+
+func (m *MockEvalHubClient) setCollection(id string, c *evalhub.Collection) {
 	if m.collectionOverrides == nil {
 		m.collectionOverrides = make(map[string]*evalhub.Collection)
 	}
@@ -30,11 +42,21 @@ func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.H
 
 // ListCollections returns mock benchmark collections with optional in-memory filtering and pagination.
 func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.ListCollectionsParams) (evalhub.CollectionsResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.LastListCollectionsParams = &params
 	all := mockCollections()
 
 	// Apply filters
 	filtered := make([]evalhub.Collection, 0, len(all))
 	for _, c := range all {
+		if m.deletedCollections[c.Resource.ID] {
+			continue
+		}
+		if override, ok := m.collectionOverrides[c.Resource.ID]; ok {
+			c = *override
+		}
 		if params.Name != "" && !containsCI(c.Name, params.Name) {
 			continue
 		}
@@ -64,6 +86,28 @@ func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.Li
 		TotalCount: total,
 		Limit:      limit,
 		Items:      filtered[offset:end],
+	}, nil
+}
+
+func (m *MockEvalHubClient) CreateCollection(
+	_ context.Context,
+	_ string,
+	req evalhub.CreateCollectionRequest,
+) (*evalhub.Collection, error) {
+	return &evalhub.Collection{
+		Resource:     evalhub.CollectionResource{ID: "created-collection"},
+		Name:         req.Name,
+		Category:     req.Category,
+		Description:  req.Description,
+		Tags:         req.Tags,
+		Domains:      req.Domains,
+		Tasks:        req.Tasks,
+		Modalities:   req.Modalities,
+		Industries:   req.Industries,
+		AIEntities:   req.AIEntities,
+		Custom:       req.Custom,
+		PassCriteria: req.PassCriteria,
+		Benchmarks:   req.Benchmarks,
 	}, nil
 }
 
@@ -355,6 +399,15 @@ func mockProviders() []evalhub.Provider {
 }
 
 func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.getCollection(id)
+}
+
+func (m *MockEvalHubClient) getCollection(id string) (*evalhub.Collection, error) {
+	if m.deletedCollections[id] {
+		return nil, nil
+	}
 	if c, ok := m.collectionOverrides[id]; ok {
 		return c, nil
 	}
@@ -365,6 +418,131 @@ func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string
 		}
 	}
 	return nil, nil
+}
+
+func (m *MockEvalHubClient) PatchCollection(_ context.Context, id string, _ string, operations []evalhub.CollectionPatchOperation) (*evalhub.Collection, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	collection, err := m.getCollection(id)
+	if err != nil || collection == nil {
+		return collection, err
+	}
+
+	collectionJSON, err := json.Marshal(collection)
+	if err != nil {
+		return nil, fmt.Errorf("marshal collection: %w", err)
+	}
+	operationsJSON, err := json.Marshal(operations)
+	if err != nil {
+		return nil, fmt.Errorf("marshal collection patch: %w", err)
+	}
+	patch, err := jsonpatch.DecodePatch(operationsJSON)
+	if err != nil {
+		return nil, fmt.Errorf("decode collection patch: %w", err)
+	}
+	updatedJSON, err := patch.Apply(collectionJSON)
+	if err != nil {
+		return nil, fmt.Errorf("apply collection patch: %w", err)
+	}
+
+	var updated evalhub.Collection
+	if err := json.Unmarshal(updatedJSON, &updated); err != nil {
+		return nil, fmt.Errorf("unmarshal patched collection: %w", err)
+	}
+	m.setCollection(id, &updated)
+	return &updated, nil
+}
+
+func (m *MockEvalHubClient) DeleteCollection(_ context.Context, id string, _ string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.deletedCollections == nil {
+		m.deletedCollections = make(map[string]bool)
+	}
+	m.deletedCollections[id] = true
+	delete(m.collectionOverrides, id)
+	return nil
+}
+
+func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ string, req evalhub.CloneCollectionRequest) (*evalhub.Collection, error) {
+	source, err := m.GetCollection(context.Background(), id, "")
+	if err != nil {
+		return nil, err
+	}
+	if source == nil {
+		return nil, nil
+	}
+
+	name := req.Name
+	if name == "" {
+		name = source.Name
+	}
+	description := req.Description
+	if description == "" {
+		description = source.Description
+	}
+	category := req.Category
+	if category == "" {
+		category = source.Category
+	}
+	tags := req.Tags
+	if tags == nil {
+		tags = source.Tags
+	}
+	domains := source.Domains
+	if req.Domains != nil {
+		domains = *req.Domains
+	}
+	tasks := source.Tasks
+	if req.Tasks != nil {
+		tasks = *req.Tasks
+	}
+	modalities := source.Modalities
+	if req.Modalities != nil {
+		modalities = *req.Modalities
+	}
+	industries := source.Industries
+	if req.Industries != nil {
+		industries = *req.Industries
+	}
+	aiEntities := source.AIEntities
+	if req.AIEntities != nil {
+		aiEntities = *req.AIEntities
+	}
+	custom := req.Custom
+	if custom == nil {
+		custom = source.Custom
+	}
+	benchmarks := req.Benchmarks
+	if benchmarks == nil {
+		benchmarks = source.Benchmarks
+	}
+	passCriteria := req.PassCriteria
+	if passCriteria == nil {
+		passCriteria = source.PassCriteria
+	}
+
+	return &evalhub.Collection{
+		Resource: evalhub.CollectionResource{
+			ID:        fmt.Sprintf("%s-clone", id),
+			CreatedAt: "2026-09-02T12:00:00Z",
+			UpdatedAt: "2026-09-02T12:00:00Z",
+		},
+		Name:         name,
+		Description:  description,
+		Category:     category,
+		Tags:         tags,
+		Domains:      domains,
+		Tasks:        tasks,
+		Modalities:   modalities,
+		Industries:   industries,
+		AIEntities:   aiEntities,
+		Custom:       custom,
+		PassCriteria: passCriteria,
+		Benchmarks:   benchmarks,
+	}, nil
 }
 
 func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string, _ string) (*evalhub.EvaluationJob, error) {
@@ -391,12 +569,17 @@ func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, _ string, req
 			CreatedAt: "2026-03-09T12:00:00Z",
 			UpdatedAt: "2026-03-09T12:00:00Z",
 		},
-		Status:      evalhub.JobStatus{State: "pending"},
-		Name:        req.Name,
-		Description: req.Description,
-		Tags:        req.Tags,
-		Model:       req.Model,
-		Benchmarks:  benchmarks,
+		Status:       evalhub.JobStatus{State: "pending"},
+		Name:         req.Name,
+		Description:  req.Description,
+		Tags:         req.Tags,
+		Model:        req.Model,
+		PassCriteria: req.PassCriteria,
+		Benchmarks:   benchmarks,
+		Collection:   req.Collection,
+		Experiment:   req.Experiment,
+		Custom:       req.Custom,
+		Exports:      req.Exports,
 	}, nil
 }
 
@@ -563,6 +746,10 @@ func mockCollections() []evalhub.Collection {
 			Category:    "General",
 			Description: "Comprehensive evaluation suite for general-purpose language models.",
 			Tags:        []string{"Comprehensive", "Industry Standard"},
+			Domains:     []string{"knowledge", "reasoning"},
+			Tasks:       []string{"question_answering"},
+			Modalities:  []string{"text"},
+			Industries:  []string{"general"},
 			Benchmarks: []evalhub.CollectionBenchmark{
 				{ID: "arc_challenge", ProviderID: "lm_evaluation_harness", Weight: 1},
 				{ID: "hellaswag", ProviderID: "lm_evaluation_harness", Weight: 1},

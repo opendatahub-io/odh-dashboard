@@ -6,16 +6,20 @@ import {
   restCREATE,
   restDELETE,
   restGET,
+  restPATCH,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   CollectionBenchmark,
+  CollectionPatchOperation,
+  CloneCollectionRequest,
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
   CreateEvaluationJobRequest,
   CreateEvaluationJobResponse,
+  CreateCollectionRequest,
   EvaluationJob,
   EvaluationJobsResponse,
   InferenceServicesResponse,
@@ -30,6 +34,15 @@ import {
 } from '~/app/types';
 import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
 
+const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
+  b != null &&
+  typeof b === 'object' &&
+  'id' in b &&
+  typeof b.id === 'string' &&
+  b.id.trim().length > 0 &&
+  (!('weight' in b) ||
+    (typeof b.weight === 'number' && Number.isFinite(b.weight) && b.weight >= 0));
+
 const validateCollection = (data: unknown): void => {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid collection: expected an object');
@@ -43,8 +56,13 @@ const validateCollection = (data: unknown): void => {
   if (!('id' in data.resource) || typeof data.resource.id !== 'string') {
     throw new Error('Invalid collection: missing resource.id');
   }
-  if ('benchmarks' in data && data.benchmarks != null && !Array.isArray(data.benchmarks)) {
-    throw new Error('Invalid collection: benchmarks is not an array');
+  if ('benchmarks' in data && data.benchmarks != null) {
+    if (!Array.isArray(data.benchmarks)) {
+      throw new Error('Invalid collection: benchmarks is not an array');
+    }
+    if (data.benchmarks.some((benchmark) => !isValidCollectionBenchmark(benchmark))) {
+      throw new Error('Invalid collection: benchmarks contains an invalid entry');
+    }
   }
 };
 
@@ -65,6 +83,12 @@ const validateEvaluationJob = (data: unknown): void => {
 };
 
 const isString = (v: unknown): v is string => typeof v === 'string';
+
+const sanitizeStringArray = (value: unknown): string[] | undefined =>
+  Array.isArray(value) ? value.filter(isString) : undefined;
+
+const sanitizeOptionalString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 
 const isValidProviderItem = (p: unknown): p is Provider =>
   p != null &&
@@ -96,9 +120,6 @@ const isValidCollectionItem = (c: unknown): c is Collection =>
   'name' in c &&
   typeof c.name === 'string';
 
-const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
-  b != null && typeof b === 'object' && 'id' in b && typeof b.id === 'string';
-
 const sanitizeProviders = (items: unknown[]): Provider[] =>
   items.filter(isValidProviderItem).map((p) => ({
     ...p,
@@ -113,6 +134,14 @@ const sanitizeProviders = (items: unknown[]): Provider[] =>
 const sanitizeCollectionItems = (items: unknown[]): Collection[] =>
   items.filter(isValidCollectionItem).map((c) => ({
     ...c,
+    category: sanitizeOptionalString(c.category),
+    tags: sanitizeStringArray(c.tags),
+    domains: sanitizeStringArray(c.domains),
+    tasks: sanitizeStringArray(c.tasks),
+    modalities: sanitizeStringArray(c.modalities),
+    industries: sanitizeStringArray(c.industries),
+    // eslint-disable-next-line camelcase
+    ai_entities: sanitizeStringArray(c.ai_entities),
     benchmarks: Array.isArray(c.benchmarks)
       ? c.benchmarks.filter(isValidCollectionBenchmark)
       : undefined,
@@ -273,6 +302,56 @@ export const getCollection =
     });
   };
 
+export const deleteCollection =
+  (hostPath: string, namespace: string, collectionId: string) =>
+  (opts: APIOptions): Promise<void> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        {},
+        { namespace },
+        { ...opts, parseJSON: false },
+      ),
+    ).then(() => undefined);
+  };
+
+export const patchCollection =
+  (
+    hostPath: string,
+    namespace: string,
+    collectionId: string,
+    operations: CollectionPatchOperation[],
+  ) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restPATCH(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}`,
+        // EvalHub's PATCH endpoint accepts a JSON Patch array. The shared REST
+        // helper types request bodies as records, although it serializes arrays correctly.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        operations as unknown as Record<string, unknown>,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
 export const getCollections =
   (hostPath: string, params: ListCollectionsParams) =>
   (opts: APIOptions): Promise<CollectionsListResponse> => {
@@ -298,6 +377,20 @@ export const getCollections =
     if (params.scope) {
       queryParams.scope = params.scope;
     }
+    if (params.sortBy) {
+      // eslint-disable-next-line camelcase
+      queryParams.sort_by = params.sortBy;
+    }
+    if (params.domains && params.domains.length > 0) {
+      queryParams.domains = params.domains.join(',');
+    }
+    if (params.industries && params.industries.length > 0) {
+      queryParams.industries = params.industries.join(',');
+    }
+    if (params.aiEntities && params.aiEntities.length > 0) {
+      // eslint-disable-next-line camelcase
+      queryParams.ai_entities = params.aiEntities.join(',');
+    }
     return handleRestFailures(
       restGET(
         hostPath,
@@ -308,9 +401,7 @@ export const getCollections =
     ).then((response) => {
       if (
         isModArchResponse<
-          | { items?: Collection[] | null; total_count?: number; limit?: number }
-          | Collection[]
-          | null
+          { items?: unknown; total_count?: number; limit?: number } | Collection[] | null
         >(response)
       ) {
         const { data } = response;
@@ -320,8 +411,12 @@ export const getCollections =
         if (Array.isArray(data)) {
           return { items: sanitizeCollectionItems(data) };
         }
+        const items = data.items ?? [];
+        if (!Array.isArray(items)) {
+          throw new Error('Invalid response format');
+        }
         return {
-          items: sanitizeCollectionItems(data.items ?? []),
+          items: sanitizeCollectionItems(items),
           // eslint-disable-next-line camelcase
           total_count: data.total_count,
           limit: data.limit,
@@ -330,6 +425,48 @@ export const getCollections =
       throw new Error('Invalid response format');
     });
   };
+
+export const cloneCollection =
+  (hostPath: string, namespace: string, collectionId: string, request: CloneCollectionRequest) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}/clones`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const createCollection =
+  (hostPath: string, namespace: string, request: CreateCollectionRequest) =>
+  (opts: APIOptions): Promise<Collection> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
 
 export const getProviders =
   (hostPath: string, namespace: string) =>

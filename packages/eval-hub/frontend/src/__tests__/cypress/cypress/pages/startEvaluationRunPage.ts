@@ -45,6 +45,10 @@ class StartEvaluationRunPage {
     return cy.findByTestId('source-mode-select');
   }
 
+  findSourceModeOption(mode: 'model' | 'agent' | 'prerecorded') {
+    return cy.get(`[data-testid="source-mode-option-${mode}"]`);
+  }
+
   findModelPickerToggle() {
     return cy.findByTestId('model-picker-toggle');
   }
