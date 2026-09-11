@@ -27,3 +27,9 @@ For `product_ask`, return:
   "findings": []
 }
 ```
+
+This is an exact closed shape. Do not add Jira identity, summary,
+explanation, overall-assessment, or other fields to `product_ask` or its
+criterion rows. Keep that supporting context in the allowed string arrays and
+`evidence` fields. The orchestrator must project the returned object onto this
+shape before adding it to the final review result.

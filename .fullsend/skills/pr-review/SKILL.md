@@ -1166,6 +1166,13 @@ only the label recommendation.
 Produce the structured instance that the host renders. Do not compose review
 markdown. The durable comment is intentionally a host-owned view of this JSON.
 
+Before constructing the first result draft, read
+`.fullsend/schemas/review-result.schema.json`. Project every sub-agent result
+onto the schema's allowed fields; sub-agent output is semantic input, not an
+extension of the host schema. In particular, discard extra section fields and
+use the schema's exact `verification` and `inspected` shapes. This validation
+must happen before writing, not as a repair after an avoidable failed draft.
+
 If `PRIOR_REVIEW_PROVENANCE` starts with `unverifiable-`, include an
 info-level finding in the review output:
 
