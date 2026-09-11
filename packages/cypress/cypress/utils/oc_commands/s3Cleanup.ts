@@ -4,6 +4,28 @@ import { AWS_BUCKETS } from '../s3Buckets';
 /** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
 const shQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
 
+/** `oc run` args adding a `restricted`-PodSecurity-compliant securityContext to the pod's container. */
+const restrictedSecurityContextArgs = (podName: string): string =>
+  `--overrides=${shQuote(
+    JSON.stringify({
+      spec: {
+        containers: [
+          {
+            name: podName,
+            securityContext: {
+              runAsUser: 1001,
+              runAsGroup: 1001,
+              runAsNonRoot: true,
+              allowPrivilegeEscalation: false,
+              seccompProfile: { type: 'RuntimeDefault' },
+              capabilities: { drop: ['ALL'] },
+            },
+          },
+        ],
+      },
+    }),
+  )} --override-type=strategic`;
+
 /**
  * Delete S3 objects whose keys match a given prefix pattern.
  *
@@ -41,6 +63,7 @@ export const deleteS3TestFiles = (
       `--env=AWS_ACCESS_KEY_ID=${shQuote(AWS_BUCKETS.AWS_ACCESS_KEY_ID)} ` +
       `--env=AWS_SECRET_ACCESS_KEY=${shQuote(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY)} ` +
       `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
+      `${restrictedSecurityContextArgs(podName)} ` +
       `-- s3 rm ${shQuote(`s3://${bucketConfig.NAME}/`)} --recursive ` +
       `--endpoint-url ${shQuote(bucketConfig.ENDPOINT)} ` +
       `--exclude '*' --include '${prefix}'`,
@@ -101,6 +124,7 @@ export const createRegistryStep = (namespace: string): void => {
       `--env=AWS_ACCESS_KEY_ID=${shQuote(buckets.AWS_ACCESS_KEY_ID)} ` +
       `--env=AWS_SECRET_ACCESS_KEY=${shQuote(buckets.AWS_SECRET_ACCESS_KEY)} ` +
       `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
+      `${restrictedSecurityContextArgs(podName)} ` +
       `-- s3api put-object --bucket ${shQuote(bucketConfig.NAME)} --key ${shQuote(prefixKey)} ` +
       `${endpointArg(bucketConfig.ENDPOINT)}`,
     { failOnNonZeroExit: false, log: false, timeout: 120000 },
@@ -144,6 +168,7 @@ export const deleteFeastRegistryFiles = (namespace: string): void => {
       `--env=AWS_ACCESS_KEY_ID=${shQuote(buckets.AWS_ACCESS_KEY_ID)} ` +
       `--env=AWS_SECRET_ACCESS_KEY=${shQuote(buckets.AWS_SECRET_ACCESS_KEY)} ` +
       `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
+      `${restrictedSecurityContextArgs(podName)} ` +
       `-- s3 rm ${shQuote(s3Path)} --recursive ${endpointArg(bucketConfig.ENDPOINT)}`,
     { failOnNonZeroExit: false, log: false, timeout: 120000 },
   );
