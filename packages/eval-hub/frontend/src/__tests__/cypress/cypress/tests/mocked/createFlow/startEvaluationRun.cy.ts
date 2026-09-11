@@ -598,13 +598,12 @@ describe('Start Evaluation Run - Cancel', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should navigate back to evaluations on cancel', () => {
+  it('should navigate back to benchmark selection on cancel', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findCancelButton().click();
 
-    cy.url().should('include', `/evaluation/${NAMESPACE}`);
-    cy.url().should('not.include', '/create');
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
   });
 });
 

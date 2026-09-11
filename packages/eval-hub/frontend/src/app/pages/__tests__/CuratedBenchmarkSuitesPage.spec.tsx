@@ -107,6 +107,27 @@ describe('CuratedBenchmarkSuitesPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('should link Customize to the collection copy route', () => {
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: mockCuratedBenchmarkSuiteCollections('model'),
+        // eslint-disable-next-line camelcase
+        total_count: 8,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage('model');
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-primary-action-safety-and-fairness-v1'),
+    ).toHaveAttribute(
+      'href',
+      '/evaluation/test-project/create/collections/safety-and-fairness-v1/copy',
+    );
+  });
+
   it('should use curated mock suites when collections fail to load', () => {
     mockUseCollectionsQuery.mockReturnValue({
       data: undefined,

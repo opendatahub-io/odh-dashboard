@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { Bullseye, Button, Card, CardBody, Content, Title } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 
 type CreateBenchmarkSuiteCardProps = {
+  createSuiteRoute?: string;
   onCreateSuite?: () => void;
 };
 
 const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
+  createSuiteRoute,
   onCreateSuite = () => undefined,
 }) => (
   <Card
@@ -26,14 +29,25 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
         Build a reusable evaluation suite by selecting benchmarks, setting thresholds, and
         configuring pass criteria.
       </Content>
-      <Button
-        className="evalhub-create-suite-card__button"
-        variant="secondary"
-        onClick={onCreateSuite}
-        data-testid="create-suite-button"
-      >
-        Create suite
-      </Button>
+      {createSuiteRoute ? (
+        <Button
+          className="evalhub-create-suite-card__button"
+          variant="secondary"
+          component={(props) => <Link {...props} to={createSuiteRoute} />}
+          data-testid="create-suite-button"
+        >
+          Create suite
+        </Button>
+      ) : (
+        <Button
+          className="evalhub-create-suite-card__button"
+          variant="secondary"
+          onClick={onCreateSuite}
+          data-testid="create-suite-button"
+        >
+          Create suite
+        </Button>
+      )}
     </CardBody>
   </Card>
 );

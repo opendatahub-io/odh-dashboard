@@ -27,7 +27,7 @@ import { IconSize } from '@odh-dashboard/internal/types';
 import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
-import { evaluationReconfigureRoute } from '~/app/routes';
+import { evaluationCopySuiteRoute, evaluationReconfigureRoute } from '~/app/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
@@ -38,7 +38,8 @@ import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
 import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
-import { EvaluationJob } from '~/app/types';
+import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
+import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
 import EvaluateTab from './EvaluateTab';
@@ -53,11 +54,6 @@ const TAB_QUERY_PARAM = 'tab';
 const EVALUATE_DESCRIPTION =
   'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.';
 const RUNS_DESCRIPTION = 'Start and manage evaluation runs for models, agents, and datasets.';
-
-function handleRunCollection(): null {
-  // TODO: Redirect to the Start evaluation run form.
-  return null;
-}
 
 const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -85,6 +81,26 @@ const EvaluationsPage: React.FC = () => {
   const [pendingStopJob, setPendingStopJob] = React.useState<EvaluationJob | undefined>();
   const { selectedCollection, benchmarkDetailsMap, selectCollection, closeDrawer } =
     useCollectionDrawer(namespace ?? '');
+  const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
+
+  const handleRunCollection = React.useCallback((collection: Collection) => {
+    setCollectionToRun(collection);
+  }, []);
+
+  const handleDuplicateCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+    },
+    [navigate, namespace],
+  );
+
+  const handleRunSuccess = React.useCallback(() => {
+    setCollectionToRun(undefined);
+    refreshEvaluations();
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set(TAB_QUERY_PARAM, RUNS_TAB);
+    setSearchParams(nextSearchParams);
+  }, [refreshEvaluations, searchParams, setSearchParams]);
 
   const polledJobData = React.useMemo(
     () =>
@@ -234,7 +250,12 @@ const EvaluationsPage: React.FC = () => {
                   aria-label="Evaluate tab"
                   data-testid="evaluate-tab"
                 >
-                  <EvaluateTab namespace={namespace ?? ''} onSelectCollection={selectCollection} />
+                  <EvaluateTab
+                    namespace={namespace ?? ''}
+                    onSelectCollection={selectCollection}
+                    onRunCollection={handleRunCollection}
+                    onDuplicateCollection={handleDuplicateCollection}
+                  />
                 </Tab>
                 <Tab
                   eventKey={RUNS_TAB}
@@ -311,6 +332,18 @@ const EvaluationsPage: React.FC = () => {
           onComplete={refreshEvaluations}
         />
       )}
+      {collectionToRun ? (
+        <StartEvaluationRunModal
+          isOpen
+          onClose={() => setCollectionToRun(undefined)}
+          namespace={namespace}
+          collection={collectionToRun}
+          isCollectionFlow
+          modalId="evaluations-page-start-evaluation-run-modal"
+          trackingSource="evaluations_page"
+          onSuccess={handleRunSuccess}
+        />
+      ) : null}
     </>
   );
 };

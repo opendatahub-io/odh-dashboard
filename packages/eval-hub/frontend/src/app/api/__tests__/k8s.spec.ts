@@ -10,6 +10,8 @@ import {
 import {
   deleteCollection,
   patchCollection,
+  cloneCollection,
+  createCollection,
   getCollection,
   getCollections,
   getEvalHubCRStatus,
@@ -24,6 +26,7 @@ import {
 } from '~/app/api/k8s';
 import type {
   Collection,
+  CreateCollectionRequest,
   CreateEvaluationJobRequest,
   EvalHubCRStatus,
   EvaluationJob,
@@ -417,6 +420,94 @@ describe('patchCollection', () => {
     ).rejects.toThrow('collectionId must not be empty');
 
     expect(mockRestPATCH).not.toHaveBeenCalled();
+  });
+});
+
+describe('cloneCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should reject cloned collections with invalid benchmark entries', async () => {
+    mockRestCREATE.mockResolvedValue({
+      data: {
+        name: 'Cloned suite',
+        resource: { id: 'cloned-col-1' },
+        benchmarks: [null],
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(
+      cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
+    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+  });
+});
+
+describe('createCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should create a collection with metadata and AI entity arrays', async () => {
+    const request: CreateCollectionRequest = {
+      name: 'New suite',
+      domains: ['safety'],
+      ai_entities: ['model'],
+      benchmarks: [{ id: 'benchmark-001' }],
+    };
+    const collection: Collection = {
+      resource: { id: 'created-collection' },
+      name: 'New suite',
+      domains: ['safety'],
+      ai_entities: ['model'],
+      benchmarks: [{ id: 'benchmark-001' }],
+    };
+    mockRestCREATE.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(createCollection('', 'test-ns', request)({})).resolves.toEqual(collection);
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      request,
+      { namespace: 'test-ns' },
+      {},
+    );
+  });
+
+  it('should reject created collections with invalid benchmark entries', async () => {
+    mockRestCREATE.mockResolvedValue({
+      data: {
+        name: 'New suite',
+        resource: { id: 'created-collection' },
+        benchmarks: [null],
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(
+      createCollection('', 'test-ns', {
+        name: 'New suite',
+        benchmarks: [{ id: 'benchmark-001' }],
+      })({}),
+    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+  });
+
+  it('should reject a created collection with missing resource metadata', async () => {
+    mockRestCREATE.mockResolvedValue({
+      data: { name: 'New suite', resource: {} },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(
+      createCollection('', 'test-ns', {
+        name: 'New suite',
+        benchmarks: [{ id: 'benchmark-001' }],
+      })({}),
+    ).rejects.toThrow('Invalid collection: missing resource.id');
   });
 });
 

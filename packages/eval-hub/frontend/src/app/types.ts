@@ -340,6 +340,36 @@ export type CollectionFilterParams = {
   aiEntities?: string[];
 };
 
+export type CloneCollectionRequest = {
+  name: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  ai_entities?: string[];
+  custom?: Record<string, unknown>;
+  pass_criteria?: CollectionPassCriteria;
+  benchmarks?: CollectionBenchmark[];
+};
+
+export type CreateCollectionRequest = {
+  name: string;
+  category?: string;
+  description?: string;
+  tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  ai_entities?: string[];
+  custom?: Record<string, unknown>;
+  pass_criteria?: CollectionPassCriteria;
+  benchmarks: CollectionBenchmark[];
+};
+
 export type ListCollectionsParams = CollectionFilterParams & {
   namespace?: string;
   limit?: number;

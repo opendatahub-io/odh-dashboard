@@ -46,6 +46,18 @@ export const getCollectionCategoryValues = (collection: {
   domains?: string[];
 }): string[] => (collection.category ? [collection.category] : (collection.domains ?? []));
 
+const COLLECTION_METADATA_ACRONYMS: Record<string, string> = {
+  qa: 'QA',
+  rag: 'RAG',
+  vqa: 'VQA',
+};
+
+export const formatCollectionMetadataValue = (value: string): string =>
+  formatCategory(value.replace(/-/g, '_')).replace(
+    /\b(qa|rag|vqa)\b/gi,
+    (acronym) => COLLECTION_METADATA_ACRONYMS[acronym.toLowerCase()] ?? acronym,
+  );
+
 /* eslint-disable camelcase */
 const METRIC_DISPLAY_NAMES: Record<string, string> = {
   acc: 'Accuracy',

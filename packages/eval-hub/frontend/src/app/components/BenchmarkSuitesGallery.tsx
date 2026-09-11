@@ -169,17 +169,16 @@ type BenchmarkSuitesGalleryProps = {
   scope?: CollectionScope;
   queryFilters?: CollectionFilterParams;
   primaryActionLabel?: string;
+  primaryActionRoute?: (collection: Collection) => string;
+  primaryActionState?: unknown;
   // TODO: Remove this temporary switch once curated collections use the API.
   useMockFallback?: boolean;
+  createSuiteRoute?: string;
   onCreateSuite?: () => void;
-  onPrimaryAction?: (collection: Collection) => void;
+  onPrimaryAction: (collection: Collection) => void;
+  onDuplicateCollection: (collection: Collection) => void;
   onSelectCollection: (collection: Collection) => void;
 };
-
-function handleRunCollection(): null {
-  // TODO: Redirect to the Start evaluation run form.
-  return null;
-}
 
 const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   namespace,
@@ -193,9 +192,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   scope = 'tenant',
   queryFilters,
   primaryActionLabel = 'Run benchmark suite',
+  primaryActionRoute,
+  primaryActionState,
   useMockFallback = false,
+  createSuiteRoute,
   onCreateSuite,
-  onPrimaryAction = handleRunCollection,
+  onPrimaryAction,
+  onDuplicateCollection,
   onSelectCollection,
 }) => {
   const [nameFilter, setNameFilter] = React.useState('');
@@ -435,20 +438,19 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   }, [resetDeleteMutation]);
 
   const contextualActions: BenchmarkSuiteCardAction[] = [
-    {
-      id: 'edit',
-      label: 'Edit',
-      onSelect: () => {
-        // TODO: Redirect to the edit collection form once it is available.
-        // TODO: Use usePatchCollectionMutation to submit the form's JSON Patch operations.
-      },
-    },
+    // TODO: Reconsider enabling Edit if users request it.
+    // Product guidance is to create a new version and keep the original suite
+    // to avoid confusion when comparing results. Until that flow is defined,
+    // keep Edit disabled and use Duplicate to create a new suite.
+    // {
+    //   id: 'edit',
+    //   label: 'Edit',
+    //   onSelect: () => {},
+    // },
     {
       id: 'duplicate',
       label: 'Duplicate',
-      onSelect: () => {
-        // TODO: Wire this action to the clone flow from PR #9638.
-      },
+      onSelect: onDuplicateCollection,
     },
     {
       id: 'delete',
@@ -590,7 +592,10 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           >
             {showCreateSuiteCard && (
               <GalleryItem>
-                <CreateBenchmarkSuiteCard onCreateSuite={onCreateSuite} />
+                <CreateBenchmarkSuiteCard
+                  createSuiteRoute={createSuiteRoute}
+                  onCreateSuite={onCreateSuite}
+                />
               </GalleryItem>
             )}
             {visibleCollections.map((collection) => (
@@ -599,6 +604,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   collection={collection}
                   primaryAction={{
                     label: primaryActionLabel,
+                    href: primaryActionRoute?.(collection),
+                    state: primaryActionState,
                     onClick: () => onPrimaryAction(collection),
                   }}
                   contextualActions={showContextualActions ? contextualActions : undefined}
