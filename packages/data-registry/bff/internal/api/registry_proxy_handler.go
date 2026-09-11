@@ -51,6 +51,13 @@ func (app *App) DataRegistryReverseProxy() http.Handler {
 			}
 			return "Bearer " + identity.Token
 		},
+		UserIDFn: func(r *http.Request) string {
+			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+			if !ok || identity == nil {
+				return ""
+			}
+			return identity.UserID
+		},
 		InsecureSkipVerify: app.config.InsecureSkipVerify,
 		Logger:             app.logger,
 	})
@@ -65,6 +72,15 @@ func (app *App) DataRegistryReverseProxy() http.Handler {
 		if !ok || identity == nil || identity.Token == "" {
 			app.unauthorizedResponse(w, r, fmt.Errorf("missing bearer token in request identity"))
 			return
+		}
+
+		if identity.UserID == "" {
+			client, err := app.kubernetesClientFactory.GetClient(r.Context())
+			if err == nil {
+				if userID, err := client.GetUser(identity); err == nil {
+					identity.UserID = userID
+				}
+			}
 		}
 
 		reverseProxy.ServeHTTP(w, r)
