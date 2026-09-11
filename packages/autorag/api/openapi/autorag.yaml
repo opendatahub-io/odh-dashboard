@@ -96,12 +96,11 @@ paths:
             Secret type filter (key matching is case-sensitive, keys must be uppercase):
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
             - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
+            - 'maas': Filters for hosted MaaS secrets (classification keys: MAAS_BASE_URL, MAAS_API_KEY)
+            - 'vector-db': Filters for the union of Milvus (MILVUS_URI) and PGVector credential keys
             - Omit for all secrets
 
-            Type Classification Precedence:
-            When determining if a secret matches the requested type filter, the following precedence is applied:
-            1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation, that annotated type takes precedence for inclusion in ?type= filter results
-            2. Key-based classification (fallback): If no connection-type annotation is present, the type is determined by key-based classification rules (e.g., storage keys like AWS_ACCESS_KEY_ID for ?type=storage, OGX keys like OGX_CLIENT_API_KEY for ?type=ogx)
+            Filtering uses case-sensitive key-presence matching. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
 
             Note: Classification keys are used to identify the secret type. Additional optional keys (like AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets)
             may be present but are not required for type classification. The data field in the response lists all keys
@@ -111,6 +110,8 @@ paths:
             enum:
               - storage
               - ogx
+              - maas
+              - vector-db
           example: storage
       responses:
         "200":
@@ -131,21 +132,22 @@ paths:
         Retrieves secrets from a specified namespace with optional filtering by type.
         Key matching is case-sensitive; keys must be uppercase.
 
-        Secret Type Classification Precedence:
-        The type of each secret is determined using the following precedence:
-        1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation with a non-empty value, that annotated type is used
-        2. Key-based classification (fallback): If no connection-type annotation is present, type is determined by the presence of specific classification keys:
-           - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-           - 'ogx': Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
+         Filtering uses case-sensitive key presence. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
+         Supported key sets include:
+            - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
+            - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
+            - 'maas': MAAS_BASE_URL, MAAS_API_KEY
+            - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
         The data field lists all keys present, allowing clients to validate additional use-case-specific requirements.
 
-        Type filtering with ?type= parameter:
-        When filtering by type, the annotated type (if present) takes precedence over key-based classification for determining inclusion in results.
-        - 'storage': Returns only secrets classified as storage types (currently: s3 via key-based classification, or any secret with connection-type annotation matching 'storage')
-        - 'ogx': Returns only secrets classified as OGX type (via key-based classification or connection-type annotation)
+         Type filtering with ?type= parameter:
+         - 'storage': Returns secrets containing a configured storage key set
+         - 'ogx': Returns secrets containing both OGX keys
+         - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
+         - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; empty values and mixed or extra keys are allowed
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
@@ -597,7 +599,7 @@ paths:
   /api/v1/maas/models:
     summary: List available MaaS models
     description: >-
-      Lists all models from the hosted MaaS API using MAAS_BASE_URL and MAAS_API_KEY
+      Lists all models directly from the hosted MaaS API (not the MaaS BFF) using MAAS_BASE_URL and MAAS_API_KEY
       credentials from a selected Kubernetes secret. The response intentionally exposes
       only stable model identity, display metadata, ownership, and readiness.
     get:

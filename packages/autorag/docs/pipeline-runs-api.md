@@ -381,16 +381,19 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `test_data_key` | string | Yes | Object key within the test data bucket |
 | `input_data_secret_name` | string | Yes | Name of the K8s secret containing input data credentials |
 | `input_data_bucket_name` | string | Yes | S3 bucket name for input data |
-| `input_data_key` | string | Yes | Object key within the input data bucket |
-| `ogx_secret_name` | string | Yes | Name of the K8s secret for Open GenAI Stack access |
+| `input_data_keys` | string[] | Yes | Ordered object keys within the input data bucket; 1 to 10 keys are supported by the public request contract |
+| `maas_secret_name` | string | Yes | Name of the K8s secret containing `MAAS_BASE_URL` and `MAAS_API_KEY` |
+| `vector_db_secret_name` | string | Yes | Name of the K8s secret containing the selected vector database connection |
 | `embedding_models` | string[] | No | List of embedding model identifiers |
 | `generation_models` | string[] | No | List of generation model identifiers |
 | `optimization_metric` | string | No | Metric to optimize: `overall_score` (default), `faithfulness`, `answer_correctness`, or `context_correctness` |
-| `vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in ogx (e.g. ogx Milvus) |
 | `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 20) |
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)
+- `input_data_keys` supports one to ten input locations in the public request contract. The current UI selects one location.
+- Until the pipeline contract supports multiple input keys, the BFF's temporary KFP boundary adapter forwards the first `input_data_keys` entry as the internal `input_data_key` parameter. `input_data_key` is not part of the public create request contract.
+- `maas_secret_name` and `vector_db_secret_name` replace the legacy OGX/provider fields for new creation flows. Legacy OGX endpoints remain available for existing results and compatibility paths.
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF - no manual configuration needed
 - The BFF discovers the managed AutoRAG pipeline by exact display name
   (case-insensitive; default: `documents-rag-optimization-pipeline`)
@@ -413,8 +416,9 @@ curl -X POST "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace"
     "test_data_key": "test_data.json",
     "input_data_secret_name": "minio-secret",
     "input_data_bucket_name": "autorag",
-    "input_data_key": "documents/",
-    "ogx_secret_name": "llama-secret",
+    "input_data_keys": ["documents/"],
+    "maas_secret_name": "maas-secret",
+    "vector_db_secret_name": "vector-db-secret",
     "optimization_metric": "overall_score"
   }'
 ```
@@ -442,8 +446,9 @@ Returns `200 OK` with the created pipeline run:
         "test_data_key": "test_data.json",
         "input_data_secret_name": "minio-secret",
         "input_data_bucket_name": "autorag",
-        "input_data_key": "documents/",
-        "ogx_secret_name": "llama-secret"
+        "input_data_keys": ["documents/"],
+        "maas_secret_name": "maas-secret",
+        "vector_db_secret_name": "vector-db-secret"
       }
     },
     "state": "PENDING",
@@ -472,7 +477,7 @@ Returns `200 OK` with the created pipeline run:
 {
   "error": {
     "code": "400",
-    "message": "missing required fields: display_name, test_data_secret_name, ogx_secret_name"
+    "message": "missing required fields: display_name, test_data_secret_name, input_data_keys, maas_secret_name, vector_db_secret_name"
   }
 }
 ```

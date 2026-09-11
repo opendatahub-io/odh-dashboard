@@ -17,6 +17,7 @@ This service exposes the following endpoints:
 - GET `/api/v1/s3/file` – retrieve a file from S3 storage
 - GET `/api/v1/ogx/models` – list available models from Open GenAI Stack Distribution
 - GET `/api/v1/ogx/vector-stores` – list available vector stores from Open GenAI Stack Distribution
+- GET `/api/v1/maas/models` – list all models from hosted MaaS using a selected Kubernetes Secret
 - GET `/api/v1/pipeline-runs` – query AutoRAG pipeline runs from Kubeflow Pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single managed pipeline run (AutoRAG or indexing) with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
@@ -113,6 +114,7 @@ GET  /api/v1/secrets                 (requires namespace parameter)
 GET  /api/v1/s3/file                 (requires namespace, secretName, and key parameters)
 GET  /api/v1/ogx/models              (requires namespace and secretName parameters)
 GET  /api/v1/ogx/vector-stores       (requires namespace and secretName parameters)
+GET  /api/v1/maas/models             (requires namespace and secretName parameters)
 GET  /api/v1/pipeline-runs          (requires namespace parameter)
 GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 POST /api/v1/pipeline-runs          (requires namespace parameter)
@@ -125,6 +127,7 @@ Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 - **`user_token` (default)**: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview. This is the production mode and the default for `make run`.
 - **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
 - **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true` or `MOCK_OGX_CLIENT=true`). Useful for local testing. **Not recommended for production.**
+- Mock MaaS model discovery is enabled with `MOCK_MAAS_CLIENT=true` for local contract testing.
 
 ### Sample local calls
 
@@ -141,7 +144,7 @@ curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-r
 # Create a pipeline run
 curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: application/json" \
   "localhost:4000/api/v1/pipeline-runs?namespace=test-namespace" \
-  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_key":"k","ogx_secret_name":"s"}'
+  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_keys":["k"],"maas_secret_name":"maas","vector_db_secret_name":"vector-db"}'
 ```
 
 For detailed API documentation, see:
