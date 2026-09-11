@@ -325,12 +325,21 @@ type Collection struct {
 
 // CollectionResource holds the resource metadata for a collection.
 type CollectionResource struct {
-	ID        string `json:"id"`
-	Tenant    string `json:"tenant,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-	ReadOnly  bool   `json:"read_only,omitempty"`
-	Owner     string `json:"owner,omitempty"`
+	ID             string           `json:"id"`
+	Tenant         string           `json:"tenant,omitempty"`
+	CreatedAt      string           `json:"created_at,omitempty"`
+	UpdatedAt      string           `json:"updated_at,omitempty"`
+	ReadOnly       bool             `json:"read_only,omitempty"`
+	Owner          string           `json:"owner,omitempty"`
+	VersionCounter *int             `json:"version_counter,omitempty"`
+	State          *CollectionState `json:"state,omitempty"`
+}
+
+// CollectionState is present only for custom tenant collections.
+type CollectionState struct {
+	DerivedFrom string `json:"derived_from,omitempty"`
+	RunCount    int    `json:"run_count,omitempty"`
+	PinnedOrder int    `json:"pinned_order,omitempty"`
 }
 
 // CollectionBenchmark represents a BenchmarkConfig entry within a collection.

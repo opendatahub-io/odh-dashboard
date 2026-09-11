@@ -62,9 +62,16 @@ const accuracySuite = mockCollection({
   benchmarkIds: ['truthfulqa_mc1'],
 });
 
+const customSuite = mockCollection({
+  id: 'col-custom',
+  name: 'Custom Suite',
+  category: 'Custom',
+  isCustom: true,
+});
+
 describe('Choose Collection Page', () => {
   beforeEach(() => {
-    initIntercepts({ collections: [safetySuite, reasoningSuite, accuracySuite] });
+    initIntercepts({ collections: [safetySuite, reasoningSuite, accuracySuite, customSuite] });
   });
 
   it('should display collection cards in the gallery', () => {
@@ -117,6 +124,21 @@ describe('Choose Collection Page', () => {
       .findByRole('button', { name: 'Close drawer panel' })
       .click();
     chooseCollectionPage.findCollectionDrawerPanel().should('not.exist');
+  });
+
+  it('should show version metadata for custom collections', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findCollectionCard('col-custom').findByText('Custom Suite').click();
+
+    chooseCollectionPage
+      .findCollectionDrawerPanel()
+      .findByTestId('collection-version')
+      .should('contain.text', 'v3');
+    chooseCollectionPage
+      .findCollectionDrawerPanel()
+      .findByTestId('collection-last-modified')
+      .should('contain.text', '02/01/2026');
   });
 
   it('should navigate to start page when clicking "Select benchmark suite"', () => {

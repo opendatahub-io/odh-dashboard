@@ -1335,6 +1335,26 @@ components:
         owner:
           type: string
           nullable: true
+        version_counter:
+          type: integer
+          nullable: true
+          description: Monotonic version counter for custom collections
+        state:
+          $ref: '#/components/schemas/CollectionState'
+
+    CollectionState:
+      type: object
+      description: Server-managed state present only for custom tenant collections
+      properties:
+        derived_from:
+          type: string
+          nullable: true
+        run_count:
+          type: integer
+          nullable: true
+        pinned_order:
+          type: integer
+          nullable: true
 
     CollectionPrimaryScore:
       type: object

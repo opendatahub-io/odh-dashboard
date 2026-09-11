@@ -4,6 +4,10 @@ import {
   Card,
   CardBody,
   Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -26,6 +30,7 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
+import { formatDate } from '~/app/utilities/evaluationUtils';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import SearchableMultiSelectFilter from './SearchableMultiSelectFilter';
 import { capitalizeFirst, getCategoryColor, getMetricDisplayName } from './benchmarkUtils';
@@ -119,6 +124,29 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
           {collection.description && (
             <StackItem>
               <Content component="p">{collection.description}</Content>
+            </StackItem>
+          )}
+
+          {collection.resource.state && (
+            <StackItem>
+              <DescriptionList isHorizontal>
+                {collection.resource.version_counter != null && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Version</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="collection-version">
+                      v{collection.resource.version_counter}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
+                {collection.resource.updated_at && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Last modified</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="collection-last-modified">
+                      {formatDate(collection.resource.updated_at)}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
+              </DescriptionList>
             </StackItem>
           )}
 

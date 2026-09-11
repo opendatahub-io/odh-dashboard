@@ -9,6 +9,8 @@ type MockCollectionOptions = Partial<{
   tags: string[];
   benchmarkIds: string[];
   threshold: number;
+  versionCounter: number;
+  isCustom: boolean;
 }>;
 
 export const mockCollection = (options: MockCollectionOptions = {}): Collection => ({
@@ -16,6 +18,7 @@ export const mockCollection = (options: MockCollectionOptions = {}): Collection 
     id: options.id ?? 'collection-001',
     created_at: '2026-02-01T12:00:00Z',
     updated_at: '2026-02-01T12:00:00Z',
+    ...(options.isCustom ? { version_counter: options.versionCounter ?? 3, state: {} } : {}),
   },
   name: options.name ?? 'Safety Suite',
   category: options.category ?? 'Safety',

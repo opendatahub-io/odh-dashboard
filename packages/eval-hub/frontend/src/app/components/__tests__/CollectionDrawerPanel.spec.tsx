@@ -122,6 +122,35 @@ describe('CollectionDrawerPanel', () => {
     expect(screen.getByTestId('benchmark-search-input').querySelector('input')).toHaveValue('');
   });
 
+  it('should show version and last modified for custom collections', () => {
+    renderPanel({
+      collection: makeCollection({
+        resource: {
+          id: 'custom-collection',
+          state: {},
+          version_counter: 3,
+          updated_at: '2026-08-25T10:00:00Z',
+        },
+      }),
+      benchmarkDetailsMap: new Map(),
+    });
+
+    expect(screen.getByTestId('collection-version')).toHaveTextContent('v3');
+    expect(screen.getByTestId('collection-last-modified')).toHaveTextContent('08/25/2026');
+  });
+
+  it('should not show version or last modified for curated collections', () => {
+    renderPanel({
+      collection: makeCollection({
+        resource: { id: 'curated-collection', updated_at: '2026-08-25T10:00:00Z' },
+      }),
+      benchmarkDetailsMap: new Map(),
+    });
+
+    expect(screen.queryByTestId('collection-version')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('collection-last-modified')).not.toBeInTheDocument();
+  });
+
   it('should preserve search when the same collection remains open', () => {
     const detailsMap = new Map<string, BenchmarkWithProvider>([
       ['prov:bench-a', makeBenchmark('bench-a', 'prov', ['accuracy'])],
