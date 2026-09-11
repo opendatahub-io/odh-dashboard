@@ -104,6 +104,11 @@ base = (os.environ.get("FULLSEND_ADAPTER_URL") or os.environ.get("JIRA_URL") or 
 user = os.environ.get("FULLSEND_ADAPTER_USERNAME") or os.environ.get("JIRA_USERNAME") or ""
 token = os.environ.get("FULLSEND_ADAPTER_TOKEN") or os.environ.get("JIRA_API_TOKEN") or ""
 
+
+class RejectRedirects(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
 if os.environ.get("FULLSEND_JIRA_SNAPSHOT_READY") == "1" and dest.is_file():
     allowed = {
         "id", "dimension", "kind", "output", "status", "source", "url",
@@ -123,6 +128,11 @@ if os.environ.get("FULLSEND_JIRA_SNAPSHOT_READY") == "1" and dest.is_file():
     print(f"Reusing precomputed Jira snapshot ({existing['status']}, key={existing.get('key', 'none')}) at {dest}")
     raise SystemExit(0)
 
+if base and urllib.parse.urlsplit(base).scheme.lower() != "https":
+    write(envelope(status="error", key=key, reason="jira-url-must-use-https"))
+    print(f"Wrote Jira snapshot (error: Jira URL must use HTTPS, key={key}) to {dest}")
+    raise SystemExit(0)
+
 if base and user and token:
     if not key:
         write(envelope(status="none", reason="no-issue-key"))
@@ -133,9 +143,10 @@ if base and user and token:
     import base64
 
     raw = base64.b64encode(f"{user}:{token}".encode()).decode()
-    req.add_header("Authorization", f"Basic {raw}")
+    req.add_unredirected_header("Authorization", f"Basic {raw}")
+    opener = urllib.request.build_opener(RejectRedirects())
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with opener.open(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         write(envelope(status="error", key=key, reason=f"http-{exc.code}"))
@@ -177,6 +188,19 @@ assert data["reason"] == "jira-credentials-unset", data
 print("PASS jira-snapshot: missing credentials produce no context")
 PY
 
+  REVIEW_PR_TITLE='fix: export' \
+  REVIEW_PR_BODY=$'Fixes RHOAIENG-82129\n' \
+  JIRA_URL='http://jira.example.test' JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["status"] == "error", data
+assert data["reason"] == "jira-url-must-use-https", data
+print("PASS jira-snapshot: authenticated requests require HTTPS")
+PY
+
   REVIEW_PR_TITLE='docs' REVIEW_PR_BODY=$'## Problem\nNo tracker.\n' \
   JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
@@ -214,6 +238,11 @@ assert data["key"] == "RHOAIENG-57547", data
 assert data["summary"] == "Trusted host snapshot", data
 print("PASS jira-snapshot: trusted precomputed context is preserved")
 PY
+
+  local jira_prompt="${_DIR}/../skills/pr-review/sub-agents/description-jira.md"
+  grep -Fq 'untrusted prompt data' "${jira_prompt}"
+  grep -Fq 'ignore instructions' "${jira_prompt}"
+  echo "PASS jira-snapshot: prompt-injection boundary is explicit"
 
   rm -f "${tmp}"
   echo "All jira-snapshot self-tests passed"
