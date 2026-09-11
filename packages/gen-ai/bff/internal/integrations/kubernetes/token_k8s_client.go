@@ -1451,10 +1451,10 @@ func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
-			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
+			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml",
 		}, " && ")}
 	}
-	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
+	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}
 }
 
 // ogxEnvVars returns the environment variables for the OGXServer pod.
@@ -1518,10 +1518,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	// Step 1: Set up environment variables
 	envVars := []corev1.EnvVar{
-		{
-			Name:  "VLLM_TLS_VERIFY",
-			Value: "false",
-		},
 		{
 			Name:  "FAISS_STORE_DIR",
 			Value: "~/.llama/faiss",
@@ -1762,6 +1758,39 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
 
+	// Prefer the DSCI-managed bundle. A newly created E2E namespace may not yet
+	// have one, so create an OpenShift-injected bundle as a fallback.
+	caBundleConfigMapName := "odh-trusted-ca-bundle"
+	var caBundleConfigMap corev1.ConfigMap
+	err = kc.Client.Get(ctx, types.NamespacedName{Name: caBundleConfigMapName, Namespace: namespace}, &caBundleConfigMap)
+	if err != nil || caBundleConfigMap.Data["ca-bundle.crt"] == "" {
+		caBundleConfigMapName = "ogx-trusted-ca-bundle"
+		caBundle := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      caBundleConfigMapName,
+				Namespace: namespace,
+				Labels: map[string]string{
+					"config.openshift.io/inject-trusted-cabundle": "true",
+					"ogx.io/watch": "true",
+				},
+			},
+			Data: map[string]string{},
+		}
+		if err := kc.Client.Create(ctx, caBundle); err != nil && !apierrors.IsAlreadyExists(err) {
+			return nil, rollbackPgvector(fmt.Errorf("failed to create CA trust ConfigMap: %w", err))
+		}
+	} else {
+		if caBundleConfigMap.Labels == nil {
+			caBundleConfigMap.Labels = make(map[string]string)
+		}
+		if caBundleConfigMap.Labels["ogx.io/watch"] != "true" {
+			caBundleConfigMap.Labels["ogx.io/watch"] = "true"
+			if err := kc.Client.Update(ctx, &caBundleConfigMap); err != nil {
+				kc.Logger.Warn("failed to add OGX watch label to trusted CA bundle", "error", err, "namespace", namespace)
+			}
+		}
+	}
+
 	// Step 5: Create OGXServer
 	replicas := int32(1)
 	workloadResources := &corev1.ResourceRequirements{
@@ -1808,6 +1837,13 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Network: &ogxapi.NetworkSpec{
 				Port: 8321,
 			},
+			TLS: &ogxapi.TLSClientConfig{
+				Trust: &ogxapi.TrustConfig{
+					CACertificates: []ogxapi.ConfigMapKeyRef{
+						{Name: caBundleConfigMapName, Key: "ca-bundle.crt"},
+					},
+				},
+			},
 		},
 	}
 
@@ -1847,6 +1883,17 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		// Continue without failing - the OGXServer is created successfully
 	} else {
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
+	}
+
+	// The fallback bundle is dashboard-owned; leave the DSCI-managed bundle untouched.
+	if caBundleConfigMapName == "ogx-trusted-ca-bundle" {
+		var caBundle corev1.ConfigMap
+		if err := kc.Client.Get(ctx, types.NamespacedName{Name: caBundleConfigMapName, Namespace: namespace}, &caBundle); err == nil {
+			caBundle.OwnerReferences = configMap.OwnerReferences
+			if err := kc.Client.Update(ctx, &caBundle); err != nil {
+				kc.Logger.Warn("failed to add owner reference to fallback CA bundle", "error", err, "namespace", namespace)
+			}
+		}
 	}
 
 	// Set owner references on auto-provisioned pgvector resources so
