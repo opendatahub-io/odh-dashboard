@@ -10,14 +10,20 @@ import {
   type ClusterSettingsType,
 } from '@odh-dashboard/plugin-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import type {
-  InferenceServiceKind,
-  ServingRuntimeKind,
-} from '@odh-dashboard/model-serving/shared';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
 const ProjectDetailsContext = React.createContext(null);
-const MODEL_SERVING_CONTEXT_VALUE = {
+
+type ModelServingContextValue = {
+  inferenceServices: {
+    data: { items: InferenceServiceKind[] };
+    loaded: boolean;
+    error?: Error;
+  };
+};
+
+const MODEL_SERVING_CONTEXT_VALUE: ModelServingContextValue = {
   inferenceServices: {
     data: { items: [] },
     loaded: true,
@@ -97,7 +103,9 @@ const useInferenceServices = (namespace?: string) => {
   );
   return useK8sWatchResource<InferenceServiceKind[]>(resource, InferenceServiceModel);
 };
-const ModelServingContext = React.createContext(MODEL_SERVING_CONTEXT_VALUE);
+const ModelServingContext = React.createContext<ModelServingContextValue>(
+  MODEL_SERVING_CONTEXT_VALUE,
+);
 
 const ModelServingContextProvider: HostApiServices['contexts']['ModelServingContextProvider'] = ({
   children,
