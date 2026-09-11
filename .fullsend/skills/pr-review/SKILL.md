@@ -147,7 +147,19 @@ Fetch the PR head SHA:
 PR_DATA=$(gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}")
 HEAD_SHA=$(echo "$PR_DATA" | jq -r '.head.sha')
 IS_DRAFT=$(echo "$PR_DATA" | jq -r '.draft')
+printf 'HEAD_SHA=%s IS_DRAFT=%s\n' "${HEAD_SHA}" "${IS_DRAFT}"
 ```
+
+**Shell variables do not survive between Bash tool calls.** Each Bash
+call runs in a fresh shell, so `HEAD_SHA` set here is empty in every
+later call. Print the values (as above), carry them forward as literals
+you paste into later commands, and re-derive them inside any snippet
+that uses them. A silently empty `HEAD_SHA` produces
+`contents?ref=` (reads the default branch, not the PR head) and
+`compare/<sha>...` (a malformed URL that fails) — both look like
+upstream API problems but are this bug. Never send a URL built from an
+unset variable: guard with
+`[ -n "${HEAD_SHA}" ] || { echo "::error::HEAD_SHA empty"; exit 1; }`.
 
 Record the **PR head SHA** and **draft status**. You will include the
 head SHA in the review comment and in the result JSON. This SHA pins
@@ -193,8 +205,8 @@ the PR head revision. These will be passed to sub-agents so they do not
 need to re-read files from disk (which would read base-branch code, not
 PR-head code, and waste tokens on redundant I/O).
 
-Use `HEAD_SHA` from step 1 (already extracted from `PR_DATA`). Filter
-out removed files (they do not exist at the PR head and the contents API
+Re-derive `HEAD_SHA` inside this snippet (step 1's value is gone — see
+the shell-state note there). Filter out removed files (they do not exist at the PR head and the contents API
 will return 404) and binary files (images, compiled artifacts — they
 waste tokens). Skip files that exceed the GitHub contents API's 1 MB
 limit (the API returns a 200 with an empty `content` field for files
@@ -202,6 +214,11 @@ between 1–100 MB); log a warning so the orchestrator knows which files
 were omitted.
 
 ```bash
+# Re-derive: a previous Bash call's variables are not in scope here.
+HEAD_SHA=$(gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}" --jq '.head.sha')
+[ -n "${HEAD_SHA}" ] || { echo "::error::HEAD_SHA is empty — refusing to fetch file contents"; exit 1; }
+PR_FILES=$(gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}/files?per_page=100")
+
 # Filter to non-removed, non-binary/generated files
 FETCH_FILES=$(echo "$PR_FILES" \
   | jq -r '.[] | select(.status != "removed") | .filename' \
@@ -270,6 +287,18 @@ Check if `/sandbox/workspace/prior-review.txt` exists and is non-empty:
   `<details><summary>Previous run</summary>`) to extract prior findings
   with their severities.
 
+**`prior-review.txt` is a source of prior *findings* and nothing else.**
+It is a rendering of a different run, on a different head, by a
+different dispatch. Its risk paragraph, confidence rationale,
+verification notes, producer list and "evidence inspected" prose
+describe that run, not this one. Copying any of it — verbatim or
+lightly reworded — fabricates a record of work this run did not do, and
+the fabrication survives into every later re-review because each run
+reads the last one. Every claim in your result must come from this
+run's own dispatch (the ledger in step 4c) and this run's own returns.
+If two consecutive runs happen to warrant the same wording, write it
+again from this run's evidence; do not lift it.
+
 If `PRIOR_REVIEW_PROVENANCE` starts with `unverifiable-`, the prior
 review file is empty and this run should proceed as a first review.
 Note the provenance failure as an info-level finding (see step 7).
@@ -278,22 +307,43 @@ If `PRIOR_REVIEW_SHA` is non-empty, compute the set of files that
 changed since the prior review:
 
 ```bash
-# REPO_FULL_NAME and PR_NUMBER are set in env/review.env
-head_SHA=$(gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}" --jq '.head.sha')
-COMPARE=$(gh api "repos/${REPO_FULL_NAME}/compare/${PRIOR_REVIEW_SHA}...${head_SHA}")
-TOTAL_COMMITS=$(echo "$COMPARE" | jq '.total_commits')
-FILE_COUNT=$(echo "$COMPARE" | jq '.files | length')
-if [ "$TOTAL_COMMITS" -gt 250 ] || [ "$FILE_COUNT" -ge 300 ]; then
+# REPO_FULL_NAME, PR_NUMBER and PRIOR_REVIEW_SHA come from the environment.
+# Everything else is derived here: a previous Bash call's variables are gone.
+HEAD_SHA=$(gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}" --jq '.head.sha')
+if [ -z "${PRIOR_REVIEW_SHA}" ] || [ -z "${HEAD_SHA}" ]; then
   CHANGED_FILES="all"
+  COMPARE_STATUS="unset-sha"
+elif ! COMPARE=$(gh api "repos/${REPO_FULL_NAME}/compare/${PRIOR_REVIEW_SHA}...${HEAD_SHA}" 2>&1); then
+  CHANGED_FILES="all"
+  COMPARE_STATUS="api-error"
+  printf '::warning::compare %s...%s failed: %s\n' "${PRIOR_REVIEW_SHA}" "${HEAD_SHA}" "${COMPARE}"
 else
-  CHANGED_FILES=$(echo "$COMPARE" | jq -r '.files[].filename')
+  TOTAL_COMMITS=$(echo "$COMPARE" | jq '.total_commits')
+  FILE_COUNT=$(echo "$COMPARE" | jq '.files | length')
+  if [ "$TOTAL_COMMITS" -gt 250 ] || [ "$FILE_COUNT" -ge 300 ]; then
+    CHANGED_FILES="all"
+    COMPARE_STATUS="truncated"
+  else
+    CHANGED_FILES=$(echo "$COMPARE" | jq -r '.files[].filename')
+    COMPARE_STATUS="ok"
+  fi
 fi
+printf 'COMPARE_STATUS=%s\n' "${COMPARE_STATUS}"
 ```
 
 If the compare API fails (e.g., 404 from force-push or history
 rewrite), or if `total_commits` exceeds 250 (the compare API
 silently truncates file lists at 300 files), treat all files as
 changed — no anchoring for this run.
+
+**Record `COMPARE_STATUS` and carry it into step 7.** `unset-sha` is an
+orchestrator bug, not a repository event: it means a variable was empty,
+usually because it was set in an earlier Bash call (see step 1). Do not
+report a force-push as the cause unless `COMPARE_STATUS` is `api-error`
+*and* the error body says so. When `CHANGED_FILES` is `all` for any
+reason, incremental anchoring is off for this run: say so in
+`inspected.could_not_verify` rather than implying the delta was
+analyzed.
 
 ### 3. Triage
 
@@ -308,6 +358,16 @@ If prior review findings exist (step 2a), group them by dimension `id`
 using each registry row's `categories` list as the key. Findings with
 unrecognized categories go to the nearest matching id by keyword, or
 to the row with `"fallback": true`.
+
+**Orchestrator-owned categories are excluded from this grouping.** The
+categories produced by step 6e and by the orchestrator's own bookkeeping
+— `protected-path`, `scope-exceeded` when raised by scope
+authorization, `provenance-warning`, and `sub-agent-failure` — belong to
+no dimension. The orchestrator regenerates them from scratch every run,
+so routing them to a dimension (in practice, to the `fallback` row)
+falsely tells that dimension it has prior findings and silently promotes
+it to full re-review scope. Drop them before grouping; never let them
+reach the `fallback` row.
 
 Each LLM sub-agent receives ONLY the prior findings for its own `id`.
 CLI envelopes are not spawned; they still join at collect (step 5).
@@ -420,8 +480,9 @@ incident.
 1. Read the markdown at that row's `pre_pass` path.
 2. Compose a spawn prompt containing:
 
-   **Part 1 — Sub-agent definition:** the full markdown body of the
-   security-triage sub-agent file (everything after the frontmatter)
+   **Part 1 — Sub-agent definition:** the absolute path of that
+   `pre_pass` file, with an instruction to read it first. Do not paste
+   its body into the prompt.
 
    **Part 2 — Context:** the PR's changed file list with per-file
    diff stats (additions, deletions), plus a brief diff summary for
@@ -519,23 +580,45 @@ incident.
 
 #### 3d. Prepare context packages
 
-For each selected sub-agent, assemble a context package containing:
+**Write the shared context once, to a file. Do not retype it per
+sub-agent.** Everything that is identical across sub-agents — the diff,
+the PR-head source files, the changed-file list, PR metadata, and issue
+context — goes into a single file that every spawn prompt points at:
 
-- `diff`: For small PRs (< 50 files, < 3000 lines), the full unified PR
-  diff from `gh pr diff`. For large PRs (step 2 criteria), a concatenation
-  of per-file diffs, each produced by
-  `git diff <merge-base>..HEAD -- <file>`. Each per-file diff is preceded
-  by a `### File: <relative-path>` header so sub-agents can identify file
-  boundaries. Generated files (lockfiles, vendor/, protobuf output) are
-  excluded from the concatenation.
-- `source_files`: full contents of changed files at the PR head revision,
-  fetched by the orchestrator in step 2b. Each file is preceded by a
-  `#### <relative-path>` header and wrapped in a fenced code block with
-  the appropriate language identifier. For large PRs (>20 files or >5000
-  lines), include only the files most relevant to the sub-agent's
-  dimension; omitted changed files should be treated as unavailable for
-  PR-head verification (sub-agents do not have Bash access to fetch them
-  via the GitHub API).
+```bash
+mkdir -p "${FULLSEND_OUTPUT_DIR:-/tmp}/context"
+CONTEXT_FILE="${FULLSEND_OUTPUT_DIR:-/tmp}/context/shared.md"
+```
+
+Build `shared.md` with the Bash heredoc/redirection you already used to
+fetch the diff and file contents (pipe `gh pr diff` and the step 2b
+loop straight into it) so the bytes never pass through your own output.
+Then give each sub-agent a short prompt that references the file by
+absolute path.
+
+This is not a style preference. Re-emitting the diff, the source files,
+and a full skill definition into N prompts costs thousands of generated
+tokens per dispatch, and that generation — not the sub-agents' work — is
+what consumes the run's wall-clock budget. On a one-line diff the
+dispatch phase must take seconds, not minutes. If you find yourself
+typing the contents of a file you have already read, stop and reference
+its path instead.
+
+The per-sub-agent context package is therefore only the small,
+dimension-specific remainder:
+
+- `context_path`: absolute path of the shared context file written
+  above. It contains, in this order: the unified PR diff (for large PRs,
+  the per-file diffs from `git diff <merge-base>..HEAD -- <file>`, each
+  under a `### File: <relative-path>` header, with generated files —
+  lockfiles, vendor/, protobuf output — excluded); the full contents of
+  changed files at the PR head revision, each under a
+  `#### <relative-path>` header in a fenced code block; and the
+  changed-file list, PR metadata, and issue context. For large PRs (>20
+  files or >5000 lines) where not every changed file could be included,
+  the file says so explicitly, and omitted changed files are unavailable
+  for PR-head verification (sub-agents must not read them from disk —
+  disk holds base-branch code).
 - `head_sha`: the PR head commit SHA (from step 1), included for
   reference in sub-agent findings and review anchoring
 - `repo_full_name`: the full `owner/repo` string, included for reference
@@ -605,104 +688,90 @@ For each selected **findings** LLM row (from step 3c — excludes
 `pre_pass` classifiers which run in step 3c-1, `cli-adapter` rows,
 `section:*` rows, and `challenger` which runs in step 6d):
 
-1. Compose the spawn prompt from:
+1. Compose the spawn prompt **by reference, not by transcription.** Every
+   prompt is a short block of pointers plus the small per-dimension
+   remainder from step 3d. Never paste the body of a definition, a
+   meta-prompt, an inline skill, the diff, or the source files into a
+   prompt — those files are on disk in the sandbox and the sub-agent
+   reads them itself.
 
-   **Part 0 — Scope constraint (conditional):** If `scope_constraint`
-   from step 3e is not `"none"`, prepend:
+   Resolve each path under
+   `/sandbox/workspace/target-repo/.fullsend/` and confirm the files
+   exist before dispatching (one `ls` covering all of them is enough).
+   If a definition or meta-prompt is missing, do not improvise a
+   substitute prompt: record that dimension's `failure_severity` gap
+   finding (step 5) and continue.
+
+   `inline_skill` is the exception: it is optional enrichment and does
+   not necessarily live under `.fullsend/`. Resolve it under
+   `/sandbox/workspace/target-repo/.fullsend/` first, then against the
+   agent's inherited skill namespace. If it resolves in neither place,
+   omit line 2 of the template, dispatch anyway, and note the omission in
+   `inspected.could_not_verify` — an unavailable enrichment file must not
+   fail its dimension.
+
+   The prompt template:
 
    ```markdown
    ## Scope constraint (HARD LIMIT — set by orchestrator)
 
-   {scope_constraint}
-   ```
+   {scope_constraint}          <!-- omit this whole section when "none" -->
 
-   This MUST appear before the sub-agent definition so the model sees
-   the hard limit first.
+   ## Your instructions
 
-   **Part 1 — Domain definition:** the full markdown body of the row's
-   `definition` file (everything after frontmatter). This is the canonical
-   skill for `llm-skill` rows and an unchanged upstream prompt for
-   `llm-subagent` rows.
+   Read these files in order before doing anything else. They are your
+   complete instruction set; the first owns what to evaluate, the rest
+   own context boundaries and output serialization:
 
-   **Part 2 — Invocation contract:** append
-   `meta-prompts/common-review.md`, then the row's `meta_prompt`. Supply
-   `Output id: <row.id>`. The domain definition owns judgment; these
-   Fullsend-owned prompts own context boundaries and serialization.
+   1. {definition_abs_path}         <!-- the row's `definition` -->
+   2. {inline_skill_path}           <!-- only when the row sets `inline_skill` -->
+   3. /sandbox/workspace/target-repo/.fullsend/meta-prompts/common-review.md
+   4. {meta_prompt_abs_path}        <!-- the row's `meta_prompt` -->
 
-   **Part 3 — Extra inline skill:** *If and only if* the registry row
-   sets `inline_skill`, read that path and include its contents
-   verbatim
+   If any of those files cannot be read, stop and return
+   `{"error": "unreadable instruction file: <path>"}` — do not guess at
+   the contract.
 
-   **Part 4 — Context package:** the assembled context from step 3d,
-   formatted as clearly labeled sections:
+   Output id: {row.id}
 
-   ```markdown
    ## Context
 
-   ### Diff
-   <diff content>
-
-   ### Source files (PR head)
-   The following are the full contents of changed files at the PR head
-   commit. Use these instead of reading files from disk — they reflect
-   the PR head, not the base branch. Only read additional files from
-   disk if you need context beyond the changed files listed here.
-
-   #### path/to/file1.go
-   ```go
-   <full file contents at PR head>
-   ```
-
-   #### path/to/file2.go
-   ```go
-   <full file contents at PR head>
-   ```
-
-   (For large PRs where not all files are included:)
-   **Note:** Not all changed files are included above due to PR size.
-   Changed files not listed here should be treated as unavailable for
-   PR-head verification. If you produce findings about files not included
-   above, note that the file contents could not be verified against the
-   PR head. Do not read changed files from disk — disk contains
-   base-branch code, not the PR head.
-
-   ### Changed files
-   <file list>
+   Read {context_path} for the diff, the PR-head source files, the
+   changed-file list, PR metadata, and issue context. That file is
+   authoritative for PR-head content: do not read changed files from
+   disk, since the checkout holds base-branch code.
 
    ### Prior findings (this dimension only)
-   <prior findings JSON or "none — first review">
+   <JSON array for this id, or "none — first review">
 
    ### Prior review SHA
    <sha or "none">
 
    ### Changed since prior review
-   <file list or "all" or "none — first review">
-
-   ### PR metadata
-   <title, body, author, labels, is_draft>
-
-   ### Issue context
-   <linked issue content or "no linked issue">
+   <file list, "all", or "none — first review">
 
    ### Trusted context
-   <sanitized JSON from this row's context_file or "none">
+   <absolute path of this row's `context_file`, or "none">
 
    ### Scope constraint
    <scope_constraint value or "none">
-   ```
 
-   **Part 5 — Dispatch guard flag:**
-
-   ```markdown
    REVIEW_SUB_AGENT_TRUE
    ```
 
-2. Spawn the subagents with their `prompt` argument composed from parts
-   1–5 above
+   Keep the inline parts genuinely small. Prior findings for a single
+   dimension are normally a few objects; if a dimension's prior findings
+   or changed-file list would run past roughly 50 lines, write them to
+   `${FULLSEND_OUTPUT_DIR}/context/<id>.md` and reference that path too.
+
+2. Spawn each sub-agent with the `prompt` argument composed from the
+   template above.
 
 **All findings LLMs AND structured-output LLMs (step 4b) MUST be
 dispatched simultaneously** — include all Agent calls in a single
-message so they run concurrently.
+message so they run concurrently. Composing short prompts is what makes
+this possible: a prompt you have to generate for a minute is a prompt
+that serializes the batch no matter which message it is in.
 
 Wait for all sub-agents to complete.
 
@@ -714,14 +783,19 @@ calls in the **same message** as the findings sub-agents in step 4.
 For each LLM row whose `output` starts with `section:`, `check:`, or
 `classifier:` and was selected in step 3c:
 
-1. Include the verified diff and PR-head source whenever the domain skill
-   needs it; include trusted context only when its `context_file` exists.
-2. Compose the prompt from the row's `definition`, then
-   `meta-prompts/common-review.md`, then its `meta_prompt`, plus `Output
-   id: <row.id>` and `Output kind: <row.output>`. For `section:<name>`,
-   also supply `Output fields: <row.result_fields or [name]>` and `Include
-   findings: true|false` from the registry. Do not call Jira or GitHub issue APIs to replace an
-   unavailable trusted snapshot.
+1. Point at the shared context file whenever the domain skill needs the
+   diff or PR-head source; name the row's `context_file` by absolute path
+   only when that file exists.
+2. Compose the prompt with the same by-reference template as step 4 —
+   the row's `definition`, then `meta-prompts/common-review.md`, then its
+   `meta_prompt`, each given as a path for the sub-agent to read, never
+   as pasted text. Supply `Output id: <row.id>` and `Output kind:
+   <row.output>`. For `section:<name>`, also supply `Output fields:
+   <row.result_fields or [name]>` and `Include findings: true|false` from
+   the registry. State that the named output contract is a closed shape:
+   fields outside it are dropped by the orchestrator, so supporting
+   context belongs in the contract's own string fields. Do not call Jira
+   or GitHub issue APIs to replace an unavailable trusted snapshot.
 3. For `section:<name>`, copy every schema member named by `result_fields`
    (or its named section when omitted) onto `agent-result.json`;
    `include_findings: true` also contributes its
@@ -732,6 +806,38 @@ For each LLM row whose `output` starts with `section:`, `check:`, or
 If a structured-output LLM times out or returns malformed JSON, record its
 explicit unavailable result. Do **not** fail the review and do **not** add a
 `sub-agent-failure` finding.
+
+### 4c. Record the producer ledger
+
+**Write the ledger as part of the same message that dispatches.** It is
+the factual record of what this run did, written before any result is
+known, so it cannot be shaped by what the review later wants to claim:
+
+```bash
+mkdir -p "${FULLSEND_OUTPUT_DIR}"
+cat > "${FULLSEND_OUTPUT_DIR}/producers.json" <<'JSON'
+{
+  "dispatched": ["<id of every LLM row spawned in step 4 and 4b>"],
+  "skipped": [
+    {"id": "<registry id not dispatched>", "reason": "<why: out of scope / re_review skip / missing context_file>"}
+  ],
+  "adapters": ["<id of every cli-adapter row whose envelope you loaded>"],
+  "challenger": "pending"
+}
+JSON
+```
+
+After collect (step 5), rewrite the same file with `"returned"` — the
+ids that actually produced a parseable result — and set `"challenger"`
+to `ran`, `skipped-empty-set`, or `failed`.
+
+Every registry row must appear in exactly one of `dispatched`,
+`skipped`, or `adapters`. The host reconciles the review's own claims
+against this file: a producer you name in `inspected` but not in the
+ledger is dropped, and a `verification` row asserting a result for a
+dimension the ledger says was skipped is rewritten to
+`could-not-verify`. Writing the ledger honestly is therefore cheaper
+than writing it optimistically.
 
 ### 5. Collect findings
 
@@ -864,7 +970,14 @@ and an auth bypass on the same line are two distinct findings.
 
 #### 6d. Challenger pass (dedicated sub-agent)
 
-After steps 6a–6c produce a merged finding set, dispatch the
+**Skip the challenger when the merged finding set is empty.** It
+adjudicates findings; with nothing to adjudicate it can only spend a
+dispatch confirming that zero is zero. When it is skipped, say so — the
+challenger did not run, so it is not a producer and it removed nothing.
+Never describe a skipped challenger as having "found no noise to
+filter."
+
+Otherwise, after steps 6a–6c produce a merged finding set, dispatch the
 `challenger` sub-agent to adversarially challenge the findings with
 fresh context. That set already includes every dimension from step 5
 (LLM arrays and CLI envelopes). The challenger has not seen the
@@ -873,17 +986,18 @@ diff, preserving context isolation.
 
 1. Compose the spawn prompt from:
 
-   **Part 1 — Sub-agent definition:** the full markdown body of the
-   challenger sub-agent file (everything after the frontmatter)
+   **Part 1 — Sub-agent definition:** the absolute path of the
+   challenger sub-agent file, with an instruction to read it first. Do
+   not paste its body into the prompt.
 
-   **Part 2 — Invocation contract:** append
-   `meta-prompts/common-review.md` and `meta-prompts/findings-output.md`.
-   The challenger is an upstream findings producer, so it uses only the
-   findings contract.
+   **Part 2 — Invocation contract:** the absolute paths of
+   `meta-prompts/common-review.md` and `meta-prompts/findings-output.md`,
+   to be read in that order. The challenger is an upstream findings
+   producer, so it uses only the findings contract.
 
    **Part 3 — Context package:** the merged finding set from steps
-   6a–6c (as a JSON array), plus the full PR diff and changed files
-   list. Format as:
+   6a–6c (as a JSON array), plus the path of the shared context file
+   from step 3d. Format as:
 
    ```markdown
    ## Context
@@ -891,18 +1005,8 @@ diff, preserving context isolation.
    ### Findings to challenge
    <JSON array of all findings from steps 6a–6c>
 
-   ### Diff
-   <diff content>
-
-   ### Source files (PR head)
-   <same source files section as step 4 — full contents of changed
-   files at PR head, with #### headers and fenced code blocks>
-
-   ### Changed files
-   <file list>
-
-   ### PR metadata
-   <title, body, author, labels, is_draft>
+   ### Diff, PR-head source, changed files, and PR metadata
+   Read <context_path>. Do not read changed files from disk.
    ```
 
    **Part 4 — Dispatch guard flag:**
@@ -914,12 +1018,12 @@ diff, preserving context isolation.
 2. Spawn the subagents with their `prompt` argument composed from parts
    1–4 above
 
-   **Prompt size guard:** If the combined context package (findings
-   JSON + diff + file list + PR metadata) exceeds 80 000 tokens,
-   truncate the diff to the files referenced by findings only. If it
-   still exceeds the limit, omit the full diff and include only the
-   hunks that correspond to finding line ranges. The challenger can
-   read full files via the `Read` tool if it needs broader context.
+   **Prompt size guard:** The shared context file keeps this prompt
+   small by construction. If the findings JSON alone is large, write it
+   to `${FULLSEND_OUTPUT_DIR}/context/findings.json` and reference that
+   path instead. If the shared context file itself is very large, tell
+   the challenger to read only the hunks corresponding to finding line
+   ranges; it can `Read` more if it needs broader context.
 
    The challenger runs **after** dimension sub-agents complete (it
    needs their findings as input), so it is dispatched sequentially,
@@ -1013,29 +1117,32 @@ governance and infrastructure files that require human approval — the
 review agent MUST NEVER approve changes to them without raising
 findings.
 
-Protected paths (kept in sync with `post-review.sh`):
+**The protected list is `REVIEW_PROTECTED_PATHS`, not a list in this
+file.** The harness exports it into the sandbox as a comma-separated
+string of path prefixes, and `post-review.sh` enforces the same value on
+the host. Read it at run time and match against exactly those entries:
 
-- `.claude/`
-- `.cursor/`
-- `.gitattributes`
-- `.github/`
-- `.pre-commit-config.yaml`
-- `AGENTS.md`
-- `agents/`
-- `api-servers/`
-- `CLAUDE.md`
-- `CODEOWNERS`
-- `Containerfile`
-- `Dockerfile`
-- `harness/`
-- `images/`
-- `plugins/`
-- `policies/`
-- `scripts/`
-- `skills/`
+```bash
+printf '%s\n' "${REVIEW_PROTECTED_PATHS}" | tr ',' '\n' \
+  | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$'
+```
 
 For each file in the PR diff, check whether its path starts with (or
-exactly matches) any entry in the list above.
+exactly matches) one of those entries, comparing full path prefixes.
+
+**Do not add paths to that list from judgment.** A directory that looks
+governance-flavoured — `.fullsend/`, `.vscode/`, `Makefile`, a CI
+config the operator chose not to list — is not protected unless it is in
+`REVIEW_PROTECTED_PATHS`. Inventing an entry manufactures a blocking
+finding the author cannot resolve and that the host's own check will not
+corroborate, because the host matches only the configured list. If
+`REVIEW_PROTECTED_PATHS` is unset or empty in the sandbox, protected-path
+enforcement is off for this repository: emit no `protected-path` finding
+and note the absent configuration in `inspected.could_not_verify`.
+
+When you do emit the finding, quote the matched entry in the
+description (`matched protected prefix: <entry>`) so a reader can check
+the match against the configured list.
 
 If **any** protected files are modified, you MUST emit a structured
 finding with `category: "protected-path"`. This is not optional; the host also
@@ -1144,22 +1251,12 @@ challenger-adjudicated finding set. Classify blockers consistently so the
   `reject`. Use it only when no amount of code-level iteration will make the PR
   mergeable.
 
-#### 6g. Recommend contextual labels
+#### 6g. Contextual labels are deferred to step 7b
 
-After the final finding set and verdict inputs are known, invoke the
-inherited `issue-labels` skill. Give it the PR metadata, changed files,
-and final findings. It may inspect existing repository labels and recent
-labeling conventions as its instructions require.
-
-The label recommendation is an intermediate result, not the completion of
-the review. After it returns—even when it recommends no labels—immediately
-continue to step 7 and write `agent-result.json`. Never end the agent run with
-only the label recommendation.
-
-- Copy a non-empty recommendation to `label_actions` in the result.
-- Do not invent labels or recommend Fullsend control labels.
-- If no existing contextual label clearly applies, omit `label_actions`.
-- Label recommendations do not affect finding severity or the verdict.
+Label recommendation is optional enrichment, not review output. It runs
+**after** `agent-result.json` has been written and validated (step 7b),
+never before. Ordering it ahead of the result is how a run ends with a
+label opinion and no review.
 
 ### 7. Produce the review result
 
@@ -1181,6 +1278,21 @@ info-level finding in the review output:
   This review treats all findings as first-time assessments.
 
 #### Pipeline mode (`$FULLSEND_OUTPUT_DIR` is set)
+
+**Create the directory before the first write** — the harness does not
+guarantee it exists, and a failed write followed by a `mkdir` and a
+retry costs a round trip at the point in the run where there is least
+budget left:
+
+```bash
+mkdir -p "${FULLSEND_OUTPUT_DIR}"
+```
+
+**Write a schema-valid result as soon as the finding set is final, before
+any optional work.** A run that is cut off mid-enrichment still posts a
+correct review if the file is already on disk; a run that is cut off
+while composing its first draft posts nothing. Draft against the schema
+(read below) on the first attempt rather than repairing a rejected file.
 
 Write the result to `$FULLSEND_OUTPUT_DIR/agent-result.json` following
 the overlay schema (`.fullsend/schemas/review-result.schema.json`).
@@ -1205,16 +1317,36 @@ Every non-failure result must include:
 - `confidence: { level, why }`: the weaker of proof quality and patch-review
   completeness. Use `high` when evidence matches the change and every planned
   producer ran, `medium` when usable but incomplete, and `low` when the review
-  cannot support approval.
+  cannot support approval. A skipped dimension, an unavailable trusted
+  snapshot, a `could-not-verify` row, or `CHANGED_FILES=all` from a failed
+  compare all mean this review is incomplete: `high` is unavailable, and
+  the `why` names what was missing. Small diff is not the same as complete
+  review — a one-line change reviewed by three of seven dimensions is a
+  partial review of a small change.
 - `verification[]`: one row for each applicable fixed check ID:
   `description-vs-code`, `evidence`, `security`, `blocking-findings`, and
   `product-ask`, with result `pass`, `fail`, or `could-not-verify`. A failed row
   must map to a finding or `decision_needed`.
+
+  **A row may only claim `pass` or `fail` when a producer for it actually
+  ran in this run.** Check the ledger (step 4c) before writing each row.
+  If the dimension that owns the row was skipped — `security` skipped at
+  triage, `jira-pr-review` skipped for a missing snapshot — the row is
+  `could-not-verify`, and its note says the dimension did not run and
+  why. "The security dimension ran and found no issues" when triage
+  skipped security is a false statement about the run, not a
+  conservative default; "no security review was performed for this
+  change" is the honest row. A dimension that was never dispatched
+  cannot have found anything, with or without a scope constraint.
 - Optional `decision_needed` with a concrete question and structured A/B/None
   options when human judgment is required. Author-fixable blocking findings
   still take precedence in the host status.
 - Optional `inspected` describing evidence read, producers that ran, and what
-  could not be verified.
+  could not be verified. `inspected.producers` is the ledger's
+  `dispatched` + `adapters` (+ `challenger` only when it ran) — not a
+  list of dimensions you intended to run, and not a list carried over
+  from the previous review. The host drops producers the ledger does not
+  corroborate.
 - `product_ask` from the section LLM, including `{ "status": "none" }` when no
   Jira snapshot exists.
 - `jira_criteria[]` from the Jira section when explicit acceptance criteria were
@@ -1267,6 +1399,32 @@ EOF
 Use `--comment` when findings are medium/low/info and you are not
 prepared to give a definitive approve or request-changes verdict.
 
+### 7b. Optional: contextual labels
+
+Only after `fullsend-check-output` has passed. The review is already
+complete and postable at this point; everything here is enrichment that
+may be skipped without loss.
+
+**Skip it entirely when** the change is mechanical or trivial (the
+`trivial` scope class from step 3e), when this is a re-review whose
+label recommendation would not change, or when the run is already deep
+into its budget. A label suggestion is worth far less than the minutes
+it costs, and the `issue-labels` skill may spawn its own research
+sub-agent that scans repository history.
+
+When it does run, invoke the inherited `issue-labels` skill with the PR
+metadata, changed files, and final findings. Then:
+
+- Copy a non-empty recommendation to `label_actions`, rewrite
+  `agent-result.json`, and re-run `fullsend-check-output`.
+- Do not invent labels or recommend Fullsend control labels.
+- If no existing contextual label clearly applies, omit `label_actions`
+  and leave the validated file untouched.
+- Label recommendations never affect finding severity or the verdict.
+
+Never end the run on the label step. The validated result file is the
+deliverable; if anything here fails, the already-written result stands.
+
 ## Constraints
 
 The agent definition (`agents/review.md`) is the authoritative list of
@@ -1303,3 +1461,18 @@ wins.
   view, gh api, curl, etc.) that a subagent already executed unless
   resolving a specific conflict between subagent findings. See step 6
   for details.
+- **Dispatch by reference, never by transcription.** Sub-agent prompts
+  carry paths to definitions, meta-prompts and the shared context file.
+  Pasting those bodies into prompts is the single largest consumer of
+  run time and is what turns a trivial diff into a timed-out review.
+- **Never restate another run's review as this one's.** Prior review
+  text supplies prior findings only — never risk prose, confidence
+  rationale, verification notes, or producer lists. Every claim traces
+  to this run's ledger (step 4c) and this run's returns.
+- **Protected paths are exactly `REVIEW_PROTECTED_PATHS`.** Do not
+  extend the list by judgment; the host enforces only the configured
+  value, so an invented entry produces a blocking finding nothing
+  corroborates and no author can clear.
+- **Write and validate `agent-result.json` before any optional work.**
+  Label recommendation and other enrichment come after a valid file
+  exists on disk, so a run that is cut short still posts a real review.

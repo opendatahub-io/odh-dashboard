@@ -52,8 +52,13 @@ import json, os, re, sys
 from datetime import datetime, timezone
 from urllib.parse import quote
 
+# protected-path is deliberately absent: it is a governance gate whose
+# remediation is a human decision, so a medium protected-path finding routes to
+# "needs human judgment" rather than request-changes (which would tell the
+# author to fix something only a reviewer can, and wake the fix agent for it).
+# A high protected-path finding still blocks on severity alone.
 FUNCTIONAL_CATEGORIES = {
-    "correctness", "security", "protected-path",
+    "correctness", "security",
 }
 
 def is_functional(finding):
@@ -77,7 +82,146 @@ def blocking_count(result):
 
 def needs_human(result):
     pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else {}
-    return bool(result.get("decision_needed") or pa.get("needs_human") or pa.get("status") == "mismatch-unjustified")
+    if result.get("decision_needed") or pa.get("needs_human") or pa.get("status") == "mismatch-unjustified":
+        return True
+    return any((f.get("category") or "").lower() == "protected-path" for f in (result.get("findings") or []))
+
+# Rows whose result is owned by exactly one registry dimension. If the ledger
+# says that dimension never ran, the row cannot honestly report pass/fail.
+LEDGER_ROW_DIMENSION = {
+    "security": "security",
+    "product-ask": "jira-pr-review",
+    "evidence": "test-impact-review",
+}
+
+def load_ledger():
+    """Producer ledger written by the orchestrator at dispatch time (step 4c)."""
+    path = os.environ.get("REVIEW_PRODUCER_LEDGER") or ""
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+def add_limit(inspected, note):
+    notes = list(inspected.get("could_not_verify") or [])
+    if note not in notes:
+        notes.append(note)
+    inspected["could_not_verify"] = notes
+
+def reconcile_producers(result):
+    """Check the review's account of itself against the dispatch ledger.
+
+    The agent writes the ledger before any result is known, so it records what
+    the run did rather than what the review would like to claim. Without this,
+    a re-review can inherit the previous run's producer list and verification
+    prose and present it as this run's work."""
+    inspected = dict(result.get("inspected") or {})
+    ledger = load_ledger()
+    if ledger is None:
+        add_limit(inspected, "No producer ledger was written for this run, so the producer list is self-reported and unverified.")
+        result["inspected"] = inspected
+        return result
+
+    ran = []
+    for key in ("dispatched", "adapters"):
+        for item in ledger.get(key) or []:
+            if isinstance(item, str) and item and item not in ran:
+                ran.append(item)
+    if (ledger.get("challenger") or "") == "ran" and "challenger" not in ran:
+        ran.append("challenger")
+
+    skipped = {}
+    for row in ledger.get("skipped") or []:
+        if isinstance(row, dict) and isinstance(row.get("id"), str):
+            skipped[row["id"]] = str(row.get("reason") or "").strip()
+
+    claimed = [item for item in (inspected.get("producers") or []) if isinstance(item, str)]
+    for item in claimed:
+        if item not in ran:
+            add_limit(inspected, f"Dropped '{item}' from the producer list: the dispatch ledger does not record it running.")
+    if ran:
+        inspected["producers"] = ran
+    result["inspected"] = inspected
+
+    verification = []
+    for row in result.get("verification") or []:
+        dimension = LEDGER_ROW_DIMENSION.get(row.get("id"))
+        if dimension and dimension in skipped and row.get("result") in ("pass", "fail"):
+            reason = skipped[dimension] or "it was not selected for this change"
+            row = dict(row)
+            row["result"] = "could-not-verify"
+            row["notes"] = f"The {dimension} producer did not run in this review ({reason}), so this check was not performed."
+        verification.append(row)
+    if verification:
+        result["verification"] = verification
+    return result
+
+def protected_prefixes():
+    """None means unconfigured (do not police); [] means enforcement is off."""
+    raw = os.environ.get("REVIEW_PROTECTED_PATHS")
+    if raw is None:
+        return None
+    return [entry.strip() for entry in raw.split(",") if entry.strip()]
+
+def changed_paths():
+    raw = os.environ.get("REVIEW_CHANGED_FILES") or ""
+    return [line.strip() for line in raw.splitlines() if line.strip()]
+
+def normalize_protected_findings(result):
+    """Protected-path findings are a human gate, not author work.
+
+    Two corrections: a finding naming a path that is not in
+    REVIEW_PROTECTED_PATHS is unsupported by the policy the host enforces, and
+    is dropped. A supported one stays, but routes to human judgment rather
+    than request-changes — the remediation is a human decision, so there is
+    nothing for the author (or the fix agent) to do."""
+    findings = result.get("findings") or []
+    protected = [f for f in findings if (f.get("category") or "").lower() == "protected-path"]
+    if not protected:
+        return result
+
+    prefixes = protected_prefixes()
+    files = changed_paths()
+    if prefixes is None or not files:
+        return result  # cannot adjudicate — leave the agent's finding as written
+
+    matches = [f for f in files if any(f == p or f.startswith(p) for p in prefixes)]
+    inspected = dict(result.get("inspected") or {})
+    if not matches:
+        result["findings"] = [f for f in findings if (f.get("category") or "").lower() != "protected-path"]
+        if not result["findings"]:
+            del result["findings"]
+        add_limit(inspected, f"Dropped {len(protected)} protected-path finding(s): no changed file matches REVIEW_PROTECTED_PATHS.")
+        result["inspected"] = inspected
+        return result
+
+    if not result.get("decision_needed"):
+        listed = ", ".join(sorted(matches))
+        result["decision_needed"] = {
+            "question": f"A human must approve this protected-path change: {listed}",
+            "options": [
+                {"id": "A", "title": "Approve the protected-path change", "implication": "A human accepts the governance or infrastructure risk."},
+                {"id": "None", "title": "Do not land this approach"},
+            ],
+        }
+    return result
+
+def cap_confidence(result):
+    """Confidence follows the weaker of proof quality and completeness."""
+    rows = result.get("verification") or []
+    if not any(row.get("result") == "could-not-verify" for row in rows):
+        return result
+    confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
+    if (confidence.get("level") or "high").lower() != "high":
+        return result
+    why = (confidence.get("why") or "").strip()
+    limit = "At least one verification check could not be performed in this run, so patch-review completeness is partial."
+    result["confidence"] = {"level": "medium", "why": (why + " " + limit).strip()}
+    return result
 
 def normalize_host_verification(result):
     """Make the host-owned blocker audit agree with the host action rule."""
@@ -363,9 +507,12 @@ def render_body(result, previous_md, action):
 with open(sys.argv[1], encoding="utf-8") as fh:
     result = json.load(fh)
 previous_md = os.environ.get("REVIEW_PREVIOUS_MARKDOWN", "")
+result = normalize_protected_findings(result)
+result = reconcile_producers(result)
 result = normalize_host_verification(result)
 result = augment_inspected(result)
 result = apply_product_ask(result)
+result = cap_confidence(result)
 action, _reason = compute_action(result)
 body = render_body(result, previous_md, action)
 out = dict(result)
@@ -383,161 +530,6 @@ PY
 # follow-up issues, but remove line numbers from the copy passed to the CLI.
 prepare_summary_only_result() {
   jq 'if (.findings | type) == "array" then .findings |= map(del(.line)) else . end' "$1" > "$2"
-}
-
-run_legacy_self_test() {
-  local fail=0 tmp
-  tmp=$(mktemp -d)
-  cleanup_self_test() { rm -rf "${tmp}"; }
-  trap cleanup_self_test EXIT
-
-  expect_action() {
-    local name="$1" json="$2" want="$3"
-    local got
-    printf '%s' "${json}" > "${tmp}/in.json"
-    got=$(transform_review_result "${tmp}/in.json" | jq -r .action)
-    if [[ "${got}" != "${want}" ]]; then
-      echo "FAIL ${name}: want action=${want} got=${got}" >&2
-      fail=1
-    else
-      echo "PASS ${name} (${want})"
-    fi
-  }
-
-  expect_action high-blocks \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","findings":[{"severity":"high","category":"correctness","file":"a.go","description":"bug"}]}' \
-    request-changes
-
-  expect_action medium-style-comment \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","findings":[{"severity":"medium","category":"style-conventions","file":"a.tsx","description":"class name"}]}' \
-    comment
-
-  expect_action medium-functional-blocks \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","findings":[{"severity":"medium","category":"correctness","file":"a.go","description":"wrong behavior"}]}' \
-    request-changes
-
-  expect_action low-approve \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","findings":[{"severity":"low","category":"docs-currency","file":"README.md","description":"typo"}]}' \
-    approve
-
-  expect_action risk-blocks-approve \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","risk":"high","confidence":"high"}' \
-    comment
-
-  expect_action low-confidence-blocks \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","confidence":"low"}' \
-    comment
-
-  expect_action overwrite-agent-approve \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","action":"approve","findings":[{"severity":"critical","category":"security","file":"a.go","description":"rce"}]}' \
-    request-changes
-
-  expect_action failure-passthrough \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","action":"failure","reason":"tool-failure"}' \
-    failure
-
-  expect_action product-ask-aligned-approve \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","product_ask":{"status":"aligned","aligned":["same ask"],"mismatched":[],"justified_in_description":false,"needs_human":false}}' \
-    approve
-
-  expect_action product-ask-justified-needs-human \
-    '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","product_ask":{"status":"mismatch-justified","aligned":[],"mismatched":["narrower scope"],"justified_in_description":true,"needs_human":true}}' \
-    comment
-
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","product_ask":{"status":"mismatch-unjustified","aligned":[],"mismatched":["Jira asks for export; PR does not mention it"],"justified_in_description":false}}' > "${tmp}/pa-unjust.json"
-  local pa_out
-  pa_out=$(transform_review_result "${tmp}/pa-unjust.json")
-  if [[ "$(jq -r .action <<<"${pa_out}")" != "comment" ]]; then
-    echo "FAIL product-ask-unjustified: want comment, got $(jq -r .action <<<"${pa_out}")" >&2
-    fail=1
-  elif [[ "$(jq -r .risk <<<"${pa_out}")" != "high" ]]; then
-    echo "FAIL product-ask-unjustified: want risk=high, got $(jq -r .risk <<<"${pa_out}")" >&2
-    fail=1
-  elif [[ "$(jq -r .confidence <<<"${pa_out}")" != "low" ]]; then
-    echo "FAIL product-ask-unjustified: want confidence=low, got $(jq -r .confidence <<<"${pa_out}")" >&2
-    fail=1
-  elif ! grep -q '<summary>🎯 <strong>Product ask</strong>' <<<"$(jq -r .body <<<"${pa_out}")"; then
-    echo "FAIL product-ask-unjustified: renderer missing collapsed Product ask section" >&2
-    fail=1
-  else
-    echo "PASS product-ask unjustified raises risk, drops confidence, comments"
-  fi
-
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","action":"approve","findings":[{"severity":"low","category":"docs-currency","file":"README.md","line":12,"description":"Document @param behavior"}]}' > "${tmp}/render.json"
-  local body rendered
-  rendered=$(transform_review_result "${tmp}/render.json")
-  body=$(jq -r .body <<<"${rendered}")
-  if ! grep -q 'fullsend:review-poc' <<<"${body}"; then
-    echo "FAIL render: missing poc marker" >&2
-    fail=1
-  else
-    echo "PASS render marker"
-  fi
-  if ! grep -q '## 🤖 Fullsend review' <<<"${body}" || ! grep -Fq '> [!TIP]' <<<"${body}"; then
-    echo "FAIL render: missing review heading or approve callout" >&2
-    fail=1
-  else
-    echo "PASS render disposition callout"
-  fi
-  if ! grep -q '### 🔵 Low · 1 finding' <<<"${body}" || ! grep -q '#### 1. Docs currency' <<<"${body}"; then
-    echo "FAIL render: missing severity count or readable finding heading" >&2
-    fail=1
-  else
-    echo "PASS render finding hierarchy"
-  fi
-  if grep -q '@param' <<<"${body}"; then
-    echo "FAIL render: agent prose can trigger a GitHub mention" >&2
-    fail=1
-  else
-    echo "PASS render suppresses accidental mentions"
-  fi
-  if grep -q 'Previous run' <<<"${body}"; then
-    echo "FAIL render: nested history should not appear" >&2
-    fail=1
-  else
-    echo "PASS current-only body"
-  fi
-  if grep -q 'Host overwrote' <<<"${body}"; then
-    echo "FAIL render: host/agent overwrite must not appear in sticky" >&2
-    fail=1
-  else
-    echo "PASS sticky has no overwrite note"
-  fi
-  if ! grep -Fq '[README.md:12](https://github.com/o/r/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/README.md#L12)' <<<"${body}"; then
-    echo "FAIL render: finding location is not a commit-pinned link" >&2
-    fail=1
-  else
-    echo "PASS finding location links to reviewed commit"
-  fi
-
-  printf '%s' "${rendered}" > "${tmp}/rendered.json"
-  prepare_summary_only_result "${tmp}/rendered.json" "${tmp}/summary-only.json"
-  if ! jq -e '.findings[0].file == "README.md" and (.findings[0] | has("line") | not) and (.body | contains("README.md#L12"))' \
-      "${tmp}/summary-only.json" >/dev/null; then
-    echo "FAIL summary-only: expected body link with no structured line number" >&2
-    fail=1
-  else
-    echo "PASS summary-only payload suppresses inline comments"
-  fi
-
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","action":"approve","findings":[{"severity":"critical","category":"security","file":"a.go","description":"rce"}]}' > "${tmp}/overwrite.json"
-  body=$(transform_review_result "${tmp}/overwrite.json" | jq -r .body)
-  if grep -q 'Host overwrote' <<<"${body}"; then
-    echo "FAIL render: overwrite note leaked when host changed action" >&2
-    fail=1
-  elif ! grep -q 'Changes requested' <<<"${body}"; then
-    echo "FAIL render: expected changes-requested disposition in author-facing body" >&2
-    fail=1
-  else
-    echo "PASS overwrite stays out of sticky"
-  fi
-
-  if [[ "${fail}" -ne 0 ]]; then
-    exit 1
-  fi
-  echo "All self-tests passed"
-  trap - EXIT
-  cleanup_self_test
 }
 
 run_self_test() {
@@ -641,6 +633,57 @@ run_self_test() {
     echo "PASS failure variant"
   fi
 
+  local pp_finding
+  pp_finding='{"severity":"medium","category":"protected-path","file":".fullsend/.run/.gitignore","description":"Modifies a governance file.","why":"Governance files need human oversight."}'
+
+  printf '%s' "{${common},\"findings\":[${pp_finding}]}" > "${tmp}/pp-unsupported.json"
+  (
+    export REVIEW_PROTECTED_PATHS=".github/,scripts/"
+    export REVIEW_CHANGED_FILES=".fullsend/.run/.gitignore"
+    transform_review_result "${tmp}/pp-unsupported.json"
+  ) > "${tmp}/pp-unsupported-out.json"
+  if ! jq -e '((.findings // []) | length) == 0 and .action == "approve"' "${tmp}/pp-unsupported-out.json" >/dev/null; then
+    echo "FAIL protected-path-unsupported: finding naming an unlisted path was not dropped" >&2
+    fail=1
+  else
+    echo "PASS protected-path finding outside REVIEW_PROTECTED_PATHS is dropped"
+  fi
+
+  printf '%s' "{${common},\"findings\":[${pp_finding}]}" > "${tmp}/pp-real.json"
+  (
+    export REVIEW_PROTECTED_PATHS=".github/,scripts/"
+    export REVIEW_CHANGED_FILES=$'.github/workflows/ci.yaml\nsrc/app.ts'
+    transform_review_result "${tmp}/pp-real.json"
+  ) > "${tmp}/pp-real-out.json"
+  if ! jq -e '.action == "comment" and ((.findings // []) | length) == 1 and (.decision_needed.question | contains(".github/workflows/ci.yaml"))' "${tmp}/pp-real-out.json" >/dev/null; then
+    echo "FAIL protected-path-real: want comment + retained finding + decision_needed" >&2
+    fail=1
+  elif ! grep -q 'Needs human judgment' <<<"$(jq -r .body "${tmp}/pp-real-out.json")"; then
+    echo "FAIL protected-path-real: status should route to human judgment, not the author" >&2
+    fail=1
+  else
+    echo "PASS supported protected-path routes to human judgment, not request-changes"
+  fi
+
+  printf '%s' '{"dispatched":["correctness"],"adapters":["ci-status-review"],"skipped":[{"id":"security","reason":"no auth, secrets or config touched"}],"challenger":"skipped-empty-set","returned":["correctness"]}' > "${tmp}/producers.json"
+  printf '%s' "{${common},\"findings\":[],\"inspected\":{\"summary\":\"Read the diff.\",\"producers\":[\"correctness\",\"security\",\"challenger\"]}}" > "${tmp}/ledger.json"
+  (
+    export REVIEW_PRODUCER_LEDGER="${tmp}/producers.json"
+    transform_review_result "${tmp}/ledger.json"
+  ) > "${tmp}/ledger-out.json"
+  if ! jq -e '(.verification[] | select(.id == "security") | .result) == "could-not-verify"' "${tmp}/ledger-out.json" >/dev/null; then
+    echo "FAIL ledger: a skipped dimension still reported a pass verification row" >&2
+    fail=1
+  elif ! jq -e '.inspected.producers == ["correctness","ci-status-review"]' "${tmp}/ledger-out.json" >/dev/null; then
+    echo "FAIL ledger: producer list was not reconciled against the ledger" >&2
+    fail=1
+  elif ! jq -e '.confidence.level == "medium"' "${tmp}/ledger-out.json" >/dev/null; then
+    echo "FAIL ledger: confidence stayed high despite an unverifiable check" >&2
+    fail=1
+  else
+    echo "PASS ledger reconciles producers, verification rows and confidence"
+  fi
+
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -721,6 +764,17 @@ if [ -z "${RESULT_FILE}" ] || [ ! -f "${RESULT_FILE}" ]; then
 fi
 
 echo "Using result: ${RESULT_FILE}"
+
+# The orchestrator writes producers.json next to agent-result.json at dispatch
+# time. Capture it now: RESULT_FILE is reassigned to temp copies below.
+REVIEW_PRODUCER_LEDGER="$(dirname "${RESULT_FILE}")/producers.json"
+if [[ -f "${REVIEW_PRODUCER_LEDGER}" ]]; then
+  echo "Producer ledger: ${REVIEW_PRODUCER_LEDGER}"
+else
+  echo "::warning::No producer ledger at ${REVIEW_PRODUCER_LEDGER} — the review's producer list cannot be corroborated"
+  REVIEW_PRODUCER_LEDGER=""
+fi
+export REVIEW_PRODUCER_LEDGER
 
 # ---------------------------------------------------------------------------
 # Severity filtering: drop findings below the configured threshold.
@@ -823,6 +877,11 @@ REVIEW_SIGNALS=$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" \
   --jq '"+\(.additions) / −\(.deletions) · \(.changedFiles) " + (if .changedFiles == 1 then "file" else "files" end)' \
   2>/dev/null || true)
 export REVIEW_SIGNALS
+# Changed paths let the renderer adjudicate protected-path findings against the
+# same list the host enforces, instead of trusting the agent's path matching.
+REVIEW_CHANGED_FILES=$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" \
+  --json files --jq '.files[].path' 2>/dev/null || true)
+export REVIEW_CHANGED_FILES
 if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
   _RUN_STARTED_AT=$(gh run view "${GITHUB_RUN_ID}" --repo "${REPO_FULL_NAME}" \
     --json startedAt --jq '.startedAt // empty' 2>/dev/null || true)

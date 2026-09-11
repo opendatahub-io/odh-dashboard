@@ -33,17 +33,25 @@ Ignore HTML comments when deciding whether a section has substantive content. Ch
 2. `## How Has This Been Tested?` contains testing information. Missing content is a warning.
 3. `## Test Impact` contains testing impact or a rationale that tests are inapplicable. Missing content is a warning.
 4. The self-checklist is meaningfully completed. Report checked versus unchecked items; do not require every item that is inapplicable to be checked.
-5. A Jira URL links to an issue tracker, such as `issues.redhat.com/browse/` or `atlassian.net/browse/`. Its absence is a failure for code changes governed by the template.
+5. Jira linkage, resolved in this fixed order — take the first rule that matches and stop, so the same PR always yields the same result:
+
+   1. Body contains a tracker URL (`issues.redhat.com/browse/<KEY>` or `atlassian.net/browse/<KEY>`) → **passed**.
+   2. No URL, but an issue key matching `[A-Z][A-Z0-9]+-\d+` appears in the PR title or body → **warning**. The repository's convention is to carry the key in the title; the template asks for the URL, so a bare key is incomplete, not absent.
+   3. Neither a URL nor a key anywhere → **failed** for code changes. For a non-code change the template is not required (see its first line), so report ➖ not applicable rather than a failure.
+
+   Do not reclassify between these outcomes on judgment about whether the convention "counts" — the ladder is the decision.
 6. When changed paths include `.tsx`, `.css`, or `.scss`, look for image or GIF evidence in the body. Missing visual evidence is a warning, not a failure.
 
 ## Status mapping
 
+The overall status is the worst item status: any ❌ makes the review failed, otherwise any ⚠️ makes it a warning.
+
 | Status | Meaning |
 | --- | --- |
-| ✅ passed | Description and Jira link are present; no warnings apply |
-| ⚠️ warning | Required description/Jira link is present, but testing, Test Impact, checklist context, or applicable UI evidence is incomplete |
-| ❌ failed | Description or Jira link is absent or placeholder-only |
-| ➖ not applicable | No PR body is available |
+| ✅ passed | Description present; Jira linkage at rule 5.1; no warnings apply |
+| ⚠️ warning | Description present and Jira linkage at rule 5.1 or 5.2, but testing, Test Impact, checklist context, Jira URL, or applicable UI evidence is incomplete |
+| ❌ failed | Description is absent or placeholder-only, or Jira linkage falls to rule 5.3 on a code change |
+| ➖ not applicable | No PR body is available, or a non-code change the template does not govern |
 
 ## Report
 

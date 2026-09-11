@@ -72,7 +72,20 @@ For each criterion, identify relevant diff hunks and PR-head source. Read surrou
 | `MISS` | No implementation evidence exists after searching the relevant changes. |
 | `SKIP` | Runtime, manual, or unavailable information prevents a sound evaluation. |
 
-Every verdict must state the files or changes considered. For `PARTIAL`, state what exists and what is missing. For `MISS`, state where evidence was searched. For `SKIP`, explain the missing evidence. If a stale-comment discrepancy affects a criterion, explain the conflict and do not present the written criterion as unquestionably current.
+Every verdict must state the files or changes considered. For `PARTIAL`, state what exists and what is missing. For `MISS`, state where evidence was searched. For `SKIP`, explain the missing evidence.
+
+**Evidence is the diff and the PR-head source, and nothing else.** The review's
+own execution is not evidence: "this skill is running, so the integration
+works", "the PR triggered the workflow", or "the PR exists in the right
+repository" are observations about the review, not about the change under
+review. A criterion whose satisfaction cannot be read out of the diff is
+`SKIP` (or `MISS` where the change should have contained it) — never `PASS`.
+This rule exists because self-referential reasoning makes the same criterion
+flip between `PASS` and `SKIP` across runs on an identical diff, which makes
+every verdict untrustworthy.
+
+Judge each criterion against the diff alone, in the order the criteria appear,
+without regard to how many earlier criteria passed or skipped. If a stale-comment discrepancy affects a criterion, explain the conflict and do not present the written criterion as unquestionably current.
 
 ## Results and delivery
 
@@ -84,6 +97,15 @@ Return these semantic results in the caller's requested format:
 - Product-ask object: `status`, concise `aligned` and `mismatched` points, `justified_in_description`, and `needs_human`.
 - One criterion result per explicit criterion: criterion text, verdict, evidence, and any stale-comment flag.
 - A concise overall assessment and unresolved evaluation limits.
+
+**A caller's output contract may be a closed shape.** When it is — for example a
+JSON schema section with a fixed field list — return exactly those fields and
+nothing else. The results above are semantic, not a key list: the Jira key and
+summary, the overall assessment, and evaluation limits belong inside the
+allowed string fields (an `aligned`/`mismatched` entry, a criterion's
+`evidence`), not as extra keys such as `jira_key`, `jira_summary`,
+`explanation`, or `assessment`. Extra keys are dropped or rejected downstream,
+which discards the content along with the key.
 
 For direct CLI use, present a human-readable Markdown report with the Jira/PR identity, product-ask result, a per-criterion table, stale-criteria flags when applicable, and the overall assessment. Do not post comments, modify Jira, or modify GitHub unless separately authorized by the caller.
 

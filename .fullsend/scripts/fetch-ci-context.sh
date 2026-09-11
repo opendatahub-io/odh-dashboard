@@ -36,7 +36,7 @@ has_failed_checks() {
 normalize_results() {
   local raw_file="$1" classification_file="$2"
   python3 - "${RUN_DIR}" "${raw_file}" "${classification_file}" <<'PY'
-import json, sys
+import json, os, sys
 from pathlib import Path
 
 dest, raw_path, classification_path = map(Path, sys.argv[1:])
@@ -65,25 +65,60 @@ if classifier_data is not None:
         } for row in rows],
     }
 
+SELF_RUN = (os.environ.get("GITHUB_RUN_ID") or "").strip()
+
+def is_own_job(row):
+    """A check produced by the workflow run that is producing this review.
+
+    The review job cannot observe its own completion: while it runs it is
+    necessarily pending, and so is every sibling job in the same run
+    (reusable workflows share the caller's run id). Counting them made every
+    review report pending CI, on every PR, forever."""
+    return bool(SELF_RUN) and f"/runs/{SELF_RUN}" in (row.get("link") or "")
+
+def is_unexpanded(row):
+    """A name still carrying a workflow expression, e.g.
+    "Harness run (${{ matrix.agent }})" — a placeholder, not a real check."""
+    return "${{" in (row.get("name") or "")
+
+def check_name(row):
+    return row.get("name", "unnamed check")
+
 if not isinstance(checks, list):
     check = {"id": "ci-status-review", "status": "could-not-verify", "summary": "CI checks were unavailable from the host."}
 elif not checks:
     check = {"id": "ci-status-review", "status": "could-not-verify", "summary": "The host returned no CI checks, so CI status could not be verified."}
 else:
+    self_reported = [x for x in checks if is_own_job(x) or is_unexpanded(x)]
+    checks = [x for x in checks if not (is_own_job(x) or is_unexpanded(x))]
+    excluded_note = (
+        [f"Excluded {len(self_reported)} check(s) belonging to this review's own workflow run."]
+        if self_reported else []
+    )
+    # "skipping" is a resolved outcome, not work still in flight.
     failed = [x for x in checks if x.get("bucket") in ("fail", "cancel")]
-    pending = [x for x in checks if x.get("bucket") in ("pending", "skipping")]
-    if failed:
+    pending = [x for x in checks if x.get("bucket") == "pending"]
+    skipped = [x for x in checks if x.get("bucket") == "skipping"]
+    if not checks:
+        check = {"id": "ci-status-review", "status": "could-not-verify", "summary": "Only this review's own workflow jobs reported checks, so external CI status could not be verified.", "details": excluded_note}
+    elif failed:
         non_blocking = {"flaky", "suspected_flaky", "external_unknown"}
         by_name = {row["subject"]: row["classification"] for row in classification["classifications"]}
-        blocking = [x for x in failed if by_name.get(x.get("name", "unnamed check")) not in non_blocking]
+        blocking = [x for x in failed if by_name.get(check_name(x)) not in non_blocking]
         if blocking:
-            check = {"id": "ci-status-review", "status": "fail", "summary": f"{len(blocking)} of {len(failed)} failed/cancelled CI check(s) are blocking.", "details": [x.get("name", "unnamed check") for x in blocking]}
+            check = {"id": "ci-status-review", "status": "fail", "summary": f"{len(blocking)} of {len(failed)} failed/cancelled CI check(s) are blocking.", "details": [check_name(x) for x in blocking] + excluded_note}
         else:
-            check = {"id": "ci-status-review", "status": "warning", "summary": f"{len(failed)} failed/cancelled CI check(s) were classified as non-blocking.", "details": [x.get("name", "unnamed check") for x in failed]}
+            check = {"id": "ci-status-review", "status": "warning", "summary": f"{len(failed)} failed/cancelled CI check(s) were classified as non-blocking.", "details": [check_name(x) for x in failed] + excluded_note}
     elif pending:
-        check = {"id": "ci-status-review", "status": "warning", "summary": f"{len(pending)} CI check(s) are still pending.", "details": [x.get("name", "unnamed check") for x in pending]}
+        check = {"id": "ci-status-review", "status": "warning", "summary": f"{len(pending)} CI check(s) are still pending.", "details": [check_name(x) for x in pending] + excluded_note}
     else:
-        check = {"id": "ci-status-review", "status": "pass", "summary": f"{len(checks)} CI check(s) completed without failure."}
+        summary = f"{len(checks)} CI check(s) completed without failure."
+        if skipped:
+            summary += f" {len(skipped)} were skipped."
+        check = {"id": "ci-status-review", "status": "pass", "summary": summary, "details": excluded_note}
+
+if isinstance(check.get("details"), list) and not check["details"]:
+    del check["details"]
 
 def envelope(id, output, value, status="ok"):
     return {"id": id, "dimension": id, "kind": "cli-adapter", "output": output, "status": status, output.split(":", 1)[0]: value}
@@ -166,8 +201,29 @@ run_self_test() {
   fi
   RUN_DIR="${tmp}/empty" normalize_results "${raw}" "${classified}"
   jq -e '.check.status == "could-not-verify"' "${tmp}/empty/ci-status.json" >/dev/null
+  # Self-reported jobs: the review's own run must not count as pending CI.
+  printf '%s' '{"pr_checks":[{"name":"dispatch / Review","bucket":"pending","link":"https://github.com/o/r/actions/runs/999/job/1"},{"name":"Harness run (${{ matrix.agent }})","bucket":"pending","link":""},{"name":"check / check","bucket":"pass","link":"https://github.com/o/r/actions/runs/123/job/2"},{"name":"auto-merge","bucket":"skipping","link":"https://github.com/o/r/actions/runs/124/job/3"}]}' > "${raw}"
+  GITHUB_RUN_ID=999 RUN_DIR="${tmp}/self" normalize_results "${raw}" "/nonexistent"
+  if ! jq -e '.check.status == "pass" and (.check.summary | contains("skipped"))' "${tmp}/self/ci-status.json" >/dev/null; then
+    echo "FAIL CI adapter: own-run and placeholder checks were not excluded" >&2
+    return 1
+  fi
+  if ! jq -e '.check.details | any(.[]; contains("Excluded 2 check"))' "${tmp}/self/ci-status.json" >/dev/null; then
+    echo "FAIL CI adapter: exclusion was not disclosed in details" >&2
+    return 1
+  fi
+
+  # A genuinely pending external check must still warn.
+  printf '%s' '{"pr_checks":[{"name":"dispatch / Review","bucket":"pending","link":"https://github.com/o/r/actions/runs/999/job/1"},{"name":"e2e","bucket":"pending","link":"https://github.com/o/r/actions/runs/321/job/9"}]}' > "${raw}"
+  GITHUB_RUN_ID=999 RUN_DIR="${tmp}/mixed-pending" normalize_results "${raw}" "/nonexistent"
+  if ! jq -e '.check.status == "warning" and .check.details[0] == "e2e"' "${tmp}/mixed-pending/ci-status.json" >/dev/null; then
+    echo "FAIL CI adapter: real pending check was lost with the self-reported ones" >&2
+    return 1
+  fi
+
   rm -rf "${tmp}"
   echo "PASS CI adapter: all-flaky failures are warnings"
+  echo "PASS CI adapter: own-run and placeholder checks excluded, real pending preserved"
   echo "PASS CI adapter: mixed failures retain blocking status"
   echo "All CI adapter self-tests passed"
 }

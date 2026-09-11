@@ -20,7 +20,7 @@ jq -e '
   ([.dimensions[] | select((.kind != "llm-subagent") and (.kind != "llm-skill") and (.kind != "cli-adapter"))] | length == 0)
 ' "${REGISTRY}" >/dev/null || fail "kind must be llm-subagent, llm-skill, or cli-adapter"
 
-while IFS=$'\t' read -r id kind output definition meta result_fields; do
+while IFS=$'\t' read -r id kind output definition meta result_fields inline_skill; do
   [[ -n "${id}" ]] || fail "dimension without id"
   case "${output}" in
     findings|context) ;;
@@ -47,10 +47,17 @@ while IFS=$'\t' read -r id kind output definition meta result_fields; do
     [[ -n "${definition}" && -f "${ROOT_DIR}/.fullsend/${definition}" ]] || fail "${id}: missing LLM definition ${definition:-<none>}"
     [[ -n "${meta}" && -f "${ROOT_DIR}/.fullsend/${meta}" ]] || fail "${id}: missing meta prompt ${meta:-<none>}"
   fi
+  if [[ -n "${inline_skill}" && ! -f "${ROOT_DIR}/.fullsend/${inline_skill}" ]]; then
+    # Not fatal: inline_skill may resolve against the agent's inherited
+    # Fullsend skill namespace rather than this repository's .fullsend tree.
+    # Surface it anyway — an inline_skill that resolves nowhere is silently
+    # dropped at dispatch, and nothing else reports that.
+    printf 'WARN dimension %s: inline_skill %s does not resolve under .fullsend/\n' "${id}" "${inline_skill}" >&2
+  fi
   if [[ "${kind}" == "cli-adapter" && "${output}" == context && -n "${meta}" ]]; then
     fail "${id}: cli context adapters must not declare an LLM meta prompt"
   fi
   printf 'PASS dimension %s (%s, %s)\n' "${id}" "${kind}" "${output}"
-done < <(jq -r '.dimensions[] | [.id, .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // ""), (.result_fields // [] | @json)] | @tsv' "${REGISTRY}")
+done < <(jq -r '.dimensions[] | [.id, .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // ""), (.result_fields // [] | @json), (.inline_skill // "")] | @tsv' "${REGISTRY}")
 
 echo "Fullsend dimension registry contract is valid"
