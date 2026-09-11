@@ -132,6 +132,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
                   variant="secondary"
                   size="sm"
                   isDisabled={isLoaded}
+                  tabIndex={isLoaded ? -1 : undefined}
                   onClick={() => {
                     onSelect(profile.profileId);
                     onClose();
@@ -159,7 +160,9 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
                       <Tooltip content="This agent is already loaded.">
                         {/* Disabled buttons need a focusable wrapper for the tooltip. */}
                         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-                        <span tabIndex={0}>{loadButton}</span>
+                        <span tabIndex={0} role="none">
+                          {loadButton}
+                        </span>
                       </Tooltip>
                     ) : (
                       loadButton
