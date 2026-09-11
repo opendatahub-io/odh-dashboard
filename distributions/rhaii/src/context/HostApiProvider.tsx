@@ -1,5 +1,9 @@
 import * as React from 'react';
-import { useK8sWatchResource, type K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  k8sPatchResource,
+  useK8sWatchResource,
+  type K8sModelCommon,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import {
   HostApiContext,
   HostApiCoreContext,
@@ -9,7 +13,14 @@ import {
   type HostApiServices,
   type ClusterSettingsType,
 } from '@odh-dashboard/plugin-core';
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import {
+  createSecret,
+  deleteSecret,
+  getSecret,
+  getSecretsByLabel,
+} from '@odh-dashboard/k8s-core/api/secrets';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import type { K8sResourceCommon, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
@@ -30,13 +41,13 @@ const MODEL_SERVING_CONTEXT_VALUE: ModelServingContextValue = {
   },
 };
 const ServingRuntimeModel: K8sModelCommon = {
-  apiVersion: 'serving.kserve.io/v1alpha1',
+  apiVersion: 'v1alpha1',
   apiGroup: 'serving.kserve.io',
   kind: 'ServingRuntime',
   plural: 'servingruntimes',
 };
 const InferenceServiceModel: K8sModelCommon = {
-  apiVersion: 'serving.kserve.io/v1beta1',
+  apiVersion: 'v1beta1',
   apiGroup: 'serving.kserve.io',
   kind: 'InferenceService',
   plural: 'inferenceservices',
@@ -138,8 +149,50 @@ const ModelServingContextValueProvider: React.FC<{
 const unsupportedCreateProject: HostApiServices['createProject'] = () =>
   Promise.reject(new Error('Project creation is not available in the RHAII Tilt host.'));
 
-const unsupportedSecretMutation = () =>
-  Promise.reject(new Error('Secret mutations are not available in the RHAII Tilt host.'));
+const patchSecretWithOwnerReference = (
+  secret: SecretKind,
+  resource: K8sResourceCommon & { metadata: { name: string } },
+  uid: string,
+): Promise<SecretKind> =>
+  k8sPatchResource({
+    model: SecretModel,
+    queryOptions: { name: secret.metadata.name, ns: secret.metadata.namespace },
+    patches: [
+      {
+        op: 'add',
+        path: '/metadata/ownerReferences',
+        value: [
+          ...(secret.metadata.ownerReferences || []),
+          {
+            uid,
+            name: resource.metadata.name,
+            apiVersion: resource.apiVersion,
+            kind: resource.kind,
+            blockOwnerDeletion: false,
+          },
+        ],
+      },
+    ],
+  });
+
+const patchSecretWithProtocolAnnotation = (
+  secret: SecretKind,
+  protocol: string,
+): Promise<SecretKind> =>
+  k8sPatchResource({
+    model: SecretModel,
+    queryOptions: { name: secret.metadata.name, ns: secret.metadata.namespace },
+    patches: [
+      {
+        op: 'add',
+        path: '/metadata/annotations',
+        value: {
+          ...(secret.metadata.annotations || {}),
+          'opendatahub.io/connection-type-protocol': protocol,
+        },
+      },
+    ],
+  });
 
 const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
   dashboardNamespace,
@@ -159,12 +212,12 @@ const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
 });
 
 const infraApi: HostApiInfraServices = {
-  createSecret: unsupportedSecretMutation,
-  getSecret: unsupportedSecretMutation,
-  deleteSecret: unsupportedSecretMutation,
-  getSecretsByLabel: () => Promise.resolve([]),
-  patchSecretWithOwnerReference: unsupportedSecretMutation,
-  patchSecretWithProtocolAnnotation: unsupportedSecretMutation,
+  createSecret,
+  getSecret,
+  deleteSecret,
+  getSecretsByLabel,
+  patchSecretWithOwnerReference,
+  patchSecretWithProtocolAnnotation,
   createProject: () =>
     Promise.reject(new Error('Project creation is not available in the RHAII Tilt host.')),
   getDashboardPvcs: () => Promise.resolve([]),

@@ -27,6 +27,38 @@ rules:
       - get
       - list
       - watch
+      - create
+      - patch
+      - update
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - patch
+      - update
+      - delete
+  - apiGroups:
+      - template.openshift.io
+    resources:
+      - templates
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - infrastructure.opendatahub.io
+    resources:
+      - hardwareprofiles
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups:
       - kueue.x-k8s.io
     resources:
