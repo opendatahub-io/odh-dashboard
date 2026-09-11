@@ -60,22 +60,12 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   });
 
   const {
-    data: maasSecrets,
-    isPending: maasSecretsPending,
-    isError: maasSecretsError,
+    data: ogxSecrets,
+    isPending: ogxSecretsPending,
+    isError: ogxSecretsError,
   } = useQuery({
-    queryKey: ['secrets', namespace, 'maas'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'maas')({}),
-    enabled: !!namespace,
-  });
-
-  const {
-    data: vectorDbSecrets,
-    isPending: vectorDbSecretsPending,
-    isError: vectorDbSecretsError,
-  } = useQuery({
-    queryKey: ['secrets', namespace, 'vector-db'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'vector-db')({}),
+    queryKey: ['secrets', namespace, 'ogx'],
+    queryFn: () => getSecrets('')(namespace ?? '', 'ogx')({}),
     enabled: !!namespace,
   });
 
@@ -92,15 +82,11 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     secretsLoadError: false,
     parseError: false,
     storageMissing: false,
-    maasMissing: false,
-    vectorDbMissing: false,
+    ogxMissing: false,
   });
 
   React.useEffect(() => {
-    if (
-      (storageSecretsError || maasSecretsError || vectorDbSecretsError) &&
-      !shownWarnings.current.secretsLoadError
-    ) {
+    if ((storageSecretsError || ogxSecretsError) && !shownWarnings.current.secretsLoadError) {
       shownWarnings.current.secretsLoadError = true;
       notification.warning(
         'Unable to load connection secrets',
@@ -109,7 +95,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     }
     // notify once when the error state is reached
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageSecretsError, maasSecretsError, vectorDbSecretsError]);
+  }, [storageSecretsError, ogxSecretsError]);
 
   React.useEffect(() => {
     if (parsedParams && !parsedParams.success && !shownWarnings.current.parseError) {
@@ -145,42 +131,23 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }, [params?.input_data_secret_name, storageSecrets]);
 
   React.useEffect(() => {
-    const name = params?.maas_secret_name;
+    const name = params?.ogx_secret_name;
     if (
       name &&
       typeof name === 'string' &&
-      maasSecrets &&
-      !maasSecrets.find((s) => s.name === name) &&
-      !shownWarnings.current.maasMissing
+      ogxSecrets &&
+      !ogxSecrets.find((s) => s.name === name) &&
+      !shownWarnings.current.ogxMissing
     ) {
-      shownWarnings.current.maasMissing = true;
+      shownWarnings.current.ogxMissing = true;
       notification.warning(
         'Connection secret not found',
-        `The previously used MaaS connection "${name}" could not be found. Please select a new connection.`,
+        `The previously used Open GenAI Stack connection "${name}" could not be found. Please select a new connection.`,
       );
     }
     // notify once when secrets are loaded
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params?.maas_secret_name, maasSecrets]);
-
-  React.useEffect(() => {
-    const name = params?.vector_db_secret_name;
-    if (
-      name &&
-      typeof name === 'string' &&
-      vectorDbSecrets &&
-      !vectorDbSecrets.find((s) => s.name === name) &&
-      !shownWarnings.current.vectorDbMissing
-    ) {
-      shownWarnings.current.vectorDbMissing = true;
-      notification.warning(
-        'Connection secret not found',
-        `The previously used vector database connection "${name}" could not be found. Please select a new connection.`,
-      );
-    }
-    // notify once when secrets are loaded
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params?.vector_db_secret_name, vectorDbSecrets]);
+  }, [params?.ogx_secret_name, ogxSecrets]);
 
   const invalidPipelineRunId =
     pipelineRunError &&
@@ -216,13 +183,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     );
   }
 
-  if (
-    !namespacesLoaded ||
-    pipelineRunPending ||
-    storageSecretsPending ||
-    maasSecretsPending ||
-    vectorDbSecretsPending
-  ) {
+  if (!namespacesLoaded || pipelineRunPending || storageSecretsPending || ogxSecretsPending) {
     return (
       <Bullseye>
         <Spinner />
@@ -231,8 +192,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }
 
   const secretName = params?.input_data_secret_name;
-  const maasSecretName = params?.maas_secret_name;
-  const vectorDbSecretName = params?.vector_db_secret_name;
+  const ogxSecretName = params?.ogx_secret_name;
 
   // Resolve the matching S3 secret from the fetched list
   let initialInputDataSecret: SecretSelection | undefined;
@@ -247,20 +207,12 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     }
   }
 
-  // Resolve the matching MaaS secret from the fetched list
-  let initialMaasSecret: SecretSelection | undefined;
-  if (maasSecretName && typeof maasSecretName === 'string' && maasSecrets) {
-    const match = maasSecrets.find((s) => s.name === maasSecretName);
+  // Resolve the matching Open GenAI Stack secret from the fetched list
+  let initialOgxSecret: SecretSelection | undefined;
+  if (ogxSecretName && typeof ogxSecretName === 'string' && ogxSecrets) {
+    const match = ogxSecrets.find((s) => s.name === ogxSecretName);
     if (match) {
-      initialMaasSecret = match;
-    }
-  }
-
-  let initialVectorDbSecret: SecretSelection | undefined;
-  if (vectorDbSecretName && typeof vectorDbSecretName === 'string' && vectorDbSecrets) {
-    const match = vectorDbSecrets.find((s) => s.name === vectorDbSecretName);
-    if (match) {
-      initialVectorDbSecret = match;
+      initialOgxSecret = match;
     }
   }
 
@@ -275,8 +227,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     <AutoragConfigurePage
       initialValues={initialValues}
       initialInputDataSecret={initialInputDataSecret}
-      initialMaasSecret={initialMaasSecret}
-      initialVectorDbSecret={initialVectorDbSecret}
+      initialOgxSecret={initialOgxSecret}
       sourceRunId={runId}
       sourceRunName={pipelineRun.display_name}
     />

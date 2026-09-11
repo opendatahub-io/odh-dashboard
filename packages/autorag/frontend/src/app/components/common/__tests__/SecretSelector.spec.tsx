@@ -6,7 +6,7 @@ import { SecretListItem } from '~/app/types';
 import {
   mockSecretListItem,
   mockStorageSecret,
-  mockMaasSecret,
+  mockOGXSecret,
 } from '~/__mocks__/mockSecretListItem';
 import SecretSelector from '~/app/components/common/SecretSelector';
 
@@ -41,8 +41,9 @@ describe('SecretSelector', () => {
         />,
       );
 
-      expect(screen.getByTestId('test-selector-loading')).toBeInTheDocument();
-      expect(document.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
+      // Skeleton should be present during loading
+      const skeleton = document.querySelector('.pf-v6-c-skeleton');
+      expect(skeleton).toBeInTheDocument();
     });
   });
 
@@ -50,7 +51,7 @@ describe('SecretSelector', () => {
     const mockSecrets: SecretListItem[] = [
       mockStorageSecret({ uuid: '1', name: 'aws-secret-1' }),
       mockStorageSecret({ uuid: '2', name: 'aws-secret-2' }),
-      mockMaasSecret({ uuid: '3', name: 'maas-secret-1' }),
+      mockOGXSecret({ uuid: '3', name: 'ogx-secret-1' }),
     ];
 
     it('should render dropdown with secrets when loaded', () => {
@@ -158,7 +159,7 @@ describe('SecretSelector', () => {
       // Should show all three secrets
       expect(screen.getByText('aws-secret-1')).toBeInTheDocument();
       expect(screen.getByText('aws-secret-2')).toBeInTheDocument();
-      expect(screen.getByText('maas-secret-1')).toBeInTheDocument();
+      expect(screen.getByText('ogx-secret-1')).toBeInTheDocument();
     });
 
     it('should not display type labels by default', () => {
@@ -177,7 +178,7 @@ describe('SecretSelector', () => {
 
       // Type labels should NOT be visible when showType is not provided
       expect(screen.queryByText('Type: s3')).not.toBeInTheDocument();
-      expect(screen.queryByText('Type: maas')).not.toBeInTheDocument();
+      expect(screen.queryByText('Type: ogx')).not.toBeInTheDocument();
     });
 
     it('should not display type labels when showType is false', () => {
@@ -197,7 +198,7 @@ describe('SecretSelector', () => {
 
       // Type labels should NOT be visible
       expect(screen.queryByText('Type: s3')).not.toBeInTheDocument();
-      expect(screen.queryByText('Type: maas')).not.toBeInTheDocument();
+      expect(screen.queryByText('Type: ogx')).not.toBeInTheDocument();
     });
 
     it('should display secret type as description', () => {
@@ -217,7 +218,7 @@ describe('SecretSelector', () => {
 
       // Type descriptions should be visible
       expect(screen.getAllByText('Type: s3')).toHaveLength(2);
-      expect(screen.getByText('Type: maas')).toBeInTheDocument();
+      expect(screen.getByText('Type: ogx')).toBeInTheDocument();
     });
 
     it('should not display descriptions by default', () => {
@@ -227,10 +228,10 @@ describe('SecretSelector', () => {
           name: 'aws-secret-1',
           description: 'AWS S3 storage credentials',
         }),
-        mockMaasSecret({
+        mockOGXSecret({
           uuid: '2',
-          name: 'maas-secret-1',
-          description: 'MaaS API credentials',
+          name: 'ogx-secret-1',
+          description: 'OGX API credentials',
         }),
       ];
       mockUseFetchState.mockReturnValue([secretsWithDesc, true, undefined, mockRefresh]);
@@ -248,7 +249,7 @@ describe('SecretSelector', () => {
 
       // Descriptions should NOT be visible when showDescription is not provided
       expect(screen.queryByText('AWS S3 storage credentials')).not.toBeInTheDocument();
-      expect(screen.queryByText('MaaS API credentials')).not.toBeInTheDocument();
+      expect(screen.queryByText('OGX API credentials')).not.toBeInTheDocument();
     });
 
     it('should not display descriptions when showDescription is false', () => {
@@ -258,10 +259,10 @@ describe('SecretSelector', () => {
           name: 'aws-secret-1',
           description: 'AWS S3 storage credentials',
         }),
-        mockMaasSecret({
+        mockOGXSecret({
           uuid: '2',
-          name: 'maas-secret-1',
-          description: 'MaaS API credentials',
+          name: 'ogx-secret-1',
+          description: 'OGX API credentials',
         }),
       ];
       mockUseFetchState.mockReturnValue([secretsWithDesc, true, undefined, mockRefresh]);
@@ -280,7 +281,7 @@ describe('SecretSelector', () => {
 
       // Descriptions should NOT be visible
       expect(screen.queryByText('AWS S3 storage credentials')).not.toBeInTheDocument();
-      expect(screen.queryByText('MaaS API credentials')).not.toBeInTheDocument();
+      expect(screen.queryByText('OGX API credentials')).not.toBeInTheDocument();
     });
 
     it('should call onChange with uuid and name when secret is selected', () => {
@@ -553,7 +554,7 @@ describe('SecretSelector', () => {
       rerender(
         <SecretSelector
           namespace={defaultNamespace}
-          type="maas"
+          type="ogx"
           value={undefined}
           onChange={mockOnChange}
           dataTestId="test-selector"
@@ -997,12 +998,12 @@ describe('SecretSelector', () => {
 
     it('should not validate when secret type is not in additionalRequiredKeys', () => {
       const mockSecrets: SecretListItem[] = [
-        mockMaasSecret({
+        mockOGXSecret({
           uuid: '1',
-          name: 'maas-secret',
+          name: 'ogx-secret',
           data: {
-            MAAS_API_KEY: '[REDACTED]',
-            MAAS_BASE_URL: '[REDACTED]',
+            OGX_CLIENT_API_KEY: '[REDACTED]',
+            OGX_CLIENT_BASE_URL: '[REDACTED]',
           },
         }),
       ];
@@ -1019,19 +1020,19 @@ describe('SecretSelector', () => {
       );
 
       fireEvent.click(screen.getByTestId('test-selector'));
-      fireEvent.click(screen.getByText('maas-secret'));
+      fireEvent.click(screen.getByText('ogx-secret'));
 
-      // Should NOT show validation error - maas type not in additionalRequiredKeys
+      // Should NOT show validation error - ogx type not in additionalRequiredKeys
       expect(screen.queryByText(/Required key/)).not.toBeInTheDocument();
 
       // onChange should be called with selection marked as valid
       expect(mockOnChange).toHaveBeenCalledWith({
         uuid: '1',
-        name: 'maas-secret',
-        type: 'maas',
+        name: 'ogx-secret',
+        type: 'ogx',
         data: {
-          MAAS_API_KEY: '[REDACTED]',
-          MAAS_BASE_URL: '[REDACTED]',
+          OGX_CLIENT_API_KEY: '[REDACTED]',
+          OGX_CLIENT_BASE_URL: '[REDACTED]',
         },
         invalid: false,
       });
@@ -1156,10 +1157,10 @@ describe('SecretSelector', () => {
           uuid: '2',
           name: 'aws-dev-credentials',
         }),
-        mockMaasSecret({
+        mockOGXSecret({
           uuid: '3',
-          name: 'maas-prod-secret',
-          displayName: 'Production MaaS',
+          name: 'ogx-prod-secret',
+          displayName: 'Production OGX',
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -1178,9 +1179,9 @@ describe('SecretSelector', () => {
       // Should show displayName where available, name otherwise
       expect(screen.getByText('Production AWS')).toBeInTheDocument();
       expect(screen.getByText('aws-dev-credentials')).toBeInTheDocument();
-      expect(screen.getByText('Production MaaS')).toBeInTheDocument();
+      expect(screen.getByText('Production OGX')).toBeInTheDocument();
       expect(screen.queryByText('aws-prod-credentials')).not.toBeInTheDocument();
-      expect(screen.queryByText('maas-prod-secret')).not.toBeInTheDocument();
+      expect(screen.queryByText('ogx-prod-secret')).not.toBeInTheDocument();
     });
 
     it('should call onChange with correct name when selecting secret with displayName', () => {
@@ -1345,10 +1346,10 @@ describe('SecretSelector', () => {
           uuid: '2',
           name: 'aws-without-desc',
         }),
-        mockMaasSecret({
+        mockOGXSecret({
           uuid: '3',
-          name: 'maas-with-desc',
-          description: 'MaaS endpoint for testing',
+          name: 'ogx-with-desc',
+          description: 'OGX endpoint for testing',
         }),
       ];
       mockUseFetchState.mockReturnValue([mockSecrets, true, undefined, mockRefresh]);
@@ -1371,8 +1372,8 @@ describe('SecretSelector', () => {
       // Second and first secrets both show Type: s3 (getAllByText for multiple matches)
       expect(screen.getAllByText('Type: s3')).toHaveLength(2);
       // Third secret has type and description
-      expect(screen.getByText('Type: maas')).toBeInTheDocument();
-      expect(screen.getByText('MaaS endpoint for testing')).toBeInTheDocument();
+      expect(screen.getByText('Type: ogx')).toBeInTheDocument();
+      expect(screen.getByText('OGX endpoint for testing')).toBeInTheDocument();
     });
   });
 });

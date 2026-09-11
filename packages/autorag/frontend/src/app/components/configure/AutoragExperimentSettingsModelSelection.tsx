@@ -22,12 +22,12 @@ import React from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
-import { useMaasModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { MaasModelType } from '~/app/types';
+import { OgxModelType } from '~/app/types';
 
 type ModelTab = {
-  modelType: MaasModelType;
+  modelType: OgxModelType;
   label: string;
   popoverHeader: string;
   description: string;
@@ -81,7 +81,7 @@ const ModelsToTestHelpContent: React.FC = () => (
 const DEFAULT_PER_PAGE = 5;
 
 const AutoragExperimentSettingsModelSelection: React.FC = () => {
-  const [activeModelType, setActiveModelType] = React.useState<MaasModelType>('llm');
+  const [activeModelType, setActiveModelType] = React.useState<OgxModelType>('llm');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
@@ -89,19 +89,19 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
 
   const form = useFormContext<ConfigureSchema>();
 
-  const maasSecretName = useWatch({
+  const ogxSecretName = useWatch({
     control: form.control,
-    name: 'maas_secret_name',
+    name: 'ogx_secret_name',
   });
 
-  const { data: llmModelsData, isLoading: isLlmLoading } = useMaasModelsQuery(
+  const { data: llmModelsData, isLoading: isLlmLoading } = useOgxModelsQuery(
     namespace,
-    maasSecretName,
+    ogxSecretName,
     'llm',
   );
-  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useMaasModelsQuery(
+  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useOgxModelsQuery(
     namespace,
-    maasSecretName,
+    ogxSecretName,
     'embedding',
   );
 

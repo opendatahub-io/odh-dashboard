@@ -1,4 +1,4 @@
-package maas
+package ogx
 
 import (
 	"errors"
@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMaaSError_Error(t *testing.T) {
-	err := &MaaSError{Code: ErrCodeNotFound, Message: "widget not found"}
-	assert.Equal(t, "Models as a Service error [NOT_FOUND]: widget not found", err.Error())
+func TestOGXError_Error(t *testing.T) {
+	err := &OGXError{Code: ErrCodeNotFound, Message: "widget not found"}
+	assert.Equal(t, "Open GenAI Stack error [NOT_FOUND]: widget not found", err.Error())
 }
 
-func TestNewMaaSError_Constructors(t *testing.T) {
+func TestNewOGXError_Constructors(t *testing.T) {
 	tests := []struct {
 		name           string
-		build          func(message string) *MaaSError
+		build          func(message string) *OGXError
 		wantCode       string
 		wantStatusCode int
 	}{
@@ -64,11 +64,11 @@ func TestWrapClientError(t *testing.T) {
 		// silently misclassified as a connection failure.
 		plain := errors.New("boom")
 
-		wrapped := wrapClientError(plain, "ListModels")
+		wrapped := wrapClientError(plain, "ListProviders")
 
 		assert.Equal(t, ErrCodeInternalError, wrapped.Code)
 		assert.Equal(t, http.StatusInternalServerError, wrapped.StatusCode)
-		assert.Contains(t, wrapped.Message, "ListModels")
+		assert.Contains(t, wrapped.Message, "ListProviders")
 		assert.Contains(t, wrapped.Message, "boom")
 	})
 }

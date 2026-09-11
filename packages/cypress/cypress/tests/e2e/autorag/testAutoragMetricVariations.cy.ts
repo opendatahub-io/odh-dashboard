@@ -2,11 +2,7 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
-import {
-  createMaasSecret,
-  isExternalMaasConnection,
-  getExternalMaasConnection,
-} from '../../../utils/oc_commands/maasSecret';
+import { createOgxSecret } from '../../../utils/oc_commands/ogxSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
@@ -17,7 +13,6 @@ import {
   isOgxOperatorManaged,
   provisionAutoragInfrastructure,
   cleanupAutoragInfrastructure,
-  provisionVectorDatabase,
 } from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
@@ -30,7 +25,7 @@ const defaultUuid = `${uuid}-default`;
 const faithUuid = `${uuid}-faith`;
 const overallUuid = `${uuid}-overall`;
 
-const isExternalMaas = (): boolean => isExternalMaasConnection();
+const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
 
 describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
@@ -53,26 +48,18 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       .then(() => setAutoragEnabled(true))
       .then(() =>
         isOgxOperatorManaged().then((isManaged) => {
-          if (isExternalMaas()) {
+          if (isExternalOgx()) {
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
             allowOgxAccess(projectName);
 
-            const connection = getExternalMaasConnection();
-            if (!connection) {
-              throw new Error('Expected MAAS_URL or OGX_URL for external mode');
-            }
-            createMaasSecret(
-              projectName,
-              testData.maasSecretName,
-              connection.url,
-              connection.apiKey,
-            );
-            provisionVectorDatabase(projectName, testData.vectorDbSecretName);
+            const ogxUrl = Cypress.env('OGX_URL') as string;
+            const ogxApiKey = (Cypress.env('OGX_API_KEY') as string) || '';
+            createOgxSecret(projectName, testData.ogxSecretName, ogxUrl, ogxApiKey);
           } else {
             if (!isManaged) {
               throw new Error(
                 'OGX operator is not Managed on this cluster. ' +
-                  'Either set MAAS_URL or OGX_URL for external mode or ensure the operator is Managed.',
+                  'Either set OGX_URL for external mode or ensure the operator is Managed.',
               );
             }
 
@@ -82,11 +69,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
             cy.step('Provision AutoRAG infrastructure (models, Milvus, OGX)');
-            provisionAutoragInfrastructure(
-              projectName,
-              testData.maasSecretName,
-              testData.vectorDbSecretName,
-            );
+            provisionAutoragInfrastructure(projectName, testData.ogxSecretName);
           }
         }),
       ),
@@ -97,11 +80,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       setAutoragEnabled(false);
     }
     if (selfProvisioned) {
-      cleanupAutoragInfrastructure(
-        projectName,
-        testData.maasSecretName,
-        testData.vectorDbSecretName,
-      );
+      cleanupAutoragInfrastructure(projectName, testData.ogxSecretName);
     }
     removeOgxAccess(projectName);
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);

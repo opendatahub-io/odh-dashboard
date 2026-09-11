@@ -13,18 +13,18 @@ import React, { useEffect, useRef } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
-import MaasConnectionModal from '~/app/components/common/MaasConnectionModal';
+import OgxConnectionModal from '~/app/components/common/OgxConnectionModal';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 
 type AutoragCreateProps = {
-  initialMaasSecret?: SecretSelection;
+  initialOgxSecret?: SecretSelection;
 };
 
-function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Element {
+function AutoragCreate({ initialOgxSecret }: AutoragCreateProps): React.JSX.Element {
   const { namespace } = useParams();
-  const [selectedMaasSecret, setSelectedMaasSecret] = React.useState<SecretSelection | undefined>(
-    initialMaasSecret,
+  const [selectedOgxSecret, setSelectedOgxSecret] = React.useState<SecretSelection | undefined>(
+    initialOgxSecret,
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
@@ -33,16 +33,16 @@ function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Ele
   const { setValue } = form;
 
   // When pressing "Back" to return to this screen, the SecretSelector appears to have no value set
-  // even though "maas_secret_name" is set from before.
+  // even though "ogx_secret_name" is set from before.
   // This is because TypeaheadSelect in SecretSelector does not support specifying an initial value.
   // Therefore, reset field on mount to avoid confusion of "Next" button being enabled even though
   // no selection appears to be made.
   // Skip the reset when an initial secret is provided (reconfigure flow).
   useEffect(() => {
-    if (!initialMaasSecret) {
-      setValue('maas_secret_name', '');
+    if (!initialOgxSecret) {
+      setValue('ogx_secret_name', '');
     }
-  }, [setValue, initialMaasSecret]);
+  }, [setValue, initialOgxSecret]);
 
   // Use a div instead of PF's <Form> to avoid nested <form> elements,
   // since AutoragConfigurePage already renders <Stack component="form">.
@@ -94,19 +94,19 @@ function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Ele
       />
       <Controller
         control={form.control}
-        name="maas_secret_name"
+        name="ogx_secret_name"
         render={({ field }) => (
-          <FormGroup fieldId={field.name} label="MaaS connection" isRequired>
+          <FormGroup fieldId={field.name} label="Open GenAI Stack connection" isRequired>
             <Split hasGutter>
               <SplitItem isFilled>
                 <SecretSelector
-                  dataTestId="maas-secret-selector"
-                  placeholder="Select MaaS secret"
-                  type="maas"
+                  dataTestId="ogx-secret-selector"
+                  placeholder="Select Open GenAI Stack secret"
+                  type="ogx"
                   namespace={namespace ?? ''}
-                  value={selectedMaasSecret?.uuid}
+                  value={selectedOgxSecret?.uuid}
                   onChange={(secret) => {
-                    setSelectedMaasSecret(secret);
+                    setSelectedOgxSecret(secret);
                     field.onChange(!secret || secret.invalid ? '' : secret.name);
                   }}
                   onRefreshReady={(refresh) => {
@@ -116,9 +116,9 @@ function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Ele
               </SplitItem>
               <SplitItem>
                 <Button
-                  data-testid="add-maas-connection-button"
+                  data-testid="add-ogx-connection-button"
                   variant="tertiary"
-                  aria-label="Add new MaaS connection"
+                  aria-label="Add new Open GenAI Stack connection"
                   onClick={() => setIsConnectionModalOpen(true)}
                 >
                   Add new connection
@@ -129,7 +129,7 @@ function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Ele
         )}
       />
       {isConnectionModalOpen && (
-        <MaasConnectionModal
+        <OgxConnectionModal
           namespace={namespace ?? ''}
           onClose={() => setIsConnectionModalOpen(false)}
           onSubmit={async (secretName) => {
@@ -140,8 +140,8 @@ function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Ele
             const list = await refresh();
             const secret = list?.find((s) => s.name === secretName);
             if (secret) {
-              setSelectedMaasSecret({ ...secret, invalid: false });
-              setValue('maas_secret_name', secret.name, { shouldValidate: true });
+              setSelectedOgxSecret({ ...secret, invalid: false });
+              setValue('ogx_secret_name', secret.name, { shouldValidate: true });
             }
           }}
         />

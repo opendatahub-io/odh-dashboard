@@ -71,7 +71,7 @@ import SecretSelector, { SecretSelection } from '~/app/components/common/SecretS
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useMaasModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -142,13 +142,11 @@ const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be sel
 type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: SecretSelection;
-  initialVectorDbSecret?: SecretSelection;
 };
 
 function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
-  initialVectorDbSecret,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -209,7 +207,7 @@ function AutoragConfigure({
   const { isSubmitting } = formState;
 
   const [
-    maasSecretName,
+    ogxSecretName,
     inputDataSecretName,
     inputDataBucketName,
     testDataSecretName,
@@ -218,7 +216,7 @@ function AutoragConfigure({
   ] = useWatch({
     control: form.control,
     name: [
-      'maas_secret_name',
+      'ogx_secret_name',
       'input_data_secret_name',
       'input_data_bucket_name',
       'test_data_secret_name',
@@ -233,28 +231,28 @@ function AutoragConfigure({
     data: allModelsData,
     isError: isModelsError,
     isLoading: isModelsLoading,
-  } = useMaasModelsQuery(namespace ?? '', maasSecretName);
+  } = useOgxModelsQuery(namespace ?? '', ogxSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
   useEffect(() => {
     if (isModelsError) {
       notification.error(
         'Failed to load models',
-        'Check that the MaaS secret is valid and try again.',
+        'Check that the Open GenAI Stack secret is valid and try again.',
       );
     }
   }, [isModelsError, notification]);
 
   // When the secret changes, mark models as needing re-initialization and
   // immediately clear stale selections so the UI reflects the transition.
-  // Uses useReconfigureSafeEffect (skips on mount) because maasSecretName is
+  // Uses useReconfigureSafeEffect (skips on mount) because ogxSecretName is
   // already populated on mount during reconfigure; a plain useEffect would
   // wipe the pre-populated model selections before they could be restored.
   useReconfigureSafeEffect(() => {
     modelsInitialized.current = false;
     setValue('generation_models', []);
     setValue('embedding_models', []);
-  }, [maasSecretName, setValue]);
+  }, [ogxSecretName, setValue]);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data.
@@ -816,10 +814,10 @@ function AutoragConfigure({
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
-                        label="Vector database connection"
-                        description="Select the Kubernetes secret for Milvus or PGVector. The pipeline reads MILVUS_* or PGVECTOR_* keys from that secret."
+                        label="Vector I/O provider"
+                        description="Specify the location for storing the vector index used to retrieve your documents."
                       >
-                        <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />
+                        <AutoragVectorStoreSelector />
                       </ConfigureFormGroup>
                     </FlexItem>
 

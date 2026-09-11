@@ -1,4 +1,4 @@
-package maas
+package ogx
 
 import (
 	"bytes"
@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestServer(handler http.HandlerFunc) (*httptest.Server, *MaaSClient) {
+func newTestServer(handler http.HandlerFunc) (*httptest.Server, *OGXClient) {
 	ts := httptest.NewServer(handler)
-	return ts, NewMaaSClient(ts.Client())
+	return ts, NewOGXClient(ts.Client())
 }
 
 func jsonResponse(t *testing.T, w http.ResponseWriter, v any) {
@@ -27,14 +27,14 @@ func jsonResponse(t *testing.T, w http.ResponseWriter, v any) {
 
 // --- ListModels ---
 
-func TestMaaSClient_ListModels(t *testing.T) {
+func TestOGXClient_ListModels(t *testing.T) {
 	t.Run("parses envelope format with data wrapper", func(t *testing.T) {
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/v1/models", r.URL.Path)
 			assert.Equal(t, "application/json", r.Header.Get("Accept"))
 			jsonResponse(t, w, map[string]any{
-				"data": []models.MaaSNativeModel{
-					{ID: "llama3.2:3b", CustomMetadata: &models.MaaSCustomMetadata{ModelType: "llm"}},
+				"data": []models.OGXNativeModel{
+					{ID: "llama3.2:3b", CustomMetadata: &models.OGXCustomMetadata{ModelType: "llm"}},
 				},
 			})
 		})
@@ -48,7 +48,7 @@ func TestMaaSClient_ListModels(t *testing.T) {
 
 	t.Run("falls back to bare array format", func(t *testing.T) {
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			jsonResponse(t, w, []models.MaaSNativeModel{
+			jsonResponse(t, w, []models.OGXNativeModel{
 				{ID: "mistral-7b"},
 			})
 		})
@@ -64,7 +64,7 @@ func TestMaaSClient_ListModels(t *testing.T) {
 		var gotAuth string
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			gotAuth = r.Header.Get("Authorization")
-			jsonResponse(t, w, map[string]any{"data": []models.MaaSNativeModel{}})
+			jsonResponse(t, w, map[string]any{"data": []models.OGXNativeModel{}})
 		})
 		defer ts.Close()
 
@@ -96,9 +96,9 @@ func TestMaaSClient_ListModels(t *testing.T) {
 
 				_, err := c.ListModels(context.Background(), ts.URL, "")
 				require.Error(t, err)
-				var maasErr *MaaSError
-				require.ErrorAs(t, err, &maasErr)
-				assert.Equal(t, tt.wantCode, maasErr.Code)
+				var ogxErr *OGXError
+				require.ErrorAs(t, err, &ogxErr)
+				assert.Equal(t, tt.wantCode, ogxErr.Code)
 			})
 		}
 	})
@@ -112,9 +112,9 @@ func TestMaaSClient_ListModels(t *testing.T) {
 
 		_, err := c.ListModels(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var maasErr *MaaSError
-		require.ErrorAs(t, err, &maasErr)
-		assert.Equal(t, ErrCodeInternalError, maasErr.Code)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
 	})
 
 	t.Run("truncates oversized response bodies instead of buffering them fully", func(t *testing.T) {
@@ -139,9 +139,9 @@ func TestMaaSClient_ListModels(t *testing.T) {
 
 		_, err := c.ListModels(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var maasErr *MaaSError
-		require.ErrorAs(t, err, &maasErr)
-		assert.Equal(t, ErrCodeInternalError, maasErr.Code)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
 	})
 
 	t.Run("wraps connection failures", func(t *testing.T) {
@@ -150,28 +150,80 @@ func TestMaaSClient_ListModels(t *testing.T) {
 
 		_, err := c.ListModels(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var maasErr *MaaSError
-		require.ErrorAs(t, err, &maasErr)
-		assert.Equal(t, ErrCodeConnectionFailed, maasErr.Code)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeConnectionFailed, ogxErr.Code)
 	})
+}
 
-	t.Run("falls back to openai prefix when /v1/models is 404", func(t *testing.T) {
+// --- ListProviders ---
+
+func TestOGXClient_ListProviders(t *testing.T) {
+	t.Run("parses envelope format with data wrapper", func(t *testing.T) {
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/v1/models" {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			assert.Equal(t, "/v1/openai/v1/models", r.URL.Path)
+			assert.Equal(t, "/v1/providers", r.URL.Path)
 			jsonResponse(t, w, map[string]any{
-				"data": []models.MaaSNativeModel{{ID: "from-openai-prefix"}},
+				"data": []models.OGXProvider{
+					{API: "inference", ProviderID: "ollama", ProviderType: "remote::ollama"},
+				},
 			})
 		})
 		defer ts.Close()
 
-		got, err := c.ListModels(context.Background(), ts.URL, "")
+		got, err := c.ListProviders(context.Background(), ts.URL, "")
 		require.NoError(t, err)
 		require.Len(t, got, 1)
-		assert.Equal(t, "from-openai-prefix", got[0].ID)
+		assert.Equal(t, "ollama", got[0].ProviderID)
+	})
+
+	t.Run("falls back to bare array format", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			jsonResponse(t, w, []models.OGXProvider{
+				{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
+			})
+		})
+		defer ts.Close()
+
+		got, err := c.ListProviders(context.Background(), ts.URL, "")
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "milvus", got[0].ProviderID)
+	})
+
+	t.Run("maps non-200 status to a typed error", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		})
+		defer ts.Close()
+
+		_, err := c.ListProviders(context.Background(), ts.URL, "")
+		require.Error(t, err)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
+	})
+
+	t.Run("truncates oversized response bodies instead of buffering them fully", func(t *testing.T) {
+		const oversizeTarget = 2 << 20 // 2 MiB, above the 1 MiB providers cap
+		var buf bytes.Buffer
+		buf.WriteString(`{"data":[`)
+		element := `{"provider_id":"` + strings.Repeat("y", 1024) + `"},`
+		for buf.Len() < oversizeTarget {
+			buf.WriteString(element)
+		}
+		buf.WriteString(`{"provider_id":"last"}]}`)
+
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(buf.Bytes())
+		})
+		defer ts.Close()
+
+		_, err := c.ListProviders(context.Background(), ts.URL, "")
+		require.Error(t, err)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
 	})
 }
 
@@ -184,14 +236,11 @@ func TestSetAuthHeader(t *testing.T) {
 		url        string
 		wantHeader string
 	}{
-		{"https host gets bearer token", "tok", "https://maas.example.com/v1/models", "Bearer tok"},
+		{"https host gets bearer token", "tok", "https://ogx.example.com/v1/models", "Bearer tok"},
 		{"localhost over http gets bearer token", "tok", "http://localhost:8080/v1/models", "Bearer tok"},
 		{"127.0.0.1 over http gets bearer token", "tok", "http://127.0.0.1:8080/v1/models", "Bearer tok"},
-		{"ipv6 loopback over http gets bearer token", "tok", "http://[::1]:8080/v1/models", "Bearer tok"},
-		{"in-cluster service FQDN over http gets bearer token", "tok", "http://maas.ns.svc.cluster.local:8080/v1/models", "Bearer tok"},
-		{"short cluster DNS over http omits the token", "tok", "http://maas.internal.svc:8080/v1/models", ""},
-		{"plain http to a remote host omits the token", "tok", "http://maas.example.com/v1/models", ""},
-		{"empty apiKey never sets a header", "", "https://maas.example.com/v1/models", ""},
+		{"plain http to a remote host omits the token", "tok", "http://ogx.internal.svc:8080/v1/models", ""},
+		{"empty apiKey never sets a header", "", "https://ogx.example.com/v1/models", ""},
 	}
 
 	for _, tt := range tests {

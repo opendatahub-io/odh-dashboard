@@ -18,12 +18,12 @@ class AutoragConfigurePage {
     return cy.findByTestId('autorag-description-input');
   }
 
-  findMaasSecretSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
-    return cy.findByTestId('maas-secret-selector', options);
+  findOgxSecretSelector() {
+    return cy.findByTestId('ogx-secret-selector');
   }
 
-  findAddMaasConnectionButton() {
-    return cy.findByTestId('add-maas-connection-button');
+  findAddOgxConnectionButton() {
+    return cy.findByTestId('add-ogx-connection-button');
   }
 
   findNextButton() {
@@ -90,9 +90,17 @@ class AutoragConfigurePage {
     return cy.findByTestId(`model-row-${modelId}`);
   }
 
-  // Step 2 - Vector database secret
-  findVectorStoreSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
-    return cy.findByTestId('vector-store-select-toggle', options);
+  // Step 2 - Vector store
+  findVectorStoreSelector() {
+    return cy.findByTestId('vector-store-select-toggle');
+  }
+
+  findVectorStoreOption(providerId: string) {
+    return cy.findByTestId(`vector-store-option-${providerId}`);
+  }
+
+  findFirstVectorStoreOption() {
+    return cy.findByTestId('vector-store-select-list').find('li').first();
   }
 
   // Step 2 - Optimization
@@ -178,8 +186,8 @@ class AutoragConfigurePage {
   }
 
   // Submit
-  findCreateRunButton(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
-    return cy.findByTestId('autorag-create-run-button', options);
+  findCreateRunButton() {
+    return cy.findByTestId('autorag-create-run-button');
   }
 }
 

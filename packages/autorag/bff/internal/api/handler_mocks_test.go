@@ -225,16 +225,24 @@ func (m *mockPipelinesRepo) EnableManagedPipelines(ctx context.Context, namespac
 	return args.Get(0).(*pipelines.EnableManagedPipelinesResult), args.Error(1)
 }
 
-// --- Mock MaaS Repository ---
+// --- Mock OGX Repository ---
 
-type mockMaaSRepo struct {
+type mockOGXRepo struct {
 	mock.Mock
 }
 
-func (m *mockMaaSRepo) GetMaaSModels(ctx context.Context, namespace, secretName string) (*models.MaaSModelsData, error) {
+func (m *mockOGXRepo) GetOGXModels(ctx context.Context, namespace, secretName string) (*models.OGXModelsData, error) {
 	args := m.Called(ctx, namespace, secretName)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.MaaSModelsData), args.Error(1)
+	return args.Get(0).(*models.OGXModelsData), args.Error(1)
+}
+
+func (m *mockOGXRepo) GetOGXVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.OGXVectorStoreProvidersData, error) {
+	args := m.Called(ctx, namespace, secretName)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.OGXVectorStoreProvidersData), args.Error(1)
 }

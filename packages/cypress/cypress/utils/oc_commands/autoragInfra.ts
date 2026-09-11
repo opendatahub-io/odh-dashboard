@@ -3,7 +3,7 @@ import * as yaml from 'js-yaml';
 
 import { pollUntilSuccess } from './baseCommands';
 import { allowOgxAccess } from './ogxNetworkPolicy';
-import { createMaasSecret } from './maasSecret';
+import { createOgxSecret } from './ogxSecret';
 import type { CommandLineResult } from '../../types';
 
 // ---------------------------------------------------------------------------
@@ -233,28 +233,6 @@ const cleanupVectorStore = (namespace: string): void => {
   cy.exec(`oc delete service ${PGVECTOR_DEPLOYMENT} -n ${namespace}`, {
     failOnNonZeroExit: false,
   });
-};
-
-const createVectorDbSecret = (namespace: string, secretName: string): void => {
-  const host = `${PGVECTOR_DEPLOYMENT}.${namespace}.svc.cluster.local`;
-  cy.exec(
-    `oc create secret generic ${secretName} -n ${namespace} ` +
-      `--from-literal=PGVECTOR_HOST='${host}' ` +
-      `--from-literal=PGVECTOR_PORT='${PGVECTOR_PORT}' ` +
-      `--from-literal=PGVECTOR_DB='${PGVECTOR_DATABASE}' ` +
-      `--from-literal=PGVECTOR_USER='${PGVECTOR_USER}' ` +
-      `--from-literal=PGVECTOR_PASSWORD='${PGVECTOR_PASSWORD}' ` +
-      `--dry-run=client -o json | oc apply -f -`,
-    { failOnNonZeroExit: true, log: false },
-  );
-  cy.exec(
-    `oc annotate secret ${secretName} -n ${namespace} ` +
-      `openshift.io/display-name=${secretName} ` +
-      `opendatahub.io/connection-type=pgvector --overwrite && ` +
-      `oc label secret ${secretName} -n ${namespace} ` +
-      `opendatahub.io/dashboard=true opendatahub.io/secret-type=pgvector --overwrite`,
-    { failOnNonZeroExit: true, log: false },
-  );
 };
 
 // ---------------------------------------------------------------------------
@@ -604,21 +582,14 @@ export const getOgxServiceURL = (namespace: string): Cypress.Chainable<string> =
 
 /**
  * Provision AutoRAG infrastructure in a namespace:
- * vector database, OGX Distribution with config, MaaS credentials secret, and network policy.
+ * OGX Distribution with config, credentials secret, and network policy.
  */
-export const provisionVectorDatabase = (namespace: string, vectorDbSecretName: string): void => {
+export const provisionAutoragInfrastructure = (namespace: string, ogxSecretName: string): void => {
+  cy.step('Deploy vector store');
   deployVectorStore(namespace);
-  waitForVectorStoreReady(namespace);
-  createVectorDbSecret(namespace, vectorDbSecretName);
-};
 
-export const provisionAutoragInfrastructure = (
-  namespace: string,
-  maasSecretName: string,
-  vectorDbSecretName: string,
-): void => {
-  cy.step('Deploy vector store and secret');
-  provisionVectorDatabase(namespace, vectorDbSecretName);
+  cy.step('Wait for vector store to be ready');
+  waitForVectorStoreReady(namespace);
 
   cy.step('Create OGX config ConfigMap');
   createOgxConfigMap(namespace);
@@ -629,10 +600,10 @@ export const provisionAutoragInfrastructure = (
   cy.step('Wait for OGX Distribution to be ready');
   waitForDistributionReady(namespace);
 
-  cy.step('Discover OGX service URL and create MaaS credentials secret');
+  cy.step('Discover OGX service URL and create credentials secret');
   getOgxServiceURL(namespace).then((ogxUrl) => {
     cy.log(`OGX service URL: ${ogxUrl}`);
-    createMaasSecret(namespace, maasSecretName, ogxUrl, 'no-auth');
+    createOgxSecret(namespace, ogxSecretName, ogxUrl, 'no-auth');
   });
 
   cy.step('Create NetworkPolicy for OGX access');
@@ -674,13 +645,8 @@ export const cleanupOgxSecret = (namespace: string, secretName: string): void =>
  * Full cleanup of all AutoRAG infrastructure resources.
  * Each cleanup is independent and resilient — failure of one doesn't block others.
  */
-export const cleanupAutoragInfrastructure = (
-  namespace: string,
-  maasSecretName: string,
-  vectorDbSecretName: string,
-): void => {
+export const cleanupAutoragInfrastructure = (namespace: string, ogxSecretName: string): void => {
   cleanupOgx(namespace);
   cleanupVectorStore(namespace);
-  cleanupOgxSecret(namespace, maasSecretName);
-  cleanupOgxSecret(namespace, vectorDbSecretName);
+  cleanupOgxSecret(namespace, ogxSecretName);
 };

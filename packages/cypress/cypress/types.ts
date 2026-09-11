@@ -277,8 +277,6 @@ export type TestConfig = {
   OCI_MODEL_URI: string;
   OGX_URL?: string;
   OGX_API_KEY?: string;
-  MAAS_URL?: string;
-  MAAS_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -989,8 +987,7 @@ export type AutoragTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;
   s3SecretName: string;
-  maasSecretName: string;
-  vectorDbSecretName: string;
+  ogxSecretName: string;
   runName: string;
   runDescription: string;
   documentFile: string;

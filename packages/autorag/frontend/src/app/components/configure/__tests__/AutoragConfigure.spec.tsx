@@ -11,7 +11,7 @@ import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplore
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
-import { useMaasModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -112,13 +112,17 @@ jest.mock('~/app/hooks/useNotification', () => ({
   })),
 }));
 
-// Mock queries hooks used by AutoragConfigure (model pickers)
+// Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useMaasModelsQuery: jest.fn().mockReturnValue({
+  useOgxModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
     isError: false,
+  }),
+  useOgxVectorStoreProvidersQuery: jest.fn().mockReturnValue({
+    data: { vector_store_providers: [] }, // eslint-disable-line camelcase
+    isLoading: false,
   }),
   useSecretsQuery: jest.fn().mockReturnValue({
     data: [],
@@ -253,7 +257,7 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
-const mockUseMaasModelsQuery = jest.mocked(useMaasModelsQuery);
+const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
 
 const configureSchema = createConfigureSchema();
 
@@ -759,7 +763,7 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
 
       // Configure details fields should be visible
-      expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+      expect(screen.getByText('Vector I/O provider')).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
@@ -1105,7 +1109,7 @@ describe('AutoragConfigure', () => {
 
   describe('Model initialization from query data', () => {
     it('should populate generation and embedding models when query returns data', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1119,7 +1123,7 @@ describe('AutoragConfigure', () => {
           ],
         },
         isLoading: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
@@ -1136,17 +1140,17 @@ describe('AutoragConfigure', () => {
 
   describe('Model error handling', () => {
     it('should show error notification when model loading fails', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
       expect(mockNotificationError).toHaveBeenCalledWith(
         'Failed to load models',
-        'Check that the MaaS secret is valid and try again.',
+        'Check that the Open GenAI Stack secret is valid and try again.',
       );
     });
   });
@@ -1386,7 +1390,7 @@ describe('AutoragConfigure', () => {
     it('should retain the previously selected foundation/embedding models instead of resetting to all models', () => {
       // Query returns more models than were previously selected, so a reset-to-all
       // regression is distinguishable from correctly retaining the prior selection.
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1409,7 +1413,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1420,7 +1424,7 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
           input_data_key: 'data.pdf',
@@ -1431,7 +1435,7 @@ describe('AutoragConfigure', () => {
           embedding_models: ['embed-model-1'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
           input_data_key: 'data.pdf',
@@ -1455,7 +1459,7 @@ describe('AutoragConfigure', () => {
     it('should drop restored model selections that are no longer available and fall back to all models', () => {
       // The restored selection references a model that is no longer returned by
       // the current secret/provider (e.g. removed/deprecated upstream).
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1472,7 +1476,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1483,7 +1487,7 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
           input_data_key: 'data.pdf',
@@ -1495,7 +1499,7 @@ describe('AutoragConfigure', () => {
           embedding_models: ['removed-embed-model'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
           input_data_key: 'data.pdf',
@@ -1516,7 +1520,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should keep only the still-available restored models when some restored selections are stale', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1527,7 +1531,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1538,7 +1542,7 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
           input_data_key: 'data.pdf',
@@ -1550,7 +1554,7 @@ describe('AutoragConfigure', () => {
           embedding_models: ['embed-model-1'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
           input_data_key: 'data.pdf',
@@ -1610,11 +1614,11 @@ describe('AutoragConfigure', () => {
     });
 
     it('should disable "Edit" button when model loading fails', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
@@ -1631,7 +1635,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Edit" button when a file/folder is selected', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1640,7 +1644,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 

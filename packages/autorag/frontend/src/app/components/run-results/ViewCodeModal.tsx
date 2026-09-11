@@ -16,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
-import type { MaasCredentials } from '~/app/types';
+import type { OgxCredentials } from '~/app/types';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -35,7 +35,7 @@ type ViewCodeModalProps = {
   onClose: () => void;
   patternName: string;
   responsesTemplate: ResponsesTemplate;
-  maasCredentials?: MaasCredentials;
+  ogxCredentials?: OgxCredentials;
 };
 
 const snippetTabs: {
@@ -65,11 +65,11 @@ const snippetTabs: {
   },
 ];
 
-const decodeCredentials = (maasCredentials: MaasCredentials): SnippetCredentials => {
-  const decodedBaseUrl = atob(maasCredentials.baseUrl);
+const decodeCredentials = (ogxCredentials: OgxCredentials): SnippetCredentials => {
+  const decodedBaseUrl = atob(ogxCredentials.baseUrl);
   return {
     hostname: decodedBaseUrl.replace(/^https?:\/\//i, '').replace(/\/$/, ''),
-    apiKey: atob(maasCredentials.apiKey),
+    apiKey: atob(ogxCredentials.apiKey),
   };
 };
 
@@ -78,11 +78,11 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
   onClose,
   patternName,
   responsesTemplate,
-  maasCredentials,
+  ogxCredentials,
 }) => {
   const { namespace } = useParams();
   const { parameters } = useAutoragResultsContext();
-  const secretName = parameters?.maas_secret_name ?? '';
+  const secretName = parameters?.ogx_secret_name ?? '';
 
   const snippetParams: SnippetParams = React.useMemo(
     () => ({ template: responsesTemplate, secretName, namespace: namespace ?? '' }),
@@ -95,24 +95,24 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
   const notification = useNotification();
 
   const decodedCredentials = React.useMemo(() => {
-    if (!maasCredentials) {
+    if (!ogxCredentials) {
       return undefined;
     }
     try {
-      return decodeCredentials(maasCredentials);
+      return decodeCredentials(ogxCredentials);
     } catch {
       return undefined;
     }
-  }, [maasCredentials]);
+  }, [ogxCredentials]);
 
   React.useEffect(() => {
-    if (maasCredentials && !decodedCredentials) {
+    if (ogxCredentials && !decodedCredentials) {
       notification.error(
         'Failed to decode credentials',
         'The secret data could not be decoded. Credential placeholders will be shown instead.',
       );
     }
-  }, [maasCredentials, decodedCredentials, notification]);
+  }, [ogxCredentials, decodedCredentials, notification]);
 
   const hasCredentials = !!decodedCredentials;
   const displayCredentials = showCredentials ? decodedCredentials : undefined;
@@ -142,7 +142,7 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
         <Content component={ContentVariants.p} className="pf-v6-u-mb-md">
           {hasCredentials
             ? 'Use these code snippets to query this pattern programmatically via the Responses API.'
-            : 'Use these code snippets to query this pattern programmatically via the Responses API. Each snippet fetches your MaaS credentials from the cluster automatically.'}
+            : 'Use these code snippets to query this pattern programmatically via the Responses API. Each snippet fetches your Open GenAI Stack credentials from the cluster automatically.'}
         </Content>
         {hasCredentials && (
           <div
@@ -155,8 +155,8 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
               title="Credentials will be included when you copy"
               data-testid="credentials-warning-alert"
             >
-              Your real MaaS hostname and API key will be copied with the snippet. Treat the copied
-              code as a secret.
+              Your real Open GenAI Stack hostname and API key will be copied with the snippet. Treat
+              the copied code as a secret.
             </Alert>
           </div>
         )}

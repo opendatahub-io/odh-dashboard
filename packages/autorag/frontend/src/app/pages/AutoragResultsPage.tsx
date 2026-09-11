@@ -195,29 +195,32 @@ function AutoragResultsPage(): React.JSX.Element {
     [namespace, runId],
   );
 
-  const maasSecretName =
-    typeof pipelineRun?.runtime_config?.parameters?.maas_secret_name === 'string'
-      ? pipelineRun.runtime_config.parameters.maas_secret_name
+  const ogxSecretName =
+    typeof pipelineRun?.runtime_config?.parameters?.ogx_secret_name === 'string'
+      ? pipelineRun.runtime_config.parameters.ogx_secret_name
       : undefined;
 
   const { data: secretData, isError: secretFetchError } = useSecretCredentialsQuery(
     namespace,
-    maasSecretName,
+    ogxSecretName,
   );
 
   React.useEffect(() => {
     if (secretFetchError) {
-      notification.warning('Could not load MaaS credentials', 'Credentials could not be fetched.');
+      notification.warning(
+        'Could not load Open GenAI Stack credentials',
+        'Credentials could not be fetched.',
+      );
     }
   }, [secretFetchError, notification]);
 
-  const maasCredentials = React.useMemo(() => {
-    if (!secretData?.MAAS_BASE_URL || !('MAAS_API_KEY' in secretData)) {
+  const ogxCredentials = React.useMemo(() => {
+    if (!secretData?.OGX_CLIENT_BASE_URL || !secretData.OGX_CLIENT_API_KEY) {
       return undefined;
     }
     return {
-      baseUrl: secretData.MAAS_BASE_URL,
-      apiKey: secretData.MAAS_API_KEY,
+      baseUrl: secretData.OGX_CLIENT_BASE_URL,
+      apiKey: secretData.OGX_CLIENT_API_KEY,
     };
   }, [secretData]);
 
@@ -232,7 +235,7 @@ function AutoragResultsPage(): React.JSX.Element {
         patternsLoadError,
         onRetryPatterns: refetchPatterns,
         ragPatternsBasePath,
-        maasCredentials,
+        ogxCredentials,
         componentStageMap,
         componentStageMapLoading: componentStageMapLoading || componentStatusesLoading,
         componentStageMapError,
@@ -247,7 +250,7 @@ function AutoragResultsPage(): React.JSX.Element {
       patternsLoadError,
       refetchPatterns,
       ragPatternsBasePath,
-      maasCredentials,
+      ogxCredentials,
       componentStageMap,
       componentStageMapLoading,
       componentStatusesLoading,
@@ -468,7 +471,7 @@ function AutoragResultsPage(): React.JSX.Element {
           onClose={() => setViewCodePattern(null)}
           patternName={viewCodePattern.patternName}
           responsesTemplate={viewCodePattern.responsesTemplate}
-          maasCredentials={maasCredentials}
+          ogxCredentials={ogxCredentials}
         />
       )}
     </AutoragResultsContext.Provider>

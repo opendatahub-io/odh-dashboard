@@ -13,15 +13,13 @@ const extractNamespaceFromServiceUrl = (url: string): string | undefined => {
 
 /**
  * Resolve the OGX namespace from an explicit parameter,
- * MAAS_URL / OGX_URL, or fall back to 'llama-stack'.
+ * the OGX_URL env var, or fall back to 'llama-stack'.
  */
 const resolveOgxNamespace = (ogxNamespace?: string): string => {
   if (ogxNamespace) {
     return ogxNamespace;
   }
-  const url =
-    (Cypress.env('MAAS_URL') as string | undefined) ||
-    (Cypress.env('OGX_URL') as string | undefined);
+  const url = Cypress.env('OGX_URL') as string | undefined;
   if (url) {
     const ns = extractNamespaceFromServiceUrl(url);
     if (ns) {

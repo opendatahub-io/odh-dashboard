@@ -49,7 +49,7 @@ import {
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
-const createFields = ['display_name', 'description', 'maas_secret_name'] as const satisfies Array<
+const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
 
@@ -67,10 +67,8 @@ type AutoragConfigurePageProps = {
   initialValues?: Partial<ConfigureSchema>;
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
-  /** Pre-resolved MaaS connection secret for reconfigure flows. */
-  initialMaasSecret?: SecretSelection;
-  /** Pre-resolved vector database secret for reconfigure flows. */
-  initialVectorDbSecret?: SecretSelection;
+  /** Pre-resolved Open GenAI Stack connection secret for reconfigure flows. */
+  initialOgxSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
   /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
@@ -80,8 +78,7 @@ type AutoragConfigurePageProps = {
 function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
-  initialMaasSecret,
-  initialVectorDbSecret,
+  initialOgxSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -126,7 +123,7 @@ function AutoragConfigurePage({
     defaultValues: initialFormValues,
   });
 
-  const [displayName, description, maasSecretName] = useWatch({
+  const [displayName, description, ogxSecretName] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -343,7 +340,7 @@ function AutoragConfigurePage({
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
             !configureSchema.base.shape.description.safeParse(description).success ||
-            !configureSchema.base.shape.maas_secret_name.safeParse(maasSecretName).success
+            !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
           }
         >
           Next
@@ -561,12 +558,11 @@ function AutoragConfigurePage({
                 hasBodyWrapper={false}
               >
                 {step === 'create' ? (
-                  <AutoragCreate initialMaasSecret={initialMaasSecret} />
+                  <AutoragCreate initialOgxSecret={initialOgxSecret} />
                 ) : (
                   <AutoragConfigure
                     initialValues={initialValues}
                     initialInputDataSecret={initialInputDataSecret}
-                    initialVectorDbSecret={initialVectorDbSecret}
                   />
                 )}
               </PageSection>

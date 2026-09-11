@@ -13,7 +13,7 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | string | **Yes** | The namespace name to query secrets from |
-| `type` | string | No | Secret type filter: `storage`, `maas`, `vector-db`, or omit for all secrets |
+| `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), `ogx` for OGX (Open GenAI Stack) secrets, or omit for all secrets |
 
 ## Functionality
 
@@ -22,12 +22,11 @@ The endpoint:
 2. Filters secrets based on the `type` parameter:
    - **No type** (or empty): Returns all secrets in the namespace
    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
-   - **`type=maas`**: Filters for MaaS (Models as a Service) secrets
-   - **`type=vector-db`**: Filters for Milvus/PGVector secrets (`MILVUS_URI` or `PGVECTOR_HOST`, or connection-type `milvus` / `pgvector` / `vector-db`)
+   - **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets containing required OGX keys
 3. Returns the Kubernetes UID, name, and type of each matching secret
    - The `type` field is determined by:
      1. **First priority**: The `opendatahub.io/connection-type` annotation if present and non-empty
-     2. **Fallback**: Key-based type detection (e.g., "s3", "maas")
+     2. **Fallback**: Key-based type detection (e.g., "s3", "ogx")
    - If a secret doesn't match any known type and has no connection-type annotation, the `type` field is omitted from the response
    - If a secret matches multiple types via key detection, the first matching type is returned
 4. Requires authentication via the InjectRequestIdentity middleware
@@ -35,7 +34,7 @@ The endpoint:
 
 ### Secret Type Filtering
 
-Secrets are filtered using configurable dictionaries of secret types and their required keys. A secret must contain **ALL** required keys for a type to be included in the results. Storage (S3) key matching is **case-sensitive**; those keys must be uppercase. MaaS and vector-db key matching is **case-insensitive**.
+Secrets are filtered using configurable dictionaries of secret types and their required keys. A secret must contain **ALL** required keys for a type to be included in the results. Key matching is **case-sensitive**; keys must be uppercase.
 
 **Currently Supported Storage Types:**
 
@@ -45,11 +44,11 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
 
-**Currently Supported MaaS Types:**
+**Currently Supported OGX Types:**
 
-| MaaS Type | Required Keys |
+| OGX Type | Required Keys |
 |----------|---------------|
-| **Models as a Service** | `MAAS_API_KEY`, `MAAS_BASE_URL` |
+| **Open GenAI Stack** | `OGX_CLIENT_API_KEY`, `OGX_CLIENT_BASE_URL` |
 
 ## Response Format
 
@@ -92,7 +91,7 @@ The response follows the envelope pattern:
 |-------|------|-------------|
 | `uuid` | string | The Kubernetes UID of the secret |
 | `name` | string | The name of the secret |
-| `type` | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "maas"). Omitted from the response only when neither is available. |
+| `type` | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "ogx"). Omitted from the response only when neither is available. |
 | `data` | object | Object mapping all keys available in the secret to their values. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `AWS_S3_BUCKET`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
 | `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist. |
 | `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist. |
@@ -121,10 +120,10 @@ GET /api/v1/secrets?namespace=my-namespace
 GET /api/v1/secrets?namespace=my-namespace&type=storage
 ```
 
-### List MaaS (Models as a Service) secrets only
+### List OGX (Open GenAI Stack) secrets only
 
 ```bash
-GET /api/v1/secrets?namespace=my-namespace&type=maas
+GET /api/v1/secrets?namespace=my-namespace&type=ogx
 ```
 
 Response:
@@ -133,21 +132,21 @@ Response:
   "data": [
     {
       "uuid": "c3d4e5f6-a7b8-9012-cdef-012345678901",
-      "name": "maas-secret-1",
-      "type": "maas",
+      "name": "ogx-secret-1",
+      "type": "ogx",
       "data": {
-        "MAAS_API_KEY": "[REDACTED]",
-        "MAAS_BASE_URL": "[REDACTED]"
+        "OGX_CLIENT_API_KEY": "[REDACTED]",
+        "OGX_CLIENT_BASE_URL": "[REDACTED]"
       },
-      "displayName": "Development MaaS"
+      "displayName": "Development OGX"
     },
     {
       "uuid": "d4e5f6a7-b8c9-0123-def0-123456789012",
-      "name": "maas-secret-2",
-      "type": "maas",
+      "name": "ogx-secret-2",
+      "type": "ogx",
       "data": {
-        "MAAS_API_KEY": "[REDACTED]",
-        "MAAS_BASE_URL": "[REDACTED]"
+        "OGX_CLIENT_API_KEY": "[REDACTED]",
+        "OGX_CLIENT_BASE_URL": "[REDACTED]"
       }
     }
   ]
@@ -221,7 +220,7 @@ Key matching is case-sensitive via the `IsAllowedSecretKey()` function. Keys mus
 
 ### Filtering Logic
 
-The endpoint supports four filtering modes based on the `type` parameter:
+The endpoint supports three filtering modes based on the `type` parameter:
 
 1. **No type (all secrets)**: Returns all secrets in the namespace without filtering
 
@@ -234,14 +233,11 @@ The endpoint supports four filtering modes based on the `type` parameter:
    - Extensible design allows adding new storage types (Azure, GCP, etc.) without API changes
    - Key matching is case-sensitive; keys must be uppercase
 
-3. **`type=maas`**: Filters for MaaS (Models as a Service) secrets
-   - **Annotation first**: a secret with `opendatahub.io/connection-type: maas` is included even if it does not have MaaS credential keys
-   - **Key-based fallback** (no connection-type annotation): the secret must have `MAAS_API_KEY` and `MAAS_BASE_URL`. Key matching is case-insensitive. The API-key value may be empty (no-auth). `OGX_CLIENT_*` keys are not treated as MaaS.
-   - A secret annotated as a different type is excluded even if it has MaaS keys
-
-4. **`type=vector-db`**: Filters for vector database secrets used by the optimization pipeline
-   - **Annotation first**: `opendatahub.io/connection-type` of `milvus`, `pgvector`, or `vector-db`
-   - **Key-based fallback**: `MILVUS_URI` (classified as milvus) or `PGVECTOR_HOST` (classified as pgvector). Key matching is case-insensitive
+3. **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets
+   - A secret matches if it contains ALL required OGX keys
+   - Currently configured OGX type:
+     - **Open GenAI Stack**: Requires `OGX_CLIENT_API_KEY`, `OGX_CLIENT_BASE_URL`
+   - Key matching is case-sensitive; keys must be uppercase
 
 Invalid type values result in a 400 Bad Request error.
 
@@ -256,15 +252,15 @@ Invalid type values result in a 400 Bad Request error.
 
 A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results. Note that `AWS_DEFAULT_REGION` is not required for BFF-level S3 type detection; its presence is validated on the frontend side via `additionalRequiredKeys`.
 
-**Example**: A secret with the following data would match MaaS (Models as a Service) type:
+**Example**: A secret with the following data would match OGX (Open GenAI Stack) type:
 ```json
 {
-  "MAAS_API_KEY": "sk-test-api-key-123",
-  "MAAS_BASE_URL": "https://maas.example.com"
+  "OGX_CLIENT_API_KEY": "sk-test-api-key-123",
+  "OGX_CLIENT_BASE_URL": "https://ogx.example.com"
 }
 ```
 
-A secret missing any of these required keys is excluded from `type=maas` **unless** it has `opendatahub.io/connection-type: maas`. Key matching for the credential-key fallback is case-insensitive. `OGX_CLIENT_*` keys are not treated as MaaS.
+A secret missing any of these required keys would NOT match and would be excluded from `type=ogx` results. Key matching is case-sensitive — keys must be uppercase (e.g., `OGX_CLIENT_API_KEY`).
 
 ### Secret Data Field
 
@@ -342,7 +338,7 @@ data:
 }
 ```
 
-Even if the secret contains keys that would normally match S3 or MaaS detection, the annotation takes precedence and the type will be set to the annotation value.
+Even if the secret contains keys that would normally match S3 or OGX detection, the annotation takes precedence and the type will be set to the annotation value.
 
 ### Display Name and Description
 
@@ -426,8 +422,7 @@ For complete details on S3 endpoint security validation, see [s3-endpoint-securi
 The implementation includes comprehensive tests covering:
 - **Type filtering**:
   - `type=storage`: Successful retrieval with S3 secret filtering, case-sensitive key matching
-  - `type=maas`: Successful retrieval with MaaS (Models as a Service) secret filtering, annotation precedence, and case-insensitive key matching
-  - `type=vector-db`: Successful retrieval with Milvus/PGVector secret filtering
+  - `type=ogx`: Successful retrieval with OGX (Open GenAI Stack) secret filtering, case-sensitive key matching
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
 - **Secret data field**:

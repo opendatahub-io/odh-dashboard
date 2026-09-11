@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { MaasCredentials, PipelineRun } from '~/app/types';
+import type { OgxCredentials, PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
@@ -16,7 +16,7 @@ export type AutoragResultsContextProps = {
   onRetryPatterns?: () => void;
   parameters?: Partial<ConfigureSchema>;
   ragPatternsBasePath?: string;
-  maasCredentials?: MaasCredentials;
+  ogxCredentials?: OgxCredentials;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
@@ -49,7 +49,7 @@ export function getAutoragContext({
   patternsLoadError,
   onRetryPatterns,
   ragPatternsBasePath,
-  maasCredentials,
+  ogxCredentials,
   componentStageMap,
   componentStageMapLoading,
   componentStageMapError,
@@ -62,7 +62,7 @@ export function getAutoragContext({
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
   ragPatternsBasePath?: string;
-  maasCredentials?: MaasCredentials;
+  ogxCredentials?: OgxCredentials;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
@@ -93,7 +93,7 @@ export function getAutoragContext({
     onRetryPatterns,
     parameters,
     ragPatternsBasePath,
-    maasCredentials,
+    ogxCredentials,
     componentStageMap,
     componentStageMapLoading,
     componentStageMapError,

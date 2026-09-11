@@ -163,24 +163,24 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
 
   const MockVectorStoreSelector = () => {
     const { setValue, watch } = useFormContext();
-    const currentValue = watch('vector_db_secret_name');
+    const currentValue = watch('vector_io_provider_id');
     ReactMock.useEffect(() => {
       // Only set a default when the field is empty (new configure flow).
       if (!currentValue) {
-        setValue('vector_db_secret_name', 'vector-db-secret', { shouldValidate: true });
+        setValue('vector_io_provider_id', 'milvus', { shouldValidate: true });
       }
     }, [setValue, currentValue]);
     return ReactMock.createElement(
       'div',
       { 'data-testid': 'vector-store-select-toggle' },
-      currentValue || 'vector-db-secret',
+      currentValue || 'milvus (remote Milvus)',
     );
   };
   return { __esModule: true, default: MockVectorStoreSelector };
 });
 
 jest.mock('~/app/hooks/queries', () => ({
-  useMaasModelsQuery: jest.fn(() => ({
+  useOgxModelsQuery: jest.fn(() => ({
     data: {
       models: [
         { id: 'llama-3-8b', type: 'llm' },
@@ -190,6 +190,15 @@ jest.mock('~/app/hooks/queries', () => ({
     },
     isLoading: false,
     error: null,
+  })),
+  useOgxVectorStoreProvidersQuery: jest.fn(() => ({
+    data: {
+      vector_store_providers: [
+        { provider_id: 'milvus', provider_type: 'remote::milvus' },
+        { provider_id: 'chromadb', provider_type: 'remote::chromadb' },
+      ],
+    }, // eslint-disable-line camelcase
+    isLoading: false,
   })),
   useSecretsQuery: jest.fn(() => ({
     data: [],
@@ -316,10 +325,10 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
         });
       } else {
         onChange({
-          uuid: 'maas-secret-1',
-          name: 'Test MaaS Secret',
-          data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
-          type: 'maas',
+          uuid: 'ogx-secret-1',
+          name: 'Test OGX Secret',
+          data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+          type: 'ogx',
           invalid: false,
         });
       }
@@ -376,7 +385,7 @@ describe('AutoragConfigurePage', () => {
       // Check for form fields that are rendered by AutoragCreate
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(await screen.findByLabelText(/Description/i)).toBeInTheDocument();
-      expect(await screen.findByText(/MaaS connection/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Open GenAI Stack connection/i)).toBeInTheDocument();
     });
 
     it('should NOT render AutoragConfigure component on initial load', async () => {
@@ -414,7 +423,7 @@ describe('AutoragConfigurePage', () => {
       expect(nextButton).toBeDisabled();
     });
 
-    it('should disable Next button when MaaS secret is not selected', async () => {
+    it('should disable Next button when Open GenAI Stack secret is not selected', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -426,7 +435,7 @@ describe('AutoragConfigurePage', () => {
       expect(nextButton).toBeDisabled();
     });
 
-    it('should enable Next button when name and MaaS secret are filled', async () => {
+    it('should enable Next button when name and Open GenAI Stack secret are filled', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -434,8 +443,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select MaaS secret
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Find the Next button (it should be enabled after form updates)
@@ -451,8 +460,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select MaaS secret
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Click Next button
@@ -484,7 +493,7 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -507,7 +516,7 @@ describe('AutoragConfigurePage', () => {
       const descriptionInput = await screen.findByLabelText(/Description/i);
       await user.type(descriptionInput, 'Some description');
 
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -541,7 +550,7 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -561,8 +570,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'My Experiment');
 
-      // Select MaaS secret
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Click Next button to go to configure step
@@ -626,8 +635,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'My Experiment');
 
-      // Select MaaS secret
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure step
@@ -638,9 +647,9 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      // Should show create component again (has Name, Description, MaaS connection)
+      // Should show create component again (has Name, Description, Open GenAI Stack connection)
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
-      expect(await screen.findByText(/MaaS connection/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Open GenAI Stack connection/i)).toBeInTheDocument();
       // Should NOT show configure component (Documents, Configure Details)
       expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
@@ -657,8 +666,8 @@ describe('AutoragConfigurePage', () => {
       const descriptionInput = await screen.findByLabelText(/Description/i);
       await user.type(descriptionInput, 'Preserved Description');
 
-      // Select MaaS secret
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure step
@@ -681,10 +690,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'My Experiment');
 
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
@@ -699,7 +706,7 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      await user.click(selectMaasSecretButton);
+      await user.click(selectOgxSecretButton);
       await user.click(nextButton);
 
       expect(
@@ -720,11 +727,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select MaaS secret
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -775,11 +780,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select MaaS secret
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -823,11 +826,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select MaaS secret
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -871,11 +872,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select MaaS secret
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -916,10 +915,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Upload Immediate Test');
 
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
@@ -977,10 +974,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
@@ -1031,10 +1026,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
@@ -1071,14 +1064,14 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('AutoRAG Run Reconfigured tracking', () => {
-    // Matches the models `useMaasModelsQuery` is mocked to return above — AutoragConfigure's own
+    // Matches the models `useOgxModelsQuery` is mocked to return above — AutoragConfigure's own
     // model-initialization effect always resets generation_models/embedding_models to "select
     // all available models" on mount, overwriting whatever a reconfigure's initialValues
     // provided, so this is the only way to get a genuine "no changes" baseline for `models`.
     const noChangeReconfigureInitialValues = {
       display_name: 'Original Run - 1',
-      maas_secret_name: 'Test MaaS Secret',
-      vector_db_secret_name: 'vector-db-secret',
+      ogx_secret_name: 'Test OGX Secret',
+      vector_io_provider_id: 'chromadb',
       input_data_secret_name: 'Test AWS Secret',
       input_data_bucket_name: 'test-bucket',
       input_data_key: 'my-data/input.pdf',
@@ -1089,11 +1082,11 @@ describe('AutoragConfigurePage', () => {
       generation_models: ['llama-3-8b', 'llama-3-70b'],
       embedding_models: ['text-embedding-ada-002'],
     };
-    const reconfigureInitialMaasSecret = {
-      uuid: 'maas-secret-1',
-      name: 'Test MaaS Secret',
-      data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
-      type: 'maas',
+    const reconfigureInitialOgxSecret = {
+      uuid: 'ogx-secret-1',
+      name: 'Test OGX Secret',
+      data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+      type: 'ogx',
       invalid: false,
     };
     const reconfigureInitialSecret = {
@@ -1122,7 +1115,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialMaasSecret={reconfigureInitialMaasSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1159,10 +1152,8 @@ describe('AutoragConfigurePage', () => {
 
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
@@ -1198,7 +1189,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialMaasSecret={reconfigureInitialMaasSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1238,7 +1229,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialMaasSecret={reconfigureInitialMaasSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1278,7 +1269,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialMaasSecret={reconfigureInitialMaasSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1321,7 +1312,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialMaasSecret={reconfigureInitialMaasSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1392,10 +1383,8 @@ describe('AutoragConfigurePage', () => {
 
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
@@ -1415,10 +1404,8 @@ describe('AutoragConfigurePage', () => {
 
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
@@ -1446,10 +1433,8 @@ describe('AutoragConfigurePage', () => {
 
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
@@ -1465,14 +1450,14 @@ describe('AutoragConfigurePage', () => {
       // not still report the milestone that was just cleared.
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
-      // AutoragCreate remounts on Back and resets maas_secret_name to '' when no initialMaasSecret
+      // AutoragCreate remounts on Back and resets ogx_secret_name to '' when no initialOgxSecret
       // is provided (the SecretSelector can't visually reflect a pre-existing value), so it must
       // be re-selected — via a freshly-queried button, since AutoragCreate's remount detaches the
       // one captured above — before Next is enabled again.
-      const selectMaasSecretButtonAfterBack = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
+      const selectOgxSecretButtonAfterBack = await screen.findByTestId(
+        'ogx-secret-selector-select-secret',
       );
-      await user.click(selectMaasSecretButtonAfterBack);
+      await user.click(selectOgxSecretButtonAfterBack);
       const nextButtonAgain = await screen.findByRole('button', { name: 'Next' });
       await waitFor(() => {
         expect(nextButtonAgain).toBeEnabled();
@@ -1496,10 +1481,8 @@ describe('AutoragConfigurePage', () => {
 
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
@@ -1552,10 +1535,8 @@ describe('AutoragConfigurePage', () => {
 
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
-      const selectMaasSecretButton = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
-      );
-      await user.click(selectMaasSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
@@ -1592,16 +1573,16 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={{
               display_name: 'Original Run - 1',
-              maas_secret_name: 'Test MaaS Secret',
+              ogx_secret_name: 'Test OGX Secret',
             }}
-            initialMaasSecret={{
-              uuid: 'maas-secret-1',
-              name: 'Test MaaS Secret',
+            initialOgxSecret={{
+              uuid: 'ogx-secret-1',
+              name: 'Test OGX Secret',
               data: {
-                MAAS_BASE_URL: 'https://example.com',
-                MAAS_API_KEY: 'test-key',
+                OGX_CLIENT_BASE_URL: 'https://example.com',
+                OGX_CLIENT_API_KEY: 'test-key',
               },
-              type: 'maas',
+              type: 'ogx',
               invalid: false,
             }}
             sourceRunId="prev-run-456"
@@ -1820,13 +1801,13 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={{
             display_name: 'Reconfigured Run',
-            maas_secret_name: 'Test MaaS Secret',
+            ogx_secret_name: 'Test OGX Secret',
           }}
-          initialMaasSecret={{
-            uuid: 'maas-secret-1',
-            name: 'Test MaaS Secret',
-            data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
-            type: 'maas',
+          initialOgxSecret={{
+            uuid: 'ogx-secret-1',
+            name: 'Test OGX Secret',
+            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+            type: 'ogx',
             invalid: false,
           }}
           sourceRunId="prev-run-456"
@@ -1834,9 +1815,9 @@ describe('AutoragConfigurePage', () => {
         />,
       );
 
-      // Verify the prefilled MaaS secret is shown
-      expect(await screen.findByTestId('maas-secret-selector-value')).toHaveTextContent(
-        'maas-secret-1',
+      // Verify the prefilled Open GenAI Stack secret is shown
+      expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+        'ogx-secret-1',
       );
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -1856,8 +1837,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'New Run');
 
-      // Select MaaS secret
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -1899,13 +1880,13 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={{
             display_name: 'Pre-filled Name',
-            maas_secret_name: 'Test MaaS Secret',
+            ogx_secret_name: 'Test OGX Secret',
           }}
-          initialMaasSecret={{
-            uuid: 'maas-secret-1',
-            name: 'Test MaaS Secret',
-            data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
-            type: 'maas',
+          initialOgxSecret={{
+            uuid: 'ogx-secret-1',
+            name: 'Test OGX Secret',
+            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+            type: 'ogx',
             invalid: false,
           }}
           sourceRunId="run-xyz"
@@ -1913,9 +1894,9 @@ describe('AutoragConfigurePage', () => {
         />,
       );
 
-      // Verify the prefilled MaaS secret is shown
-      expect(await screen.findByTestId('maas-secret-selector-value')).toHaveTextContent(
-        'maas-secret-1',
+      // Verify the prefilled Open GenAI Stack secret is shown
+      expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+        'ogx-secret-1',
       );
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -1932,8 +1913,8 @@ describe('AutoragConfigurePage', () => {
       const reconfigureInitialValues = {
         display_name: 'Reconfigured Run',
         description: 'A reconfigured experiment',
-        maas_secret_name: 'Test MaaS Secret',
-        vector_db_secret_name: 'prefilled-vector-db-secret',
+        ogx_secret_name: 'Test OGX Secret',
+        vector_io_provider_id: 'chromadb',
         input_data_secret_name: 'Test AWS Secret',
         input_data_bucket_name: 'test-bucket',
         input_data_key: 'my-data/input.pdf',
@@ -1943,11 +1924,11 @@ describe('AutoragConfigurePage', () => {
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
-      const reconfigureInitialMaasSecret = {
-        uuid: 'maas-secret-1',
-        name: 'Test MaaS Secret',
-        data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
-        type: 'maas',
+      const reconfigureInitialOgxSecret = {
+        uuid: 'ogx-secret-1',
+        name: 'Test OGX Secret',
+        data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+        type: 'ogx',
         invalid: false,
       };
       const reconfigureInitialSecret = {
@@ -1962,9 +1943,9 @@ describe('AutoragConfigurePage', () => {
       const navigateToConfigure = async () => {
         const user = userEvent.setup();
 
-        // Verify the prefilled MaaS secret is shown
-        expect(await screen.findByTestId('maas-secret-selector-value')).toHaveTextContent(
-          'maas-secret-1',
+        // Verify the prefilled Open GenAI Stack secret is shown
+        expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+          'ogx-secret-1',
         );
 
         const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -1984,7 +1965,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialMaasSecret={reconfigureInitialMaasSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -1999,7 +1980,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialMaasSecret={reconfigureInitialMaasSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2011,21 +1992,19 @@ describe('AutoragConfigurePage', () => {
         expect(screen.getByText('input.pdf')).toBeInTheDocument();
       });
 
-      it('should show the pre-filled vector database secret in the configure step', async () => {
+      it('should show the pre-filled Vector I/O provider in the configure step', async () => {
         renderWithProviders(
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialMaasSecret={reconfigureInitialMaasSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
 
         await navigateToConfigure();
 
-        expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent(
-          'prefilled-vector-db-secret',
-        );
+        expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('chromadb');
       });
 
       it('should show the pre-filled evaluation dataset in the configure step', async () => {
@@ -2033,7 +2012,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialMaasSecret={reconfigureInitialMaasSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2048,7 +2027,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialMaasSecret={reconfigureInitialMaasSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2065,7 +2044,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialMaasSecret={reconfigureInitialMaasSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2081,7 +2060,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialMaasSecret={reconfigureInitialMaasSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2119,7 +2098,7 @@ describe('AutoragConfigurePage', () => {
       await user.type(descriptionInput, 'Persistent Description');
 
       // Select secret
-      const selectSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure
@@ -2136,7 +2115,7 @@ describe('AutoragConfigurePage', () => {
 
       // Re-select secret (it's reset on component mount as per AutoragCreate.tsx)
       const selectSecretButtonAgain = await screen.findByTestId(
-        'maas-secret-selector-select-secret',
+        'ogx-secret-selector-select-secret',
       );
       await user.click(selectSecretButtonAgain);
 
