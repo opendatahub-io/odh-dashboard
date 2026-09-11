@@ -144,28 +144,33 @@ describe('Workbench Kueue Lifecycle Tests', () => {
       'Verify workbench Kueue lifecycle: Inadmissible → Ready after quota update',
       { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
       () => {
-        const workbenchName = `kueue-lifecycle-wb-${ctx.uuid}`;
+        if (!ctx) {
+          throw new Error('Test setup did not complete');
+        }
+        const projectCtx = ctx;
 
-        openWorkbenchesTab(ctx);
-        createWorkbench(ctx, workbenchName);
+        const workbenchName = `kueue-lifecycle-wb-${projectCtx.uuid}`;
+
+        openWorkbenchesTab(projectCtx);
+        createWorkbench(projectCtx, workbenchName);
 
         const notebookRow = workbenchPage.getNotebookRow(workbenchName);
         notebookRow.expectStatusLabelToBe('Inadmissible', 120000);
         notebookRow
           .findNotebookStatusSubtitle()
-          .should('contain.text', ctx.fixtureData.exceededQuotaMessage);
+          .should('contain.text', projectCtx.fixtureData.exceededQuotaMessage);
 
         notebookRow.findHaveNotebookStatusText().click();
-        verifyResourcesModal(ctx.testData.clusterQueueName);
+        verifyResourcesModal(projectCtx.testData.clusterQueueName);
 
         updateClusterQueueQuota(
-          ctx.testData.clusterQueueName,
-          ctx.fixtureData.updatedCpuQuota,
-          ctx.fixtureData.updatedMemoryQuota,
+          projectCtx.testData.clusterQueueName,
+          projectCtx.fixtureData.updatedCpuQuota,
+          projectCtx.fixtureData.updatedMemoryQuota,
         );
 
         notebookRow.expectStatusLabelToBe('Ready', 300000);
-        notebookRow.shouldHaveHardwareProfile(ctx.testData.hardwareProfileDisplayName);
+        notebookRow.shouldHaveHardwareProfile(projectCtx.testData.hardwareProfileDisplayName);
       },
     );
   });
@@ -193,28 +198,36 @@ describe('Workbench Kueue Lifecycle Tests', () => {
         tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged', '@NonConcurrent'],
       },
       () => {
-        const firstWorkbenchName = `kueue-wb-q1-${ctx.uuid}`;
-        const secondWorkbenchName = `kueue-wb-q2-${ctx.uuid}`;
+        if (!ctx) {
+          throw new Error('Test setup did not complete');
+        }
+        const projectCtx = ctx;
 
-        openWorkbenchesTab(ctx);
-        createWorkbench(ctx, firstWorkbenchName);
-        pollUntilWorkloadAdmitted(ctx.projectName, { maxAttempts: 120, pollIntervalMs: 5000 });
+        const firstWorkbenchName = `kueue-wb-q1-${projectCtx.uuid}`;
+        const secondWorkbenchName = `kueue-wb-q2-${projectCtx.uuid}`;
 
-        createWorkbench(ctx, secondWorkbenchName);
-        pollUntilAnyWorkloadMessageMatches(ctx.projectName, QUEUED_MESSAGE);
+        openWorkbenchesTab(projectCtx);
+        createWorkbench(projectCtx, firstWorkbenchName);
+        pollUntilWorkloadAdmitted(projectCtx.projectName, {
+          maxAttempts: 120,
+          pollIntervalMs: 5000,
+        });
+
+        createWorkbench(projectCtx, secondWorkbenchName);
+        pollUntilAnyWorkloadMessageMatches(projectCtx.projectName, QUEUED_MESSAGE);
 
         const notebookRow = workbenchPage.getNotebookRow(secondWorkbenchName);
         notebookRow.expectStatusLabelToBe('Queued', 120000);
         notebookRow.findNotebookStatusSubtitle().should(($el) => {
           const text = $el.text();
           expect(
-            text.includes(ctx.fixtureData.waitingForQuotaMessage) ||
+            text.includes(projectCtx.fixtureData.waitingForQuotaMessage) ||
               QUEUE_POSITION_REGEX.test(text),
           ).to.eq(true);
         });
 
         notebookRow.findHaveNotebookStatusText().click();
-        verifyResourcesModal(ctx.testData.clusterQueueName);
+        verifyResourcesModal(projectCtx.testData.clusterQueueName);
       },
     );
   });
