@@ -13,33 +13,49 @@ export type RegistryAsset = {
   collection: string;
 };
 
-const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset => ({
-  name: asset.name,
-  description: asset.description || '',
-  format: asset.format || '',
-  assetType: 'table',
-  location: asset.location || '',
-  connectionRef: asset.connection_ref
+const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset => {
+  // Extract connection name from ConnectionRef object
+  const connectionRef = asset.connection_ref
     ? typeof asset.connection_ref === 'string'
       ? asset.connection_ref
       : asset.connection_ref.type === 'rhai'
         ? asset.connection_ref.secret_name
         : asset.connection_ref.id
-    : '',
-  labels: asset.labels || [],
-  collection,
-});
+    : '';
 
-const mapVolumeAsset = (volume: VolumeInfo, collection: string): RegistryAsset => ({
-  name: volume.name,
-  description: volume.properties?.description || volume.comment || '',
-  format: volume['volume-type'] || '',
-  assetType: 'volume',
-  location: volume['storage-location'] || '',
-  connectionRef: volume.properties?.['connection-ref'] || '',
-  labels: volume.labels || [],
-  collection,
-});
+  return {
+    name: asset.name,
+    description: asset.description || '',
+    format: asset.format || '',
+    assetType: 'table',
+    location: asset.location || '',
+    connectionRef,
+    labels: asset.labels || [],
+    collection,
+  };
+};
+
+const mapVolumeAsset = (volume: VolumeInfo, collection: string): RegistryAsset => {
+  // Extract connection name from ConnectionRef object
+  const connectionRef = volume.connection_ref
+    ? typeof volume.connection_ref === 'string'
+      ? volume.connection_ref
+      : volume.connection_ref.type === 'rhai'
+        ? volume.connection_ref.secret_name
+        : volume.connection_ref.id
+    : '';
+
+  return {
+    name: volume.name,
+    description: volume.properties?.description || volume.comment || '',
+    format: volume['volume-type'] || '',
+    assetType: 'volume',
+    location: volume['storage-location'] || '',
+    connectionRef,
+    labels: volume.labels || [],
+    collection,
+  };
+};
 
 export const useAssets = (
   project: string,

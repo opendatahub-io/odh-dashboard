@@ -12,6 +12,7 @@ import {
   LabelListResponse,
   CreateLabelRequest,
   LabelResponse,
+  ConnectionRef,
 } from '~/app/types';
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
@@ -200,7 +201,7 @@ export type UpdateGenericTableRequest = {
   description?: string;
   format?: string;
   location?: string;
-  connection_ref?: { type: string; secret_name?: string; id?: string };
+  connection_ref?: ConnectionRef;
   purpose?: string;
   license?: string;
   maturity?: string;

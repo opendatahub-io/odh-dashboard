@@ -345,15 +345,6 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        <Content>
-          <Content component="p">
-            Select a data registry to view and manage your enterprise data resources. Data
-            registries provide a structured and organized way to discover, share, version, and
-            connect schemas, datasets, and data sources across your projects.
-          </Content>
-        </Content>
-      </PageSection>
-      <PageSection hasBodyWrapper={false}>
         <Toolbar>
           <ToolbarContent>
             {/* Category selector */}
@@ -583,14 +574,16 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                           />
                         )}
                       >
-                        {asset.name}
+                        <strong>{asset.name}</strong>
                       </Button>
                       {asset.description ? (
                         <Content component="small">{asset.description}</Content>
                       ) : null}
                     </Td>
                     <Td dataLabel="Format">
-                      <Label color={badge.color}>{asset.format}</Label>{' '}
+                      <Label variant="outline" color={badge.color}>
+                        {asset.format}
+                      </Label>{' '}
                       <Content component="small">{badge.text}</Content>
                     </Td>
                     <Td dataLabel="Asset location">{asset.connectionRef || asset.location}</Td>
