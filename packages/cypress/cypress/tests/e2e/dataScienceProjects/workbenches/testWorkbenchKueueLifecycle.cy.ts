@@ -208,10 +208,7 @@ describe('Workbench Kueue Lifecycle Tests', () => {
 
         openWorkbenchesTab(projectCtx);
         createWorkbench(projectCtx, firstWorkbenchName);
-        pollUntilWorkloadAdmitted(projectCtx.projectName, {
-          maxAttempts: 120,
-          pollIntervalMs: 5000,
-        });
+        pollUntilWorkloadAdmitted(projectCtx.projectName);
 
         createWorkbench(projectCtx, secondWorkbenchName);
         pollUntilAnyWorkloadMessageMatches(projectCtx.projectName, QUEUED_MESSAGE);
