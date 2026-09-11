@@ -1,6 +1,12 @@
 import { appChrome } from '../appChrome';
 
+const AUTOML_DEV_FEATURE_FLAGS = 'devFeatureFlags=automl=true';
+
 class AutomlExperimentsPage {
+  pathWithDevFlags(): string {
+    return `/?${AUTOML_DEV_FEATURE_FLAGS}`;
+  }
+
   visit(namespace: string) {
     // First navigate to home to ensure we're authenticated and dashboard is loaded
     cy.visitWithLogin('/');

@@ -24,7 +24,7 @@ export const configureAutoragRun = (
   uuid: string,
 ): void => {
   cy.step('Login and wait for pipeline server');
-  cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+  cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
   waitForDspaReady(projectName);
   waitForManagedPipelines(projectName);
 
