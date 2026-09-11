@@ -77,12 +77,6 @@ const setupGatedAccessIntercepts = () => {
     },
   );
 
-  cy.interceptOdh(
-    'GET /model-registry/api/:apiVersion/model_registry',
-    { path: { apiVersion: API_VERSION } },
-    { data: [{ name: 'modelregistry-sample', displayName: 'Model Registry Sample' }] },
-  );
-
   cy.intercept(
     'GET',
     `**/model-registry/api/${API_VERSION}/model_catalog/sources/${SOURCE_ID}/models/**`,
