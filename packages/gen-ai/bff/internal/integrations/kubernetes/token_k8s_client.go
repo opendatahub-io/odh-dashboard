@@ -81,6 +81,13 @@ const (
 
 	// Annotation for authentication
 	authAnnotationKey = "security.opendatahub.io/enable-auth"
+
+	// The OpenShift ingress signing CA is required when OGX calls the dashboard
+	// gateway through its HTTPS route.
+	ingressOperatorNamespace = "openshift-ingress-operator"
+	routerCASecretName       = "router-ca"
+	routerCASecretKey        = "tls.crt"
+	ogxRouterCABundleName    = "ogx-router-ca-bundle"
 )
 
 type modelDetailsResult struct {
@@ -108,6 +115,69 @@ type TokenKubernetesClient struct {
 	EnvConfig         config.EnvConfig
 	SAClient          client.Client // in-cluster SA client for elevated operations (nil in local dev/mock)
 	otelConfigManager *otelConfigManager
+}
+
+// ensureOGXGatewayCABundle copies the ingress router CA into a namespace-scoped,
+// dashboard-managed ConfigMap for the OGX operator to mount as SSL_CERT_FILE.
+// The source Secret is read through the dashboard service account because users
+// do not ordinarily have access to openshift-ingress-operator.
+func (kc *TokenKubernetesClient) ensureOGXGatewayCABundle(ctx context.Context, namespace string) (string, error) {
+	secretReader := kc.SAClient
+	if secretReader == nil {
+		secretReader = kc.Client
+	}
+
+	var routerCA corev1.Secret
+	if err := secretReader.Get(ctx, types.NamespacedName{
+		Namespace: ingressOperatorNamespace,
+		Name:      routerCASecretName,
+	}, &routerCA); err != nil {
+		return "", fmt.Errorf("failed to read OpenShift ingress router CA: %w", err)
+	}
+
+	certificate, found := routerCA.Data[routerCASecretKey]
+	if !found || len(certificate) == 0 {
+		return "", fmt.Errorf("OpenShift ingress router CA secret is missing %q", routerCASecretKey)
+	}
+
+	bundleKey := types.NamespacedName{Namespace: namespace, Name: ogxRouterCABundleName}
+	var bundle corev1.ConfigMap
+	err := kc.Client.Get(ctx, bundleKey, &bundle)
+	if apierrors.IsNotFound(err) {
+		bundle = corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ogxRouterCABundleName,
+				Namespace: namespace,
+				Labels: map[string]string{
+					OpenDataHubDashboardLabelKey: "true",
+					"ogx.io/watch":               "true",
+				},
+			},
+			Data: map[string]string{"ca-bundle.crt": string(certificate)},
+		}
+		if err := kc.Client.Create(ctx, &bundle); err != nil {
+			return "", fmt.Errorf("failed to create OGX router CA bundle: %w", err)
+		}
+		return bundle.Name, nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to get OGX router CA bundle: %w", err)
+	}
+
+	if bundle.Data == nil {
+		bundle.Data = make(map[string]string)
+	}
+	if bundle.Labels == nil {
+		bundle.Labels = make(map[string]string)
+	}
+	bundle.Data["ca-bundle.crt"] = string(certificate)
+	bundle.Labels[OpenDataHubDashboardLabelKey] = "true"
+	bundle.Labels["ogx.io/watch"] = "true"
+	if err := kc.Client.Update(ctx, &bundle); err != nil {
+		return "", fmt.Errorf("failed to update OGX router CA bundle: %w", err)
+	}
+
+	return bundle.Name, nil
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
@@ -1451,10 +1521,10 @@ func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
-			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml",
+			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
 		}, " && ")}
 	}
-	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}
+	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
 }
 
 // ogxEnvVars returns the environment variables for the OGXServer pod.
@@ -1518,6 +1588,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	// Step 1: Set up environment variables
 	envVars := []corev1.EnvVar{
+		{
+			Name:  "VLLM_TLS_VERIFY",
+			Value: "false",
+		},
 		{
 			Name:  "FAISS_STORE_DIR",
 			Value: "~/.llama/faiss",
@@ -1790,6 +1864,19 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			}
 		}
 	}
+	caCertificates := []ogxapi.ConfigMapKeyRef{
+		{Name: caBundleConfigMapName, Key: "ca-bundle.crt"},
+	}
+	if kc.EnvConfig.GatewayDomain != "" {
+		routerCABundleName, err := kc.ensureOGXGatewayCABundle(ctx, namespace)
+		if err != nil {
+			return nil, rollbackPgvector(err)
+		}
+		caCertificates = append(caCertificates, ogxapi.ConfigMapKeyRef{
+			Name: routerCABundleName,
+			Key:  "ca-bundle.crt",
+		})
+	}
 
 	// Step 5: Create OGXServer
 	replicas := int32(1)
@@ -1839,9 +1926,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			},
 			TLS: &ogxapi.TLSClientConfig{
 				Trust: &ogxapi.TrustConfig{
-					CACertificates: []ogxapi.ConfigMapKeyRef{
-						{Name: caBundleConfigMapName, Key: "ca-bundle.crt"},
-					},
+					CACertificates: caCertificates,
 				},
 			},
 		},
@@ -1892,6 +1977,15 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			caBundle.OwnerReferences = configMap.OwnerReferences
 			if err := kc.Client.Update(ctx, &caBundle); err != nil {
 				kc.Logger.Warn("failed to add owner reference to fallback CA bundle", "error", err, "namespace", namespace)
+			}
+		}
+	}
+	if kc.EnvConfig.GatewayDomain != "" {
+		var routerCABundle corev1.ConfigMap
+		if err := kc.Client.Get(ctx, types.NamespacedName{Name: ogxRouterCABundleName, Namespace: namespace}, &routerCABundle); err == nil {
+			routerCABundle.OwnerReferences = configMap.OwnerReferences
+			if err := kc.Client.Update(ctx, &routerCABundle); err != nil {
+				kc.Logger.Warn("failed to add owner reference to router CA bundle", "error", err, "namespace", namespace)
 			}
 		}
 	}

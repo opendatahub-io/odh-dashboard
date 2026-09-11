@@ -2196,7 +2196,7 @@ func strPtr(s string) *string {
 
 func TestOgxCommand_TracingDisabled(t *testing.T) {
 	cmd := ogxCommand(false)
-	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}, cmd)
+	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}, cmd)
 }
 
 func TestOgxCommand_TracingEnabled(t *testing.T) {
@@ -2208,6 +2208,65 @@ func TestOgxCommand_TracingEnabled(t *testing.T) {
 	assert.Contains(t, cmd[2], "opentelemetry-instrument")
 	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
 	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
+}
+
+func TestEnsureOGXGatewayCABundle(t *testing.T) {
+	const namespace = "test-ns"
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	routerCA := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      routerCASecretName,
+			Namespace: ingressOperatorNamespace,
+		},
+		Data: map[string][]byte{routerCASecretKey: []byte("router-ca-certificate")},
+	}
+
+	t.Run("copies the router CA with the service account client", func(t *testing.T) {
+		dashboardClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+		serviceAccountClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(routerCA).Build()
+		kc := &TokenKubernetesClient{
+			Client:   dashboardClient,
+			SAClient: serviceAccountClient,
+		}
+
+		name, err := kc.ensureOGXGatewayCABundle(context.Background(), namespace)
+		require.NoError(t, err)
+		assert.Equal(t, ogxRouterCABundleName, name)
+
+		var bundle corev1.ConfigMap
+		require.NoError(t, dashboardClient.Get(context.Background(), types.NamespacedName{
+			Name: ogxRouterCABundleName, Namespace: namespace,
+		}, &bundle))
+		assert.Equal(t, "router-ca-certificate", bundle.Data["ca-bundle.crt"])
+		assert.Equal(t, "true", bundle.Labels["ogx.io/watch"])
+		assert.Equal(t, "true", bundle.Labels[OpenDataHubDashboardLabelKey])
+	})
+
+	t.Run("updates an existing dashboard bundle when the router CA rotates", func(t *testing.T) {
+		existingBundle := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: ogxRouterCABundleName, Namespace: namespace},
+			Data:       map[string]string{"ca-bundle.crt": "old-certificate"},
+		}
+		dashboardClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existingBundle).Build()
+		serviceAccountClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(routerCA).Build()
+		kc := &TokenKubernetesClient{
+			Client:   dashboardClient,
+			SAClient: serviceAccountClient,
+		}
+
+		_, err := kc.ensureOGXGatewayCABundle(context.Background(), namespace)
+		require.NoError(t, err)
+
+		var bundle corev1.ConfigMap
+		require.NoError(t, dashboardClient.Get(context.Background(), types.NamespacedName{
+			Name: ogxRouterCABundleName, Namespace: namespace,
+		}, &bundle))
+		assert.Equal(t, "router-ca-certificate", bundle.Data["ca-bundle.crt"])
+		assert.Equal(t, "true", bundle.Labels["ogx.io/watch"])
+	})
 }
 
 func TestOgxEnvVars_TracingDisabled(t *testing.T) {
