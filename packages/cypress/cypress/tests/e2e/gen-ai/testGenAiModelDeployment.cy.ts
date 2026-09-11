@@ -131,12 +131,10 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
       });
 
       cy.step('Navigate to playground');
-      genAiPlayground.navigateAndWaitForModelSelector(projectName);
+      genAiPlayground.navigate(projectName);
 
       cy.step(`Select ${genAiTestData.inferenceServiceName} model from dropdown`);
-      genAiPlayground.selectModelFromDropdown(genAiTestData.inferenceServiceName, {
-        timeout: 120000,
-      });
+      genAiPlayground.selectModelFromDropdown(genAiTestData.inferenceServiceName);
 
       cy.step(`Verify ${genAiTestData.inferenceServiceName} model is selected`);
       genAiPlayground.verifyModelIsSelected(genAiTestData.inferenceServiceName);
