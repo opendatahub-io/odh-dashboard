@@ -22,16 +22,18 @@ describe('deleteLegacyNIMDeployment', () => {
   });
 
   it('should delete the PVC after the primary deployment succeeds', async () => {
-    const calls: string[] = [];
-    const deletePrimaryDeployment = jest.fn().mockImplementation(async () => {
-      calls.push('primary');
+    let resolveActualPrimary: (() => void) | undefined;
+    const actualPrimaryDeletion = new Promise<void>((resolve) => {
+      resolveActualPrimary = resolve;
     });
-    const deletePVCResource = jest.fn().mockImplementation(async () => {
-      calls.push('pvc');
-      return { status: 'Success', message: '' };
-    });
+    const deletePrimaryDeployment = jest
+      .fn()
+      .mockImplementation(({ dryRun } = {}) =>
+        dryRun ? Promise.resolve() : actualPrimaryDeletion,
+      );
+    const deletePVCResource = jest.fn().mockResolvedValue({ status: 'Success', message: '' });
 
-    await deleteLegacyNIMDeployment({
+    const deletion = deleteLegacyNIMDeployment({
       deletePrimaryDeployment,
       namespace,
       pvcName,
@@ -39,10 +41,17 @@ describe('deleteLegacyNIMDeployment', () => {
       deletePVCResource,
     });
 
-    expect(calls).toEqual(['primary', 'pvc', 'primary', 'pvc']);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(deletePVCResource).toHaveBeenCalledTimes(1);
     expect(deletePVCResource).toHaveBeenNthCalledWith(1, 'nim-cache', 'project', {
       dryRun: true,
     });
+
+    expect(resolveActualPrimary).toBeDefined();
+    resolveActualPrimary?.();
+    await deletion;
+
     expect(deletePVCResource).toHaveBeenNthCalledWith(2, 'nim-cache', 'project', undefined);
   });
 
