@@ -51,7 +51,11 @@ interface MCPServersPanelProps {
   registryAvailable?: boolean;
   serverTokens: Map<string, import('~/app/types').TokenInfo>;
   onServerTokensChange: (tokens: Map<string, import('~/app/types').TokenInfo>) => void;
-  checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  checkServerStatus: (
+    serverUrl: string,
+    mcpBearerToken?: string,
+    serverName?: string,
+  ) => Promise<ServerStatusInfo>;
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   onToolsWarningChange?: (showWarning: boolean) => void;
   onActiveToolsCountChange?: (count: number) => void;

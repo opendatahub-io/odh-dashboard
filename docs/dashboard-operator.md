@@ -137,7 +137,7 @@ The eight registered modules and their manifest directories:
 
 ### MaaS Consumer Portal Operand
 
-When `spec.maasConsumerPortal.managementState` is `Managed` on RHOAI and `spec.gateway.domain` is set, the controller deploys `manifests/distributions/maas-consumer-portal/`: Deployment, Service, ServiceAccount, ClusterRole, ClusterRoleBinding, NetworkPolicy, HTTPRoute, and ConsoleLink.
+When `spec.maasConsumerPortal.managementState` is `Managed` on RHOAI and `spec.gateway.domain` is set, the controller deploys `manifests/distributions/maas-consumer-portal/`: Deployment, Service, ServiceAccount, ClusterRole, ClusterRoleBinding, NetworkPolicy, and HTTPRoute.
 
 - **URL contract**: `https://<spec.gateway.domain>/maas-consumer-portal/`. The portal shares the gateway hostname and its authentication session; it does not require a hostname, DNS record, certificate, listener, or OAuth callback of its own. The URL is retained across transient failures and is only published after the Deployment is Available and the HTTPRoute is accepted with resolved references; it is cleared after successful removal.
 - **Routing**: the portal HTTPRoute redirects the no-slash path to the trailing-slash URL (302), then matches `/maas-consumer-portal` and rewrites only that prefix before forwarding to the portal Service. This makes static assets, deep links, Core-BFF, MaaS, and GenAI APIs work when the core Dashboard HTTPRoute is removed. Gateway path precedence selects this more-specific route ahead of the Dashboard `/` catch-all while both operands are managed.
@@ -146,7 +146,7 @@ When `spec.maasConsumerPortal.managementState` is `Managed` on RHOAI and `spec.g
 - **Proxy response paths**: the portal's current Core-BFF handlers and module proxy configuration were inspected for browser-visible redirects. The proxy preserves relative upstream `Location` headers and validates absolute redirect targets for SSRF; no portal-reachable redirect requiring prefix rewriting was found, so no `X-Forwarded-Prefix` contract is configured.
 - **Federation**: the portal-owned `maas-consumer-portal-federation-config` ConfigMap is mounted into the Deployment. Its content hash is patched onto the Deployment template after every successful bundle apply to trigger configuration rollouts.
 - **Availability**: `MaaSConsumerPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
-- **Cleanup**: removal explicitly deletes the serving-certificate Secret `maas-consumer-portal-tls`, HTTPRoute, ConsoleLink, RBAC, and other portal-owned resources. Core-dashboard removal does not delete them while the portal remains Managed.
+- **Cleanup**: removal explicitly deletes the serving-certificate Secret `maas-consumer-portal-tls`, HTTPRoute, RBAC, and other portal-owned resources. Core-dashboard removal does not delete them while the portal remains Managed.
 
 ## Module Registry and Dependency Resolution
 
@@ -490,7 +490,7 @@ make chart-validate
 make generate && make manifests
 ```
 
-For details on envtest integration tests — what they are, how to write them, and how to debug failures — see [envtest Integration Tests](envtest-integration-tests.md).
+For details on envtest integration tests — what they are, how to write them, and how to debug failures — see [envtest Integration Tests](envtest-integration-tests.md). Tests that require a deployed operator and a real cluster use the [dashboard-operator E2E framework](../dashboard-operator/test/e2e/README.md).
 
 ## Chaos Validation (operator-chaos)
 

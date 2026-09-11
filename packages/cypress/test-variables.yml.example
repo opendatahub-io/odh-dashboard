@@ -45,3 +45,5 @@ OCI_SECRET_VALUE: cmhvYWlfZGFzaGJvYXJkK3Job
 OCI_MODEL_URI: quay.io/my_user/my_oci_model:latest
 OGX_URL: https://ogx.apps.your-cluster.com
 OGX_API_KEY: your-api-key-here
+MAAS_URL: https://maas.apps.your-cluster.com
+MAAS_API_KEY: your-api-key-here

@@ -13,6 +13,7 @@ export type UseMCPServerToolsReturn = {
 export const useMCPServerTools = (
   serverUrl: string,
   mcpBearerToken?: string,
+  serverName?: string,
   enabled = true,
 ): UseMCPServerToolsReturn => {
   const [tools, setTools] = React.useState<MCPToolFromAPI[]>([]);
@@ -46,9 +47,13 @@ export const useMCPServerTools = (
       /* eslint-disable camelcase */
       const response = await api
         .getMCPServerTools(
-          {
-            server_url: serverUrl,
-          },
+          serverName
+            ? {
+                server_name: serverName,
+              }
+            : {
+                server_url: serverUrl,
+              },
           { headers },
         )
         .catch((error) => {
@@ -94,7 +99,7 @@ export const useMCPServerTools = (
       setToolsLoaded(true);
       setIsLoading(false);
     }
-  }, [serverUrl, enabled, mcpBearerToken, apiAvailable, api]);
+  }, [serverUrl, serverName, enabled, mcpBearerToken, apiAvailable, api]);
 
   React.useEffect(() => {
     fetchTools();

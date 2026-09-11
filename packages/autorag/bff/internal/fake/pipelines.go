@@ -297,13 +297,13 @@ func (c *PipelinesClient) seedRuns() {
 			"input_data_bucket_name":        "s3-bucket",
 			"input_data_key":                "autorag input data/pdf/bank_policies_pdf/documents",
 			"input_data_secret_name":        "data-connection",
-			"ogx_secret_name":               "ogx",
+			"maas_secret_name":              "maas",
+			"vector_db_secret_name":         "vector-db",
 			"optimization_max_rag_patterns": 8,
 			"optimization_metric":           "faithfulness",
 			"test_data_bucket_name":         "s3-bucket",
 			"test_data_key":                 "autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json",
 			"test_data_secret_name":         "data-connection",
-			"vector_io_provider_id":         "milvus",
 		}
 
 		history := []plsvc.RuntimeStatus{

@@ -32,7 +32,6 @@ import {
   fireAutoragVectorStoreConfigured,
   isAutoragResultsNavigationState,
   mapOptimizationMetric,
-  toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -253,21 +252,6 @@ describe('fireAutoragModelsSelected', () => {
       outcome: TrackingOutcome.cancel,
       success: true,
     });
-  });
-});
-
-describe('toVectorStoreProviderType', () => {
-  it('should map remote::milvus to milvus', () => {
-    expect(toVectorStoreProviderType('remote::milvus')).toBe('milvus');
-  });
-
-  it('should map remote::pgvector to pgvector', () => {
-    expect(toVectorStoreProviderType('remote::pgvector')).toBe('pgvector');
-  });
-
-  it('should return undefined for an unrecognized provider type', () => {
-    expect(toVectorStoreProviderType('inline::faiss')).toBeUndefined();
-    expect(toVectorStoreProviderType('')).toBeUndefined();
   });
 });
 

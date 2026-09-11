@@ -14,6 +14,10 @@ import {
   TREND_REFRESH_INTERVAL,
 } from '../const';
 import { UnifiedCohort } from '../types';
+import {
+  findCurrentBorrowingSinceMs,
+  mapPrometheusValuesToBorrowingPoints,
+} from '../utils/borrowingLending';
 import parseK8sQuantity from '../utils/parseK8sQuantity';
 
 const SEVEN_DAYS_IN_SECONDS = SEVEN_DAYS_MS / 1000;
@@ -33,7 +37,7 @@ export type KueueUsageMetricResult = {
 };
 
 /** Type guard that widens a base result to include optional Kueue label fields. */
-const isKueueUsageResult = (
+export const isKueueUsageResult = (
   r: PrometheusQueryRangeResponseDataResult,
 ): r is KueueUsageMetricResult => 'metric' in r && 'values' in r;
 
@@ -202,6 +206,48 @@ const useBorrowingLendingMetrics = (cohorts: UnifiedCohort[]): BorrowingLendingM
   );
 
   return { series, loaded, error };
+};
+
+export const useClusterQueueBorrowingSince = (
+  clusterQueueName: string | undefined,
+  nominalQuota: number,
+  enabled: boolean,
+): { borrowingSinceMs?: number; loaded: boolean } => {
+  const [endInMs, setEndInMs] = React.useState(() => Date.now());
+
+  React.useEffect(() => {
+    const id = setInterval(() => setEndInMs(Date.now()), TREND_REFRESH_INTERVAL);
+    return () => clearInterval(id);
+  }, []);
+
+  const [prometheusResults, loaded] = usePrometheusQueryRange(
+    enabled && Boolean(clusterQueueName) && nominalQuota > 0,
+    PROMETHEUS_API_PATH,
+    QUERY_LANG,
+    SEVEN_DAYS_IN_SECONDS,
+    endInMs,
+    HOURLY_STEP,
+    kueueUsagePredicate,
+    '',
+  );
+
+  const borrowingSinceMs = React.useMemo(() => {
+    if (!clusterQueueName) {
+      return undefined;
+    }
+
+    const result = prometheusResults.find(
+      (entry) => entry.metric.cluster_queue === clusterQueueName,
+    );
+    if (!result) {
+      return undefined;
+    }
+
+    const points = mapPrometheusValuesToBorrowingPoints(result.values, nominalQuota);
+    return findCurrentBorrowingSinceMs(points);
+  }, [clusterQueueName, nominalQuota, prometheusResults]);
+
+  return { borrowingSinceMs, loaded };
 };
 
 export { buildSeries, getGpuNominalQuota };
