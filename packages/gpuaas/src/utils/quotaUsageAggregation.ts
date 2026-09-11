@@ -5,6 +5,7 @@ import {
   getCQNominalAccelerators,
   getCQUsedAccelerators,
   isAcceleratorBorrowing,
+  isAcceleratorResource,
   isInCohort,
   normalizeModelName,
   resolveCQDcgmUtilization,
@@ -22,6 +23,9 @@ import {
   QuotaUsageMeterSegments,
   QuotaUsageMeterVariant,
   QuotaUsageSummary,
+  ClusterQueueWorkloadRow,
+  QuotaUsageWorkloadStatuses,
+  type QuotaUsageWorkloadStatus,
 } from '../types';
 
 const collectClusterQueuesFromNode = (node: QuotaTreeNode): ClusterQueueKind[] => {
@@ -118,6 +122,48 @@ export const formatQuotaUsageWorkloadSummary = (
   return `${base}, needs attention`;
 };
 
+export const summarizeQuotaUsageWorkloads = (
+  workloads: ClusterQueueWorkloadRow[],
+): Pick<QuotaUsageSummary, 'admittedWorkloads' | 'pendingWorkloads' | 'workloadSummaryLine'> => {
+  const activeStatuses: QuotaUsageWorkloadStatus[] = [
+    QuotaUsageWorkloadStatuses.Admitted,
+    QuotaUsageWorkloadStatuses.Running,
+  ];
+  const pendingStatuses: QuotaUsageWorkloadStatus[] = [
+    QuotaUsageWorkloadStatuses.Queued,
+    QuotaUsageWorkloadStatuses.Pending,
+    QuotaUsageWorkloadStatuses.AdmissionCheck,
+    QuotaUsageWorkloadStatuses.Requeued,
+  ];
+  const needsAttentionStatuses: QuotaUsageWorkloadStatus[] = [
+    QuotaUsageWorkloadStatuses.Inadmissible,
+    QuotaUsageWorkloadStatuses.BlockedOnPreemptionGates,
+    QuotaUsageWorkloadStatuses.Failed,
+    QuotaUsageWorkloadStatuses.Preempted,
+    QuotaUsageWorkloadStatuses.Evicted,
+  ];
+  const admittedWorkloads = workloads.filter((workload) =>
+    activeStatuses.includes(workload.status),
+  ).length;
+  const pendingWorkloads = workloads.filter((workload) =>
+    pendingStatuses.includes(workload.status),
+  ).length;
+  const needsAttentionWorkloads = workloads.filter((workload) =>
+    needsAttentionStatuses.includes(workload.status),
+  ).length;
+
+  return {
+    admittedWorkloads,
+    pendingWorkloads,
+    workloadSummaryLine: formatQuotaUsageWorkloadSummary(
+      admittedWorkloads,
+      pendingWorkloads,
+      needsAttentionWorkloads > 0,
+      needsAttentionWorkloads,
+    ),
+  };
+};
+
 export const buildQuotaUsageSummary = (
   clusterQueues: ClusterQueueKind[],
   resourceFlavors: ResourceFlavorKind[],
@@ -140,6 +186,19 @@ export const buildQuotaUsageSummary = (
   const capacityDisplayNominal = resolveCapacityDisplayNominal(totalUsed, totalNominal);
   const isOverQuota = totalUsed > totalNominal || totalBorrowed > 0;
   const isBorrowing = clusterQueues.some((cq) => isAcceleratorBorrowing(cq));
+  const borrowingEnabled = clusterQueues.some(
+    (cq) =>
+      isInCohort(cq) &&
+      (cq.spec.resourceGroups ?? []).some((resourceGroup) =>
+        resourceGroup.flavors.some((flavor) =>
+          flavor.resources.some(
+            (resource) =>
+              isAcceleratorResource(resource.name) &&
+              (resource.borrowingLimit !== undefined || resource.lendingLimit !== undefined),
+          ),
+        ),
+      ),
+  );
   const showBorrowingInfo =
     isBorrowing && clusterQueues.some((cq) => isInCohort(cq)) && totalBorrowed > 0;
   const needsAttentionCount = isOverQuota
@@ -173,6 +232,7 @@ export const buildQuotaUsageSummary = (
     totalBorrowed,
     isOverQuota,
     isBorrowing,
+    borrowingEnabled,
     showBorrowingInfo,
     borrowSourceCohortName,
     borrowingClusterQueues: [],

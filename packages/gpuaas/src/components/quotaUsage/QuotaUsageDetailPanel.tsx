@@ -26,6 +26,7 @@ import {
 import QuotaUsageAcceleratorTable from './QuotaUsageAcceleratorTable';
 import QuotaUsageSummarySection from './QuotaUsageSummarySection';
 import QuotaUsageWorkloadsCollapsible from './QuotaUsageWorkloadsCollapsible';
+import useClusterQueueWorkloads from '../../hooks/useClusterQueueWorkloads';
 import KueueProjectsModal from '../KueueProjectsModal';
 import {
   QUOTA_UNASSIGNED_LABEL,
@@ -74,6 +75,9 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
   error,
 }) => {
   const [kueueModalOpen, setKueueModalOpen] = React.useState(false);
+  const selectedClusterQueueName =
+    selection?.type === QUOTA_NODE_TYPE.clusterQueue ? selection.clusterQueueName : undefined;
+  const clusterQueueWorkloads = useClusterQueueWorkloads(selectedClusterQueueName);
 
   const handleBreadcrumbClick = React.useCallback(
     (index: number) => {
@@ -138,7 +142,7 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
   const showBreadcrumb = selection.path.length > 1 && selection.path[0] !== QUOTA_UNASSIGNED_LABEL;
   const showWorkloadsSection = selection.type === QUOTA_NODE_TYPE.clusterQueue;
   const showBorrowingEnabledBadge =
-    selection.type === QUOTA_NODE_TYPE.cohort && detail?.summary.isBorrowing === true;
+    selection.type === QUOTA_NODE_TYPE.cohort && detail?.summary.borrowingEnabled === true;
 
   const detailState = getDetailState(detailLoaded, detail, error);
 
@@ -206,6 +210,11 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
                 onSelectClusterQueue={handleSelectClusterQueue}
                 clusterQueueName={detailState.detail.clusterQueueName}
                 nominalQuota={detailState.detail.summary.totalNominal}
+                workloads={selectedClusterQueueName ? clusterQueueWorkloads.workloads : undefined}
+                workloadsLoaded={
+                  selectedClusterQueueName ? clusterQueueWorkloads.loaded : undefined
+                }
+                workloadsError={selectedClusterQueueName ? clusterQueueWorkloads.error : undefined}
               />
             </StackItem>
             <StackItem>
@@ -278,7 +287,12 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
           {renderDetailContent()}
           {showWorkloadsSection && (
             <StackItem>
-              <QuotaUsageWorkloadsCollapsible clusterQueueName={selection.clusterQueueName} />
+              <QuotaUsageWorkloadsCollapsible
+                clusterQueueName={selection.clusterQueueName}
+                workloads={clusterQueueWorkloads.workloads}
+                loaded={clusterQueueWorkloads.loaded}
+                error={clusterQueueWorkloads.error}
+              />
             </StackItem>
           )}
         </Stack>

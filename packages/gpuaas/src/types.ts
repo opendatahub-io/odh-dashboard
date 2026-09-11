@@ -213,6 +213,8 @@ export type QuotaUsageSummary = {
   totalBorrowed: number;
   isOverQuota: boolean;
   isBorrowing: boolean;
+  /** True when any selected CQ is in a cohort and has accelerator borrowing or lending configured. */
+  borrowingEnabled: boolean;
   /** True when any selected CQ belongs to a Kueue cohort and is borrowing. */
   showBorrowingInfo: boolean;
   /** Parent cohort name for borrowing copy (from selection path). */
