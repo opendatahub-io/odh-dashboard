@@ -68,6 +68,8 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-general--IconColor)';
     case ProjectObjectType.apiKeys:
       return 'var(--ai-organize--IconColor)';
+    case ProjectObjectType.dataRegistry:
+      return 'var(--ai-data-registry--IconColor)';
     default:
       return '';
   }
@@ -140,6 +142,8 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-general--BackgroundColor)';
     case ProjectObjectType.apiKeys:
       return 'var(--ai-organize--BackgroundColor)';
+    case ProjectObjectType.dataRegistry:
+      return 'var(--ai-data-registry--BackgroundColor)';
     default:
       return '';
   }

@@ -8,6 +8,7 @@ export { default as ClusterSettingsIcon } from './ClusterSettingsIcon';
 export { default as ConfigurationIcon } from './ConfigurationIcon';
 export { default as CreateAndTrainIcon } from './CreateAndTrainIcon';
 export { default as DataConnectionIcon } from './DataConnectionIcon';
+export { default as DataRegistryIcon } from './DataRegistryIcon';
 export { default as DeployedModelIcon } from './DeployedModelIcon';
 export { default as DistributedWorkloadIcon } from './DistributedWorkloadIcon';
 export { default as EnabledApplicationsIcon } from './EnabledApplicationsIcon';
