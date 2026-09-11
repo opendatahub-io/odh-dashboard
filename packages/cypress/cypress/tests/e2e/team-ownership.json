@@ -5,12 +5,12 @@
     {
       "name": "Green",
       "ci_tags": ["ModelRegistryCI", "ModelCatalogCI"],
-      "path_patterns": ["modelRegistry/", "modelCatalog/"]
+      "path_patterns": ["modelRegistry/", "modelCatalog/", "mcpCatalog/", "agentsCatalog/", "data-registry/"]
     },
     {
       "name": "Razzmatazz",
       "ci_tags": ["AgentOpsCI", "ConnectionTypes", "HardwareProfiles", "MlflowEmbedded", "MLflowCI"],
-      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/"]
+      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/", "mlflowExperiments/"]
     },
     {
       "name": "Zaffre",
@@ -25,7 +25,7 @@
     {
       "name": "Crimson",
       "ci_tags": ["GenAICI"],
-      "path_patterns": ["gen-ai/"]
+      "path_patterns": ["gen-ai/", "promptManagement/"]
     },
     {
       "name": "Teal",
@@ -45,7 +45,7 @@
     {
       "name": "Purple",
       "ci_tags": ["AutoMLCI", "AutoRAGCI", "EvalHubCI"],
-      "path_patterns": ["automl/", "autorag/", "evalHub/"]
+      "path_patterns": ["automl/", "autorag/", "evalHub/", "eval-hub/"]
     },
     {
       "name": "Tangerine",
