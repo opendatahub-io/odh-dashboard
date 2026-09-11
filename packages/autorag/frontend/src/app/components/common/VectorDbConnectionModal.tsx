@@ -40,6 +40,14 @@ const isValidUri = (value: string): boolean => {
   }
 };
 
+const isValidPgVectorPort = (value: string): boolean => {
+  if (!/^\d+$/.test(value.trim())) {
+    return false;
+  }
+  const port = Number(value);
+  return Number.isInteger(port) && port >= 1 && port <= 65535;
+};
+
 const VectorDbConnectionModal: React.FC<Props> = ({
   namespace,
   initialProvider = 'milvus',
@@ -52,11 +60,13 @@ const VectorDbConnectionModal: React.FC<Props> = ({
   const [uriTouched, setUriTouched] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
+  const createdSecretRef = React.useRef<SecretKind>();
 
   const getField = (key: string): string => fields[key] ?? '';
   const uri = getField('MILVUS_URI');
   const uriValid = isValidUri(uri);
   const showUriError = uriTouched && uri.trim() !== '' && !uriValid;
+  const pgVectorPortValid = isValidPgVectorPort(getField('PGVECTOR_PORT'));
   const isFormValid = Boolean(
     isK8sNameDescriptionDataValid(nameDescData) &&
     (provider === 'milvus'
@@ -67,7 +77,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
           'PGVECTOR_DB',
           'PGVECTOR_USER',
           'PGVECTOR_PASSWORD',
-        ].every((key) => getField(key).trim() !== '')),
+        ].every((key) => getField(key).trim() !== '') && pgVectorPortValid),
   );
 
   const setField = (key: string, value: string) => {
@@ -119,11 +129,22 @@ const VectorDbConnectionModal: React.FC<Props> = ({
     };
 
     try {
-      await createSecret(secret);
+      if (!createdSecretRef.current) {
+        await createSecret(secret);
+        createdSecretRef.current = secret;
+      }
       await onSubmit(k8sName);
       onClose();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error : new Error(String(error)));
+      setSubmitError(
+        createdSecretRef.current
+          ? new Error(
+              'The connection was created, but AutoRAG could not select it. Retry saving it.',
+            )
+          : error instanceof Error
+            ? error
+            : new Error(String(error)),
+      );
     } finally {
       setIsSaving(false);
     }

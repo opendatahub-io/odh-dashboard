@@ -158,4 +158,32 @@ describe('VectorDbConnectionModal', () => {
     );
     expect(createSecretMock.mock.calls[0][0].stringData).not.toHaveProperty('MILVUS_URI');
   });
+
+  it('should reject PGVector ports outside the valid integer range', () => {
+    render(
+      <VectorDbConnectionModal
+        namespace="test-namespace"
+        initialProvider="pgvector"
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />,
+    );
+    fillName();
+    for (const [field, value] of [
+      ['host', 'postgres.example.com'],
+      ['port', '65536'],
+      ['db', 'rag'],
+      ['user', 'rag-user'],
+      ['password', 'secret'],
+    ]) {
+      fireEvent.change(screen.getByTestId(`pgvector-${field}-input`), { target: { value } });
+    }
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('pgvector-port-input'), { target: { value: '5432.5' } });
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('pgvector-port-input'), { target: { value: '5432' } });
+    expect(screen.getByRole('button', { name: 'Add connection' })).toBeEnabled();
+  });
 });

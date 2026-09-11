@@ -23,9 +23,9 @@ npm install && npm run start:dev
 
 ### Development
 
-| Command             | Description                              |
-| ------------------- | ---------------------------------------- |
-| `npm install`       | Install dependencies                     |
+| Command             | Description                      |
+| ------------------- | -------------------------------- |
+| `npm install`       | Install dependencies             |
 | `npm run start:dev` | Start dev server with hot reload |
 
 ### Build & Bundle

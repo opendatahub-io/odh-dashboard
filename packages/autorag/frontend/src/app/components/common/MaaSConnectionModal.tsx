@@ -42,6 +42,7 @@ const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
   const [baseUrlTouched, setBaseUrlTouched] = React.useState(false);
+  const createdSecretRef = React.useRef<SecretKind>();
 
   const baseUrlValid = React.useMemo(() => isValidUrl(baseUrl), [baseUrl]);
   const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
@@ -71,18 +72,23 @@ const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
     };
 
     try {
-      await createSecret(secret);
-    } catch (e) {
-      setSubmitError(e instanceof Error ? e : new Error(String(e)));
-      setIsSaving(false);
-      return;
-    }
+      if (!createdSecretRef.current) {
+        await createSecret(secret);
+        createdSecretRef.current = secret;
+      }
 
-    try {
-      await onSubmit(k8sName);
+      await onSubmit(createdSecretRef.current.metadata.name);
       onClose();
     } catch (e) {
-      setSubmitError(e instanceof Error ? e : new Error(String(e)));
+      setSubmitError(
+        createdSecretRef.current
+          ? new Error(
+              'The connection was created, but AutoRAG could not select it. Retry saving it.',
+            )
+          : e instanceof Error
+            ? e
+            : new Error(String(e)),
+      );
     } finally {
       setIsSaving(false);
     }

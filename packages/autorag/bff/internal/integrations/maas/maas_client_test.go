@@ -3,7 +3,9 @@ package maas
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -50,6 +52,7 @@ func TestBuildModelsURL(t *testing.T) {
 	}{
 		{name: "root base", baseURL: "https://maas.apps.cluster/", want: "https://maas.apps.cluster/v1/models"},
 		{name: "path base", baseURL: "https://maas.apps.cluster/maas-api/", want: "https://maas.apps.cluster/maas-api/v1/models"},
+		{name: "private cluster address allowed", baseURL: "https://10.0.0.15/", want: "https://10.0.0.15/v1/models"},
 		{name: "credentials rejected", baseURL: "https://user:pass@maas.apps.cluster", wantErr: true},
 		{name: "query rejected", baseURL: "https://maas.apps.cluster?token=secret", wantErr: true},
 		{name: "fragment rejected", baseURL: "https://maas.apps.cluster#models", wantErr: true},
@@ -76,4 +79,39 @@ func TestListModelsMapsUpstreamErrors(t *testing.T) {
 	require.ErrorAs(t, err, &maaSErr)
 	assert.Equal(t, ErrCodeUnauthorized, maaSErr.Code)
 	assert.Equal(t, http.StatusUnauthorized, maaSErr.StatusCode)
+}
+
+func TestMaaSSafeDialContextRejectsUnsafeResolvedAddress(t *testing.T) {
+	baseDialed := false
+	dial := maaSSafeDialContext(
+		func(context.Context, string, string) (net.Conn, error) {
+			baseDialed = true
+			return nil, fmt.Errorf("unexpected dial")
+		},
+		func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("127.0.0.1")}, nil
+		},
+	)
+
+	_, err := dial(context.Background(), "tcp", "maas.example:443")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "blocked")
+	assert.False(t, baseDialed, "unsafe resolved address must not reach the dialer")
+}
+
+func TestMaaSSafeDialContextDialsValidatedAddressWithoutResolvingAgain(t *testing.T) {
+	var dialedAddress string
+	dial := maaSSafeDialContext(
+		func(_ context.Context, _, addr string) (net.Conn, error) {
+			dialedAddress = addr
+			return nil, fmt.Errorf("stop after recording address")
+		},
+		func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("192.0.2.10")}, nil
+		},
+	)
+
+	_, err := dial(context.Background(), "tcp", "maas.example:443")
+	require.Error(t, err)
+	assert.Equal(t, "192.0.2.10:443", dialedAddress)
 }

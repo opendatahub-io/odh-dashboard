@@ -141,23 +141,26 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
               onSubmit={async (secretName) => {
                 const refresh = secretsRefreshRef.current;
                 if (!refresh) {
-                  return;
+                  throw new Error('The vector database Secret list could not be refreshed.');
                 }
                 const list = await refresh();
                 const secret = list?.find((item) => item.name === secretName);
-                if (secret) {
-                  const selected = { ...secret, invalid: false };
-                  setSelectedSecret(selected);
-                  field.onChange(secret.name);
-                  const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
-                  if (providerType) {
-                    fireAutoragVectorStoreConfigured({
-                      providerType,
-                      outcome: TrackingOutcome.submit,
-                      success: true,
-                    });
-                    onVectorStoreConfigured(providerType);
-                  }
+                if (!secret) {
+                  throw new Error(
+                    'The new vector database Secret was not found after refreshing the Secret list.',
+                  );
+                }
+                const selected = { ...secret, invalid: false };
+                setSelectedSecret(selected);
+                field.onChange(secret.name);
+                const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
+                if (providerType) {
+                  fireAutoragVectorStoreConfigured({
+                    providerType,
+                    outcome: TrackingOutcome.submit,
+                    success: true,
+                  });
+                  onVectorStoreConfigured(providerType);
                 }
               }}
             />

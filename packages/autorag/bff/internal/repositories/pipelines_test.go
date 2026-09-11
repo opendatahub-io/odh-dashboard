@@ -145,6 +145,30 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects whitespace-only corpus keys", func(t *testing.T) {
+		req := validRequest()
+		req.InputDataKeys = []string{"docs/", " \t"}
+		err := ValidateCreateAutoRAGRunRequest(req)
+		if err == nil || !strings.Contains(err.Error(), "input_data_keys[1]") {
+			t.Fatalf("expected indexed blank-key error, got %v", err)
+		}
+	})
+
+	for _, field := range []string{"embedding_models", "generation_models"} {
+		t.Run("rejects whitespace-only "+field, func(t *testing.T) {
+			req := validRequest()
+			if field == "embedding_models" {
+				req.EmbeddingsModels = []string{" \t"}
+			} else {
+				req.GenerationModels = []string{" \t"}
+			}
+			err := ValidateCreateAutoRAGRunRequest(req)
+			if err == nil || !strings.Contains(err.Error(), field+"[0]") {
+				t.Fatalf("expected indexed blank-model error, got %v", err)
+			}
+		})
+	}
+
 	t.Run("rejects more than ten corpus keys", func(t *testing.T) {
 		req := validRequest()
 		req.InputDataKeys = make([]string, 11)

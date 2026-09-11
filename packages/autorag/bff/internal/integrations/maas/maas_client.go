@@ -32,6 +32,7 @@ type MaaSClientConfig struct {
 	InsecureSkipVerify bool
 	RootCAs            *x509.CertPool
 	WrapTransport      func(http.RoundTripper) http.RoundTripper
+	LookupIP           func(context.Context, string) ([]net.IP, error)
 }
 
 func NewMaaSClient(httpClient httpClientInterface) *MaaSClient {
@@ -44,12 +45,23 @@ func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
 		MinVersion:         tls.VersionTLS13,
 		RootCAs:            cfg.RootCAs,
 	}
-	var transport http.RoundTripper = &http.Transport{TLSClientConfig: tlsConfig}
+	lookupIP := cfg.LookupIP
+	if lookupIP == nil {
+		lookupIP = func(ctx context.Context, host string) ([]net.IP, error) {
+			return net.DefaultResolver.LookupIP(ctx, "ip", host)
+		}
+	}
+	dialer := &net.Dialer{}
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		DialContext:     maaSSafeDialContext(dialer.DialContext, lookupIP),
+	}
+	var rt http.RoundTripper = transport
 	if cfg.WrapTransport != nil {
-		transport = cfg.WrapTransport(transport)
+		rt = cfg.WrapTransport(rt)
 	}
 	return NewMaaSClient(&http.Client{
-		Transport: transport,
+		Transport: rt,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -117,16 +129,51 @@ func validateMaaSHost(host string) error {
 	if ip := net.ParseIP(host); ip != nil {
 		return validateMaaSIP(ip)
 	}
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return nil
-	}
-	for _, ip := range ips {
-		if err := validateMaaSIP(ip); err != nil {
-			return fmt.Errorf("MaaS host resolves to a blocked address")
-		}
-	}
+	// Hostnames are resolved and validated by maaSSafeDialContext immediately
+	// before dialing. Resolving here as well would create a DNS rebinding window.
 	return nil
+}
+
+func maaSSafeDialContext(
+	baseDialContext func(context.Context, string, string) (net.Conn, error),
+	lookupIP func(context.Context, string) ([]net.IP, error),
+) func(context.Context, string, string) (net.Conn, error) {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid MaaS address %q: %w", addr, err)
+		}
+
+		// URL validation covers IP literals. Leave them unchanged so transport
+		// wrappers such as the development port-forwarder can use localhost.
+		if ip := net.ParseIP(host); ip != nil {
+			return baseDialContext(ctx, network, addr)
+		}
+
+		ips, err := lookupIP(ctx, host)
+		if err != nil {
+			return nil, fmt.Errorf("MaaS host %q cannot be resolved: %w", host, err)
+		}
+		for _, ip := range ips {
+			if err := validateMaaSIP(ip); err != nil {
+				return nil, fmt.Errorf("MaaS host %q resolves to blocked address: %w", host, err)
+			}
+		}
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("MaaS host %q resolved to no addresses", host)
+		}
+
+		// Dial the validated addresses directly. Do not resolve host again.
+		var lastErr error
+		for _, ip := range ips {
+			conn, err := baseDialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+			if err == nil {
+				return conn, nil
+			}
+			lastErr = err
+		}
+		return nil, lastErr
+	}
 }
 
 func validateMaaSIP(ip net.IP) error {

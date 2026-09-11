@@ -135,14 +135,17 @@ function AutoragCreate({ initialMaaSSecret }: AutoragCreateProps): React.JSX.Ele
           onSubmit={async (secretName) => {
             const refresh = secretsRefreshRef.current;
             if (!refresh) {
-              return;
+              throw new Error('The MaaS Secret list could not be refreshed.');
             }
             const list = await refresh();
             const secret = list?.find((s) => s.name === secretName);
-            if (secret) {
-              setSelectedMaaSSecret({ ...secret, invalid: false });
-              setValue('maas_secret_name', secret.name, { shouldValidate: true });
+            if (!secret) {
+              throw new Error(
+                'The new MaaS Secret was not found after refreshing the Secret list.',
+              );
             }
+            setSelectedMaaSSecret({ ...secret, invalid: false });
+            setValue('maas_secret_name', secret.name, { shouldValidate: true });
           }}
         />
       )}

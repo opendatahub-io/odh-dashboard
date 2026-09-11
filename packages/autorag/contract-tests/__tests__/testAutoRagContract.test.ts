@@ -751,6 +751,33 @@ describe('AutoRAG API Contract Tests', () => {
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
       });
+
+      it('should return 400 for blank input keys and model identifiers', async () => {
+        const validRequest = {
+          display_name: 'blank-entry-run',
+          test_data_secret_name: SECRET,
+          test_data_bucket_name: BUCKET,
+          test_data_key:
+            'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
+          input_data_secret_name: SECRET,
+          input_data_bucket_name: BUCKET,
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
+          maas_secret_name: MAAS_SECRET,
+          vector_db_secret_name: 'vector-db',
+          embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+          generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
+        };
+
+        for (const request of [
+          { ...validRequest, input_data_keys: [' \t'] },
+          { ...validRequest, embedding_models: [' \t'] },
+          { ...validRequest, generation_models: [' \t'] },
+        ]) {
+          const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, request);
+          expect(result.success).toBe(false);
+          expect(result.error?.status).toBe(400);
+        }
+      });
     });
 
     describe('Terminate Pipeline Run', () => {

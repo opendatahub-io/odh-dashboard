@@ -346,8 +346,18 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return NewValidationError("input_data_keys must contain at most 10 keys")
 	}
 	for i, key := range req.InputDataKeys {
-		if key == "" {
-			return NewValidationError(fmt.Sprintf("input_data_keys[%d] must not be empty", i))
+		if strings.TrimSpace(key) == "" {
+			return NewValidationError(fmt.Sprintf("input_data_keys[%d] must not be blank", i))
+		}
+	}
+	for i, model := range req.EmbeddingsModels {
+		if strings.TrimSpace(model) == "" {
+			return NewValidationError(fmt.Sprintf("embedding_models[%d] must not be blank", i))
+		}
+	}
+	for i, model := range req.GenerationModels {
+		if strings.TrimSpace(model) == "" {
+			return NewValidationError(fmt.Sprintf("generation_models[%d] must not be blank", i))
 		}
 	}
 	if len(missing) > 0 {

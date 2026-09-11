@@ -49,4 +49,14 @@ describe('Configure Schema', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it('should reject whitespace-only canonical corpus locations and model IDs', () => {
+    const result = schema.full.safeParse({
+      ...validData,
+      input_data_keys: ['  '],
+      generation_models: ['\t'],
+      embedding_models: ['\n'],
+    });
+    expect(result.success).toBe(false);
+  });
 });

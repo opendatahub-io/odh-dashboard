@@ -5,6 +5,18 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { SecretListItem } from '~/app/types';
+
+let mockVectorModalOnSubmit: ((name: string) => Promise<void>) | undefined;
+let mockVectorRefresh: () => Promise<SecretListItem[] | undefined> = async () => [];
+
+jest.mock('~/app/components/common/VectorDbConnectionModal', () => ({
+  __esModule: true,
+  default: ({ onSubmit }: { onSubmit: (name: string) => Promise<void> }) => {
+    mockVectorModalOnSubmit = onSubmit;
+    return <div data-testid="vector-db-modal" />;
+  },
+}));
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -17,19 +29,24 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
     onChange,
     dataTestId,
     type,
+    onRefreshReady,
   }: {
     onChange: (value: unknown) => void;
     dataTestId: string;
     type: string;
-  }) => (
-    <button
-      data-testid={dataTestId}
-      data-secret-type={type}
-      onClick={() => onChange({ uuid: 'vector-db-1', name: 'vector-db-secret', invalid: false })}
-    >
-      Select vector database secret
-    </button>
-  ),
+    onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
+  }) => {
+    onRefreshReady?.(mockVectorRefresh);
+    return (
+      <button
+        data-testid={dataTestId}
+        data-secret-type={type}
+        onClick={() => onChange({ uuid: 'vector-db-1', name: 'vector-db-secret', invalid: false })}
+      >
+        Select vector database secret
+      </button>
+    );
+  },
 }));
 
 const schema = createConfigureSchema();
@@ -53,6 +70,8 @@ const FormWrapper: React.FC<{
 describe('AutoragVectorStoreSelector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockVectorRefresh = async () => [];
+    mockVectorModalOnSubmit = undefined;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
@@ -116,5 +135,19 @@ describe('AutoragVectorStoreSelector', () => {
 
     fireEvent.click(screen.getByTestId('vector-db-secret-selector'));
     expect(values?.vector_db_secret_name).toBe('vector-db-secret');
+  });
+
+  it('should reject creation when the new vector database Secret is missing after refresh', async () => {
+    mockVectorRefresh = async () => [];
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+    fireEvent.click(screen.getByTestId('add-vector-db-connection-button'));
+    await expect(mockVectorModalOnSubmit?.('new-vector-db-secret')).rejects.toThrow(
+      'not found after refreshing',
+    );
+    expect(screen.getByTestId('vector-db-modal')).toBeInTheDocument();
   });
 });
