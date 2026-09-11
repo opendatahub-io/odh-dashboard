@@ -9,7 +9,9 @@ apis:
 - vector_io
 providers:
   inference:
-  - provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+  # Keep the production passthrough provider ID while using Gemini's replay
+  # implementation for deterministic integration tests.
+  - provider_id: genai-bff-proxy
     provider_type: remote::${env.TEST_LLAMA_STACK_PROVIDER}
     config:
       api_key: ${env.GEMINI_API_KEY}
@@ -77,10 +79,10 @@ registered_resources:
   models:
   - model_id: ${env.TEST_LLAMA_STACK_MODEL_ID}
     model_type: llm
-    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+    provider_id: genai-bff-proxy
   - model_id: ${env.TEST_LLAMA_STACK_EMBEDDING_MODEL_ID}
     model_type: embedding
-    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+    provider_id: genai-bff-proxy
     metadata:
       embedding_dimension: ${env.TEST_LLAMA_STACK_EMBEDDING_DIMENSION}
   shields: []
@@ -93,6 +95,6 @@ server:
 vector_stores:
   default_provider_id: milvus
   default_embedding_model:
-    provider_id: ${env.TEST_LLAMA_STACK_PROVIDER}
+    provider_id: genai-bff-proxy
     model_id: ${env.TEST_LLAMA_STACK_EMBEDDING_MODEL_ID}
 connectors: []

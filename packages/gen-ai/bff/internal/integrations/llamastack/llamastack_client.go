@@ -46,6 +46,11 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 			TLSClientConfig: tlsConfig,
 		}),
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
+		// Provider data can contain credentials. Return redirect responses to the caller
+		// rather than forwarding those credentials to the redirect target.
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	// Use the provided apiPath to construct the full base URL
@@ -62,7 +67,14 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 
 // ListModels retrieves all available models from Llama Stack.
 func (c *LlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
-	modelsPage, err := c.client.Models.List(ctx)
+	return c.ListModelsWithProviderData(ctx, nil)
+}
+
+// ListModelsWithProviderData retrieves all available models and forwards provider
+// data to OGX. The remote::passthrough provider uses passthrough_api_key from
+// X-OGX-Provider-Data to authenticate its request to the Gen AI BFF.
+func (c *LlamaStackClient) ListModelsWithProviderData(ctx context.Context, providerData map[string]interface{}) ([]openai.Model, error) {
+	modelsPage, err := c.client.Models.List(ctx, c.buildRequestOptions(providerData)...)
 	if err != nil {
 		return nil, wrapClientError(err, "ListModels")
 	}
@@ -388,7 +400,7 @@ type CreateResponseParams struct {
 	Store *bool
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
-	// ProviderData contains custom provider headers (e.g., vllm_api_token)
+	// ProviderData contains custom provider headers
 	ProviderData map[string]interface{}
 	// GuardrailOpts carries the inline NeMo guardrail configuration for this request.
 	// Input moderation is applied before the LlamaStack call; output moderation is applied

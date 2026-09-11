@@ -237,6 +237,24 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
+// AttachNamespaceFromPath reads the :namespace path parameter (used by proxy routes)
+// and stores it in context under the same key as AttachNamespace so downstream
+// middleware (RequireAccessToService) can find it.
+func (app *App) AttachNamespaceFromPath(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		namespace := ps.ByName("namespace")
+		if namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in path"))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), constants.NamespaceQueryParameterKey, namespace)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
 // AttachOGXClient middleware creates a LlamaStack client for the namespace and attaches it to context.
 // This middleware must be used after AttachNamespace middleware.
 //
