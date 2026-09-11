@@ -110,6 +110,17 @@ const safeString = (value: string | undefined | null): string => value ?? '';
  * @param options Optional configuration for condition checks
  * @returns Result Object of the operation
  */
+// KServe `reason` values on the Ready condition that indicate a terminal, non-recoverable
+// failure. These will never self-heal regardless of how many pod restarts occur.
+const TERMINAL_FAILURE_REASONS = new Set([
+  'ModelLoadFailed',
+  'InvalidStorageURI',
+  'BlockedByFailedLoad',
+  'RuntimeDisabled',
+  'NoSupportingRuntime',
+  'RuntimeNotRecognized',
+]);
+
 export const checkInferenceServiceState = (
   serviceName: string,
   namespace: string,
@@ -258,19 +269,51 @@ export const checkInferenceServiceState = (
         return cy.wrap(result);
       }
 
-      if (attempts >= maxAttempts) {
-        // Prepare detailed error message with full condition details
-        const conditionDetails = conditions
+      // Build full condition detail string (used in error messages below).
+      const buildConditionDetails = (): string =>
+        conditions
           .map(
-            (condition) =>
-              `Type: ${safeString(condition.type)}, Status: ${safeString(
-                condition.status,
-              )}, Reason: ${safeString(condition.reason)}, Message: ${safeString(
-                condition.message,
-              )}`,
+            (c) =>
+              `Type: ${safeString(c.type)}, Status: ${safeString(c.status)}, Reason: ${safeString(
+                c.reason,
+              )}, Message: ${safeString(c.message)}`,
           )
           .join('\n');
 
+      // --- Early-exit checks run BEFORE cy.wait so we don't sleep 50 s unnecessarily ---
+
+      // 1. Genuine terminal failure: activeModelState is Failed AND the Ready condition
+      //    carries a reason that will never self-heal (bad config, invalid URI, etc.).
+      //    Transient restarts (OOMKill, CrashLoopBackOff) set reason="RuntimeUnhealthy"
+      //    which is NOT in TERMINAL_FAILURE_REASONS, so they continue polling.
+      if (activeModelState === 'Failed') {
+        const readyCondition = conditions.find((c) => c.type === 'Ready');
+        const failReason = safeString(readyCondition?.reason);
+        const isTerminal = TERMINAL_FAILURE_REASONS.has(failReason);
+
+        cy.log(
+          `⚠️ activeModelState is "Failed" — Ready condition reason: "${failReason}" — terminal: ${isTerminal}`,
+        );
+
+        if (isTerminal) {
+          const terminalMsg = `❌ InferenceService ${serviceName} has a terminal failure (reason: ${failReason}) — aborting poll immediately
+          Active Model State: ${activeModelState}
+          Ready condition message: ${safeString(readyCondition?.message)}
+          Full Condition Details:
+          ${buildConditionDetails()}`;
+          cy.log(terminalMsg);
+          throw new Error(terminalMsg);
+        }
+        // Non-terminal (e.g. RuntimeUnhealthy) — pod may recover, keep polling.
+        cy.log(`ℹ️ Failure reason "${failReason}" is transient — continuing to poll`);
+      }
+
+      // 2. UI deployment status badge — only shows "Failed" when KServe has conclusively
+      //    marked the service as failed in the dashboard. Check before sleeping so a
+      //    genuine UI-level failure is caught without waiting the full 50 s interval.
+      failOnDeploymentStatus(serviceName);
+
+      if (attempts >= maxAttempts) {
         const errorMessage = `❌ InferenceService ${serviceName} did not meet all conditions within 8 minutes
           Active Model State: ${activeModelState}
           Condition Checks:
@@ -284,15 +327,12 @@ export const checkInferenceServiceState = (
             .join('\n')}
 
           Full Condition Details:
-          ${conditionDetails}`;
+          ${buildConditionDetails()}`;
 
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(50000).then(() => {
-          failOnDeploymentStatus(serviceName);
-          return checkState();
-        });
+        return cy.wait(30000).then(() => checkState());
       }
     });
 
