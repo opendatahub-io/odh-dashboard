@@ -1,11 +1,8 @@
 # RHAII Distribution — Tilt Development Environment
 #
 # Usage:
-#   make tilt-up     # creates kind cluster (if needed) and starts Tilt
+#   make tilt-up     # creates kind cluster, installs KServe, and starts the full stack
 #   make tilt-down   # stops Tilt
-#
-# With model-serving (experimental):
-#   make tilt-up-model-serving
 #
 # Prerequisites: docker/podman, kind, tilt
 
@@ -24,13 +21,9 @@ tilt_root = os.path.dirname(os.path.abspath(__file__))
 dist_root = os.path.join(tilt_root, "..")
 repo_root = os.path.join(tilt_root, "../../..")
 
-# ── Optional packages (set env vars to "true" to enable) ─────────────────────
+# ── Federated model serving ──────────────────────────────────────────────────
 
-enable_model_serving = os.environ.get("ENABLE_MODEL_SERVING", "false") == "true"
-
-build_args = {}
-if enable_model_serving:
-    build_args["MODEL_SERVING_REMOTE_ENTRY"] = "http://localhost:9109/remoteEntry.js"
+build_args = {"MODEL_SERVING_REMOTE_ENTRY": "http://localhost:9109/remoteEntry.js"}
 
 # ── RHAII Dashboard ───────────────────────────────────────────────────────────
 
@@ -56,46 +49,43 @@ docker_build(
 k8s_yaml(kustomize(os.path.join(tilt_root, "manifests")))
 k8s_yaml(os.path.join(tilt_root, "manifests/model-serving-demo.yaml"))
 
-dashboard_resource_deps = ["model-serving-remote"] if enable_model_serving else []
 k8s_resource(
     "rhaii-dashboard",
     port_forwards=[port_forward(4000, 4000, name="RHAII Dashboard")],
-    resource_deps=dashboard_resource_deps,
+    resource_deps=["model-serving-remote"],
     labels=["rhaii"],
 )
 
-# ── Model Serving (optional — KServe backend) ────────────────────────────────
-# Requires: make setup-kserve (called automatically by make tilt-up-model-serving)
+# ── Model Serving (KServe backend) ───────────────────────────────────────────
 
-if enable_model_serving:
-    node_bin = os.environ.get("NVM_BIN", "")
-    remote_env = {}
-    if node_bin:
-        remote_env["PATH"] = node_bin + ":" + os.environ.get("PATH", "")
-    def shell_quote(value):
-        return "'" + value.replace("'", "'\"'\"'") + "'"
+node_bin = os.environ.get("NVM_BIN", "")
+remote_env = {}
+if node_bin:
+    remote_env["PATH"] = node_bin + ":" + os.environ.get("PATH", "")
+def shell_quote(value):
+    return "'" + value.replace("'", "'\"'\"'") + "'"
 
-    quoted_repo_root = shell_quote(repo_root)
-    model_serving_frontend = os.path.join(repo_root, "packages/model-serving/frontend")
-    quoted_model_serving_frontend = shell_quote(model_serving_frontend)
-    local_resource(
-        "workspace-install",
-        cmd="npm ci --ignore-scripts --legacy-peer-deps --prefix " + quoted_repo_root,
-        labels=["model-serving"],
-    )
-    local_resource(
-        "model-serving-remote",
-        serve_cmd="cd " + quoted_model_serving_frontend + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 _DEV_SERVER_ALLOWED_ORIGIN=http://localhost:4000 npm run start:dev",
-        serve_env=remote_env,
-        resource_deps=["workspace-install"],
-        readiness_probe=probe(http_get=http_get_action(port=9109, path="/remoteEntry.js")),
-        labels=["model-serving"],
-    )
+quoted_repo_root = shell_quote(repo_root)
+model_serving_frontend = os.path.join(repo_root, "packages/model-serving/frontend")
+quoted_model_serving_frontend = shell_quote(model_serving_frontend)
+local_resource(
+    "workspace-install",
+    cmd="npm ci --ignore-scripts --legacy-peer-deps --prefix " + quoted_repo_root,
+    labels=["model-serving"],
+)
+local_resource(
+    "model-serving-remote",
+    serve_cmd="cd " + quoted_model_serving_frontend + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 _DEV_SERVER_ALLOWED_ORIGIN=http://localhost:4000 npm run start:dev",
+    serve_env=remote_env,
+    resource_deps=["workspace-install"],
+    readiness_probe=probe(http_get=http_get_action(port=9109, path="/remoteEntry.js")),
+    labels=["model-serving"],
+)
 
-    # Stream logs from the externally-installed KServe controller for visibility
-    local_resource(
-        "kserve-controller",
-        cmd="kubectl get deployment -n kserve kserve-controller-manager -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo 'not installed'",
-        serve_cmd="kubectl logs -n kserve deployment/kserve-controller-manager -f --tail=50",
-        labels=["model-serving"],
-    )
+# Stream logs from the externally-installed KServe controller for visibility
+local_resource(
+    "kserve-controller",
+    cmd="kubectl get deployment -n kserve kserve-controller-manager -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo 'not installed'",
+    serve_cmd="kubectl logs -n kserve deployment/kserve-controller-manager -f --tail=50",
+    labels=["model-serving"],
+)
