@@ -1427,7 +1427,7 @@ components:
           example: milvus
         optimization_max_rag_patterns:
           type: integer
-          minimum: 1
+          minimum: 4
           maximum: 10
           description: Maximum number of RAG patterns to generate. Passed to ai4rag (max_number_of_rag_patterns). Defaults to 5.
           default: 5

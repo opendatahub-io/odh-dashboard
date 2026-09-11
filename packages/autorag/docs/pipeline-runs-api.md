@@ -387,7 +387,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `generation_models` | string[] | No | List of generation model identifiers |
 | `optimization_metric` | string | No | Metric to optimize: `overall_score` (default), `faithfulness`, `answer_correctness`, or `context_correctness` |
 | `vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in ogx (e.g. ogx Milvus) |
-| `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 1, max: 10, default: 5) |
+| `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 10, default: 5) |
 
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)

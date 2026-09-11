@@ -9,7 +9,7 @@ const (
 	DefaultOptimizationMetric = MetricOverallScore
 	DefaultPreset             = "speed"
 
-	MinRagPatterns        = 1
+	MinRagPatterns        = 4
 	MaxRagPatterns        = 10
 	DefaultMaxRagPatterns = 5
 

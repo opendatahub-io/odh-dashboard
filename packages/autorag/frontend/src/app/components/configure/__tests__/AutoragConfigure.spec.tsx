@@ -1099,10 +1099,10 @@ describe('AutoragConfigure', () => {
       selectSecretAndFile();
 
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input')!;
-      fireEvent.change(input, { target: { value: '0' } });
+      fireEvent.change(input, { target: { value: '3' } });
 
       await waitFor(() => {
-        expect(screen.getByText('Minimum number of RAG patterns is 1')).toBeInTheDocument();
+        expect(screen.getByText('Minimum number of RAG patterns is 4')).toBeInTheDocument();
       });
     });
   });
