@@ -79,6 +79,7 @@ export const ERROR_MESSAGES = {
   FILE_UPLOAD_FAILED: 'File upload failed',
   FILE_UPLOAD_FAILED_BODY:
     "The YAML file couldn't be uploaded. Check its syntax and structure, then try again.",
+  CLEAR_CREDENTIALS_FAILED: 'Failed to clear access token',
   VALIDATION_FAILED: 'Credentials validation failed',
   VALIDATION_FAILED_BODY:
     'Could not validate your organization or access token. Check your entries and try again.',
@@ -89,6 +90,10 @@ export const ERROR_MESSAGES = {
 export const SUCCESS_MESSAGES = {
   VALIDATION_SUCCESSFUL: 'Credentials validated',
   VALIDATION_SUCCESSFUL_BODY: 'Organization and access token were validated successfully.',
+} as const;
+
+export const TOOLTIP_MESSAGES = {
+  PREVIEW_REQUIRES_VALIDATION: 'Validate the access token to preview models.',
 } as const;
 
 export const TABLE_COLUMN_LABELS = {

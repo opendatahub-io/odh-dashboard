@@ -35,7 +35,7 @@ const isValidUrl = (url: string): boolean => {
   }
 };
 
-const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
+const MaasConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
   const [baseUrl, setBaseUrl] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
@@ -64,8 +64,8 @@ const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) =
         },
       },
       stringData: {
-        OGX_CLIENT_BASE_URL: baseUrl.trim(),
-        OGX_CLIENT_API_KEY: apiKey.trim(),
+        MAAS_BASE_URL: baseUrl.trim(),
+        MAAS_API_KEY: apiKey.trim(),
       },
     };
 
@@ -90,22 +90,22 @@ const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) =
   return (
     <Modal isOpen onClose={isSaving ? undefined : onClose} variant="medium">
       <ModalHeader
-        title="Add Open GenAI Stack connection"
-        description="Provide credentials for accessing an external Open GenAI Stack server. The generation and embedding models registered in the Open GenAI Stack server will be considered when generating RAG patterns. Vector I/O providers in the Open GenAI Stack server can be used to create a collection for retrieval."
+        title="Add MaaS connection"
+        description="Provide credentials for accessing an external Models as a Service (MaaS) server. The generation and embedding models registered in the MaaS server will be considered when generating RAG patterns."
       />
       <ModalBody>
         <Form>
           <K8sNameDescriptionField
-            dataTestId="ogx-connection"
+            dataTestId="maas-connection"
             data={nameDescData}
             onDataChange={setNameDescData}
             nameLabel="Connection name"
             hideDescription
           />
-          <FormGroup fieldId="ogx-connection-base-url" label="Base URL" isRequired>
+          <FormGroup fieldId="maas-connection-base-url" label="Base URL" isRequired>
             <TextInput
-              id="ogx-connection-base-url"
-              data-testid="ogx-connection-base-url"
+              id="maas-connection-base-url"
+              data-testid="maas-connection-base-url"
               value={baseUrl}
               onChange={(_e, val) => setBaseUrl(val)}
               onBlur={() => {
@@ -121,15 +121,15 @@ const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) =
                 <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
                   {showBaseUrlError
                     ? 'Enter a valid URL (e.g. https://example.com).'
-                    : 'The base URL of the Open GenAI Stack connection.'}
+                    : 'The base URL of the MaaS connection.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
-          <FormGroup fieldId="ogx-connection-api-key" label="API key">
+          <FormGroup fieldId="maas-connection-api-key" label="API key">
             <PasswordInput
-              id="ogx-connection-api-key"
-              data-testid="ogx-connection-api-key"
+              id="maas-connection-api-key"
+              data-testid="maas-connection-api-key"
               value={apiKey}
               onChange={(_e, val) => setApiKey(val)}
               ariaLabelShow="Show API key"
@@ -154,4 +154,4 @@ const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) =
   );
 };
 
-export default OgxConnectionModal;
+export default MaasConnectionModal;

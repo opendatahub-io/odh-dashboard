@@ -14,6 +14,7 @@ const detail: QuotaUsageDetailData = {
     memoryUtilization: 25,
     isOverQuota: false,
     isBorrowing: false,
+    borrowingEnabled: false,
     showBorrowingInfo: false,
     borrowingClusterQueues: [],
   },

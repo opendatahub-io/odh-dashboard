@@ -10,6 +10,7 @@ COPY frontend/package.json ./frontend/
 COPY frontend/src/package.json ./frontend/src/
 # Copy required workspace packages
 COPY packages/plugin-core/ ./packages/plugin-core/
+COPY packages/app-config/ ./packages/app-config/
 COPY packages/tsconfig/ ./packages/tsconfig/
 # Copy frontend source (for @odh-dashboard/internal exports)
 COPY frontend/src/ ./frontend/src/

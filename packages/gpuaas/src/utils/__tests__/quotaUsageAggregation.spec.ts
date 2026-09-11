@@ -10,6 +10,10 @@ import {
   QUOTA_NODE_TYPE,
   QUOTA_USAGE_METER_VARIANT,
   QuotaSelection,
+  ClusterQueueWorkloadRow,
+  QuotaUsageWorkloadStatus,
+  QuotaUsageWorkloadStatuses,
+  QuotaUsageWorkloadTypes,
 } from '../../types';
 import {
   buildQuotaUsageAcceleratorRows,
@@ -19,6 +23,7 @@ import {
   collectBorrowingClusterQueuesFromNode,
   formatQuotaUsageWorkloadSummary,
   resolveBorrowSourceCohortName,
+  summarizeQuotaUsageWorkloads,
 } from '../quotaUsageAggregation';
 import { buildQuotaHierarchyTree } from '../buildQuotaHierarchyTree';
 
@@ -215,6 +220,26 @@ describe('buildQuotaUsageSummary', () => {
     expect(summary.showBorrowingInfo).toBe(true);
   });
 
+  it('should mark borrowing as enabled from configured accelerator limits without active borrowing', () => {
+    const { cq, rf } = makeGpuCQWithFlavor('cq-a', { cohortName: 'cohort-1' });
+    const resourceGroup = cq.spec.resourceGroups?.[0];
+    if (!resourceGroup) {
+      throw new Error('Expected GPU resource group');
+    }
+    resourceGroup.flavors[0].resources[0].borrowingLimit = '2';
+    const summary = buildQuotaUsageSummary([cq], [makeResourceFlavor(rf)], undefined, false);
+
+    expect(summary.borrowingEnabled).toBe(true);
+    expect(summary.isBorrowing).toBe(false);
+  });
+
+  it('should not mark borrowing as enabled for a standalone queue without limits', () => {
+    const { cq, rf } = makeGpuCQWithFlavor('cq-a');
+    const summary = buildQuotaUsageSummary([cq], [makeResourceFlavor(rf)], undefined, false);
+
+    expect(summary.borrowingEnabled).toBe(false);
+  });
+
   it('should compute computeUtilization and memoryUtilization via resolveCQDcgmUtilization', () => {
     const { cq, rf } = makeGpuCQWithFlavor('cq-a', { gpuProduct: 'NVIDIA H100', used: 4 });
     const dcgmByModel = new Map<string, CQDcgmResult>([
@@ -359,14 +384,23 @@ describe('buildQuotaUsageAcceleratorRows', () => {
     expect(rows.map((row) => row.model)).toEqual(['NVIDIA H100', 'NVIDIA L40S']);
   });
 
-  it('should return empty array when no models resolved', () => {
+  it('should use ResourceFlavor name when no GPU product label resolves', () => {
     const { cq, rf } = makeGpuCQWithFlavor('cq-a');
     const rows = buildQuotaUsageAcceleratorRows(
       [cq],
       [makeResourceFlavor({ name: rf.name })],
       undefined,
     );
-    expect(rows).toEqual([]);
+    expect(rows).toEqual([
+      {
+        model: 'gpu-flavor',
+        used: 0,
+        nominal: 8,
+        borrowed: 0,
+        computePercentage: undefined,
+        memoryPercentage: undefined,
+      },
+    ]);
   });
 });
 
@@ -403,6 +437,51 @@ describe('buildQuotaUsageMeterSegments', () => {
 describe('formatQuotaUsageWorkloadSummary', () => {
   it('should omit needs attention when within quota', () => {
     expect(formatQuotaUsageWorkloadSummary(2, 1, false, 0)).toBe('2 active, 1 pending');
+  });
+});
+
+describe('summarizeQuotaUsageWorkloads', () => {
+  const workload = (status: QuotaUsageWorkloadStatus): ClusterQueueWorkloadRow => ({
+    name: status,
+    namespace: 'test',
+    project: 'test',
+    clusterQueue: 'default',
+    type: QuotaUsageWorkloadTypes.Unknown,
+    status,
+    localQueue: 'default',
+    accelerators: 1,
+    queuePosition: undefined,
+  });
+
+  it('counts active and waiting statuses while excluding terminal statuses', () => {
+    const summary = summarizeQuotaUsageWorkloads([
+      workload(QuotaUsageWorkloadStatuses.Admitted),
+      workload(QuotaUsageWorkloadStatuses.Running),
+      workload(QuotaUsageWorkloadStatuses.Pending),
+      workload(QuotaUsageWorkloadStatuses.Queued),
+      workload(QuotaUsageWorkloadStatuses.Inadmissible),
+      workload(QuotaUsageWorkloadStatuses.AdmissionCheck),
+      workload(QuotaUsageWorkloadStatuses.BlockedOnPreemptionGates),
+      workload(QuotaUsageWorkloadStatuses.Requeued),
+      workload(QuotaUsageWorkloadStatuses.Complete),
+      workload(QuotaUsageWorkloadStatuses.Failed),
+      workload(QuotaUsageWorkloadStatuses.Preempted),
+      workload(QuotaUsageWorkloadStatuses.Evicted),
+    ]);
+
+    expect(summary).toEqual({
+      admittedWorkloads: 2,
+      pendingWorkloads: 4,
+      workloadSummaryLine: '2 active, 4 pending, 5 needs attention',
+    });
+  });
+
+  it('returns zero counts for no workloads', () => {
+    expect(summarizeQuotaUsageWorkloads([])).toEqual({
+      admittedWorkloads: 0,
+      pendingWorkloads: 0,
+      workloadSummaryLine: '0 active, 0 pending',
+    });
   });
 });
 

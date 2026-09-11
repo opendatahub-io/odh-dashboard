@@ -6,13 +6,20 @@ import {
   CLUSTER_QUEUE_WORKLOADS_TABLE_DESCRIPTION,
 } from '../../const';
 import ClusterQueueWorkloadsSection from '../clusterQueueWorkloads/ClusterQueueWorkloadsSection';
+import type { ClusterQueueWorkloadRow } from '../../types';
 
 type QuotaUsageWorkloadsCollapsibleProps = {
   clusterQueueName: string;
+  workloads?: ClusterQueueWorkloadRow[];
+  loaded?: boolean;
+  error?: Error;
 };
 
 const QuotaUsageWorkloadsCollapsible: React.FC<QuotaUsageWorkloadsCollapsibleProps> = ({
   clusterQueueName,
+  workloads,
+  loaded,
+  error,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
 
@@ -34,6 +41,9 @@ const QuotaUsageWorkloadsCollapsible: React.FC<QuotaUsageWorkloadsCollapsiblePro
           <ClusterQueueWorkloadsSection
             clusterQueueName={clusterQueueName}
             showDescription={false}
+            workloads={workloads}
+            loaded={loaded}
+            error={error}
           />
         </StackItem>
       </Stack>

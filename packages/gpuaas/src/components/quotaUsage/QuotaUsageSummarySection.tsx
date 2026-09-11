@@ -7,6 +7,7 @@ import {
   Popover,
   Stack,
   StackItem,
+  Skeleton,
 } from '@patternfly/react-core';
 import * as React from 'react';
 import QuotaUsageAccordionSection from './QuotaUsageAccordionSection';
@@ -19,9 +20,11 @@ import {
   QuotaSelection,
   QuotaUsageBorrowingClusterQueue,
   QuotaUsageSummary,
+  ClusterQueueWorkloadRow,
 } from '../../types';
 import { ModelGpuCount } from '../../utils/hardwareModels';
 import { formatBorrowingSinceDate } from '../../utils/borrowingLending';
+import { summarizeQuotaUsageWorkloads } from '../../utils/quotaUsageAggregation';
 
 type QuotaUsageSummarySectionProps = {
   summary: QuotaUsageSummary;
@@ -34,6 +37,9 @@ type QuotaUsageSummarySectionProps = {
   clusterQueueName?: string;
   nominalQuota?: number;
   error?: Error;
+  workloads?: ClusterQueueWorkloadRow[];
+  workloadsLoaded?: boolean;
+  workloadsError?: Error;
 };
 
 const MetricTitle: React.FC<{ label: string }> = ({ label }) => (
@@ -138,8 +144,15 @@ const QuotaUsageSummarySection: React.FC<QuotaUsageSummarySectionProps> = ({
   clusterQueueName,
   nominalQuota,
   error,
+  workloads,
+  workloadsLoaded = true,
+  workloadsError,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
+  const workloadSummary =
+    workloads && workloads.length > 0 && workloadsLoaded && !workloadsError
+      ? summarizeQuotaUsageWorkloads(workloads)
+      : summary;
 
   const handleViewKueueProjects = () => {
     onViewKueueProjects?.();
@@ -165,7 +178,16 @@ const QuotaUsageSummarySection: React.FC<QuotaUsageSummarySectionProps> = ({
           className="pf-v6-u-mb-sm"
           data-testid="quota-usage-summary-workloads"
         >
-          {summary.workloadSummaryLine}
+          {workloads && !workloadsLoaded && !workloadsError ? (
+            <Skeleton
+              data-testid="quota-usage-summary-workloads-loading"
+              width="140px"
+              height="1em"
+              screenreaderText="Loading workload summary"
+            />
+          ) : (
+            workloadSummary.workloadSummaryLine
+          )}
         </Content>
       </StackItem>
       <StackItem data-testid="quota-usage-summary-metrics-wrap">
