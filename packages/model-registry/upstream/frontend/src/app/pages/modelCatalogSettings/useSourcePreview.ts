@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { isPreviewReady } from '~/app/pages/modelCatalogSettings/utils/validation';
-import { transformFormDataToConfig } from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
+import {
+  transformFormDataToConfig,
+  resolveHuggingFaceApiKeyField,
+} from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
 import {
   CatalogSourceConfig,
   CatalogSourceType,
@@ -29,13 +32,9 @@ const isHuggingFaceWithAccessToken = (formData: ManageSourceFormData): boolean =
 export const isPreviewEnabled = (
   formData: ManageSourceFormData,
   credentialsValidationStatus: CredentialsValidationStatus,
-  isEditMode = false,
 ): boolean => {
   if (!isPreviewReady(formData)) {
     return false;
-  }
-  if (isEditMode) {
-    return true;
   }
   if (isHuggingFaceWithAccessToken(formData)) {
     return credentialsValidationStatus === 'valid';
@@ -46,11 +45,7 @@ export const isPreviewEnabled = (
 export const getPreviewDisabledTooltip = (
   formData: ManageSourceFormData,
   credentialsValidationStatus: CredentialsValidationStatus,
-  isEditMode = false,
 ): string | undefined => {
-  if (isEditMode) {
-    return undefined;
-  }
   if (
     isPreviewReady(formData) &&
     isHuggingFaceWithAccessToken(formData) &&
@@ -84,6 +79,7 @@ export interface UseSourcePreviewOptions {
   existingSourceConfig?: CatalogSourceConfig;
   apiState: ModelCatalogSettingsAPIState;
   isEditMode: boolean;
+  hasExistingApiKey?: boolean;
 }
 
 export interface UseSourcePreviewResult {
@@ -106,6 +102,7 @@ export const useSourcePreview = ({
   existingSourceConfig,
   apiState,
   isEditMode,
+  hasExistingApiKey = false,
 }: UseSourcePreviewOptions): UseSourcePreviewResult => {
   const [credentialsValidationStatus, setCredentialsValidationStatus] =
     React.useState<CredentialsValidationStatus>('unknown');
@@ -114,17 +111,14 @@ export const useSourcePreview = ({
   const [resultDismissed, setResultDismissed] = React.useState(false);
   const [mode, setMode] = React.useState<PreviewMode | undefined>();
 
-  const canPreview = isPreviewEnabled(formData, credentialsValidationStatus, isEditMode);
-  const previewDisabledTooltip = getPreviewDisabledTooltip(
-    formData,
-    credentialsValidationStatus,
-    isEditMode,
-  );
+  const canPreview = isPreviewEnabled(formData, credentialsValidationStatus);
+  const previewDisabledTooltip = getPreviewDisabledTooltip(formData, credentialsValidationStatus);
 
   const buildPreviewRequest = React.useCallback((): CatalogSourcePreviewRequest => {
     const payload = transformFormDataToConfig(formData, existingSourceConfig);
 
     const request: CatalogSourcePreviewRequest = {
+      id: payload.id,
       type: payload.type,
       includedModels: payload.includedModels,
       excludedModels: payload.excludedModels,
@@ -133,7 +127,11 @@ export const useSourcePreview = ({
     if (payload.type === CatalogSourceType.HUGGING_FACE) {
       request.properties = {
         allowedOrganization: payload.allowedOrganization,
-        apiKey: payload.apiKey,
+        ...resolveHuggingFaceApiKeyField(payload.apiKey, {
+          tokenModified: formData.tokenModified,
+          hasExistingApiKey,
+          forPreview: true,
+        }),
       };
     } else {
       request.properties = {
@@ -143,7 +141,7 @@ export const useSourcePreview = ({
     }
 
     return request;
-  }, [formData, existingSourceConfig]);
+  }, [formData, existingSourceConfig, hasExistingApiKey]);
 
   const previewApi = React.useCallback(
     (
