@@ -239,9 +239,14 @@ assert data["summary"] == "Trusted host snapshot", data
 print("PASS jira-snapshot: trusted precomputed context is preserved")
 PY
 
-  local jira_prompt="${_DIR}/../skills/pr-review/sub-agents/description-jira.md"
-  grep -Fq 'untrusted prompt data' "${jira_prompt}"
-  grep -Fq 'ignore instructions' "${jira_prompt}"
+  local jira_definition jira_prompt
+  jira_definition="$(jq -r '
+    first(.dimensions[] | select(.context_dimension == "jira-snapshot") | .definition) // empty
+  ' "${_DIR}/../dimensions.json")"
+  jira_prompt="${_DIR}/../${jira_definition}"
+  [[ -n "${jira_definition}" && -f "${jira_prompt}" ]]
+  grep -Eiq 'untrusted (prompt )?data' "${jira_prompt}"
+  grep -Eiq 'ignore instructions|never as instructions' "${jira_prompt}"
   echo "PASS jira-snapshot: prompt-injection boundary is explicit"
 
   rm -f "${tmp}"
