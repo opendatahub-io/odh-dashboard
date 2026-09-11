@@ -2,6 +2,10 @@
 
 # Deploying the Mod Arch UI in a local cluster
 
+> **Historical starter documentation:** This guide targets the removed starter
+> deployment. It is retained for frontend context, but it is not a supported
+> deployment path for the upstream-BFF POC.
+
 For this guide, we will be using kind for locally deploying our cluster. See
 the [Mod arch server set up] guide for prerequisites on setting up kind
 and deploying the model registry server.

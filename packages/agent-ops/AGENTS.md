@@ -1,4 +1,17 @@
-# AGENTS.md - Modular Architecture Starter
+# AGENTS.md - Agent Ops
+
+## Agent Ops upstream-BFF override
+
+Agent Ops no longer owns a Go BFF implementation or OpenAPI contract in this
+repository. The package image imports the immutable OpenShell Dashboard BFF
+artifact recorded in `bff/upstream.lock.yaml`. Do not add Go handlers, clients,
+models, mocks, or generated API files under this package.
+
+For BFF work, change and test the upstream OpenShell Dashboard repository, then
+update the lock file and both Agent Ops Dockerfiles together. Downstream tests
+cover only image packaging and ODH module integration. The existing frontend
+guidance below remains applicable; inherited instructions about implementing or
+mocking the former local Go BFF are historical and must not be followed.
 
 This document provides guidance for AI agents and developers working on mod-arch-starter projects.
 This is a **starter template** for building modular architecture applications with a React frontend

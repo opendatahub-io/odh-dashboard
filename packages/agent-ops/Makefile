@@ -1,168 +1,140 @@
+REPO_ROOT := ../..
+
 DEFAULT_ENV_FILE := .env
-ifneq ("$(wildcard $(DEFAULT_ENV_FILE))","")
-include ${DEFAULT_ENV_FILE}
-export $(shell sed 's/=.*//' ${DEFAULT_ENV_FILE})
+ifneq (,$(wildcard $(DEFAULT_ENV_FILE)))
+include $(DEFAULT_ENV_FILE)
+export $(shell sed 's/=.*//' $(DEFAULT_ENV_FILE))
 endif
 
 DEV_ENV_FILE := .env.development
-ifneq ("$(wildcard $(DEV_ENV_FILE))","")
-include ${DEV_ENV_FILE}
-export $(shell sed 's/=.*//' ${DEV_ENV_FILE})
+ifneq (,$(wildcard $(DEV_ENV_FILE)))
+include $(DEV_ENV_FILE)
+export $(shell sed 's/=.*//' $(DEV_ENV_FILE))
 endif
 
-ENV_FILE := .env.local
-ifneq ("$(wildcard $(ENV_FILE))","")
-include ${ENV_FILE}
-export $(shell sed 's/=.*//' ${ENV_FILE})
+LOCAL_ENV_FILE := .env.local
+ifneq (,$(wildcard $(LOCAL_ENV_FILE)))
+include $(LOCAL_ENV_FILE)
+export $(shell sed 's/=.*//' $(LOCAL_ENV_FILE))
 endif
 
-.PHONY: all
+CONTAINER_TOOL ?= docker
+AUTH_DISABLED ?= false
+OPENSHELL_BFF_IMAGE ?= quay.io/gkrumbach07/openshell-dashboard@sha256:6b09b05323a8ff39ae7ff14567687ed6e7ec244ef59b7663a9c1a2021dcee5e8
+IMG_UI ?= agent-ops-openshell:local
+IMG_UI_STANDALONE ?= agent-ops-openshell-standalone:local
+IMG_UI_FEDERATED ?= agent-ops-openshell-federated:local
+AGENT_OPS_IMAGE ?= $(IMG_UI_FEDERATED)
+BFF_CONTAINER_NAME ?= agent-ops-bff-local
+BFF_PORT ?= 4021
+FRONTEND_PORT ?= 9111
+PROXY_PORT ?= $(BFF_PORT)
+
+GATEWAY_TLS_ARGS = $(if $(GATEWAY_CERT_DIR),--volume "$(GATEWAY_CERT_DIR):/etc/openshell-gateway:ro" --env GATEWAY_CA_CERT=/etc/openshell-gateway/ca.crt --env GATEWAY_CLIENT_CERT=/etc/openshell-gateway/tls.crt --env GATEWAY_CLIENT_KEY=/etc/openshell-gateway/tls.key,)
+
+.PHONY: all help
 all: build
 
-.PHONY: help
-help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+help: ## Display available Agent Ops development targets.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*##/ { printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
+############ Frontend Development ############
 
-############ Dev Environment ############
-##
-## Development Commands:
-##   dev-start          - Start in mock mode (RECOMMENDED for local development)
-##                        Uses user_token auth with mocked K8s client, no cluster needed
-##   dev-start-federated - Start tapping into a real cluster (requires port-forward)
-##                        Uses user_token auth with real K8s client
-##   dev-start-kubeflow  - Start for Kubeflow development (requires Kubeflow cluster)
-##                        Uses internal auth with kubeflow-userid header
-##
-
-.PHONY: dev-install-dependencies
-dev-install-dependencies:
+.PHONY: dev-install-dependencies dev-frontend dev-frontend-federated dev-frontend-kubeflow
+dev-install-dependencies: ## Install frontend dependencies.
 	cd frontend && npm install
 
-.PHONY: dev-bff
-dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev)
-	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_AGENT_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone AUTH_METHOD=user_token
+dev-frontend: ## Run the standalone frontend development server.
+	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme PORT=$(FRONTEND_PORT) PROXY_PORT=$(PROXY_PORT) npm run start:dev
 
-.PHONY: dev-frontend
-dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+dev-frontend-federated: ## Run the federated frontend development server.
+	cd frontend && DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=$(FRONTEND_PORT) PROXY_PORT=$(PROXY_PORT) npm run start:dev
 
-.PHONY: dev-start
-dev-start: ## Start in mock mode - recommended for local development
-	@trap 'exit 0' INT; \
-	make -j 2 dev-bff dev-frontend
+dev-frontend-kubeflow: ## Run the Kubeflow frontend development server.
+	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme PORT=$(FRONTEND_PORT) PROXY_PORT=$(PROXY_PORT) npm run start:dev
 
-########### Dev Kubeflow ############
-.PHONY: dev-start-kubeflow
-dev-start-kubeflow:
-	@trap 'exit 0' INT; \
-	make -j 2 dev-bff-kubeflow dev-frontend-kubeflow
+############ Image-based BFF Development ############
 
-.PHONY: dev-frontend-kubeflow
-dev-frontend-kubeflow:
-	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme npm run start:dev
+.PHONY: dev-bff dev-bff-federated dev-bff-kubeflow
+dev-bff: ## Run the assembled upstream-BFF image against OPENSHELL_GATEWAY_URL.
+	@test -n "$(OPENSHELL_GATEWAY_URL)" || (echo "OPENSHELL_GATEWAY_URL is required" >&2; exit 1)
+	$(CONTAINER_TOOL) run --rm --name "$(BFF_CONTAINER_NAME)" --publish "127.0.0.1:$(BFF_PORT):8080" --env "OPENSHELL_GATEWAY_URL=$(OPENSHELL_GATEWAY_URL)" --env "AUTH_DISABLED=$(AUTH_DISABLED)" $(GATEWAY_TLS_ARGS) "$(AGENT_OPS_IMAGE)"
 
-.PHONY: dev-bff-kubeflow
-dev-bff-kubeflow:
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=internal
+dev-bff-federated: dev-bff ## Compatibility alias for the federated workflow.
 
-########### Dev Federated ###########
-.PHONY: dev-start-federated
-dev-start-federated:
-	@trap 'exit 0' INT; \
-	make -j 2 dev-bff-federated dev-frontend-federated
+dev-bff-kubeflow: dev-bff ## Compatibility alias for the Kubeflow workflow.
 
-.PHONY: dev-frontend-federated
-dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9111 PROXY_PORT=4021 npm run start:dev
+.PHONY: dev-start dev-start-federated dev-start-kubeflow
+dev-start: docker-build-federated ## Build and run the BFF with the standalone frontend.
+	@trap 'exit 0' INT; $(MAKE) -j 2 dev-bff dev-frontend
 
-.PHONY: dev-bff-federated
-dev-bff-federated:
-	cd bff && make run PORT=4021 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+dev-start-federated: docker-build-federated ## Build and run the BFF with the federated frontend.
+	@trap 'exit 0' INT; $(MAKE) -j 2 dev-bff-federated dev-frontend-federated
 
-############ E2E Test Targets ############
+dev-start-kubeflow: docker-build-federated ## Build and run the BFF with the Kubeflow frontend.
+	@trap 'exit 0' INT; $(MAKE) -j 2 dev-bff-kubeflow dev-frontend-kubeflow
+
+############ E2E and Integration ############
 
 E2E_BFF_PORT ?= 4021
+E2E_GATEWAY_URL ?= grpc://127.0.0.1:1
+E2E_STATIC_ASSETS_DIR ?= $(CURDIR)/frontend/public-cypress
 
-.PHONY: dev-bff-e2e-mock
-dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_AGENT_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
+.PHONY: dev-bff-e2e-cluster test-contract test-integration-rosa
+dev-bff-e2e-cluster: ## Run the pinned BFF with Cypress assets and isolated test settings.
+	@test -d "$(E2E_STATIC_ASSETS_DIR)" || (echo "E2E assets are missing; run npm run cypress:server:build first" >&2; exit 1)
+	$(CONTAINER_TOOL) run --rm --name "$(BFF_CONTAINER_NAME)-e2e" --publish "127.0.0.1:$(E2E_BFF_PORT):8080" --volume "$(E2E_STATIC_ASSETS_DIR):/static:ro" --env "STATIC_DIR=/static" --env "AUTH_DISABLED=true" --env "OPENSHELL_GATEWAY_URL=$(E2E_GATEWAY_URL)" "$(OPENSHELL_BFF_IMAGE)"
 
-.PHONY: dev-bff-e2e-cluster
-dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
+test-contract: ## Run downstream image and module integration checks.
+	npm run test:contract
 
-############ Build ############
+test-integration-rosa: ## Run the authenticated ROSA gateway integration test.
+	npm run test:integration:rosa
 
-.PHONY: docker-build
-docker-build:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+############ Build and Push ############
 
-.PHONY: docker-build-standalone
-docker-build-standalone:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+.PHONY: docker-build docker-build-standalone docker-build-federated docker-build-workspace bff-build build
+docker-build: ## Build the default downstream Agent Ops image.
+	$(CONTAINER_TOOL) build --build-arg OPENSHELL_BFF_IMAGE=$(OPENSHELL_BFF_IMAGE) --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --tag "$(IMG_UI)" .
 
-.PHONY: docker-build-federated
-docker-build-federated:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} .
+docker-build-standalone: ## Build the standalone downstream Agent Ops image.
+	$(CONTAINER_TOOL) build --build-arg OPENSHELL_BFF_IMAGE=$(OPENSHELL_BFF_IMAGE) --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --tag "$(IMG_UI_STANDALONE)" .
 
-.PHONY: docker-buildx
-docker-buildx:
-	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+docker-build-federated: ## Build the federated downstream Agent Ops image.
+	$(CONTAINER_TOOL) build --build-arg OPENSHELL_BFF_IMAGE=$(OPENSHELL_BFF_IMAGE) --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --tag "$(IMG_UI_FEDERATED)" .
 
-.PHONY: docker-buildx-standalone
-docker-buildx-standalone:
-	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push .
+docker-build-workspace: ## Build the Konflux-style image from the repository root.
+	$(CONTAINER_TOOL) build --file Dockerfile.workspace --build-arg OPENSHELL_BFF_IMAGE=$(OPENSHELL_BFF_IMAGE) --build-arg DEPLOYMENT_MODE=federated --tag "$(IMG_UI_FEDERATED)" $(REPO_ROOT)
 
-.PHONY: docker-buildx-federated
-docker-buildx-federated:
-	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+bff-build: docker-build-federated ## Build the image containing the upstream BFF.
 
-############ Push ############
+build: docker-build-federated ## Build the complete downstream Agent Ops image.
 
-.PHONY: docker-push
-docker-push:
-	${CONTAINER_TOOL} push ${IMG_UI}
+.PHONY: docker-buildx docker-buildx-standalone docker-buildx-federated
+docker-buildx: ## Build and push the default multi-architecture image.
+	docker buildx build --build-arg OPENSHELL_BFF_IMAGE=$(OPENSHELL_BFF_IMAGE) --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform "$(PLATFORM)" --tag "$(IMG_UI)" --push .
 
-.PHONY: docker-push-standalone
-docker-push-standalone:
-	${CONTAINER_TOOL} push ${IMG_UI_STANDALONE}
+docker-buildx-standalone: ## Build and push the standalone multi-architecture image.
+	docker buildx build --build-arg OPENSHELL_BFF_IMAGE=$(OPENSHELL_BFF_IMAGE) --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform "$(PLATFORM)" --tag "$(IMG_UI_STANDALONE)" --push .
 
-.PHONY: docker-push-federated
-docker-push-federated:
-	${CONTAINER_TOOL} push ${IMG_UI_FEDERATED}
+docker-buildx-federated: ## Build and push the federated multi-architecture image.
+	docker buildx build --build-arg OPENSHELL_BFF_IMAGE=$(OPENSHELL_BFF_IMAGE) --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform "$(PLATFORM)" --tag "$(IMG_UI_FEDERATED)" --push .
 
-############ Deployment ############
+.PHONY: docker-push docker-push-standalone docker-push-federated
+docker-push: ## Push IMG_UI.
+	$(CONTAINER_TOOL) push "$(IMG_UI)"
 
-.PHONY: kind-deployment
-kind-deployment:
-	./scripts/deploy_kind_cluster.sh
+docker-push-standalone: ## Push IMG_UI_STANDALONE.
+	$(CONTAINER_TOOL) push "$(IMG_UI_STANDALONE)"
 
-.PHONY: kubeflow-deployment
-kubeflow-deployment:
-	./scripts/deploy_kubeflow_cluster.sh
+docker-push-federated: ## Push IMG_UI_FEDERATED.
+	$(CONTAINER_TOOL) push "$(IMG_UI_FEDERATED)"
 
-############ Build ############	
-.PHONY: frontend-build
-frontend-build:
+############ Frontend Builds ############
+
+.PHONY: frontend-build frontend-build-standalone
+frontend-build: ## Build the Kubeflow frontend assets only.
 	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
 
-.PHONY: frontend-build-standalone
-frontend-build-standalone:
+frontend-build-standalone: ## Build the standalone frontend assets only.
 	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
-
-.PHONY: bff-build
-bff-build:
-	cd bff && make build
-
-.PHONY: build
-build: frontend-build bff-build
-
-############ Run mocked ########
-.PHONY: run-local-mocked
-run-local-mocked: frontend-build-standalone bff-build
-	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
-
-
-	

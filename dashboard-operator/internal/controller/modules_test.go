@@ -449,6 +449,10 @@ func TestModuleRegistry(t *testing.T) {
 			assert.NotEmpty(t, mod.ManifestSlug, "module must have ManifestSlug")
 		})
 	}
+
+	agentOps := moduleRegistry["agentOps"]
+	assert.Equal(t, int32(8843), agentOps.Port)
+	assert.True(t, agentOps.TLS)
 }
 
 func TestModuleNames(t *testing.T) {
@@ -476,7 +480,7 @@ func TestProxyPathsFor(t *testing.T) {
 		{"mlflow_custom", "mlflow", []proxyRoute{{Path: "/_bff/mlflow/api", PathRewrite: "/api"}}},
 		{"agentOps_custom", "agentOps", []proxyRoute{
 			{Path: "/agent-ops/api", PathRewrite: "/api"},
-			{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
+			{Path: "/agent-ops/healthcheck", PathRewrite: "/api/v1/healthz"},
 		}},
 	}
 	for _, tt := range tests {

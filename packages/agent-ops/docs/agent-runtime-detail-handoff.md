@@ -1,5 +1,9 @@
 # Agent Runtime Detail — Agent Card Handoff
 
+> **Historical implementation record:** The downstream Go BFF and API contract
+> described below were removed when Agent Ops switched to the upstream
+> OpenShell Dashboard BFF. Do not use this document as the current API contract.
+
 **Repo:** `odh-dashboard` monorepo  
 **Package:** `packages/agent-ops/`  
 **Endpoint:** `GET /api/v1/agents/runtimes/{ns}/{name}`  

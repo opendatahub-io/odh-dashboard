@@ -1,11 +1,14 @@
 # Source code for the repos
 ARG UI_SOURCE_CODE=./frontend
-ARG BFF_SOURCE_CODE=./bff
+ARG OPENSHELL_BFF_IMAGE=quay.io/gkrumbach07/openshell-dashboard@sha256:6b09b05323a8ff39ae7ff14567687ed6e7ec244ef59b7663a9c1a2021dcee5e8
 
 # Set the base images for the build stages
 ARG NODE_BASE_IMAGE=node:22
-ARG GOLANG_BASE_IMAGE=golang:1.25
 ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
+
+# The OpenShell project owns this executable. Keep the digest synchronized
+# with bff/upstream.lock.yaml.
+FROM ${OPENSHELL_BFF_IMAGE} AS upstream-bff
 
 # UI build stage
 FROM ${NODE_BASE_IMAGE} AS ui-builder
@@ -24,42 +27,17 @@ RUN npm cache clean --force
 RUN npm ci
 RUN npm run build:prod
 
-# BFF build stage
-FROM ${GOLANG_BASE_IMAGE} AS bff-builder
-
-ARG BFF_SOURCE_CODE
-
-ARG TARGETOS
-ARG TARGETARCH
-
-WORKDIR /usr/src/app
-
-# Copy the Go Modules manifests
-COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
-COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
-
-# Download dependencies
-RUN go mod download
-
-# Copy the go source files
-COPY pkg/tls/ /pkg/tls/
-COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
-COPY ${BFF_SOURCE_CODE}/internal/ internal/
-COPY api/openapi/agent-ops.yaml openapi/src/agent-ops.yaml
-
-# Build the Go application
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bff ./cmd
-
 # Final stage
-# Use distroless as minimal base image to package the application binary
+# Keep the ODH runtime and frontend assets; import only the upstream binary.
 FROM ${DISTROLESS_BASE_IMAGE}
 WORKDIR /
-COPY --from=bff-builder /usr/src/app/bff ./
-COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
+COPY --from=upstream-bff /usr/local/bin/openshell-dashboard /openshell-dashboard
 COPY --from=ui-builder /usr/src/app/dist ./static/
 USER 65532:65532
 
-# Expose port 8080
+ENV PORT=8080 \
+    STATIC_DIR=/static
+
 EXPOSE 8080
 
-ENTRYPOINT ["/bff"]
+ENTRYPOINT ["/openshell-dashboard"]

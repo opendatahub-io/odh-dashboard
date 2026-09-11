@@ -1,143 +1,90 @@
-# Agent Ops UI
+# Agent Ops
 
-## Overview
+Agent Ops is an ODH Dashboard federated module. The existing frontend remains
+in `frontend/`; its BFF is consumed as a published OpenShell Dashboard image
+rather than built from Go source in this repository.
 
-The Agent Ops UI is a standalone web app for Agent Ops. In this repository, you will find the frontend and backend for the Agent Ops UI.
+The authoritative upstream artifact is recorded in
+[`bff/upstream.lock.yaml`](./bff/upstream.lock.yaml). The package Dockerfiles
+copy only the upstream executable, then add the existing Agent Ops frontend
+assets to the downstream runtime image.
 
-## Contributing
+## ODH module integration
 
-You can check the [contributing guidelines] for more information on how to contribute to the Agent Ops UI.
+ODH keeps its established Agent Ops service and proxy prefixes while adapting
+their targets to the upstream runtime:
 
-## Quick Install
+| ODH path | Upstream path |
+| --- | --- |
+| `/agent-ops/api/...` | `/api/...` |
+| `/agent-ops/healthcheck` | `/api/v1/healthz` |
 
-Bootstrap a fresh copy of this starter without cloning the repo by using the published CLI:
+The deployed module uses HTTPS on port `8843`, backed by the OpenShift
+serving-cert secret mounted at `/etc/tls/private`. The dashboard proxy forwards
+the authenticated user token in `x-forwarded-access-token`; the upstream BFF
+forwards that identity to the OpenShell gateway. The ROSA integration test uses
+the same proxy header.
+
+This integration assumes the imported upstream image includes inbound BFF TLS
+support. Production promotion still requires an ODH-compatible FIPS provenance
+story for the imported executable.
+
+## Local development
+
+From `packages/agent-ops`, build the assembled image and run it with the
+existing frontend:
 
 ```bash
-npx mod-arch-installer my-module --flavor default
+export OPENSHELL_GATEWAY_URL=grpcs://gateway.example.com:443
+export GATEWAY_CERT_DIR=/path/to/gateway-certificates # optional
+make dev-start-federated
 ```
 
-See [`docs/install.md`](./docs/install.md) for all CLI options and details about the PatternFly-first default flavor.
+For BFF-only build, run, gateway, and authentication instructions, see the
+[Agent Ops BFF README](./bff/README.md).
 
-## OpenAPI Specification
+When supplied, `GATEWAY_CERT_DIR` must contain `ca.crt`, `tls.crt`, and
+`tls.key`. The directory is mounted read-only and mapped to the upstream
+gateway TLS environment variables.
 
-The canonical OpenAPI 3.0 contract is in [`api/openapi/agent-ops.yaml`](./api/openapi/agent-ops.yaml). Contract tests load this file; the BFF serves a synced copy at runtime.
+Frontend-only targets remain available:
 
-When the BFF is running locally (`make dev-bff` from `packages/agent-ops/`):
-
-| URL | Purpose |
-|-----|---------|
-| `http://localhost:4000/mod-arch/swagger-ui` | Interactive API docs |
-| `http://localhost:4000/mod-arch/openapi.json` | Machine-readable spec |
-| `http://localhost:4000/mod-arch/openapi.yaml` | YAML spec |
-
-After changing the canonical spec, run `make sync-openapi` from `packages/agent-ops/bff/` (or `make run`, which syncs automatically). CI and `npm run test:contract` fail if `api/openapi/agent-ops.yaml` and `bff/openapi/src/agent-ops.yaml` drift apart.
-
-[Open the spec in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/main/packages/agent-ops/api/openapi/agent-ops.yaml)
-
-## Targeted environments
-
-There are two main deployment modes that the Agent Ops UI supports:
-
-1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes a `/namespace` endpoint that returns all the namespaces in the cluster.
-
-2. **Federated**: This is the environment where the UI is served as a micro-frontend and integrated with a host application.
-
-## Environment Variables
-
-The following environment variables are used to configure the deployment and development environment for the Agent Ops UI. These variables should be defined in a `.env.local` file in the `clients/ui` directory of the project. **This values will affect the build and push commands**.
-
-### `CONTAINER_TOOL`
-
-- **Description**: Specifies the container tool to be used for building and running containers.
-- **Default Value**: `docker`
-- **Possible Values**: `docker`, `podman`, etc.
-- **Example**: `CONTAINER_TOOL=docker`
-
-### `IMG_UI`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF).
-- **Default Value**: `ghcr.io/your-org/agent-ops/ui:latest`
-- **Example**: `IMG_UI=ghcr.io/your-org/agent-ops/ui:latest`
-
-### `IMG_UI_STANDALONE`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF) in **standalone mode**, used for local kind deployment.
-- **Default Value**: `ghcr.io/your-org/agent-ops/ui-standalone:latest`
-- **Example**: `IMG_UI_STANDALONE=ghcr.io/your-org/agent-ops/ui-standalone:latest`
-
-### `IMG_UI_FEDERATED`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF) in **federated mode**, used for federated mode outside kubeflow.
-- **Default Value**: `ghcr.io/your-org/agent-ops/ui-federated:latest`
-- **Example**: `IMG_UI_FEDERATED=ghcr.io/your-org/agent-ops/ui-federated:latest`
-
-### `PLATFORM`
-
-- **Description**: Specifies the platform for a **docker buildx** build.
-- **Default Value**: `linux/amd64`
-- **Example**: `PLATFORM=linux/amd64`
-
-### `DEPLOYMENT_MODE`
-
-- **Description**: Specifies the deployment mode for the UI.
-- **Default Value**: `standalone`
-- **Note**: This variable is used to determine how the UI is built and deployed.
-- **Possible Values**: `standalone`, `federated`
-- **Example**: `DEPLOYMENT_MODE=standalone`
-
-### `STYLE_THEME`
-
-- **Description**: Specifies the theme/styling framework to be used for the UI.
-- **Default Value**: `patternfly-theme`
-- **Possible Values**: `patternfly-theme`
-- **Example**: `STYLE_THEME=patternfly-theme`
-
-### Example `.env.local` File
-
-Here is an example of what your `.env.local` file might look like:
-
-```shell
-CONTAINER_TOOL=docker
-IMG_UI=quay.io/<personal-registry>/agent-ops-ui:latest
-IMG_UI_STANDALONE=quay.io/<personal-registry>/agent-ops-ui-standalone:latest
-PLATFORM=linux/amd64
+```bash
+make dev-frontend
+make dev-frontend-federated
+make frontend-build
 ```
 
-## Build and Push Commands
+## Verification
 
-The following Makefile targets are used to build and push the Docker images the UI images. These targets utilize the environment variables defined in the `.env.local` file.
+Run downstream packaging and module-integration checks:
 
-### Build Commands
+```bash
+npm run test:contract
+```
 
-- **`docker-build`**: Builds the Docker image for the UI platform.
-  - Command: `make docker-build`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+These tests do not duplicate upstream API behavior. To prove that the assembled
+image can reach a ROSA-hosted gateway and complete the required authenticated
+workflow, run:
 
-- **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
-  - Command: `make docker-buildx`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+```bash
+AGENT_OPS_IMAGE=agent-ops-openshell-federated:local \
+OPENSHELL_GATEWAY_URL=grpcs://gateway.example.com:443 \
+GATEWAY_CERT_DIR=/path/to/gateway-certificates \
+ROSA_BEARER_TOKEN=... \
+OPENSHELL_WORKSPACE=my-workspace \
+OPENSHELL_SANDBOX_IMAGE=ghcr.io/nvidia/openshell-community/sandboxes/base:latest \
+npm run test:integration:rosa
+```
 
-- **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
-  - Command: `make docker-build-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+The ROSA check verifies missing and invalid credentials, lists workspaces, and
+creates then deletes a temporary `odh-poc-*` sandbox. It checks responses and
+container logs for token leakage. The cleanup hook deletes the sandbox if an
+assertion fails after creation.
 
-- **`docker-buildx-standalone`**: Builds the Docker image with buildX for multiarch support **in standalone mode**.
-  - Command: `make docker-buildx-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+## Scope
 
-### Push Commands
-
-- **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
-  - Command: `make docker-push`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
-
-- **`docker-push-standalone`**: Pushes the Docker image for the UI service to the container registry **in standalone mode**.
-  - Command: `make docker-push-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
-
-## Deployments
-
-For more information on how to deploy the Agent Ops UI, please refer to the [Mod arch UI] documentation.
-
-[Mod arch UI]: ./docs/README.md
-[contributing guidelines]: ./CONTRIBUTING.md
+The local Agent Ops Go BFF and its OpenAPI contract have been removed. The
+upstream project owns BFF behavior and API tests. Frontend API migration,
+versioned upstream releases, production gateway-secret management, and FIPS
+hardening remain separate work.
