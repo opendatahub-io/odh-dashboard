@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: opendatahub
 
 resources:
+- namespace.yaml
 - ../../../core-bff/manifests/base
 - api-tester.yaml
 - dev-rbac.yaml

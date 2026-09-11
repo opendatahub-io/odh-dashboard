@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
 const dotenvExpand = require('dotenv-expand');
-const Dotenv = require('dotenv-webpack');
+const { rspack } = require('@rspack/core');
 
 /**
  * Determine if the project is standalone or nested.
@@ -52,59 +52,33 @@ const getTsCompilerOptions = (directory) => {
 /**
  * Setup a webpack dotenv plugin config.
  *
- * @param {string} filePath
  * @returns {*}
  */
-const setupWebpackDotenvFile = (filePath) => {
-  const settings = {
-    systemvars: true,
-    silent: true,
-  };
-
-  if (filePath) {
-    settings.path = filePath;
-  }
-
-  return new Dotenv(settings);
-};
+function setupWebpackDotenvFile() {
+  // dotenv-webpack uses Webpack's DefinePlugin, which is incompatible with
+  // the Rspack compiler used by this frontend. The dotenv files are loaded
+  // into process.env by setupDotenvFilesForEnv before the config is created;
+  // Expose only values intended for client-side configuration. Server tokens,
+  // credentials, and internal build variables must not enter the browser bundle.
+  const publicEnvKeys = [
+    'AUTH_METHOD',
+    'DEPLOYMENT_MODE',
+    'DEV_MODE',
+    'IMAGES_DIRNAME',
+    'PUBLIC_PATH',
+  ];
+  const publicEnv = Object.fromEntries(publicEnvKeys.map((key) => [key, process.env[key]]));
+  return new rspack.DefinePlugin({
+    'process.env': JSON.stringify(publicEnv),
+  });
+}
 
 /**
  * Setup multiple webpack dotenv file parameters.
  *
- * @param {string} directory
- * @param {string} env
- * @param {boolean} isRoot
  * @returns {Array}
  */
-const setupWebpackDotenvFilesForEnv = ({ directory, env, isRoot = true }) => {
-  const dotenvWebpackSettings = [];
-
-  if (env) {
-    dotenvWebpackSettings.push(
-      setupWebpackDotenvFile(path.resolve(directory, `.env.${env}.local`)),
-    );
-    dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, `.env.${env}`)));
-  }
-
-  dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '.env.local')));
-  dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '.env')));
-
-  if (!isRoot) {
-    if (env) {
-      dotenvWebpackSettings.push(
-        setupWebpackDotenvFile(path.resolve(directory, '..', `.env.${env}.local`)),
-      );
-      dotenvWebpackSettings.push(
-        setupWebpackDotenvFile(path.resolve(directory, '..', `.env.${env}`)),
-      );
-    }
-
-    dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '..', '.env.local')));
-    dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '..', '.env')));
-  }
-
-  return dotenvWebpackSettings;
-};
+const setupWebpackDotenvFilesForEnv = () => [setupWebpackDotenvFile()];
 
 /**
  * Setup, and access, a dotenv file and the related set of parameters.

@@ -1,8 +1,8 @@
 import React from 'react';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import type { NotebookKind } from '@odh-dashboard/k8s-core';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
 import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { HardwareProfileBindingStateInfo } from './types';
 import type { HardwareProfileResource } from './types';
