@@ -18,7 +18,7 @@ export interface UseAutoUnlockProps {
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   getToken: (serverUrl: string) => TokenInfo | undefined;
   onTokenUpdate: (serverUrl: string, tokenInfo: TokenInfo) => void;
-  onFetchTools: (serverUrl: string, token: string) => Promise<void>;
+  onFetchTools: (serverUrl: string, token: string, serverName?: string) => Promise<void>;
 }
 
 /**
@@ -58,7 +58,11 @@ const useAutoUnlock = ({
             autoConnected: true,
           });
 
-          await onFetchTools(server.connectionUrl, '');
+          if (server.source === 'registry') {
+            await onFetchTools(server.connectionUrl, '', server.name);
+          } else {
+            await onFetchTools(server.connectionUrl, '');
+          }
         }
       } catch {
         // Silently fail

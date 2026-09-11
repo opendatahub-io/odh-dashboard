@@ -32,7 +32,7 @@ export interface UseTokenValidationProps {
   ) => Promise<ServerStatusInfo>;
   onTokenUpdate: (serverUrl: string, tokenInfo: TokenInfo) => void;
   getToken: (serverUrl: string) => TokenInfo | undefined;
-  onFetchTools: (serverUrl: string, token: string) => Promise<void>;
+  onFetchTools: (serverUrl: string, token: string, serverName?: string) => Promise<void>;
   onConfigModalOpen: (server: MCPServer) => void;
   onConfigModalClose: () => void;
   onSuccessModalOpen: (server: MCPServer) => void;
@@ -108,9 +108,13 @@ const useTokenValidation = ({
             success: true,
           });
 
-          await onFetchTools(serverUrl, bearerToken);
-
           const server = transformedServers.find((s) => s.connectionUrl === serverUrl);
+          if (server?.source === 'registry') {
+            await onFetchTools(serverUrl, bearerToken, server.name);
+          } else {
+            await onFetchTools(serverUrl, bearerToken);
+          }
+
           if (server) {
             onConfigModalClose();
             onSuccessModalOpen(server);
@@ -195,7 +199,11 @@ const useTokenValidation = ({
             autoConnected: true,
           });
 
-          await onFetchTools(server.connectionUrl, '');
+          if (server.source === 'registry') {
+            await onFetchTools(server.connectionUrl, '', server.name);
+          } else {
+            await onFetchTools(server.connectionUrl, '');
+          }
           onSuccessModalOpen(server);
         } else {
           onConfigModalOpen(server);
