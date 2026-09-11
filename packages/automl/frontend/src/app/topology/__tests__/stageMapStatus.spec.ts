@@ -229,6 +229,20 @@ describe('resolveStageRunStatus', () => {
 });
 
 describe('resolveSequentialStageRunStatuses', () => {
+  it('should keep stages after the canonical active frontier pending', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'load_data', description: 'Load', status: { state: 'completed' } },
+        { id: 'model_selection', description: 'Select', status: { state: 'completed' } },
+        { id: 'refit_full', description: 'Refit' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+    );
+    expect(statuses.get('load_data')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('model_selection')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('refit_full')).toBe(RunStatus.Pending);
+  });
   const stages = [
     { id: 'validate_inputs', description: 'Validate pipeline inputs' },
     { id: 'load_data', description: 'Load data' },
@@ -356,7 +370,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     expect(statuses.get('split_data')).toBe(RunStatus.InProgress);
   });
 
-  it('should keep later stages in progress when an earlier stage is already started', () => {
+  it('should preserve legacy inline string status behavior when an earlier stage is already started', () => {
     const statuses = resolveSequentialStageRunStatuses(
       [
         { id: 'load_data', description: 'Load data', status: 'started' },

@@ -7,7 +7,7 @@ import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { isRunInTerminalState, normalizePipelineRunState } from '~/app/utilities/utils';
 import { MAX_RAG_PATTERNS, MIN_RAG_PATTERNS } from '~/app/utilities/const';
-import { componentIdToTaskId } from '~/app/hooks/useComponentStatuses';
+import { componentIdToTaskId, getComponentStageStatus } from '~/app/hooks/useComponentStatuses';
 import { dedupePreservingOrder } from './stageMapConstants';
 import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
 
@@ -26,6 +26,7 @@ export const translateStageStatus = (status?: string): RunStatus | undefined => 
     case 'completed':
       return RunStatus.Succeeded;
     case 'started':
+    case 'running':
       return RunStatus.InProgress;
     case 'failed':
       return RunStatus.Failed;
@@ -119,7 +120,7 @@ export const resolveStageRunStatus = (
   hasExplicitFailureInPipeline = false,
 ): RunStatus | undefined => {
   const terminalRunFailure = getTerminalRunFailureStatus(runState, hasExplicitFailureInPipeline);
-  const inlineStatus = translateStageStatus(stage.status);
+  const inlineStatus = translateStageStatus(getComponentStageStatus(stage.status));
   if (inlineStatus != null) {
     if (terminalRunFailure != null && inlineStatus === RunStatus.InProgress) {
       return terminalRunFailure;
@@ -155,7 +156,8 @@ export const isStageTerminalFailure = (status: RunStatus | undefined): boolean =
 
 /** True when the backend reported this stage failed (not inferred from component-level status). */
 export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
-  translateStageStatus(stage?.status) === RunStatus.Failed;
+  translateStageStatus(stage ? getComponentStageStatus(stage.status) : undefined) ===
+  RunStatus.Failed;
 
 /** True when a pre-branch stage (before optimize_templates) failed inline. */
 export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStage[]): boolean =>
@@ -181,12 +183,17 @@ export const resolveSequentialStageRunStatuses = (
   let blockSubsequent = false;
   let blockedByInlineFailure = false;
   let propagatedTerminal: RunStatus | undefined;
+  const hasInlineStatuses = stages.some((stage) => typeof stage.status === 'object');
+  const latestActivityIndex = stages.reduce(
+    (latest, stage, index) => (typeof stage.status === 'object' ? index : latest),
+    -1,
+  );
 
   const resolveUnresolved = (stage: ComponentStageMapStage): RunStatus | undefined =>
     resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline);
 
-  for (const stage of stages) {
-    const inlineStatus = translateStageStatus(stage.status);
+  for (const [stageIndex, stage] of stages.entries()) {
+    const inlineStatus = translateStageStatus(getComponentStageStatus(stage.status));
 
     if (inlineStatus != null) {
       const resolved = resolveUnresolved(stage);
@@ -219,6 +226,10 @@ export const resolveSequentialStageRunStatuses = (
         continue;
       }
       if (componentStatus === RunStatus.InProgress) {
+        if (hasInlineStatuses && stageIndex > latestActivityIndex) {
+          statusById.set(stage.id, RunStatus.Pending);
+          continue;
+        }
         const resolved = resolveUnresolved(stage);
         if (isStageFinished(resolved)) {
           statusById.set(stage.id, resolved);
@@ -245,6 +256,10 @@ export const resolveSequentialStageRunStatuses = (
     }
 
     if (componentStatus === RunStatus.InProgress) {
+      if (hasInlineStatuses && stageIndex > latestActivityIndex) {
+        statusById.set(stage.id, RunStatus.Pending);
+        continue;
+      }
       const resolved = resolveUnresolved(stage);
       if (isStageFinished(resolved)) {
         statusById.set(stage.id, resolved);
@@ -441,7 +456,9 @@ export const resolvePromotedNodeActiveIconVariant = (
 /** True when every stage has a recognized inline status (no unresolved gaps). */
 const hasCompleteInlineStageStatus = (component: ComponentStageMapComponent): boolean =>
   component.stages.length > 0 &&
-  component.stages.every((stage) => translateStageStatus(stage.status) != null);
+  component.stages.every(
+    (stage) => translateStageStatus(getComponentStageStatus(stage.status)) != null,
+  );
 
 /** True when any mapped component has explicit task or inline stage failure evidence. */
 export const hasExplicitComponentFailureEvidence = (

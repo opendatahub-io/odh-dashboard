@@ -1,42 +1,64 @@
+/* eslint-disable camelcase */
+
 import { renderHook, waitFor } from '@testing-library/react';
-import type { PipelineRun } from '~/app/types';
-import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
-import { useS3ListFilesQuery } from '~/app/hooks/queries';
-import { getFiles } from '~/app/api/s3';
 import {
   buildRunLevelPrefixesFromTaskDetails,
   componentIdToTaskId,
+  ComponentStatusFileSchema,
   findComponentTaskInRunDetails,
   getComponentsToFetch,
+  isComponentFullyComplete,
   isKfpDriverTaskName,
   mergeStageWithStatus,
   mergeStatusIntoStageMap,
-  isComponentFullyComplete,
   matchesComponentTaskName,
   resolveActiveRunLevelPrefix,
   resolveComponentTaskS3Prefix,
-  ComponentStatusFileSchema,
   useComponentStatuses,
 } from '~/app/hooks/useComponentStatuses';
-import type { ComponentStatusFile } from '~/app/hooks/useComponentStatuses';
-import { MAX_PATTERN_SELECTION_STEPS } from '~/app/topology/stageMapConstants';
+import { useS3ListFilesQuery } from '~/app/hooks/queries';
+import { getFiles } from '~/app/api/s3';
+import type { PipelineRun } from '~/app/types';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 
-jest.mock('~/app/hooks/queries', () => ({
-  useS3ListFilesQuery: jest.fn(),
-}));
+jest.mock('~/app/hooks/queries', () => ({ useS3ListFilesQuery: jest.fn() }));
+jest.mock('~/app/api/s3', () => ({ getFiles: jest.fn() }));
 
-jest.mock('~/app/api/s3', () => ({
-  getFiles: jest.fn(),
-}));
+const stageMap: ComponentStageMap = {
+  pipeline_id: 'pipeline',
+  description: 'Pipeline',
+  kfp_run_id: 'run',
+  published_at: '2026-01-01T00:00:00Z',
+  components: [
+    {
+      id: 'rag_component',
+      description: 'RAG component',
+      stages: [
+        { id: 'prepare', description: 'Prepare data', steps: ['chunk', 'embed'] },
+        {
+          id: 'optimize_templates',
+          description: 'Optimize patterns',
+          steps: ['retrieve'],
+          selected_patterns: ['map-pattern'],
+        },
+        { id: 'publish', description: 'Publish results' },
+      ],
+    },
+  ],
+};
 
-/* eslint-disable camelcase */
-
-// -- Fixtures based on real pipeline data --
+const artifact = (stages: unknown[], metadata = { display_name: 'RAG optimization' }) =>
+  ComponentStatusFileSchema.parse({
+    component_id: 'rag_component',
+    started_at: '2026-01-01T00:00:00Z',
+    metadata,
+    stages,
+  });
 
 const mockComponentStageMap: ComponentStageMap = {
   pipeline_id: 'documents-rag-optimization-pipeline',
   description: 'AutoRAG pipeline',
-  kfp_run_id: '029660b9-c210-4ad4-9434-de28c2c9baec',
+  kfp_run_id: 'run-123',
   published_at: '2026-06-04T17:47:14.948493Z',
   components: [
     {
@@ -71,44 +93,30 @@ const mockComponentStageMap: ComponentStageMap = {
   ],
 };
 
-const mockComponentStatus: ComponentStatusFile = {
+const mockComponentStatus = ComponentStatusFileSchema.parse({
   component_id: 'rag_optimization',
   started_at: '2026-06-04T17:49:19.223056Z',
   completed_at: '2026-06-04T17:50:10.290690Z',
+  metadata: { display_name: 'Optimization' },
   stages: [
     {
       id: 'prepare_search_space',
-      description: 'Prepare the search space',
-      status: 'completed',
-      timestamp: '2026-06-04T17:49:19.232065Z',
-      document_count: 213,
+      status: { state: 'completed' },
+      metrics: { document_count: 213 },
     },
     {
       id: 'optimize_templates',
-      description: 'Evaluate candidate RAG pattern configurations',
-      status: 'completed',
-      timestamp: '2026-06-04T17:49:53.951525Z',
-      pattern_count: 3,
-      selected_patterns: ['pattern_a', 'pattern_b', 'pattern_c'],
-      steps: ['chunking', 'embedding', 'retrieval', 'generation'],
+      status: { state: 'completed' },
+      metrics: { selected_patterns: ['pattern_a', 'pattern_b'] },
     },
-    {
-      id: 'run_optimization',
-      description: 'Run the top patterns',
-      status: 'completed',
-      timestamp: '2026-06-04T17:50:02.238567Z',
-      pattern_count: 3,
-    },
+    { id: 'run_optimization', status: { state: 'completed' }, metrics: { pattern_count: 3 } },
     {
       id: 'write_patterns',
-      description: 'Write evaluated patterns',
-      status: 'completed',
-      timestamp: '2026-06-04T17:50:10.290550Z',
-      eval_metric: 'faithfulness',
+      status: { state: 'completed' },
+      metrics: { eval_metric: 'faithfulness' },
     },
   ],
-  metadata: {},
-};
+});
 
 const createMockPipelineRun = (
   state: string,
@@ -120,928 +128,892 @@ const createMockPipelineRun = (
     state,
     created_at: '2025-01-17T00:00:00Z',
     run_details: {
-      task_details: taskDetails.map((td) => ({
+      task_details: taskDetails.map((task) => ({
         run_id: 'run-123',
-        task_id: td.task_id,
-        display_name: td.display_name ?? td.task_id,
+        task_id: task.task_id,
+        display_name: task.display_name ?? task.task_id,
         create_time: '2025-01-17T00:00:00Z',
         start_time: '2025-01-17T00:00:00Z',
         end_time: '2025-01-17T00:00:00Z',
-        state: td.state,
+        state: task.state,
       })),
     },
   }) as PipelineRun;
 
-// -- Tests --
-
-describe('componentIdToTaskId', () => {
-  it('should convert underscores to hyphens', () => {
-    expect(componentIdToTaskId('rag_optimization')).toBe('rag-optimization');
-  });
-
-  it('should handle ids with no underscores', () => {
-    expect(componentIdToTaskId('leaderboard')).toBe('leaderboard');
-  });
-
-  it('should handle empty string', () => {
-    expect(componentIdToTaskId('')).toBe('');
-  });
-
-  it('should handle multiple consecutive underscores', () => {
-    expect(componentIdToTaskId('a__b___c')).toBe('a--b---c');
-  });
-});
-
-describe('getComponentsToFetch', () => {
-  it('should return empty array when componentStageMap is undefined', () => {
-    const pipelineRun = createMockPipelineRun('RUNNING', []);
-    expect(getComponentsToFetch(undefined, pipelineRun, new Set())).toEqual([]);
-  });
-
-  it('should return empty array when pipelineRun is undefined', () => {
+describe('component task discovery and prefixes', () => {
+  it.each([
+    ['rag_optimization', 'rag-optimization'],
+    ['leaderboard', 'leaderboard'],
+    ['', ''],
+    ['a__b___c', 'a--b---c'],
+  ])('converts component id %s', (id, expected) => expect(componentIdToTaskId(id)).toBe(expected));
+  it('filters by run and task state, including terminal failures and cancellations', () => {
+    expect(getComponentsToFetch(undefined, createMockPipelineRun('RUNNING'), new Set())).toEqual(
+      [],
+    );
     expect(getComponentsToFetch(mockComponentStageMap, undefined, new Set())).toEqual([]);
+    expect(
+      getComponentsToFetch(mockComponentStageMap, createMockPipelineRun('SUCCEEDED'), new Set()),
+    ).toEqual(['data_ingestion', 'rag_optimization', 'leaderboard_evaluation']);
+    expect(
+      getComponentsToFetch(
+        mockComponentStageMap,
+        createMockPipelineRun('running', [
+          { task_id: 'data-ingestion', state: ' Succeeded ' },
+          { task_id: 'rag-optimization', state: 'running' },
+          { task_id: 'leaderboard-evaluation', state: 'pending' },
+        ]),
+        new Set(),
+      ),
+    ).toEqual(['data_ingestion', 'rag_optimization']);
+    expect(
+      getComponentsToFetch(
+        mockComponentStageMap,
+        createMockPipelineRun('CANCELED', [
+          { task_id: 'data-ingestion', state: 'SUCCEEDED' },
+          { task_id: 'rag-optimization', state: 'CANCELED' },
+        ]),
+        new Set(['data_ingestion']),
+      ),
+    ).toEqual(['rag_optimization']);
   });
-
-  it('should return all component ids when run is SUCCEEDED', () => {
-    const pipelineRun = createMockPipelineRun('SUCCEEDED', []);
-    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
-
-    expect(result).toEqual(['data_ingestion', 'rag_optimization', 'leaderboard_evaluation']);
-  });
-
-  it('should normalize run and task state casing and whitespace', () => {
-    const pipelineRun = createMockPipelineRun(' succeeded ', [
-      { task_id: 'data-ingestion', state: ' succeeded ' },
-    ]);
-    expect(getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set())).toEqual([
-      'data_ingestion',
-      'rag_optimization',
-      'leaderboard_evaluation',
-    ]);
-
-    const runningRun = createMockPipelineRun('running', [
-      { task_id: 'data-ingestion', state: ' Succeeded ' },
-      { task_id: 'rag-optimization', state: 'running' },
-      { task_id: 'leaderboard-evaluation', state: 'pending' },
-    ]);
-    expect(getComponentsToFetch(mockComponentStageMap, runningRun, new Set())).toEqual([
-      'data_ingestion',
-      'rag_optimization',
-    ]);
-  });
-
-  it('should skip components already in completedComponentIds', () => {
-    const pipelineRun = createMockPipelineRun('SUCCEEDED', []);
-    const completed = new Set(['rag_optimization']);
-    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, completed);
-
-    expect(result).toEqual(['data_ingestion', 'leaderboard_evaluation']);
-  });
-
-  it('should return RUNNING, SUCCEEDED, or FAILED tasks when run is not SUCCEEDED', () => {
-    const pipelineRun = createMockPipelineRun('RUNNING', [
-      { task_id: 'data-ingestion', state: 'SUCCEEDED' },
-      { task_id: 'rag-optimization', state: 'RUNNING' },
-      { task_id: 'leaderboard-evaluation', state: 'PENDING' },
-    ]);
-    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
-
-    expect(result).toEqual(['data_ingestion', 'rag_optimization']);
-  });
-
-  it('should include FAILED tasks when the run has not succeeded', () => {
-    const pipelineRun = createMockPipelineRun('FAILED', [
-      { task_id: 'data-ingestion', state: 'SUCCEEDED' },
-      { task_id: 'rag-optimization-2', state: 'FAILED' },
-      { task_id: 'leaderboard-evaluation', state: 'PENDING' },
-    ]);
-    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
-
-    expect(result).toEqual(['data_ingestion', 'rag_optimization']);
-  });
-
-  it('should include CANCELED tasks when the run is terminal but not SUCCEEDED', () => {
-    const pipelineRun = createMockPipelineRun('CANCELED', [
-      { task_id: 'data-ingestion', state: 'SUCCEEDED' },
-      { task_id: 'rag-optimization', state: 'CANCELED' },
-      { task_id: 'leaderboard-evaluation', state: 'PENDING' },
-    ]);
-    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
-
-    expect(result).toEqual(['data_ingestion', 'rag_optimization']);
-  });
-
-  it('should match tasks by display_name as well', () => {
-    const pipelineRun = createMockPipelineRun('RUNNING', [
-      {
-        task_id: 'some-internal-id',
-        display_name: 'data-ingestion',
-        state: 'SUCCEEDED',
-      },
-    ]);
-    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
-
-    expect(result).toEqual(['data_ingestion']);
-  });
-
-  it('should return empty array when no tasks match', () => {
-    const pipelineRun = createMockPipelineRun('RUNNING', [
-      { task_id: 'unrelated-task', state: 'SUCCEEDED' },
-    ]);
-    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
-
-    expect(result).toEqual([]);
-  });
-
-  it('should match suffixed task directory names from condition branches', () => {
-    const pipelineRun = createMockPipelineRun('RUNNING', [
-      { task_id: 'rag-optimization-2', state: 'RUNNING' },
-      { task_id: 'leaderboard-evaluation-2', state: 'PENDING' },
-    ]);
-    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
-
-    expect(result).toEqual(['rag_optimization']);
-  });
-});
-
-describe('matchesComponentTaskName', () => {
-  it('should match exact and branch-suffixed task names', () => {
-    expect(matchesComponentTaskName('rag-optimization', 'rag_optimization')).toBe(true);
+  it('matches display names and only numeric branch suffixes', () => {
+    expect(
+      getComponentsToFetch(
+        mockComponentStageMap,
+        createMockPipelineRun('RUNNING', [
+          { task_id: 'internal', display_name: 'data-ingestion', state: 'SUCCEEDED' },
+          { task_id: 'rag-optimization-2', state: 'RUNNING' },
+        ]),
+        new Set(),
+      ),
+    ).toEqual(['data_ingestion', 'rag_optimization']);
     expect(matchesComponentTaskName('rag-optimization-2', 'rag_optimization')).toBe(true);
-    expect(matchesComponentTaskName('other-task', 'rag_optimization')).toBe(false);
-  });
-
-  it('should reject non-branch suffixes', () => {
     expect(matchesComponentTaskName('rag-optimization-backup', 'rag_optimization')).toBe(false);
   });
-});
-
-describe('isKfpDriverTaskName', () => {
-  it('should identify KFP driver tasks', () => {
-    expect(isKfpDriverTaskName('rag-optimization-2-driver')).toBe(true);
-    expect(isKfpDriverTaskName('data-ingestion-driver')).toBe(true);
-    expect(isKfpDriverTaskName('rag-optimization-2')).toBe(false);
-  });
-});
-
-describe('findComponentTaskInRunDetails', () => {
-  it('should skip driver tasks and return the executor task status', () => {
-    const taskDetails = [
+  it('skips driver tasks and discovers branch prefixes', () => {
+    const details = [
       { task_id: 'rag-optimization-2-driver', state: 'SUCCEEDED' },
       { task_id: 'rag-optimization-2', state: 'FAILED' },
     ];
-
-    expect(findComponentTaskInRunDetails(taskDetails, 'rag_optimization')).toEqual({
-      task_id: 'rag-optimization-2',
-      state: 'FAILED',
-    });
+    expect(findComponentTaskInRunDetails(details, 'rag_optimization')).toEqual(details[1]);
+    expect(isKfpDriverTaskName(details[0].task_id)).toBe(true);
+    const prefixes = buildRunLevelPrefixesFromTaskDetails('root', 'run-123', [
+      ...details,
+      { task_id: 'data-ingestion' },
+    ]);
+    expect(prefixes).toEqual([
+      { prefix: 'root/run-123/rag-optimization-2/' },
+      { prefix: 'root/run-123/data-ingestion/' },
+    ]);
+    expect(
+      resolveActiveRunLevelPrefix(
+        'root',
+        'run-123',
+        mockComponentStageMap,
+        createMockPipelineRun('RUNNING', [{ task_id: 'rag-optimization-2', state: 'RUNNING' }]),
+      ),
+    ).toBe('root/run-123/rag-optimization-2');
+    expect(resolveComponentTaskS3Prefix('root', 'run-123', 'rag_optimization', prefixes)).toBe(
+      'root/run-123/rag-optimization-2',
+    );
+    expect(resolveComponentTaskS3Prefix('root', 'run-123', 'data_ingestion')).toBe(
+      'root/run-123/data-ingestion',
+    );
+    expect(resolveComponentTaskS3Prefix('root', 'run-123', 'rag_optimization', [])).toBeUndefined();
   });
 
-  it('should resolve data ingestion status from the executor task when driver succeeded first', () => {
-    const taskDetails = [
+  it('returns all component ids when the run is succeeded', () => {
+    expect(
+      getComponentsToFetch(mockComponentStageMap, createMockPipelineRun('SUCCEEDED'), new Set()),
+    ).toEqual(['data_ingestion', 'rag_optimization', 'leaderboard_evaluation']);
+  });
+
+  it('normalizes run and task state casing and whitespace', () => {
+    expect(
+      getComponentsToFetch(
+        mockComponentStageMap,
+        createMockPipelineRun(' succeeded ', [{ task_id: 'data-ingestion', state: ' succeeded ' }]),
+        new Set(),
+      ),
+    ).toEqual(['data_ingestion', 'rag_optimization', 'leaderboard_evaluation']);
+  });
+
+  it('skips components already completed', () => {
+    expect(
+      getComponentsToFetch(
+        mockComponentStageMap,
+        createMockPipelineRun('SUCCEEDED'),
+        new Set(['rag_optimization']),
+      ),
+    ).toEqual(['data_ingestion', 'leaderboard_evaluation']);
+  });
+
+  it('includes failed and canceled tasks when the run is not succeeded', () => {
+    expect(
+      getComponentsToFetch(
+        mockComponentStageMap,
+        createMockPipelineRun('CANCELED', [
+          { task_id: 'data-ingestion', state: 'SUCCEEDED' },
+          { task_id: 'rag-optimization', state: 'CANCELED' },
+        ]),
+        new Set(),
+      ),
+    ).toEqual(['data_ingestion', 'rag_optimization']);
+  });
+
+  it('returns no components when no tasks match', () => {
+    expect(
+      getComponentsToFetch(
+        mockComponentStageMap,
+        createMockPipelineRun('RUNNING', [{ task_id: 'unrelated-task', state: 'SUCCEEDED' }]),
+        new Set(),
+      ),
+    ).toEqual([]);
+  });
+
+  it('returns no components when inputs are unavailable', () => {
+    expect(getComponentsToFetch(undefined, createMockPipelineRun('RUNNING'), new Set())).toEqual(
+      [],
+    );
+    expect(getComponentsToFetch(mockComponentStageMap, undefined, new Set())).toEqual([]);
+  });
+
+  it('matches tasks by display name and branch suffix', () => {
+    expect(
+      getComponentsToFetch(
+        mockComponentStageMap,
+        createMockPipelineRun('RUNNING', [
+          { task_id: 'internal', display_name: 'data-ingestion', state: 'SUCCEEDED' },
+          { task_id: 'rag-optimization-2', state: 'RUNNING' },
+        ]),
+        new Set(),
+      ),
+    ).toEqual(['data_ingestion', 'rag_optimization']);
+  });
+
+  it('matches exact task names and identifies drivers', () => {
+    expect(matchesComponentTaskName('rag-optimization', 'rag_optimization')).toBe(true);
+    expect(matchesComponentTaskName('rag-optimization-2', 'rag_optimization')).toBe(true);
+    expect(matchesComponentTaskName('other-task', 'rag_optimization')).toBe(false);
+    expect(isKfpDriverTaskName('data-ingestion-driver')).toBe(true);
+    expect(isKfpDriverTaskName('rag-optimization-2')).toBe(false);
+  });
+
+  it('resolves the executor when the driver appears first', () => {
+    const details = [
       { task_id: 'data-ingestion-driver', state: 'SUCCEEDED' },
       { task_id: 'data-ingestion', state: 'SUCCEEDED' },
     ];
+    expect(findComponentTaskInRunDetails(details, 'data_ingestion')).toEqual(details[1]);
+  });
 
-    expect(findComponentTaskInRunDetails(taskDetails, 'data_ingestion')).toEqual({
-      task_id: 'data-ingestion',
-      state: 'SUCCEEDED',
+  it('falls back to the base path when discovery has no matching prefix', () => {
+    expect(resolveComponentTaskS3Prefix('root', 'run-123', 'data_ingestion')).toBe(
+      'root/run-123/data-ingestion',
+    );
+    expect(resolveComponentTaskS3Prefix('root', 'run-123', 'rag_optimization', [])).toBeUndefined();
+    expect(
+      resolveComponentTaskS3Prefix('root', 'run-123', 'rag_optimization', [
+        { prefix: 'root/run-123/rag-optimization-backup/' },
+      ]),
+    ).toBe('root/run-123/rag-optimization');
+  });
+});
+
+describe('legacy merge and completion coverage with canonical status files', () => {
+  it('merges matching components and preserves map descriptions and unmatched components', () => {
+    const result = mergeStatusIntoStageMap(
+      mockComponentStageMap,
+      new Map([['rag_optimization', mockComponentStatus]]),
+    );
+    expect(result.components[1].started_at).toBe('2026-06-04T17:49:19.223056Z');
+    expect(result.components[1].metadata).toEqual({ display_name: 'Optimization' });
+    expect(result.components[1].stages[0].description).toBe('Prepare the search space');
+    expect(result.components[1].stages[0].metrics).toEqual({ document_count: 213 });
+    expect(result.components[0]).toEqual(mockComponentStageMap.components[0]);
+  });
+  it('keeps unrecorded stages pending and does not mutate the source map', () => {
+    const original = JSON.stringify(mockComponentStageMap);
+    const partial = ComponentStatusFileSchema.parse({
+      component_id: 'rag_optimization',
+      started_at: '2026-01-01T00:00:00Z',
+      metadata: { display_name: 'Optimization' },
+      stages: [{ id: 'prepare_search_space', status: { state: 'completed' } }],
     });
-  });
-});
-
-describe('buildRunLevelPrefixesFromTaskDetails', () => {
-  it('should build branch-suffixed prefixes from executor task names and skip drivers', () => {
-    const prefixes = buildRunLevelPrefixesFromTaskDetails(
-      'documents-rag-optimization-pipeline',
-      'run-123',
-      [
-        { task_id: 'rag-optimization-2-driver', state: 'SUCCEEDED' },
-        { task_id: 'rag-optimization-2', state: 'RUNNING' },
-        { task_id: 'data-ingestion', state: 'SUCCEEDED' },
-      ],
-    );
-
-    expect(prefixes).toEqual([
-      { prefix: 'documents-rag-optimization-pipeline/run-123/rag-optimization-2/' },
-      { prefix: 'documents-rag-optimization-pipeline/run-123/data-ingestion/' },
-    ]);
-  });
-});
-
-describe('resolveActiveRunLevelPrefix', () => {
-  it('should resolve the executor task directory for an active branch-suffixed component', () => {
-    const pipelineRun = createMockPipelineRun('RUNNING', [
-      { task_id: 'rag-optimization-2', state: 'RUNNING' },
-    ]);
-
     expect(
-      resolveActiveRunLevelPrefix(
-        'documents-rag-optimization-pipeline',
-        'run-123',
-        mockComponentStageMap,
-        pipelineRun,
-      ),
-    ).toBe('documents-rag-optimization-pipeline/run-123/rag-optimization-2');
-  });
-
-  it('should resolve suffixed task directories through run-level prefix discovery', () => {
-    const prefixes = buildRunLevelPrefixesFromTaskDetails(
-      'documents-rag-optimization-pipeline',
-      'run-123',
-      [{ task_id: 'rag-optimization-2', state: 'RUNNING' }],
-    );
-
-    expect(
-      resolveComponentTaskS3Prefix(
-        'documents-rag-optimization-pipeline',
-        'run-123',
-        'rag_optimization',
-        prefixes,
-      ),
-    ).toBe('documents-rag-optimization-pipeline/run-123/rag-optimization-2');
-  });
-});
-
-describe('resolveComponentTaskS3Prefix', () => {
-  it('should resolve suffixed task directories from run-level prefixes', () => {
-    const prefixes = [
-      { prefix: 'documents-rag-optimization-pipeline/run-123/data-ingestion/' },
-      { prefix: 'documents-rag-optimization-pipeline/run-123/rag-optimization-2/' },
-    ];
-
-    expect(
-      resolveComponentTaskS3Prefix(
-        'documents-rag-optimization-pipeline',
-        'run-123',
-        'rag_optimization',
-        prefixes,
-      ),
-    ).toBe('documents-rag-optimization-pipeline/run-123/rag-optimization-2');
-  });
-
-  it('should fall back to the base task path when no run-level prefix matches', () => {
-    expect(
-      resolveComponentTaskS3Prefix(
-        'documents-rag-optimization-pipeline',
-        'run-123',
-        'data_ingestion',
-      ),
-    ).toBe('documents-rag-optimization-pipeline/run-123/data-ingestion');
-  });
-
-  it('should return undefined when run-level discovery succeeded with no prefixes', () => {
-    expect(
-      resolveComponentTaskS3Prefix(
-        'documents-rag-optimization-pipeline',
-        'run-123',
-        'rag_optimization',
-        [],
-      ),
+      mergeStatusIntoStageMap(mockComponentStageMap, new Map([['rag_optimization', partial]]))
+        .components[1].stages[2].status,
     ).toBeUndefined();
+    expect(JSON.stringify(mockComponentStageMap)).toBe(original);
   });
-
-  it('should ignore non-numeric sibling prefixes and fall back to the base task path', () => {
-    const prefixes = [
-      { prefix: 'documents-rag-optimization-pipeline/run-123/rag-optimization-backup/' },
-    ];
-
-    expect(
-      resolveComponentTaskS3Prefix(
-        'documents-rag-optimization-pipeline',
-        'run-123',
-        'rag_optimization',
-        prefixes,
-      ),
-    ).toBe('documents-rag-optimization-pipeline/run-123/rag-optimization');
-  });
-});
-
-describe('mergeStatusIntoStageMap', () => {
-  it('should return stageMap unchanged when no status files match', () => {
-    const result = mergeStatusIntoStageMap(mockComponentStageMap, new Map());
-    expect(result).toEqual(mockComponentStageMap);
-  });
-
-  it('should merge status data into matching component stages', () => {
-    const statusFiles = new Map([['rag_optimization', mockComponentStatus]]);
-    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
-
-    const mergedComponent = result.components.find((c) => c.id === 'rag_optimization')!;
-    expect(mergedComponent.started_at).toBe('2026-06-04T17:49:19.223056Z');
-    expect(mergedComponent.completed_at).toBe('2026-06-04T17:50:10.290690Z');
-    expect(mergedComponent.metadata).toEqual({});
-  });
-
-  it('should preserve original stage descriptions after merge', () => {
-    const statusFiles = new Map([['rag_optimization', mockComponentStatus]]);
-    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
-
-    const mergedComponent = result.components.find((c) => c.id === 'rag_optimization')!;
-    expect(mergedComponent.stages[0].description).toBe('Prepare the search space');
-  });
-
-  it('should add status fields to merged stages', () => {
-    const statusFiles = new Map([['rag_optimization', mockComponentStatus]]);
-    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
-
-    const mergedComponent = result.components.find((c) => c.id === 'rag_optimization')!;
-    const stage = mergedComponent.stages.find((s) => s.id === 'prepare_search_space')!;
-
-    expect(stage.status).toBe('completed');
-    expect(stage.timestamp).toBe('2026-06-04T17:49:19.232065Z');
-    expect(stage.document_count).toBe(213);
-  });
-
-  it('should flatten nested stage metadata onto merged stages', () => {
-    const statusWithNestedMetadata: ComponentStatusFile = {
-      component_id: 'rag_optimization',
-      stages: [
-        {
-          id: 'prepare_search_space',
-          description: 'Prepare the search space',
-          status: 'completed',
-          timestamp: '2026-06-04T17:49:19.232065Z',
-          metadata: {
-            document_count: 500,
-            row_count: 125,
-          },
-        },
-      ],
-    };
-    const statusFiles = new Map([['rag_optimization', statusWithNestedMetadata]]);
-    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
-
-    const stage = result.components
-      .find((component) => component.id === 'rag_optimization')!
-      .stages.find((s) => s.id === 'prepare_search_space')!;
-
-    expect(stage.document_count).toBe(500);
-    expect(stage.row_count).toBe(125);
-    expect(stage.metadata).toBeUndefined();
-  });
-
-  it('should merge nested stage metadata via mergeStageWithStatus', () => {
-    const merged = mergeStageWithStatus(
-      { id: 'prepare_search_space', description: 'Prepare the search space' },
-      {
-        id: 'prepare_search_space',
-        description: 'ignored',
-        status: 'completed',
-        metadata: { document_count: 42 },
-      },
-    );
-
-    expect(merged.description).toBe('Prepare the search space');
-    expect(merged.status).toBe('completed');
-    expect(merged.document_count).toBe(42);
-    expect(merged.metadata).toBeUndefined();
-  });
-
-  it('should recover selected_patterns nested under status metadata', () => {
-    const merged = mergeStageWithStatus(
-      { id: 'optimize_templates', description: 'Optimize templates' },
-      {
-        id: 'optimize_templates',
-        status: 'completed',
-        metadata: { selected_patterns: ['PatternA', 'PatternB'] },
-      },
-    );
-
-    expect(merged.selected_patterns).toEqual(['PatternA', 'PatternB']);
-    expect(merged.metadata).toBeUndefined();
-  });
-
-  it('should not let nested metadata overwrite top-level status and timestamp', () => {
-    const statusWithCollidingMetadata: ComponentStatusFile = {
-      component_id: 'rag_optimization',
-      stages: [
-        {
-          id: 'prepare_search_space',
-          description: 'Prepare the search space',
-          status: 'completed',
-          timestamp: '2026-06-04T17:49:19.232065Z',
-          metadata: {
-            status: 'pending',
-            timestamp: '2026-01-01T00:00:00.000000Z',
-            document_count: 500,
-            row_count: 125,
-          },
-        },
-      ],
-    };
-    const statusFiles = new Map([['rag_optimization', statusWithCollidingMetadata]]);
-    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
-
-    const stage = result.components
-      .find((component) => component.id === 'rag_optimization')!
-      .stages.find((s) => s.id === 'prepare_search_space')!;
-
-    expect(stage.status).toBe('completed');
-    expect(stage.timestamp).toBe('2026-06-04T17:49:19.232065Z');
-    expect(stage.document_count).toBe(500);
-    expect(stage.row_count).toBe(125);
-    expect(stage.metadata).toBeUndefined();
-
-    const merged = mergeStageWithStatus(
-      { id: 'prepare_search_space', description: 'Prepare the search space' },
-      statusWithCollidingMetadata.stages[0],
-    );
-
-    expect(merged.status).toBe('completed');
-    expect(merged.timestamp).toBe('2026-06-04T17:49:19.232065Z');
-    expect(merged.document_count).toBe(500);
-    expect(merged.row_count).toBe(125);
-    expect(merged.metadata).toBeUndefined();
-  });
-
-  it('should reject unsafe and protected keys when flattening nested stage fields', () => {
-    const maliciousMetadata = {
-      steps: ['evil_step'],
-      selected_patterns: ['EvilPattern'],
-      document_count: 500,
-      constructor: { polluted: true },
-      prototype: { polluted: true },
-      ...JSON.parse('{"__proto__":{"polluted":true}}'),
-    };
-
-    const merged = mergeStageWithStatus(
-      {
-        id: 'optimize_templates',
-        description: 'Evaluate candidate RAG pattern configurations',
-        steps: ['chunking', 'embedding'],
-      },
-      {
-        id: 'optimize_templates',
-        description: 'ignored',
-        status: 'completed',
-        timestamp: '2026-06-04T17:49:53.951525Z',
-        selected_patterns: ['pattern_b'],
-        metadata: maliciousMetadata,
-      },
-    );
-
-    expect(merged.status).toBe('completed');
-    expect(merged.timestamp).toBe('2026-06-04T17:49:53.951525Z');
-    expect(merged.steps).toEqual(['chunking', 'embedding']);
-    expect(merged.selected_patterns).toEqual(['pattern_b']);
-    expect(merged.document_count).toBe(500);
-    expect(merged.metadata).toBeUndefined();
-
-    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
-    expect(Object.hasOwn(merged, 'constructor')).toBe(false);
-    expect(Object.hasOwn(merged, 'prototype')).toBe(false);
-    expect(Object.hasOwn(merged, '__proto__')).toBe(false);
-    expect(merged).not.toHaveProperty('polluted');
-    expect(Object.prototype).toEqual(expect.not.objectContaining({ polluted: true }));
-  });
-
-  it('should leave unmatched components untouched', () => {
-    const statusFiles = new Map([['rag_optimization', mockComponentStatus]]);
-    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
-
-    const dataIngestion = result.components.find((c) => c.id === 'data_ingestion')!;
-    expect(dataIngestion).toEqual(mockComponentStageMap.components[0]);
-  });
-
-  it('should leave unmatched stages within a merged component untouched', () => {
-    const partialStatus: ComponentStatusFile = {
-      component_id: 'rag_optimization',
-      stages: [
-        {
-          id: 'prepare_search_space',
-          description: 'Prepare the search space',
-          status: 'completed',
-          timestamp: '2026-06-04T17:49:19Z',
-        },
-      ],
-    };
-    const statusFiles = new Map([['rag_optimization', partialStatus]]);
-    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
-
-    const mergedComponent = result.components.find((c) => c.id === 'rag_optimization')!;
-    const runOptimizationStage = mergedComponent.stages.find((s) => s.id === 'run_optimization')!;
-    expect(runOptimizationStage.status).toBeUndefined();
-  });
-
-  it('should not mutate the original stageMap', () => {
-    const originalJson = JSON.stringify(mockComponentStageMap);
-    const statusFiles = new Map([['rag_optimization', mockComponentStatus]]);
-    mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
-
-    expect(JSON.stringify(mockComponentStageMap)).toBe(originalJson);
-  });
-
-  it('should merge leaderboard best_pattern when status stage omits description', () => {
-    const leaderboardStatus: ComponentStatusFile = {
+  it('merges leaderboard metrics without replacing descriptions', () => {
+    const status = ComponentStatusFileSchema.parse({
       component_id: 'leaderboard_evaluation',
+      started_at: '2026-01-01T00:00:00Z',
+      metadata: { display_name: 'Leaderboard' },
       stages: [
         {
           id: 'build_leaderboard',
-          status: 'completed',
-          timestamp: '2026-06-04T17:50:15.000000Z',
-          best_pattern: 'pattern_b',
+          status: { state: 'completed' },
+          metrics: { best_pattern: 'pattern_b' },
         },
       ],
-    };
-
-    expect(() => ComponentStatusFileSchema.parse(leaderboardStatus)).not.toThrow();
-
-    const result = mergeStatusIntoStageMap(
+    });
+    const stage = mergeStatusIntoStageMap(
       mockComponentStageMap,
-      new Map([['leaderboard_evaluation', leaderboardStatus]]),
-    );
-
-    const buildLeaderboard = result.components
-      .find((component) => component.id === 'leaderboard_evaluation')!
-      .stages.find((stage) => stage.id === 'build_leaderboard')!;
-
-    expect(buildLeaderboard.description).toBe('Aggregate pattern metrics');
-    expect(buildLeaderboard.best_pattern).toBe('pattern_b');
+      new Map([['leaderboard_evaluation', status]]),
+    ).components[2].stages[0];
+    expect(stage.description).toBe('Aggregate pattern metrics');
+    expect(stage.metrics).toEqual({ best_pattern: 'pattern_b' });
   });
-
-  it('should truncate oversized optimize_templates steps during status parsing', () => {
-    const oversizedSteps = Array.from(
-      { length: MAX_PATTERN_SELECTION_STEPS + 5 },
-      (_, index) => `step_${index}`,
-    );
-    const parsed = ComponentStatusFileSchema.parse({
-      component_id: 'rag_optimization',
+  it('recognizes only complete non-empty canonical status files', () => {
+    expect(isComponentFullyComplete(mockComponentStatus)).toBe(true);
+    const partial = ComponentStatusFileSchema.parse({
+      component_id: 'test',
+      started_at: '2026-01-01T00:00:00Z',
+      metadata: { display_name: 'Test' },
       stages: [
-        {
-          id: 'optimize_templates',
-          steps: oversizedSteps,
-        },
+        { id: 'a', status: { state: 'completed' } },
+        { id: 'b', status: { state: 'started' } },
       ],
     });
-
-    expect(parsed.stages[0].steps).toHaveLength(MAX_PATTERN_SELECTION_STEPS);
-    expect(parsed.stages[0].steps).toEqual(oversizedSteps.slice(0, MAX_PATTERN_SELECTION_STEPS));
-  });
-
-  it('should dedupe repeated optimize_templates steps before applying the cap', () => {
-    const repeatedSteps = [
-      ...Array.from({ length: MAX_PATTERN_SELECTION_STEPS }, () => 'chunking'),
-      'embedding',
-      'retrieval',
-    ];
-    const parsed = ComponentStatusFileSchema.parse({
-      component_id: 'rag_optimization',
-      stages: [
-        {
-          id: 'optimize_templates',
-          steps: repeatedSteps,
-        },
-      ],
-    });
-
-    expect(parsed.stages[0].steps).toEqual(['chunking', 'embedding', 'retrieval']);
-
-    const merged = mergeStageWithStatus(
-      {
-        id: 'optimize_templates',
-        description: 'Evaluate candidate RAG pattern configurations',
-        steps: repeatedSteps,
-      },
-      parsed.stages[0],
-    );
-
-    expect(merged.steps).toEqual(['chunking', 'embedding', 'retrieval']);
-  });
-
-  it('should reject malformed selected_patterns during status parsing', () => {
-    const objectParsed = ComponentStatusFileSchema.parse({
-      component_id: 'rag_optimization',
-      stages: [
-        {
-          id: 'optimize_templates',
-          selected_patterns: { pattern_a: 'pattern_a' },
-        },
-      ],
-    });
-    expect(objectParsed.stages[0].selected_patterns).toBeUndefined();
-
-    const mixedParsed = ComponentStatusFileSchema.parse({
-      component_id: 'rag_optimization',
-      stages: [
-        {
-          id: 'optimize_templates',
-          selected_patterns: ['pattern_b', 42, null],
-        },
-      ],
-    });
-    expect(mixedParsed.stages[0].selected_patterns).toEqual(['pattern_b']);
-
-    const emptyParsed = ComponentStatusFileSchema.parse({
-      component_id: 'rag_optimization',
-      stages: [
-        {
-          id: 'optimize_templates',
-          selected_patterns: [],
-        },
-      ],
-    });
-    expect(emptyParsed.stages[0].selected_patterns).toEqual([]);
-  });
-
-  it('should normalize documented stage statuses and drop unsupported ones during parsing', () => {
-    const parsed = ComponentStatusFileSchema.parse({
-      component_id: 'rag_optimization',
-      stages: [
-        { id: 'load_benchmark', status: ' Completed ' },
-        { id: 'optimize_templates', status: 'STARTED' },
-        { id: 'evaluate_patterns', status: 'running' },
-        { id: 'build_leaderboard', status: 'pending' },
-      ],
-    });
-
-    expect(parsed.stages[0].status).toBe('completed');
-    expect(parsed.stages[1].status).toBe('started');
-    expect(parsed.stages[2].status).toBeUndefined();
-    expect(parsed.stages[3].status).toBeUndefined();
-  });
-
-  it('should not let unsupported status overwrite completed or failed canonical stages', () => {
-    const completedPreserved = mergeStageWithStatus(
-      { id: 'load_benchmark', description: 'Load benchmark', status: 'completed' },
-      {
-        id: 'load_benchmark',
-        status: 'running',
-        timestamp: '2026-06-04T17:49:19.232065Z',
-      } as unknown as ComponentStatusFile['stages'][number],
-    );
-    expect(completedPreserved.status).toBe('completed');
-    expect(completedPreserved.timestamp).toBe('2026-06-04T17:49:19.232065Z');
-
-    const failedPreserved = mergeStageWithStatus(
-      { id: 'load_benchmark', description: 'Load benchmark', status: 'failed' },
-      {
-        id: 'load_benchmark',
-        status: 'pending',
-      } as unknown as ComponentStatusFile['stages'][number],
-    );
-    expect(failedPreserved.status).toBe('failed');
-
-    const progressed = mergeStageWithStatus(
-      { id: 'load_benchmark', description: 'Load benchmark', status: 'started' },
-      { id: 'load_benchmark', status: 'completed' },
-    );
-    expect(progressed.status).toBe('completed');
-  });
-
-  it('should clear canonical selected_patterns when status provides an empty array', () => {
-    const merged = mergeStageWithStatus(
-      {
-        id: 'optimize_templates',
-        description: 'Evaluate candidate RAG pattern configurations',
-        selected_patterns: ['ExistingPattern'],
-      },
-      {
-        id: 'optimize_templates',
-        status: 'completed',
-        selected_patterns: [],
-      },
-    );
-
-    expect(merged.selected_patterns).toEqual([]);
-    expect(merged.status).toBe('completed');
-  });
-
-  it('should not clear canonical selected_patterns when a non-empty array has no valid strings', () => {
-    const nonStringParsed = ComponentStatusFileSchema.parse({
-      component_id: 'rag_optimization',
-      stages: [
-        {
-          id: 'optimize_templates',
-          selected_patterns: [42, null],
-        },
-      ],
-    });
-    expect(nonStringParsed.stages[0].selected_patterns).toBeUndefined();
-
-    const merged = mergeStageWithStatus(
-      {
-        id: 'optimize_templates',
-        description: 'Evaluate candidate RAG pattern configurations',
-        selected_patterns: ['ExistingPattern'],
-      },
-      {
-        id: 'optimize_templates',
-        status: 'completed',
-        selected_patterns: [42, null],
-      } as unknown as ComponentStatusFile['stages'][number],
-    );
-
-    expect(merged.selected_patterns).toEqual(['ExistingPattern']);
-    expect(merged.status).toBe('completed');
-  });
-
-  it('should not merge malformed selected_patterns into branch metadata', () => {
-    const merged = mergeStageWithStatus(
-      {
-        id: 'optimize_templates',
-        description: 'Evaluate candidate RAG pattern configurations',
-        selected_patterns: ['ExistingPattern'],
-      },
-      {
-        id: 'optimize_templates',
-        status: 'completed',
-        selected_patterns: { bad: 'value' },
-      } as unknown as ComponentStatusFile['stages'][number],
-    );
-
-    expect(merged.selected_patterns).toEqual(['ExistingPattern']);
-    expect(merged.status).toBe('completed');
+    expect(isComponentFullyComplete(partial)).toBe(false);
+    expect(
+      isComponentFullyComplete(
+        ComponentStatusFileSchema.parse({
+          component_id: 'test',
+          started_at: '2026-01-01T00:00:00Z',
+          metadata: { display_name: 'Test' },
+          stages: [],
+        }),
+      ),
+    ).toBe(false);
   });
 });
 
 describe('useComponentStatuses', () => {
-  const useS3ListFilesQueryMock = jest.mocked(useS3ListFilesQuery);
-  const getFilesMock = jest.mocked(getFiles);
-  const dataUpdatedAt = 1_700_000_000_000;
-
+  const queryMock = jest.mocked(useS3ListFilesQuery);
+  const filesMock = jest.mocked(getFiles);
+  const updatedAt = 1_700_000_000_000;
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-    useS3ListFilesQueryMock.mockReturnValue({
+    queryMock.mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: false,
       error: null,
     } as ReturnType<typeof useS3ListFilesQuery>);
   });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it('should populate errors when all component status fetches fail', async () => {
+  afterEach(() => jest.restoreAllMocks());
+  it('reports fetch errors and settles loading', async () => {
+    filesMock.mockRejectedValue(new Error('S3 unavailable'));
     const pipelineRun = createMockPipelineRun('RUNNING', [
       { task_id: 'data-ingestion', state: 'SUCCEEDED' },
       { task_id: 'rag-optimization-2', state: 'RUNNING' },
     ]);
-
-    getFilesMock.mockRejectedValue(new Error('S3 unavailable'));
-
     const { result } = renderHook(() =>
       useComponentStatuses(
         'run-123',
         'test-namespace',
         pipelineRun,
         mockComponentStageMap,
-        dataUpdatedAt,
+        updatedAt,
       ),
     );
-
-    await waitFor(() => {
-      expect(result.current.errors).toEqual([
-        { componentId: 'data_ingestion', message: 'S3 unavailable' },
-        { componentId: 'rag_optimization', message: 'S3 unavailable' },
-      ]);
-    });
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    await waitFor(() => expect(result.current.errors).toHaveLength(2));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
   });
-
-  it('should clear stale errors when a later fetch returns missing status', async () => {
+  it('clears stale errors after a later missing status response', async () => {
+    filesMock.mockRejectedValueOnce(new Error('S3 unavailable')).mockResolvedValue({
+      contents: [],
+      common_prefixes: [],
+      is_truncated: false,
+      key_count: 0,
+      max_keys: 1000,
+    });
     const pipelineRun = createMockPipelineRun('RUNNING', [
       { task_id: 'data-ingestion', state: 'SUCCEEDED' },
-      { task_id: 'rag-optimization-2', state: 'RUNNING' },
     ]);
-
-    getFilesMock.mockRejectedValue(new Error('S3 unavailable'));
-
     const { result, rerender } = renderHook(
-      ({ updatedAt }) =>
+      ({ stamp }) =>
         useComponentStatuses(
           'run-123',
           'test-namespace',
           pipelineRun,
           mockComponentStageMap,
-          updatedAt,
+          stamp,
         ),
-      { initialProps: { updatedAt: dataUpdatedAt } },
+      { initialProps: { stamp: updatedAt } },
     );
-
-    await waitFor(() => {
-      expect(result.current.errors).toEqual([
-        { componentId: 'data_ingestion', message: 'S3 unavailable' },
-        { componentId: 'rag_optimization', message: 'S3 unavailable' },
-      ]);
-    });
-
-    getFilesMock.mockResolvedValue({
-      contents: [],
-      common_prefixes: [],
-      is_truncated: false,
-      key_count: 0,
-      max_keys: 1000,
-    });
-
-    rerender({ updatedAt: dataUpdatedAt + 1 });
-
-    await waitFor(() => {
-      expect(result.current.errors).toEqual([]);
-    });
-    expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
+    await waitFor(() => expect(result.current.errors).toHaveLength(1));
+    rerender({ stamp: updatedAt + 1 });
+    await waitFor(() => expect(result.current.errors).toEqual([]));
   });
-
-  it('should settle loading when namespace is unavailable', () => {
-    const pipelineRun = createMockPipelineRun('RUNNING', [
-      { task_id: 'data-ingestion', state: 'SUCCEEDED' },
-      { task_id: 'rag-optimization-2', state: 'RUNNING' },
-    ]);
-
+  it('settles without fetching when namespace is unavailable', () => {
     const { result } = renderHook(() =>
-      useComponentStatuses('run-123', undefined, pipelineRun, mockComponentStageMap, dataUpdatedAt),
+      useComponentStatuses(
+        'run-123',
+        undefined,
+        createMockPipelineRun('RUNNING'),
+        mockComponentStageMap,
+        updatedAt,
+      ),
     );
-
     expect(result.current.isLoading).toBe(false);
     expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
-    expect(getFilesMock).not.toHaveBeenCalled();
+    expect(filesMock).not.toHaveBeenCalled();
   });
-
-  it('should reset status caches when namespace changes for the same runId', async () => {
-    const pipelineRun = createMockPipelineRun('RUNNING', [
-      { task_id: 'data-ingestion', state: 'SUCCEEDED' },
-      { task_id: 'rag-optimization-2', state: 'RUNNING' },
-    ]);
-
-    getFilesMock.mockRejectedValue(new Error('S3 unavailable'));
-
-    const { result, rerender } = renderHook(
-      ({ namespace }) =>
-        useComponentStatuses(
-          'run-123',
-          namespace,
-          pipelineRun,
-          mockComponentStageMap,
-          dataUpdatedAt,
-        ),
-      { initialProps: { namespace: 'project-a' } },
-    );
-
-    await waitFor(() => {
-      expect(result.current.errors).toEqual([
-        { componentId: 'data_ingestion', message: 'S3 unavailable' },
-        { componentId: 'rag_optimization', message: 'S3 unavailable' },
-      ]);
-    });
-
-    getFilesMock.mockResolvedValue({
+  it('resets status state when namespace changes for the same run', async () => {
+    filesMock.mockRejectedValueOnce(new Error('S3 unavailable')).mockResolvedValue({
       contents: [],
       common_prefixes: [],
       is_truncated: false,
       key_count: 0,
       max_keys: 1000,
     });
-
+    const pipelineRun = createMockPipelineRun('RUNNING', [
+      { task_id: 'data-ingestion', state: 'SUCCEEDED' },
+    ]);
+    const { result, rerender } = renderHook(
+      ({ namespace }) =>
+        useComponentStatuses('run-123', namespace, pipelineRun, mockComponentStageMap, updatedAt),
+      { initialProps: { namespace: 'project-a' } },
+    );
+    await waitFor(() => expect(result.current.errors).toHaveLength(1));
     rerender({ namespace: 'project-b' });
+    await waitFor(() => expect(result.current.errors).toEqual([]));
+  });
+});
 
-    await waitFor(() => {
-      expect(result.current.errors).toEqual([]);
+describe('ComponentStatusFileSchema', () => {
+  it('should reject the legacy flat stage and string status shape', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: { display_name: 'RAG' },
+        stages: [{ id: 'prepare', status: 'completed', row_count: 10 }],
+      }),
+    ).toThrow();
+  });
+
+  it('should require the canonical envelope and stage fields', () => {
+    expect(() => ComponentStatusFileSchema.parse({ component_id: 'rag_component' })).toThrow();
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: {},
+        stages: [],
+      }),
+    ).toThrow();
+  });
+
+  it('should parse running metrics, message, and status step', () => {
+    const parsed = artifact([
+      {
+        id: 'prepare',
+        status: {
+          state: 'running',
+          step: 'chunk',
+          message: { level: 'warning', text: 'Chunking documents' },
+          running_at: '2026-01-01T00:01:00Z',
+        },
+        metrics: { completed_units: 3, total_units: 8, batches: [1, 2] },
+      },
+    ]);
+    expect(parsed.stages[0]).toMatchObject({ status: { state: 'running', step: 'chunk' } });
+    expect(parsed.stages[0].metrics).toEqual({
+      completed_units: 3,
+      total_units: 8,
+      batches: [1, 2],
     });
-    expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
+  });
+
+  it('should accept an error only on a failed stage', () => {
+    const failedStage = artifact([
+      { id: 'optimize_templates', status: { state: 'failed' }, error: 'OPTIMIZE_FAILED' },
+    ]).stages[0];
+    expect('error' in failedStage ? failedStage.error : undefined).toBe('OPTIMIZE_FAILED');
+    expect(() =>
+      artifact([{ id: 'optimize_templates', status: { state: 'running' }, error: 'stale error' }]),
+    ).toThrow();
+  });
+
+  it('should reject a missing envelope or required metadata', () => {
+    expect(() => ComponentStatusFileSchema.parse({ component_id: 'rag_component' })).toThrow();
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: {},
+        stages: [],
+      }),
+    ).toThrow();
+  });
+
+  it('should parse canonical running status, message, and metrics', () => {
+    const parsed = artifact([
+      {
+        id: 'prepare',
+        status: {
+          state: 'running',
+          step: 'chunk',
+          message: { level: 'warning', text: 'Chunking documents' },
+          running_at: '2026-01-01T00:01:00Z',
+        },
+        metrics: { completed_units: 3, total_units: 8, batches: [1, 2] },
+      },
+    ]);
+    expect(parsed.stages[0].status).toMatchObject({ state: 'running', step: 'chunk' });
+    expect(parsed.stages[0].metrics).toEqual({
+      completed_units: 3,
+      total_units: 8,
+      batches: [1, 2],
+    });
+  });
+
+  it('should enforce canonical identifiers, timestamps, messages, errors, and metric values', () => {
+    const valid = {
+      component_id: 'rag_component',
+      started_at: '2026-01-01T00:00:00Z',
+      metadata: { display_name: 'RAG', extra: { retained: true } },
+      stages: [
+        {
+          id: 'prepare',
+          status: { state: 'running', running_at: '2026-01-01T00:01:00Z' },
+          metrics: {
+            string: 'value',
+            number: 1.5,
+            integer: 1,
+            boolean: true,
+            empty: null,
+            values: ['value', 1, false],
+          },
+        },
+      ],
+    };
+    expect(ComponentStatusFileSchema.parse(valid)).toEqual(valid);
+    for (const [field, value] of [
+      ['component_id', 'RAG'],
+      ['started_at', '2026-01-01T00:00:00+00:00'],
+    ] as const) {
+      expect(() => ComponentStatusFileSchema.parse({ ...valid, [field]: value })).toThrow();
+    }
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        ...valid,
+        completed_at: 'not-a-timestamp',
+        stages: [{ ...valid.stages[0], id: 'prepare-data' }],
+      }),
+    ).toThrow();
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        ...valid,
+        stages: [
+          { ...valid.stages[0], status: { state: 'running', running_at: 'not-a-timestamp' } },
+        ],
+      }),
+    ).toThrow();
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        ...valid,
+        stages: [
+          {
+            ...valid.stages[0],
+            status: { state: 'running', message: { level: 'info', text: '' } },
+          },
+        ],
+      }),
+    ).toThrow();
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        ...valid,
+        stages: [{ ...valid.stages[0], metrics: { object: {} } }],
+      }),
+    ).toThrow();
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        ...valid,
+        stages: [{ ...valid.stages[0], metrics: { values: ['value', null] } }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe('mergeStatusIntoStageMap', () => {
+  it('should preserve descriptions, order, and the complete map step catalog', () => {
+    const merged = mergeStatusIntoStageMap(
+      stageMap,
+      new Map([
+        [
+          'rag_component',
+          artifact([{ id: 'prepare', status: { state: 'running', step: 'unknown' } }]),
+        ],
+      ]),
+    );
+    expect(merged.components[0].stages.map((stage) => stage.id)).toEqual([
+      'prepare',
+      'optimize_templates',
+      'publish',
+    ]);
+    expect(merged.components[0].stages[0].description).toBe('Prepare data');
+    expect(merged.components[0].stages[0].steps).toEqual(['chunk', 'embed']);
+    expect(merged.components[0].stages[0].status).toEqual({ state: 'running', step: undefined });
+  });
+
+  it('should use the component display name and retain failed error details', () => {
+    const merged = mergeStatusIntoStageMap(
+      stageMap,
+      new Map([
+        [
+          'rag_component',
+          artifact([{ id: 'optimize_templates', status: { state: 'failed' }, error: 'Failed' }]),
+        ],
+      ]),
+    );
+    expect(merged.components[0].metadata).toEqual({ display_name: 'RAG optimization' });
+    expect(merged.components[0].stages[1].error).toBe('Failed');
+  });
+
+  it('should leave unrecorded stages pending in a partial artifact', () => {
+    const merged = mergeStatusIntoStageMap(
+      stageMap,
+      new Map([['rag_component', artifact([{ id: 'prepare', status: { state: 'completed' } }])]]),
+    );
+    expect(merged.components[0].stages[2].status).toBeUndefined();
+  });
+
+  it('should merge canonical stage data without flattening it', () => {
+    const merged = mergeStageWithStatus(
+      stageMap.components[0].stages[0],
+      artifact([{ id: 'prepare', status: { state: 'running' }, metrics: { total_units: 2 } }])
+        .stages[0],
+    );
+    expect(merged.metrics).toEqual({ total_units: 2 });
+    expect(merged.total_units).toBeUndefined();
+  });
+
+  it('should promote canonical pattern selection metrics and preserve map selections when absent', () => {
+    const selected = mergeStatusIntoStageMap(
+      stageMap,
+      new Map([
+        [
+          'rag_component',
+          artifact([
+            {
+              id: 'optimize_templates',
+              status: { state: 'completed' },
+              metrics: { selected_patterns: ['pattern-a', 'pattern-b'] },
+            },
+          ]),
+        ],
+      ]),
+    );
+    expect(selected.components[0].stages[1].selected_patterns).toEqual(['pattern-a', 'pattern-b']);
+
+    const preserved = mergeStatusIntoStageMap(
+      stageMap,
+      new Map([
+        ['rag_component', artifact([{ id: 'optimize_templates', status: { state: 'completed' } }])],
+      ]),
+    );
+    expect(preserved.components[0].stages[1].selected_patterns).toEqual(['map-pattern']);
+  });
+
+  it('should ignore malformed pattern selection metrics', () => {
+    const merged = mergeStatusIntoStageMap(
+      stageMap,
+      new Map([
+        [
+          'rag_component',
+          artifact([
+            {
+              id: 'optimize_templates',
+              status: { state: 'completed' },
+              metrics: { selected_patterns: ['pattern-a', 1] },
+            },
+          ]),
+        ],
+      ]),
+    );
+    expect(merged.components[0].stages[1].selected_patterns).toEqual(['map-pattern']);
+  });
+
+  it('should return the map unchanged when no status files match', () => {
+    expect(mergeStatusIntoStageMap(mockComponentStageMap, new Map())).toEqual(
+      mockComponentStageMap,
+    );
+  });
+
+  it('should leave unmatched stages untouched', () => {
+    const result = mergeStatusIntoStageMap(
+      mockComponentStageMap,
+      new Map([['rag_component', artifact([{ id: 'prepare', status: { state: 'completed' } }])]]),
+    );
+    expect(
+      result.components[0].stages.find((stage) => stage.id === 'publish')?.status,
+    ).toBeUndefined();
+  });
+
+  it('should not mutate the original stage map', () => {
+    const original = JSON.stringify(mockComponentStageMap);
+    mergeStatusIntoStageMap(
+      mockComponentStageMap,
+      new Map([['rag_optimization', mockComponentStatus]]),
+    );
+    expect(JSON.stringify(mockComponentStageMap)).toBe(original);
+  });
+
+  it('should merge leaderboard metrics when the status omits its description', () => {
+    const status = ComponentStatusFileSchema.parse({
+      component_id: 'leaderboard_evaluation',
+      started_at: '2026-01-01T00:00:00Z',
+      metadata: { display_name: 'Leaderboard' },
+      stages: [
+        {
+          id: 'build_leaderboard',
+          status: { state: 'completed' },
+          metrics: { best_pattern: 'pattern-b' },
+        },
+      ],
+    });
+    const stage = mergeStatusIntoStageMap(
+      mockComponentStageMap,
+      new Map([['leaderboard_evaluation', status]]),
+    ).components[2].stages[0];
+    expect(stage.description).toBe('Aggregate pattern metrics');
+    expect(stage.metrics).toEqual({ best_pattern: 'pattern-b' });
+  });
+
+  it('should add canonical status and metrics to merged stages', () => {
+    const merged = mergeStatusIntoStageMap(
+      mockComponentStageMap,
+      new Map([['rag_optimization', mockComponentStatus]]),
+    );
+    expect(merged.components[1].stages[0].status).toEqual({ state: 'completed', step: undefined });
+    expect(merged.components[1].stages[0].metrics).toEqual({ document_count: 213 });
+  });
+
+  it('should preserve descriptions, order, and the complete map catalog', () => {
+    const merged = mergeStatusIntoStageMap(
+      stageMap,
+      new Map([
+        [
+          'rag_component',
+          artifact([{ id: 'prepare', status: { state: 'running', step: 'unknown' } }]),
+        ],
+      ]),
+    );
+    expect(merged.components[0].stages.map((stage) => stage.id)).toEqual([
+      'prepare',
+      'optimize_templates',
+      'publish',
+    ]);
+    expect(merged.components[0].stages[0].description).toBe('Prepare data');
+    expect(merged.components[0].stages[0].steps).toEqual(['chunk', 'embed']);
+    expect(merged.components[0].stages[0].status).toEqual({ state: 'running', step: undefined });
+  });
+
+  it('should retain component metadata and failed error details', () => {
+    const merged = mergeStatusIntoStageMap(
+      stageMap,
+      new Map([
+        [
+          'rag_component',
+          artifact([{ id: 'optimize_templates', status: { state: 'failed' }, error: 'Failed' }]),
+        ],
+      ]),
+    );
+    expect(merged.components[0].metadata).toEqual({ display_name: 'RAG optimization' });
+    expect(merged.components[0].stages[1].error).toBe('Failed');
+  });
+
+  it('should preserve selected patterns when metrics has no valid strings', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        ...mockComponentStatus,
+        stages: [
+          {
+            id: 'optimize_templates',
+            status: { state: 'completed' },
+            metrics: { selected_patterns: [42, null] },
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('should clear canonical selected patterns when metrics provides an empty array', () => {
+    const merged = mergeStageWithStatus(
+      {
+        id: 'optimize_templates',
+        description: 'Optimize templates',
+        selected_patterns: ['ExistingPattern'],
+      },
+      {
+        id: 'optimize_templates',
+        status: { state: 'completed' },
+        metrics: { selected_patterns: [] },
+      },
+    );
+    expect(merged.selected_patterns).toEqual([]);
+  });
+
+  it('should reject legacy flat status fields instead of flattening them', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: { display_name: 'RAG' },
+        stages: [{ id: 'prepare', status: 'completed', metadata: { document_count: 1 } }],
+      }),
+    ).toThrow();
+  });
+
+  it('should reject legacy nested stage metadata', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: { display_name: 'RAG' },
+        stages: [{ id: 'prepare', status: 'completed', metadata: { document_count: 500 } }],
+      }),
+    ).toThrow();
+  });
+
+  it('should reject legacy metadata selection recovery', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: { display_name: 'RAG' },
+        stages: [
+          {
+            id: 'optimize_templates',
+            status: 'completed',
+            metadata: { selected_patterns: ['PatternA'] },
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('should reject unsafe legacy flattening payloads', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: { display_name: 'RAG' },
+        stages: [{ id: 'optimize_templates', status: 'completed', __proto__: { polluted: true } }],
+      }),
+    ).toThrow();
+  });
+
+  it('should reject unsupported flat status values', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: { display_name: 'RAG' },
+        stages: [{ id: 'prepare', status: 'pending' }],
+      }),
+    ).toThrow();
+  });
+
+  it('should reject unsupported nested status values', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: { display_name: 'RAG' },
+        stages: [{ id: 'prepare', status: { state: 'pending' } }],
+      }),
+    ).toThrow();
+  });
+
+  it('should retain canonical metrics under their envelope', () => {
+    const stage = artifact([
+      { id: 'prepare', status: { state: 'completed' }, metrics: { document_count: 42 } },
+    ]).stages[0];
+    expect(stage.metrics).toEqual({ document_count: 42 });
+    expect('document_count' in stage).toBe(false);
+  });
+
+  it('should reject canonical stages with unknown top-level fields', () => {
+    expect(() =>
+      ComponentStatusFileSchema.parse({
+        component_id: 'rag_component',
+        started_at: '2026-01-01T00:00:00Z',
+        metadata: { display_name: 'RAG' },
+        stages: [{ id: 'prepare', status: { state: 'completed' }, timestamp: 'legacy' }],
+      }),
+    ).toThrow();
+  });
+
+  it('should preserve the selected pattern map value when metrics are absent', () => {
+    const merged = mergeStageWithStatus(
+      {
+        id: 'optimize_templates',
+        description: 'Optimize templates',
+        selected_patterns: ['map-pattern'],
+      },
+      { id: 'optimize_templates', status: { state: 'completed' } },
+    );
+    expect(merged.selected_patterns).toEqual(['map-pattern']);
+  });
+
+  it('should preserve failed errors only for failed canonical stages', () => {
+    const merged = mergeStageWithStatus({ id: 'prepare', description: 'Prepare data' }, {
+      id: 'prepare',
+      status: { state: 'completed' },
+      error: 'stale',
+    } as never);
+    expect(merged.error).toBeUndefined();
+  });
+
+  it('should return false when canonical stages are incomplete', () => {
+    const partial = ComponentStatusFileSchema.parse({
+      component_id: 'test',
+      started_at: '2026-01-01T00:00:00Z',
+      metadata: { display_name: 'Test' },
+      stages: [
+        { id: 'a', status: { state: 'completed' } },
+        { id: 'b', status: { state: 'running' } },
+      ],
+    });
+    expect(isComponentFullyComplete(partial)).toBe(false);
+  });
+
+  it('should return false when canonical stages are empty', () => {
+    const empty = ComponentStatusFileSchema.parse({
+      component_id: 'test',
+      started_at: '2026-01-01T00:00:00Z',
+      metadata: { display_name: 'Test' },
+      stages: [],
+    });
+    expect(isComponentFullyComplete(empty)).toBe(false);
+  });
+
+  it('should return true when canonical stages are all completed', () => {
+    expect(isComponentFullyComplete(mockComponentStatus)).toBe(true);
   });
 });
 
 describe('isComponentFullyComplete', () => {
-  it('should return true when all stages are completed', () => {
-    expect(isComponentFullyComplete(mockComponentStatus)).toBe(true);
-  });
-
-  it('should return false when some stages are not completed', () => {
-    const partial: ComponentStatusFile = {
+  it('should return false when a stage has no status', () => {
+    const partial = ComponentStatusFileSchema.parse({
       component_id: 'test',
+      started_at: '2026-01-01T00:00:00Z',
+      metadata: { display_name: 'Test' },
       stages: [
-        { id: 'a', status: 'completed', description: 'A' },
-        { id: 'b', status: 'started', description: 'B' },
+        { id: 'a', status: { state: 'completed' } },
+        { id: 'b', status: { state: 'started' } },
       ],
-    };
+    });
     expect(isComponentFullyComplete(partial)).toBe(false);
   });
-
-  it('should return false when stages array is empty', () => {
-    const empty: ComponentStatusFile = {
-      component_id: 'test',
-      stages: [],
-    };
-    expect(isComponentFullyComplete(empty)).toBe(false);
-  });
-
-  it('should return false when a stage has no status', () => {
-    const noStatus: ComponentStatusFile = {
-      component_id: 'test',
-      stages: [
-        { id: 'a', status: 'completed', description: 'A' },
-        { id: 'b', description: 'B' },
-      ],
-    };
-    expect(isComponentFullyComplete(noStatus)).toBe(false);
-  });
 });
-
-/* eslint-enable camelcase */

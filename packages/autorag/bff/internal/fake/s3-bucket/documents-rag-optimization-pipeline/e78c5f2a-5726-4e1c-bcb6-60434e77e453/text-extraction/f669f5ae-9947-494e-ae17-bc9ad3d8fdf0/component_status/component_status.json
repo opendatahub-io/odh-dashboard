@@ -1,15 +1,12 @@
 {
   "component_id": "text_extraction",
   "started_at": "2026-07-16T19:39:34.286719Z",
-  "completed_at": "2026-07-16T19:40:03.455104Z",
+  "metadata": { "display_name": "Text Extraction Status" },
   "stages": [
     {
       "id": "extract_documents",
-      "status": "completed",
-      "timestamp": "2026-07-16T19:40:03.454906Z"
+      "status": { "state": "completed" },
+      "metrics": {}
     }
-  ],
-  "metadata": {
-    "display_name": "Text Extraction Status"
-  }
+  ]
 }

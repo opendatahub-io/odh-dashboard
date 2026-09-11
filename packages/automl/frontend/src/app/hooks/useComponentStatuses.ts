@@ -10,11 +10,6 @@ import type {
 import type { PipelineRun, PipelineRunError, S3ListObjectsResponse } from '~/app/types';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
-  isAllowedFlattenKey,
-  NESTED_STAGE_FIELD_KEYS,
-  capModelSelectionSteps,
-} from '~/app/topology/stageMapConstants';
-import {
   findTrainingTaskPrefix,
   isRunCompleted,
   isRunInTerminalState,
@@ -31,20 +26,37 @@ type ComponentTaskDetail = {
   error?: PipelineRunError;
 };
 
-function parseSelectedModels(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-  if (value.length === 0) {
-    return [];
-  }
-  const models = value.filter((item): item is string => typeof item === 'string');
-  return models.length > 0 ? models : undefined;
-}
-
 /** Documented inline stage statuses (aligned with translateStageStatus). */
 export const COMPONENT_STAGE_STATUSES = ['completed', 'started', 'failed', 'skipped'] as const;
 export type ComponentStageStatus = (typeof COMPONENT_STAGE_STATUSES)[number];
+
+const MetricValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.array(z.union([z.string(), z.number(), z.boolean()])),
+]);
+const TimestampSchema = z.string().datetime({ offset: false });
+const IdentifierSchema = z.string().regex(/^[a-z][a-z0-9_]*$/);
+
+const ComponentStatusMessageSchema = z
+  .object({
+    level: z.enum(['info', 'warning', 'error']),
+    text: z.string().min(1),
+  })
+  .strict();
+
+/* eslint-disable camelcase */
+const ComponentStatusStateSchema = z
+  .object({
+    state: z.enum(['started', 'running', 'completed', 'failed']),
+    step: z.string().optional(),
+    message: ComponentStatusMessageSchema.optional(),
+    running_at: TimestampSchema.optional(),
+  })
+  .strict();
+/* eslint-enable camelcase */
 
 /** Normalize and accept only documented stage statuses; unsupported values become undefined. */
 export function normalizeComponentStageStatus(value: unknown): ComponentStageStatus | undefined {
@@ -61,36 +73,35 @@ export function normalizeComponentStageStatus(value: unknown): ComponentStageSta
 }
 
 /* eslint-disable camelcase */
-const ComponentStatusStageSchema = z
-  .object({
-    id: z.string(),
-    description: z.string().optional(),
-    steps: z.preprocess(
-      (val) => (Array.isArray(val) ? capModelSelectionSteps(val) : val),
-      z.array(z.string()).optional(),
-    ),
-    selected_models: z.preprocess(parseSelectedModels, z.array(z.string()).optional()),
-    status: z.preprocess(
-      normalizeComponentStageStatus,
-      z.enum(COMPONENT_STAGE_STATUSES).optional(),
-    ),
-    timestamp: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    metrics: z.record(z.string(), z.unknown()).optional(),
-    outputs: z.record(z.string(), z.unknown()).optional(),
-    details: z.record(z.string(), z.unknown()).optional(),
-  })
-  .catchall(z.unknown());
+const ComponentStatusStageSchema = z.union([
+  z
+    .object({
+      id: IdentifierSchema,
+      status: ComponentStatusStateSchema.extend({ state: z.literal('failed') }),
+      metrics: z.record(z.string(), MetricValueSchema).optional(),
+      error: z.string().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      id: IdentifierSchema,
+      status: ComponentStatusStateSchema.extend({
+        state: z.enum(['started', 'running', 'completed']),
+      }),
+      metrics: z.record(z.string(), MetricValueSchema).optional(),
+    })
+    .strict(),
+]);
 
 export const ComponentStatusFileSchema = z
   .object({
-    component_id: z.string(),
-    started_at: z.string().optional(),
-    completed_at: z.string().optional(),
+    component_id: IdentifierSchema,
+    started_at: TimestampSchema,
+    completed_at: TimestampSchema.optional(),
     stages: z.array(ComponentStatusStageSchema),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: z.object({ display_name: z.string().min(1) }).catchall(z.unknown()),
   })
-  .catchall(z.unknown());
+  .strict();
 
 export type ComponentStatusFile = z.infer<typeof ComponentStatusFileSchema>;
 export type ComponentStatusStage = z.infer<typeof ComponentStatusStageSchema>;
@@ -235,13 +246,21 @@ const MERGED_FIELD_EXCLUDED = new Set([
   'name',
   'component_id',
   'id',
-  'steps',
   'selected_models',
   'status',
 ]);
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+function getSelectedModels(metrics: ComponentStatusStage['metrics']): string[] | undefined {
+  const selectedModels = metrics?.selected_models;
+  return Array.isArray(selectedModels) && selectedModels.every((model) => typeof model === 'string')
+    ? selectedModels
+    : undefined;
+}
+
+export function getComponentStageStatus(
+  status: ComponentStatusStage['status'] | ComponentStageMapStage['status'],
+): ComponentStageStatus | 'running' | undefined {
+  return typeof status === 'object' ? status.state : normalizeComponentStageStatus(status);
 }
 
 export function mergeStageWithStatus(
@@ -254,21 +273,6 @@ export function mergeStageWithStatus(
     description: stage.description,
   };
 
-  for (const nestedKey of NESTED_STAGE_FIELD_KEYS) {
-    const nested = statusStage[nestedKey];
-    if (isPlainObject(nested)) {
-      for (const [key, value] of Object.entries(nested)) {
-        if (isAllowedFlattenKey(key)) {
-          merged[key] = value;
-        }
-      }
-    }
-  }
-
-  for (const nestedKey of NESTED_STAGE_FIELD_KEYS) {
-    delete merged[nestedKey];
-  }
-
   for (const excludedKey of MERGED_FIELD_EXCLUDED) {
     delete merged[excludedKey];
   }
@@ -278,22 +282,20 @@ export function mergeStageWithStatus(
     id: stage.id,
     description: stage.description,
   };
-  if (stage.steps !== undefined) {
-    result.steps = capModelSelectionSteps(stage.steps);
+  if (statusStage.status.state !== 'failed') {
+    delete result.error;
   }
-  // Prefer a validated payload status; otherwise keep a validated canonical status so
-  // unsupported values cannot clear or overwrite completed/failed (or any prior) status.
-  const normalizedStatus =
-    normalizeComponentStageStatus(statusStage.status) ??
-    normalizeComponentStageStatus(stage.status);
-  if (normalizedStatus !== undefined) {
-    result.status = normalizedStatus;
+  if (stage.id === 'model_selection') {
+    // Branch topology consumes this selection from the stage map.
+    // eslint-disable-next-line camelcase
+    result.selected_models = getSelectedModels(statusStage.metrics) ?? stage.selected_models;
   }
-  const selectedModels =
-    parseSelectedModels(statusStage.selected_models) ?? parseSelectedModels(stage.selected_models);
-  if (selectedModels !== undefined) {
-    result.selected_models = selectedModels; // eslint-disable-line camelcase
-  }
+  result.status = {
+    ...statusStage.status,
+    ...(statusStage.status.step && stage.steps?.includes(statusStage.status.step)
+      ? { step: statusStage.status.step }
+      : { step: undefined }),
+  };
   return result;
 }
 
@@ -321,22 +323,21 @@ export function mergeStatusIntoStageMap(
         ...component,
         stages: mergedStages,
       };
-      if (status.started_at != null) {
-        merged.started_at = status.started_at; // eslint-disable-line camelcase
-      }
+      merged.started_at = status.started_at; // eslint-disable-line camelcase
       if (status.completed_at != null) {
         merged.completed_at = status.completed_at; // eslint-disable-line camelcase
       }
-      if (status.metadata != null) {
-        merged.metadata = status.metadata;
-      }
+      merged.metadata = status.metadata;
       return merged;
     }),
   };
 }
 
 export function isComponentFullyComplete(status: ComponentStatusFile): boolean {
-  return status.stages.length > 0 && status.stages.every((s) => s.status === 'completed');
+  return (
+    status.stages.length > 0 &&
+    status.stages.every((s) => getComponentStageStatus(s.status) === 'completed')
+  );
 }
 
 async function discoverStatusJsonPath(
