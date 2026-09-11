@@ -10,8 +10,8 @@ skills:
 host_files:
   - src: dimensions.json
     dest: /sandbox/workspace/.fullsend/dimensions.json
-  - src: .run/jira.json
-    dest: /sandbox/workspace/.fullsend/.run/jira.json
+  - src: .run/collected.json
+    dest: /sandbox/workspace/.fullsend/.run/collected.json
     optional: true
 
 model: sonnet

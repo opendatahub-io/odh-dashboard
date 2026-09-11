@@ -2,8 +2,8 @@
 # Vendored from fullsend-ai/agents scripts/pre-review.sh
 # @ 91f61f3441baedf3f912c9afd4bd574c98793b96 (harness review.yaml base).
 #
-# Local change from the stock script: hydrate the trusted Jira snapshot. The
-# sandbox receives that sanitized context file, never Jira credentials.
+# Local change from the stock script: hydrate registered host-adapter artifacts.
+# The sandbox receives sanitized adapter envelopes only, never credentials.
 #
 # Usage:
 #   pre-review.sh              # CI / harness pre_script
@@ -39,8 +39,170 @@ normalize_dispatch_context() {
   fi
 }
 
+validate_adapter_registry() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  local runner setup_runner
+  if ! jq -e '
+    . as $registry |
+    (.dimensions | type == "array") and
+    (([.dimensions[] | select(.kind == "cli-adapter") | .id] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
+    (([.dimensions[] | select(.kind == "cli-adapter") | .producer_file] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
+    (([.dimensions[] | select(.kind == "cli-adapter" and .host.execution == "workflow") | .host.artifact_name] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter" and .host.execution == "workflow")] | length)) and
+    all(
+      .dimensions[] | select(.kind == "cli-adapter");
+      (.id | type == "string" and test("^[a-z0-9][a-z0-9-]*$")) and
+      (.output | type == "string" and test("^(context|findings|check:[a-z0-9-]+|classifier:[a-z0-9-]+)$")) and
+      (.runner | type == "string" and test("^scripts/[A-Za-z0-9._/-]+\\.sh$")) and
+      (.producer_file | type == "string" and test("^\\.run/[A-Za-z0-9._-]+\\.json$")) and
+      (.host.execution == "workflow" or .host.execution == "pre_review") and
+      (if .host.execution == "workflow" then
+        (.host.artifact_name | type == "string" and test("^[A-Za-z0-9._{}-]+$") and contains("{pr_number}")) and
+        (.host.artifact_file | type == "string" and test("^[A-Za-z0-9._-]+\\.json$")) and
+        (.host.artifact_file == (.producer_file | split("/") | last)) and
+        (.host.checkout_pr | type == "boolean") and
+        (.host.setup_runner | type == "string" and
+          (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
+        all(
+          [.host.credentials.url_secret, .host.credentials.username_secret, .host.credentials.token_secret][];
+          type == "string" and test("^[A-Z][A-Z0-9_]*$")
+        )
+      else true end)
+    ) and
+    all(
+      .dimensions[] | select(.context_dimension? != null);
+      .context_dimension as $context_dimension |
+      any(
+        $registry.dimensions[];
+        .kind == "cli-adapter" and .id == $context_dimension and .output == "context"
+      )
+    )
+  ' "${registry}" >/dev/null; then
+    return 1
+  fi
+
+  while IFS=$'\t' read -r runner setup_runner; do
+    [[ -f "${_SCRIPT_DIR}/../${runner}" ]] || return 1
+    [[ -z "${setup_runner}" || -f "${_SCRIPT_DIR}/../${setup_runner}" ]] || return 1
+  done < <(jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter")
+    | [.runner, (.host.setup_runner // "")]
+    | @tsv
+  ' "${registry}")
+}
+
+adapter_rows() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter")
+    | [.id, .producer_file, .output]
+    | @tsv
+  ' "${registry}"
+}
+
+workflow_adapter_rows() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter" and .host.execution == "workflow")
+    | [.id, .producer_file, .host.artifact_name, .host.artifact_file, .output]
+    | @tsv
+  ' "${registry}"
+}
+
+aggregate_cli_adapters() {
+  local run_dir="${_SCRIPT_DIR}/../.run"
+  local id producer_file declared_output file
+  local files=()
+
+  while IFS=$'\t' read -r id producer_file declared_output; do
+    file="${_SCRIPT_DIR}/../${producer_file}"
+    [[ -f "${file}" ]] && files+=("${file}")
+  done < <(adapter_rows)
+
+  mkdir -p "${run_dir}"
+  if ((${#files[@]} == 0)); then
+    printf '[]\n' > "${run_dir}/collected.json"
+  else
+    jq -s '[.[] | select(
+      type == "object" and
+      .kind == "cli-adapter" and
+      (.output | type == "string")
+    )]' \
+      "${files[@]}" > "${run_dir}/collected.json"
+  fi
+}
+
+run_pre_review_adapters() {
+  local runner
+  while IFS= read -r runner; do
+    [[ -n "${runner}" ]] && bash "${_SCRIPT_DIR}/../${runner}"
+  done < <(jq -r '
+    [.dimensions[]
+      | select(.kind == "cli-adapter" and .host.execution == "pre_review")
+      | .runner]
+    | unique[]
+  ' "${_SCRIPT_DIR}/../dimensions.json")
+}
+
+hydrate_workflow_adapters() {
+  local id producer_file artifact_template artifact_file declared_output artifact_name
+  local artifact_dir source_file destination_file
+
+  if ! validate_adapter_registry; then
+    echo "::error::Invalid cli-adapter host metadata in .fullsend/dimensions.json"
+    return 1
+  fi
+
+  while IFS=$'\t' read -r id producer_file artifact_template artifact_file declared_output; do
+    artifact_name="${artifact_template//\{pr_number\}/${PR_NUMBER}}"
+    artifact_dir="$(mktemp -d)"
+    source_file="${artifact_dir}/${artifact_file}"
+    destination_file="${_SCRIPT_DIR}/../${producer_file}"
+    rm -f "${destination_file}"
+
+    if GH_TOKEN="${_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
+      --repo "${REPO_FULL_NAME}" \
+      --name "${artifact_name}" \
+      --dir "${artifact_dir}" >/dev/null 2>&1; then
+      if [[ -f "${source_file}" ]] && jq -e --arg id "${id}" --arg output "${declared_output}" '
+        type == "object" and
+        .id == $id and
+        .dimension == $id and
+        .kind == "cli-adapter" and
+        .output == $output and
+        (.output != "findings" or (.findings | type == "array"))
+      ' "${source_file}" >/dev/null; then
+        mkdir -p "$(dirname "${destination_file}")"
+        cp "${source_file}" "${destination_file}"
+        echo "Loaded sanitized ${id} adapter output from workflow artifact ${artifact_name}"
+      else
+        echo "::warning::Adapter artifact ${artifact_name} did not contain a valid ${artifact_file} envelope"
+      fi
+    else
+      echo "::warning::Could not download adapter artifact ${artifact_name}; continuing without ${id}"
+    fi
+    rm -rf "${artifact_dir}"
+  done < <(workflow_adapter_rows)
+}
+
+prepare_cli_adapters() {
+  validate_adapter_registry
+  run_pre_review_adapters
+  if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
+    hydrate_workflow_adapters
+  fi
+  aggregate_cli_adapters
+}
+
 run_self_test() {
   local fail=0
+  local original_script_dir="${_SCRIPT_DIR}"
+  local temp_dir
   if ! (
     unset GITHUB_PR_URL PR_NUMBER
     FULLSEND_WORK_ITEM_URL='https://github.com/Gkrumbach07/odh-dashboard/pull/61'
@@ -53,6 +215,32 @@ run_self_test() {
   else
     echo "PASS pre-context matrix dispatch normalization"
   fi
+  temp_dir="$(mktemp -d)"
+  _SCRIPT_DIR="${temp_dir}/scripts"
+  mkdir -p "${_SCRIPT_DIR}/../.run"
+  printf '%s\n' '{"dimensions":[{"id":"jira-snapshot","kind":"cli-adapter","output":"context","producer_file":".run/jira.json","host":{"artifact_name":"jira-{pr_number}","artifact_file":"jira.json"}},{"id":"coderabbit","kind":"cli-adapter","output":"findings","producer_file":".run/coderabbit.json","host":{"artifact_name":"coderabbit-{pr_number}","artifact_file":"coderabbit.json"}}]}' > "${_SCRIPT_DIR}/../dimensions.json"
+  printf '%s\n' '{"id":"jira-snapshot","dimension":"jira-snapshot","kind":"cli-adapter","output":"context","status":"ok"}' > "${_SCRIPT_DIR}/../.run/jira.json"
+  printf '%s\n' '{"id":"coderabbit","dimension":"coderabbit","kind":"cli-adapter","output":"findings","status":"ok","findings":[{"severity":"medium","file":"src/example.ts"}]}' > "${_SCRIPT_DIR}/../.run/coderabbit.json"
+  aggregate_cli_adapters
+  if jq -e '
+    length == 2 and
+    (map(select(.output == "context" and .dimension == "jira-snapshot")) | length == 1) and
+    (map(select(.output == "findings" and .dimension == "coderabbit"))[0].findings[0].file == "src/example.ts")
+  ' \
+    "${_SCRIPT_DIR}/../.run/collected.json" >/dev/null; then
+    echo "PASS cli-adapter aggregation"
+  else
+    echo "FAIL cli-adapter aggregation" >&2
+    fail=1
+  fi
+  _SCRIPT_DIR="${original_script_dir}"
+  rm -rf "${temp_dir}"
+  if validate_adapter_registry; then
+    echo "PASS cli-adapter registry validation"
+  else
+    echo "FAIL cli-adapter registry validation" >&2
+    fail=1
+  fi
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -61,6 +249,11 @@ run_self_test() {
 
 if [[ "${1:-}" == "--self-test" ]]; then
   run_self_test
+  exit 0
+fi
+
+if [[ "${1:-}" == "--validate-adapters" ]]; then
+  validate_adapter_registry
   exit 0
 fi
 
@@ -174,31 +367,9 @@ PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
-# The pinned reusable dispatcher currently forwards Jira credentials only to
-# its generic matrix runner, not to the normal review job. The trusted shim
-# therefore fetches Jira before dispatch and uploads only the sanitized JSON
-# snapshot. Hydrate that artifact on the host before CLI producers run; Jira
-# credentials never enter this process or the sandbox.
-if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
-  _JIRA_ARTIFACT="fullsend-jira-context-${PR_NUMBER}"
-  _JIRA_ARTIFACT_DIR="$(mktemp -d)"
-  if GH_TOKEN="${_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
-    --repo "${REPO_FULL_NAME}" \
-    --name "${_JIRA_ARTIFACT}" \
-    --dir "${_JIRA_ARTIFACT_DIR}" >/dev/null 2>&1; then
-    _JIRA_ARTIFACT_FILE="${_JIRA_ARTIFACT_DIR}/jira.json"
-    if [[ -f "${_JIRA_ARTIFACT_FILE}" ]]; then
-      mkdir -p "${_SCRIPT_DIR}/../.run"
-      cp "${_JIRA_ARTIFACT_FILE}" "${_SCRIPT_DIR}/../.run/jira.json"
-      export FULLSEND_JIRA_SNAPSHOT_READY=1
-      echo "Loaded sanitized Jira snapshot from workflow artifact ${_JIRA_ARTIFACT}"
-    else
-      echo "::warning::Jira context artifact did not contain jira.json"
-    fi
-  else
-    echo "::warning::Could not download Jira context artifact ${_JIRA_ARTIFACT}; continuing without Jira context"
-  fi
-  rm -rf "${_JIRA_ARTIFACT_DIR}"
-fi
+# Run registered pre-review adapters, hydrate outputs from isolated workflow
+# adapter jobs, and collect every resulting envelope generically. Adapter
+# credentials never enter the sandbox.
+prepare_cli_adapters
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"
