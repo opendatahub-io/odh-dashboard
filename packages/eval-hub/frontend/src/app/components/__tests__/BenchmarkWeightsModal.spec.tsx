@@ -37,7 +37,10 @@ describe('BenchmarkWeightsModal', () => {
     expect(screen.getByText('Sum of weights: 20')).toBeInTheDocument();
     expect(screen.getByText('First benchmark: 1')).toBeInTheDocument();
     expect(screen.getByText('Second benchmark: 19')).toBeInTheDocument();
-    expect(screen.getByTestId('weight-segment-0')).toHaveAttribute('aria-label', 'First benchmark');
+    expect(screen.getByTestId('weight-segment-0')).toHaveAttribute(
+      'aria-label',
+      'First benchmark: 1',
+    );
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('benchmark-weights-save'));

@@ -204,6 +204,11 @@ describe('useCopySuiteForm', () => {
   });
 
   it('should fall back to another provider when the matching provider lacks the benchmark', async () => {
+    const cloneFetcher = jest.fn().mockResolvedValue({
+      resource: { id: 'saved-collection' },
+      name: 'Saved suite',
+    } as Collection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -223,8 +228,27 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({
         id: 'benchmark-two',
+        providerId: 'provider-two',
         name: 'Benchmark Two',
         availableMetrics: ['accuracy'],
+      }),
+    );
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockCloneCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      'source-collection',
+      expect.objectContaining({
+        benchmarks: [
+          expect.objectContaining({
+            id: 'benchmark-two',
+            provider_id: 'provider-two',
+          }),
+        ],
       }),
     );
   });
@@ -932,6 +956,7 @@ describe('useCopySuiteForm', () => {
     const onSaveAndRunRequest = jest.fn();
     const result = renderForm({ onSaveAndRunRequest });
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
 
     act(() => {
       result.result.current.handleSaveAndRun();

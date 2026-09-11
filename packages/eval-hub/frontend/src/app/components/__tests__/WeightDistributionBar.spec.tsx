@@ -26,6 +26,8 @@ describe('WeightDistributionBar', () => {
     expect(screen.getAllByText('1')).toHaveLength(2);
     expect(screen.getByText('First: 1')).toBeInTheDocument();
     expect(screen.getByText('Second: 1')).toBeInTheDocument();
+    expect(screen.getByTestId('weight-segment-0')).toHaveAttribute('aria-label', 'First: 1');
+    expect(screen.getByTestId('weight-segment-1')).toHaveAttribute('aria-label', 'Second: 1');
   });
 
   it('should set divider accessibility bounds from the adjacent segments', () => {

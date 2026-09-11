@@ -166,7 +166,11 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
             }}
             role="img"
             aria-label={
-              showPercentages ? `${segment.label}: ${percentages[index]}%` : segment.label
+              showPercentages
+                ? `${segment.label}: ${percentages[index]}%`
+                : showWeightValues
+                  ? `${segment.label}: ${segment.weight}`
+                  : segment.label
             }
             data-testid={`weight-segment-${index}`}
           >

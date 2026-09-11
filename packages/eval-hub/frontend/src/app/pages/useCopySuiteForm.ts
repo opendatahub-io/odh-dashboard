@@ -252,22 +252,26 @@ export const buildPendingCollection = ({
   };
 };
 
+type ResolvedProviderBenchmark = ProviderBenchmark & {
+  providerId: string;
+};
+
 const resolveProviderBenchmark = (
   cb: CollectionBenchmark,
   providers: Provider[],
-): ProviderBenchmark | undefined => {
+): ResolvedProviderBenchmark | undefined => {
   for (const provider of providers) {
     if (provider.resource.id === cb.provider_id) {
       const match = provider.benchmarks?.find((pb) => pb.id === cb.id);
       if (match) {
-        return match;
+        return { ...match, providerId: provider.resource.id };
       }
     }
   }
   for (const provider of providers) {
     const match = provider.benchmarks?.find((pb) => pb.id === cb.id);
     if (match) {
-      return match;
+      return { ...match, providerId: provider.resource.id };
     }
   }
   return undefined;
@@ -425,7 +429,7 @@ const buildInitialBenchmarks = (
 
       return {
         id: cb.id,
-        providerId: cb.provider_id ?? '',
+        providerId: pb?.providerId ?? cb.provider_id ?? '',
         name: pb?.name ?? cb.id,
         weight: normalizedWeights[index] ?? 0,
         primaryMetric: primaryScore?.metric,
