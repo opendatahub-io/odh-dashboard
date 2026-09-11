@@ -91,4 +91,3 @@ invocation. Normalize results before presentation or GitHub posting.
 Expose ODH-owned skills through repository-relative symlinks from `.fullsend/skills/` to
 `.claude/skills/`. The dimension registry references canonical `SKILL.md` files through those
 links. Verify Fullsend packaging follows those links before relying on this arrangement.
-
