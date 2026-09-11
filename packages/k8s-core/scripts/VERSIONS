@@ -1,0 +1,7 @@
+# Kueue CRD Version Pin — source of truth for k8s-core contract tests.
+# This is the known-good upstream Kueue tag that PR contract tests run against.
+# The nightly sentinel tests against the latest upstream automatically.
+# When the nightly reports a newer version is available and compatible,
+# bump KUEUE_TAG here so PRs are tested against the current upstream.
+# To validate a new tag: KUEUE_TAG=<new> npm run kueue:check
+KUEUE_TAG=v0.18.7
