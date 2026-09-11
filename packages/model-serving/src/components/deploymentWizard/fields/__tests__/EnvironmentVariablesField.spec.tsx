@@ -1,9 +1,23 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
 import {
+  EnvironmentVariablesField,
   environmentVariablesFieldSchema,
   isValidEnvironmentVariables,
   hasInvalidEnvironmentVariableNames,
   type EnvironmentVariablesFieldData,
 } from '../EnvironmentVariablesField';
+import { EnvironmentVariableType } from '../../../../shared/environmentVariablesUtils';
+
+const StatefulEnvironmentVariablesField: React.FC<{
+  initialData: EnvironmentVariablesFieldData;
+}> = ({ initialData }) => {
+  const [data, setData] = React.useState(initialData);
+
+  return <EnvironmentVariablesField data={data} onChange={setData} />;
+};
 
 describe('isValidEnvironmentVariables', () => {
   it('should return empty string for valid names', () => {
@@ -35,10 +49,26 @@ describe('environmentVariablesFieldSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should accept enabled state with valid variables', () => {
+  it('should accept enabled state with valid value variables', () => {
     const data = {
       enabled: true,
-      variables: [{ name: 'MY_VAR', value: 'hello' }],
+      variables: [{ type: EnvironmentVariableType.Value, name: 'MY_VAR', value: 'hello' }],
+    };
+    const result = environmentVariablesFieldSchema.safeParse(data);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept enabled state with valid secret variables', () => {
+    const data = {
+      enabled: true,
+      variables: [
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'HF_TOKEN',
+          secretName: 'hf-secret',
+          secretKey: 'HF_TOKEN',
+        },
+      ],
     };
     const result = environmentVariablesFieldSchema.safeParse(data);
     expect(result.success).toBe(true);
@@ -53,7 +83,7 @@ describe('environmentVariablesFieldSchema', () => {
   it('should reject enabled state with invalid variable names', () => {
     const data = {
       enabled: true,
-      variables: [{ name: '1INVALID', value: 'val' }],
+      variables: [{ type: EnvironmentVariableType.Value, name: '1INVALID', value: 'val' }],
     };
     const result = environmentVariablesFieldSchema.safeParse(data);
     expect(result.success).toBe(false);
@@ -62,14 +92,44 @@ describe('environmentVariablesFieldSchema', () => {
   it('should reject enabled state with empty variable names', () => {
     const data = {
       enabled: true,
-      variables: [{ name: '', value: '' }],
+      variables: [{ type: EnvironmentVariableType.Value, name: '', value: '' }],
     };
     const result = environmentVariablesFieldSchema.safeParse(data);
     expect(result.success).toBe(false);
   });
 
-  // Core bug scenario: RHOAIENG-48888
-  // When env vars are disabled, empty/invalid variable names should NOT cause validation failure
+  it('should reject enabled state with invalid secret reference fields', () => {
+    const data = {
+      enabled: true,
+      variables: [
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'HF_TOKEN',
+          secretName: 'INVALID_NAME',
+          secretKey: 'bad key',
+        },
+      ],
+    };
+    const result = environmentVariablesFieldSchema.safeParse(data);
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject enabled state with empty secret fields', () => {
+    const data = {
+      enabled: true,
+      variables: [
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'HF_TOKEN',
+          secretName: '',
+          secretKey: '',
+        },
+      ],
+    };
+    const result = environmentVariablesFieldSchema.safeParse(data);
+    expect(result.success).toBe(false);
+  });
+
   it('should accept disabled state with empty variable names (bug fix regression)', () => {
     const data = {
       enabled: false,
@@ -118,7 +178,22 @@ describe('hasInvalidEnvironmentVariableNames', () => {
   it('should return false when enabled with valid variables', () => {
     const data: EnvironmentVariablesFieldData = {
       enabled: true,
-      variables: [{ name: 'MY_VAR', value: 'hello' }],
+      variables: [{ type: EnvironmentVariableType.Value, name: 'MY_VAR', value: 'hello' }],
+    };
+    expect(hasInvalidEnvironmentVariableNames(data)).toBe(false);
+  });
+
+  it('should return false when enabled with valid secret variables', () => {
+    const data: EnvironmentVariablesFieldData = {
+      enabled: true,
+      variables: [
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'HF_TOKEN',
+          secretName: 'hf-secret',
+          secretKey: 'HF_TOKEN',
+        },
+      ],
     };
     expect(hasInvalidEnvironmentVariableNames(data)).toBe(false);
   });
@@ -126,7 +201,7 @@ describe('hasInvalidEnvironmentVariableNames', () => {
   it('should return true when enabled with empty variable name', () => {
     const data: EnvironmentVariablesFieldData = {
       enabled: true,
-      variables: [{ name: '', value: '' }],
+      variables: [{ type: EnvironmentVariableType.Value, name: '', value: '' }],
     };
     expect(hasInvalidEnvironmentVariableNames(data)).toBe(true);
   });
@@ -134,7 +209,22 @@ describe('hasInvalidEnvironmentVariableNames', () => {
   it('should return true when enabled with invalid variable name', () => {
     const data: EnvironmentVariablesFieldData = {
       enabled: true,
-      variables: [{ name: '1BAD', value: 'val' }],
+      variables: [{ type: EnvironmentVariableType.Value, name: '1BAD', value: 'val' }],
+    };
+    expect(hasInvalidEnvironmentVariableNames(data)).toBe(true);
+  });
+
+  it('should return true when enabled with incomplete secret variable', () => {
+    const data: EnvironmentVariablesFieldData = {
+      enabled: true,
+      variables: [
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'HF_TOKEN',
+          secretName: '',
+          secretKey: 'HF_TOKEN',
+        },
+      ],
     };
     expect(hasInvalidEnvironmentVariableNames(data)).toBe(true);
   });
@@ -143,8 +233,8 @@ describe('hasInvalidEnvironmentVariableNames', () => {
     const data: EnvironmentVariablesFieldData = {
       enabled: true,
       variables: [
-        { name: 'GOOD', value: 'ok' },
-        { name: '', value: '' },
+        { type: EnvironmentVariableType.Value, name: 'GOOD', value: 'ok' },
+        { type: EnvironmentVariableType.Value, name: '', value: '' },
       ],
     };
     expect(hasInvalidEnvironmentVariableNames(data)).toBe(true);
@@ -158,7 +248,6 @@ describe('hasInvalidEnvironmentVariableNames', () => {
     expect(hasInvalidEnvironmentVariableNames(data)).toBe(false);
   });
 
-  // Bug scenario: user checks env var, adds empty row, then unchecks
   it('should return false when disabled even with empty rows (RHOAIENG-48888)', () => {
     const data: EnvironmentVariablesFieldData = {
       enabled: false,
@@ -168,5 +257,40 @@ describe('hasInvalidEnvironmentVariableNames', () => {
       ],
     };
     expect(hasInvalidEnvironmentVariableNames(data)).toBe(false);
+  });
+});
+
+describe('EnvironmentVariablesField', () => {
+  it('should render value inputs by default when adding a variable', async () => {
+    const user = userEvent.setup();
+
+    render(<StatefulEnvironmentVariablesField initialData={{ enabled: true, variables: [] }} />);
+
+    await user.click(screen.getByTestId('add-environment-variable'));
+
+    expect(screen.getByTestId('env-var-type-0')).toBeInTheDocument();
+    expect(screen.getByTestId('env-var-value-0')).toBeInTheDocument();
+    expect(screen.queryByTestId('env-var-secret-name-0')).not.toBeInTheDocument();
+  });
+
+  it('should show secret fields for an existing secret env var', () => {
+    render(
+      <EnvironmentVariablesField
+        data={{
+          enabled: true,
+          variables: [
+            {
+              type: EnvironmentVariableType.Secret,
+              name: 'HF_TOKEN',
+              secretName: 'hf-secret',
+              secretKey: 'HF_TOKEN',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('env-var-secret-name-0')).toHaveValue('hf-secret');
+    expect(screen.getByTestId('env-var-secret-key-0')).toHaveValue('HF_TOKEN');
   });
 });

@@ -6,7 +6,10 @@ import {
 } from '@odh-dashboard/hardware-profiles/shared';
 import type { ModelLocationData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { ModelLocationType } from '@odh-dashboard/model-serving/shared/types/form-data';
-import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import {
+  mapK8sEnvToEnvironmentVariable,
+  type ModelTypeFieldData,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { ExtractionResult } from '@odh-dashboard/model-serving/extension-points';
 import type { NIMDeployment } from '../../api/nimservices/types';
 import { NIM_SERVICE_HARDWARE_PROFILE_PATHS } from '../../api/nimservices/utils';
@@ -42,17 +45,14 @@ export const extractNIMReplicas = (deployment: NIMDeployment): ExtractionResult<
 
 export const extractNIMEnvironmentVariables = (
   deployment: NIMDeployment,
-): { enabled: boolean; variables: { name: string; value: string }[] } | null => {
+): { enabled: boolean; variables: ReturnType<typeof mapK8sEnvToEnvironmentVariable>[] } | null => {
   const envVars = deployment.model.spec.env;
   if (!envVars || envVars.length === 0) {
     return null;
   }
   return {
     enabled: true,
-    variables: envVars.map((envVar) => ({
-      name: envVar.name,
-      value: envVar.value ?? '',
-    })),
+    variables: envVars.map(mapK8sEnvToEnvironmentVariable),
   };
 };
 

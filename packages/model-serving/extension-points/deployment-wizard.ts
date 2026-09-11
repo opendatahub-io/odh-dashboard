@@ -12,7 +12,11 @@ import type {
   WizardField,
   ModelLocationData,
 } from '../src/shared/types/form-data';
-import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type {
+  EnvironmentVariable,
+  ModelTypeFieldData,
+  ModelServerSelectFieldData,
+} from '../src/shared/wizard-fields';
 import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
@@ -37,7 +41,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractReplicas: CodeRef<(deployment: D) => ExtractionResult<number | null>>;
     extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
     extractEnvironmentVariables: CodeRef<
-      (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
+      (deployment: D) => { enabled: boolean; variables: EnvironmentVariable[] } | null
     >;
     extractModelAvailabilityData: CodeRef<
       (deployment: D) => { saveAsAiAsset: boolean; useCase?: string } | null
