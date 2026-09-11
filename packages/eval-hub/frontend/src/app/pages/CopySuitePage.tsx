@@ -99,6 +99,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     providersLoaded,
     mode,
     onSaveAndRunRequest: () => setIsRunModalOpen(true),
+    onNavigate: navigate,
     cancelRoute,
   });
   const isPageInteractionDisabled = isClonePending || form.isSubmitting;

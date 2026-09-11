@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
-import { useNavigate } from 'react-router';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { cloneCollection, createCollection } from '~/app/api/k8s';
@@ -16,10 +15,6 @@ import type { Collection, Provider } from '~/app/types';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
-}));
-
-jest.mock('react-router', () => ({
-  useNavigate: jest.fn(),
 }));
 
 jest.mock('~/app/api/k8s', () => ({
@@ -40,7 +35,6 @@ const mockNotification = {
   remove: jest.fn(),
 };
 
-const mockUseNavigate = jest.mocked(useNavigate);
 const mockCloneCollection = jest.mocked(cloneCollection);
 const mockCreateCollection = jest.mocked(createCollection);
 const mockUseNotification = jest.mocked(useNotification);
@@ -111,6 +105,7 @@ const defaultParams: FormParams = {
   sourceCollection,
   providers,
   providersLoaded: true,
+  onNavigate: mockNavigate,
 };
 
 const renderForm = (overrides: Partial<FormParams> = {}) =>
@@ -127,7 +122,6 @@ const createDeferred = <T>() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockUseNavigate.mockReturnValue(mockNavigate);
   mockUseNotification.mockReturnValue(mockNotification);
 });
 

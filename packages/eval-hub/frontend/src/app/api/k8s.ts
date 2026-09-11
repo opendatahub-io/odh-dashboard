@@ -401,9 +401,7 @@ export const getCollections =
     ).then((response) => {
       if (
         isModArchResponse<
-          | { items?: Collection[] | null; total_count?: number; limit?: number }
-          | Collection[]
-          | null
+          { items?: unknown; total_count?: number; limit?: number } | Collection[] | null
         >(response)
       ) {
         const { data } = response;
@@ -413,8 +411,12 @@ export const getCollections =
         if (Array.isArray(data)) {
           return { items: sanitizeCollectionItems(data) };
         }
+        const items = data.items ?? [];
+        if (!Array.isArray(items)) {
+          throw new Error('Invalid response format');
+        }
         return {
-          items: sanitizeCollectionItems(data.items ?? []),
+          items: sanitizeCollectionItems(items),
           // eslint-disable-next-line camelcase
           total_count: data.total_count,
           limit: data.limit,

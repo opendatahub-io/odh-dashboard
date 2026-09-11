@@ -555,6 +555,27 @@ describe('getCollections', () => {
     expect(result).toEqual({ items: [] });
   });
 
+  it('should return empty items when items is missing', async () => {
+    mockRestGET.mockResolvedValue({ data: {} });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'test-ns' })({});
+
+    expect(result).toEqual({ items: [] });
+  });
+
+  it.each([{}, 'not-an-array', 123, false])(
+    'should reject non-array items value %p',
+    async (items) => {
+      mockRestGET.mockResolvedValue({ data: { items } });
+      mockIsModArchResponse.mockReturnValue(true);
+
+      await expect(getCollections('', { namespace: 'test-ns' })({})).rejects.toThrow(
+        'Invalid response format',
+      );
+    },
+  );
+
   it('should sanitize malformed collection string arrays', async () => {
     const items = [
       {

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
-import { useNavigate } from 'react-router';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
@@ -191,6 +190,7 @@ type UseCopySuiteFormParams = {
   providersLoaded: boolean;
   mode?: 'copy' | 'create';
   onSaveAndRunRequest?: () => void;
+  onNavigate: (to: string) => void;
   cancelRoute?: string;
 };
 
@@ -498,9 +498,9 @@ export function useCopySuiteForm({
   providersLoaded,
   mode = 'copy',
   onSaveAndRunRequest,
+  onNavigate,
   cancelRoute,
 }: UseCopySuiteFormParams) {
-  const navigate = useNavigate();
   const notification = useNotification();
   const isCreateMode = mode === 'create';
 
@@ -867,7 +867,7 @@ export function useCopySuiteForm({
         isCreateMode ? 'Suite created' : 'Suite saved',
         `"${savedCollection.name}" has been added to your benchmark suites.`,
       );
-      navigate(evaluationBenchmarkSuitesRoute(namespace));
+      onNavigate(evaluationBenchmarkSuitesRoute(namespace));
     } catch (e) {
       if (controller && !controller.signal.aborted) {
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';
@@ -890,13 +890,13 @@ export function useCopySuiteForm({
     form,
     buildCreateRequest,
     buildCloneRequest,
-    navigate,
+    onNavigate,
     notification,
   ]);
 
   const handleCancel = React.useCallback(() => {
-    navigate(cancelRoute ?? evaluationsBaseRoute(namespace));
-  }, [cancelRoute, navigate, namespace]);
+    onNavigate(cancelRoute ?? evaluationsBaseRoute(namespace));
+  }, [cancelRoute, namespace, onNavigate]);
 
   return {
     form,
