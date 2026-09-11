@@ -1,9 +1,14 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateBody, Button, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 
-const EmptyExternalProvidersPage: React.FC = () => (
+type EmptyExternalProvidersPageProps = {
+  onCreateExternalProvider: () => void;
+};
+
+const EmptyExternalProvidersPage: React.FC<EmptyExternalProvidersPageProps> = ({
+  onCreateExternalProvider,
+}) => (
   <EmptyState
     titleText="No external providers"
     headingLevel="h3"
@@ -21,7 +26,11 @@ const EmptyExternalProvidersPage: React.FC = () => (
           Create a new external provider to get started.
         </StackItem>
         <StackItem>
-          <Button variant="primary" component={(props) => <Link {...props} to="something" />}>
+          <Button
+            variant="primary"
+            data-testid="create-external-provider-button"
+            onClick={onCreateExternalProvider}
+          >
             Create external provider
           </Button>
         </StackItem>

@@ -4,7 +4,11 @@ import type {
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
-import type { ExternalModel, ExternalProvider } from '@odh-dashboard/maas/types/external-models';
+import type {
+  ExternalModel,
+  ExternalProvider,
+  SecretSummary,
+} from '@odh-dashboard/maas/types/external-models';
 import type {
   MaaSSubscription,
   ModelOverviewItem,
@@ -1097,6 +1101,11 @@ export const mockExternalModels = (): ExternalModel[] => [
     statusMessage: 'External model is ready',
     maaSModelRef: undefined,
   }),
+];
+
+export const mockMaasSecrets = (): SecretSummary[] => [
+  { name: 'openai-api-key' },
+  { name: 'anthropic-api-key', displayName: 'Anthropic API key' },
 ];
 
 export const mockExternalProviders = (): ExternalProvider[] => [

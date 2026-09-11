@@ -15,25 +15,23 @@ import {
   DropdownList,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 import {
   ExternalProviderFilterOption,
   ExternalProvidersFilterDataType,
   externalProvidersFilterOptions,
   ExternalProvidersFilterOptions,
   ExternalProvidersMultiSelectFilterKey,
-  externalProvidersManagementPath,
   externalProviderStatusFilterOptions,
   externalProviderAuthenticationFilterOptions,
   externalProviderTypeFilterOptions,
 } from '~/app/pages/external-providers/const';
 
 type ExternalProvidersToolBarProps = {
-  namespace: string;
   filterData: ExternalProvidersFilterDataType;
   onNameChange: (value: string) => void;
   onMultiSelectToggle: (key: ExternalProvidersMultiSelectFilterKey, value: string) => void;
   onMultiSelectClear: (key: ExternalProvidersMultiSelectFilterKey, value: string) => void;
+  onAddExternalProvider: () => void;
 };
 
 const getOptionLabel = (options: ExternalProviderFilterOption[], value: string): string =>
@@ -127,11 +125,11 @@ const FilterToolbarMultiSelect: React.FC<FilterToolbarMultiSelectProps> = ({
 };
 
 const ExternalProvidersToolBar: React.FC<ExternalProvidersToolBarProps> = ({
-  namespace,
   filterData,
   onNameChange,
   onMultiSelectToggle,
   onMultiSelectClear,
+  onAddExternalProvider,
 }) => {
   const filterKeys: ExternalProvidersFilterOptions[] = [
     ExternalProvidersFilterOptions.name,
@@ -262,9 +260,7 @@ const ExternalProvidersToolBar: React.FC<ExternalProvidersToolBarProps> = ({
           <Button
             data-testid="add-external-provider-button"
             variant="primary"
-            component={(props) => (
-              <Link {...props} to={externalProvidersManagementPath(namespace)} />
-            )}
+            onClick={onAddExternalProvider}
           >
             Add external provider
           </Button>
