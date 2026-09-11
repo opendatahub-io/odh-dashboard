@@ -13,10 +13,15 @@ type DeleteModelServingModalProps = {
   deployment: Deployment;
 };
 
-const isDeleteModalComponent = (
+// The dynamic-plugin SDK does not unwrap optional ComponentCodeRefs in ResolvedExtension's
+// TypeScript type. Validate the resolved module shape before reading its default export.
+const isDeleteModalComponentModule = (
   value: unknown,
-): value is React.ComponentType<ModelServingDeleteModalComponentProps> =>
-  typeof value === 'function';
+): value is { default: React.ComponentType<ModelServingDeleteModalComponentProps> } =>
+  typeof value === 'object' &&
+  value !== null &&
+  'default' in value &&
+  typeof value.default === 'function';
 
 const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
   onClose,
@@ -63,9 +68,9 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
     }
   };
 
-  const DeleteModalComponent = deleteModal?.properties.DeleteModalComponent;
-  const ResolvedDeleteModalComponent = isDeleteModalComponent(DeleteModalComponent)
-    ? DeleteModalComponent
+  const DeleteModalComponentModule = deleteModal?.properties.DeleteModalComponent;
+  const ResolvedDeleteModalComponent = isDeleteModalComponentModule(DeleteModalComponentModule)
+    ? DeleteModalComponentModule.default
     : undefined;
   const deleteName = getDisplayNameFromK8sResource(deployment.model);
 
