@@ -1,0 +1,28 @@
+{
+  "schema_version": "2",
+  "pr_number": 1,
+  "repo": "o/r",
+  "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "change_summary": "A small isolated change.",
+  "findings": [],
+  "checks": [
+    {
+      "id": "test-impact-review",
+      "status": "pass",
+      "summary": "Tests cover the changed behavior."
+    }
+  ],
+  "classifications": [
+    {
+      "id": "ci-flake-classifier",
+      "status": "completed",
+      "summary": "No failed checks required classification.",
+      "classifications": []
+    }
+  ],
+  "risk": { "level": "low", "why": "The change is narrowly scoped." },
+  "confidence": { "level": "high", "why": "All configured producers returned evidence." },
+  "verification": [
+    { "id": "description-vs-code", "label": "Description vs code", "result": "pass" }
+  ]
+}

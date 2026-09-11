@@ -307,6 +307,14 @@ def render_body(result, previous_md, action):
             lines += ["", "Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]]
         lines += ["", "The PR description is the source of truth. This section does not review the diff against Jira acceptance criteria."]
 
+    checks = result.get("checks") if isinstance(result.get("checks"), list) else []
+    if checks:
+        lines += ["", "## Readiness checks", "", "| Check | Result | Summary |", "| --- | --- | --- |"]
+        for check in checks:
+            lines.append(f"| {table_cell(check.get('id'))} | {table_cell(check.get('status'))} | {table_cell(check.get('summary'))} |")
+            for detail in check.get("details") or []:
+                lines.append(f"| ↳ |  | {table_cell(detail)} |")
+
     verification = result.get("verification") or []
     inspected = result.get("inspected") if isinstance(result.get("inspected"), dict) else {}
     labels = result.get("label_actions") if isinstance(result.get("label_actions"), dict) else {}
@@ -315,6 +323,14 @@ def render_body(result, previous_md, action):
         lines += ["", "### Verification", "", "| Check | Result | Notes |", "| --- | --- | --- |"]
         for row in verification:
             lines.append(f"| {table_cell(row.get('label'))} | {table_cell(row.get('result'))} | {table_cell(row.get('notes'))} |")
+    classifications = result.get("classifications") if isinstance(result.get("classifications"), list) else []
+    if classifications:
+        lines += ["", "### Classifications", "", "| Classifier | Subject | Result | Reason |", "| --- | --- | --- | --- |"]
+        for classifier in classifications:
+            for item in classifier.get("classifications") or []:
+                lines.append(f"| {table_cell(classifier.get('id'))} | {table_cell(item.get('subject'))} | {table_cell(item.get('classification'))} | {table_cell(item.get('reason'))} |")
+            if not classifier.get("classifications"):
+                lines.append(f"| {table_cell(classifier.get('id'))} | — | {table_cell(classifier.get('status'))} | {table_cell(classifier.get('summary'))} |")
     if inspected:
         lines += ["", "### Evidence inspected", ""]
         if inspected.get("summary"):
@@ -584,6 +600,19 @@ run_self_test() {
     fail=1
   else
     echo "PASS approve omits findings section"
+  fi
+
+  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"classifications\":[{\"id\":\"ci-flake-classifier\",\"status\":\"completed\",\"summary\":\"One failed check classified.\",\"classifications\":[{\"subject\":\"unit\",\"classification\":\"flaky\",\"reason\":\"Repeated on unrelated PRs.\"}]}]}" > "${tmp}/structured.json"
+  transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
+  body=$(jq -r .body "${tmp}/structured-out.json")
+  if ! grep -q '## Readiness checks' <<<"${body}" ||
+     ! grep -q 'test-impact-review' <<<"${body}" ||
+     ! grep -q '### Classifications' <<<"${body}" ||
+     ! grep -q 'ci-flake-classifier' <<<"${body}"; then
+    echo "FAIL structured results: checks or classifications were not rendered" >&2
+    fail=1
+  else
+    echo "PASS structured results render separately from findings"
   fi
 
   prepare_summary_only_result "${tmp}/request-changes-out.json" "${tmp}/summary-only.json"

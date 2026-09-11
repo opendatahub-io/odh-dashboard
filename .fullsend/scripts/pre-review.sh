@@ -39,8 +39,32 @@ normalize_dispatch_context() {
   fi
 }
 
+validate_skill_links() {
+  "${_SCRIPT_DIR}/validate-skill-links.sh"
+}
+
+validate_dimension_registry() {
+  "${_SCRIPT_DIR}/validate-dimensions.sh"
+}
+
+collect_ci_context() {
+  "${_SCRIPT_DIR}/fetch-ci-context.sh"
+}
+
 run_self_test() {
   local fail=0
+  if ! validate_skill_links; then
+    echo "FAIL pre-context: canonical Fullsend skill-link validation failed" >&2
+    fail=1
+  fi
+  if ! validate_dimension_registry; then
+    echo "FAIL pre-context: Fullsend dimension-registry validation failed" >&2
+    fail=1
+  fi
+  if ! "${_SCRIPT_DIR}/fetch-ci-context.sh" --self-test; then
+    echo "FAIL pre-context: CI adapter self-test failed" >&2
+    fail=1
+  fi
   if ! (
     unset GITHUB_PR_URL PR_NUMBER
     FULLSEND_WORK_ITEM_URL='https://github.com/Gkrumbach07/odh-dashboard/pull/61'
@@ -65,6 +89,11 @@ if [[ "${1:-}" == "--self-test" ]]; then
 fi
 
 normalize_dispatch_context
+
+# Fail before sandbox packaging when a repository-relative skill link cannot
+# resolve. Fullsend must package the canonical content, not a copied fallback.
+validate_skill_links
+validate_dimension_registry
 
 echo "::notice::🔗 Review target: ${GITHUB_PR_URL:-}"
 
@@ -173,6 +202,11 @@ PR_TITLE="$(printf '%s' "${PR_VIEW}" | jq -r '.title // empty')"
 PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
+
+# CI status and flake classification run on the trusted host. The adapter
+# writes explicit unavailable envelopes on any collection error so the
+# sandbox never needs to fetch CI state or inspect runner credentials.
+collect_ci_context
 
 # The pinned reusable dispatcher currently forwards Jira credentials only to
 # its generic matrix runner, not to the normal review job. The trusted shim

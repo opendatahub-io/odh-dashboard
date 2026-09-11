@@ -6,12 +6,25 @@ skills:
   # This local skill replaces Fullsend's inherited pr-review with the
   # registry-driven dimensions orchestrator.
   - skills/pr-review
+  # ODH-owned review policy is canonical in .claude/skills. These entries
+  # deliberately resolve through repository-relative symlinks in .fullsend.
+  - skills/style-review
+  - skills/rbac-review
+  - skills/jira-pr-review
+  - skills/test-impact-review
+  - skills/pr-description-review
 
 host_files:
   - src: dimensions.json
     dest: /sandbox/workspace/.fullsend/dimensions.json
   - src: .run/jira.json
     dest: /sandbox/workspace/.fullsend/.run/jira.json
+    optional: true
+  - src: .run/ci-status.json
+    dest: /sandbox/workspace/.fullsend/.run/ci-status.json
+    optional: true
+  - src: .run/ci-flake-classifier.json
+    dest: /sandbox/workspace/.fullsend/.run/ci-flake-classifier.json
     optional: true
 
 model: sonnet

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Validate the locally extended Fullsend dimension contract before dispatch.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REGISTRY="${ROOT_DIR}/.fullsend/dimensions.json"
+SCHEMA="${ROOT_DIR}/.fullsend/schemas/review-result.schema.json"
+
+fail() {
+  echo "FAIL dimension registry: $*" >&2
+  exit 1
+}
+
+jq empty "${REGISTRY}" || fail "invalid JSON: ${REGISTRY}"
+jq empty "${SCHEMA}" || fail "invalid JSON: ${SCHEMA}"
+
+jq -e '
+  (.dimensions | type == "array" and length > 0) and
+  ([.dimensions[] | select((.kind != "llm-subagent") and (.kind != "llm-skill") and (.kind != "cli-adapter"))] | length == 0)
+' "${REGISTRY}" >/dev/null || fail "kind must be llm-subagent, llm-skill, or cli-adapter"
+
+while IFS=$'\t' read -r id kind output definition meta; do
+  [[ -n "${id}" ]] || fail "dimension without id"
+  case "${output}" in
+    findings|context) ;;
+    section:*)
+      section="${output#section:}"
+      jq -e --arg section "${section}" '.properties[$section] != null' "${SCHEMA}" >/dev/null || fail "${id}: section ${section} is absent from result schema"
+      ;;
+    check:*)
+      jq -e '."$defs".readiness_check != null' "${SCHEMA}" >/dev/null || fail "${id}: result schema lacks readiness_check"
+      ;;
+    classifier:*)
+      jq -e '."$defs".classifier_result != null' "${SCHEMA}" >/dev/null || fail "${id}: result schema lacks classifier_result"
+      ;;
+    *) fail "${id}: unsupported output ${output}" ;;
+  esac
+
+  if [[ "${kind}" == "llm-subagent" || "${kind}" == "llm-skill" ]]; then
+    [[ -n "${definition}" && -f "${ROOT_DIR}/.fullsend/${definition}" ]] || fail "${id}: missing LLM definition ${definition:-<none>}"
+    [[ -n "${meta}" && -f "${ROOT_DIR}/.fullsend/${meta}" ]] || fail "${id}: missing meta prompt ${meta:-<none>}"
+  fi
+  if [[ "${kind}" == "cli-adapter" && "${output}" == context && -n "${meta}" ]]; then
+    fail "${id}: cli context adapters must not declare an LLM meta prompt"
+  fi
+  printf 'PASS dimension %s (%s, %s)\n' "${id}" "${kind}" "${output}"
+done < <(jq -r '.dimensions[] | [.id, .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // "")] | @tsv' "${REGISTRY}")
+
+echo "Fullsend dimension registry contract is valid"

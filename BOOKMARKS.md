@@ -35,6 +35,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Best Practices](docs/best-practices.md) | Coding best practices |
 | [Code Examples](docs/code_examples.md) | Code examples and patterns |
 | [Multi-Agent Workflows](docs/multi-agent-workflows.md) | Running parallel agents locally and remotely |
+| [Reusable Review Skills](docs/fullsend-skill-reuse.md) | Skill ownership and reuse across direct invocation, preflight, and Fullsend |
 | [Large Tasks with Claude Code Goals](docs/ai-agent-large-tasks.md) | Using `/goal` for autonomous, multi-step development tasks |
 | [Prototype Reading Skills](docs/prototype-reading.md) | `/prototype-tickets` and `/prototype-spec` — extracting PF component details from UX prototype forks |
 | [Upstream Sync](docs/upstream-sync.md) | How to sync upstream changes into monorepo packages |

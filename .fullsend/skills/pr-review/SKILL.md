@@ -14,8 +14,9 @@ at harness pin `91f61f3`. Local change: dimensions come from
 `.fullsend/dimensions.json`. Discriminator is `output`:
 `findings` (LLM + CLI → merge + challenger), `context` (host
 snapshot, not challenger), `section:<name>` (schema field, not
-challenger). This file must not hardcode dimension names, count, or
-kind.
+challenger), `check:<name>` (readiness result), and
+`classifier:<name>` (structured classification). This file must not
+hardcode dimension names, count, or kind.
 
 (This skill's design departs from ADR-0018 "scripted pipelines for
 multi-agent orchestration". ADR-0018 decided against LLM-based
@@ -27,10 +28,10 @@ formally retire ADR-0018's prohibition.)
 
 This skill orchestrates a pull request review by triaging the change,
 running each **selected findings LLM** as a sub-agent, **loading**
-host-collected CLI finding envelopes, optionally spawning
-**section** LLMs, synthesizing **findings** arrays, and producing a
-structured result. The orchestrator does not evaluate code directly.
-It does not start CLI tools (those already ran on the host).
+host-collected CLI envelopes, optionally spawning structured-output LLMs,
+synthesizing **findings** arrays, and producing a structured result. The
+orchestrator does not evaluate code directly. It does not start CLI tools
+(those already ran on the host).
 Challenger (step 6d) is synthesis over **findings only**, not a
 dimension and not a schema section.
 
@@ -50,12 +51,13 @@ Each `dimensions[]` object:
 | Field | Meaning |
 | --- | --- |
 | `id` | Stable dimension key |
-| `kind` | `llm-subagent` or `cli-adapter` |
-| `output` | `findings` (default) · `context` · `section:<name>` |
+| `kind` | `llm-subagent`, `llm-skill`, or `cli-adapter` |
+| `output` | `findings` (default) · `context` · `section:<name>` · `check:<name>` · `classifier:<name>` |
 | `include_findings` | For a `section:*` LLM, also collect its returned `findings[]` into synthesis |
 | `dispatch` | `always` or `conditional` |
 | `when` | For `conditional` LLM rows: when this dimension is in scope |
-| `definition` | Sub-agent markdown path (`llm-subagent` only) |
+| `definition` | Prompt/skill markdown path (LLM rows only) |
+| `meta_prompt` | Fullsend-owned output contract path for an LLM row; compose it after `meta-prompts/common-review.md` |
 | `inline_skill` | Optional extra skill to inline when spawning (e.g. docs-review) |
 | `pre_pass` | Optional classifier sub-agent path, run only if this **findings** LLM is selected |
 | `categories` | Category strings used to group prior findings for this id |
@@ -63,7 +65,7 @@ Each `dimensions[]` object:
 | `fallback` | If true, unrecognized prior-finding categories go here |
 | `budget_priority` | Lower runs deeper when attention is scarce (**findings** LLM only) |
 | `re_review` | `full` / `trivial` / `skip-unless-requalified` when this **findings** dimension had no prior findings |
-| `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. Findings payloads also appear in `.fullsend/.run/collected.json` |
+| `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. It may contain findings, a `check`, a `classifier`, or trusted context. Findings payloads also appear in `.fullsend/.run/collected.json` |
 | `context_file` | Optional trusted-host snapshot an LLM must read (do not fetch it yourself) |
 
 **Not in the registry as dimensions:**
@@ -75,7 +77,11 @@ Each `dimensions[]` object:
   collect. Copy `output: context` files from disk; do not send them
   through the challenger.
 
-Treat missing `output` as `findings`.
+Treat missing `output` as `findings`. Treat `llm-subagent` and
+`llm-skill` identically for selection and dispatch: the distinction is
+ownership only. Upstream sub-agent definitions remain in
+`skills/pr-review/sub-agents`; `llm-skill` definitions resolve through
+the repository-relative canonical-skill links in `skills/`.
 
 If `dimensions.json` is missing or `dimensions` is empty, fail the
 review (`action: failure`, `reason: missing-context`). Do not fall
@@ -306,8 +312,9 @@ must not crowd out that analysis.
 
 #### 3b. Classify change domains
 
-Analyze the diff and changed file list. For each registry row with
-`kind: llm-subagent` and `output` `findings` (or missing `output`):
+Analyze the diff and changed file list. For each registry row with an
+LLM kind (`llm-subagent` or `llm-skill`) and `output` `findings` (or
+missing `output`):
 
 - `dispatch: always` → in scope.
 - `dispatch: conditional` → in scope only when the PR matches that
@@ -319,9 +326,8 @@ selection. Skip the row when the file is missing or its `status` is
 external service from the sandbox.
 
 Do not consult a name table in this file. `cli-adapter` rows are
-always collected later when they have `findings`; they are not
-classified here. `output: section:*` rows are not classified against
-the diff.
+always collected later and are never spawned or classified in the
+sandbox. `output: section:*` rows are not classified against the diff.
 
 #### 3c. Select sub-agents
 
@@ -329,13 +335,15 @@ Select every in-scope **findings** `llm-subagent`. Run those in
 parallel with section LLMs (step 4b). Challenger runs later (step
 6d), alone. Do not spawn `cli-adapter` rows.
 
-**Section LLMs** (`output` starts with `section:`): dispatch when
-`dispatch` is `always`, or when `conditional` matches `when`. Skip
-spawn when the row's `context_file` is missing or its JSON `status`
-is `none` / `error` — write that schema field as
-`{"status":"none"}` yourself. Do **not** apply `re_review` skips to
-section rows; they are cheap and must re-run. Do **not** attach the
-diff. Do **not** use `meta-prompt.md` (that contract is `findings[]`).
+**Structured-output LLMs** (`output` starts with `section:`, `check:`,
+or `classifier:`): dispatch when `dispatch` is `always`, or when
+`conditional` matches `when`. Skip a row requiring a missing
+`context_file` or a snapshot whose `status` is `none` / `error`.
+For an unavailable section write its schema field as
+`{"status":"none"}`; for a check or classifier retain an explicit
+`could-not-verify` / `unavailable` result. Do **not** apply `re_review`
+skips to these rows; they are cheap and must re-run. Use the row's
+`meta_prompt`, never the findings contract by default.
 
 **Re-review dispatch (prior-finding-aware):** When
 `PRIOR_REVIEW_PROVENANCE` is `app-verified` and prior findings exist
@@ -578,7 +586,7 @@ prioritization.
 
 ### 4. Dispatch findings sub-agents
 
-For each selected **findings** `llm-subagent` (from step 3c — excludes
+For each selected **findings** LLM row (from step 3c — excludes
 `pre_pass` classifiers which run in step 3c-1, `cli-adapter` rows,
 `section:*` rows, and `challenger` which runs in step 6d):
 
@@ -596,11 +604,15 @@ For each selected **findings** `llm-subagent` (from step 3c — excludes
    This MUST appear before the sub-agent definition so the model sees
    the hard limit first.
 
-   **Part 1 — Sub-agent definition:** the full markdown body of the
-   sub-agent file (everything after the frontmatter)
+   **Part 1 — Domain definition:** the full markdown body of the row's
+   `definition` file (everything after frontmatter). This is the canonical
+   skill for `llm-skill` rows and an unchanged upstream prompt for
+   `llm-subagent` rows.
 
-   **Part 2 — Meta-prompt:** Read `meta-prompt.md`, fill in the "You are
-   reviewing PR" template, and include everything else verbatim
+   **Part 2 — Invocation contract:** append
+   `meta-prompts/common-review.md`, then the row's `meta_prompt`. Supply
+   `Output id: <row.id>`. The domain definition owns judgment; these
+   Fullsend-owned prompts own context boundaries and serialization.
 
    **Part 3 — Extra inline skill:** *If and only if* the registry row
    sets `inline_skill`, read that path and include its contents
@@ -673,34 +685,36 @@ For each selected **findings** `llm-subagent` (from step 3c — excludes
 2. Spawn the subagents with their `prompt` argument composed from parts
    1–5 above
 
-**All findings sub-agents AND section LLMs (step 4b) MUST be
+**All findings LLMs AND structured-output LLMs (step 4b) MUST be
 dispatched simultaneously** — include all Agent calls in a single
 message so they run concurrently.
 
 Wait for all sub-agents to complete.
 
-### 4b. Dispatch schema-section LLMs
+### 4b. Dispatch structured-output LLMs
 
 Compose these prompts **before waiting**, and include their Agent
 calls in the **same message** as the findings sub-agents in step 4.
 
-For each `llm-subagent` whose `output` starts with `section:` and
-was selected in step 3c (snapshot present and `status` is `ok`):
+For each LLM row whose `output` starts with `section:`, `check:`, or
+`classifier:` and was selected in step 3c:
 
-1. Unless `include_findings` is true, **do not** include the diff,
-   source files, or `meta-prompt.md`. When it is true, include the same
-   verified diff and PR-head source context used by findings dimensions.
-2. Compose the prompt from the row's `definition`, PR title/body, and
-   an instruction to read `context_file` (e.g.
-   `/sandbox/workspace/.fullsend/.run/jira.json`). Do not call Jira or GitHub issue
-   APIs. When `include_findings` is true, require an object containing
-   the named section plus `findings[]`; otherwise require only the section object.
-3. Copy the named schema object (for `section:product_ask`, the
-   `product_ask` member) onto `agent-result.json` in step 7. When
-   `include_findings` is true, collect its `findings[]` in step 5.
+1. Include the verified diff and PR-head source whenever the domain skill
+   needs it; include trusted context only when its `context_file` exists.
+2. Compose the prompt from the row's `definition`, then
+   `meta-prompts/common-review.md`, then its `meta_prompt`, plus `Output
+   id: <row.id>` and `Output kind: <row.output>`. For `section:<name>`,
+   also supply `Output section: <name>` and `Include findings: true|false`
+   from the registry. Do not call Jira or GitHub issue APIs to replace an
+   unavailable trusted snapshot.
+3. For `section:<name>`, copy the named schema object onto
+   `agent-result.json`; `include_findings: true` also contributes its
+   `findings[]` to step 5. For `check:<name>`, append its `check` object
+   to `checks[]`. For `classifier:<name>`, append its `classifier` object
+   to `classifications[]`. None enters challenger synthesis directly.
 
-If the section LLM times out or returns nothing, set that field to
-`{"status":"none"}`. Do **not** fail the review and do **not** add a
+If a structured-output LLM times out or returns malformed JSON, record its
+explicit unavailable result. Do **not** fail the review and do **not** add a
 `sub-agent-failure` finding.
 
 ### 5. Collect findings
@@ -753,6 +767,23 @@ that envelope; do not invent a second gap finding.
   "actionable": false
 }
 ```
+
+### 5b. Collect structured results
+
+Keep structured-output results separate from findings synthesis. Read each
+`cli-adapter` row from its `producer_file`; do not run its `runner` in the
+sandbox. Also read structured LLM returns when such a row was dispatched.
+
+- For every `check:<name>` row, validate that `check.id` equals the row id
+  and append it to `checks[]`. On malformed, absent, or unavailable host
+  output, append
+  `{ "id": "<row id>", "status": "could-not-verify", "summary": "The producer did not return a valid check result." }`.
+- For every `classifier:<name>` row, validate that `classifier.id` equals the
+  row id and append it to `classifications[]`. On malformed, absent, or
+  unavailable host output,
+  append `{ "id": "<row id>", "status": "unavailable", "summary": "The producer did not return a valid classification.", "classifications": [] }`.
+- A classifier may inform a dependent check's explanation, but cannot by
+  itself create a blocker or alter a finding severity.
 
 ### 6. Synthesis
 
@@ -829,8 +860,10 @@ diff, preserving context isolation.
    **Part 1 — Sub-agent definition:** the full markdown body of the
    challenger sub-agent file (everything after the frontmatter)
 
-   **Part 2 — Meta-prompt:** Read `meta-prompt.md`, fill in the "You
-   are reviewing PR" template, and include everything else verbatim
+   **Part 2 — Invocation contract:** append
+   `meta-prompts/common-review.md` and `meta-prompts/findings-output.md`.
+   The challenger is an upstream findings producer, so it uses only the
+   findings contract.
 
    **Part 3 — Context package:** the merged finding set from steps
    6a–6c (as a JSON array), plus the full PR diff and changed files
@@ -1155,6 +1188,8 @@ Every non-failure result must include:
   could not be verified.
 - `product_ask` from the section LLM, including `{ "status": "none" }` when no
   Jira snapshot exists.
+- `checks[]` and `classifications[]` from structured-output LLMs. Preserve
+  unavailable results rather than converting them into findings.
 - Optional `label_actions` from the `issue-labels` skill when contextual
   repository labels clearly apply.
 
