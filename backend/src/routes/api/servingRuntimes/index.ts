@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { KubeFastifyInstance, ServingRuntimeKind } from '../../../types';
 import { secureAdminRoute } from '../../../utils/route-security';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.post(
     '/',
     secureAdminRoute(fastify)(

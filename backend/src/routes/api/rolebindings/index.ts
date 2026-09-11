@@ -3,7 +3,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureRoute } from '../../../utils/route-security';
 import { getNamespaces } from '../../../utils/notebookUtils';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/:namespace/:name',
     secureRoute(fastify)(

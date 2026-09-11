@@ -4,7 +4,7 @@ import { KubeFastifyInstance } from '../../../types';
 import { getDashboardConfig, updateDashboardConfig } from '../../../utils/resourceUtils';
 import { secureAdminRoute, secureRoute } from '../../../utils/route-security';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/',
     secureRoute(fastify)(async (request: FastifyRequest, reply: FastifyReply) => {
