@@ -64,3 +64,13 @@ export const mockVectorDbSecret = (overrides: MockSecretListItemOptions = {}): S
     },
     ...overrides,
   });
+
+export const mockMilvusSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
+  mockSecretListItem({
+    type: 'milvus',
+    data: {
+      MILVUS_URI: '[REDACTED]',
+      MILVUS_TOKEN: '[REDACTED]',
+    },
+    ...overrides,
+  });

@@ -39,7 +39,15 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
     namespace?: string;
     value?: string;
     isDisabled?: boolean;
+    onRefreshReady?: (refresh: () => Promise<SecretSelection[] | undefined>) => void;
   }) => {
+    props.onRefreshReady?.(async () => [
+      mockSecretListItem({
+        uuid: 'uid-created',
+        name: 'created-milvus',
+        type: 'milvus',
+      }),
+    ]);
     Object.assign(secretSelectorState.props, props);
     secretSelectorState.emit = props.onChange;
     return (
@@ -60,6 +68,33 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
       </button>
     );
   },
+}));
+
+jest.mock('~/app/components/common/VectorDbConnectionModal', () => ({
+  __esModule: true,
+  default: ({
+    initialBackend,
+    onClose,
+    onSubmit,
+  }: {
+    initialBackend?: string;
+    onClose: () => void;
+    onSubmit: (name: string) => void | Promise<void>;
+  }) => (
+    <div data-testid="vector-db-connection-modal">
+      <span data-testid="vector-db-modal-backend">{initialBackend}</span>
+      <button
+        type="button"
+        data-testid="vector-db-modal-submit"
+        onClick={() => onSubmit('created-milvus')}
+      >
+        Submit modal
+      </button>
+      <button type="button" data-testid="vector-db-modal-close" onClick={onClose}>
+        Close modal
+      </button>
+    </div>
+  ),
 }));
 
 const configureSchema = createConfigureSchema();
@@ -137,6 +172,7 @@ describe('AutoragVectorStoreSelector', () => {
     expect(secretSelectorState.props).toMatchObject({
       type: 'vector-db',
       namespace: 'test-namespace',
+      showType: true,
     });
   });
 
@@ -242,5 +278,73 @@ describe('AutoragVectorStoreSelector', () => {
       </FormWrapper>,
     );
     expect(screen.getByTestId('vector-store-select-toggle')).toBeInTheDocument();
+  });
+
+  it('should open the Milvus modal from the split action', () => {
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('add-milvus-connection-button'));
+    expect(screen.getByTestId('vector-db-connection-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('vector-db-modal-backend')).toHaveTextContent('milvus');
+  });
+
+  it('should open the PGVector modal from the split dropdown', () => {
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('add-vector-db-split-button'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Add PGVector' }));
+    expect(screen.getByTestId('vector-db-modal-backend')).toHaveTextContent('pgvector');
+  });
+
+  it('should open the Milvus modal from the split dropdown', () => {
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('add-vector-db-split-button'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Add Milvus' }));
+    expect(screen.getByTestId('vector-db-modal-backend')).toHaveTextContent('milvus');
+  });
+
+  it('should select the created secret after the modal submits', async () => {
+    /* eslint-disable camelcase */
+    const onFormChange = jest.fn();
+    const Wrapper: React.FC = () => {
+      const form = useForm({
+        mode: 'onChange',
+        resolver: zodResolver(configureSchema.full),
+        defaultValues: configureSchema.defaults,
+      });
+      React.useEffect(() => {
+        const sub = form.watch((values) => onFormChange(values));
+        return () => sub.unsubscribe();
+      }, [form]);
+      return (
+        <FormProvider {...form}>
+          <AutoragVectorStoreSelector />
+        </FormProvider>
+      );
+    };
+
+    render(<Wrapper />);
+    fireEvent.click(screen.getByTestId('add-milvus-connection-button'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('vector-db-modal-submit'));
+    });
+
+    expect(onFormChange).toHaveBeenCalledWith(
+      expect.objectContaining({ vector_db_secret_name: 'created-milvus' }),
+    );
+    /* eslint-enable camelcase */
   });
 });
