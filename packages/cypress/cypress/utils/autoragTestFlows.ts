@@ -161,6 +161,32 @@ export const verifyAutoragResultsInteraction = (): void => {
   cy.step('Verify leaderboard has at least one pattern row');
   autoragResultsPage.findLeaderboardRow(1).should('exist');
 
+  cy.step('Verify the custom overall score is rendered as the aggregate metric');
+  autoragResultsPage.findMetricHeader('custom:overall_score').should('exist');
+  autoragResultsPage.findMetricCell('custom:overall_score', 1).should('exist');
+
+  cy.step('Verify evaluator-qualified duplicate metric identities when available');
+  autoragResultsPage.findManageColumnsButton().click();
+  autoragResultsPage.findManageColumnsModal().should('be.visible');
+  autoragResultsPage.findMetricColumnChecks().then(($checks) => {
+    const checkIds = new Set(
+      $checks.toArray().map((check) => check.getAttribute('data-testid') ?? ''),
+    );
+    const duplicateMetrics = ['unitxt:faithfulness', 'ragas:faithfulness'];
+    if (duplicateMetrics.every((metric) => checkIds.has(`column-check-metric:${metric}`))) {
+      duplicateMetrics.forEach((metric) => {
+        autoragResultsPage.findMetricColumnCheck(metric).click();
+      });
+      autoragResultsPage.findManageColumnsSaveButton().click();
+      duplicateMetrics.forEach((metric) => {
+        autoragResultsPage.findMetricHeader(metric).should('exist');
+        autoragResultsPage.findMetricCell(metric, 1).should('exist');
+      });
+    } else {
+      autoragResultsPage.findManageColumnsCancelButton().click();
+    }
+  });
+
   cy.step('Open and close run details drawer');
   autoragResultsPage.findRunDetailsButton().click();
   autoragResultsPage.findRunDetailsDrawerPanel().should('be.visible');
@@ -183,6 +209,10 @@ export const verifyAutoragResultsInteraction = (): void => {
   cy.step('Verify CI scores chart on overview tab');
   autoragResultsPage.findCIScoresChart().should('exist');
   autoragResultsPage.findCIScoresLegend().should('exist');
+  autoragResultsPage.findCITrack('custom:overall_score').should('exist');
+  autoragResultsPage.findCIMarker('low', 'custom:overall_score').should('exist');
+  autoragResultsPage.findCIMarker('mean', 'custom:overall_score').should('exist');
+  autoragResultsPage.findCIMarker('high', 'custom:overall_score').should('exist');
 
   cy.step('Navigate to Vector store settings tab');
   autoragResultsPage.findPatternDetailsTab('vector_store_binding').should('exist').click();
@@ -203,6 +233,8 @@ export const verifyAutoragResultsInteraction = (): void => {
   autoragResultsPage.findPatternDetailsModal().then(($modal) => {
     if ($modal.find('[data-testid="tab-sample_qa"]').length) {
       autoragResultsPage.findPatternDetailsTab('sample_qa').click();
+      autoragResultsPage.findSampleQAEntries().should('have.length.at.least', 1);
+      autoragResultsPage.findScoreRadarCharts().should('have.length.at.least', 1);
     }
   });
 

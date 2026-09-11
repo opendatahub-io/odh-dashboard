@@ -1,25 +1,13 @@
 {
   "name": "Pattern7",
   "max_combinations": 45,
-  "scores": {
-    "answer_correctness": {
-      "mean": 0.5108,
-      "ci_low": 0.3254,
-      "ci_high": 0.6427
-    },
-    "faithfulness": {
-      "mean": 0.379,
-      "ci_low": 0.2899,
-      "ci_high": 0.4995
-    },
-    "context_correctness": {
-      "mean": 1.0,
-      "ci_low": null,
-      "ci_high": null
-    }
-  },
+  "evaluation": { "metrics": [
+    { "name": "answer_correctness", "evaluator": "custom", "description": "How accurately the answer addresses the question.", "scores": { "mean": 0.5108, "ci_low": 0.3254, "ci_high": 0.6427 } },
+    { "name": "faithfulness", "evaluator": "unitxt", "description": "How well the answer is supported by the retrieved context.", "scores": { "mean": 0.379, "ci_low": 0.2899, "ci_high": 0.4995 } },
+    { "name": "context_correctness", "evaluator": "ragas", "description": "How relevant and correct the retrieved context is for the question.", "model_id": "vllm-inference/meta-llama/Llama-3.1-8B-Instruct", "scores": { "mean": 1.0, "ci_low": null, "ci_high": null } },
+    { "name": "overall_score", "evaluator": "custom", "description": "The custom optimization score for this pattern.", "optimization_metric": true, "scores": { "mean": 0.379, "ci_low": 0.2899, "ci_high": 0.4995 } }
+  ] },
   "duration_seconds": 5,
-  "final_score": 0.379,
   "settings": {
     "vector_store_binding": {
       "provider_id": "milvus",
@@ -56,7 +44,9 @@
         "code": "en",
         "name": "English"
       }
-    },
+    }
+  },
+  "inference": {
     "responses_template": {
       "model": "vllm-inference/meta-llama/Llama-3.1-8B-Instruct",
       "stream": false,

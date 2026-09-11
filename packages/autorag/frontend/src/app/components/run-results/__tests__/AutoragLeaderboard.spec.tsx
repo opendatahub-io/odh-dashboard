@@ -311,15 +311,15 @@ describe('AutoragLeaderboard utility functions', () => {
       showAllColumns();
 
       // Check that RAG metrics are displayed correctly (use testids since text appears multiple times)
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:answer_relevancy')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:context_precision')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:context_recall')).toBeInTheDocument();
 
       // For faithfulness optimization, faithfulness should be marked as optimized
-      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness');
+      const faithfulnessHeader = screen.getByTestId('metric-header-unitxt:faithfulness');
       expect(faithfulnessHeader).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
@@ -336,8 +336,8 @@ describe('AutoragLeaderboard utility functions', () => {
       });
       showAllColumns();
 
-      expect(screen.getByTestId('metric-header-custom_metric')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-another_test_metric')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:custom_metric')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:another_test_metric')).toBeInTheDocument();
     });
   });
 
@@ -353,7 +353,7 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Value should be formatted to 3 decimal places
-      const metricCell = screen.getByTestId('metric-faithfulness-1');
+      const metricCell = screen.getByTestId('metric-unitxt:faithfulness-1');
       expect(metricCell).toHaveTextContent('0.954');
     });
 
@@ -364,7 +364,7 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Very small values should use scientific notation
-      const faithfulnessCell = screen.getByTestId('metric-faithfulness-1');
+      const faithfulnessCell = screen.getByTestId('metric-unitxt:faithfulness-1');
       expect(faithfulnessCell.textContent).toMatch(/1\.230e-5|1\.23e-5/);
     });
   });
@@ -766,20 +766,20 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness');
+      const faithfulnessHeader = screen.getByTestId('metric-header-unitxt:faithfulness');
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
       );
     });
 
-    it('should mark answer_correctness as optimized when specified', () => {
+    it('should use the pattern-marked optimization metric as optimized', () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
       });
 
-      const header = screen.getByTestId('metric-header-answer_correctness');
+      const header = screen.getByTestId('metric-header-unitxt:faithfulness');
       expect(within(header).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
 
@@ -790,7 +790,7 @@ describe('AutoragLeaderboard component', () => {
       });
       showAllColumns();
 
-      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
+      const answerCorrectnessHeader = screen.getByTestId('metric-header-unitxt:answer_correctness');
       expect(
         within(answerCorrectnessHeader).queryByTestId('optimized-indicator'),
       ).not.toBeInTheDocument();
@@ -841,7 +841,7 @@ describe('AutoragLeaderboard component', () => {
       });
       showAllColumns();
 
-      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
+      const answerCorrectnessHeader = screen.getByTestId('metric-header-unitxt:answer_correctness');
       const sortButton = within(answerCorrectnessHeader).getByRole('button', {
         name: /Answer correctness/,
       });
@@ -892,12 +892,12 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       // Check that all metric headers are present (only mean values)
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:answer_relevancy')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:context_precision')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:context_recall')).toBeInTheDocument();
     });
 
     it('should display metric values with tooltip showing full precision', () => {
@@ -908,7 +908,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const metricCell = screen.getByTestId('metric-faithfulness-1');
+      const metricCell = screen.getByTestId('metric-unitxt:faithfulness-1');
       expect(metricCell).toHaveTextContent('0.954');
 
       // Tooltip should show full value
@@ -1407,20 +1407,22 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       // Verify non-optimized metric headers exist before hiding
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:context_correctness')).toBeInTheDocument();
 
       // Open modal and uncheck answer_correctness
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      const checkbox = screen.getByTestId('column-check-metric:answer_correctness');
+      const checkbox = screen.getByTestId('column-check-metric:unitxt:answer_correctness');
       expect(checkbox).not.toBeDisabled();
       fireEvent.click(checkbox);
       fireEvent.click(screen.getByText('Save'));
 
       // answer_correctness header and cells should be hidden
-      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('metric-header-unitxt:answer_correctness'),
+      ).not.toBeInTheDocument();
       // context_correctness should still be visible
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:context_correctness')).toBeInTheDocument();
     });
 
     it('should allow toggling settings columns', () => {
@@ -1472,15 +1474,15 @@ describe('AutoragLeaderboard component', () => {
       });
       showAllColumns();
 
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:answer_correctness')).toBeInTheDocument();
 
       // Open modal, uncheck, then cancel
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      fireEvent.click(screen.getByTestId('column-check-metric:unitxt:answer_correctness'));
       fireEvent.click(screen.getByText('Cancel'));
 
       // Column should still be visible
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:answer_correctness')).toBeInTheDocument();
     });
 
     it('should allow toggling the optimized metric column', () => {
@@ -1489,7 +1491,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:faithfulness')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       const optimizedCheckbox = screen.getByTestId('column-check-optimized-metric');
@@ -1497,7 +1499,7 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(optimizedCheckbox);
       fireEvent.click(screen.getByText('Save'));
 
-      expect(screen.queryByTestId('metric-header-faithfulness')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-unitxt:faithfulness')).not.toBeInTheDocument();
     });
 
     describe('AutoRAG Results Column Toggled tracking', () => {
@@ -1510,7 +1512,7 @@ describe('AutoragLeaderboard component', () => {
         fireMiscTrackingEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
-        fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+        fireEvent.click(screen.getByTestId('column-check-metric:unitxt:answer_correctness'));
         fireEvent.click(screen.getByText('Save'));
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
@@ -1560,7 +1562,7 @@ describe('AutoragLeaderboard component', () => {
         });
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
-        fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+        fireEvent.click(screen.getByTestId('column-check-metric:unitxt:answer_correctness'));
         fireEvent.click(screen.getByText('Save'));
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
@@ -1679,10 +1681,14 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
       expect(screen.getByTestId('pattern-name-header')).toBeInTheDocument();
       expect(screen.getByTestId('model-name-header')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:faithfulness')).toBeInTheDocument();
 
-      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('metric-header-context_correctness')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('metric-header-unitxt:answer_correctness'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('metric-header-unitxt:context_correctness'),
+      ).not.toBeInTheDocument();
       expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
       expect(screen.queryByTestId('retrieval-method-header')).not.toBeInTheDocument();
     });
@@ -1701,9 +1707,11 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(screen.getByText('Save'));
 
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:faithfulness')).toBeInTheDocument();
       expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('metric-header-unitxt:answer_correctness'),
+      ).not.toBeInTheDocument();
     });
 
     it('should show organize-by presets in the modal', () => {
@@ -1735,7 +1743,7 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(screen.getByText('Optimization metrics and chunking'));
       fireEvent.click(screen.getByText('Save'));
 
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-unitxt:answer_correctness')).toBeInTheDocument();
       expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
       expect(screen.queryByTestId('retrieval-method-header')).not.toBeInTheDocument();
     });
@@ -1768,12 +1776,12 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       // Sort by answer_correctness
-      const header = screen.getByTestId('metric-header-answer_correctness');
+      const header = screen.getByTestId('metric-header-unitxt:answer_correctness');
       fireEvent.click(within(header).getByRole('button', { name: /Answer correctness/ }));
 
       // Now hide that column
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      fireEvent.click(screen.getByTestId('column-check-metric:unitxt:answer_correctness'));
       fireEvent.click(screen.getByText('Save'));
 
       // Table should still render (sort reset to rank)
@@ -1817,9 +1825,9 @@ describe('AutoragLeaderboard component', () => {
         'rank-header',
         'pattern-name-header',
         'model-name-header',
-        `metric-header-faithfulness`,
-        'metric-header-answer_correctness',
-        'metric-header-context_correctness',
+        `metric-header-unitxt:faithfulness`,
+        'metric-header-unitxt:answer_correctness',
+        'metric-header-unitxt:context_correctness',
         'chunking-method-header',
         'chunking-chunk-size-header',
         'chunking-chunk-overlap-header',
@@ -1865,7 +1873,7 @@ describe('AutoragLeaderboard component', () => {
         'rank-header',
         'pattern-name-header',
         'model-name-header',
-        'metric-header-faithfulness',
+        'metric-header-unitxt:faithfulness',
       ]);
     });
 
@@ -1911,7 +1919,7 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      fireEvent.click(screen.getByTestId('column-check-metric:unitxt:answer_correctness'));
       expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
     });
 

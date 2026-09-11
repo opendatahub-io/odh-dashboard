@@ -22,7 +22,7 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedScore,
-  getMetricByName,
+  getOptimizationMetric,
 } from '~/app/utilities/utils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 
@@ -137,7 +137,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
             <StackItem>
               <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
                 {optimizedMetric
-                  ? formatMetricValue(getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A')
+                  ? formatMetricValue(getOptimizationMetric(data)?.scores.mean ?? 'N/A')
                   : getOptimizedScore(data).toFixed(3)}
               </Title>
             </StackItem>

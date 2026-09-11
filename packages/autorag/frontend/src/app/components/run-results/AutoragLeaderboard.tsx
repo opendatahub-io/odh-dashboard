@@ -38,8 +38,11 @@ import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
   formatMetricName,
+  formatMetricIdentity,
   formatMetricValue,
   formatPatternName,
+  getMetricIdentity,
+  getOptimizationMetric,
   getOptimizedMetricForRAG,
   isRunInProgress,
   orderPatternsByLeaderboardRank,
@@ -313,10 +316,13 @@ const getColumnAnalyticsName = (
     return 'modelNames';
   }
   if (columnId === 'optimized-metric') {
-    return mapOptimizationMetric(optimizedMetricKey) ?? 'otherMetric';
+    const metricName = optimizedMetricKey.slice(optimizedMetricKey.indexOf(':') + 1);
+    return mapOptimizationMetric(metricName) ?? 'otherMetric';
   }
   if (columnId.startsWith('metric:')) {
-    return mapOptimizationMetric(columnId.slice('metric:'.length)) ?? 'otherMetric';
+    const metricIdentity = columnId.slice('metric:'.length);
+    const metricName = metricIdentity.slice(metricIdentity.indexOf(':') + 1);
+    return mapOptimizationMetric(metricName) ?? 'otherMetric';
   }
   return SETTINGS_COLUMN_ANALYTICS_NAMES[columnId] ?? 'other';
 };
@@ -401,6 +407,10 @@ function AutoragLeaderboard({
     bestPatternKey,
   } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
+  const optimizedMetricIdentity = React.useMemo(() => {
+    const optimizationMetric = getOptimizationMetric(Object.values(patterns)[0]);
+    return optimizationMetric ? getMetricIdentity(optimizationMetric) : optimizedMetric;
+  }, [patterns, optimizedMetric]);
 
   // Sorting state
   const [activeSort, setActiveSort] = React.useState<{
@@ -416,17 +426,22 @@ function AutoragLeaderboard({
     const keysSet = new Set<string>();
     Object.values(patterns).forEach((pattern: AutoragPattern) => {
       pattern.evaluation.metrics.forEach((m) => {
-        keysSet.add(m.name.toLowerCase());
+        keysSet.add(getMetricIdentity(m));
       });
     });
     return Array.from(keysSet).toSorted();
   }, [patterns]);
 
   // Metric keys excluding the optimized metric (shown in sticky column)
-  const nonOptimizedMetricKeys = React.useMemo(
-    () => metricKeys.filter((key) => key.toLowerCase() !== optimizedMetric.toLowerCase()),
-    [metricKeys, optimizedMetric],
-  );
+  const nonOptimizedMetricKeys = React.useMemo(() => {
+    const optimizationKeys = new Set(
+      Object.values(patterns)
+        .map((pattern) => getOptimizationMetric(pattern))
+        .filter((metric): metric is NonNullable<typeof metric> => metric !== undefined)
+        .map(getMetricIdentity),
+    );
+    return metricKeys.filter((key) => !optimizationKeys.has(key));
+  }, [metricKeys, patterns]);
 
   // Column definitions — source of truth for column IDs, labels, and default order.
   // Default order: leading columns first, then remaining sorted by priority / alphabetically.
@@ -437,14 +452,14 @@ function AutoragLeaderboard({
       { id: 'modelNames', label: 'Model name' },
       {
         id: 'optimized-metric',
-        label: `${formatMetricName(optimizedMetric)} (optimized)`,
+        label: `${formatMetricIdentity(optimizedMetricIdentity)} (optimized)`,
       },
     ];
 
     const remainingColumns = [
       ...nonOptimizedMetricKeys.map((key) => ({
         id: `metric:${key}`,
-        label: getColumnName(`metric:${key}`, formatMetricName(key)),
+        label: getColumnName(`metric:${key}`, formatMetricIdentity(key)),
       })),
       ...SETTINGS_COLUMNS.map((col) => ({
         id: col.id,
@@ -460,7 +475,7 @@ function AutoragLeaderboard({
     });
 
     return [...leadingColumns, ...remainingColumns];
-  }, [nonOptimizedMetricKeys, optimizedMetric]);
+  }, [nonOptimizedMetricKeys, optimizedMetricIdentity]);
 
   // Column visibility and ordering state — whitelist approach so new columns are hidden by default
   const DEFAULT_VISIBLE_IDS = React.useMemo(
@@ -521,7 +536,7 @@ function AutoragLeaderboard({
         const isShown = col.isShown ?? false;
         if (wasVisible !== isShown) {
           fireAutoragResultsColumnToggled(
-            getColumnAnalyticsName(col.key, optimizedMetric),
+            getColumnAnalyticsName(col.key, optimizedMetricIdentity),
             isShown,
           );
         }
@@ -536,7 +551,7 @@ function AutoragLeaderboard({
         newVisibleIds.has(prev.id) ? prev : { id: fallbackSortId, direction: 'asc' },
       );
     },
-    [visibleColumnIds, optimizedMetric],
+    [visibleColumnIds, optimizedMetricIdentity],
   );
 
   // All visible columns in user order, used for both header and body rendering
@@ -564,7 +579,7 @@ function AutoragLeaderboard({
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
         const scoreLookup = Object.fromEntries(
-          pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
+          pattern.evaluation.metrics.map((m) => [getMetricIdentity(m), m.scores]),
         );
 
         const getMetricObject = (metricName: string) => {
@@ -582,7 +597,7 @@ function AutoragLeaderboard({
           metrics[key] = getMetricObject(key);
         });
 
-        const optimizedMetricValue = getMetricObject(optimizedMetric).mean;
+        const optimizedMetricValue = getOptimizationMetric(pattern)?.scores.mean ?? 'N/A';
 
         return {
           rank: 0, // Will be assigned after sorting by optimized metric initially
@@ -712,7 +727,7 @@ function AutoragLeaderboard({
     }
 
     return rankedEntries;
-  }, [patterns, metricKeys, optimizedMetric, activeSort, bestPatternKey]);
+  }, [patterns, metricKeys, activeSort, bestPatternKey]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(
@@ -781,7 +796,7 @@ function AutoragLeaderboard({
       return 'model-name-header';
     }
     if (colId === 'optimized-metric') {
-      return `metric-header-${optimizedMetric}`;
+      return `metric-header-${optimizedMetricIdentity}`;
     }
     if (colId.startsWith('metric:')) {
       return `metric-header-${colId.slice('metric:'.length)}`;
@@ -801,7 +816,7 @@ function AutoragLeaderboard({
       return `model-name-${rank}`;
     }
     if (colId === 'optimized-metric') {
-      return `metric-${optimizedMetric}-${rank}`;
+      return `metric-${optimizedMetricIdentity}-${rank}`;
     }
     if (colId.startsWith('metric:')) {
       return `metric-${colId.slice('metric:'.length)}-${rank}`;
@@ -814,7 +829,10 @@ function AutoragLeaderboard({
     if (col.id === 'optimized-metric') {
       return (
         <>
-          {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}{' '}
+          {getColumnHeader(
+            `metric:${optimizedMetricIdentity}`,
+            formatMetricIdentity(optimizedMetricIdentity),
+          )}{' '}
           <span
             data-testid="optimized-indicator"
             className="autorag-leaderboard__optimized-indicator"
@@ -830,10 +848,11 @@ function AutoragLeaderboard({
   const getHeaderInfoProps = (colId: string): ThProps['info'] | undefined => {
     if (colId === 'optimized-metric') {
       const metricName =
-        getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric);
+        getColumnMeta(`metric:${optimizedMetricIdentity}`)?.name ??
+        formatMetricIdentity(optimizedMetricIdentity);
       const hasBrackets = metricName.includes('(');
       return getColumnInfoProps(
-        `metric:${optimizedMetric}`,
+        `metric:${optimizedMetricIdentity}`,
         `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
         'AutoRAG prioritized performance of this metric and used it to rank patterns.',
       );
@@ -1070,7 +1089,7 @@ function AutoragLeaderboard({
               <Tr>
                 {visibleColumns.map((col) => {
                   const colMeta = getColumnMeta(
-                    col.id === 'optimized-metric' ? `metric:${optimizedMetric}` : col.id,
+                    col.id === 'optimized-metric' ? `metric:${optimizedMetricIdentity}` : col.id,
                   );
                   return (
                     <Th

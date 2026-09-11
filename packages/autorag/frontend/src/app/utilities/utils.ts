@@ -254,6 +254,15 @@ export const humanize = (key: string): string =>
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .replace(/\bId\b/g, 'ID');
 
+/** Format an evaluator-qualified metric identity without losing its evaluator context. */
+export const formatMetricIdentity = (identity: string): string => {
+  const separator = identity.indexOf(':');
+  if (separator < 0) {
+    return formatMetricName(identity);
+  }
+  return `${formatMetricName(identity.slice(0, separator))}: ${formatMetricName(identity.slice(separator + 1))}`;
+};
+
 /**
  * Format an unknown value for display in a key-value list.
  * Returns '—' for null/undefined, stringifies primitives, and JSON.stringifies objects.
@@ -274,9 +283,20 @@ export const formatDisplayValue = (value: unknown): string => {
 export function getMetricByName(
   pattern: AutoragPattern,
   name: string,
+  evaluator?: string,
 ): AutoragEvaluationMetric | undefined {
-  const normalized = name.toLowerCase();
-  return pattern.evaluation.metrics.find((m) => m.name.toLowerCase() === normalized);
+  const matches = pattern.evaluation.metrics.filter(
+    (m) =>
+      m.name.toLowerCase() === name.toLowerCase() &&
+      (evaluator === undefined || m.evaluator.toLowerCase() === evaluator.toLowerCase()),
+  );
+  return matches.length === 1 ? matches[0] : matches.find((m) => m.optimization_metric);
+}
+
+export function getMetricIdentity(
+  metric: Pick<AutoragEvaluationMetric, 'evaluator' | 'name'>,
+): string {
+  return `${metric.evaluator.toLowerCase()}:${metric.name.toLowerCase()}`;
 }
 
 /**
@@ -287,8 +307,11 @@ export function getMetricByName(
  * where pattern data is available but the pipeline run is not (e.g. modals).
  */
 export function getOptimizationMetric(
-  pattern: AutoragPattern,
+  pattern: AutoragPattern | undefined,
 ): AutoragEvaluationMetric | undefined {
+  if (!pattern) {
+    return undefined;
+  }
   return pattern.evaluation.metrics.find((m) => m.optimization_metric);
 }
 

@@ -21,6 +21,7 @@ import {
   formatDisplayValue,
   computePatternRankMap,
   getMetricByName,
+  getOptimizationMetric,
   normalizePipelineRunState,
   formatDurationBetween,
   resolveBestPatternKey,
@@ -471,9 +472,42 @@ describe('getMetricByName', () => {
     });
   });
 
+  it('should use evaluator and name together when metric names collide', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    const patternWithMetrics: AutoragPattern = {
+      ...pattern,
+      evaluation: {
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'faithfulness',
+            description: 'Unitxt',
+            scores: { mean: 0.8, ci_low: null, ci_high: null },
+          },
+          {
+            evaluator: 'ragas',
+            name: 'faithfulness',
+            description: 'Ragas',
+            scores: { mean: 0.6, ci_low: null, ci_high: null },
+            optimization_metric: true,
+          },
+        ],
+      },
+    };
+    expect(getMetricByName(patternWithMetrics, 'faithfulness', 'ragas')?.scores.mean).toBe(0.6);
+    expect(getMetricByName(patternWithMetrics, 'faithfulness')?.evaluator).toBe('ragas');
+    expect(getOptimizedScore(patternWithMetrics)).toBe(0.6);
+  });
+
   it('should return undefined for non-existent metric', () => {
     const pattern = makeRankPattern('test', 0.5);
     expect(getMetricByName(pattern, 'nonexistent')).toBeUndefined();
+  });
+});
+
+describe('getOptimizationMetric', () => {
+  it('should return undefined when pattern data is not populated', () => {
+    expect(getOptimizationMetric(undefined)).toBeUndefined();
   });
 });
 
