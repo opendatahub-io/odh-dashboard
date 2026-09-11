@@ -5,20 +5,21 @@ import {
   FormGroup,
   Label,
   LabelGroup,
-  MenuSearch,
-  MenuSearchInput,
   MenuToggle,
-  SearchInput,
   Select,
   SelectList,
   SelectOption,
   TextArea,
+  TextInputGroup,
+  TextInputGroupMain,
+  TextInputGroupUtilities,
   TextInput,
 } from '@patternfly/react-core';
-import { Controller, useFormContext } from 'react-hook-form';
+import { TimesIcon } from '@patternfly/react-icons';
+import { Controller, useFormContext, type Control } from 'react-hook-form';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { formatCollectionMetadataValue } from '~/app/components/benchmarkUtils';
-import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_MENU_OPTIONS } from '~/app/pages/const';
 import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 
 type CopySuiteSettingsStepProps = {
@@ -32,134 +33,242 @@ type CollectionMetadataFieldName =
 type CollectionMetadataFieldProps = {
   name: CollectionMetadataFieldName;
   label: string;
-  selectionLabels: {
-    singular: string;
-    plural: string;
-  };
   emptySelectionLabel?: string;
-  selectionCountSuffix?: string;
   fieldId: string;
   testId: string;
   options: readonly string[];
 };
 
-const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = ({
+type CollectionMetadataTypeaheadFieldProps = {
+  control: Control<CopySuiteFormValues>;
+  name: CollectionMetadataFieldName;
+  label: string;
+  emptySelectionLabel?: string;
+  fieldId: string;
+  testId: string;
+  options: readonly string[];
+};
+
+const CollectionMetadataTypeaheadField: React.FC<CollectionMetadataTypeaheadFieldProps> = ({
+  control,
   name,
   label,
-  selectionLabels,
   emptySelectionLabel,
-  selectionCountSuffix = ' selected',
   fieldId,
   testId,
   options,
 }) => {
-  const { control } = useFormContext<CopySuiteFormValues>();
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
+  const [focusedOptionIndex, setFocusedOptionIndex] = React.useState<number | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const listboxId = `${fieldId}-listbox`;
 
   const filteredOptions = React.useMemo(() => {
     const normalizedSearch = search.toLowerCase();
-    return options.filter((option) => option.toLowerCase().includes(normalizedSearch));
+    return options.filter((option) => {
+      const formattedOption = formatCollectionMetadataValue(option).toLowerCase();
+      return (
+        option.toLowerCase().includes(normalizedSearch) ||
+        formattedOption.includes(normalizedSearch)
+      );
+    });
   }, [options, search]);
 
+  const resetFocusedOption = () => setFocusedOptionIndex(null);
+
+  const getOptionId = (option: string) => `${fieldId}-option-${option}`;
+
   return (
-    <FormGroup label={label} fieldId={fieldId}>
-      <Controller
-        name={name}
-        control={control}
-        render={({ field }) => {
-          const selected = field.value;
-
-          return (
-            <>
-              <Select
-                id={`${fieldId}-menu`}
-                role="menu"
-                data-testid={`${testId}-select`}
-                isOpen={isOpen}
-                selected={selected}
-                onSelect={(_event, value) => {
-                  if (typeof value === 'string') {
-                    field.onChange(
-                      selected.some((item) => item === value)
-                        ? selected.filter((item) => item !== value)
-                        : [...selected, value],
-                    );
-                  }
-                }}
-                onOpenChange={(open) => {
-                  setIsOpen(open);
-                  if (!open) {
-                    setSearch('');
-                  }
-                }}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    id={fieldId}
-                    onClick={() => setIsOpen((previous) => !previous)}
-                    isExpanded={isOpen}
-                    isFullWidth
-                    data-testid={`${testId}-toggle`}
-                  >
-                    {selected.length > 0
-                      ? `${selected.length} ${
-                          selected.length === 1 ? selectionLabels.singular : selectionLabels.plural
-                        }${selectionCountSuffix}`
-                      : (emptySelectionLabel ?? `Select ${label.toLowerCase()}`)}
-                  </MenuToggle>
-                )}
-                maxMenuHeight="400px"
-              >
-                <MenuSearch>
-                  <MenuSearchInput>
-                    <SearchInput
-                      aria-label={`Search ${label.toLowerCase()}`}
-                      placeholder={`Search ${label.toLowerCase()}`}
-                      value={search}
-                      onChange={(_event, value) => setSearch(value)}
-                      onClear={() => setSearch('')}
-                      data-testid={`${testId}-search-input`}
-                    />
-                  </MenuSearchInput>
-                </MenuSearch>
-                <SelectList>
-                  {filteredOptions.length > 0 ? (
-                    filteredOptions.map((option) => (
-                      <SelectOption
-                        key={option}
-                        value={option}
-                        hasCheckbox
-                        isSelected={selected.some((item) => item === option)}
-                        data-testid={`${testId}-option-${option}`}
-                      >
-                        {formatCollectionMetadataValue(option)}
-                      </SelectOption>
-                    ))
-                  ) : (
-                    <SelectOption isDisabled>No results found</SelectOption>
-                  )}
-                </SelectList>
-              </Select>
-
-              {selected.length > 0 ? (
-                <LabelGroup isCompact className="pf-v6-u-mt-sm" data-testid={`${testId}-tags`}>
-                  {selected.map((value) => (
-                    <Label
-                      key={value}
-                      variant="outline"
-                      data-testid={`${testId}-tag-${value}`}
-                      onClose={() => field.onChange(selected.filter((item) => item !== value))}
-                    >
-                      {formatCollectionMetadataValue(value)}
-                    </Label>
-                  ))}
-                </LabelGroup>
-              ) : null}
-            </>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => {
+        const selected = field.value.map((value) => String(value));
+        const toggleSelection = (value: string) => {
+          field.onChange(
+            selected.includes(value)
+              ? selected.filter((item) => item !== value)
+              : [...selected, value],
           );
-        }}
-      />
+          setSearch('');
+          resetFocusedOption();
+          inputRef.current?.focus();
+        };
+
+        const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            if (isOpen && focusedOptionIndex !== null) {
+              const focusedOption = filteredOptions[focusedOptionIndex];
+              if (focusedOption) {
+                toggleSelection(focusedOption);
+              }
+            } else {
+              setIsOpen(true);
+            }
+            return;
+          }
+
+          if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+            return;
+          }
+
+          event.preventDefault();
+          if (!isOpen) {
+            setIsOpen(true);
+          }
+          if (filteredOptions.length === 0) {
+            return;
+          }
+
+          const direction = event.key === 'ArrowDown' ? 1 : -1;
+          const currentIndex =
+            focusedOptionIndex ?? (direction === 1 ? -1 : filteredOptions.length);
+          setFocusedOptionIndex(
+            (currentIndex + direction + filteredOptions.length) % filteredOptions.length,
+          );
+        };
+
+        return (
+          <Select
+            id={`${fieldId}-select`}
+            role="menu"
+            isOpen={isOpen}
+            selected={selected}
+            onSelect={(_event, value) => {
+              if (typeof value === 'string') {
+                toggleSelection(value);
+              }
+            }}
+            onOpenChange={(open) => {
+              setIsOpen(open);
+              if (!open) {
+                setSearch('');
+                resetFocusedOption();
+              }
+            }}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                id={`${fieldId}-toggle`}
+                variant="typeahead"
+                onClick={() => {
+                  setIsOpen((previous) => !previous);
+                  inputRef.current?.focus();
+                }}
+                isExpanded={isOpen}
+                isFullWidth
+                data-testid={`${testId}-toggle`}
+              >
+                <TextInputGroup isPlain>
+                  <TextInputGroupMain
+                    inputId={fieldId}
+                    value={search}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (!isOpen) {
+                        setIsOpen(true);
+                      }
+                    }}
+                    onChange={(_event, value) => {
+                      setSearch(value);
+                      resetFocusedOption();
+                      if (!isOpen) {
+                        setIsOpen(true);
+                      }
+                    }}
+                    onKeyDown={handleInputKeyDown}
+                    autoComplete="off"
+                    innerRef={inputRef}
+                    placeholder={
+                      selected.length === 0
+                        ? (emptySelectionLabel ?? `Select ${label.toLowerCase()}`)
+                        : undefined
+                    }
+                    aria-label={label}
+                    role="combobox"
+                    isExpanded={isOpen}
+                    aria-controls={listboxId}
+                    aria-activedescendant={
+                      focusedOptionIndex !== null && filteredOptions[focusedOptionIndex]
+                        ? getOptionId(filteredOptions[focusedOptionIndex])
+                        : undefined
+                    }
+                    inputProps={{ 'data-testid': `${testId}-input` }}
+                  >
+                    <LabelGroup aria-label="Current selections">
+                      {selected.map((value) => (
+                        <Label
+                          key={value}
+                          variant="outline"
+                          data-testid={`${testId}-tag-${value}`}
+                          closeBtnProps={{
+                            'aria-label': `Remove ${formatCollectionMetadataValue(value)}`,
+                          }}
+                          onClose={(event) => {
+                            event.stopPropagation();
+                            toggleSelection(value);
+                          }}
+                        >
+                          {formatCollectionMetadataValue(value)}
+                        </Label>
+                      ))}
+                    </LabelGroup>
+                  </TextInputGroupMain>
+                  <TextInputGroupUtilities>
+                    {selected.length > 0 ? (
+                      <Button
+                        variant="plain"
+                        icon={<TimesIcon aria-hidden />}
+                        aria-label="Clear all selections"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          field.onChange([]);
+                          setSearch('');
+                          resetFocusedOption();
+                          inputRef.current?.focus();
+                        }}
+                      />
+                    ) : null}
+                  </TextInputGroupUtilities>
+                </TextInputGroup>
+              </MenuToggle>
+            )}
+            variant="typeahead"
+          >
+            <SelectList isAriaMultiselectable id={listboxId}>
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option, index) => (
+                  <SelectOption
+                    key={option}
+                    value={option}
+                    hasCheckbox
+                    isSelected={selected.includes(option)}
+                    isFocused={focusedOptionIndex === index}
+                    id={getOptionId(option)}
+                    data-testid={`${testId}-option-${option}`}
+                  >
+                    {formatCollectionMetadataValue(option)}
+                  </SelectOption>
+                ))
+              ) : (
+                <SelectOption isDisabled>No results found</SelectOption>
+              )}
+            </SelectList>
+          </Select>
+        );
+      }}
+    />
+  );
+};
+
+const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) => {
+  const { control } = useFormContext<CopySuiteFormValues>();
+
+  return (
+    <FormGroup label={props.label} fieldId={props.fieldId}>
+      <CollectionMetadataTypeaheadField control={control} {...props} />
     </FormGroup>
   );
 };
@@ -215,27 +324,25 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
         <CollectionMetadataField
           name="suiteEvaluates"
           label="Evaluates"
-          selectionLabels={{ singular: 'evaluation target', plural: 'evaluation targets' }}
           emptySelectionLabel="Select evaluation target"
-          selectionCountSuffix=""
           fieldId="suite-evaluates"
           testId="suite-evaluates"
-          options={SUITE_EVALUATES_OPTIONS}
+          options={SUITE_EVALUATES_MENU_OPTIONS}
         />
 
         <CollectionMetadataField
           name="suiteDomains"
           label="Category"
-          selectionLabels={{ singular: 'category', plural: 'categories' }}
           fieldId="suite-domains"
           testId="suite-domains"
           options={COLLECTION_METADATA_OPTIONS.domains}
         />
 
+        {/* TODO: Re-enable these metadata fields when their UX is ready. */}
+        {/*
         <CollectionMetadataField
           name="suiteTasks"
           label="Tasks"
-          selectionLabels={{ singular: 'task', plural: 'tasks' }}
           fieldId="suite-tasks"
           testId="suite-tasks"
           options={COLLECTION_METADATA_OPTIONS.tasks}
@@ -244,7 +351,6 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
         <CollectionMetadataField
           name="suiteModalities"
           label="Modalities"
-          selectionLabels={{ singular: 'modality', plural: 'modalities' }}
           fieldId="suite-modalities"
           testId="suite-modalities"
           options={COLLECTION_METADATA_OPTIONS.modalities}
@@ -253,11 +359,11 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
         <CollectionMetadataField
           name="suiteIndustries"
           label="Industries"
-          selectionLabels={{ singular: 'industry', plural: 'industries' }}
           fieldId="suite-industries"
           testId="suite-industries"
           options={COLLECTION_METADATA_OPTIONS.industries}
         />
+        */}
 
         <Controller
           name="suiteThreshold"

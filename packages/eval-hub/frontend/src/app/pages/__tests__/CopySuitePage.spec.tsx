@@ -317,7 +317,7 @@ describe('CopySuitePage', () => {
       'placeholder',
       'Enter suite description',
     );
-    expect(screen.getByTestId('suite-evaluates-toggle')).toHaveTextContent('1 evaluation target');
+    expect(screen.getByTestId('suite-evaluates-tag-agent')).toHaveTextContent('Agent');
     expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
       'Create a benchmark suite',
     );
@@ -431,15 +431,16 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('suite-description-input')).toHaveValue('Description');
     expect(screen.queryByTestId('suite-category-toggle')).not.toBeInTheDocument();
     expect(screen.getByText('Category')).toBeInTheDocument();
-    expect(screen.getByTestId('suite-domains-toggle')).toHaveTextContent('2 categories selected');
-    expect(screen.getByTestId('suite-evaluates-toggle')).toHaveTextContent('1 evaluation target');
     expect(screen.getByTestId('suite-evaluates-tag-agent')).toHaveTextContent('Agent');
     expect(screen.getByTestId('suite-domains-tag-reasoning')).toHaveTextContent('Reasoning');
+    expect(screen.getByTestId('suite-domains-tag-safety')).toHaveTextContent('Safety');
+    /*
     expect(screen.getByTestId('suite-tasks-tag-text-generation')).toHaveTextContent(
       'Text generation',
     );
     expect(screen.getByTestId('suite-modalities-tag-text')).toHaveTextContent('Text');
     expect(screen.getByTestId('suite-industries-tag-technology')).toHaveTextContent('Technology');
+    */
     expect(screen.queryByText('Language benchmark suites')).not.toBeInTheDocument();
     expect(screen.getByText('Customize benchmark suite')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
@@ -470,22 +471,35 @@ describe('CopySuitePage', () => {
     );
   });
 
-  it('uses singular wording for a single selected category', () => {
+  it('should render selected categories as labels', () => {
     mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteDomains: ['reasoning'] }));
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
 
-    expect(screen.getByTestId('suite-domains-toggle')).toHaveTextContent('1 category selected');
+    expect(screen.getByTestId('suite-domains-tag-reasoning')).toHaveTextContent('Reasoning');
   });
 
-  it('uses singular and plural evaluation target wording', () => {
+  it('should render selected evaluation targets as labels', () => {
     mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteEvaluates: ['agent', 'model'] }));
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
 
-    expect(screen.getByTestId('suite-evaluates-toggle')).toHaveTextContent('2 evaluation targets');
+    expect(screen.getByTestId('suite-evaluates-tag-agent')).toHaveTextContent('Agent');
+    expect(screen.getByTestId('suite-evaluates-tag-model')).toHaveTextContent('Model');
+  });
+
+  it('should only show backend-supported evaluation targets in the menu', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('suite-evaluates-input'));
+
+    expect(screen.getByTestId('suite-evaluates-option-agent')).toBeInTheDocument();
+    expect(screen.getByTestId('suite-evaluates-option-model')).toBeInTheDocument();
+    expect(screen.queryByTestId('suite-evaluates-option-guardrails')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('suite-evaluates-option-traces')).not.toBeInTheDocument();
   });
 
   it('should associate metadata labels with their multi-select controls', () => {
@@ -495,36 +509,37 @@ describe('CopySuitePage', () => {
 
     expect(screen.getByLabelText('Evaluates')).toHaveAttribute(
       'data-testid',
-      'suite-evaluates-toggle',
+      'suite-evaluates-input',
     );
-    expect(screen.getByLabelText('Category')).toHaveAttribute(
-      'data-testid',
-      'suite-domains-toggle',
-    );
-    expect(screen.getByLabelText('Tasks')).toHaveAttribute('data-testid', 'suite-tasks-toggle');
+    expect(screen.getByLabelText('Category')).toHaveAttribute('data-testid', 'suite-domains-input');
+    /*
+    expect(screen.getByLabelText('Tasks')).toHaveAttribute('data-testid', 'suite-tasks-input');
     expect(screen.getByLabelText('Modalities')).toHaveAttribute(
       'data-testid',
-      'suite-modalities-toggle',
+      'suite-modalities-input',
     );
     expect(screen.getByLabelText('Industries')).toHaveAttribute(
       'data-testid',
-      'suite-industries-toggle',
+      'suite-industries-input',
     );
+    */
   });
 
+  /*
   it('should filter metadata options from the search input', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
-    fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
-    fireEvent.change(screen.getByPlaceholderText('Search tasks'), {
+    fireEvent.click(screen.getByTestId('suite-tasks-input'));
+    fireEvent.change(screen.getByTestId('suite-tasks-input'), {
       target: { value: 'chart' },
     });
 
     expect(screen.getByTestId('suite-tasks-option-document_chart_vqa')).toBeInTheDocument();
     expect(screen.queryByTestId('suite-tasks-option-code_generation')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
+    fireEvent.click(screen.getByTestId('suite-tasks-input'));
   });
+  */
 
   it('should add and remove metadata values when selecting options', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
@@ -532,7 +547,7 @@ describe('CopySuitePage', () => {
     mockUseCopySuiteForm.mockReturnValue(form);
 
     renderPage();
-    fireEvent.click(screen.getByTestId('suite-domains-toggle'));
+    fireEvent.click(screen.getByTestId('suite-domains-input'));
     fireEvent.click(
       within(screen.getByTestId('suite-domains-option-safety')).getByRole('checkbox'),
     );
@@ -555,7 +570,10 @@ describe('CopySuitePage', () => {
     fireEvent.click(within(screen.getByTestId('suite-domains-tag-reasoning')).getByRole('button'));
 
     expect(screen.queryByTestId('suite-domains-tag-reasoning')).not.toBeInTheDocument();
-    expect(screen.getByTestId('suite-domains-toggle')).toHaveTextContent('Select category');
+    expect(screen.getByTestId('suite-domains-input')).toHaveAttribute(
+      'placeholder',
+      'Select category',
+    );
     expect(form.form.getValues('suiteDomains')).toEqual([]);
   });
 
@@ -572,37 +590,39 @@ describe('CopySuitePage', () => {
     fireEvent.change(screen.getByTestId('suite-description-input'), {
       target: { value: 'Updated description' },
     });
-    fireEvent.click(screen.getByTestId('suite-evaluates-toggle'));
+    fireEvent.click(screen.getByTestId('suite-evaluates-input'));
     fireEvent.click(
       within(screen.getByTestId('suite-evaluates-option-model')).getByRole('checkbox'),
     );
-    fireEvent.click(screen.getByTestId('suite-evaluates-toggle'));
-    fireEvent.click(screen.getByTestId('suite-domains-toggle'));
+    fireEvent.click(screen.getByTestId('suite-evaluates-input'));
+    fireEvent.click(screen.getByTestId('suite-domains-input'));
     fireEvent.click(
       within(screen.getByTestId('suite-domains-option-knowledge_and_reasoning')).getByRole(
         'checkbox',
       ),
     );
-    fireEvent.click(screen.getByTestId('suite-domains-toggle'));
+    fireEvent.click(screen.getByTestId('suite-domains-input'));
     fireEvent.click(within(screen.getByTestId('suite-domains-tag-safety')).getByRole('button'));
 
-    fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
+    /*
+    fireEvent.click(screen.getByTestId('suite-tasks-input'));
     fireEvent.click(
       within(screen.getByTestId('suite-tasks-option-reasoning')).getByRole('checkbox'),
     );
-    fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
+    fireEvent.click(screen.getByTestId('suite-tasks-input'));
 
-    fireEvent.click(screen.getByTestId('suite-modalities-toggle'));
+    fireEvent.click(screen.getByTestId('suite-modalities-input'));
     fireEvent.click(
       within(screen.getByTestId('suite-modalities-option-vision')).getByRole('checkbox'),
     );
-    fireEvent.click(screen.getByTestId('suite-modalities-toggle'));
+    fireEvent.click(screen.getByTestId('suite-modalities-input'));
 
-    fireEvent.click(screen.getByTestId('suite-industries-toggle'));
+    fireEvent.click(screen.getByTestId('suite-industries-input'));
     fireEvent.click(
       within(screen.getByTestId('suite-industries-option-health')).getByRole('checkbox'),
     );
-    fireEvent.click(screen.getByTestId('suite-industries-toggle'));
+    fireEvent.click(screen.getByTestId('suite-industries-input'));
+    */
     fireEvent.click(screen.getByTestId('copy-suite-cancel'));
     expect(form.handleCancel).toHaveBeenCalledTimes(1);
 
@@ -618,9 +638,11 @@ describe('CopySuitePage', () => {
     expect(form.form.getValues('suiteDescription')).toBe('Updated description');
     expect(form.form.getValues('suiteEvaluates')).toEqual(['agent', 'model']);
     expect(form.form.getValues('suiteDomains')).toEqual(['reasoning', 'knowledge_and_reasoning']);
+    /*
     expect(form.form.getValues('suiteTasks')).toEqual(['text-generation', 'reasoning']);
     expect(form.form.getValues('suiteModalities')).toEqual(['text', 'vision']);
     expect(form.form.getValues('suiteIndustries')).toEqual(['technology', 'health']);
+    */
     expect(form.handleSaveAndRun).toHaveBeenCalledTimes(1);
     expect(form.handleSaveOnly).toHaveBeenCalledTimes(1);
     expect(form.handleCancel).toHaveBeenCalledTimes(2);

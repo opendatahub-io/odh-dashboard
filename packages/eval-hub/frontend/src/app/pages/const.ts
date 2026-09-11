@@ -21,6 +21,14 @@ export const initialBenchmarkFilterData: BenchmarkFilterDataType = {
 
 export const SUITE_EVALUATES_OPTIONS = ['agent', 'guardrails', 'model', 'traces'] as const;
 
+// TODO: Enable Guardrails and Traces when the backend supports creating suites for those targets.
+export const SUITE_EVALUATES_MENU_OPTIONS = [
+  'agent',
+  // 'guardrails',
+  'model',
+  // 'traces',
+] as const;
+
 export const COLLECTION_METADATA_OPTIONS = {
   domains: [
     'grounded_document_understanding',
