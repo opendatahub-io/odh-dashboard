@@ -32,7 +32,11 @@ const gatedDeniedModel = {
   },
 };
 
-const setupGatedAccessIntercepts = () => {
+type GatedAccessInterceptOptions = {
+  hfUsername?: string;
+};
+
+const setupGatedAccessIntercepts = ({ hfUsername }: GatedAccessInterceptOptions = {}) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
@@ -69,6 +73,7 @@ const setupGatedAccessIntercepts = () => {
             enabled: true,
             labels: ['Community'],
             status: 'available',
+            ...(hfUsername ? { hfUsername, hasApiKey: true, authenticated: true } : {}),
           },
         ],
         size: 1,
@@ -109,7 +114,7 @@ const visitGatedModelDetails = () => {
 describe('Model Catalog Details Page - Gated access denied', () => {
   it('non-admin sees gated empty state with disabled deploy and register actions', () => {
     asProjectEditUser();
-    setupGatedAccessIntercepts();
+    setupGatedAccessIntercepts({ hfUsername: 'alice' });
     visitGatedModelDetails();
 
     modelDetailsPage.findGatedAccessRequiredState().should('be.visible');
@@ -118,13 +123,33 @@ describe('Model Catalog Details Page - Gated access denied', () => {
       .should('contain.text', 'To request access, contact your administrator.');
     modelDetailsPage.findWhosMyAdministratorLink().should('be.visible');
     modelDetailsPage.findGatedAccessRequestLink().should('not.exist');
+    modelDetailsPage
+      .findGatedAccessRequiredState()
+      .should('not.contain.text', 'Log in to the Hugging Face account');
+    modelDetailsPage.findGatedAccessRequiredState().should('not.contain.text', 'alice');
     modelDetailsPage.findModelCardMarkdown().should('not.exist');
     modelDetailsPage.findAccessLabelGatedDenied().should('be.visible');
     modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
     modelDetailsPage.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
   });
 
-  it('admin sees Hugging Face request link with disabled deploy and register actions', () => {
+  it('admin sees Hugging Face username guidance with disabled deploy and register actions', () => {
+    asClusterAdminUser();
+    setupGatedAccessIntercepts({ hfUsername: 'alice' });
+    visitGatedModelDetails();
+
+    modelDetailsPage.findGatedAccessRequiredState().should('be.visible');
+    modelDetailsPage
+      .findGatedAccessRequiredState()
+      .should('contain.text', 'Log in to the Hugging Face account');
+    modelDetailsPage.findGatedAccessRequiredState().should('contain.text', 'alice');
+    modelDetailsPage.findGatedAccessRequestLink().should('be.visible');
+    modelDetailsPage.findWhosMyAdministratorLink().should('not.exist');
+    modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
+    modelDetailsPage.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
+  });
+
+  it('admin sees generic Hugging Face guidance when hfUsername is unavailable', () => {
     asClusterAdminUser();
     setupGatedAccessIntercepts();
     visitGatedModelDetails();
@@ -132,10 +157,14 @@ describe('Model Catalog Details Page - Gated access denied', () => {
     modelDetailsPage.findGatedAccessRequiredState().should('be.visible');
     modelDetailsPage
       .findGatedAccessRequiredState()
-      .should('contain.text', 'Go to Hugging Face to request permission for this model.');
+      .should(
+        'contain.text',
+        'This model is gated on Hugging Face. Request access on Hugging Face.',
+      );
+    modelDetailsPage
+      .findGatedAccessRequiredState()
+      .should('not.contain.text', 'Log in to the Hugging Face account');
     modelDetailsPage.findGatedAccessRequestLink().should('be.visible');
     modelDetailsPage.findWhosMyAdministratorLink().should('not.exist');
-    modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
-    modelDetailsPage.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
   });
 });
