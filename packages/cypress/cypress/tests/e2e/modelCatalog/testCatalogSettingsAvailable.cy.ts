@@ -10,6 +10,9 @@ describe('Verify Model Catalog Settings Access Control', () => {
       cy.step('Log into the application as admin with aiCatalogSettings flag enabled');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
+      // Delete this after testing
+      cy.wrap('intentional').should('equal', 'failure');
+
       cy.step('Navigate to Model catalog settings');
       modelCatalogSettings.navigate();
 
