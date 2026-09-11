@@ -54,3 +54,26 @@ subjects:
   - kind: ServiceAccount
     name: rhaii-dashboard
     namespace: opendatahub
+---
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: kserve-sklearnserver
+  namespace: opendatahub
+  labels:
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    opendatahub.io/modelServingSupport: '["single"]'
+    opendatahub.io/model-type: '["predictive"]'
+spec:
+  supportedModelFormats:
+    - name: sklearn
+      version: '1'
+      autoSelect: true
+  containers:
+    - name: kserve-container
+      image: kserve/sklearnserver:v0.19.0
+      args:
+        - --model_name={{.Name}}
+        - --model_dir=/mnt/models
+        - --http_port=8080
