@@ -118,6 +118,16 @@ describe('SaveAgentProfileModal', () => {
       expect(screen.getByTestId('save-agent-profile-name-input')).toHaveValue('');
     });
 
+    it('should explain that guardrails are not saved with the agent', () => {
+      renderModal('save-as');
+
+      expect(
+        screen.getByText(
+          'Guardrails cannot yet be saved individually and are not included when saving an agent. Any guardrail settings configured here will need to be reapplied in future sessions.',
+        ),
+      ).toBeInTheDocument();
+    });
+
     it('should show name required error only after blur', async () => {
       const user = userEvent.setup();
       renderModal('save-as');

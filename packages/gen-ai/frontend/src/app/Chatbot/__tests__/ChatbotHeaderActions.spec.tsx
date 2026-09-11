@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChatbotHeaderActions from '~/app/Chatbot/ChatbotHeaderActions';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -132,6 +132,34 @@ describe('ChatbotHeaderActions', () => {
 
       const button = screen.getByTestId('compare-chat-button');
       expect(button).toHaveAttribute('aria-label', 'Compare chat');
+    });
+
+    it('shows the saved agent comparison limitation tooltip', async () => {
+      mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
+        if (typeof selector === 'function') {
+          return selector({
+            configurations: { default: { selectedModel: 'test-model' } },
+            configIds: ['default'],
+            profileApplied: true,
+          });
+        }
+        return undefined;
+      });
+
+      const user = userEvent.setup();
+      render(
+        <TestWrapper contextValue={createContextValue()}>
+          <ChatbotHeaderActions {...defaultProps} isCompareMode={false} />
+        </TestWrapper>,
+      );
+
+      await user.hover(screen.getByTestId('compare-chat-button'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Side-by-side chat comparison isn't available for saved agents."),
+        ).toBeInTheDocument();
+      });
     });
   });
 

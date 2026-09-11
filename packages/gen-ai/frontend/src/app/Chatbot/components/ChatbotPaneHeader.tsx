@@ -62,175 +62,184 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   }
 
   return (
-    <div
-      style={{
-        backgroundColor: isDarkMode
-          ? 'var(--pf-t--global--dark--background--color--100)'
-          : 'var(--pf-t--global--background--color--100)',
-        padding: '1rem 1.5rem',
-      }}
-    >
-      <ChatbotHeaderMain>
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-          fullWidth={{ default: 'fullWidth' }}
-        >
-          {/* Compare mode: just the label */}
-          {label && !agentName && (
-            <FlexItem>
-              <span
-                style={{
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  color:
-                    isSettingsOpen && isActiveConfig
-                      ? 'var(--pf-t--global--color--brand--default)'
-                      : undefined,
-                }}
-              >
-                {label}
-              </span>
-            </FlexItem>
-          )}
+    <>
+      <div
+        style={{
+          backgroundColor: isDarkMode
+            ? 'var(--pf-t--global--dark--background--color--100)'
+            : 'var(--pf-t--global--background--color--100)',
+          padding: '1rem 1.5rem 0',
+        }}
+      >
+        <ChatbotHeaderMain>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+            fullWidth={{ default: 'fullWidth' }}
+          >
+            {/* Compare mode: just the label */}
+            {label && !agentName && (
+              <FlexItem>
+                <span
+                  style={{
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    color:
+                      isSettingsOpen && isActiveConfig
+                        ? 'var(--pf-t--global--color--brand--default)'
+                        : undefined,
+                  }}
+                >
+                  {label}
+                </span>
+              </FlexItem>
+            )}
 
-          {/* Agent loaded (single mode or compare mode with agent) */}
-          {agentName && (
+            {/* Agent loaded (single mode or compare mode with agent) */}
+            {agentName && (
+              <FlexItem>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  {label && (
+                    <>
+                      <FlexItem style={{ fontWeight: 600 }}>{label}</FlexItem>
+                      <Divider
+                        orientation={{ default: 'vertical' }}
+                        style={{ height: '1em', alignSelf: 'center' }}
+                      />
+                    </>
+                  )}
+                  <FlexItem style={{ fontWeight: 600 }}>Agent</FlexItem>
+                  <FlexItem>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--pf-t--color--teal--10)',
+                        padding: 'var(--pf-t--global--spacer--xs)',
+                      }}
+                    >
+                      <AiChatbotIcon />
+                    </span>
+                  </FlexItem>
+                  <FlexItem>
+                    <Title
+                      headingLevel="h4"
+                      size="md"
+                      style={{ whiteSpace: 'nowrap' }}
+                      data-testid="agent-name-title"
+                    >
+                      {agentName}
+                    </Title>
+                  </FlexItem>
+                  <FlexItem>
+                    <Popover
+                      headerContent="Agent"
+                      bodyContent="This agent includes model settings, prompts, knowledge sources, and guardrails."
+                    >
+                      <Button
+                        variant="plain"
+                        aria-label="Agent information"
+                        icon={<OutlinedQuestionCircleIcon />}
+                        data-testid="agent-info-button"
+                      />
+                    </Popover>
+                  </FlexItem>
+                  {isProfileDirty && (
+                    <FlexItem>
+                      <Content
+                        component="small"
+                        className="pf-v6-u-color-200"
+                        data-testid="agent-unsaved-indicator"
+                      >
+                        <i>(Unsaved)</i>
+                      </Content>
+                    </FlexItem>
+                  )}
+                </Flex>
+              </FlexItem>
+            )}
+
             <FlexItem>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                {label && (
-                  <>
-                    <FlexItem style={{ fontWeight: 600 }}>{label}</FlexItem>
-                    <Divider
-                      orientation={{ default: 'vertical' }}
-                      style={{ height: '1em', alignSelf: 'center' }}
-                    />
-                  </>
+                {agentName && onClearAgent && (
+                  <FlexItem>
+                    <Button variant="link" onClick={onClearAgent} data-testid="agent-clear-button">
+                      Clear agent
+                    </Button>
+                  </FlexItem>
                 )}
-                <FlexItem style={{ fontWeight: 600 }}>Agent</FlexItem>
-                <FlexItem>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--pf-t--color--teal--10)',
-                      padding: 'var(--pf-t--global--spacer--xs)',
-                    }}
-                  >
-                    <AiChatbotIcon />
-                  </span>
-                </FlexItem>
-                <FlexItem>
-                  <Title
-                    headingLevel="h4"
-                    size="md"
-                    style={{ whiteSpace: 'nowrap' }}
-                    data-testid="agent-name-title"
-                  >
-                    {agentName}
-                  </Title>
-                </FlexItem>
-                <FlexItem>
-                  <Popover
-                    headerContent="Agent"
-                    bodyContent="This agent includes model settings, prompts, knowledge sources, and guardrails."
-                  >
+                {onCloseClick && (
+                  <FlexItem>
                     <Button
                       variant="plain"
-                      aria-label="Agent information"
-                      icon={<OutlinedQuestionCircleIcon />}
-                      data-testid="agent-info-button"
+                      aria-label="Close pane"
+                      icon={<TimesIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCloseClick();
+                      }}
+                      data-testid={`${testIdPrefix}-close-button`}
                     />
-                  </Popover>
-                </FlexItem>
-                {isProfileDirty && (
-                  <FlexItem>
-                    <Content
-                      component="small"
-                      className="pf-v6-u-color-200"
-                      data-testid="agent-unsaved-indicator"
-                    >
-                      <i>(Unsaved)</i>
-                    </Content>
                   </FlexItem>
                 )}
               </Flex>
             </FlexItem>
-          )}
+          </Flex>
+        </ChatbotHeaderMain>
 
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              {agentName && onClearAgent && (
-                <FlexItem>
-                  <Button variant="link" onClick={onClearAgent} data-testid="agent-clear-button">
-                    Clear agent
-                  </Button>
-                </FlexItem>
-              )}
-              {onCloseClick && (
-                <FlexItem>
-                  <Button
-                    variant="plain"
-                    aria-label="Close pane"
-                    icon={<TimesIcon />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCloseClick();
-                    }}
-                    data-testid={`${testIdPrefix}-close-button`}
-                  />
-                </FlexItem>
-              )}
-            </Flex>
-          </FlexItem>
-        </Flex>
-      </ChatbotHeaderMain>
-
-      {/* Response metrics row */}
-      {(metrics || isLoading) && (
-        <Flex gap={{ default: 'gapSm' }} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          {isLoading ? (
-            <FlexItem>
-              <Label variant="outline" isCompact data-testid={`${testIdPrefix}-loading`}>
-                <Spinner size="sm" aria-label="Loading" />
-              </Label>
-            </FlexItem>
-          ) : (
-            metrics && (
-              <>
-                <FlexItem>
-                  <Label variant="outline" isCompact data-testid={`${testIdPrefix}-latency-metric`}>
-                    {formatDuration(metrics.latency_ms)}
-                  </Label>
-                </FlexItem>
-                {metrics.usage && (
+        {/* Response metrics row */}
+        {(metrics || isLoading) && (
+          <Flex gap={{ default: 'gapSm' }} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+            {isLoading ? (
+              <FlexItem>
+                <Label variant="outline" isCompact data-testid={`${testIdPrefix}-loading`}>
+                  <Spinner size="sm" aria-label="Loading" />
+                </Label>
+              </FlexItem>
+            ) : (
+              metrics && (
+                <>
                   <FlexItem>
                     <Label
                       variant="outline"
                       isCompact
-                      data-testid={`${testIdPrefix}-tokens-metric`}
+                      data-testid={`${testIdPrefix}-latency-metric`}
                     >
-                      T: {metrics.usage.total_tokens}
+                      {formatDuration(metrics.latency_ms)}
                     </Label>
                   </FlexItem>
-                )}
-                {metrics.time_to_first_token_ms !== undefined && (
-                  <FlexItem>
-                    <Label variant="outline" isCompact data-testid={`${testIdPrefix}-ttft-metric`}>
-                      TTFT: {formatDuration(metrics.time_to_first_token_ms)}
-                    </Label>
-                  </FlexItem>
-                )}
-              </>
-            )
-          )}
-        </Flex>
-      )}
-
-      {hasDivider && <Divider style={{ marginTop: 'var(--pf-t--global--spacer--md)' }} />}
-    </div>
+                  {metrics.usage && (
+                    <FlexItem>
+                      <Label
+                        variant="outline"
+                        isCompact
+                        data-testid={`${testIdPrefix}-tokens-metric`}
+                      >
+                        T: {metrics.usage.total_tokens}
+                      </Label>
+                    </FlexItem>
+                  )}
+                  {metrics.time_to_first_token_ms !== undefined && (
+                    <FlexItem>
+                      <Label
+                        variant="outline"
+                        isCompact
+                        data-testid={`${testIdPrefix}-ttft-metric`}
+                      >
+                        TTFT: {formatDuration(metrics.time_to_first_token_ms)}
+                      </Label>
+                    </FlexItem>
+                  )}
+                </>
+              )
+            )}
+          </Flex>
+        )}
+      </div>
+      {hasDivider && <Divider className="pf-v6-u-mt-md" />}
+    </>
   );
 };
 
