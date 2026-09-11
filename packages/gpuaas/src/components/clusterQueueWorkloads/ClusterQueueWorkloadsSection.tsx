@@ -5,6 +5,9 @@ import type { UseWorkloadRowsOptions } from '../../hooks/useWorkloadRows';
 
 type ClusterQueueWorkloadsSectionProps = {
   clusterQueueName: string;
+  workloads?: ReturnType<typeof useClusterQueueWorkloads>['workloads'];
+  loaded?: boolean;
+  error?: Error;
   showDescription?: boolean;
   /** Controls queue-position polling interval; workload cache stays manual-only. */
   workloadRowsOptions?: UseWorkloadRowsOptions;
@@ -17,12 +20,18 @@ type ClusterQueueWorkloadsSectionProps = {
 const ClusterQueueWorkloadsSection: React.FC<ClusterQueueWorkloadsSectionProps> = ({
   clusterQueueName,
   showDescription = true,
+  workloads: providedWorkloads,
+  loaded: providedLoaded,
+  error: providedError,
   workloadRowsOptions,
 }) => {
-  const { workloads, loaded, error } = useClusterQueueWorkloads(
-    clusterQueueName,
+  const fetched = useClusterQueueWorkloads(
+    providedWorkloads ? undefined : clusterQueueName,
     workloadRowsOptions,
   );
+  const workloads = providedWorkloads ?? fetched.workloads;
+  const loaded = providedLoaded ?? fetched.loaded;
+  const error = providedError ?? fetched.error;
 
   return (
     <ClusterQueueWorkloadsTable
