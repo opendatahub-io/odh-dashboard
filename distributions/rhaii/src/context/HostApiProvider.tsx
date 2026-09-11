@@ -21,7 +21,7 @@ import {
 } from '@odh-dashboard/k8s-core/api/secrets';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import type { K8sResourceCommon, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
-import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
 const ProjectDetailsContext = React.createContext(null);
@@ -36,12 +36,6 @@ const ServingRuntimeModel: K8sModelCommon = {
   apiGroup: 'serving.kserve.io',
   kind: 'ServingRuntime',
   plural: 'servingruntimes',
-};
-const InferenceServiceModel: K8sModelCommon = {
-  apiVersion: 'v1beta1',
-  apiGroup: 'serving.kserve.io',
-  kind: 'InferenceService',
-  plural: 'inferenceservices',
 };
 
 const useServingRuntimeTemplates = (
@@ -85,55 +79,15 @@ const useServingRuntimeTemplates = (
   );
   return [templates, loaded, error instanceof Error ? error : undefined];
 };
-
-const useInferenceServices = (namespace?: string) => {
-  const resource = React.useMemo(
-    () =>
-      namespace
-        ? {
-            isList: true,
-            groupVersionKind: {
-              group: 'serving.kserve.io',
-              version: 'v1beta1',
-              kind: 'InferenceService',
-              plural: 'inferenceservices',
-            },
-            namespace,
-          }
-        : null,
-    [namespace],
-  );
-  return useK8sWatchResource<InferenceServiceKind[]>(resource, InferenceServiceModel);
-};
 const ModelServingContext = React.createContext(MODEL_SERVING_CONTEXT_VALUE);
 
 const ModelServingContextProvider: HostApiServices['contexts']['ModelServingContextProvider'] = ({
   children,
-  namespace,
 }) => (
-  <ModelServingContextValueProvider namespace={namespace}>
+  <ModelServingContext.Provider value={MODEL_SERVING_CONTEXT_VALUE}>
     {children}
-  </ModelServingContextValueProvider>
+  </ModelServingContext.Provider>
 );
-
-const ModelServingContextValueProvider: React.FC<{
-  children: React.ReactNode;
-  namespace?: string;
-}> = ({ children, namespace }) => {
-  const [items, loaded, error] = useInferenceServices(namespace);
-  const value = React.useMemo(
-    () => ({
-      inferenceServices: {
-        data: { items },
-        loaded,
-        error: error instanceof Error ? error : undefined,
-      },
-    }),
-    [items, loaded, error],
-  );
-
-  return <ModelServingContext.Provider value={value}>{children}</ModelServingContext.Provider>;
-};
 
 const unsupportedCreateProject: HostApiServices['createProject'] = () =>
   Promise.reject(new Error('Project creation is not available in the RHAII Tilt host.'));
