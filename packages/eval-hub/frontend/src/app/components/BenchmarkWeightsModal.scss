@@ -13,6 +13,32 @@
 }
 
 .evalhub-benchmark-weights-modal__inputs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.evalhub-benchmark-weights-modal__weight-summary {
+  margin: 0 0 var(--pf-t--global--spacer--sm);
+  text-align: right;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.evalhub-benchmark-weights-modal__inputs-heading,
+.evalhub-benchmark-weights-modal__inputs-description {
+  margin: 0;
+}
+
+.evalhub-benchmark-weights-modal__inputs-heading {
+  font-size: var(--pf-t--global--font--size--md);
+  font-weight: var(--pf-t--global--font--weight--heading--default);
+}
+
+.evalhub-benchmark-weights-modal__inputs-description {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.evalhub-benchmark-weights-modal__input-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--pf-t--global--spacer--lg);
@@ -22,20 +48,20 @@
   }
 }
 
-.evalhub-benchmark-weights-modal__inputs .pf-v6-c-form__group {
+.evalhub-benchmark-weights-modal__input-grid .pf-v6-c-form__group {
   --pf-v6-c-form__group--Gap: var(--pf-t--global--spacer--xs);
 }
 
-.evalhub-benchmark-weights-modal__inputs .pf-v6-c-form__group-label {
+.evalhub-benchmark-weights-modal__input-grid .pf-v6-c-form__group-label {
   line-height: 0;
 }
 
-.evalhub-benchmark-weights-modal__inputs .pf-v6-c-form__label {
+.evalhub-benchmark-weights-modal__input-grid .pf-v6-c-form__label {
   display: block;
   line-height: var(--pf-t--global--font--line-height--body);
 }
 
-.evalhub-benchmark-weights-modal__inputs .pf-v6-c-form__label-text {
+.evalhub-benchmark-weights-modal__input-grid .pf-v6-c-form__label-text {
   display: block;
   min-width: 0;
 }

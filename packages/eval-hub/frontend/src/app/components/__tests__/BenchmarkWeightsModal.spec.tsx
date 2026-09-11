@@ -28,10 +28,15 @@ describe('BenchmarkWeightsModal', () => {
       'evalhub-benchmark-weights-modal__input-label',
     );
     expect(
-      screen.getByText(
-        'Enter a positive integer ratio for each benchmark. A ratio of 2 gives twice the weight of a ratio of 1; ratios of 1 and 1 give equal weight.',
-      ),
+      screen.getByText('Set how much each benchmark counts toward the suite score.'),
     ).toBeInTheDocument();
+    expect(screen.getByText('Set a weight for each benchmark')).toBeInTheDocument();
+    expect(
+      screen.getByText('Use relative values (for example, 2 counts twice as much as 1).'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Sum of weights: 20')).toBeInTheDocument();
+    expect(screen.getByText('First benchmark: 1')).toBeInTheDocument();
+    expect(screen.getByText('Second benchmark: 19')).toBeInTheDocument();
     expect(screen.getByTestId('weight-segment-0')).toHaveAttribute('aria-label', 'First benchmark');
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
 
@@ -115,5 +120,31 @@ describe('BenchmarkWeightsModal', () => {
 
     expect(input).toHaveValue(1);
     expect(screen.getByTestId('benchmark-weights-save')).toBeEnabled();
+  });
+
+  it('should reject ratios above the safe integer range', () => {
+    const onSave = jest.fn();
+    const onClose = jest.fn();
+    const segments: WeightSegment[] = [
+      { label: 'First benchmark', weight: 0.5, percentage: 50 },
+      { label: 'Second benchmark', weight: 0.5, percentage: 50 },
+    ];
+
+    render(
+      <BenchmarkWeightsModal
+        segments={segments}
+        minWeightPercent={5}
+        onSave={onSave}
+        onClose={onClose}
+      />,
+    );
+
+    const input = screen.getByTestId('benchmark-weight-input-0');
+    fireEvent.change(input, { target: { value: String(Number.MAX_SAFE_INTEGER + 1) } });
+
+    expect(input).toHaveAttribute('max', String(Number.MAX_SAFE_INTEGER));
+    expect(screen.getByTestId('benchmark-weights-save')).toBeDisabled();
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

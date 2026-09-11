@@ -9,6 +9,25 @@ const segments: WeightSegment[] = [
 ];
 
 describe('WeightDistributionBar', () => {
+  it('should display relative weight values when requested', () => {
+    const weightedSegments: WeightSegment[] = [
+      { label: 'First', weight: 1, percentage: 50 },
+      { label: 'Second', weight: 1, percentage: 50 },
+    ];
+
+    render(
+      <WeightDistributionBar
+        segments={weightedSegments}
+        showPercentages={false}
+        showWeightValues
+      />,
+    );
+
+    expect(screen.getAllByText('1')).toHaveLength(2);
+    expect(screen.getByText('First: 1')).toBeInTheDocument();
+    expect(screen.getByText('Second: 1')).toBeInTheDocument();
+  });
+
   it('should set divider accessibility bounds from the adjacent segments', () => {
     const weightedSegments: WeightSegment[] = [
       { label: 'First', weight: 20, percentage: 0 },

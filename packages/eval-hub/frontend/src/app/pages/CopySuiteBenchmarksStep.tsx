@@ -23,6 +23,7 @@ import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 import type { Provider } from '~/app/types';
 import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
 import { getEvalHubScrollContainer } from '~/app/utilities/scrollContainer';
+import { weightsToRatios } from '~/app/utilities/weightDistributionUtils';
 
 import './CopySuiteBenchmarksStep.scss';
 
@@ -92,6 +93,11 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
     ? flatBenchmarkByKey.get(detailsBenchmarkKey)
     : undefined;
   const hasBenchmarks = benchmarks.length > 0;
+  const weightRatios = React.useMemo(
+    () => weightsToRatios(weightSegments.map((segment) => segment.weight)),
+    [weightSegments],
+  );
+  const totalWeightRatio = weightRatios.reduce((sum, ratio) => sum + ratio, 0);
   const isDetailsBenchmarkSelected = benchmarks.some(
     (benchmark) => getBenchmarkKey(benchmark) === detailsBenchmarkKey,
   );
@@ -182,7 +188,8 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
                     benchmark={benchmark}
                     index={index}
                     showWeightEdit={showWeightEdit}
-                    weightPercentage={weightSegments[index]?.percentage ?? 0}
+                    weightRatio={weightRatios[index] ?? 1}
+                    totalWeightRatio={totalWeightRatio}
                     additionalParametersError={
                       errors.benchmarks?.[index]?.additionalParameters?.message
                     }

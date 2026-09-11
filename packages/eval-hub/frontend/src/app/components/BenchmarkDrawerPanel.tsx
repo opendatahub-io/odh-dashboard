@@ -55,7 +55,12 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   };
 
   return (
-    <DrawerPanelContent isResizable minSize="400px" data-testid="benchmark-drawer-panel">
+    <DrawerPanelContent
+      isResizable
+      minSize="400px"
+      focusTrap={{ enabled: true }}
+      data-testid="benchmark-drawer-panel"
+    >
       <DrawerHead style={drawerHeadStyle}>
         <Stack hasGutter>
           {benchmark.category && (

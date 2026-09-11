@@ -20,6 +20,7 @@ type WeightDistributionBarProps = {
   segments: WeightSegment[];
   onWeightsChange?: (weights: number[]) => void;
   showPercentages?: boolean;
+  showWeightValues?: boolean;
 };
 
 const getFeasibleMinimumPercent = (pairTotal: number): number =>
@@ -29,6 +30,7 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
   segments,
   onWeightsChange,
   showPercentages = true,
+  showWeightValues = false,
 }) => {
   const barRef = React.useRef<HTMLDivElement>(null);
   const dragStateRef = React.useRef<{
@@ -168,9 +170,9 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
             }
             data-testid={`weight-segment-${index}`}
           >
-            {showPercentages ? (
+            {showPercentages || showWeightValues ? (
               <span className="evalhub-weight-distribution-bar__segment-label">
-                {percentages[index]}%
+                {showPercentages ? `${percentages[index]}%` : segment.weight}
               </span>
             ) : null}
           </div>
@@ -228,7 +230,11 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
                   component="small"
                   className="evalhub-weight-distribution-bar__legend-label"
                 >
-                  {showPercentages ? `${segment.label} ${percentages[index]}%` : segment.label}
+                  {showPercentages
+                    ? `${segment.label} ${percentages[index]}%`
+                    : showWeightValues
+                      ? `${segment.label}: ${segment.weight}`
+                      : segment.label}
                 </Content>
               </FlexItem>
             </Flex>

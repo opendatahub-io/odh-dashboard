@@ -258,7 +258,10 @@ const resolveProviderBenchmark = (
 ): ProviderBenchmark | undefined => {
   for (const provider of providers) {
     if (provider.resource.id === cb.provider_id) {
-      return provider.benchmarks?.find((pb) => pb.id === cb.id);
+      const match = provider.benchmarks?.find((pb) => pb.id === cb.id);
+      if (match) {
+        return match;
+      }
     }
   }
   for (const provider of providers) {

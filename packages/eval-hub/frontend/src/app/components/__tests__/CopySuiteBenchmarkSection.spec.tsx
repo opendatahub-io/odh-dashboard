@@ -30,7 +30,8 @@ const renderSection = (
       benchmark={benchmark}
       index={0}
       showWeightEdit
-      weightPercentage={20}
+      weightRatio={1}
+      totalWeightRatio={5}
       onUpdate={jest.fn()}
       onEditWeights={jest.fn()}
       onOpenDetails={jest.fn()}
@@ -39,10 +40,10 @@ const renderSection = (
   );
 
 describe('CopySuiteBenchmarkSection', () => {
-  it('should display the supplied percentage of the overall suite score', () => {
-    renderSection({ weightPercentage: 20 });
+  it('should display the supplied ratio of the overall suite weight', () => {
+    renderSection({ weightRatio: 1, totalWeightRatio: 5 });
 
-    expect(screen.getByTestId('benchmark-weight-label-0')).toHaveTextContent('20%');
+    expect(screen.getByTestId('benchmark-weight-label-0')).toHaveTextContent('1 of 5');
   });
 
   it('should surface advanced parameter validation errors', () => {
@@ -97,7 +98,8 @@ describe('CopySuiteBenchmarkSection', () => {
       benchmark: metricBenchmark,
       index: 0,
       showWeightEdit: true,
-      weightPercentage: 20,
+      weightRatio: 1,
+      totalWeightRatio: 5,
       onUpdate: jest.fn(),
       onEditWeights: jest.fn(),
       onOpenDetails: jest.fn(),

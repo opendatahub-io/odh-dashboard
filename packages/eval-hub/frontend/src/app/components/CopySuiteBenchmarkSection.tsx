@@ -29,7 +29,8 @@ type CopySuiteBenchmarkSectionProps = {
   benchmark: CopySuiteBenchmark;
   index: number;
   showWeightEdit: boolean;
-  weightPercentage: number;
+  weightRatio: number;
+  totalWeightRatio: number;
   additionalParametersError?: string;
   isInteractionDisabled?: boolean;
   onUpdate: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
@@ -41,7 +42,8 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
   benchmark,
   index,
   showWeightEdit,
-  weightPercentage,
+  weightRatio,
+  totalWeightRatio,
   additionalParametersError,
   isInteractionDisabled = false,
   onUpdate,
@@ -84,13 +86,13 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
           {showWeightEdit ? (
             <div className="evalhub-copy-suite-benchmark-section__weight">
               <span className="evalhub-copy-suite-benchmark-section__weight-label">
-                Suite score weight:
+                Suite weight:
               </span>
               <span
                 className="evalhub-copy-suite-benchmark-section__weight-value"
                 data-testid={`benchmark-weight-label-${index}`}
               >
-                {weightPercentage}%
+                {weightRatio} of {totalWeightRatio}
               </span>
               <Button
                 variant="link"

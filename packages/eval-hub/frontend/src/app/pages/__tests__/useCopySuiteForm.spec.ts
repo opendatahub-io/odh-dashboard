@@ -203,6 +203,32 @@ describe('useCopySuiteForm', () => {
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
   });
 
+  it('should fall back to another provider when the matching provider lacks the benchmark', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            id: 'benchmark-two',
+            provider_id: 'provider-one',
+            weight: 1,
+          },
+        ],
+      },
+      providers: [{ ...providers[0], benchmarks: [] }, providers[1]],
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    expect(result.result.current.benchmarks[0]).toEqual(
+      expect.objectContaining({
+        id: 'benchmark-two',
+        name: 'Benchmark Two',
+        availableMetrics: ['accuracy'],
+      }),
+    );
+  });
+
   it('should preserve multiple valid evaluates values while removing duplicates and invalid values', async () => {
     const result = renderForm({
       sourceCollection: {
