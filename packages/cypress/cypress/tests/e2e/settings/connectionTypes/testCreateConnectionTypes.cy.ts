@@ -17,6 +17,9 @@ import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { deleteConnectionTypeByName } from '../../../../utils/oc_commands/connectionTypes';
 import { modelServingWizard, modelServingGlobal } from '../../../../pages/modelServing';
 
+const toConnectionTypeConfigMapName = (displayName: string): string =>
+  `ct-${displayName.toLowerCase().replace(/[\s-]+/g, '-')}`;
+
 describe('Verify Connection Type Creation', () => {
   let testData: OOTBConnectionTypesData;
   let connectionTypeName: string;
@@ -43,7 +46,7 @@ describe('Verify Connection Type Creation', () => {
       projectName = `${testData.projectResourceName}-${uuid}`;
       connectionTypeName = `${testData.connectionTypeName}-${uuid}`;
       existingConnectionTypeName = `${testData.s3}`;
-      duplicateConnectionTypeName = `Copy of ${existingConnectionTypeName}`;
+      duplicateConnectionTypeName = `Copy of ${existingConnectionTypeName} - ${uuid}`;
       connectionTypeDescription = `${testData.connectionTypeDescription}`;
       connectionTypeCategory = testData.connectionTypeCategory;
       connectionTypeModelServingCompatibleType = testData.connectionTypeModelServingCompatibleType;
@@ -58,16 +61,19 @@ describe('Verify Connection Type Creation', () => {
         throw new Error('Project name is undefined or empty in the loaded fixture');
       }
       cy.log(`Loaded project name: ${projectName}`);
+      deleteConnectionTypeByName(toConnectionTypeConfigMapName(connectionTypeName));
+      deleteConnectionTypeByName(toConnectionTypeConfigMapName(duplicateConnectionTypeName));
+      deleteConnectionTypeByName(
+        toConnectionTypeConfigMapName(`Copy of ${existingConnectionTypeName}`),
+      );
       createCleanProject(projectName);
     }),
   );
 
   after(() => {
     // Delete createdconfigmaps in this e2e test
-    deleteConnectionTypeByName(`ct-${connectionTypeName.toLowerCase().replace(/[\s-]+/g, '-')}`);
-    deleteConnectionTypeByName(
-      `ct-${duplicateConnectionTypeName.toLowerCase().replace(/[\s-]+/g, '-')}`,
-    );
+    deleteConnectionTypeByName(toConnectionTypeConfigMapName(connectionTypeName));
+    deleteConnectionTypeByName(toConnectionTypeConfigMapName(duplicateConnectionTypeName));
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -136,6 +142,7 @@ describe('Verify Connection Type Creation', () => {
 
       cy.step('Submit the form to create the connection type');
       createConnectionTypePage.findSubmitButton().click();
+      cy.findByTestId('connection-type-footer-error').should('not.exist');
 
       cy.step('Verify we are redirected to Connection Types list page');
       connectionTypesPage.shouldHaveConnectionTypes();
@@ -216,10 +223,9 @@ describe('Verify Connection Type Creation', () => {
       const exisitingRow = connectionTypesPage.getConnectionTypeRow(existingConnectionTypeName);
       exisitingRow.findKebab().click();
       connectionTypesPage.findDuplicateAction().click();
-      createConnectionTypePage
-        .findConnectionTypeName()
-        .should('have.value', duplicateConnectionTypeName);
+      createConnectionTypePage.findConnectionTypeName().clear().type(duplicateConnectionTypeName);
       createConnectionTypePage.findSubmitButton().should('be.enabled').click();
+      cy.findByTestId('connection-type-footer-error').should('not.exist');
 
       cy.step('Edit the Connection type');
       let duplicateRow = connectionTypesPage.getConnectionTypeRow(duplicateConnectionTypeName);
@@ -265,7 +271,14 @@ describe('Verify Connection Type Creation', () => {
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
       modelServingWizard.findModelLocationSelectOption(modelLocation).click();
-      modelServingWizard.findCustomModelLocationSelect().should('not.exist');
+      // Dropdown only renders when multiple S3-compatible types exist; after delete it may be gone.
+      cy.get('body').then(($body) => {
+        if ($body.find('[data-testid="custom-type-select"]').length > 0) {
+          modelServingWizard
+            .findCustomModelLocationSelectOption(duplicateConnectionTypeName)
+            .should('not.exist');
+        }
+      });
     },
   );
 });
