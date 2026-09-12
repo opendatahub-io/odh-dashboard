@@ -6,7 +6,7 @@
 GET /api/v1/maas/models?namespace=<namespace>&secretName=<secret>
 ```
 
-The endpoint is protected by the same namespace and service-access middleware as the OGX endpoints. It calls the hosted MaaS API directly; it does not call the MaaS BFF.
+The endpoint is protected by the same namespace and service-access middleware as the other service-backed endpoints. It calls the hosted MaaS API directly; it does not call the MaaS BFF.
 
 ## Selected Secret
 
@@ -17,7 +17,7 @@ The selected Kubernetes Secret must contain:
 | `MAAS_BASE_URL` | Hosted MaaS service base URL, such as `https://maas.apps.example.com/maas-api/` |
 | `MAAS_API_KEY`  | API key used for the upstream `Authorization: Bearer` header                    |
 
-Both values must be non-empty for this endpoint. Other Secret keys, including legacy OGX keys, do not affect this per-request credential validation.
+Both values must be non-empty for this endpoint. Other Secret keys do not affect this per-request credential validation.
 
 The BFF calls:
 

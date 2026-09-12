@@ -23,7 +23,7 @@ func (m *mockMaaSClient) ListModels(ctx context.Context, baseURL, apiKey string)
 var _ maas.MaaSClientInterface = (*mockMaaSClient)(nil)
 
 func TestGetMaaSModels(t *testing.T) {
-	k8s := &mockK8sForOGX{
+	k8s := &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 			return &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "maas", Namespace: "ns"},
@@ -61,7 +61,7 @@ func TestGetMaaSModels(t *testing.T) {
 }
 
 func TestGetMaaSModelsRequiresCredentials(t *testing.T) {
-	k8s := &mockK8sForOGX{
+	k8s := &mockK8sService{
 		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
 			return &v1.Secret{Data: map[string][]byte{"MAAS_BASE_URL": []byte("https://maas.example.com")}}, nil
 		},

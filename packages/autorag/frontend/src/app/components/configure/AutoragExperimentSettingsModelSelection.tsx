@@ -25,10 +25,10 @@ import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
-import type { MaaSModel, OgxModelType } from '~/app/types';
+import type { MaaSModel } from '~/app/types';
 
 type ModelTab = {
-  modelType: OgxModelType;
+  modelType: 'llm' | 'embedding';
   label: string;
   popoverHeader: string;
   description: string;
@@ -82,7 +82,7 @@ const ModelsToTestHelpContent: React.FC = () => (
 const DEFAULT_PER_PAGE = 5;
 
 const AutoragExperimentSettingsModelSelection: React.FC = () => {
-  const [activeModelType, setActiveModelType] = React.useState<OgxModelType>('llm');
+  const [activeModelType, setActiveModelType] = React.useState<'llm' | 'embedding'>('llm');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');

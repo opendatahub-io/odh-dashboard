@@ -1144,7 +1144,7 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('AutoRAG Run Reconfigured tracking', () => {
-    // Matches the models `useOgxModelsQuery` is mocked to return above — AutoragConfigure's own
+    // Matches the models mocked to return above — AutoragConfigure's own
     // model-initialization effect always resets generation_models/embedding_models to "select
     // all available models" on mount, overwriting whatever a reconfigure's initialValues
     // provided, so this is the only way to get a genuine "no changes" baseline for `models`.
@@ -1165,7 +1165,7 @@ describe('AutoragConfigurePage', () => {
     const reconfigureInitialOgxSecret = {
       uuid: 'maas-secret-1',
       name: 'Test MaaS Secret',
-      data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+      data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
       type: 'maas',
       invalid: false,
     };
@@ -1195,7 +1195,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialOgxSecret={reconfigureInitialOgxSecret}
+          initialMaaSSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1269,7 +1269,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialOgxSecret={reconfigureInitialOgxSecret}
+          initialMaaSSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1309,7 +1309,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialOgxSecret={reconfigureInitialOgxSecret}
+          initialMaaSSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1349,7 +1349,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialOgxSecret={reconfigureInitialOgxSecret}
+          initialMaaSSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1392,7 +1392,7 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={noChangeReconfigureInitialValues}
           initialInputDataSecret={reconfigureInitialSecret}
-          initialOgxSecret={reconfigureInitialOgxSecret}
+          initialMaaSSecret={reconfigureInitialOgxSecret}
           sourceRunId="prev-run-456"
           sourceRunName="Original Run"
         />,
@@ -1530,7 +1530,7 @@ describe('AutoragConfigurePage', () => {
       // not still report the milestone that was just cleared.
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
-      // AutoragCreate remounts on Back and resets maas_secret_name to '' when no initialOgxSecret
+      // AutoragCreate remounts on Back and resets maas_secret_name to '' when no initial MaaS secret
       // is provided (the SecretSelector can't visually reflect a pre-existing value), so it must
       // be re-selected — via a freshly-queried button, since AutoragCreate's remount detaches the
       // one captured above — before Next is enabled again.
@@ -1655,12 +1655,12 @@ describe('AutoragConfigurePage', () => {
               display_name: 'Original Run - 1',
               maas_secret_name: 'Test MaaS Secret',
             }}
-            initialOgxSecret={{
+            initialMaaSSecret={{
               uuid: 'maas-secret-1',
               name: 'Test MaaS Secret',
               data: {
-                OGX_CLIENT_BASE_URL: 'https://example.com',
-                OGX_CLIENT_API_KEY: 'test-key',
+                MAAS_BASE_URL: 'https://example.com',
+                MAAS_API_KEY: 'test-key',
               },
               type: 'maas',
               invalid: false,
@@ -1883,10 +1883,10 @@ describe('AutoragConfigurePage', () => {
             display_name: 'Reconfigured Run',
             maas_secret_name: 'Test MaaS Secret',
           }}
-          initialOgxSecret={{
+          initialMaaSSecret={{
             uuid: 'maas-secret-1',
             name: 'Test MaaS Secret',
-            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+            data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
             type: 'maas',
             invalid: false,
           }}
@@ -1962,10 +1962,10 @@ describe('AutoragConfigurePage', () => {
             display_name: 'Pre-filled Name',
             maas_secret_name: 'Test MaaS Secret',
           }}
-          initialOgxSecret={{
+          initialMaaSSecret={{
             uuid: 'maas-secret-1',
             name: 'Test MaaS Secret',
-            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+            data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
             type: 'maas',
             invalid: false,
           }}
@@ -2007,7 +2007,7 @@ describe('AutoragConfigurePage', () => {
       const reconfigureInitialOgxSecret = {
         uuid: 'maas-secret-1',
         name: 'Test MaaS Secret',
-        data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+        data: { MAAS_BASE_URL: 'https://example.com', MAAS_API_KEY: 'test-key' },
         type: 'maas',
         invalid: false,
       };
@@ -2045,7 +2045,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialOgxSecret={reconfigureInitialOgxSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2060,7 +2060,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialOgxSecret={reconfigureInitialOgxSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2077,7 +2077,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialOgxSecret={reconfigureInitialOgxSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2092,7 +2092,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialOgxSecret={reconfigureInitialOgxSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2107,7 +2107,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialOgxSecret={reconfigureInitialOgxSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2124,7 +2124,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialOgxSecret={reconfigureInitialOgxSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -2140,7 +2140,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialOgxSecret={reconfigureInitialOgxSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );

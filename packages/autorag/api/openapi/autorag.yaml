@@ -497,105 +497,6 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
-  # =============================================================================
-  # OGX ENDPOINTS
-  # =============================================================================
-
-  /api/v1/ogx/models:
-    summary: List available OGX models
-    description: >-
-      Lists all available models from Open GenAI Stack Distribution (OGX).
-      Returns a flat list of models with their identifiers, types, provider information, and resource paths.
-      Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY credentials.
-    get:
-      tags:
-        - Models
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace containing the Open GenAI Stack credentials secret
-          required: true
-          schema:
-            type: string
-            example: 'default'
-        - name: secretName
-          in: query
-          description: Name of the Kubernetes secret containing Open GenAI Stack credentials (OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
-          required: true
-          schema:
-            type: string
-            maxLength: 253
-            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
-            example: 'my-ogx-secret'
-      responses:
-        '200':
-          $ref: '#/components/responses/OGXModelsResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '502':
-          $ref: '#/components/responses/BadGateway'
-      operationId: getOGXModels
-      summary: Get OGX Models
-      description: Returns available models from Open GenAI Stack Distribution using credentials from a Kubernetes secret
-
-  /api/v1/ogx/vector-stores:
-    summary: List available OGX vector store providers
-    description: >-
-      Lists available vector store providers from Open GenAI Stack Distribution (OGX).
-      Calls the native /v1/providers endpoint and filters for vector_io API type.
-      Returns provider identifiers and types (e.g., remote::milvus).
-      Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY credentials.
-    get:
-      tags:
-        - VectorStores
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace containing the Open GenAI Stack credentials secret
-          required: true
-          schema:
-            type: string
-            example: 'default'
-        - name: secretName
-          in: query
-          description: Name of the Kubernetes secret containing Open GenAI Stack credentials (OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
-          required: true
-          schema:
-            type: string
-            example: 'my-ogx-secret'
-      responses:
-        '200':
-          $ref: '#/components/responses/OGXVectorStoresResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '502':
-          $ref: '#/components/responses/BadGateway'
-      operationId: getOGXVectorStoreProviders
-      summary: Get OGX Vector Store Providers
-      description: Returns available vector store providers from Open GenAI Stack Distribution using credentials from a Kubernetes secret
-
   /api/v1/maas/models:
     summary: List available MaaS models
     description: >-
@@ -1043,44 +944,6 @@ components:
           type: boolean
           example: true
 
-    # OGX Model Schemas
-    OGXModel:
-      type: object
-      description: Model from Open GenAI Stack Distribution
-      required:
-        - id
-        - type
-        - provider
-      properties:
-        id:
-          type: string
-          description: Unique model identifier
-          example: 'llama3.2:3b'
-        type:
-          type: string
-          enum: ['llm', 'embedding']
-          description: Model type (llm or embedding)
-          example: 'llm'
-        provider:
-          type: string
-          description: Provider identifier
-          example: 'ollama'
-        resource_path:
-          type: string
-          description: Full provider resource path
-          example: 'ollama://models/llama3.2:3b'
-    OGXModelsData:
-      type: object
-      description: List of all available models from Open GenAI Stack Distribution
-      required:
-        - models
-      properties:
-        models:
-          type: array
-          description: Complete list of all available models
-          items:
-            $ref: '#/components/schemas/OGXModel'
-
     MaaSModel:
       type: object
       description: Stable AutoRAG representation of a hosted MaaS model
@@ -1115,33 +978,6 @@ components:
           description: Complete unfiltered list of available MaaS models
           items:
             $ref: '#/components/schemas/MaaSModel'
-
-    OGXVectorStoreProvider:
-      type: object
-      description: Vector store provider from Open GenAI Stack Distribution
-      required:
-        - provider_id
-        - provider_type
-      properties:
-        provider_id:
-          type: string
-          description: Provider identifier
-          example: 'milvus'
-        provider_type:
-          type: string
-          description: Provider implementation type
-          example: 'remote::milvus'
-    OGXVectorStoreProvidersData:
-      type: object
-      description: List of vector store providers from Open GenAI Stack Distribution
-      required:
-        - vector_store_providers
-      properties:
-        vector_store_providers:
-          type: array
-          description: List of vector_io providers
-          items:
-            $ref: '#/components/schemas/OGXVectorStoreProvider'
 
     SecretTypeSchema:
       description: >-
@@ -1587,7 +1423,7 @@ components:
           type: object
           description: >-
             Pipeline runtime parameters from pattern.indexing.pipeline_spec.parameters
-            (for example embedding_model_id, input_data_*, ogx_secret_name, chunking fields).
+            (for example embedding_model_id, input_data_*, maas_secret_name, vector_db_secret_name, chunking fields).
           additionalProperties: true
           minProperties: 1
           example:
@@ -1595,8 +1431,8 @@ components:
             input_data_secret_name: 'aws-connection-my-bucket'
             input_data_bucket_name: 'my-bucket'
             input_data_key: 'docs/'
-            ogx_secret_name: 'ogx-connection'
-            vector_io_provider_id: 'milvus'
+            maas_secret_name: 'maas-connection'
+            vector_db_secret_name: 'vector-db-connection'
             chunk_size: 512
             chunk_overlap: 50
             chunking_method: 'recursive'
@@ -1993,40 +1829,6 @@ components:
                 $ref: '#/components/schemas/Config'
       description: A response containing a list of Config entities.
 
-    # OGX Responses
-    OGXModelsResponse:
-      description: List of available OGX models
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              metadata:
-                type: object
-                description: Metadata about the response
-              data:
-                $ref: '#/components/schemas/OGXModelsData'
-          example:
-            metadata: {}
-            data:
-              models:
-                - id: 'llama3.2:3b'
-                  type: 'llm'
-                  provider: 'ollama'
-                  resource_path: 'ollama://models/llama3.2:3b'
-                - id: 'mistral-7b-instruct'
-                  type: 'llm'
-                  provider: 'ollama'
-                  resource_path: 'ollama://models/mistral-7b-instruct'
-                - id: 'all-minilm:l6-v2'
-                  type: 'embedding'
-                  provider: 'ollama'
-                  resource_path: 'ollama://models/all-minilm:l6-v2'
-                - id: 'nomic-embed-text'
-                  type: 'embedding'
-                  provider: 'ollama'
-                  resource_path: 'ollama://models/nomic-embed-text'
-
     MaaSModelsResponse:
       description: List of available MaaS models
       content:
@@ -2046,27 +1848,6 @@ components:
                   description: 'IBM Granite 3 8B instruction-tuned language model.'
                   owned_by: 'maas-models'
                   ready: true
-
-    OGXVectorStoresResponse:
-      description: List of available OGX vector store providers
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              metadata:
-                type: object
-                description: Metadata about the response
-              data:
-                $ref: '#/components/schemas/OGXVectorStoreProvidersData'
-          example:
-            metadata: {}
-            data:
-              vector_store_providers:
-                - provider_id: 'milvus'
-                  provider_type: 'remote::milvus'
-                - provider_id: 'faiss'
-                  provider_type: 'inline::faiss'
 
     SecretsResponse:
       content:
@@ -2486,8 +2267,6 @@ tags:
   - name: S3Operation
     description: Operation performed on S3 storage
   - name: Models
-    description: AI model discovery and management from Open GenAI Stack Distribution
+    description: AI model discovery and management from MaaS
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs
-  - name: VectorStores
-    description: Vector store provider discovery from Open GenAI Stack Distribution

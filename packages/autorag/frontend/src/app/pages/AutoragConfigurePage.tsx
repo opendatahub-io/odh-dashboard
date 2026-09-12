@@ -70,8 +70,6 @@ type AutoragConfigurePageProps = {
   initialInputDataSecret?: SecretSelection;
   initialMaaSSecret?: SecretSelection;
   initialVectorDbSecret?: SecretSelection;
-  /** Legacy prop name retained until the reconfigure loader migrates to MaaS. */
-  initialOgxSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
   /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
@@ -83,7 +81,6 @@ function AutoragConfigurePage({
   initialInputDataSecret,
   initialMaaSSecret,
   initialVectorDbSecret,
-  initialOgxSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -563,7 +560,7 @@ function AutoragConfigurePage({
                 hasBodyWrapper={false}
               >
                 {step === 'create' ? (
-                  <AutoragCreate initialMaaSSecret={initialMaaSSecret ?? initialOgxSecret} />
+                  <AutoragCreate initialMaaSSecret={initialMaaSSecret} />
                 ) : (
                   <AutoragConfigure
                     initialValues={initialValues}

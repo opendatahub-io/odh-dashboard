@@ -554,7 +554,7 @@ describe('SecretSelector', () => {
       rerender(
         <SecretSelector
           namespace={defaultNamespace}
-          type="ogx"
+          type="maas"
           value={undefined}
           onChange={mockOnChange}
           dataTestId="test-selector"

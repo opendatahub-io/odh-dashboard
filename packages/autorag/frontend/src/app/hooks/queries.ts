@@ -1,19 +1,10 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import {
-  getMaaSModels,
-  getOgxModels,
-  getOgxVectorStores,
-  getSecretByName,
-  getSecrets,
-} from '~/app/api/k8s';
+import { getMaaSModels, getSecretByName, getSecrets } from '~/app/api/k8s';
 import { getManagedPipelines, getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
-  OgxModelsResponse,
   MaaSModelsResponse,
-  OgxModelType,
-  OgxFilteredVectorStoreProvidersResponse,
   ManagedPipeline,
   PipelineRun,
   S3ListObjectsResponse,
@@ -21,49 +12,6 @@ import {
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
-
-export function useOgxModelsQuery(
-  namespace: string,
-  secretName: string,
-  modelType?: OgxModelType,
-): UseQueryResult<OgxModelsResponse, Error> {
-  return useQuery({
-    enabled: !!namespace && !!secretName,
-    queryKey: ['autorag', 'models', namespace, secretName],
-    queryFn: async () => {
-      try {
-        const response = await getOgxModels('')(namespace, secretName)({});
-        const validated = z
-          .object({
-            models: z.array(
-              z.object({
-                id: z.string(),
-                type: z.string(),
-                provider: z.string(),
-                // eslint-disable-next-line camelcase
-                resource_path: z.string(),
-              }),
-            ),
-          })
-          .parse(response);
-        return {
-          models: validated.models.filter(
-            (m): m is typeof m & { type: 'llm' | 'embedding' } =>
-              m.type === 'llm' || m.type === 'embedding',
-          ),
-        };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          throw new Error('Invalid Open GenAI Stack models response');
-        }
-        throw error;
-      }
-    },
-    select: modelType
-      ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
-      : undefined,
-  });
-}
 
 export function useMaaSModelsQuery(
   namespace: string,
@@ -263,51 +211,6 @@ export function useS3ListFilesQuery(
   });
 }
 
-export function useOgxVectorStoreProvidersQuery(
-  namespace: string,
-  secretName: string,
-  providerTypes?: string[],
-): UseQueryResult<OgxFilteredVectorStoreProvidersResponse, Error> {
-  return useQuery({
-    enabled: !!namespace && !!secretName,
-    // providerTypes is intentionally excluded: select transforms cached data without
-    // affecting the cache, so different provider type filters safely share one cache entry.
-    queryKey: ['autorag', 'vectorStoreProviders', namespace, secretName],
-    queryFn: async () => {
-      try {
-        const response = await getOgxVectorStores('')(namespace, secretName)({});
-        z.object({
-          // eslint-disable-next-line camelcase
-          vector_store_providers: z.array(
-            z.object({
-              // eslint-disable-next-line camelcase
-              provider_id: z.string(),
-              // eslint-disable-next-line camelcase
-              provider_type: z.string(),
-            }),
-          ),
-        }).parse(response);
-        return response;
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          throw new Error('Invalid Open GenAI Stack vector store providers response');
-        }
-        throw error;
-      }
-    },
-    // Filter by provider_type when a non-empty providerTypes array is given.
-    // totalProviderCount preserves the unfiltered count so the UI can distinguish
-    // "no providers at all" from "providers exist but none are supported".
-    select: (data) => ({
-      // eslint-disable-next-line camelcase
-      vector_store_providers: data.vector_store_providers.filter(
-        (p) => !providerTypes?.length || providerTypes.includes(p.provider_type),
-      ),
-      totalProviderCount: data.vector_store_providers.length,
-    }),
-  });
-}
-
 const POLL_INTERVAL_MS = 10000;
 const RETRY_DELAY_MS = 5000;
 const MAX_RETRY_ATTEMPTS = 5;
@@ -371,7 +274,7 @@ export function useSecretCredentialsQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'ogx' | 'maas' | 'vector-db',
+  type?: 'storage' | 'maas' | 'vector-db',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

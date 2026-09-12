@@ -32,11 +32,11 @@ dev-install-dependencies:
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled
-	cd bff && make run PORT=4001 LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_OGX_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+	cd bff && make run PORT=4001 LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff-mock-debug
 dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
-	cd bff && make debug PORT=4001 LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_OGX_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+	cd bff && make debug PORT=4001 LOG_LEVEL=debug DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff
 dev-bff:
@@ -186,5 +186,4 @@ build: frontend-build bff-build
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
 	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
-
 

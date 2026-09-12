@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { AutoragRuntimeParameters, OgxCredentials, PipelineRun } from '~/app/types';
+import type { AutoragRuntimeParameters, LegacyRunCredentials, PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { resolveBestPatternKey } from '~/app/utilities/utils';
@@ -14,7 +14,7 @@ export type AutoragResultsContextProps = {
   onRetryPatterns?: () => void;
   parameters?: AutoragRuntimeParameters;
   ragPatternsBasePath?: string;
-  ogxCredentials?: OgxCredentials;
+  ogxCredentials?: LegacyRunCredentials;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
@@ -60,7 +60,7 @@ export function getAutoragContext({
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
   ragPatternsBasePath?: string;
-  ogxCredentials?: OgxCredentials;
+  ogxCredentials?: LegacyRunCredentials;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;

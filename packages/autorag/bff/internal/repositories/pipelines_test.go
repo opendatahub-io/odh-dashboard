@@ -793,8 +793,8 @@ func TestValidateCreateIndexingPipelineRunRequest(t *testing.T) {
 			"embedding_model_id":     "embed-model",
 			"input_data_secret_name": "input-secret",
 			"input_data_bucket_name": "input-bucket",
-			"ogx_secret_name":        "ogx-secret",
-			"vector_io_provider_id":  "milvus",
+			"maas_secret_name":       "maas-secret",
+			"vector_db_secret_name":  "vector-db-secret",
 		},
 	}
 
@@ -874,7 +874,7 @@ func TestCreateIndexingRun(t *testing.T) {
 				"embedding_model_id":     "embed-model",
 				"chunking_method":        "recursive",
 				"input_data_secret_name": "input-secret",
-				"vector_io_provider_id":  "milvus",
+				"vector_db_secret_name":  "vector-db-secret",
 			},
 		})
 		if err != nil {
@@ -889,8 +889,8 @@ func TestCreateIndexingRun(t *testing.T) {
 		if gotInput.RuntimeConfig.Parameters["chunking_method"] != "recursive" {
 			t.Errorf("chunking_method = %v", gotInput.RuntimeConfig.Parameters["chunking_method"])
 		}
-		if gotInput.RuntimeConfig.Parameters["vector_io_provider_id"] != "milvus" {
-			t.Errorf("vector_io_provider_id = %v", gotInput.RuntimeConfig.Parameters["vector_io_provider_id"])
+		if gotInput.RuntimeConfig.Parameters["vector_db_secret_name"] != "vector-db-secret" {
+			t.Errorf("vector_db_secret_name = %v", gotInput.RuntimeConfig.Parameters["vector_db_secret_name"])
 		}
 	})
 

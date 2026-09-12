@@ -19,7 +19,6 @@ describe('AutoRAG API Contract Tests', () => {
   const NS = 'my-project';
   const NS_NO_DSPA = 'no-dspa';
   const SECRET = 'data-connection';
-  const OGX_SECRET = 'ogx';
   const MAAS_SECRET = 'maas';
   const BUCKET = 's3-bucket';
 
@@ -52,54 +51,6 @@ describe('AutoRAG API Contract Tests', () => {
       if (result.success) {
         expect(result.response.status).toBe(200);
       }
-    });
-  });
-
-  describe('OGX Models Endpoint', () => {
-    it('should retrieve OGX models list', async () => {
-      const result = await apiClient.get(
-        `/api/v1/ogx/models?namespace=${NS}&secretName=${OGX_SECRET}`,
-      );
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/OGXModelsResponse/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should return 400 when namespace parameter is missing', async () => {
-      const result = await apiClient.get(`/api/v1/ogx/models?secretName=${OGX_SECRET}`);
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(400);
-    });
-
-    it('should return 400 when secretName parameter is missing', async () => {
-      const result = await apiClient.get(`/api/v1/ogx/models?namespace=${NS}`);
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(400);
-    });
-  });
-
-  describe('OGX Vector Store Providers Endpoint', () => {
-    it('should retrieve vector store providers list', async () => {
-      const result = await apiClient.get(
-        `/api/v1/ogx/vector-stores?namespace=${NS}&secretName=${OGX_SECRET}`,
-      );
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/OGXVectorStoresResponse/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should return 400 when namespace parameter is missing', async () => {
-      const result = await apiClient.get(`/api/v1/ogx/vector-stores?secretName=${OGX_SECRET}`);
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(400);
-    });
-
-    it('should return 400 when secretName parameter is missing', async () => {
-      const result = await apiClient.get(`/api/v1/ogx/vector-stores?namespace=${NS}`);
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(400);
     });
   });
 
@@ -138,14 +89,6 @@ describe('AutoRAG API Contract Tests', () => {
 
     it('should retrieve storage secrets when type=storage', async () => {
       const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=storage`);
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should retrieve ogx secrets when type=ogx', async () => {
-      const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=ogx`);
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
@@ -566,8 +509,8 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
-          ogx_secret_name: OGX_SECRET,
-          vector_io_provider_id: 'milvus',
+          maas_secret_name: 'maas',
+          vector_db_secret_name: 'vector-db',
           chunk_size: 512,
           chunk_overlap: 50,
           chunking_method: 'recursive',
