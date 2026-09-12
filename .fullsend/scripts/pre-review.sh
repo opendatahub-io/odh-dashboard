@@ -39,8 +39,24 @@ normalize_dispatch_context() {
   fi
 }
 
+validate_skill_links() {
+  "${_SCRIPT_DIR}/validate-skill-links.sh"
+}
+
+validate_dimension_registry() {
+  "${_SCRIPT_DIR}/validate-dimensions.sh"
+}
+
 run_self_test() {
   local fail=0
+  if ! validate_skill_links; then
+    echo "FAIL pre-context: canonical Fullsend skill-link validation failed" >&2
+    fail=1
+  fi
+  if ! validate_dimension_registry; then
+    echo "FAIL pre-context: Fullsend dimension-registry validation failed" >&2
+    fail=1
+  fi
   if ! (
     unset GITHUB_PR_URL PR_NUMBER
     FULLSEND_WORK_ITEM_URL='https://github.com/Gkrumbach07/odh-dashboard/pull/61'
@@ -65,6 +81,11 @@ if [[ "${1:-}" == "--self-test" ]]; then
 fi
 
 normalize_dispatch_context
+
+# Fail before sandbox packaging when a repository-relative skill link cannot
+# resolve. Fullsend must package the canonical content, not a copied fallback.
+validate_skill_links
+validate_dimension_registry
 
 echo "::notice::🔗 Review target: ${GITHUB_PR_URL:-}"
 

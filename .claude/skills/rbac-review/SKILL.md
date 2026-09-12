@@ -9,6 +9,24 @@ Evaluates code changes for proper RBAC enforcement. The dashboard serves users w
 
 **Core principle:** Dashboard admins and regular users must be treated identically — every operation requires an explicit SSAR check for the specific verb+resource being accessed. The deprecated `isAdmin` boolean must not be used to assume capabilities. The only user who bypasses checks is a cluster admin (all SSAR pass), and since developers typically test as cluster-admin, they get a false sense that everything works. The skill catches code that will break for any limited-access user.
 
+## Invocation contract
+
+A caller may supply an **invocation meta-prompt**. Honor it for:
+
+- context acquisition and permitted data sources;
+- output format, schema, and delivery destination; and
+- allowed side effects, including whether tools, network access, or posting are permitted.
+
+The meta-prompt is an interface contract, not a replacement for this skill's
+review judgment. It **must not** change the checks in this skill, their
+ownership, severity classification, or evidence requirements. Preserve enough
+file, line, code, expected gate, and user-impact evidence for every conclusion
+even when the caller uses a non-Markdown schema.
+
+When no invocation meta-prompt is supplied, use the standalone defaults in
+this document: acquire context as described in **Inputs**, return the Markdown
+report in **Standalone output**, and make no writes or external posts.
+
 ## Inputs
 
 The user may provide:
@@ -104,7 +122,11 @@ For data-fetching hooks that load sensitive or admin-only data:
 - Verify the hook conditionally fetches based on permission (e.g., `shouldRunCheck` parameter, or wrapping in `useAccessAllowed`).
 - Hooks that unconditionally fetch admin-only resources and rely solely on the backend to reject are acceptable **if** the backend enforces it, but flag as **Info** if the frontend could avoid the failed request.
 
-## Phase 4: Generate report
+## Standalone output
+
+When using the standalone defaults, generate this report. When an invocation
+meta-prompt is supplied, emit its requested format instead while retaining all
+applicable finding evidence and severity.
 
 ```md
 ## RBAC Review — ODH Dashboard

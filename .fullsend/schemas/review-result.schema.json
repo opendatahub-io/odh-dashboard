@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "review-result.schema.json",
   "title": "Review Agent Result",
-  "description": "Agent fills findings, risk, confidence, product_ask, change_summary, verification, and optional decision_needed/inspected. The host post-script sets action and body.",
+  "description": "Agent fills findings, semantic sections, readiness checks, classifications, risk, confidence, change_summary, verification, and optional decision_needed/inspected. The host post-script sets action and body.",
   "type": "object",
   "additionalProperties": false,
   "required": ["pr_number", "repo", "head_sha"],
@@ -19,6 +19,18 @@
     "risk": { "$ref": "#/$defs/rated" },
     "confidence": { "$ref": "#/$defs/confidence_rated" },
     "product_ask": { "$ref": "#/$defs/product_ask" },
+    "jira_criteria": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/jira_criterion" }
+    },
+    "checks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/readiness_check" }
+    },
+    "classifications": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/classifier_result" }
+    },
     "verification": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/verification_row" } },
     "decision_needed": { "$ref": "#/$defs/decision_needed" },
     "inspected": { "$ref": "#/$defs/inspected" },
@@ -143,6 +155,52 @@
         "mismatched": { "type": "array", "items": { "type": "string" } },
         "justified_in_description": { "type": "boolean" },
         "needs_human": { "type": "boolean" }
+      }
+    },
+    "jira_criterion": {
+      "type": "object",
+      "description": "Diff evaluation of one explicit Jira acceptance criterion. This is review context, not a finding and not challenger input.",
+      "additionalProperties": false,
+      "required": ["criterion", "verdict", "evidence"],
+      "properties": {
+        "criterion": { "type": "string", "minLength": 1 },
+        "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISS", "SKIP"] },
+        "evidence": { "type": "string", "minLength": 1 },
+        "stale_comment": { "type": "boolean" }
+      }
+    },
+    "readiness_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "summary"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["pass", "fail", "warning", "not-applicable", "could-not-verify"] },
+        "summary": { "type": "string", "minLength": 1 },
+        "details": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "classifier_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "summary", "classifications"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["completed", "unavailable"] },
+        "summary": { "type": "string", "minLength": 1 },
+        "classifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["subject", "classification", "reason"],
+            "properties": {
+              "subject": { "type": "string", "minLength": 1 },
+              "classification": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
       }
     },
     "label_actions": {
