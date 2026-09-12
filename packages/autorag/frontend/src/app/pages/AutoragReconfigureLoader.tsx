@@ -26,8 +26,22 @@ const LEGACY_WARNING_TITLE = 'Unable to restore all settings';
 const LEGACY_WARNING_BODY =
   'Some parameters from the previous run could not be parsed. Default values will be used instead.';
 
+const hasNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim() !== '';
+
+const hasCurrentConnectionParameters = (params: Record<string, unknown>): boolean =>
+  hasNonEmptyString(params.maas_secret_name) && hasNonEmptyString(params.vector_db_secret_name);
+
+const hasCurrentRuntimeShape = (params: Record<string, unknown>): boolean =>
+  hasCurrentConnectionParameters(params) &&
+  (Array.isArray(params.input_data_keys) || hasNonEmptyString(params.input_data_key)) &&
+  'generation_models' in params &&
+  'embedding_models' in params;
+
 const hasLegacyRuntimeParameters = (params?: Record<string, unknown>): boolean =>
-  !!params && LEGACY_RUNTIME_FIELDS.some((field) => field in params);
+  !!params &&
+  !hasCurrentConnectionParameters(params) &&
+  LEGACY_RUNTIME_FIELDS.some((field) => field in params);
 
 const RECONFIGURE_FIELDS = [
   'description',
@@ -52,7 +66,7 @@ type ReconfigureParseResult = {
 
 const parseReconfigureParameters = (params: Record<string, unknown>): ReconfigureParseResult => {
   const data: Record<string, unknown> = { ...configureSchema.defaults };
-  let hasInvalidFields = false;
+  let hasInvalidFields = !hasLegacyRuntimeParameters(params) && !hasCurrentRuntimeShape(params);
 
   for (const key of RECONFIGURE_FIELDS) {
     if (!(key in params)) {
@@ -70,6 +84,8 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
   const inputDataKeys = z.array(z.string().min(1)).min(1).max(10).safeParse(params.input_data_keys);
   if (inputDataKeys.success) {
     data.input_data_keys = inputDataKeys.data;
+  } else if (hasCurrentConnectionParameters(params) && hasNonEmptyString(params.input_data_key)) {
+    data.input_data_keys = [params.input_data_key];
   } else if ('input_data_keys' in params) {
     data.input_data_keys = [];
     hasInvalidFields = true;

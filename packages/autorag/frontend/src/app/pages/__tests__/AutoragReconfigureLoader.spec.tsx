@@ -174,6 +174,10 @@ describe('AutoragReconfigureLoader', () => {
     renderPage();
 
     expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['documents/a.pdf', 'documents/b.pdf'],
       maas_secret_name: 'maas',
@@ -183,6 +187,90 @@ describe('AutoragReconfigureLoader', () => {
     });
     expect(capturedProps.initialMaaSSecret).toMatchObject({ name: 'maas' });
     expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
+  });
+
+  it('should restore a current run persisted with the temporary KFP input_data_key adapter', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'storage'
+          ? [{ name: 'storage', type: 's3', data: { AWS_S3_BUCKET: 'bucket' } }]
+          : type === 'maas'
+            ? [{ name: 'maas', type: 'maas', data: {} }]
+            : [{ name: 'vector-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_key: 'documents/input.pdf',
+        input_data_secret_name: 'storage',
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
+    expect(capturedProps.initialValues).toMatchObject({
+      input_data_keys: ['documents/input.pdf'],
+      maas_secret_name: 'maas',
+      vector_db_secret_name: 'vector-db',
+      generation_models: ['model-a'],
+      embedding_models: ['model-b'],
+    });
+    expect(capturedProps.initialMaaSSecret).toMatchObject({ name: 'maas' });
+    expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
+  });
+
+  it('should prefer complete canonical values when legacy runtime keys are also present', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'storage'
+          ? [{ name: 'storage', type: 's3', data: { AWS_S3_BUCKET: 'bucket' } }]
+          : type === 'maas'
+            ? [{ name: 'maas', type: 'maas', data: {} }]
+            : [{ name: 'vector-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_key: 'stale-legacy-key.pdf',
+        ogx_secret_name: 'stale-ogx',
+        vector_io_provider_id: 'stale-provider',
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
+    expect(capturedProps.initialValues).toMatchObject({
+      input_data_keys: ['documents/input.pdf'],
+      maas_secret_name: 'maas',
+      vector_db_secret_name: 'vector-db',
+      generation_models: ['model-a'],
+      embedding_models: ['model-b'],
+    });
   });
 
   it('should retain the warning/default behavior for malformed nonlegacy parameters', async () => {

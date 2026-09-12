@@ -1189,6 +1189,75 @@ describe('AutoragConfigurePage', () => {
       return user;
     };
 
+    it('should keep canonical MaaS, vector, and model values through the real reconfigure flow', async () => {
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={noChangeReconfigureInitialValues}
+          initialInputDataSecret={reconfigureInitialSecret}
+          initialMaaSSecret={reconfigureInitialOgxSecret}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const user = await navigateToReconfigureConfigureStep();
+
+      expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('chromadb');
+      expect(screen.getByText('2 foundation models')).toBeInTheDocument();
+      expect(screen.getByText('1 embedding models')).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Create new run' })).toBeEnabled();
+      });
+      await user.click(screen.getByRole('button', { name: 'Create new run' }));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            maas_secret_name: 'Test MaaS Secret',
+            vector_db_secret_name: 'chromadb',
+            generation_models: ['llama-3-8b', 'llama-3-70b'],
+            embedding_models: ['text-embedding-ada-002'],
+          }),
+        );
+      });
+    });
+
+    it('should keep hybrid KFP values enabled and visible through the real reconfigure flow', async () => {
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{
+            ...noChangeReconfigureInitialValues,
+            input_data_keys: ['my-data/input.pdf'],
+          }}
+          initialInputDataSecret={reconfigureInitialSecret}
+          initialMaaSSecret={reconfigureInitialOgxSecret}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const user = await navigateToReconfigureConfigureStep();
+
+      expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('chromadb');
+      expect(screen.getByText('2 foundation models')).toBeInTheDocument();
+      expect(screen.getByText('1 embedding models')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Create new run' }));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            maas_secret_name: 'Test MaaS Secret',
+            vector_db_secret_name: 'chromadb',
+            generation_models: ['llama-3-8b', 'llama-3-70b'],
+            embedding_models: ['text-embedding-ada-002'],
+          }),
+        );
+      });
+    });
+
     it('should fire with success: true and an empty changedFields when nothing was changed', async () => {
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
       renderWithProviders(
