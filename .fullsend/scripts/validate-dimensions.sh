@@ -48,11 +48,12 @@ while IFS=$'\t' read -r id kind output definition meta result_fields inline_skil
     [[ -n "${meta}" && -f "${ROOT_DIR}/.fullsend/${meta}" ]] || fail "${id}: missing meta prompt ${meta:-<none>}"
   fi
   if [[ -n "${inline_skill}" && ! -f "${ROOT_DIR}/.fullsend/${inline_skill}" ]]; then
-    # Not fatal: inline_skill may resolve against the agent's inherited
-    # Fullsend skill namespace rather than this repository's .fullsend tree.
-    # Surface it anyway — an inline_skill that resolves nowhere is silently
-    # dropped at dispatch, and nothing else reports that.
-    printf 'WARN dimension %s: inline_skill %s does not resolve under .fullsend/\n' "${id}" "${inline_skill}" >&2
+    # Expected for a skill the base harness supplies: the run log shows
+    # docs-review loaded into the agent's skill namespace from the harness
+    # cache, not from this repository. Report it so an inline_skill that
+    # resolves in NEITHER place is visible — that one is silently dropped at
+    # dispatch and nothing else reports it.
+    printf 'NOTE dimension %s: inline_skill %s is not under .fullsend/ — it must resolve from the inherited harness skills\n' "${id}" "${inline_skill}" >&2
   fi
   if [[ "${kind}" == "cli-adapter" && "${output}" == context && -n "${meta}" ]]; then
     fail "${id}: cli context adapters must not declare an LLM meta prompt"

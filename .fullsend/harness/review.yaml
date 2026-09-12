@@ -18,6 +18,15 @@ host_files:
 
 model: sonnet
 
+# The base harness allows 20 minutes. The multi-dimension smoke run (PR #71,
+# 4 files, 11 producers) used 16m6s of it — 80% of budget on a deliberately
+# small fixture, and the run that opened this investigation was killed at
+# exactly this cap mid-write. Ordinary PRs qualify more dimensions over more
+# files, so 20 leaves no room. Step 7 of the orchestrator skill now writes and
+# validates the result before any optional work, so a timeout costs enrichment
+# rather than the whole review; this raise is the second half of that belt.
+timeout_minutes: 40
+
 env:
   runner:
     REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
