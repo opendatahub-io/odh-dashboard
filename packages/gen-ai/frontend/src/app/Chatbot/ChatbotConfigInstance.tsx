@@ -8,6 +8,7 @@ import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbot
 import useTracingEnabled from './hooks/useTracingEnabled';
 import useEmbeddedChatbotMessages from './hooks/useEmbeddedChatbotMessages';
 import { useEmbeddedMessagesConfig } from './context/EmbeddedMessagesContext';
+import './ChatbotConfigInstance.scss';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -214,7 +215,9 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   );
 
   return (
-    <MessageBox position="top">
+    // RHOAIENG-58995: move the scrollbar to the panel's outer edge (same CSS as
+    // patternfly/chatbot#868 `hasOuterScrollbar`, kept local to avoid a 6.8 bump).
+    <MessageBox position="top" className="chatbot-messagebox-outer-scroll">
       {showWelcomePrompt &&
         messagesHook.messages.length === 0 &&
         (welcomeContent ?? (
