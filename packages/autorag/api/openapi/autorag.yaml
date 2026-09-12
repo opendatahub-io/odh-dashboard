@@ -1959,7 +1959,7 @@ components:
           example:
             data:
               OGX_CLIENT_BASE_URL: 'aHR0cHM6Ly9vZ3guZXhhbXBsZS5jb20='
-              OGX_CLIENT_API_KEY: 'UkVQTEFDRS1XSVRILUFQSS1LRVk='
+              OGX_CLIENT_API_KEY: 'UkVQTEFDRS1XSVRILUFQSS1LRVk=' # notsecret
       description: A response containing a single secret's base64-encoded key-value data
 
     PipelineRunsResponse:
