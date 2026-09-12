@@ -185,26 +185,6 @@
       "budget_priority": 4,
       "re_review": "full",
       "notes": "Checks the pull request template and description readiness independently of code findings."
-    },
-    {
-      "id": "ci-status-review",
-      "kind": "cli-adapter",
-      "output": "check:ci-status",
-      "dispatch": "always",
-      "runner": "scripts/fetch-ci-context.sh",
-      "producer_file": ".run/ci-status.json",
-      "failure_severity": "info",
-      "notes": "Host-only adapter runs the canonical preflight analyze-ci.sh and writes a sanitized readiness check. CI logs never require sandbox access."
-    },
-    {
-      "id": "ci-flake-classifier",
-      "kind": "cli-adapter",
-      "output": "classifier:ci-flake",
-      "dispatch": "always",
-      "runner": "scripts/fetch-ci-context.sh",
-      "producer_file": ".run/ci-flake-classifier.json",
-      "failure_severity": "info",
-      "notes": "Host-only adapter invokes scripts/classify-ci-failures.py only when analyze-ci.sh reports failures. Classifications never enter challenger synthesis."
     }
   ]
 }

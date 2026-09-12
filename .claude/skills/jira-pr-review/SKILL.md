@@ -109,11 +109,37 @@ which discards the content along with the key.
 
 For direct CLI use, present a human-readable Markdown report with the Jira/PR identity, product-ask result, a per-criterion table, stale-criteria flags when applicable, and the overall assessment. Do not post comments, modify Jira, or modify GitHub unless separately authorized by the caller.
 
-When a caller maps results to findings, use these defaults:
+When a caller maps results to findings, **the verdict decides the finding, and
+the mapping is total**: every criterion produces exactly the row below for its
+verdict, and nothing else.
 
-- `PARTIAL` may become a medium `jira-criterion-partial` finding.
-- `MISS` may become a high `jira-criterion-missing` finding; use a non-file location when no honest changed line exists.
-- A stale criterion may become a non-blocking informational `jira-criterion-stale` finding.
-- No explicit criteria may become a non-blocking informational `jira-eval-unavailable` result.
+| Verdict | Finding |
+| --- | --- |
+| `PASS` | none |
+| `SKIP` | none |
+| `PARTIAL` | one medium `jira-criterion-partial` |
+| `MISS` | one high `jira-criterion-missing`; use a non-file location when no honest changed line exists |
 
-Do not emit findings for `PASS` or `SKIP` unless the caller's contract explicitly requires an informational record.
+A stale criterion additionally allows one non-blocking informational
+`jira-criterion-stale`. When the issue has no explicit criteria at all, report a
+non-blocking informational `jira-eval-unavailable` result instead of per-criterion
+findings.
+
+**`PASS` and `SKIP` emit no finding, with no exceptions.** A caller's contract
+cannot add one: it owns serialization, not evidence. Emitting a
+`jira-criterion-missing` for a criterion the table verdicts `SKIP` states two
+different conclusions about the same criterion in one report, and the finding is
+the one that blocks the PR — so the contradiction is not cosmetic, it invents a
+blocker out of a criterion you said you could not evaluate.
+
+Before returning, check the two against each other: the number of
+`jira-criterion-partial` findings must equal the number of `PARTIAL` verdicts,
+and the number of `jira-criterion-missing` findings must equal the number of
+`MISS` verdicts. If they disagree, the verdicts are correct and the findings are
+wrong — regenerate the findings from the verdicts.
+
+Choosing between `SKIP` and `MISS` is what makes this mapping safe, so decide it
+deliberately: `MISS` means this diff was supposed to carry the evidence and does
+not. `SKIP` means the evidence lives somewhere this review cannot see — another
+PR, a runtime check, a document, a later phase of the same epic. A criterion
+about work that is plainly out of this PR's scope is `SKIP`, not `MISS`.

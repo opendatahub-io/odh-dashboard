@@ -210,16 +210,36 @@ def normalize_protected_findings(result):
         }
     return result
 
+def unverified_producers(result):
+    """Everything this run could not establish, by whatever shape reported it.
+
+    A producer that failed is a producer that did not run, whether it reported
+    that as a could-not-verify verification row, a could-not-verify readiness
+    check, or an unavailable classifier. Reading only one of the three lets a
+    review claim every producer ran while a section of itself says otherwise."""
+    names = []
+    for row in result.get("verification") or []:
+        if row.get("result") == "could-not-verify":
+            names.append(row.get("label") or row.get("id") or "verification check")
+    for check in result.get("checks") or []:
+        if check.get("status") == "could-not-verify":
+            names.append(check.get("id") or "readiness check")
+    for classifier in result.get("classifications") or []:
+        if classifier.get("status") == "unavailable":
+            names.append(classifier.get("id") or "classifier")
+    return names
+
 def cap_confidence(result):
     """Confidence follows the weaker of proof quality and completeness."""
-    rows = result.get("verification") or []
-    if not any(row.get("result") == "could-not-verify" for row in rows):
+    missing = unverified_producers(result)
+    if not missing:
         return result
     confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
     if (confidence.get("level") or "high").lower() != "high":
         return result
     why = (confidence.get("why") or "").strip()
-    limit = "At least one verification check could not be performed in this run, so patch-review completeness is partial."
+    listed = ", ".join(sorted(set(missing)))
+    limit = f"This run could not establish: {listed}. Patch-review completeness is therefore partial."
     result["confidence"] = {"level": "medium", "why": (why + " " + limit).strip()}
     return result
 
@@ -307,6 +327,16 @@ def augment_inspected(result):
         if row.get("result") == "could-not-verify":
             note = row.get("notes") or row.get("label")
             if note and note not in could_not_verify:
+                could_not_verify.append(note)
+    for check in result.get("checks") or []:
+        if check.get("status") == "could-not-verify":
+            note = f"{check.get('id') or 'readiness check'}: {check.get('summary') or 'could not be verified'}"
+            if note not in could_not_verify:
+                could_not_verify.append(note)
+    for classifier in result.get("classifications") or []:
+        if classifier.get("status") == "unavailable":
+            note = f"{classifier.get('id') or 'classifier'}: {classifier.get('summary') or 'unavailable'}"
+            if note not in could_not_verify:
                 could_not_verify.append(note)
     if could_not_verify:
         inspected["could_not_verify"] = could_not_verify
@@ -601,7 +631,7 @@ run_self_test() {
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"classifications\":[{\"id\":\"ci-flake-classifier\",\"status\":\"completed\",\"summary\":\"One failed check classified.\",\"classifications\":[{\"subject\":\"unit\",\"classification\":\"flaky\",\"reason\":\"Repeated on unrelated PRs.\"}]}]}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"classifications\":[{\"id\":\"example-classifier\",\"status\":\"completed\",\"summary\":\"One failed check classified.\",\"classifications\":[{\"subject\":\"unit\",\"classification\":\"flaky\",\"reason\":\"Repeated on unrelated PRs.\"}]}]}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
   if ! grep -q '## Readiness checks' <<<"${body}" ||
@@ -609,7 +639,7 @@ run_self_test() {
      ! grep -q '## Jira acceptance criteria' <<<"${body}" ||
      ! grep -q 'Permission is checked' <<<"${body}" ||
      ! grep -q '### Classifications' <<<"${body}" ||
-     ! grep -q 'ci-flake-classifier' <<<"${body}"; then
+     ! grep -q 'example-classifier' <<<"${body}"; then
     echo "FAIL structured results: checks or classifications were not rendered" >&2
     fail=1
   else
@@ -665,7 +695,7 @@ run_self_test() {
     echo "PASS supported protected-path routes to human judgment, not request-changes"
   fi
 
-  printf '%s' '{"dispatched":["correctness"],"adapters":["ci-status-review"],"skipped":[{"id":"security","reason":"no auth, secrets or config touched"}],"challenger":"skipped-empty-set","returned":["correctness"]}' > "${tmp}/producers.json"
+  printf '%s' '{"dispatched":["correctness"],"adapters":["jira-snapshot"],"skipped":[{"id":"security","reason":"no auth, secrets or config touched"}],"challenger":"skipped-empty-set","returned":["correctness"]}' > "${tmp}/producers.json"
   printf '%s' "{${common},\"findings\":[],\"inspected\":{\"summary\":\"Read the diff.\",\"producers\":[\"correctness\",\"security\",\"challenger\"]}}" > "${tmp}/ledger.json"
   (
     export REVIEW_PRODUCER_LEDGER="${tmp}/producers.json"
@@ -674,7 +704,7 @@ run_self_test() {
   if ! jq -e '(.verification[] | select(.id == "security") | .result) == "could-not-verify"' "${tmp}/ledger-out.json" >/dev/null; then
     echo "FAIL ledger: a skipped dimension still reported a pass verification row" >&2
     fail=1
-  elif ! jq -e '.inspected.producers == ["correctness","ci-status-review"]' "${tmp}/ledger-out.json" >/dev/null; then
+  elif ! jq -e '.inspected.producers == ["correctness","jira-snapshot"]' "${tmp}/ledger-out.json" >/dev/null; then
     echo "FAIL ledger: producer list was not reconciled against the ledger" >&2
     fail=1
   elif ! jq -e '.confidence.level == "medium"' "${tmp}/ledger-out.json" >/dev/null; then
@@ -682,6 +712,21 @@ run_self_test() {
     fail=1
   else
     echo "PASS ledger reconciles producers, verification rows and confidence"
+  fi
+
+  # An unavailable readiness check is an incomplete review, even when every
+  # verification row passed. This is the shape the 51-minute smoke run hit:
+  # ci-status-review could-not-verify while confidence still claimed high.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"ci-status-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}]}" > "${tmp}/unavailable-check.json"
+  transform_review_result "${tmp}/unavailable-check.json" > "${tmp}/unavailable-check-out.json"
+  if ! jq -e '.confidence.level == "medium" and (.confidence.why | contains("ci-status-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+    echo "FAIL unavailable-check: confidence stayed high despite an unverifiable readiness check" >&2
+    fail=1
+  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("ci-status-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+    echo "FAIL unavailable-check: the limit was not recorded in inspected" >&2
+    fail=1
+  else
+    echo "PASS unavailable readiness check caps confidence and is recorded"
   fi
 
   if [[ "${fail}" -ne 0 ]]; then

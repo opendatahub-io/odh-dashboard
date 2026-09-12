@@ -15,12 +15,6 @@ host_files:
   - src: .run/jira.json
     dest: /sandbox/workspace/.fullsend/.run/jira.json
     optional: true
-  - src: .run/ci-status.json
-    dest: /sandbox/workspace/.fullsend/.run/ci-status.json
-    optional: true
-  - src: .run/ci-flake-classifier.json
-    dest: /sandbox/workspace/.fullsend/.run/ci-flake-classifier.json
-    optional: true
 
 model: sonnet
 

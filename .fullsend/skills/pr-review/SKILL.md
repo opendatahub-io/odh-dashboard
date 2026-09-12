@@ -92,12 +92,6 @@ inside Claude's uploaded personal-skill copy, where Fullsend preserves the
 repository-relative links without also uploading their `.claude/skills`
 targets.
 
-Host-only review components live under
-`skills/pr-review/host-adapters`. Their links preserve the same canonical
-ownership, but they are not prompt definitions and must never be spawned.
-The host scripts invoke their deterministic implementations and place only
-normalized envelopes in `.fullsend/.run/` for this orchestrator to consume.
-
 If `dimensions.json` is missing or `dimensions` is empty, fail the
 review (`action: failure`, `reason: missing-context`). Do not fall
 back to a baked-in name list.

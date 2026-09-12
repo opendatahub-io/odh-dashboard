@@ -22,7 +22,7 @@
   ],
   "classifications": [
     {
-      "id": "ci-flake-classifier",
+      "id": "example-classifier",
       "status": "completed",
       "summary": "No failed checks required classification.",
       "classifications": []

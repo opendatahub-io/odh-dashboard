@@ -5,20 +5,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SUBAGENTS_DIR="${ROOT_DIR}/.fullsend/skills/pr-review/sub-agents"
-HOST_ADAPTERS_DIR="${ROOT_DIR}/.fullsend/skills/pr-review/host-adapters"
 EXPECTED_TARGET='../../../../.claude/skills'
-SKILLS=(style-review rbac-review jira-pr-review test-impact-review pr-description-review ci-status-review ci-flake-classifier)
-SANDBOX_SKILLS=(style-review rbac-review jira-pr-review test-impact-review pr-description-review)
+# Every Fullsend reviewer is now a sandbox-spawned skill. The host-adapters
+# directory is gone with the CI adapters; jira-snapshot's runner is a plain
+# script, not a linked canonical skill.
+SKILLS=(style-review rbac-review jira-pr-review test-impact-review pr-description-review)
+SANDBOX_SKILLS=("${SKILLS[@]}")
 
 fail=0
 for skill in "${SKILLS[@]}"; do
-  if [[ " ${SANDBOX_SKILLS[*]} " == *" ${skill} "* ]]; then
-    link="${SUBAGENTS_DIR}/${skill}"
-    display_path=".fullsend/skills/pr-review/sub-agents/${skill}"
-  else
-    link="${HOST_ADAPTERS_DIR}/${skill}"
-    display_path=".fullsend/skills/pr-review/host-adapters/${skill}"
-  fi
+  link="${SUBAGENTS_DIR}/${skill}"
+  display_path=".fullsend/skills/pr-review/sub-agents/${skill}"
   target="${EXPECTED_TARGET}/${skill}"
   if [[ ! -L "${link}" ]]; then
     echo "FAIL ${skill}: expected repository-relative symlink at ${display_path}" >&2
