@@ -31,6 +31,7 @@ const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
 let mockLocationState: { from?: string } | undefined;
+let mockAutoSelectInputDataKey = true;
 const mockS3UploadMutateAsync = jest
   .fn()
   .mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
@@ -237,7 +238,7 @@ jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', 
       if (inputDataSecretName && inputDataBucketName && !testDataKey) {
         setValue('test_data_key', 'evaluation-dataset.json', { shouldValidate: true });
       }
-      if (!inputDataKeys?.length) {
+      if (mockAutoSelectInputDataKey && !inputDataKeys?.length) {
         setValue('input_data_keys', ['test-file.txt'], { shouldValidate: true });
       }
       if (!vectorDbSecretName) {
@@ -452,6 +453,7 @@ describe('AutoragConfigurePage', () => {
     mockFileExplorerCallCount = 0;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
     mockLocationState = undefined;
+    mockAutoSelectInputDataKey = true;
   });
 
   describe('Initial state', () => {
@@ -704,6 +706,20 @@ describe('AutoragConfigurePage', () => {
       expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument();
     });
+  });
+
+  it('should disable Create run until an input data key is selected', async () => {
+    mockAutoSelectInputDataKey = false;
+    const user = userEvent.setup();
+    renderWithProviders(<AutoragConfigurePage />);
+
+    const nameInput = await screen.findByLabelText(/Name/i);
+    await user.type(nameInput, 'My Experiment');
+    await user.click(await screen.findByTestId('maas-secret-selector-select-secret'));
+    await user.click(await screen.findByRole('button', { name: 'Next' }));
+
+    const runButton = await screen.findByRole('button', { name: 'Create run' });
+    await waitFor(() => expect(runButton).toBeDisabled());
   });
 
   describe('Configure step - Back button', () => {

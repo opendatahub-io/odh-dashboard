@@ -33,6 +33,16 @@ describe('Configure Schema', () => {
     expect(schema.full.safeParse(validData).success).toBe(true);
   });
 
+  it('should accept one valid canonical corpus location', () => {
+    const result = schema.full.safeParse({ ...validData, input_data_keys: ['input/data.csv'] });
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject empty canonical corpus locations', () => {
+    const result = schema.full.safeParse({ ...validData, input_data_keys: [] });
+    expect(result.success).toBe(false);
+  });
+
   it('should reject missing canonical connection fields', () => {
     const result = schema.full.safeParse({
       ...validData,
