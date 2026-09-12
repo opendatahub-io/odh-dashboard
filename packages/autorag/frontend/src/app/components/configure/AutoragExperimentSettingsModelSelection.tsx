@@ -20,7 +20,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-table';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
-import { useController, useFormContext } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -81,23 +81,22 @@ const ModelsToTestHelpContent: React.FC = () => (
 
 const DEFAULT_PER_PAGE = 5;
 
-const AutoragExperimentSettingsModelSelection: React.FC = () => {
+type AutoragExperimentSettingsModelSelectionProps = {
+  generationModels: string[];
+  embeddingModels: string[];
+  onGenerationModelsChange: (models: string[]) => void;
+  onEmbeddingModelsChange: (models: string[]) => void;
+};
+
+const AutoragExperimentSettingsModelSelection: React.FC<
+  AutoragExperimentSettingsModelSelectionProps
+> = ({ generationModels, embeddingModels, onGenerationModelsChange, onEmbeddingModelsChange }) => {
   const [activeModelType, setActiveModelType] = React.useState<'llm' | 'embedding'>('llm');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const form = useFormContext<ConfigureSchema>();
   const { namespace = '' } = useParams();
-
-  const { field: generationModelField } = useController({
-    control: form.control,
-    name: 'generation_models',
-  });
-
-  const { field: embeddingModelField } = useController({
-    control: form.control,
-    name: 'embedding_models',
-  });
 
   const {
     data: modelsData,
@@ -106,8 +105,16 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
   } = useMaaSModelsQuery(namespace, form.watch('maas_secret_name'));
   const availableMaaSModels: MaaSModel[] = modelsData?.models ?? [];
   const tabData = {
-    llm: { field: generationModelField, models: availableMaaSModels },
-    embedding: { field: embeddingModelField, models: availableMaaSModels },
+    llm: {
+      selectedModels: generationModels,
+      onChange: onGenerationModelsChange,
+      models: availableMaaSModels,
+    },
+    embedding: {
+      selectedModels: embeddingModels,
+      onChange: onEmbeddingModelsChange,
+      models: availableMaaSModels,
+    },
   };
 
   const activeModels = tabData[activeModelType].models;
@@ -190,8 +197,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
             aria-label="Model selection tabs"
           >
             {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
-              const { field, models } = tabData[modelType];
-              const selectedModels = field.value;
+              const { selectedModels, onChange, models } = tabData[modelType];
               const selectedCount = selectedModels.filter((id) =>
                 models.some((model) => model.id === id),
               ).length;
@@ -202,7 +208,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                 );
 
               const handleSelectAll = (isSelecting: boolean) => {
-                field.onChange(
+                onChange(
                   isSelecting
                     ? models.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
                     : [],
@@ -213,7 +219,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                 const updated = isSelecting
                   ? [...selectedModels, modelId]
                   : selectedModels.filter((selectedModel) => selectedModel !== modelId);
-                field.onChange(updated.toSorted((a, b) => a.localeCompare(b)));
+                onChange(updated.toSorted((a, b) => a.localeCompare(b)));
               };
 
               return (

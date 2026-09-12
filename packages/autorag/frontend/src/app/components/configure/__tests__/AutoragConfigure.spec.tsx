@@ -779,8 +779,22 @@ describe('AutoragConfigure', () => {
             .querySelector('.pf-v6-c-form__label-required'),
         ).toBeInTheDocument();
       }
-      expect(screen.getByText('No foundation models selected')).toBeInTheDocument();
-      expect(screen.getByText('No embedding models selected')).toBeInTheDocument();
+      expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
+      expect(screen.getByTestId('selected-models-warning')).toHaveClass('pf-v6-c-alert');
+      expect(screen.queryByRole('heading', { name: 'Selected models' })).not.toBeInTheDocument();
+      expect(screen.getByText('Selected models')).toHaveClass('pf-v6-c-alert__title');
+      expect(
+        screen.getByText(
+          'No models selected. Select chat and embedding models to run the experiment.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('No foundation models selected')).not.toBeInTheDocument();
+      expect(screen.queryByText('No embedding models selected')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('select-models-button'));
+      expect(screen.getByTestId('experiment-settings-modal')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('experiment-settings-cancel'));
+      expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
     });
   });
 
@@ -1502,8 +1516,9 @@ describe('AutoragConfigure', () => {
       // Assert the exact retained model IDs (not just counts) so a regression that
       // swaps the selection for a same-sized set of different models (e.g.
       // llm-model-1 -> llm-model-2) is caught rather than passing on count alone.
-      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
-      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+      expect(screen.getByText(/1 foundation models/)).toBeInTheDocument();
+      expect(screen.getByText(/1 embedding models/)).toBeInTheDocument();
+      expect(screen.queryByTestId('selected-models-warning')).not.toBeInTheDocument();
       expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
       expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
     });
@@ -1663,7 +1678,7 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
-    it('should disable "Edit" button when model loading fails', () => {
+    it('should keep the model selection CTA available when model loading fails', () => {
       mockUseMaaSModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
@@ -1679,11 +1694,10 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-      // Model loading is deferred until the model selection view is opened.
-      expect(screen.getByRole('button', { name: 'Edit' })).toBeEnabled();
+      expect(screen.getByTestId('select-models-button')).toBeEnabled();
     });
 
-    it('should enable "Edit" button when a file/folder is selected', () => {
+    it('should keep the model selection CTA visible when a file/folder is selected', () => {
       mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
@@ -1705,7 +1719,7 @@ describe('AutoragConfigure', () => {
       expect(
         screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('select-models-button')).not.toBeInTheDocument();
 
       // Click "Browse bucket" button to open FileExplorer
       const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
@@ -1718,9 +1732,8 @@ describe('AutoragConfigure', () => {
       const fileSelectButton = screen.getByTestId('file-explorer-select-file');
       fireEvent.click(fileSelectButton);
 
-      // Now Edit button should be visible and enabled after files are selected
-      const editButton = screen.getByRole('button', { name: 'Edit' });
-      expect(editButton).toBeEnabled();
+      // Model selection remains empty until the user chooses models.
+      expect(screen.getByTestId('select-models-button')).toBeEnabled();
     });
   });
 });

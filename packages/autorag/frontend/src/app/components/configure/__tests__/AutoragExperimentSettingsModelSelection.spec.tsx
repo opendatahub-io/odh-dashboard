@@ -2,11 +2,11 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, useFormContext, useWatch } from 'react-hook-form';
 import userEvent from '@testing-library/user-event';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
-import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 
 jest.mock('~/app/hooks/queries', () => ({
   useMaaSModelsQuery: jest.fn(),
@@ -30,6 +30,23 @@ const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <FormProvider {...form}>{children}</FormProvider>;
 };
 
+const ModelSelectionForm: React.FC = () => {
+  const { control, setValue } = useFormContext<ConfigureSchema>();
+  const [generationModels, embeddingModels] = useWatch({
+    control,
+    name: ['generation_models', 'embedding_models'],
+  });
+
+  return (
+    <AutoragExperimentSettingsModelSelection
+      generationModels={generationModels}
+      embeddingModels={embeddingModels}
+      onGenerationModelsChange={(selectedModels) => setValue('generation_models', selectedModels)}
+      onEmbeddingModelsChange={(selectedModels) => setValue('embedding_models', selectedModels)}
+    />
+  );
+};
+
 describe('AutoragExperimentSettingsModelSelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -44,14 +61,14 @@ describe('AutoragExperimentSettingsModelSelection', () => {
     const user = userEvent.setup();
     render(
       <FormWrapper>
-        <AutoragExperimentSettingsModelSelection />
+        <ModelSelectionForm />
       </FormWrapper>,
     );
 
     expect(screen.getAllByTestId('model-row-model-a')).toHaveLength(2);
     expect(screen.getAllByText('Model A')).toHaveLength(2);
-    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('0/2');
-    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('0/2');
+    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent(/0.2/);
+    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent(/0.2/);
     await user.click(screen.getByTestId('embedding-models-tab'));
     expect(screen.getAllByTestId('model-row-model-a')).toHaveLength(2);
     expect(screen.getAllByTestId('model-row-model-b')[0].querySelector('span')).toHaveAttribute(
@@ -64,7 +81,7 @@ describe('AutoragExperimentSettingsModelSelection', () => {
     const user = userEvent.setup();
     render(
       <FormWrapper>
-        <AutoragExperimentSettingsModelSelection />
+        <ModelSelectionForm />
       </FormWrapper>,
     );
 
@@ -72,7 +89,7 @@ describe('AutoragExperimentSettingsModelSelection', () => {
     await user.click(screen.getByTestId('embedding-models-tab'));
     await user.click(screen.getAllByTestId('model-row-model-a')[1].querySelector('input')!);
 
-    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('1/2');
-    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('1/2');
+    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent(/1.2/);
+    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent(/1.2/);
   });
 });

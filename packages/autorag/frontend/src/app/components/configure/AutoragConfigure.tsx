@@ -6,6 +6,7 @@ import {
 import type { Connection } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -211,6 +212,8 @@ function AutoragConfigure({
     testDataSecretName,
     testDataBucketName,
     inputDataKeys,
+    generationModels,
+    embeddingModels,
   ] = useWatch({
     control: form.control,
     name: [
@@ -219,6 +222,8 @@ function AutoragConfigure({
       'test_data_secret_name',
       'test_data_bucket_name',
       'input_data_keys',
+      'generation_models',
+      'embedding_models',
     ],
   });
 
@@ -966,113 +971,135 @@ function AutoragConfigure({
                         description="Select models to determine how documents are retrieved and which models generate responses."
                         isRequired
                       >
-                        <Card>
-                          <CardHeader>
-                            <Split hasGutter className="pf-v6-u-w-100">
-                              <SplitItem isFilled>
-                                <CardTitle>Selected models</CardTitle>
-                              </SplitItem>
-                              <SplitItem>
-                                <Watch
-                                  key="edit-experiment-settings"
-                                  control={form.control}
-                                  name="input_data_keys"
-                                  render={(inputDataKeyValue) => (
-                                    <Button
-                                      variant="secondary"
-                                      onClick={openExperimentSettings}
-                                      isDisabled={
-                                        !inputDataBucketName ||
-                                        inputDataKeyValue.length === 0 ||
-                                        form.formState.isSubmitting
-                                      }
-                                    >
-                                      Edit
-                                    </Button>
-                                  )}
-                                />
-                              </SplitItem>
-                            </Split>
-                          </CardHeader>
-                          <CardBody>
-                            <Stack hasGutter>
-                              <StackItem>
-                                <Watch
-                                  control={form.control}
-                                  name="generation_models"
-                                  render={(generationModels) => (
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spacer={{ default: 'spacerNone' }}
-                                      gap={{ default: 'gapSm' }}
-                                    >
-                                      <Content>
-                                        {generationModels.length
-                                          ? `${generationModels.length} foundation models`
-                                          : 'No foundation models selected'}
-                                      </Content>
-                                      {!!generationModels.length && (
-                                        <Popover
-                                          bodyContent={
-                                            <List>
-                                              {generationModels.map((model) => (
-                                                <ListItem key={`generation-${model}`}>
-                                                  {model}
-                                                </ListItem>
-                                              ))}
-                                            </List>
-                                          }
-                                        >
-                                          <DashboardPopupIconButton
-                                            icon={<InfoCircleIcon />}
-                                            hasNoPadding
-                                          />
-                                        </Popover>
-                                      )}
-                                    </Flex>
-                                  )}
-                                />
-                              </StackItem>
-                              <StackItem>
-                                <Watch
-                                  control={form.control}
-                                  name="embedding_models"
-                                  render={(embeddingModels) => (
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spacer={{ default: 'spacerNone' }}
-                                      gap={{ default: 'gapSm' }}
-                                    >
-                                      <Content>
-                                        {embeddingModels.length
-                                          ? `${embeddingModels.length} embedding models`
-                                          : 'No embedding models selected'}
-                                      </Content>
-                                      {!!embeddingModels.length && (
-                                        <Popover
-                                          bodyContent={
-                                            <List>
-                                              {embeddingModels.map((model) => (
-                                                <ListItem key={`embedding-${model}`}>
-                                                  {model}
-                                                </ListItem>
-                                              ))}
-                                            </List>
-                                          }
-                                        >
-                                          <DashboardPopupIconButton
-                                            icon={<InfoCircleIcon />}
-                                            hasNoPadding
-                                          />
-                                        </Popover>
-                                      )}
-                                    </Flex>
-                                  )}
-                                />
-                              </StackItem>
-                            </Stack>
-                          </CardBody>
-                        </Card>
+                        {generationModels.length === 0 && embeddingModels.length === 0 ? (
+                          <Alert
+                            variant="warning"
+                            isInline
+                            title="Selected models"
+                            data-testid="selected-models-warning"
+                          >
+                            <Content component="p">
+                              No models selected. Select chat and embedding models to run the
+                              experiment.
+                            </Content>
+                            <Button
+                              variant="primary"
+                              onClick={openExperimentSettings}
+                              isDisabled={isSubmitting}
+                              data-testid="select-models-button"
+                            >
+                              Select models
+                            </Button>
+                          </Alert>
+                        ) : (
+                          <Card>
+                            <CardHeader>
+                              <Split hasGutter className="pf-v6-u-w-100">
+                                <SplitItem isFilled>
+                                  <CardTitle>Selected models</CardTitle>
+                                </SplitItem>
+                                <SplitItem>
+                                  <Watch
+                                    key="edit-experiment-settings"
+                                    control={form.control}
+                                    name="input_data_keys"
+                                    render={(inputDataKeyValue) => (
+                                      <Button
+                                        variant="secondary"
+                                        onClick={openExperimentSettings}
+                                        isDisabled={
+                                          !inputDataBucketName ||
+                                          inputDataKeyValue.length === 0 ||
+                                          form.formState.isSubmitting
+                                        }
+                                      >
+                                        Edit
+                                      </Button>
+                                    )}
+                                  />
+                                </SplitItem>
+                              </Split>
+                            </CardHeader>
+                            <CardBody>
+                              <Stack hasGutter>
+                                <StackItem>
+                                  <Watch
+                                    control={form.control}
+                                    name="generation_models"
+                                    render={(selectedGenerationModels) => (
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spacer={{ default: 'spacerNone' }}
+                                        gap={{ default: 'gapSm' }}
+                                      >
+                                        <Content>
+                                          {selectedGenerationModels.length
+                                            ? `${selectedGenerationModels.length} foundation models`
+                                            : 'No foundation models selected'}
+                                        </Content>
+                                        {!!selectedGenerationModels.length && (
+                                          <Popover
+                                            bodyContent={
+                                              <List>
+                                                {selectedGenerationModels.map((model) => (
+                                                  <ListItem key={`generation-${model}`}>
+                                                    {model}
+                                                  </ListItem>
+                                                ))}
+                                              </List>
+                                            }
+                                          >
+                                            <DashboardPopupIconButton
+                                              icon={<InfoCircleIcon />}
+                                              hasNoPadding
+                                            />
+                                          </Popover>
+                                        )}
+                                      </Flex>
+                                    )}
+                                  />
+                                </StackItem>
+                                <StackItem>
+                                  <Watch
+                                    control={form.control}
+                                    name="embedding_models"
+                                    render={(selectedEmbeddingModels) => (
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spacer={{ default: 'spacerNone' }}
+                                        gap={{ default: 'gapSm' }}
+                                      >
+                                        <Content>
+                                          {selectedEmbeddingModels.length
+                                            ? `${selectedEmbeddingModels.length} embedding models`
+                                            : 'No embedding models selected'}
+                                        </Content>
+                                        {!!selectedEmbeddingModels.length && (
+                                          <Popover
+                                            bodyContent={
+                                              <List>
+                                                {selectedEmbeddingModels.map((model) => (
+                                                  <ListItem key={`embedding-${model}`}>
+                                                    {model}
+                                                  </ListItem>
+                                                ))}
+                                              </List>
+                                            }
+                                          >
+                                            <DashboardPopupIconButton
+                                              icon={<InfoCircleIcon />}
+                                              hasNoPadding
+                                            />
+                                          </Popover>
+                                        )}
+                                      </Flex>
+                                    )}
+                                  />
+                                </StackItem>
+                              </Stack>
+                            </CardBody>
+                          </Card>
+                        )}
                       </ConfigureFormGroup>
                     </FlexItem>
                   </Flex>
