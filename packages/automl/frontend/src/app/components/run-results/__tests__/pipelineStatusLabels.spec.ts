@@ -5,6 +5,7 @@ import {
   getPipelineStatusFilterLabel,
   getPipelineTreeLoadingContent,
   mapPipelineStatusToLabelAppearance,
+  shouldShowStageMapUnavailableNotice,
   type PipelineTreeLoadingMode,
 } from '~/app/components/run-results/pipelineStatusLabels';
 
@@ -90,5 +91,63 @@ describe('pipeline status label fallbacks', () => {
       variant: 'idle',
       secondaryText: 'Select a step to view its details.',
     });
+  });
+});
+
+describe('shouldShowStageMapUnavailableNotice', () => {
+  const terminalWithoutMap = {
+    hasStageMapTask: true,
+    hasComponentStageMap: false,
+    componentStageMapLoading: false,
+    runIsTerminal: true,
+  };
+
+  it('should return true when a terminal run has a stage map task but no map', () => {
+    expect(shouldShowStageMapUnavailableNotice(terminalWithoutMap)).toBe(true);
+  });
+
+  it('should return false while the run is still in progress', () => {
+    expect(
+      shouldShowStageMapUnavailableNotice({
+        ...terminalWithoutMap,
+        runIsTerminal: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when the stage map is available', () => {
+    expect(
+      shouldShowStageMapUnavailableNotice({
+        ...terminalWithoutMap,
+        hasComponentStageMap: true,
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when the pipeline has no stage map task', () => {
+    expect(
+      shouldShowStageMapUnavailableNotice({
+        ...terminalWithoutMap,
+        hasStageMapTask: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false while the tree is still loading', () => {
+    expect(
+      shouldShowStageMapUnavailableNotice({
+        ...terminalWithoutMap,
+        treeLoadingMode: 'hydrating',
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false while the stage map is still loading', () => {
+    expect(
+      shouldShowStageMapUnavailableNotice({
+        ...terminalWithoutMap,
+        componentStageMapLoading: true,
+      }),
+    ).toBe(false);
   });
 });
