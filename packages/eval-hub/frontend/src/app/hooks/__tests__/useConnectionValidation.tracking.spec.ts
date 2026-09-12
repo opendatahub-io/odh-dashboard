@@ -13,6 +13,12 @@ jest.mock('~/app/api/k8s', () => ({
 }));
 
 jest.mock('~/app/utils/validationUtils', () => ({
+  RECOGNIZED_CONNECTION_ERROR_CODES: new Set([
+    'CONNECTION_FAILED',
+    'TIMEOUT',
+    'UNAUTHORIZED',
+    'FORBIDDEN',
+  ]),
   getUserFriendlyConnectionError: (code: string | undefined, mode: string) =>
     code ? `Error ${code} for ${mode}` : `Unknown error for ${mode}`,
 }));
@@ -76,7 +82,27 @@ describe('useConnectionValidation - Tracking Events', () => {
   });
 
   describe('Evaluations External Connection Tested - Error', () => {
-    it('should fire error tracking event when connection fails', async () => {
+    it('should fire error tracking event with recognized error code', async () => {
+      mockVerifyConnection.mockReturnValue(() =>
+        Promise.reject({ error: { code: 'CONNECTION_FAILED' } }),
+      );
+
+      const { result } = renderHook(() => useConnectionValidation(defaultParams));
+
+      await act(async () => {
+        await result.current.handleVerifyConnection();
+      });
+
+      await waitFor(() => {
+        expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
+          outcome: 'error',
+          endpointType: 'model',
+          error: 'Error CONNECTION_FAILED for model',
+        });
+      });
+    });
+
+    it('should fire error tracking event with generic message for unrecognized error code', async () => {
       mockVerifyConnection.mockReturnValue(() => Promise.reject({ error: { code: '503' } }));
 
       const { result } = renderHook(() => useConnectionValidation(defaultParams));
@@ -89,7 +115,7 @@ describe('useConnectionValidation - Tracking Events', () => {
         expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
           outcome: 'error',
           endpointType: 'model',
-          error: 'Error 503 for model',
+          error: 'Unknown error for model',
         });
       });
     });

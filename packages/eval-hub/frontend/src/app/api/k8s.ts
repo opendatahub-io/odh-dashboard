@@ -502,17 +502,20 @@ export const getEvaluationJobBenchmarkLogs =
 export const verifyConnection =
   (hostPath: string, namespace: string, request: VerifyConnectionRequest) =>
   (opts: APIOptions): Promise<VerifyConnectionResponse> =>
-    handleRestFailures(
-      restCREATE(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/verify-connection`,
-        request,
-        { namespace },
-        opts,
-      ),
-    ).then((response) => {
+    restCREATE(
+      hostPath,
+      `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/verify-connection`,
+      request,
+      { namespace },
+      opts,
+    ).then((response: unknown) => {
       if (isModArchResponse<VerifyConnectionResponse>(response)) {
         return response.data;
+      }
+      if (response && typeof response === 'object' && 'error' in response) {
+        const { error } = response as { error: unknown }; // eslint-disable-line @typescript-eslint/consistent-type-assertions
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw { error };
       }
       throw new Error('Invalid response format');
     });
