@@ -625,6 +625,21 @@ func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface
 	}
 }
 
+// RetrieveVectorStore retrieves a single vector store by ID.
+// Used for ownership validation (defense-in-depth) before mutating operations.
+func (c *LlamaStackClient) RetrieveVectorStore(ctx context.Context, vectorStoreID string) (*openai.VectorStore, error) {
+	if vectorStoreID == "" {
+		return nil, NewInvalidRequestError("vectorStoreID is required")
+	}
+
+	vectorStore, err := c.client.VectorStores.Get(ctx, vectorStoreID)
+	if err != nil {
+		return nil, wrapClientError(err, "RetrieveVectorStore")
+	}
+
+	return vectorStore, nil
+}
+
 // DeleteVectorStore deletes a vector store by ID.
 func (c *LlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
 	if vectorStoreID == "" {
