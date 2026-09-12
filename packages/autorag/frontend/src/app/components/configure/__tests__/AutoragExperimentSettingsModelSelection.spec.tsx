@@ -50,6 +50,8 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
     expect(screen.getAllByTestId('model-row-model-a')).toHaveLength(2);
     expect(screen.getAllByText('Model A')).toHaveLength(2);
+    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('0/2');
+    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('0/2');
     await user.click(screen.getByTestId('embedding-models-tab'));
     expect(screen.getAllByTestId('model-row-model-a')).toHaveLength(2);
     expect(screen.getAllByTestId('model-row-model-b')[0].querySelector('span')).toHaveAttribute(
@@ -70,7 +72,7 @@ describe('AutoragExperimentSettingsModelSelection', () => {
     await user.click(screen.getByTestId('embedding-models-tab'));
     await user.click(screen.getAllByTestId('model-row-model-a')[1].querySelector('input')!);
 
-    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('1');
-    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('1');
+    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('1/2');
+    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('1/2');
   });
 });

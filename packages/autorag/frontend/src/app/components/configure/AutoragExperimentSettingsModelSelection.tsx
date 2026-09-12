@@ -230,7 +230,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                         className="pf-v6-u-ml-xs"
                         data-testid={`${modelType}-selected-count`}
                       >
-                        {selectedCount}
+                        {selectedCount}&#8725;{models.length}
                       </Label>
                     </TabTitleText>
                   }

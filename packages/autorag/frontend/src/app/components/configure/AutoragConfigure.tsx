@@ -735,6 +735,7 @@ function AutoragConfigure({
                       <ConfigureFormGroup
                         label="Vector database connection"
                         description="Provide connection details for a vector database."
+                        isRequired
                       >
                         <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />
                       </ConfigureFormGroup>
@@ -759,6 +760,7 @@ function AutoragConfigure({
                             <span>.</span>
                           </>
                         }
+                        isRequired
                       >
                         <AutoragEvaluationSelect />
                       </ConfigureFormGroup>
@@ -962,6 +964,7 @@ function AutoragConfigure({
                       <ConfigureFormGroup
                         label="Model configuration"
                         description="Select models to determine how documents are retrieved and which models generate responses."
+                        isRequired
                       >
                         <Card>
                           <CardHeader>
@@ -1003,9 +1006,11 @@ function AutoragConfigure({
                                       spacer={{ default: 'spacerNone' }}
                                       gap={{ default: 'gapSm' }}
                                     >
-                                      <Content>{`${
-                                        generationModels.length || 'No'
-                                      } foundation models`}</Content>
+                                      <Content>
+                                        {generationModels.length
+                                          ? `${generationModels.length} foundation models`
+                                          : 'No foundation models selected'}
+                                      </Content>
                                       {!!generationModels.length && (
                                         <Popover
                                           bodyContent={
@@ -1038,9 +1043,11 @@ function AutoragConfigure({
                                       spacer={{ default: 'spacerNone' }}
                                       gap={{ default: 'gapSm' }}
                                     >
-                                      <Content>{`${
-                                        embeddingModels.length || 'No'
-                                      } embedding models`}</Content>
+                                      <Content>
+                                        {embeddingModels.length
+                                          ? `${embeddingModels.length} embedding models`
+                                          : 'No embedding models selected'}
+                                      </Content>
                                       {!!embeddingModels.length && (
                                         <Popover
                                           bodyContent={

@@ -768,6 +768,19 @@ describe('AutoragConfigure', () => {
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
       expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+      for (const label of [
+        'vector-database-connection',
+        'evaluation-dataset',
+        'model-configuration',
+      ]) {
+        expect(
+          screen
+            .getByTestId(`configure-form-group-label-${label}`)
+            .querySelector('.pf-v6-c-form__label-required'),
+        ).toBeInTheDocument();
+      }
+      expect(screen.getByText('No foundation models selected')).toBeInTheDocument();
+      expect(screen.getByText('No embedding models selected')).toBeInTheDocument();
     });
   });
 
