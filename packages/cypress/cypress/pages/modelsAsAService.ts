@@ -1977,8 +1977,24 @@ class ProviderReferenceModalBase extends Modal {
     this.findPathInput().type(path, { parseSpecialCharSequences: false });
   }
 
+  findAdvancedSettingsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // PF v6 ExpandableSection does not forward data-testid to the toggle button.
+    return this.find()
+      .findByTestId('provider-ref-advanced-settings')
+      .find('button[aria-expanded]')
+      .first();
+  }
+
   expandAdvancedSettings(): void {
-    this.find().findByTestId('provider-ref-advanced-settings').click();
+    this.findAdvancedSettingsToggle()
+      .scrollIntoView()
+      .then(($btn) => {
+        if ($btn.attr('aria-expanded') === 'false') {
+          cy.wrap($btn).click();
+        }
+      });
+    this.findAdvancedSettingsToggle().should('have.attr', 'aria-expanded', 'true');
+    this.findAddConfigurationPairButton().should('be.visible');
   }
 
   findAddConfigurationPairButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1986,6 +2002,7 @@ class ProviderReferenceModalBase extends Modal {
   }
 
   addModelConfigPair(index: number, key: string, value: string): void {
+    this.expandAdvancedSettings();
     this.findAddConfigurationPairButton().click();
     this.find()
       .findByTestId(`provider-ref-config-key-${index}`)
@@ -2070,10 +2087,6 @@ class EditProviderReferenceModal extends ProviderReferenceModalBase {
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('edit-provider-reference-cancel');
-  }
-
-  findInheritedConfigToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('inherited-provider-config-toggle');
   }
 }
 

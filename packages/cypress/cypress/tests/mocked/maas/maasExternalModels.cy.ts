@@ -306,7 +306,7 @@ describe('External Models Page', () => {
 
       addProviderReferenceWizard.fillTargetModel('claude-sonnet-4-5-20241022');
       addProviderReferenceWizard.expandAdvancedSettings();
-      addProviderReferenceWizard.findInheritedProviderConfig().should('exist');
+      addProviderReferenceWizard.findInheritedProviderConfig().should('be.visible');
       addProviderReferenceWizard.findInheritedConfigKey('project').should('have.value', 'project');
       addProviderReferenceWizard
         .findInheritedConfigValue('project')
@@ -381,9 +381,10 @@ describe('External Models Page', () => {
 
       createExternalModelPage.findProviderRefEditButton(0).click();
       editProviderReferenceModal.shouldBeOpen();
-      editProviderReferenceModal.findInheritedConfigToggle().click();
+      editProviderReferenceModal.expandAdvancedSettings();
       editProviderReferenceModal
         .findInheritedConfigValue('project')
+        .should('be.visible')
         .should('have.value', 'my-project');
 
       editProviderReferenceModal.findTargetModelInput().clear();
