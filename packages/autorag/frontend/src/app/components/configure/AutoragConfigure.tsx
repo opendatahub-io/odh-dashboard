@@ -37,6 +37,7 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Skeleton,
   Spinner,
   Split,
   SplitItem,
@@ -71,6 +72,7 @@ import SecretSelector, { SecretSelection } from '~/app/components/common/SecretS
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -86,7 +88,7 @@ import {
   METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
-import { SecretListItem } from '~/app/types';
+import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
@@ -138,16 +140,31 @@ const OPTIMIZATION_METRICS: {
 
 const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
 
+const getSelectedInputDataFile = (inputDataKey: string): ExplorerFile => {
+  const lastSegment = inputDataKey.split('/').pop();
+  const fileName = lastSegment || inputDataKey;
+  const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+  return { name: fileName, path: `/${inputDataKey}`, type: ext };
+};
+
 type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema> & Record<string, unknown>;
   initialInputDataSecret?: SecretSelection;
   initialVectorDbSecret?: SecretSelection;
+  isReconfigure?: boolean;
 };
+
+const MAAS_MODELS_ERROR_TITLE = 'Failed to load MaaS models';
+const MAAS_MODELS_ERROR_MESSAGE = 'Check that the selected MaaS connection is valid and try again.';
+const MODEL_RESTORE_WARNING_TITLE = 'Unable to restore all settings';
+const MODEL_RESTORE_WARNING_MESSAGE =
+  'Some selected models are no longer available and could not be restored. Select replacement models to continue.';
 
 function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
   initialVectorDbSecret,
+  isReconfigure = false,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -182,10 +199,7 @@ function AutoragConfigure({
       if (!initialInputDataKey) {
         return undefined;
       }
-      const lastSegment = initialInputDataKey.split('/').pop();
-      const fileName = lastSegment || initialInputDataKey;
-      const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
-      return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
+      return getSelectedInputDataFile(initialInputDataKey);
     },
   );
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
@@ -205,6 +219,36 @@ function AutoragConfigure({
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
   const { isSubmitting } = formState;
+  const maasSecretName = form.watch('maas_secret_name');
+  const maasModelsQuery = useMaaSModelsQuery(namespace ?? '', maasSecretName);
+  const maasModels = React.useMemo(
+    () => maasModelsQuery.data?.models ?? [],
+    [maasModelsQuery.data],
+  );
+  const maasModelsLoaded =
+    maasModelsQuery.isSuccess ||
+    (!maasModelsQuery.isLoading && !maasModelsQuery.isError && !!maasModelsQuery.data);
+  const maasModelsErrorRef = useRef<string>();
+  const maasModelsSecretRef = useRef(maasSecretName);
+  const reconciledMaaSResultRef = useRef<string>();
+
+  useEffect(() => {
+    if (maasModelsSecretRef.current !== maasSecretName) {
+      maasModelsSecretRef.current = maasSecretName;
+      maasModelsErrorRef.current = undefined;
+    }
+    if (!maasModelsQuery.isError || !maasSecretName) {
+      return;
+    }
+
+    const errorKey = `${maasSecretName}:${maasModelsQuery.error.message}`;
+    if (maasModelsErrorRef.current === errorKey) {
+      return;
+    }
+
+    maasModelsErrorRef.current = errorKey;
+    notification.error(MAAS_MODELS_ERROR_TITLE, MAAS_MODELS_ERROR_MESSAGE);
+  }, [maasModelsQuery.error, maasModelsQuery.isError, maasSecretName, notification]);
 
   const [
     inputDataSecretName,
@@ -227,8 +271,55 @@ function AutoragConfigure({
     ],
   });
 
+  useEffect(() => {
+    if (!isReconfigure || !maasModelsQuery.isSuccess || maasModels.length === 0) {
+      return;
+    }
+
+    const resultKey = `${maasSecretName}:${maasModels
+      .map((model) => model.id)
+      .toSorted()
+      .join('|')}`;
+    if (reconciledMaaSResultRef.current === resultKey) {
+      return;
+    }
+    reconciledMaaSResultRef.current = resultKey;
+
+    const availableModelIds = new Set(maasModels.map((model) => model.id));
+    const restoredGenerationModels = generationModels.filter((id) => availableModelIds.has(id));
+    const restoredEmbeddingModels = embeddingModels.filter((id) => availableModelIds.has(id));
+    const modelsWereRemoved =
+      restoredGenerationModels.length !== generationModels.length ||
+      restoredEmbeddingModels.length !== embeddingModels.length;
+
+    if (!modelsWereRemoved) {
+      return;
+    }
+
+    setValue('generation_models', restoredGenerationModels, { shouldValidate: true });
+    setValue('embedding_models', restoredEmbeddingModels, { shouldValidate: true });
+    notification.warning(MODEL_RESTORE_WARNING_TITLE, MODEL_RESTORE_WARNING_MESSAGE);
+  }, [
+    embeddingModels,
+    generationModels,
+    isReconfigure,
+    maasModels,
+    maasModelsQuery.isSuccess,
+    maasSecretName,
+    notification,
+    setValue,
+  ]);
+
   const inputDataKey = inputDataKeys[0] ?? '';
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
+
+  // On Back → Next, RHF retains the selected key while this component's display state remounts.
+  // Hydrate the display from RHF only when there is no local selection to preserve user edits.
+  useEffect(() => {
+    if (inputDataKey && !selectedInputDataFile) {
+      setSelectedInputDataFile(getSelectedInputDataFile(inputDataKey));
+    }
+  }, [inputDataKey, selectedInputDataFile]);
   // Model discovery is intentionally deferred to the MaaS model-table migration.
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
@@ -434,13 +525,14 @@ function AutoragConfigure({
                             <Controller
                               control={form.control}
                               name="input_data_secret_name"
-                              render={({ field: { onChange } }) => (
+                              render={({ field: { onChange, value } }) => (
                                 <SecretSelector
                                   namespace={String(namespace)}
                                   type="storage"
                                   additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
                                   isDisabled={isSubmitting}
                                   value={selectedSecret?.uuid}
+                                  valueName={value}
                                   onChange={(secret) => {
                                     if (!secret) {
                                       setSelectedSecret(undefined);
@@ -529,7 +621,9 @@ function AutoragConfigure({
                               variant="secondary"
                               data-testid="browse-bucket-button"
                               onClick={() => setFileExplorerMode('input_data')}
-                              isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
+                              isDisabled={
+                                !inputDataSecretName || selectedSecret?.invalid || isSubmitting
+                              }
                             >
                               Browse bucket
                             </Button>
@@ -971,7 +1065,31 @@ function AutoragConfigure({
                         description="Select models to determine how documents are retrieved and which models generate responses."
                         isRequired
                       >
-                        {generationModels.length === 0 && embeddingModels.length === 0 ? (
+                        {maasModelsQuery.isError ||
+                        (maasModelsLoaded && maasModels.length === 0) ? (
+                          <Alert
+                            variant="danger"
+                            isInline
+                            title={MAAS_MODELS_ERROR_TITLE}
+                            data-testid="maas-models-error"
+                          >
+                            <Content component="p">{MAAS_MODELS_ERROR_MESSAGE}</Content>
+                            <Button
+                              variant="primary"
+                              onClick={openExperimentSettings}
+                              isDisabled
+                              data-testid="select-models-button"
+                            >
+                              Select models
+                            </Button>
+                          </Alert>
+                        ) : !maasModelsLoaded ? (
+                          <Skeleton
+                            data-testid="maas-models-loading"
+                            width="100%"
+                            screenreaderText="Loading MaaS models"
+                          />
+                        ) : generationModels.length === 0 && embeddingModels.length === 0 ? (
                           <Alert
                             variant="warning"
                             isInline
@@ -985,7 +1103,7 @@ function AutoragConfigure({
                             <Button
                               variant="primary"
                               onClick={openExperimentSettings}
-                              isDisabled={isSubmitting}
+                              isDisabled={isSubmitting || !maasModelsLoaded}
                               data-testid="select-models-button"
                             >
                               Select models
@@ -1010,7 +1128,8 @@ function AutoragConfigure({
                                         isDisabled={
                                           !inputDataBucketName ||
                                           inputDataKeyValue.length === 0 ||
-                                          form.formState.isSubmitting
+                                          form.formState.isSubmitting ||
+                                          !maasModelsLoaded
                                         }
                                       >
                                         Edit
@@ -1141,7 +1260,7 @@ function AutoragConfigure({
         id="AutoRagConfigure-S3FileExplorer"
         apiPath="/autorag/api/v1/s3"
         namespace={namespace}
-        s3SecretName={selectedSecret?.name}
+        s3SecretName={selectedSecret?.name ?? inputDataSecretName}
         isOpen={Boolean(fileExplorerMode)}
         onClose={() => {
           if (fileExplorerMode === 'input_data' && !inputDataS3SelectionCommittedRef.current) {
@@ -1192,6 +1311,9 @@ function AutoragConfigure({
       )}
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
+        models={maasModels}
+        modelsLoaded={maasModelsLoaded && maasModels.length > 0}
+        modelsLoading={maasModelsQuery.isLoading}
         onClose={() => {
           setIsExperimentSettingsOpen(false);
         }}

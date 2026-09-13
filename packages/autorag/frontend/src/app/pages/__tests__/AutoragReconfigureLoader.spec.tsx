@@ -303,4 +303,36 @@ describe('AutoragReconfigureLoader', () => {
       vector_db_secret_name: 'vector-db',
     });
   });
+
+  it('should preserve missing MaaS and vector secret warnings without adding a model warning', async () => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        input_data_secret_name: 'storage',
+        maas_secret_name: 'missing-maas',
+        vector_db_secret_name: 'missing-vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used MaaS connection "missing-maas" could not be found. Please select a new connection.',
+    );
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used vector database connection "missing-vector-db" could not be found. Please select a new connection.',
+    );
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      expect.stringContaining('selected models are no longer available'),
+    );
+  });
 });

@@ -9,6 +9,7 @@ import {
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { ConfigureSchema, EXPERIMENT_SETTINGS_FIELDS } from '~/app/schemas/configure.schema';
+import type { MaaSModel } from '~/app/types';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { fireAutoragModelsSelected, TrackingOutcome } from '~/app/utilities/tracking';
 import AutoragExperimentSettingsModelSelection from './AutoragExperimentSettingsModelSelection';
@@ -17,6 +18,9 @@ type AutoragExperimentSettingsProps = {
   isOpen: boolean;
   onClose: () => void;
   revertChanges: () => void;
+  models: MaaSModel[];
+  modelsLoaded: boolean;
+  modelsLoading: boolean;
 };
 
 type ModelSelectionDraft = {
@@ -28,6 +32,9 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
   isOpen,
   onClose,
   revertChanges,
+  models,
+  modelsLoaded,
+  modelsLoading,
 }) => {
   const {
     getValues,
@@ -103,6 +110,9 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
       <ModalHeader title="Model configuration" />
       <ModalBody>
         <AutoragExperimentSettingsModelSelection
+          models={models}
+          modelsLoaded={modelsLoaded}
+          modelsLoading={modelsLoading}
           generationModels={draft.generationModels}
           embeddingModels={draft.embeddingModels}
           onGenerationModelsChange={(generationModels) =>

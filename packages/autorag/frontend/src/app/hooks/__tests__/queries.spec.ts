@@ -1,13 +1,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import { fetchS3File, fetchS3Json, useSecretCredentialsQuery } from '~/app/hooks/queries';
-import { getSecretByName } from '~/app/api/k8s';
+import {
+  fetchS3File,
+  fetchS3Json,
+  useMaaSModelsQuery,
+  useSecretCredentialsQuery,
+} from '~/app/hooks/queries';
+import { getMaaSModels, getSecretByName } from '~/app/api/k8s';
 
 jest.mock('~/app/api/k8s', () => ({
+  getMaaSModels: jest.fn(),
   getSecretByName: jest.fn(),
 }));
 
+const getMaaSModelsMock = jest.mocked(getMaaSModels);
 const getSecretByNameMock = jest.mocked(getSecretByName);
 
 global.fetch = jest.fn();
@@ -268,5 +275,36 @@ describe('useSecretCredentialsQuery', () => {
     });
 
     expect(result.current.error?.message).toBe('Not found');
+  });
+});
+
+describe('useMaaSModelsQuery', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should reuse the prefetched result when another observer mounts', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+    const models = {
+      models: [{ id: 'llama-3-8b', ready: true }],
+    };
+    getMaaSModelsMock.mockReturnValue((() => () => Promise.resolve(models)) as never);
+
+    const firstObserver = renderHook(() => useMaaSModelsQuery('test-ns', 'maas-secret'), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => {
+      expect(firstObserver.result.current.isSuccess).toBe(true);
+    });
+
+    const secondObserver = renderHook(() => useMaaSModelsQuery('test-ns', 'maas-secret'), {
+      wrapper: Wrapper,
+    });
+    expect(secondObserver.result.current.data).toEqual(models);
+    expect(getMaaSModelsMock).toHaveBeenCalledTimes(1);
   });
 });

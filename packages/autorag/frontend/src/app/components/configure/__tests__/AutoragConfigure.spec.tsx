@@ -34,6 +34,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const mockNotificationError = jest.fn();
+const mockNotificationWarning = jest.fn();
 
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
 
@@ -107,7 +108,7 @@ jest.mock('~/app/hooks/useNotification', () => ({
     success: jest.fn(),
     error: mockNotificationError,
     info: jest.fn(),
-    warning: jest.fn(),
+    warning: mockNotificationWarning,
     remove: jest.fn(),
   })),
 }));
@@ -116,9 +117,15 @@ jest.mock('~/app/hooks/useNotification', () => ({
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
   useMaaSModelsQuery: jest.fn().mockReturnValue({
-    data: { models: [] },
+    data: {
+      models: [
+        { id: 'llama-3-8b', ready: true },
+        { id: 'text-embedding-ada-002', ready: true },
+      ],
+    },
     isLoading: false,
     isError: false,
+    isSuccess: true,
   }),
   useSecretsQuery: jest.fn().mockReturnValue({
     data: [],
@@ -336,12 +343,14 @@ const renderWithInitialValues = (
     initialInputDataSecret?: Parameters<typeof AutoragConfigure>[0]['initialInputDataSecret'];
   },
   defaultValues?: TestConfigureValues,
+  isReconfigure = false,
 ) => {
   const { initialInputDataSecret, ...schemaValues } = initialValues;
   return renderWithQueryClient(
     <AutoragConfigure
       initialValues={schemaValues}
       initialInputDataSecret={initialInputDataSecret}
+      isReconfigure={isReconfigure}
     />,
     {
       ...defaultValues,
@@ -395,10 +404,148 @@ describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNotificationError.mockClear();
+    mockNotificationWarning.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    mockUseMaaSModelsQuery.mockReturnValue({
+      data: {
+        models: [
+          { id: 'llama-3-8b', ready: true },
+          { id: 'text-embedding-ada-002', ready: true },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+    } as unknown as ReturnType<typeof useMaaSModelsQuery>);
     // Reset the S3 upload mock to default resolved value
     mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
+  });
+
+  describe('restored MaaS model reconciliation', () => {
+    const restoredValues = {
+      maas_secret_name: 'maas-secret',
+      generation_models: ['available-generation', 'removed-generation'],
+      embedding_models: ['available-embedding', 'removed-embedding'],
+    };
+
+    beforeEach(() => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            { id: 'available-generation', ready: true },
+            { id: 'available-embedding', ready: true },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+    });
+
+    it('should remove unavailable IDs while preserving each category membership', async () => {
+      renderWithInitialValues(restoredValues, undefined, true);
+
+      await waitFor(() => {
+        expect(getLatestFormValues()).toEqual(
+          expect.objectContaining({
+            generation_models: ['available-generation'],
+            embedding_models: ['available-embedding'],
+          }),
+        );
+      });
+      expect(mockNotificationWarning).toHaveBeenCalledWith(
+        'Unable to restore all settings',
+        'Some selected models are no longer available and could not be restored. Select replacement models to continue.',
+      );
+    });
+
+    it('should leave an empty category invalid when all its restored IDs are unavailable', async () => {
+      renderWithInitialValues(
+        {
+          ...restoredValues,
+          generation_models: ['removed-generation'],
+        },
+        undefined,
+        true,
+      );
+
+      await waitFor(() => {
+        expect(getLatestFormValues().generation_models).toEqual([]);
+      });
+      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
+    });
+
+    it('should not warn for fully available new-run selections', async () => {
+      renderComponent({
+        maas_secret_name: 'maas-secret',
+        generation_models: ['removed-generation'],
+        embedding_models: ['removed-embedding'],
+      });
+
+      await waitFor(() =>
+        expect(getLatestFormValues().generation_models).toEqual(['removed-generation']),
+      );
+      expect(mockNotificationWarning).not.toHaveBeenCalled();
+    });
+
+    it('should preserve fully available restored selections without warning', async () => {
+      renderWithInitialValues(
+        {
+          maas_secret_name: 'maas-secret',
+          generation_models: ['available-generation'],
+          embedding_models: ['available-embedding'],
+        },
+        undefined,
+        true,
+      );
+
+      await waitFor(() =>
+        expect(getLatestFormValues().generation_models).toEqual(['available-generation']),
+      );
+      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
+      expect(mockNotificationWarning).not.toHaveBeenCalled();
+    });
+
+    it('should warn only once when reconciliation causes rerenders for the same MaaS result', async () => {
+      renderWithInitialValues(restoredValues, undefined, true);
+
+      await waitFor(() =>
+        expect(getLatestFormValues().generation_models).toEqual(['available-generation']),
+      );
+      expect(mockNotificationWarning).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not emit the unavailable-model warning for an initial query failure', async () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        isSuccess: false,
+        error: new Error('MaaS models unavailable'),
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+      renderWithInitialValues(restoredValues, undefined, true);
+
+      await waitFor(() =>
+        expect(getLatestFormValues().generation_models).toEqual(restoredValues.generation_models),
+      );
+      expect(mockNotificationWarning).not.toHaveBeenCalled();
+    });
+
+    it('should not emit the unavailable-model warning for an empty response', async () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: { models: [] },
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+      renderWithInitialValues(restoredValues, undefined, true);
+
+      await waitFor(() =>
+        expect(getLatestFormValues().generation_models).toEqual(restoredValues.generation_models),
+      );
+      expect(mockNotificationWarning).not.toHaveBeenCalled();
+    });
   });
 
   describe('initial state - no secret selected', () => {
@@ -1166,16 +1313,67 @@ describe('AutoragConfigure', () => {
   });
 
   describe('Model error handling', () => {
-    it('should show error notification when model loading fails', () => {
+    it('should show error notification when model loading fails', async () => {
       mockUseMaaSModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
+        error: new Error('MaaS request failed'),
       } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
-      renderComponent();
+      renderWithInitialValues({
+        initialInputDataSecret: {
+          uuid: 'secret-1',
+          name: 'Test Secret 1',
+          data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+          type: 's3',
+          invalid: false,
+        },
+        maas_secret_name: 'maas-secret',
+        input_data_secret_name: 'Test Secret 1',
+        input_data_bucket_name: 'test-bucket-1',
+        input_data_keys: ['input.txt'],
+        test_data_secret_name: 'Test Secret 1',
+        test_data_bucket_name: 'test-bucket-1',
+        test_data_key: 'eval.json',
+      });
 
-      expect(screen.queryByText('Failed to load MaaS models')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
+          'Failed to load MaaS models',
+        );
+      });
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to load MaaS models',
+        'Check that the selected MaaS connection is valid and try again.',
+      );
+    });
+
+    it('should show the page-level error and disable model selection when no models are returned', () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: { models: [] },
+        isLoading: false,
+        isSuccess: true,
+        isError: false,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+
+      renderWithInitialValues({
+        maas_secret_name: 'maas-secret',
+        input_data_secret_name: 'Test Secret 1',
+        input_data_bucket_name: 'test-bucket-1',
+        input_data_keys: ['input.txt'],
+        test_data_secret_name: 'Test Secret 1',
+        test_data_bucket_name: 'test-bucket-1',
+        test_data_key: 'eval.json',
+      });
+
+      expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
+        'Failed to load MaaS models',
+      );
+      expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
+        'Check that the selected MaaS connection is valid and try again.',
+      );
+      expect(screen.getByTestId('select-models-button')).toBeDisabled();
     });
   });
 
@@ -1678,23 +1876,35 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
-    it('should keep the model selection CTA available when model loading fails', () => {
+    it('should disable the model selection action when model loading fails', async () => {
       mockUseMaaSModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
+        error: new Error('MaaS request failed'),
       } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
-      renderComponent();
+      renderWithInitialValues({
+        initialInputDataSecret: {
+          uuid: 'secret-1',
+          name: 'Test Secret 1',
+          data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+          type: 's3',
+          invalid: false,
+        },
+        maas_secret_name: 'maas-secret',
+        input_data_secret_name: 'Test Secret 1',
+        input_data_bucket_name: 'test-bucket-1',
+        input_data_keys: ['input.txt'],
+        test_data_secret_name: 'Test Secret 1',
+        test_data_bucket_name: 'test-bucket-1',
+        test_data_key: 'eval.json',
+      });
 
-      // Select a valid secret
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-
-      // Browse and select a file
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      expect(screen.getByTestId('select-models-button')).toBeEnabled();
+      await waitFor(() => {
+        expect(screen.getByTestId('maas-models-error')).toBeInTheDocument();
+        expect(screen.getByTestId('select-models-button')).toBeDisabled();
+      });
     });
 
     it('should keep the model selection CTA visible when a file/folder is selected', () => {

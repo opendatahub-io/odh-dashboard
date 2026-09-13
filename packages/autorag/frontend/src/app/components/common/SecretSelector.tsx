@@ -34,6 +34,7 @@ type SecretSelectorProps = Omit<
   namespace: string;
   type?: 'storage' | 'maas' | 'vector-db';
   value?: string; // The UUID of the selected secret
+  valueName?: string; // The current form value, used to derive the selected UUID
   onChange: (selection: SecretSelection | undefined) => void;
   /**
    * Additional keys that must be present in the secret for this specific use case.
@@ -59,6 +60,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   namespace,
   type,
   value,
+  valueName,
   onChange,
   placeholder = 'Select a secret',
   isDisabled = false,
@@ -93,6 +95,9 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   const isLoading = !loaded;
   const hasNoSecrets = loaded && !hasError && !hasSecrets;
   const isSelectDisabled = isDisabled || hasError || !hasSecrets || isLoading;
+  const selectedValue = valueName
+    ? secretsList.find((secret) => secret.name === valueName)?.uuid
+    : value;
 
   // Validate if a secret has all additional required keys for this use case (case-insensitive)
   const validateSecretKeys = React.useCallback(
@@ -118,7 +123,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   // When value changes (including when parent sets selection programmatically), validate the
   // selected secret and show or clear validation error so invalid state is visible.
   React.useEffect(() => {
-    if (!value) {
+    if (!selectedValue) {
       setValidationError('');
       return;
     }
@@ -129,7 +134,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
       return;
     }
 
-    const secret = secretsList.find((s) => s.uuid === value);
+    const secret = secretsList.find((s) => s.uuid === selectedValue);
     if (!secret) {
       setValidationError('');
       return;
@@ -142,11 +147,11 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     } else {
       setValidationError('');
     }
-  }, [value, secretsList, validateSecretKeys, onChange]);
+  }, [selectedValue, secretsList, validateSecretKeys, onChange]);
 
   // Clear stale selection when secrets refresh and current value is no longer valid
   React.useEffect(() => {
-    if (!loaded || error || !value) {
+    if (!loaded || error || !selectedValue) {
       return;
     }
     // Clear selection if secrets list is empty
@@ -155,11 +160,11 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
       return;
     }
     // Clear selection if value is no longer in the list
-    const isValueInList = secretsList.some((secret) => secret.uuid === value);
+    const isValueInList = secretsList.some((secret) => secret.uuid === selectedValue);
     if (!isValueInList) {
       onChange(undefined);
     }
-  }, [loaded, error, secretsList, value, onChange]);
+  }, [loaded, error, secretsList, selectedValue, onChange]);
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
@@ -192,13 +197,13 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         return {
           content: secret.displayName || secret.name,
           value: secret.uuid,
-          isSelected: secret.uuid === value,
+          isSelected: secret.uuid === selectedValue,
           description: labels.length ? (
             <LabelGroup style={{ marginTop: '0.5rem' }}>{labels}</LabelGroup>
           ) : undefined,
         };
       }),
-    [secretsList, value, showDescription, showType],
+    [secretsList, selectedValue, showDescription, showType],
   );
 
   if (isLoading) {
@@ -211,7 +216,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         {...props}
         placeholder={placeholder}
         selectOptions={options}
-        selected={value}
+        selected={selectedValue}
         dataTestId={dataTestId}
         isDisabled={isSelectDisabled}
         isRequired={isRequired}

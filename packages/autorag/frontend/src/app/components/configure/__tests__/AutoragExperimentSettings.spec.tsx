@@ -72,6 +72,9 @@ const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
   revertChanges: jest.fn(),
+  models: [],
+  modelsLoaded: true,
+  modelsLoading: false,
 };
 
 const renderComponent = (

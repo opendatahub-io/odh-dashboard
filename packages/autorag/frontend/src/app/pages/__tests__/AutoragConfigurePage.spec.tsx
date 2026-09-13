@@ -10,6 +10,7 @@ import {
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 
@@ -218,8 +219,11 @@ jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', 
 
   const MockModelSelection = () => {
     const { setValue, watch } = useFormContext();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useMaaSModelsQuery: queryModels } = require('~/app/hooks/queries');
     const generationModels = watch('generation_models');
     const embeddingModels = watch('embedding_models');
+    const maasSecretName = watch('maas_secret_name');
     const inputDataKeys = watch('input_data_keys');
     const vectorDbSecretName = watch('vector_db_secret_name');
     const inputDataSecretName = watch('input_data_secret_name');
@@ -227,6 +231,8 @@ jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', 
     const testDataSecretName = watch('test_data_secret_name');
     const testDataBucketName = watch('test_data_bucket_name');
     const testDataKey = watch('test_data_key');
+
+    queryModels('test-namespace', maasSecretName);
 
     useEffect(() => {
       if (inputDataSecretName && !testDataSecretName) {
@@ -279,6 +285,7 @@ jest.mock('~/app/hooks/queries', () => ({
       ],
     },
     isLoading: false,
+    isError: false,
     error: null,
   })),
   useSecretsQuery: jest.fn(() => ({
@@ -286,6 +293,8 @@ jest.mock('~/app/hooks/queries', () => ({
     isLoading: false,
   })),
 }));
+
+const mockUseMaaSModelsQuery = jest.mocked(useMaaSModelsQuery);
 
 const mockNotificationError = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -376,6 +385,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
     onChange,
     value,
     dataTestId,
+    valueName,
   }: {
     onChange: (
       secret:
@@ -390,6 +400,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
         | undefined,
     ) => void;
     value?: string;
+    valueName?: string;
     dataTestId?: string;
   }) => {
     const isAwsSelector = dataTestId === 'aws-secret-selector';
@@ -420,7 +431,32 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
         <button type="button" data-testid={`${dataTestId}-select-secret`} onClick={handleClick}>
           Select Secret
         </button>
-        {value && <div data-testid={`${dataTestId}-value`}>{value}</div>}
+        {!isAwsSelector && (
+          <button
+            type="button"
+            data-testid={`${dataTestId}-select-second-secret`}
+            onClick={() =>
+              onChange({
+                uuid: 'maas-secret-2',
+                name: 'Second MaaS Secret',
+                data: {},
+                type: 'maas',
+                invalid: false,
+              })
+            }
+          >
+            Select Second Secret
+          </button>
+        )}
+        {(value || valueName) && (
+          <div data-testid={`${dataTestId}-value`}>
+            {valueName === 'Test MaaS Secret'
+              ? 'maas-secret-1'
+              : valueName === 'Second MaaS Secret'
+                ? 'maas-secret-2'
+                : value}
+          </div>
+        )}
       </div>
     );
   },
@@ -454,6 +490,22 @@ describe('AutoragConfigurePage', () => {
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
     mockLocationState = undefined;
     mockAutoSelectInputDataKey = true;
+    mockUseMaaSModelsQuery.mockClear();
+    mockUseMaaSModelsQuery.mockImplementation(
+      () =>
+        ({
+          data: {
+            models: [
+              { id: 'llama-3-8b', type: 'llm' },
+              { id: 'llama-3-70b', type: 'llm' },
+              { id: 'text-embedding-ada-002', type: 'embedding' },
+            ],
+          },
+          isLoading: false,
+          isError: false,
+          error: null,
+        }) as unknown as ReturnType<typeof useMaaSModelsQuery>,
+    );
   });
 
   describe('Initial state', () => {
@@ -564,6 +616,45 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
       expect(await screen.findByText('Configure details')).toBeInTheDocument();
       expect(screen.queryByLabelText(/Name/i)).not.toBeInTheDocument();
+    });
+
+    it('should not start the MaaS model lookup before Next and should start it after Next', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      expect(mockUseMaaSModelsQuery).not.toHaveBeenCalled();
+
+      await user.type(await screen.findByLabelText(/Name/i), 'Test Experiment');
+      await user.click(await screen.findByTestId('maas-secret-selector-select-secret'));
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+
+      expect(mockUseMaaSModelsQuery).toHaveBeenLastCalledWith('test-namespace', 'Test MaaS Secret');
+    });
+
+    it('should show one global MaaS model error notification with the exact copy', async () => {
+      const user = userEvent.setup();
+      mockUseMaaSModelsQuery.mockImplementation(
+        (_namespace: string, secretName: string) =>
+          ({
+            data: undefined,
+            isLoading: false,
+            isError: !!secretName,
+            error: secretName ? new Error('MaaS request failed') : null,
+          }) as ReturnType<typeof useMaaSModelsQuery>,
+      );
+
+      renderWithProviders(<AutoragConfigurePage />);
+      await user.type(await screen.findByLabelText(/Name/i), 'Test Experiment');
+      await user.click(await screen.findByTestId('maas-secret-selector-select-secret'));
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledTimes(1);
+      });
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to load MaaS models',
+        'Check that the selected MaaS connection is valid and try again.',
+      );
     });
   });
 
@@ -789,7 +880,7 @@ describe('AutoragConfigurePage', () => {
       expect(descriptionInput).toHaveValue('Preserved Description');
     });
 
-    it('should hide file selection after back and returning to configure without reselecting S3', async () => {
+    it('should preserve page-2 state after back and returning to configure', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -812,13 +903,12 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      await user.click(selectOgxSecretButton);
-      await user.click(nextButton);
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
 
       expect(
-        screen.queryByRole('heading', { name: 'Select file or folder' }),
-      ).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
+        await screen.findByRole('heading', { name: 'Select file or folder' }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
     });
   });
 
@@ -1280,6 +1370,45 @@ describe('AutoragConfigurePage', () => {
             generation_models: ['llama-3-8b', 'llama-3-70b'],
             embedding_models: ['text-embedding-ada-002'],
           }),
+        );
+      });
+    });
+
+    it('should synchronize the restored MaaS selection with RHF after changing it and going Back', async () => {
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={noChangeReconfigureInitialValues}
+          initialInputDataSecret={reconfigureInitialSecret}
+          initialMaaSSecret={reconfigureInitialOgxSecret}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const user = userEvent.setup();
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+      });
+      await user.click(screen.getByTestId('maas-secret-selector-select-second-secret'));
+      expect(screen.getByTestId('maas-secret-selector-value')).toHaveTextContent('maas-secret-2');
+      await user.click(screen.getByRole('button', { name: 'Next' }));
+      await user.click(await screen.findByRole('button', { name: 'Back' }));
+
+      expect(screen.getByTestId('maas-secret-selector-value')).toHaveTextContent('maas-secret-2');
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+      });
+      await user.click(screen.getByRole('button', { name: 'Next' }));
+      expect(mockUseMaaSModelsQuery).toHaveBeenLastCalledWith(
+        'test-namespace',
+        'Second MaaS Secret',
+      );
+      await user.click(await screen.findByRole('button', { name: 'Create new run' }));
+
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ maas_secret_name: 'Second MaaS Secret' }),
         );
       });
     });

@@ -57,6 +57,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
                 type="vector-db"
                 namespace={namespace}
                 value={selectedSecret?.uuid}
+                valueName={field.value}
                 onChange={(secret: SecretSelection | undefined) => {
                   setSelectedSecret(secret);
                   field.onChange(!secret || secret.invalid ? '' : secret.name);

@@ -9,7 +9,7 @@ import {
   TextArea,
   TextInput,
 } from '@patternfly/react-core';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
@@ -37,13 +37,6 @@ function AutoragCreate({ initialMaaSSecret }: AutoragCreateProps): React.JSX.Ele
   // This is because TypeaheadSelect in SecretSelector does not support specifying an initial value.
   // Therefore, reset field on mount to avoid confusion of "Next" button being enabled even though
   // no selection appears to be made.
-  // Skip the reset when an initial secret is provided (reconfigure flow).
-  useEffect(() => {
-    if (!initialMaaSSecret) {
-      setValue('maas_secret_name', '');
-    }
-  }, [setValue, initialMaaSSecret]);
-
   // Use a div instead of PF's <Form> to avoid nested <form> elements,
   // since AutoragConfigurePage already renders <Stack component="form">.
   return (
@@ -105,6 +98,7 @@ function AutoragCreate({ initialMaaSSecret }: AutoragCreateProps): React.JSX.Ele
                   type="maas"
                   namespace={namespace ?? ''}
                   value={selectedMaaSSecret?.uuid}
+                  valueName={field.value}
                   onChange={(secret) => {
                     setSelectedMaaSSecret(secret);
                     field.onChange(!secret || secret.invalid ? '' : secret.name);

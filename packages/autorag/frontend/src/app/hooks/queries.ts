@@ -45,6 +45,7 @@ export function useMaaSModelsQuery(
         throw error;
       }
     },
+    staleTime: 300_000,
   });
 }
 

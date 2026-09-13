@@ -63,12 +63,18 @@ jest.mock('~/app/components/common/MaaSConnectionModal', () => ({
 
 const schema = createConfigureSchema();
 
-const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+let setValueSpy: jest.SpyInstance | undefined;
+
+const FormWrapper: React.FC<{
+  children: React.ReactNode;
+  defaultValues?: Partial<typeof schema.defaults>;
+}> = ({ children, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(schema.full),
-    defaultValues: schema.defaults,
+    defaultValues: { ...schema.defaults, ...defaultValues },
   });
+  setValueSpy ??= jest.spyOn(form, 'setValue');
   return <FormProvider {...form}>{children}</FormProvider>;
 };
 
@@ -81,6 +87,7 @@ const renderComponent = () =>
 
 describe('AutoragCreate', () => {
   beforeEach(() => {
+    setValueSpy = undefined;
     mockMaaSRefresh = async () => [{ uuid: 'maas-1', name: 'new-maas-secret', invalid: false }];
     maasModalOnSubmit = undefined;
   });
@@ -89,6 +96,29 @@ describe('AutoragCreate', () => {
     renderComponent();
     fireEvent.click(screen.getByTestId('maas-secret-selector'));
     expect(screen.getByTestId('maas-secret-selector')).toBeInTheDocument();
+  });
+
+  it('should not resynchronize when rerendered with the same initial Secret name', () => {
+    const { rerender } = render(
+      // eslint-disable-next-line camelcase
+      <FormWrapper defaultValues={{ maas_secret_name: 'maas-secret' }}>
+        <AutoragCreate
+          initialMaaSSecret={{ uuid: 'maas-1', name: 'maas-secret', invalid: false }}
+        />
+      </FormWrapper>,
+    );
+
+    setValueSpy?.mockClear();
+    rerender(
+      // eslint-disable-next-line camelcase
+      <FormWrapper defaultValues={{ maas_secret_name: 'maas-secret' }}>
+        <AutoragCreate
+          initialMaaSSecret={{ uuid: 'maas-1', name: 'maas-secret', invalid: false }}
+        />
+      </FormWrapper>,
+    );
+
+    expect(setValueSpy).not.toHaveBeenCalled();
   });
 
   it('should open and submit the MaaS connection modal', async () => {

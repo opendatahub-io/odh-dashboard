@@ -5,19 +5,13 @@ import React from 'react';
 import { FormProvider, useForm, useFormContext, useWatch } from 'react-hook-form';
 import userEvent from '@testing-library/user-event';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
-import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
-
-jest.mock('~/app/hooks/queries', () => ({
-  useMaaSModelsQuery: jest.fn(),
-}));
 
 jest.mock('mod-arch-shared', () => ({
   DashboardPopupIconButton: (props: Record<string, unknown>) => <button {...props} />,
 }));
 
 const schema = createConfigureSchema();
-const mockUseMaaSModelsQuery = jest.mocked(useMaaSModelsQuery);
 const models = [
   { id: 'model-a', display_name: 'Model A', ready: true },
   { id: 'model-b', description: 'Model B description', ready: true },
@@ -41,6 +35,9 @@ const ModelSelectionForm: React.FC = () => {
     <AutoragExperimentSettingsModelSelection
       generationModels={generationModels}
       embeddingModels={embeddingModels}
+      models={models}
+      modelsLoaded
+      modelsLoading={false}
       onGenerationModelsChange={(selectedModels) => setValue('generation_models', selectedModels)}
       onEmbeddingModelsChange={(selectedModels) => setValue('embedding_models', selectedModels)}
     />
@@ -48,13 +45,23 @@ const ModelSelectionForm: React.FC = () => {
 };
 
 describe('AutoragExperimentSettingsModelSelection', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockUseMaaSModelsQuery.mockReturnValue({
-      data: { models },
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useMaaSModelsQuery>);
+  it('should show a skeleton until the parent confirms MaaS models are loaded', () => {
+    render(
+      <FormWrapper>
+        <AutoragExperimentSettingsModelSelection
+          generationModels={['model-a']}
+          embeddingModels={['model-b']}
+          models={[]}
+          modelsLoaded={false}
+          modelsLoading
+          onGenerationModelsChange={jest.fn()}
+          onEmbeddingModelsChange={jest.fn()}
+        />
+      </FormWrapper>,
+    );
+
+    expect(screen.getByTestId('modal-maas-models-loading')).toBeInTheDocument();
+    expect(screen.queryByTestId('llm-selected-count')).not.toBeInTheDocument();
   });
 
   it('should show the same MaaS model list in both tabs', async () => {
