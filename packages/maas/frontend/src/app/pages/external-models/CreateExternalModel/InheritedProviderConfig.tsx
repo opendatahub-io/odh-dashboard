@@ -55,7 +55,7 @@ const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
                 readOnlyVariant="default"
                 aria-label={`Key ${key}`}
                 data-testid={`inherited-config-key-${key}`}
-                isFullWidth
+                className="pf-v6-u-w-100"
               />
             </FlexItem>
             <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
@@ -64,7 +64,7 @@ const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
                 readOnlyVariant="default"
                 aria-label={`Value for ${key}`}
                 data-testid={`inherited-config-value-${key}`}
-                isFullWidth
+                className="pf-v6-u-w-100"
               />
             </FlexItem>
           </Flex>

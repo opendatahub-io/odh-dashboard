@@ -41,7 +41,7 @@ const ModelConfigPairsEditor: React.FC<ModelConfigPairsEditorProps> = ({ pairs, 
                 aria-label="Configuration key"
                 placeholder="Key"
                 value={pair.key}
-                isFullWidth
+                className="pf-v6-u-w-100"
                 onChange={(_event, value) => handlePairChange(index, 'key', value)}
               />
             </FlexItem>
@@ -52,7 +52,7 @@ const ModelConfigPairsEditor: React.FC<ModelConfigPairsEditorProps> = ({ pairs, 
                 aria-label="Configuration value"
                 placeholder="Value"
                 value={pair.value}
-                isFullWidth
+                className="pf-v6-u-w-100"
                 onChange={(_event, value) => handlePairChange(index, 'value', value)}
               />
             </FlexItem>

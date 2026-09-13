@@ -368,7 +368,9 @@ describe('External Models Page', () => {
       addProviderReferenceWizard.shouldBeOpen(false);
 
       createExternalModelPage.findProviderReferencesTable().should('exist');
-      createExternalModelPage.findProviderRefRow(0).should('contain.text', '/{key}/v1/chat/completions');
+      createExternalModelPage
+        .findProviderRefRow(0)
+        .should('contain.text', '/{key}/v1/chat/completions');
     });
 
     it('should edit a provider reference', () => {
