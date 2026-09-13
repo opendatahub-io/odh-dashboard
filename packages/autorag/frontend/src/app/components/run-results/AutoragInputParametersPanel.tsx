@@ -27,8 +27,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
 import InlineTooltip from '~/app/components/InlineTooltip';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { DetectedLanguageMetadata } from '~/app/types/autoragPattern';
+import type { AutoragRuntimeParameters } from '~/app/types';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { OPTIMIZATION_METRIC_LABELS, PRESET_LABELS } from '~/app/utilities/const';
 import {
@@ -64,11 +63,14 @@ const EXCLUDED_KEYS = new Set([
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
   { key: 'preset', label: 'Run preset' },
+  { key: 'ogx_secret_name', label: 'Open GenAI Stack connection' },
   { key: 'maas_secret_name', label: 'MaaS connection' },
   { key: 'input_data_secret_name', label: 'S3 connection' },
   { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
   { key: 'input_data_key', label: 'Selected files and folders' },
-  { key: 'vector_db_secret_name', label: 'Vector database secret' },
+  { key: 'input_data_keys', label: 'Selected files and folders' },
+  { key: 'vector_io_provider_id', label: 'Vector I/O provider' },
+  { key: 'vector_db_secret_name', label: 'Vector database connection' },
   { key: 'test_data_key', label: 'Evaluation dataset' },
   { key: 'detected_language', label: 'Detected languages' },
   { key: 'optimization_metric', label: 'Optimization metric' },
@@ -219,13 +221,11 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
   return <>{parts}</>;
 };
 
-type DisplayParameters = Omit<Partial<ConfigureSchema>, 'detected_language'> & {
-  detected_language?: string | DetectedLanguageMetadata;
-};
+type DisplayParameters = AutoragRuntimeParameters;
 
 type AutoragInputParametersPanelProps = {
   onClose: () => void;
-  parameters?: Partial<ConfigureSchema>;
+  parameters?: AutoragRuntimeParameters;
   isLoading?: boolean;
 };
 
@@ -278,10 +278,10 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
   }
 
   const generationModels = Array.isArray(parameters?.generation_models)
-    ? parameters.generation_models
+    ? parameters.generation_models.filter((model): model is string => typeof model === 'string')
     : [];
   const embeddingModels = Array.isArray(parameters?.embedding_models)
-    ? parameters.embedding_models
+    ? parameters.embedding_models.filter((model): model is string => typeof model === 'string')
     : [];
   const hasModelConfig = generationModels.length > 0 || embeddingModels.length > 0;
 

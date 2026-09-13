@@ -207,7 +207,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	s3Service := s3.NewService(s3.ServiceConfig{Logger: logger}, s3Client)
 
-	// Initialize Models as a Service client (single shared instance).
 	var maasClient maas.MaaSClientInterface
 	if cfg.MockMaaSClient {
 		maasClient = &fake.MaaSClient{}
@@ -306,7 +305,6 @@ func (app *App) Routes() http.Handler {
 	// POST /s3/files/:key: secretName is required; there is no DSPA fallback.
 	apiRouter.POST(S3FilePath, app.mw.AttachNamespace(app.s3.rejectDeclaredOversizedS3Post(app.mw.RequireAccessToService(app.s3.PostS3FileHandler))))
 
-	// Models as a Service — credentials are resolved by the repository from the secretName query param
 	apiRouter.GET(MaaSModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.maas.MaaSModelsHandler)))
 
 	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA

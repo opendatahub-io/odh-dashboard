@@ -49,6 +49,7 @@ import {
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
+type ConfigureInitialValues = Partial<ConfigureSchema> & Record<string, unknown>;
 const createFields = ['display_name', 'description', 'maas_secret_name'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
@@ -64,12 +65,10 @@ const arraysEqualUnordered = (a: string[], b: string[]): boolean => {
 };
 
 type AutoragConfigurePageProps = {
-  initialValues?: Partial<ConfigureSchema>;
+  initialValues?: ConfigureInitialValues;
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
-  /** Pre-resolved MaaS connection secret for reconfigure flows. */
-  initialMaasSecret?: SecretSelection;
-  /** Pre-resolved vector database secret for reconfigure flows. */
+  initialMaaSSecret?: SecretSelection;
   initialVectorDbSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
@@ -80,7 +79,7 @@ type AutoragConfigurePageProps = {
 function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
-  initialMaasSecret,
+  initialMaaSSecret,
   initialVectorDbSecret,
   sourceRunId,
   sourceRunName,
@@ -125,6 +124,16 @@ function AutoragConfigurePage({
     resolver: zodResolver(configureSchema.full),
     defaultValues: initialFormValues,
   });
+
+  // RHF does not validate defaultValues automatically in onChange mode. Reconfigure values are
+  // loaded before this page mounts, so validate them once after the form and its dependent fields
+  // are registered instead of requiring the user to reselect an unchanged connection. A new run
+  // must remain pristine until the user interacts with or submits the form.
+  useEffect(() => {
+    if (sourceRunId && initialValues) {
+      void form.trigger();
+    }
+  }, [form, initialFormValues, initialValues, sourceRunId]);
 
   const [displayName, description, maasSecretName] = useWatch({
     control: form.control,
@@ -489,7 +498,7 @@ function AutoragConfigurePage({
                     optimizationMetric: mapOptimizationMetric(data.optimization_metric),
                     vectorDatabase: vectorDatabaseRef.current,
                     countOfModels: data.generation_models.length + data.embedding_models.length,
-                    countOfKnowledgeDocuments: data.input_data_key ? 1 : 0,
+                    countOfKnowledgeDocuments: data.input_data_keys.length,
                     countOfEvaluationDocuments: data.test_data_key ? 1 : 0,
                     countOfFoundationModels: data.generation_models.length,
                     countOfEmbeddingModels: data.embedding_models.length,
@@ -561,7 +570,7 @@ function AutoragConfigurePage({
                 hasBodyWrapper={false}
               >
                 {step === 'create' ? (
-                  <AutoragCreate initialMaasSecret={initialMaasSecret} />
+                  <AutoragCreate initialMaaSSecret={initialMaaSSecret} />
                 ) : (
                   <AutoragConfigure
                     initialValues={initialValues}

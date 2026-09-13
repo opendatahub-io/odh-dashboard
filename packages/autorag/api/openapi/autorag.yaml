@@ -5,10 +5,10 @@ info:
   description: REST API AutoRAG BFF
   license:
     name: Apache 2.0
-    url: "https://www.apache.org/licenses/LICENSE-2.0"
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
 servers:
-  - url: "https://localhost:8080"
-  - url: "http://localhost:8080"
+  - url: 'https://localhost:8080'
+  - url: 'http://localhost:8080'
 paths:
   /healthcheck:
     summary: Path targeted for healthcheck purposes.
@@ -18,10 +18,10 @@ paths:
       tags:
         - K8SOperation
       responses:
-        "200":
-          description: "Ok"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          description: 'Ok'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint.
@@ -33,8 +33,8 @@ paths:
       tags:
         - K8SOperation
       responses:
-        "200":
-          description: "Ok"
+        '200':
+          description: 'Ok'
           content:
             application/json:
               schema:
@@ -49,8 +49,8 @@ paths:
                       name:
                         type: string
                         example: default-namespace
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getNamespaces
       summary: Get Available Namespaces
       description: Returns available namespaces in the cluster.
@@ -62,14 +62,14 @@ paths:
       tags:
         - K8SOperation
       parameters:
-        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: '#/components/parameters/kubeflowUserId'
       responses:
-        "200":
-          $ref: "#/components/responses/ConfigResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/ConfigResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
@@ -93,16 +93,14 @@ paths:
           in: query
           required: false
           description: >-
-            Secret type filter:
-            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT). Key matching is case-sensitive.
-            - 'maas': Filters for Models as a Service secrets. Key matching is case-insensitive. A secret matches if it has MAAS_API_KEY and MAAS_BASE_URL. The API-key key may be present but empty. OGX_CLIENT_* keys are not treated as MaaS.
-            - 'vector-db': Filters for vector database secrets used by documents-rag-optimization-pipeline. Annotation types milvus, pgvector, or vector-db match. Unannotated secrets match if they have MILVUS_URI (Milvus) or PGVECTOR_HOST (PGVector). Key matching is case-insensitive.
+            Secret type filter (key matching is case-sensitive, keys must be uppercase):
+            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
+            - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
+            - 'maas': Filters for hosted MaaS secrets (classification keys: MAAS_BASE_URL, MAAS_API_KEY)
+            - 'vector-db': Filters for the union of Milvus (MILVUS_URI) and PGVector credential keys
             - Omit for all secrets
 
-            Type Classification Precedence:
-            When determining if a secret matches the requested type filter, the following precedence is applied:
-            1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation, that annotated type takes precedence for inclusion in ?type= filter results
-            2. Key-based classification (fallback): If no connection-type annotation is present, the type is determined by key-based classification rules (e.g., storage keys like AWS_ACCESS_KEY_ID for ?type=storage, MaaS keys like MAAS_API_KEY for ?type=maas)
+            Filtering uses case-sensitive key-presence matching. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
 
             Note: Classification keys are used to identify the secret type. Additional optional keys (like AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets)
             may be present but are not required for type classification. The data field in the response lists all keys
@@ -111,53 +109,52 @@ paths:
             type: string
             enum:
               - storage
+              - ogx
               - maas
               - vector-db
           example: storage
       responses:
-        "200":
-          $ref: "#/components/responses/SecretsResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/SecretsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getSecrets
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-        Storage classification-key matching is case-sensitive.
-        MaaS classification-key matching is case-insensitive and requires MAAS_API_KEY and MAAS_BASE_URL.
-        Vector database classification-key matching is case-insensitive (MILVUS_URI or PGVECTOR_HOST).
+        Key matching is case-sensitive; keys must be uppercase.
 
-        Secret Type Classification Precedence:
-        The type of each secret is determined using the following precedence:
-        1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation with a non-empty value, that annotated type is used
-        2. Key-based classification (fallback): If no connection-type annotation is present, type is determined by the presence of specific classification keys:
-           - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-           - 'maas': Models as a Service secrets (MAAS_API_KEY and MAAS_BASE_URL)
+         Filtering uses case-sensitive key presence. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
+         Supported key sets include:
+            - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
+            - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
+            - 'maas': MAAS_BASE_URL, MAAS_API_KEY
+            - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
         The data field lists all keys present, allowing clients to validate additional use-case-specific requirements.
 
-        Type filtering with ?type= parameter:
-        When filtering by type, the annotated type (if present) takes precedence over key-based classification for determining inclusion in results.
-        - 'storage': Returns only secrets classified as storage types (currently: s3 via key-based classification, or any secret with connection-type annotation matching 'storage')
-        - 'maas': Returns only secrets classified as MaaS type (via key-based classification or connection-type annotation)
-        - 'vector-db': Returns Milvus/PGVector secrets (via MILVUS_URI or PGVECTOR_HOST, or connection-type milvus/pgvector/vector-db)
+         Type filtering with ?type= parameter:
+         - 'storage': Returns secrets containing a configured storage key set
+         - 'ogx': Returns secrets containing both OGX keys
+         - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
+         - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; empty values and mixed or extra keys are allowed
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
     description: >-
       The REST endpoint/path used to retrieve credential data from a single Kubernetes secret.
       Only allowed credential keys are returned; other keys in the secret are omitted.
-      Currently returns MAAS_BASE_URL and MAAS_API_KEY.
+      Currently returns OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY.
       Values are base64-encoded in the response for transport safety.
       The response includes Cache-Control: no-store to prevent credential caching.
     get:
@@ -172,7 +169,7 @@ paths:
             type: string
             maxLength: 253
             pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
-          example: my-maas-secret
+          example: my-ogx-secret
         - name: namespace
           in: query
           required: true
@@ -183,23 +180,23 @@ paths:
             pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
           example: default
       responses:
-        "200":
-          $ref: "#/components/responses/SecretDataResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/SecretDataResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getSecretByName
       summary: Get credential data from a named secret
       description: >-
         Retrieves allowed credential keys from a single Kubernetes secret by name.
-        Only permitted keys (currently MAAS_BASE_URL and MAAS_API_KEY)
+        Only permitted keys (currently OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
         are returned; all other keys are omitted. Values are base64-encoded.
         The caller must decode values with base64 decoding before use.
 
@@ -255,10 +252,10 @@ paths:
             type: string
           example: documents/myfile.pdf
       responses:
-        "200":
+        '200':
           description: File retrieved successfully
           content:
-            "*/*":
+            '*/*':
               schema:
                 type: string
                 format: binary
@@ -274,18 +271,18 @@ paths:
               schema:
                 type: string
                 example: application/pdf
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: getS3File
       summary: Get file from S3
       description: >-
@@ -351,31 +348,31 @@ paths:
                   format: binary
                   description: The file to upload to S3
       responses:
-        "201":
+        '201':
           description: File uploaded successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/S3UploadSuccess"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "413":
+                $ref: '#/components/schemas/S3UploadSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
           description: >-
             Declared Content-Length too large, or file part exceeds 32 MiB (http.MaxBytesReader).
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: uploadS3File
       summary: Upload file to S3
       description: >-
@@ -464,7 +461,7 @@ paths:
           schema:
             type: string
             maxLength: 1024
-            pattern: "^[^/]*$"
+            pattern: '^[^/]*$'
           example: my-search-query
         - name: next
           in: query
@@ -485,32 +482,27 @@ paths:
             default: 1000
           example: 20
       responses:
-        "200":
-          $ref: "#/components/responses/S3GetFilesResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
-
-  # =============================================================================
-  # MaaS ENDPOINTS
-  # =============================================================================
+        '200':
+          $ref: '#/components/responses/S3GetFilesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
   /api/v1/maas/models:
     summary: List available MaaS models
     description: >-
-      Lists all available models from Models as a Service Distribution (MaaS).
-      Returns a flat list of models with their identifiers, types, provider information, and resource paths.
-      Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing MAAS_BASE_URL and MAAS_API_KEY credentials.
+      Lists all models directly from the hosted MaaS API (not the MaaS BFF) using MAAS_BASE_URL and MAAS_API_KEY
+      credentials from a selected Kubernetes secret. The response intentionally exposes
+      only stable model identity, display metadata, ownership, and readiness.
     get:
       tags:
         - Models
@@ -519,38 +511,38 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace containing the Models as a Service credentials secret
           required: true
+          description: Kubernetes namespace containing the MaaS credentials secret
           schema:
             type: string
-            example: 'default'
+          example: default
         - name: secretName
           in: query
-          description: Name of the Kubernetes secret containing Models as a Service credentials (MAAS_BASE_URL and MAAS_API_KEY)
           required: true
+          description: Name of the secret containing MAAS_BASE_URL and MAAS_API_KEY
           schema:
             type: string
             maxLength: 253
             pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
-            example: 'my-maas-secret'
+          example: maas
       responses:
-        "200":
-          $ref: "#/components/responses/MaaSModelsResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "502":
-          $ref: "#/components/responses/BadGateway"
+        '200':
+          $ref: '#/components/responses/MaaSModelsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: getMaaSModels
       summary: Get MaaS Models
-      description: Returns available models from Models as a Service Distribution using credentials from a Kubernetes secret
+      description: Returns all available models from the hosted MaaS API.
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
@@ -568,22 +560,22 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
-        - $ref: "#/components/parameters/pageSize"
-        - $ref: "#/components/parameters/nextPageToken"
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/nextPageToken'
       responses:
-        "200":
-          $ref: "#/components/responses/PipelineRunsResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '200':
+          $ref: '#/components/responses/PipelineRunsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
       description: >-
@@ -596,7 +588,7 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: '#/components/parameters/namespace'
         - name: pipelineType
           in: query
           required: false
@@ -608,26 +600,26 @@ paths:
           description: >-
             Selects which discovered AutoRAG pipeline to use for this run.
             Currently only "autorag" is supported. Defaults to "autorag" when omitted.
-          example: "autorag"
+          example: 'autorag'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateAutoRAGRunRequest"
+              $ref: '#/components/schemas/CreateAutoRAGRunRequest'
       responses:
-        "200":
-          $ref: "#/components/responses/CreatePipelineRunResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '200':
+          $ref: '#/components/responses/CreatePipelineRunResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: createPipelineRun
       summary: Create Pipeline Run
       description: >-
@@ -655,29 +647,29 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: '#/components/parameters/namespace'
         - name: runId
           in: path
           required: true
           schema:
             type: string
           description: Unique identifier of the pipeline run
-          example: "abc123-def456-ghi789"
+          example: 'abc123-def456-ghi789'
       responses:
-        "200":
-          $ref: "#/components/responses/PipelineRunResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '200':
+          $ref: '#/components/responses/PipelineRunResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: getPipelineRunById
       summary: Get Pipeline Run by ID
       description: >-
@@ -691,29 +683,29 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: '#/components/parameters/namespace'
         - name: runId
           in: path
           required: true
           schema:
             type: string
           description: Unique identifier of the pipeline run to delete
-          example: "abc123-def456-ghi789"
+          example: 'abc123-def456-ghi789'
       responses:
-        "200":
+        '200':
           description: Run deleted successfully
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: deletePipelineRun
       summary: Delete Pipeline Run
       description: >-
@@ -738,29 +730,29 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: '#/components/parameters/namespace'
         - name: runId
           in: path
           required: true
           schema:
             type: string
           description: Unique identifier of the pipeline run to terminate
-          example: "abc123-def456-ghi789"
+          example: 'abc123-def456-ghi789'
       responses:
-        "200":
+        '200':
           description: Run terminated successfully
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: terminatePipelineRun
       summary: Terminate Pipeline Run
       description: >-
@@ -785,29 +777,29 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: '#/components/parameters/namespace'
         - name: runId
           in: path
           required: true
           schema:
             type: string
           description: Unique identifier of the pipeline run to retry
-          example: "abc123-def456-ghi789"
+          example: 'abc123-def456-ghi789'
       responses:
-        "200":
+        '200':
           description: Run retry initiated successfully
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: retryPipelineRun
       summary: Retry Pipeline Run
       description: >-
@@ -835,26 +827,26 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: '#/components/parameters/namespace'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateIndexingPipelineRunRequest"
+              $ref: '#/components/schemas/CreateIndexingPipelineRunRequest'
       responses:
-        "200":
-          $ref: "#/components/responses/CreatePipelineRunResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '200':
+          $ref: '#/components/responses/CreatePipelineRunResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: createIndexingPipelineRun
       summary: Create Indexing Pipeline Run
       description: >-
@@ -878,22 +870,22 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: '#/components/parameters/namespace'
       responses:
-        "200":
-          $ref: "#/components/responses/ManagedPipelinesResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
+        '200':
+          $ref: '#/components/responses/ManagedPipelinesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: listManagedPipelines
       summary: List Managed Pipelines
       description: >-
@@ -914,20 +906,20 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: '#/components/parameters/namespace'
       responses:
-        "200":
-          $ref: "#/components/responses/EnableManagedPipelinesResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/EnableManagedPipelinesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: enableManagedPipelines
       summary: Enable Managed Pipelines
       description: >-
@@ -952,41 +944,38 @@ components:
           type: boolean
           example: true
 
-    # MaaS Model Schemas
     MaaSModel:
       type: object
-      description: Model from Models as a Service Distribution
+      description: Stable AutoRAG representation of a hosted MaaS model
       required:
         - id
-        - type
-        - provider
+        - ready
       properties:
         id:
           type: string
-          description: Unique model identifier
-          example: "llama3.2:3b"
-        type:
+          description: MaaS model identifier
+          example: 'granite-3-8b-instruct'
+        display_name:
           type: string
-          enum: ["llm", "embedding"]
-          description: Model type (llm or embedding)
-          example: "llm"
-        provider:
+          description: Optional display name from MaaS metadata
+        description:
           type: string
-          description: Provider identifier
-          example: "ollama"
-        resource_path:
+          description: Optional description from MaaS metadata
+        owned_by:
           type: string
-          description: Full provider resource path
-          example: "ollama://models/llama3.2:3b"
+          description: Optional MaaS model owner
+        ready:
+          type: boolean
+          description: Whether the MaaS model is ready
+
     MaaSModelsData:
       type: object
-      description: List of all available models from Models as a Service Distribution
       required:
         - models
       properties:
         models:
           type: array
-          description: Complete list of all available models
+          description: Complete unfiltered list of available MaaS models
           items:
             $ref: '#/components/schemas/MaaSModel'
 
@@ -1001,10 +990,7 @@ components:
           type: array
           items:
             type: string
-          description: >-
-            Keys required for BFF to classify a secret as this type.
-            Storage (s3) matching is case-sensitive and uppercase.
-            MaaS and vector-database (milvus, pgvector) matching is case-insensitive.
+          description: Keys required for BFF to classify a secret as this type (case-sensitive, uppercase)
         commonOptionalKeys:
           type: array
           items:
@@ -1021,36 +1007,18 @@ components:
             - type: object
               properties:
                 classificationKeys:
-                  example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT"]
+                  example: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_ENDPOINT']
                 commonOptionalKeys:
-                  example: ["AWS_S3_BUCKET", "AWS_DEFAULT_REGION"]
-        maas:
+                  example: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION']
+        ogx:
           allOf:
             - $ref: '#/components/schemas/SecretTypeSchema'
             - type: object
               properties:
                 classificationKeys:
-                  example: ["MAAS_API_KEY", "MAAS_BASE_URL"]
+                  example: ['OGX_CLIENT_API_KEY', 'OGX_CLIENT_BASE_URL']
                 commonOptionalKeys:
                   example: []
-        milvus:
-          allOf:
-            - $ref: '#/components/schemas/SecretTypeSchema'
-            - type: object
-              properties:
-                classificationKeys:
-                  example: ["MILVUS_URI"]
-                commonOptionalKeys:
-                  example: ["MILVUS_TOKEN", "MILVUS_SERVER_CERT"]
-        pgvector:
-          allOf:
-            - $ref: '#/components/schemas/SecretTypeSchema'
-            - type: object
-              properties:
-                classificationKeys:
-                  example: ["PGVECTOR_HOST"]
-                commonOptionalKeys:
-                  example: ["PGVECTOR_PORT", "PGVECTOR_DB", "PGVECTOR_USER", "PGVECTOR_PASSWORD"]
 
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, and available keys
@@ -1075,8 +1043,7 @@ components:
             1. First priority: The 'opendatahub.io/connection-type' annotation if present and non-empty
             2. Fallback: Key-based type detection (see SecretTypeSchemas):
                - 's3': S3 storage secret (has all required S3 classification keys)
-               - 'maas': Models as a Service secret (has all required MaaS classification keys)
-               - 'milvus' / 'pgvector': Vector database secrets (MILVUS_URI or PGVECTOR_HOST)
+               - 'ogx': Open GenAI Stack secret (has all required OGX classification keys)
 
             When filtering with the ?type= parameter, the annotated type (if present) takes precedence over key-based classification
             for determining inclusion in results. This means a secret with connection-type='storage' will be included in ?type=storage
@@ -1093,7 +1060,14 @@ components:
             Keys are case-preserved. Most values are sanitized as "[REDACTED]" for security.
             Only specific allowed keys (currently: AWS_S3_BUCKET) return their actual values.
             Use this field to validate that additional optional keys required for your use case are present (via Object.keys()).
-          example: {"AWS_ACCESS_KEY_ID": "[REDACTED]", "AWS_DEFAULT_REGION": "[REDACTED]", "AWS_S3_ENDPOINT": "[REDACTED]", "AWS_SECRET_ACCESS_KEY": "[REDACTED]", "AWS_S3_BUCKET": "my-bucket-name"}
+          example:
+            {
+              'AWS_ACCESS_KEY_ID': '[REDACTED]',
+              'AWS_DEFAULT_REGION': '[REDACTED]',
+              'AWS_S3_ENDPOINT': '[REDACTED]',
+              'AWS_SECRET_ACCESS_KEY': '[REDACTED]',
+              'AWS_S3_BUCKET': 'my-bucket-name',
+            }
         displayName:
           type: string
           description: >-
@@ -1120,19 +1094,19 @@ components:
         run_id:
           type: string
           description: Unique pipeline run identifier
-          example: "abc123-def456-ghi789"
+          example: 'abc123-def456-ghi789'
         display_name:
           type: string
           description: Human-readable run name
-          example: "AutoRAG Optimization Run 1"
+          example: 'AutoRAG Optimization Run 1'
         description:
           type: string
           description: Run description
-          example: "Optimizing RAG parameters for dataset X"
+          example: 'Optimizing RAG parameters for dataset X'
         experiment_id:
           type: string
           description: ID of the experiment this run belongs to
-          example: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+          example: '1858af57-f990-4aee-a03e-c93bdfd02eb3'
         pipeline_version_reference:
           type: object
           description: Reference to pipeline and version
@@ -1140,11 +1114,11 @@ components:
             pipeline_id:
               type: string
               description: ID of the pipeline
-              example: "9e3940d5-b275-4b64-be10-b914cd06c58e"
+              example: '9e3940d5-b275-4b64-be10-b914cd06c58e'
             pipeline_version_id:
               type: string
               description: ID of the pipeline version
-              example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+              example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
         runtime_config:
           type: object
           description: Runtime configuration used for this run, including pipeline parameters
@@ -1155,40 +1129,52 @@ components:
               description: Key-value map of pipeline parameters
               additionalProperties: true
               example:
-                optimization_metric: "overall_score"
-                test_data_secret_name: "minio-secret"
-                test_data_bucket_name: "autorag"
+                optimization_metric: 'overall_score'
+                test_data_secret_name: 'minio-secret'
+                test_data_bucket_name: 'autorag'
             pipeline_root:
               type: string
               description: Root output directory for pipeline artifacts
         state:
           type: string
-          enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
+          enum:
+            [
+              UNKNOWN,
+              PENDING,
+              RUNNING,
+              SUCCEEDED,
+              SKIPPED,
+              FAILED,
+              ERROR,
+              CANCELED,
+              CANCELING,
+              PAUSED,
+            ]
           description: Current run state
-          example: "SUCCEEDED"
+          example: 'SUCCEEDED'
         storage_state:
           type: string
           description: Storage state of the run
-          example: "AVAILABLE"
+          example: 'AVAILABLE'
         service_account:
           type: string
           description: Service account used to run the pipeline
-          example: "pipeline-runner-dspa"
+          example: 'pipeline-runner-dspa'
         created_at:
           type: string
           format: date-time
           description: Creation timestamp (ISO 8601)
-          example: "2026-02-24T10:30:00Z"
+          example: '2026-02-24T10:30:00Z'
         scheduled_at:
           type: string
           format: date-time
           description: Scheduled timestamp (ISO 8601)
-          example: "2026-02-24T10:30:00Z"
+          example: '2026-02-24T10:30:00Z'
         finished_at:
           type: string
           format: date-time
           description: Completion timestamp (ISO 8601)
-          example: "2026-02-24T11:15:00Z"
+          example: '2026-02-24T11:15:00Z'
         error:
           type: object
           description: Error information if the run failed
@@ -1211,11 +1197,11 @@ components:
                 type: string
                 format: date-time
                 description: When the state changed
-                example: "2026-02-24T10:30:00Z"
+                example: '2026-02-24T10:30:00Z'
               state:
                 type: string
                 description: The state at this time
-                example: "RUNNING"
+                example: 'RUNNING'
               error:
                 type: object
                 description: Optional error information if the state change was due to an error
@@ -1242,35 +1228,47 @@ components:
                   run_id:
                     type: string
                     description: ID of the pipeline run this task belongs to
-                    example: "abc123-def456"
+                    example: 'abc123-def456'
                   task_id:
                     type: string
                     description: Unique identifier for this task
-                    example: "task-data-preprocessing"
+                    example: 'task-data-preprocessing'
                   display_name:
                     type: string
                     description: Human-readable task name
-                    example: "Data Preprocessing"
+                    example: 'Data Preprocessing'
                   create_time:
                     type: string
                     format: date-time
                     description: When the task was created
-                    example: "2026-02-24T10:30:00Z"
+                    example: '2026-02-24T10:30:00Z'
                   start_time:
                     type: string
                     format: date-time
                     description: When the task started executing
-                    example: "2026-02-24T10:30:05Z"
+                    example: '2026-02-24T10:30:05Z'
                   end_time:
                     type: string
                     format: date-time
                     description: When the task completed
-                    example: "2026-02-24T10:35:00Z"
+                    example: '2026-02-24T10:35:00Z'
                   state:
                     type: string
-                    enum: [UNKNOWN, PENDING, RUNNING, SUCCEEDED, SKIPPED, FAILED, ERROR, CANCELED, CANCELING, PAUSED]
+                    enum:
+                      [
+                        UNKNOWN,
+                        PENDING,
+                        RUNNING,
+                        SUCCEEDED,
+                        SKIPPED,
+                        FAILED,
+                        ERROR,
+                        CANCELED,
+                        CANCELING,
+                        PAUSED,
+                      ]
                     description: Current task state
-                    example: "SUCCEEDED"
+                    example: 'SUCCEEDED'
                   state_history:
                     type: array
                     description: History of state changes for this task
@@ -1281,11 +1279,11 @@ components:
                           type: string
                           format: date-time
                           description: When the state changed
-                          example: "2026-02-24T10:30:00Z"
+                          example: '2026-02-24T10:30:00Z'
                         state:
                           type: string
                           description: The state at this time
-                          example: "RUNNING"
+                          example: 'RUNNING'
                   child_tasks:
                     type: array
                     description: Child tasks or pods created by this task
@@ -1295,7 +1293,7 @@ components:
                         pod_name:
                           type: string
                           description: Name of the Kubernetes pod running this task
-                          example: "data-preprocessing-pod-abc123"
+                          example: 'data-preprocessing-pod-abc123'
         pipeline_type:
           type: string
           enum:
@@ -1304,7 +1302,7 @@ components:
           description: >-
             Type of the pipeline that produced this run. "autorag" for AutoRAG
             optimization runs; "indexing" for documents-indexing-pipeline runs.
-          example: "autorag"
+          example: 'autorag'
 
     CreateAutoRAGRunRequest:
       type: object
@@ -1316,7 +1314,7 @@ components:
         - test_data_key
         - input_data_secret_name
         - input_data_bucket_name
-        - input_data_key
+        - input_data_keys
         - maas_secret_name
         - vector_db_secret_name
         - embedding_models
@@ -1327,7 +1325,7 @@ components:
           minLength: 1
           maxLength: 250
           description: Human-readable name for the run
-          example: "my-optimization-run"
+          example: 'my-optimization-run'
         description:
           type: string
           description: Optional description of the run
@@ -1346,18 +1344,18 @@ components:
         input_data_bucket_name:
           type: string
           description: S3 bucket name for input data
-        input_data_key:
-          type: string
-          description: Object key within the input data bucket
+        input_data_keys:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: string
+            pattern: '.*\S.*'
+          description: Ordered object keys within the input data bucket
         maas_secret_name:
           type: string
-          description: Name of the K8s secret for Models as a Service access
-        vector_db_secret_name:
-          type: string
-          description: >-
-            Name of the K8s secret for the vector database. Milvus is selected when
-            the secret has MILVUS_URI; PGVector when it has PGVECTOR_HOST.
-          example: milvus-connection
+          minLength: 1
+          description: Name of the K8s secret for MaaS access
         preset:
           type: string
           enum:
@@ -1370,17 +1368,15 @@ components:
           minItems: 1
           items:
             type: string
-            minLength: 1
-            pattern: '\S'
-          description: Embedding model identifiers. Required because MaaS does not expose model-type metadata. Each item must contain a non-whitespace identifier.
+            pattern: '.*\S.*'
+          description: List of embedding model identifiers
         generation_models:
           type: array
           minItems: 1
           items:
             type: string
-            minLength: 1
-            pattern: '\S'
-          description: Generation model identifiers. Required because MaaS does not expose model-type metadata. Each item must contain a non-whitespace identifier.
+            pattern: '.*\S.*'
+          description: List of generation model identifiers
         optimization_metric:
           type: string
           enum:
@@ -1389,6 +1385,11 @@ components:
             - answer_correctness
             - context_correctness
           description: Metric to optimize (defaults to overall_score)
+        vector_db_secret_name:
+          type: string
+          minLength: 1
+          description: Name of the K8s secret for vector database access
+          example: vector-db-secret
         optimization_max_rag_patterns:
           type: integer
           minimum: 4
@@ -1413,7 +1414,7 @@ components:
           minLength: 1
           maxLength: 250
           description: Human-readable name for the indexing run
-          example: "Index build - Pattern1"
+          example: 'Index build - Pattern1'
         description:
           type: string
           maxLength: 255
@@ -1422,19 +1423,19 @@ components:
           type: object
           description: >-
             Pipeline runtime parameters from pattern.indexing.pipeline_spec.parameters
-            (for example embedding_model_id, input_data_*, maas_secret_name, chunking fields).
+            (for example embedding_model_id, input_data_*, maas_secret_name, vector_db_secret_name, chunking fields).
           additionalProperties: true
           minProperties: 1
           example:
-            embedding_model_id: "vllm-embedding/ibm-granite/granite-embedding-english-r2"
-            input_data_secret_name: "aws-connection-my-bucket"
-            input_data_bucket_name: "my-bucket"
-            input_data_key: "docs/"
-            maas_secret_name: "maas-connection"
-            vector_io_provider_id: "milvus"
+            embedding_model_id: 'vllm-embedding/ibm-granite/granite-embedding-english-r2'
+            input_data_secret_name: 'aws-connection-my-bucket'
+            input_data_bucket_name: 'my-bucket'
+            input_data_key: 'docs/'
+            maas_secret_name: 'maas-connection'
+            vector_db_secret_name: 'vector-db-connection'
             chunk_size: 512
             chunk_overlap: 50
-            chunking_method: "recursive"
+            chunking_method: 'recursive'
       additionalProperties: false
 
     ManagedPipeline:
@@ -1452,7 +1453,7 @@ components:
             - autorag
             - indexing
           description: Logical pipeline type used by AutoRAG BFF discovery
-          example: "indexing"
+          example: 'indexing'
         pipeline_id:
           type: string
           description: Kubeflow pipeline ID
@@ -1462,7 +1463,7 @@ components:
         display_name:
           type: string
           description: Pipeline display name as registered in the pipeline server
-          example: "documents-indexing-pipeline"
+          example: 'documents-indexing-pipeline'
 
     ManagedPipelinesData:
       type: object
@@ -1473,7 +1474,7 @@ components:
         pipelines:
           type: array
           items:
-            $ref: "#/components/schemas/ManagedPipeline"
+            $ref: '#/components/schemas/ManagedPipeline'
 
     PipelineRunsData:
       type: object
@@ -1495,7 +1496,7 @@ components:
         next_page_token:
           type: string
           description: Token for retrieving the next page
-          example: "eyJwYWdlIjoyfQ=="
+          example: 'eyJwYWdlIjoyfQ=='
 
     S3UploadSuccess:
       description: Response body for successful S3 file upload
@@ -1563,7 +1564,7 @@ components:
 
     BaseResource:
       allOf:
-        - $ref: "#/components/schemas/BaseResourceCreate"
+        - $ref: '#/components/schemas/BaseResourceCreate'
         - type: object
           properties:
             id:
@@ -1585,7 +1586,7 @@ components:
               readOnly: true
     BaseResourceCreate:
       allOf:
-        - $ref: "#/components/schemas/BaseResourceUpdate"
+        - $ref: '#/components/schemas/BaseResourceUpdate'
         - type: object
           properties:
             name:
@@ -1601,7 +1602,7 @@ components:
           description: User provided custom properties which are not defined by its type.
           type: object
           additionalProperties:
-            $ref: "#/components/schemas/MetadataValue"
+            $ref: '#/components/schemas/MetadataValue'
         description:
           description: |-
             An optional description about the resource.
@@ -1613,21 +1614,21 @@ components:
           type: string
     MetadataValue:
       oneOf:
-        - $ref: "#/components/schemas/MetadataIntValue"
-        - $ref: "#/components/schemas/MetadataDoubleValue"
-        - $ref: "#/components/schemas/MetadataStringValue"
-        - $ref: "#/components/schemas/MetadataStructValue"
-        - $ref: "#/components/schemas/MetadataProtoValue"
-        - $ref: "#/components/schemas/MetadataBoolValue"
+        - $ref: '#/components/schemas/MetadataIntValue'
+        - $ref: '#/components/schemas/MetadataDoubleValue'
+        - $ref: '#/components/schemas/MetadataStringValue'
+        - $ref: '#/components/schemas/MetadataStructValue'
+        - $ref: '#/components/schemas/MetadataProtoValue'
+        - $ref: '#/components/schemas/MetadataBoolValue'
       discriminator:
         propertyName: metadataType
         mapping:
-          MetadataBoolValue: "#/components/schemas/MetadataBoolValue"
-          MetadataDoubleValue: "#/components/schemas/MetadataDoubleValue"
-          MetadataIntValue: "#/components/schemas/MetadataIntValue"
-          MetadataProtoValue: "#/components/schemas/MetadataProtoValue"
-          MetadataStringValue: "#/components/schemas/MetadataStringValue"
-          MetadataStructValue: "#/components/schemas/MetadataStructValue"
+          MetadataBoolValue: '#/components/schemas/MetadataBoolValue'
+          MetadataDoubleValue: '#/components/schemas/MetadataDoubleValue'
+          MetadataIntValue: '#/components/schemas/MetadataIntValue'
+          MetadataProtoValue: '#/components/schemas/MetadataProtoValue'
+          MetadataStringValue: '#/components/schemas/MetadataStringValue'
+          MetadataStructValue: '#/components/schemas/MetadataStructValue'
       description: A value in properties.
     MetadataIntValue:
       description: An integer (int64) property value.
@@ -1736,7 +1737,7 @@ components:
       type: object
       properties:
         error:
-          $ref: "#/components/schemas/Error"
+          $ref: '#/components/schemas/Error'
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -1756,38 +1757,38 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
           examples:
             managed-pipeline-unavailable:
               summary: Required managed pipelines are not provisioned
               value:
                 error:
-                  code: "404"
-                  message: "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+                  code: '404'
+                  message: 'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server'
             resource-not-found:
               summary: Requested resource does not exist
               value:
                 error:
-                  code: "404"
-                  message: "the requested resource could not be found"
+                  code: '404'
+                  message: 'the requested resource could not be found'
       description: The specified resource was not found
     BadRequest:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
       description: Bad Request parameters
     Unauthorized:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
       description: Unauthorized
     Forbidden:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
       description: Forbidden - insufficient permissions
     Conflict:
       description: >-
@@ -1796,24 +1797,24 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
       description: Unexpected internal server error
     ServiceUnavailable:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
       description: Service temporarily unavailable
     BadGateway:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
       description: Bad Gateway - upstream service is unreachable
     ConfigResponse:
       content:
@@ -1825,42 +1826,28 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: "#/components/schemas/Config"
+                $ref: '#/components/schemas/Config'
       description: A response containing a list of Config entities.
 
-    # MaaS Responses
     MaaSModelsResponse:
       description: List of available MaaS models
       content:
         application/json:
           schema:
             type: object
+            required:
+              - data
             properties:
-              metadata:
-                type: object
-                description: Metadata about the response
               data:
                 $ref: '#/components/schemas/MaaSModelsData'
           example:
-            metadata: {}
             data:
               models:
-                - id: "llama3.2:3b"
-                  type: "llm"
-                  provider: "ollama"
-                  resource_path: "ollama://models/llama3.2:3b"
-                - id: "mistral-7b-instruct"
-                  type: "llm"
-                  provider: "ollama"
-                  resource_path: "ollama://models/mistral-7b-instruct"
-                - id: "all-minilm:l6-v2"
-                  type: "embedding"
-                  provider: "ollama"
-                  resource_path: "ollama://models/all-minilm:l6-v2"
-                - id: "nomic-embed-text"
-                  type: "embedding"
-                  provider: "ollama"
-                  resource_path: "ollama://models/nomic-embed-text"
+                - id: 'granite-3-8b-instruct'
+                  display_name: 'Granite 3 8B Instruct'
+                  description: 'IBM Granite 3 8B instruction-tuned language model.'
+                  owned_by: 'maas-models'
+                  ready: true
 
     SecretsResponse:
       content:
@@ -1875,7 +1862,7 @@ components:
                 type: array
                 description: List of filtered secrets
                 items:
-                  $ref: "#/components/schemas/SecretListItem"
+                  $ref: '#/components/schemas/SecretListItem'
           examples:
             storageSecrets:
               summary: Example response with storage (S3) secrets
@@ -1884,26 +1871,41 @@ components:
                   - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
                     name: aws-secret-1
                     type: s3
-                    data: {"AWS_ACCESS_KEY_ID": "[REDACTED]", "AWS_DEFAULT_REGION": "[REDACTED]", "AWS_S3_ENDPOINT": "[REDACTED]", "AWS_SECRET_ACCESS_KEY": "[REDACTED]", "AWS_S3_BUCKET": "my-production-bucket"}
+                    data:
+                      {
+                        'AWS_ACCESS_KEY_ID': '[REDACTED]',
+                        'AWS_DEFAULT_REGION': '[REDACTED]',
+                        'AWS_S3_ENDPOINT': '[REDACTED]',
+                        'AWS_SECRET_ACCESS_KEY': '[REDACTED]',
+                        'AWS_S3_BUCKET': 'my-production-bucket',
+                      }
                     displayName: Production S3 Bucket
                   - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
                     name: aws-secret-2
                     type: s3
-                    data: {"AWS_ACCESS_KEY_ID": "[REDACTED]", "AWS_DEFAULT_REGION": "[REDACTED]", "AWS_S3_ENDPOINT": "[REDACTED]", "AWS_SECRET_ACCESS_KEY": "[REDACTED]"}
+                    data:
+                      {
+                        'AWS_ACCESS_KEY_ID': '[REDACTED]',
+                        'AWS_DEFAULT_REGION': '[REDACTED]',
+                        'AWS_S3_ENDPOINT': '[REDACTED]',
+                        'AWS_SECRET_ACCESS_KEY': '[REDACTED]',
+                      }
             llsSecrets:
-              summary: Example response with MaaS (Models as a Service) secrets
+              summary: Example response with OGX (Open GenAI Stack) secrets
               value:
                 data:
                   - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
-                    name: maas-secret-1
-                    type: maas
-                    data: {"MAAS_API_KEY": "[REDACTED]", "MAAS_BASE_URL": "[REDACTED]"}
-                    displayName: Development MaaS
-                    description: Models as a Service connection for development and testing
+                    name: ogx-secret-1
+                    type: ogx
+                    data:
+                      { 'OGX_CLIENT_API_KEY': '[REDACTED]', 'OGX_CLIENT_BASE_URL': '[REDACTED]' }
+                    displayName: Development OGX
+                    description: Open GenAI Stack connection for development and testing
                   - uuid: d2e3f4a5-b6c7-8901-defa-bc2345678901
-                    name: maas-secret-2
-                    type: maas
-                    data: {"MAAS_API_KEY": "[REDACTED]", "MAAS_BASE_URL": "[REDACTED]"}
+                    name: ogx-secret-2
+                    type: ogx
+                    data:
+                      { 'OGX_CLIENT_API_KEY': '[REDACTED]', 'OGX_CLIENT_BASE_URL': '[REDACTED]' }
             allSecrets:
               summary: Example response with all secrets (no type filter)
               value:
@@ -1911,17 +1913,25 @@ components:
                   - uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
                     name: s3-secret
                     type: s3
-                    data: {"AWS_ACCESS_KEY_ID": "[REDACTED]", "AWS_DEFAULT_REGION": "[REDACTED]", "AWS_S3_ENDPOINT": "[REDACTED]", "AWS_SECRET_ACCESS_KEY": "[REDACTED]", "AWS_S3_BUCKET": "my-bucket"}
+                    data:
+                      {
+                        'AWS_ACCESS_KEY_ID': '[REDACTED]',
+                        'AWS_DEFAULT_REGION': '[REDACTED]',
+                        'AWS_S3_ENDPOINT': '[REDACTED]',
+                        'AWS_SECRET_ACCESS_KEY': '[REDACTED]',
+                        'AWS_S3_BUCKET': 'my-bucket',
+                      }
                     displayName: Production S3 Bucket
                     description: Main S3 bucket for production data storage and backups
                   - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
-                    name: maas-secret
-                    type: maas
-                    data: {"MAAS_API_KEY": "[REDACTED]", "MAAS_BASE_URL": "[REDACTED]"}
-                    displayName: Development MaaS
+                    name: ogx-secret
+                    type: ogx
+                    data:
+                      { 'OGX_CLIENT_API_KEY': '[REDACTED]', 'OGX_CLIENT_BASE_URL': '[REDACTED]' }
+                    displayName: Development OGX
                   - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
                     name: other-secret
-                    data: {"password": "[REDACTED]", "username": "[REDACTED]"}
+                    data: { 'password': '[REDACTED]', 'username': '[REDACTED]' }
             emptyList:
               summary: Example response with no matching secrets
               value:
@@ -1948,8 +1958,8 @@ components:
                   The caller must decode values before use.
           example:
             data:
-              MAAS_BASE_URL: "aHR0cHM6Ly9tYWFzLmV4YW1wbGUuY29t"
-              MAAS_API_KEY: "UkVQTEFDRS1XSVRILUFQSS1LRVk="
+              OGX_CLIENT_BASE_URL: 'aHR0cHM6Ly9vZ3guZXhhbXBsZS5jb20='
+              OGX_CLIENT_API_KEY: 'UkVQTEFDRS1XSVRILUFQSS1LRVk=' # notsecret
       description: A response containing a single secret's base64-encoded key-value data
 
     PipelineRunsResponse:
@@ -1968,26 +1978,26 @@ components:
             metadata: {}
             data:
               runs:
-                - run_id: "abc123-def456"
-                  display_name: "AutoRAG Optimization Run 1"
-                  description: "Optimizing RAG parameters for dataset X"
-                  experiment_id: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+                - run_id: 'abc123-def456'
+                  display_name: 'AutoRAG Optimization Run 1'
+                  description: 'Optimizing RAG parameters for dataset X'
+                  experiment_id: '1858af57-f990-4aee-a03e-c93bdfd02eb3'
                   pipeline_version_reference:
-                    pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
-                    pipeline_version_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                  state: "SUCCEEDED"
-                  storage_state: "AVAILABLE"
-                  service_account: "pipeline-runner-dspa"
-                  created_at: "2026-02-24T10:30:00Z"
-                  scheduled_at: "2026-02-24T10:30:00Z"
-                  finished_at: "2026-02-24T11:15:00Z"
+                    pipeline_id: '9e3940d5-b275-4b64-be10-b914cd06c58e'
+                    pipeline_version_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+                  state: 'SUCCEEDED'
+                  storage_state: 'AVAILABLE'
+                  service_account: 'pipeline-runner-dspa'
+                  created_at: '2026-02-24T10:30:00Z'
+                  scheduled_at: '2026-02-24T10:30:00Z'
+                  finished_at: '2026-02-24T11:15:00Z'
                   state_history:
-                    - update_time: "2026-02-24T10:30:00Z"
-                      state: "RUNNING"
-                    - update_time: "2026-02-24T11:15:00Z"
-                      state: "SUCCEEDED"
+                    - update_time: '2026-02-24T10:30:00Z'
+                      state: 'RUNNING'
+                    - update_time: '2026-02-24T11:15:00Z'
+                      state: 'SUCCEEDED'
               total_size: 1
-              next_page_token: ""
+              next_page_token: ''
 
     CreatePipelineRunResponse:
       description: Successful response containing the created pipeline run
@@ -2004,23 +2014,29 @@ components:
           example:
             metadata: {}
             data:
-              run_id: "abc123-def456"
-              display_name: "my-optimization-run"
-              state: "PENDING"
-              created_at: "2026-02-25T10:30:00Z"
+              run_id: 'abc123-def456'
+              display_name: 'my-optimization-run'
+              state: 'PENDING'
+              created_at: '2026-02-25T10:30:00Z'
               pipeline_version_reference:
-                pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
-                pipeline_version_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                pipeline_id: '9e3940d5-b275-4b64-be10-b914cd06c58e'
+                pipeline_version_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
               runtime_config:
                 parameters:
-                  optimization_metric: "overall_score"
-                  test_data_secret_name: "minio-secret"
-                  test_data_bucket_name: "autorag"
-                  test_data_key: "test_data.json"
-                  input_data_secret_name: "minio-secret"
-                  input_data_bucket_name: "autorag"
-                  input_data_key: "documents/"
-                  maas_secret_name: "maas-secret"
+                  optimization_metric: 'overall_score'
+                  test_data_secret_name: 'minio-secret'
+                  test_data_bucket_name: 'autorag'
+                  test_data_key: 'test_data.json'
+                  input_data_secret_name: 'minio-secret'
+                  input_data_bucket_name: 'autorag'
+                  input_data_keys:
+                    - 'documents/'
+                  maas_secret_name: 'maas-secret'
+                  vector_db_secret_name: 'vector-db-secret'
+                  embedding_models:
+                    - 'vllm-embedding/ibm-granite/granite-embedding-english-r2'
+                  generation_models:
+                    - 'vllm-inference/meta-llama/Llama-3.1-8B-Instruct'
 
     PipelineRunResponse:
       description: Successful response containing a single pipeline run
@@ -2037,54 +2053,54 @@ components:
           example:
             metadata: {}
             data:
-              run_id: "abc123-def456"
-              display_name: "AutoRAG Optimization Run 1"
-              description: "Optimizing RAG parameters for dataset X"
-              experiment_id: "1858af57-f990-4aee-a03e-c93bdfd02eb3"
+              run_id: 'abc123-def456'
+              display_name: 'AutoRAG Optimization Run 1'
+              description: 'Optimizing RAG parameters for dataset X'
+              experiment_id: '1858af57-f990-4aee-a03e-c93bdfd02eb3'
               pipeline_version_reference:
-                pipeline_id: "9e3940d5-b275-4b64-be10-b914cd06c58e"
-                pipeline_version_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-              state: "SUCCEEDED"
-              storage_state: "AVAILABLE"
-              service_account: "pipeline-runner-dspa"
-              created_at: "2026-02-24T10:30:00Z"
-              scheduled_at: "2026-02-24T10:30:00Z"
-              finished_at: "2026-02-24T11:15:00Z"
+                pipeline_id: '9e3940d5-b275-4b64-be10-b914cd06c58e'
+                pipeline_version_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+              state: 'SUCCEEDED'
+              storage_state: 'AVAILABLE'
+              service_account: 'pipeline-runner-dspa'
+              created_at: '2026-02-24T10:30:00Z'
+              scheduled_at: '2026-02-24T10:30:00Z'
+              finished_at: '2026-02-24T11:15:00Z'
               state_history:
-                - update_time: "2026-02-24T10:30:00Z"
-                  state: "RUNNING"
-                - update_time: "2026-02-24T11:15:00Z"
-                  state: "SUCCEEDED"
+                - update_time: '2026-02-24T10:30:00Z'
+                  state: 'RUNNING'
+                - update_time: '2026-02-24T11:15:00Z'
+                  state: 'SUCCEEDED'
               run_details:
                 task_details:
-                  - run_id: "abc123-def456"
-                    task_id: "task-data-preprocessing"
-                    display_name: "Data Preprocessing"
-                    create_time: "2026-02-24T10:30:00Z"
-                    start_time: "2026-02-24T10:30:05Z"
-                    end_time: "2026-02-24T10:35:00Z"
-                    state: "SUCCEEDED"
+                  - run_id: 'abc123-def456'
+                    task_id: 'task-data-preprocessing'
+                    display_name: 'Data Preprocessing'
+                    create_time: '2026-02-24T10:30:00Z'
+                    start_time: '2026-02-24T10:30:05Z'
+                    end_time: '2026-02-24T10:35:00Z'
+                    state: 'SUCCEEDED'
                     state_history:
-                      - update_time: "2026-02-24T10:30:05Z"
-                        state: "RUNNING"
-                      - update_time: "2026-02-24T10:35:00Z"
-                        state: "SUCCEEDED"
+                      - update_time: '2026-02-24T10:30:05Z'
+                        state: 'RUNNING'
+                      - update_time: '2026-02-24T10:35:00Z'
+                        state: 'SUCCEEDED'
                     child_tasks:
-                      - pod_name: "data-preprocessing-pod-abc123"
-                  - run_id: "abc123-def456"
-                    task_id: "task-model-training"
-                    display_name: "Model Training"
-                    create_time: "2026-02-24T10:30:00Z"
-                    start_time: "2026-02-24T10:35:10Z"
-                    end_time: "2026-02-24T11:10:00Z"
-                    state: "SUCCEEDED"
+                      - pod_name: 'data-preprocessing-pod-abc123'
+                  - run_id: 'abc123-def456'
+                    task_id: 'task-model-training'
+                    display_name: 'Model Training'
+                    create_time: '2026-02-24T10:30:00Z'
+                    start_time: '2026-02-24T10:35:10Z'
+                    end_time: '2026-02-24T11:10:00Z'
+                    state: 'SUCCEEDED'
                     state_history:
-                      - update_time: "2026-02-24T10:35:10Z"
-                        state: "RUNNING"
-                      - update_time: "2026-02-24T11:10:00Z"
-                        state: "SUCCEEDED"
+                      - update_time: '2026-02-24T10:35:10Z'
+                        state: 'RUNNING'
+                      - update_time: '2026-02-24T11:10:00Z'
+                        state: 'SUCCEEDED'
                     child_tasks:
-                      - pod_name: "model-training-pod-def456"
+                      - pod_name: 'model-training-pod-def456'
 
     ManagedPipelinesResponse:
       description: List of discovered managed pipelines
@@ -2099,7 +2115,7 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: "#/components/schemas/ManagedPipelinesData"
+                $ref: '#/components/schemas/ManagedPipelinesData'
 
     EnableManagedPipelinesResponse:
       description: Managed pipelines enabled or pipeline server restarted
@@ -2114,17 +2130,17 @@ components:
               message:
                 type: string
                 description: Action taken — "managed pipelines enabled" or "managed pipelines restarted"
-                example: "managed pipelines enabled"
+                example: 'managed pipelines enabled'
               dspa:
                 type: string
                 description: Name of the DSPipelineApplication resource
-                example: "dspa"
+                example: 'dspa'
 
     ConflictResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
+            $ref: '#/components/schemas/ErrorEnvelope'
       description: Conflict - Role Binding with the same name already exists
 
     S3GetFilesResponse:
@@ -2138,7 +2154,7 @@ components:
                 type: object
                 description: Response metadata
               data:
-                $ref: "#/components/schemas/S3ListObjectsResult"
+                $ref: '#/components/schemas/S3ListObjectsResult'
 
   parameters:
     kubeflowUserId:
@@ -2167,7 +2183,7 @@ components:
     externalId:
       examples:
         externalId:
-          value: "10"
+          value: '10'
       name: externalId
       description: External ID of entity to search.
       schema:
@@ -2177,7 +2193,7 @@ components:
     parentResourceId:
       examples:
         parentResourceId:
-          value: "10"
+          value: '10'
       name: parentResourceId
       description: ID of the parent resource to use for search.
       schema:
@@ -2214,7 +2230,7 @@ components:
       name: orderBy
       description: Specifies the order by criteria for listing entities.
       schema:
-        $ref: "#/components/schemas/OrderByField"
+        $ref: '#/components/schemas/OrderByField'
       in: query
       required: false
     sortOrder:
@@ -2224,9 +2240,9 @@ components:
         sortOrder:
           value: DESC
       name: sortOrder
-      description: "Specifies the sort order for listing entities, defaults to ASC."
+      description: 'Specifies the sort order for listing entities, defaults to ASC.'
       schema:
-        $ref: "#/components/schemas/SortOrder"
+        $ref: '#/components/schemas/SortOrder'
       in: query
       required: false
     namespace:
@@ -2251,6 +2267,6 @@ tags:
   - name: S3Operation
     description: Operation performed on S3 storage
   - name: Models
-    description: AI model discovery and management from Models as a Service Distribution
+    description: AI model discovery and management from MaaS
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs

@@ -98,7 +98,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             componentStageMap,
             runDetails,
             runState,
-            parameters?.optimization_max_rag_patterns,
+            typeof parameters?.optimization_max_rag_patterns === 'number'
+              ? parameters.optimization_max_rag_patterns
+              : undefined,
             leaderboardPatternNames.length > 0 ? leaderboardPatternNames : undefined,
             patterns,
           )

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type {
-  KnowledgeSourceType,
   EvaluationSourceType,
+  KnowledgeSourceType,
   VectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
@@ -10,7 +10,7 @@ export type RunTriggeredTrackingContextProps = {
   onKnowledgeSourceConfigured: (sourceType: KnowledgeSourceType) => void;
   /** Records the most recent successful evaluation-source selection, for use at submit time on the "AutoRAG Run Triggered" event, and advances the "AutoRAG Flow Exited" funnel step. */
   onEvaluationSourceConfigured: (sourceType: EvaluationSourceType) => void;
-  /** Records the most recently selected vector store provider type, for use at submit time on the "AutoRAG Run Triggered" event. */
+  /** Records the normalized vector database provider type, without exposing Secret data. */
   onVectorStoreConfigured: (providerType: VectorStoreProviderType) => void;
   /** Reports that the model configuration modal was saved, to advance the "AutoRAG Flow Exited" funnel step. Unlike the other callbacks, this carries no payload — model counts are read directly from form data at submit time. */
   onModelsConfigured: () => void;

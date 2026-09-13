@@ -1,50 +1,43 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getMaasModels, getSecretByName, getSecrets } from '~/app/api/k8s';
+import { getMaaSModels, getSecretByName, getSecrets } from '~/app/api/k8s';
 import { getManagedPipelines, getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
-  MaasModelsResponse,
-  MaasModelType,
+  MaaSModelsResponse,
   ManagedPipeline,
   PipelineRun,
   S3ListObjectsResponse,
   SecretListItem,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { normalizePipelineRun } from '~/app/utilities/pipelineRunUtils';
 import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
-export function useMaasModelsQuery(
+export function useMaaSModelsQuery(
   namespace: string,
   secretName: string,
-  modelType?: MaasModelType,
-): UseQueryResult<MaasModelsResponse, Error> {
+): UseQueryResult<MaaSModelsResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
-    queryKey: ['autorag', 'models', namespace, secretName],
-    queryFn: async () => {
+    queryKey: ['autorag', 'maasModels', namespace, secretName],
+    queryFn: async ({ signal }) => {
+      const response = await getMaaSModels('')(namespace, secretName)({ signal });
       try {
-        const response = await getMaasModels('')(namespace, secretName)({});
-        const validated = z
+        return z
           .object({
             models: z.array(
               z.object({
                 id: z.string(),
-                type: z.string(),
-                provider: z.string(),
                 // eslint-disable-next-line camelcase
-                resource_path: z.string(),
+                display_name: z.string().optional(),
+                description: z.string().optional(),
+                // eslint-disable-next-line camelcase
+                owned_by: z.string().optional(),
+                ready: z.boolean(),
               }),
             ),
           })
           .parse(response);
-        return {
-          models: validated.models.filter(
-            (m): m is typeof m & { type: 'llm' | 'embedding' } =>
-              m.type === 'llm' || m.type === 'embedding',
-          ),
-        };
       } catch (error) {
         if (error instanceof z.ZodError) {
           throw new Error('Invalid MaaS models response');
@@ -52,9 +45,6 @@ export function useMaasModelsQuery(
         throw error;
       }
     },
-    select: modelType
-      ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
-      : undefined,
   });
 }
 
@@ -233,7 +223,7 @@ export function usePipelineRunQuery(
     queryKey: ['autorag', 'pipelineRun', runId, namespace],
     queryFn: async ({ signal }) => {
       const run = await getPipelineRunFromBFF('', runId!, namespace!, { signal });
-      return normalizePipelineRun(run);
+      return run;
     },
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
@@ -284,7 +274,7 @@ export function useSecretCredentialsQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'maas',
+  type?: 'storage' | 'maas' | 'vector-db',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

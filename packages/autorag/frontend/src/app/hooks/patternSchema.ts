@@ -85,7 +85,7 @@ const AutoragPatternSettingsV1Schema = z
     chunking: ChunkingSchema,
     embedding: z
       .object({
-        model_id: z.string(),
+        model_id: z.string().trim().min(1),
         distance_metric: z.string().optional(),
         embedding_params: EmbeddingBaseParamsSchema.extend({
           timeout: z.number().nullable().optional(),
@@ -98,7 +98,7 @@ const AutoragPatternSettingsV1Schema = z
     retrieval: RetrievalSchema,
     generation: z
       .object({
-        model_id: z.string(),
+        model_id: z.string().trim().min(1),
         context_template_text: z.string().optional(),
         user_message_text: z.string().optional(),
         system_message_text: z.string().optional(),
@@ -142,7 +142,7 @@ const AutoragPatternSettingsV2Schema = z
     chunking: ChunkingSchema,
     embedding: z
       .object({
-        model_id: z.string(),
+        model_id: z.string().trim().min(1),
         distance_metric: z.string().optional(),
         embedding_params: EmbeddingBaseParamsSchema.extend({
           timeout: z.number().nullable().optional(),
@@ -157,7 +157,7 @@ const AutoragPatternSettingsV2Schema = z
     }),
     generation: z
       .object({
-        model_id: z.string(),
+        model_id: z.string().trim().min(1),
         temperature: z.number().optional(),
         max_completion_tokens: z.number().optional(),
         context_template_text: z.string().optional(),

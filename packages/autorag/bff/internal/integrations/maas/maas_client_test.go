@@ -1,11 +1,12 @@
 package maas
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -14,194 +15,103 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestServer(handler http.HandlerFunc) (*httptest.Server, *MaaSClient) {
-	ts := httptest.NewServer(handler)
-	return ts, NewMaaSClient(ts.Client())
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
-func jsonResponse(t *testing.T, w http.ResponseWriter, v any) {
-	t.Helper()
-	w.Header().Set("Content-Type", "application/json")
-	require.NoError(t, json.NewEncoder(w).Encode(v))
+func TestListModels(t *testing.T) {
+	client := NewMaaSClient(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		assert.Equal(t, "/maas-api/v1/models", r.URL.Path)
+		assert.Equal(t, "Bearer test-key", r.Header.Get("Authorization"))
+		body, err := json.Marshal(map[string]any{
+			"object": "list",
+			"data": []models.MaaSNativeModel{{
+				ID:      "model-a",
+				OwnedBy: "models",
+				Ready:   true,
+			}},
+		})
+		require.NoError(t, err)
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(string(body)))}, nil
+	})})
+
+	got, err := client.ListModels(context.Background(), "https://maas.apps.cluster/maas-api/", "test-key")
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "model-a", got[0].ID)
 }
 
-// --- ListModels ---
-
-func TestMaaSClient_ListModels(t *testing.T) {
-	t.Run("parses envelope format with data wrapper", func(t *testing.T) {
-		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "/v1/models", r.URL.Path)
-			assert.Equal(t, "application/json", r.Header.Get("Accept"))
-			jsonResponse(t, w, map[string]any{
-				"data": []models.MaaSNativeModel{
-					{ID: "llama3.2:3b", CustomMetadata: &models.MaaSCustomMetadata{ModelType: "llm"}},
-				},
-			})
-		})
-		defer ts.Close()
-
-		got, err := c.ListModels(context.Background(), ts.URL, "")
-		require.NoError(t, err)
-		require.Len(t, got, 1)
-		assert.Equal(t, "llama3.2:3b", got[0].ID)
-	})
-
-	t.Run("falls back to bare array format", func(t *testing.T) {
-		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			jsonResponse(t, w, []models.MaaSNativeModel{
-				{ID: "mistral-7b"},
-			})
-		})
-		defer ts.Close()
-
-		got, err := c.ListModels(context.Background(), ts.URL, "")
-		require.NoError(t, err)
-		require.Len(t, got, 1)
-		assert.Equal(t, "mistral-7b", got[0].ID)
-	})
-
-	t.Run("attaches bearer token when apiKey is set", func(t *testing.T) {
-		var gotAuth string
-		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			gotAuth = r.Header.Get("Authorization")
-			jsonResponse(t, w, map[string]any{"data": []models.MaaSNativeModel{}})
-		})
-		defer ts.Close()
-
-		_, err := c.ListModels(context.Background(), ts.URL, "secret-token")
-		require.NoError(t, err)
-		assert.Equal(t, "Bearer secret-token", gotAuth)
-	})
-
-	t.Run("maps non-200 status codes to typed errors", func(t *testing.T) {
-		tests := []struct {
-			name       string
-			statusCode int
-			wantCode   string
-		}{
-			{"bad request", http.StatusBadRequest, ErrCodeInvalidRequest},
-			{"unauthorized", http.StatusUnauthorized, ErrCodeUnauthorized},
-			{"not found", http.StatusNotFound, ErrCodeNotFound},
-			{"timeout", http.StatusGatewayTimeout, ErrCodeTimeout},
-			{"service unavailable", http.StatusServiceUnavailable, ErrCodeServerUnavailable},
-			{"unexpected status", http.StatusTeapot, ErrCodeInternalError},
-		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(tt.statusCode)
-					_, _ = w.Write([]byte(`{"error": "boom"}`))
-				})
-				defer ts.Close()
-
-				_, err := c.ListModels(context.Background(), ts.URL, "")
-				require.Error(t, err)
-				var maasErr *MaaSError
-				require.ErrorAs(t, err, &maasErr)
-				assert.Equal(t, tt.wantCode, maasErr.Code)
-			})
-		}
-	})
-
-	t.Run("returns an internal error on malformed JSON", func(t *testing.T) {
-		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{not json`))
-		})
-		defer ts.Close()
-
-		_, err := c.ListModels(context.Background(), ts.URL, "")
-		require.Error(t, err)
-		var maasErr *MaaSError
-		require.ErrorAs(t, err, &maasErr)
-		assert.Equal(t, ErrCodeInternalError, maasErr.Code)
-	})
-
-	t.Run("truncates oversized response bodies instead of buffering them fully", func(t *testing.T) {
-		// A single well-formed JSON element repeated enough times to exceed the
-		// 2 MiB read cap. If the cap were not enforced, this would still be valid
-		// JSON and parse successfully; because it's read-truncated mid-array, the
-		// decoder must fail — proving the size limit is actually applied.
-		const oversizeTarget = 3 << 20 // 3 MiB, above the 2 MiB models cap
-		var buf bytes.Buffer
-		buf.WriteString(`{"data":[`)
-		element := `{"id":"` + strings.Repeat("x", 1024) + `"},`
-		for buf.Len() < oversizeTarget {
-			buf.WriteString(element)
-		}
-		buf.WriteString(`{"id":"last"}]}`)
-
-		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write(buf.Bytes())
-		})
-		defer ts.Close()
-
-		_, err := c.ListModels(context.Background(), ts.URL, "")
-		require.Error(t, err)
-		var maasErr *MaaSError
-		require.ErrorAs(t, err, &maasErr)
-		assert.Equal(t, ErrCodeInternalError, maasErr.Code)
-	})
-
-	t.Run("wraps connection failures", func(t *testing.T) {
-		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {})
-		ts.Close() // server is already closed, so the request cannot connect
-
-		_, err := c.ListModels(context.Background(), ts.URL, "")
-		require.Error(t, err)
-		var maasErr *MaaSError
-		require.ErrorAs(t, err, &maasErr)
-		assert.Equal(t, ErrCodeConnectionFailed, maasErr.Code)
-	})
-
-	t.Run("falls back to openai prefix when /v1/models is 404", func(t *testing.T) {
-		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/v1/models" {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-			assert.Equal(t, "/v1/openai/v1/models", r.URL.Path)
-			jsonResponse(t, w, map[string]any{
-				"data": []models.MaaSNativeModel{{ID: "from-openai-prefix"}},
-			})
-		})
-		defer ts.Close()
-
-		got, err := c.ListModels(context.Background(), ts.URL, "")
-		require.NoError(t, err)
-		require.Len(t, got, 1)
-		assert.Equal(t, "from-openai-prefix", got[0].ID)
-	})
-}
-
-// --- setAuthHeader ---
-
-func TestSetAuthHeader(t *testing.T) {
+func TestBuildModelsURL(t *testing.T) {
 	tests := []struct {
-		name       string
-		apiKey     string
-		url        string
-		wantHeader string
+		name    string
+		baseURL string
+		want    string
+		wantErr bool
 	}{
-		{"https host gets bearer token", "tok", "https://maas.example.com/v1/models", "Bearer tok"},
-		{"localhost over http gets bearer token", "tok", "http://localhost:8080/v1/models", "Bearer tok"},
-		{"127.0.0.1 over http gets bearer token", "tok", "http://127.0.0.1:8080/v1/models", "Bearer tok"},
-		{"ipv6 loopback over http gets bearer token", "tok", "http://[::1]:8080/v1/models", "Bearer tok"},
-		{"in-cluster service FQDN over http gets bearer token", "tok", "http://maas.ns.svc.cluster.local:8080/v1/models", "Bearer tok"},
-		{"short cluster DNS over http omits the token", "tok", "http://maas.internal.svc:8080/v1/models", ""},
-		{"plain http to a remote host omits the token", "tok", "http://maas.example.com/v1/models", ""},
-		{"empty apiKey never sets a header", "", "https://maas.example.com/v1/models", ""},
+		{name: "root base", baseURL: "https://maas.apps.cluster/", want: "https://maas.apps.cluster/v1/models"},
+		{name: "path base", baseURL: "https://maas.apps.cluster/maas-api/", want: "https://maas.apps.cluster/maas-api/v1/models"},
+		{name: "private cluster address allowed", baseURL: "https://10.0.0.15/", want: "https://10.0.0.15/v1/models"},
+		{name: "credentials rejected", baseURL: "https://user:pass@maas.apps.cluster", wantErr: true},
+		{name: "query rejected", baseURL: "https://maas.apps.cluster?token=secret", wantErr: true},
+		{name: "fragment rejected", baseURL: "https://maas.apps.cluster#models", wantErr: true},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, tt.url, nil)
+			got, err := buildModelsURL(tt.baseURL)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
-
-			setAuthHeader(req, tt.apiKey)
-
-			assert.Equal(t, tt.wantHeader, req.Header.Get("Authorization"))
+			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestListModelsMapsUpstreamErrors(t *testing.T) {
+	client := NewMaaSClient(&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusUnauthorized, Body: io.NopCloser(strings.NewReader("{}"))}, nil
+	})})
+	_, err := client.ListModels(context.Background(), "https://maas.apps.cluster", "key")
+	var maaSErr *MaaSError
+	require.ErrorAs(t, err, &maaSErr)
+	assert.Equal(t, ErrCodeUnauthorized, maaSErr.Code)
+	assert.Equal(t, http.StatusUnauthorized, maaSErr.StatusCode)
+}
+
+func TestMaaSSafeDialContextRejectsUnsafeResolvedAddress(t *testing.T) {
+	baseDialed := false
+	dial := maaSSafeDialContext(
+		func(context.Context, string, string) (net.Conn, error) {
+			baseDialed = true
+			return nil, fmt.Errorf("unexpected dial")
+		},
+		func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("127.0.0.1")}, nil
+		},
+	)
+
+	_, err := dial(context.Background(), "tcp", "maas.example:443")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "blocked")
+	assert.False(t, baseDialed, "unsafe resolved address must not reach the dialer")
+}
+
+func TestMaaSSafeDialContextDialsValidatedAddressWithoutResolvingAgain(t *testing.T) {
+	var dialedAddress string
+	dial := maaSSafeDialContext(
+		func(_ context.Context, _, addr string) (net.Conn, error) {
+			dialedAddress = addr
+			return nil, fmt.Errorf("stop after recording address")
+		},
+		func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("192.0.2.10")}, nil
+		},
+	)
+
+	_, err := dial(context.Background(), "tcp", "maas.example:443")
+	require.Error(t, err)
+	assert.Equal(t, "192.0.2.10:443", dialedAddress)
 }

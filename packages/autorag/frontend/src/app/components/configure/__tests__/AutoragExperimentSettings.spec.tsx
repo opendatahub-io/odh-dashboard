@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragExperimentSettings from '~/app/components/configure/AutoragExperimentSettings';
 import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
@@ -11,7 +11,34 @@ import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 
 jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', () => {
-  const MockModelSelection = () => <div data-testid="mock-model-selection">Model Selection</div>;
+  const MockModelSelection = ({
+    onGenerationModelsChange,
+    onEmbeddingModelsChange,
+  }: {
+    onGenerationModelsChange: (models: string[]) => void;
+    onEmbeddingModelsChange: (models: string[]) => void;
+  }) => (
+    <div data-testid="mock-model-selection">
+      <button
+        data-testid="draft-generation-model"
+        onClick={() => onGenerationModelsChange(['draft-generation'])}
+      />
+      <button
+        data-testid="draft-both-models"
+        onClick={() => {
+          onGenerationModelsChange(['draft-generation']);
+          onEmbeddingModelsChange(['draft-embedding']);
+        }}
+      />
+      <button
+        data-testid="draft-empty-models"
+        onClick={() => {
+          onGenerationModelsChange([]);
+          onEmbeddingModelsChange([]);
+        }}
+      />
+    </div>
+  );
   return { __esModule: true, default: MockModelSelection };
 });
 
@@ -23,36 +50,20 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const configureSchema = createConfigureSchema();
+let latestForm: UseFormReturn<ConfigureSchema>;
 
 type FormWrapperProps = {
   children: React.ReactNode;
   defaultValues?: Partial<ConfigureSchema>;
-  /** When set, marks generation_models/embedding_models dirty with these values post-mount. */
-  dirtyModels?: { generation_models?: string[]; embedding_models?: string[] };
 };
 
-const FormWrapper: React.FC<FormWrapperProps> = ({ children, defaultValues, dirtyModels }) => {
+const FormWrapper: React.FC<FormWrapperProps> = ({ children, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
     defaultValues: { ...configureSchema.defaults, ...defaultValues },
   });
-
-  React.useEffect(() => {
-    if (dirtyModels?.generation_models) {
-      form.setValue('generation_models', dirtyModels.generation_models, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    }
-    if (dirtyModels?.embedding_models) {
-      form.setValue('embedding_models', dirtyModels.embedding_models, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  latestForm = form as UseFormReturn<ConfigureSchema>;
 
   return <FormProvider {...form}>{children}</FormProvider>;
 };
@@ -120,9 +131,42 @@ describe('AutoragExperimentSettings', () => {
   });
 
   describe('Save and Cancel actions', () => {
+    /* eslint-disable camelcase -- generation_models/embedding_models are schema field names */
     it('should disable the Save button when no changes have been made', () => {
       renderComponent();
       expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
+    });
+
+    it('should keep the Save button disabled when only generation models are selected', async () => {
+      renderComponent({}, { defaultValues: { generation_models: ['gpt-4'] } });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
+      });
+    });
+
+    it('should keep the Save button disabled when only embedding models are selected', async () => {
+      renderComponent({}, { defaultValues: { embedding_models: ['minilm-v2'] } });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
+      });
+    });
+
+    it('should enable the Save button when generation and embedding models are selected', async () => {
+      renderComponent(
+        {},
+        {
+          defaultValues: {
+            generation_models: ['gpt-4'],
+            embedding_models: ['minilm-v2'],
+          },
+        },
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
+      });
     });
 
     it('should call revertChanges and onClose when Cancel is clicked', async () => {
@@ -133,6 +177,7 @@ describe('AutoragExperimentSettings', () => {
       expect(defaultProps.revertChanges).toHaveBeenCalledTimes(1);
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
+    /* eslint-enable camelcase */
   });
 
   describe('AutoRAG Models Selected tracking', () => {
@@ -142,7 +187,7 @@ describe('AutoragExperimentSettings', () => {
       renderComponent(
         {},
         {
-          dirtyModels: {
+          defaultValues: {
             generation_models: ['gpt-4'],
             embedding_models: ['text-embedding-3', 'minilm-v2'],
           },
@@ -157,25 +202,83 @@ describe('AutoragExperimentSettings', () => {
         outcome: TrackingOutcome.submit,
         success: true,
       });
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('should not fire a submit event or close when Save is clicked with zero models selected', async () => {
-      // Save is disabled unless the form is dirty; force it dirty with empty selections.
+    it('should save valid unchanged model selections when the modal opens', async () => {
+      const user = userEvent.setup();
       renderComponent(
         {},
         {
-          dirtyModels: { generation_models: [], embedding_models: [] },
+          defaultValues: {
+            generation_models: ['gpt-4'],
+            embedding_models: ['minilm-v2'],
+          },
+        },
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
+      });
+      await user.click(screen.getByTestId('experiment-settings-save'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.MODELS_SELECTED,
+        expect.objectContaining({
+          countOfFoundationModels: 1,
+          countOfEmbeddingModels: 1,
+          outcome: TrackingOutcome.submit,
+        }),
+      );
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep draft selections out of the parent form until Save', async () => {
+      const user = userEvent.setup();
+      renderComponent(
+        {},
+        {
+          defaultValues: {
+            generation_models: ['saved-generation'],
+            embedding_models: ['saved-embedding'],
+          },
+        },
+      );
+
+      await user.click(screen.getByTestId('draft-both-models'));
+
+      expect(latestForm.getValues('generation_models')).toEqual(['saved-generation']);
+      expect(latestForm.getValues('embedding_models')).toEqual(['saved-embedding']);
+    });
+
+    it('should commit both draft selections when Save is clicked', async () => {
+      const user = userEvent.setup();
+      renderComponent(
+        {},
+        {
+          defaultValues: {
+            generation_models: ['saved-generation'],
+            embedding_models: ['saved-embedding'],
+          },
+        },
+      );
+
+      await user.click(screen.getByTestId('draft-both-models'));
+      await user.click(screen.getByTestId('experiment-settings-save'));
+
+      expect(latestForm.getValues('generation_models')).toEqual(['draft-generation']);
+      expect(latestForm.getValues('embedding_models')).toEqual(['draft-embedding']);
+    });
+
+    it('should not fire a submit event or close when Save is clicked with zero models selected', async () => {
+      renderComponent(
+        {},
+        {
           defaultValues: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] },
         },
       );
 
-      // Use fireEvent (synchronous) instead of userEvent here: clicking Save with zero models
-      // selected races against the async zod validation that disables the button once it detects
-      // the empty arrays are invalid, so a synchronous dispatch is needed to land the click before
-      // that validation resolves and flips isDisabled. The click handler itself re-checks the live
-      // model counts (not just the — possibly stale — disabled state), so it must be a no-op here:
-      // no false "success" event, and the modal must not close on an invalid selection.
-      fireEvent.click(screen.getByTestId('experiment-settings-save'));
+      await userEvent.setup().click(screen.getByTestId('draft-empty-models'));
 
       expect(fireFormTrackingEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.MODELS_SELECTED,
@@ -183,8 +286,6 @@ describe('AutoragExperimentSettings', () => {
       );
       expect(defaultProps.onClose).not.toHaveBeenCalled();
 
-      // Flush the async validation triggered on mount so its state update is captured within
-      // act(), rather than resolving after the test completes.
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
       });
@@ -194,9 +295,15 @@ describe('AutoragExperimentSettings', () => {
       const user = userEvent.setup();
       renderComponent(
         {},
-        { dirtyModels: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] } },
+        {
+          defaultValues: {
+            generation_models: ['saved-generation'],
+            embedding_models: ['saved-embedding'],
+          },
+        },
       );
 
+      await user.click(screen.getByTestId('draft-both-models'));
       await user.click(screen.getByTestId('experiment-settings-cancel'));
 
       expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
@@ -204,15 +311,23 @@ describe('AutoragExperimentSettings', () => {
         expect.objectContaining({ outcome: TrackingOutcome.cancel }),
       );
       expect(defaultProps.revertChanges).toHaveBeenCalledTimes(1);
+      expect(latestForm.getValues('generation_models')).toEqual(['saved-generation']);
+      expect(latestForm.getValues('embedding_models')).toEqual(['saved-embedding']);
     });
 
     it('should fire with outcome: cancel when the modal is closed via the X button', async () => {
       const user = userEvent.setup();
       renderComponent(
         {},
-        { dirtyModels: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] } },
+        {
+          defaultValues: {
+            generation_models: ['saved-generation'],
+            embedding_models: ['saved-embedding'],
+          },
+        },
       );
 
+      await user.click(screen.getByTestId('draft-both-models'));
       await user.click(screen.getByLabelText('Close'));
 
       expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
@@ -221,6 +336,8 @@ describe('AutoragExperimentSettings', () => {
       );
       expect(defaultProps.revertChanges).toHaveBeenCalledTimes(1);
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+      expect(latestForm.getValues('generation_models')).toEqual(['saved-generation']);
+      expect(latestForm.getValues('embedding_models')).toEqual(['saved-embedding']);
     });
     /* eslint-enable camelcase */
   });
@@ -232,7 +349,12 @@ describe('AutoragExperimentSettings', () => {
       const onModelsConfigured = jest.fn();
       renderComponent(
         {},
-        { dirtyModels: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] } },
+        {
+          defaultValues: {
+            generation_models: ['gpt-4'],
+            embedding_models: ['minilm-v2'],
+          },
+        },
         { onModelsConfigured },
       );
 
@@ -246,7 +368,12 @@ describe('AutoragExperimentSettings', () => {
       const onModelsConfigured = jest.fn();
       renderComponent(
         {},
-        { dirtyModels: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] } },
+        {
+          defaultValues: {
+            generation_models: ['gpt-4'],
+            embedding_models: ['minilm-v2'],
+          },
+        },
         { onModelsConfigured },
       );
 
@@ -260,7 +387,12 @@ describe('AutoragExperimentSettings', () => {
       const onModelsConfigured = jest.fn();
       renderComponent(
         {},
-        { dirtyModels: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] } },
+        {
+          defaultValues: {
+            generation_models: ['gpt-4'],
+            embedding_models: ['minilm-v2'],
+          },
+        },
         { onModelsConfigured },
       );
 

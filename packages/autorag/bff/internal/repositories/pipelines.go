@@ -327,8 +327,8 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.InputDataBucketName == "" {
 		missing = append(missing, "input_data_bucket_name")
 	}
-	if req.InputDataKey == "" {
-		missing = append(missing, "input_data_key")
+	if len(req.InputDataKeys) == 0 {
+		missing = append(missing, "input_data_keys")
 	}
 	if req.MaaSSecretName == "" {
 		missing = append(missing, "maas_secret_name")
@@ -342,14 +342,26 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if len(req.GenerationModels) == 0 {
 		missing = append(missing, "generation_models")
 	}
+	if len(req.InputDataKeys) > 10 {
+		return NewValidationError("input_data_keys must contain at most 10 keys")
+	}
+	for i, key := range req.InputDataKeys {
+		if strings.TrimSpace(key) == "" {
+			return NewValidationError(fmt.Sprintf("input_data_keys[%d] must not be blank", i))
+		}
+	}
+	for i, model := range req.EmbeddingsModels {
+		if strings.TrimSpace(model) == "" {
+			return NewValidationError(fmt.Sprintf("embedding_models[%d] must not be blank", i))
+		}
+	}
+	for i, model := range req.GenerationModels {
+		if strings.TrimSpace(model) == "" {
+			return NewValidationError(fmt.Sprintf("generation_models[%d] must not be blank", i))
+		}
+	}
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
-	}
-	if containsBlankIdentifier(req.EmbeddingsModels) {
-		return NewValidationError("embedding_models must not contain empty identifiers")
-	}
-	if containsBlankIdentifier(req.GenerationModels) {
-		return NewValidationError("generation_models must not contain empty identifiers")
 	}
 
 	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
@@ -400,17 +412,17 @@ func ValidateCreateIndexingPipelineRunRequest(req models.CreateIndexingPipelineR
 }
 
 func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) *pipelines.CreatePipelineRunInput {
+	// The pipeline backend has not adopted input_data_keys yet. Forward only the
+	// first key under the legacy name; remove this adapter when pipeline support lands.
 	params := map[string]any{
 		"test_data_secret_name":  req.TestDataSecretName,
 		"test_data_bucket_name":  req.TestDataBucketName,
 		"test_data_key":          req.TestDataKey,
 		"input_data_secret_name": req.InputDataSecretName,
 		"input_data_bucket_name": req.InputDataBucketName,
-		"input_data_key":         req.InputDataKey,
+		"input_data_key":         req.InputDataKeys[0],
 		"maas_secret_name":       req.MaaSSecretName,
 		"vector_db_secret_name":  req.VectorDBSecretName,
-		"embedding_models":       req.EmbeddingsModels,
-		"generation_models":      req.GenerationModels,
 	}
 
 	preset := constants.DefaultPreset
@@ -418,6 +430,9 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		preset = *req.Preset
 	}
 	params["preset"] = preset
+
+	params["embedding_models"] = req.EmbeddingsModels
+	params["generation_models"] = req.GenerationModels
 
 	metric := req.OptimizationMetric
 	if metric == "" {
@@ -460,13 +475,4 @@ func BuildIndexingPipelineRunInput(req models.CreateIndexingPipelineRunRequest, 
 			Parameters: params,
 		},
 	}
-}
-
-func containsBlankIdentifier(values []string) bool {
-	for _, v := range values {
-		if strings.TrimSpace(v) == "" {
-			return true
-		}
-	}
-	return false
 }

@@ -7,57 +7,56 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
-// httpClientInterface wraps *http.Client for testing.
 type httpClientInterface interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// MaaSClientInterface defines the contract for Models as a Service client operations.
-// baseURL and apiKey are passed per call so a single client instance can serve
-// multiple namespaces and secrets without reconstructing the HTTP client.
 type MaaSClientInterface interface {
 	ListModels(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error)
 }
 
-// MaaSClient communicates with an Models as a Service Distribution server.
-// It is stateless — baseURL and apiKey are passed per call so a single
-// instance can serve multiple namespaces and secrets.
 type MaaSClient struct {
 	httpClient httpClientInterface
 }
 
-// NewMaaSClient creates a client with an injectable HTTP client (for testing).
+type MaaSClientConfig struct {
+	InsecureSkipVerify bool
+	RootCAs            *x509.CertPool
+	WrapTransport      func(http.RoundTripper) http.RoundTripper
+	LookupIP           func(context.Context, string) ([]net.IP, error)
+}
+
 func NewMaaSClient(httpClient httpClientInterface) *MaaSClient {
 	return &MaaSClient{httpClient: httpClient}
 }
 
-// MaaSClientConfig holds configuration for the default MaaS client.
-type MaaSClientConfig struct {
-	InsecureSkipVerify bool
-	RootCAs            *x509.CertPool
-	// WrapTransport optionally wraps the HTTP transport chain.
-	// Pass k8s.PortForwardWrapTransport in dev mode for automatic in-cluster URL rewriting.
-	WrapTransport func(http.RoundTripper) http.RoundTripper
-}
-
-// NewDefaultMaaSClient creates a client with a real HTTP client configured for
-// TLS and a generous timeout suitable for model listing operations.
 func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // caller-controlled knob
+		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // controlled by development-only config
 		MinVersion:         tls.VersionTLS13,
+		RootCAs:            cfg.RootCAs,
 	}
-	if cfg.RootCAs != nil {
-		tlsConfig.RootCAs = cfg.RootCAs
+	lookupIP := cfg.LookupIP
+	if lookupIP == nil {
+		lookupIP = func(ctx context.Context, host string) ([]net.IP, error) {
+			return net.DefaultResolver.LookupIP(ctx, "ip", host)
+		}
 	}
-	var rt http.RoundTripper = &http.Transport{TLSClientConfig: tlsConfig}
+	dialer := &net.Dialer{}
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		DialContext:     maaSSafeDialContext(dialer.DialContext, lookupIP),
+	}
+	var rt http.RoundTripper = transport
 	if cfg.WrapTransport != nil {
 		rt = cfg.WrapTransport(rt)
 	}
@@ -69,115 +68,129 @@ func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
 	})
 }
 
-func isRetryableListStatus(statusCode int) bool {
-	switch statusCode {
-	case http.StatusNotFound, http.StatusMovedPermanently, http.StatusFound,
-		http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
-		return true
-	default:
-		return false
-	}
-}
-
-func (c *MaaSClient) getJSON(
-	ctx context.Context,
-	baseURL, apiKey, operation, resource string,
-	maxBytes int64,
-	relPaths []string,
-) ([]byte, error) {
-	base := strings.TrimRight(baseURL, "/")
-	var lastStatus int
-	var lastBody []byte
-	for _, rel := range relPaths {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+rel, nil)
-		if err != nil {
-			return nil, NewConnectionError(fmt.Sprintf("failed to create request for Models as a Service %s: %s", resource, err.Error()))
-		}
-		req.Header.Set("Accept", "application/json")
-		setAuthHeader(req, apiKey)
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			return nil, wrapClientError(err, operation)
-		}
-		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxBytes))
-		_ = resp.Body.Close()
-		if readErr != nil {
-			return nil, NewMaaSError(ErrCodeInternalError,
-				fmt.Sprintf("failed to read Models as a Service %s response body: %s", resource, readErr.Error()),
-				http.StatusInternalServerError)
-		}
-		if resp.StatusCode == http.StatusOK {
-			return body, nil
-		}
-		lastStatus = resp.StatusCode
-		lastBody = body
-		if !isRetryableListStatus(resp.StatusCode) {
-			return nil, mapHTTPStatusToError(resp.StatusCode, body, resource)
-		}
-	}
-	if lastStatus == 0 {
-		return nil, NewMaaSError(ErrCodeInternalError, fmt.Sprintf("no request paths for Models as a Service %s", resource), http.StatusInternalServerError)
-	}
-	return nil, mapHTTPStatusToError(lastStatus, lastBody, resource)
-}
-
-// ListModels retrieves all available models from MaaS.
-// Deserializes into MaaSNativeModel structs so that upstream schema changes are surfaced
-// explicitly rather than hidden behind the OpenAI SDK.
-// maas/ogx v0.4.0+ serves endpoints under /v1/; older OGX/Llama Stack images used /v1/openai/v1/.
 func (c *MaaSClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error) {
-	ctx, cancel := context.WithTimeout(ctx, 8*time.Minute)
-	defer cancel()
-	const maxModelsResponseBytes = 2 << 20 // 2 MiB
-	body, err := c.getJSON(ctx, baseURL, apiKey, "ListModels", "models", maxModelsResponseBytes, []string{
-		"/v1/models",
-		"/v1/openai/v1/models",
-	})
+	endpoint, err := buildModelsURL(baseURL)
 	if err != nil {
-		return nil, err
+		return nil, NewMaaSError(ErrCodeInvalidRequest, err.Error(), http.StatusBadRequest)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, NewMaaSError(ErrCodeInvalidRequest, "failed to create MaaS request", http.StatusBadRequest)
+	}
+	req.Header.Set("Accept", "application/json")
+	setAuthHeader(req, apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, wrapMaaSClientError(err)
+	}
+	defer resp.Body.Close()
+
+	const maxResponseBytes = 2 << 20
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
+	if err != nil {
+		return nil, NewMaaSError(ErrCodeInternalError, "failed to read MaaS response", http.StatusBadGateway)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, mapHTTPStatusToError(resp.StatusCode)
 	}
 
 	var envelope struct {
-		Data []models.MaaSNativeModel `json:"data"`
+		Object string                   `json:"object"`
+		Data   []models.MaaSNativeModel `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
-		var bare []models.MaaSNativeModel
-		if errBare := json.Unmarshal(body, &bare); errBare == nil {
-			return bare, nil
-		}
-		return nil, NewMaaSError(ErrCodeInternalError,
-			fmt.Sprintf("failed to parse Models as a Service models response: %s", err.Error()),
-			http.StatusInternalServerError)
+		return nil, NewMaaSError(ErrCodeInternalError, "failed to parse MaaS models response", http.StatusBadGateway)
 	}
-
 	return envelope.Data, nil
 }
 
-// setAuthHeader sets the Authorization header when an API key is provided.
-// The header is omitted over untrusted plain HTTP to avoid leaking tokens.
+func buildModelsURL(rawBaseURL string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(rawBaseURL))
+	if err != nil {
+		return "", fmt.Errorf("invalid MaaS base URL")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("invalid MaaS URL scheme")
+	}
+	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Hostname() == "" {
+		return "", fmt.Errorf("MaaS base URL must not contain credentials, query, fragment, or an empty host")
+	}
+	if err := validateMaaSHost(parsed.Hostname()); err != nil {
+		return "", err
+	}
+	return parsed.JoinPath("v1", "models").String(), nil
+}
+
+func validateMaaSHost(host string) error {
+	if ip := net.ParseIP(host); ip != nil {
+		return validateMaaSIP(ip)
+	}
+	// Hostnames are resolved and validated by maaSSafeDialContext immediately
+	// before dialing. Resolving here as well would create a DNS rebinding window.
+	return nil
+}
+
+func maaSSafeDialContext(
+	baseDialContext func(context.Context, string, string) (net.Conn, error),
+	lookupIP func(context.Context, string) ([]net.IP, error),
+) func(context.Context, string, string) (net.Conn, error) {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid MaaS address %q: %w", addr, err)
+		}
+
+		// URL validation covers IP literals. Leave them unchanged so transport
+		// wrappers such as the development port-forwarder can use localhost.
+		if ip := net.ParseIP(host); ip != nil {
+			return baseDialContext(ctx, network, addr)
+		}
+
+		ips, err := lookupIP(ctx, host)
+		if err != nil {
+			return nil, fmt.Errorf("MaaS host %q cannot be resolved: %w", host, err)
+		}
+		for _, ip := range ips {
+			if err := validateMaaSIP(ip); err != nil {
+				return nil, fmt.Errorf("MaaS host %q resolves to blocked address: %w", host, err)
+			}
+		}
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("MaaS host %q resolved to no addresses", host)
+		}
+
+		// Dial the validated addresses directly. Do not resolve host again.
+		var lastErr error
+		for _, ip := range ips {
+			conn, err := baseDialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+			if err == nil {
+				return conn, nil
+			}
+			lastErr = err
+		}
+		return nil, lastErr
+	}
+}
+
+func validateMaaSIP(ip net.IP) error {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() || ip.IsMulticast() {
+		return fmt.Errorf("MaaS host resolves to a blocked address")
+	}
+	return nil
+}
+
 func setAuthHeader(req *http.Request, apiKey string) {
 	if apiKey == "" {
 		return
 	}
-	if req.URL.Scheme == "https" || (req.URL.Scheme == "http" && allowBearerOverHTTP(req.URL.Hostname())) {
+	if req.URL.Scheme == "https" || req.URL.Hostname() == "localhost" || req.URL.Hostname() == "127.0.0.1" {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 }
 
-// allowBearerOverHTTP reports whether Authorization may be sent on an http URL.
-// Trusted HTTP hosts are loopback and Kubernetes service FQDNs
-// (<service>.<namespace>.svc.cluster.local), matching in-cluster MaaS URLs.
-func allowBearerOverHTTP(hostname string) bool {
-	host := strings.ToLower(strings.TrimSuffix(hostname, "."))
-	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
-		return true
-	}
-	labels := strings.Split(host, ".")
-	return len(labels) == 5 && labels[0] != "" && labels[1] != "" &&
-		labels[2] == "svc" && labels[3] == "cluster" && labels[4] == "local"
-}
-
-// Compile-time interface checks.
 var _ MaaSClientInterface = (*MaaSClient)(nil)
 var _ httpClientInterface = (*http.Client)(nil)

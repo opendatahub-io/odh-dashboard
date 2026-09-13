@@ -78,45 +78,43 @@ var fakeSecrets = map[string][]v1.Secret{
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "maas",
+				Name:      "ogx",
 				Namespace: "my-project",
 				UID:       "494aed77-c620-4ab0-8cd4-3fad4d6247c8",
 				Annotations: map[string]string{
-					"openshift.io/display-name": "maas",
+					"openshift.io/display-name": "ogx",
 				},
 				Labels: map[string]string{
 					"opendatahub.io/managed":         "true",
 					"opendatahub.io/dashboard":       "true",
-					"opendatahub.io/secret-type":     "maas",
-					"opendatahub.io/connection-type": "maas",
+					"opendatahub.io/secret-type":     "ogx",
+					"opendatahub.io/connection-type": "ogx",
 				},
 			},
 			Data: map[string][]byte{
-				"MAAS_API_KEY":  []byte("fake-maas-api-key"),
+				"OGX_CLIENT_API_KEY":  []byte("fake-ogx-api-key"),
+				"OGX_CLIENT_BASE_URL": []byte("https://ogx.example.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "maas",
+				Namespace: "my-project",
+				UID:       "5a1f5c27-3d1c-4a1b-9c7f-7d6e8b9c0a1f",
+			},
+			Data: map[string][]byte{
 				"MAAS_BASE_URL": []byte("https://maas.example.com"),
+				"MAAS_API_KEY":  []byte("fake-maas-api-key"),
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "vector-db",
 				Namespace: "my-project",
-				UID:       "5a5bed88-d731-5bc1-9de5-4gae5e7358d9",
-				Annotations: map[string]string{
-					"openshift.io/display-name": "vector-db",
-				},
-				Labels: map[string]string{
-					"opendatahub.io/managed":         "true",
-					"opendatahub.io/dashboard":       "true",
-					"opendatahub.io/secret-type":     "pgvector",
-					"opendatahub.io/connection-type": "pgvector",
-				},
+				UID:       "6b2f6d38-4e2d-5b2c-ad8f-8e7f9c0b1a2e",
 			},
 			Data: map[string][]byte{
-				"PGVECTOR_HOST":     []byte("pgvector.my-project.svc.cluster.local"),
-				"PGVECTOR_PORT":     []byte("5432"),
-				"PGVECTOR_DB":       []byte("testdb"),
-				"PGVECTOR_USER":     []byte("testuser"),
-				"PGVECTOR_PASSWORD": []byte("testpassword"),
+				"MILVUS_URI": []byte("https://milvus.example.com:19530"),
 			},
 		},
 	},

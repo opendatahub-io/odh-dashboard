@@ -1,220 +1,70 @@
-# MaaS Models Endpoint Documentation
-
-## Overview
-
-This document describes the GET endpoint for retrieving available models from a Models as a Service server using credentials stored in a Kubernetes secret.
+# Hosted MaaS Models Endpoint
 
 ## Endpoint
 
-**GET** `/api/v1/maas/models`
-
-## Query Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `namespace` | string | **Yes** | Kubernetes namespace containing the Models as a Service credentials secret |
-| `secretName` | string | **Yes** | Name of the Kubernetes secret containing Models as a Service credentials. Must be a valid DNS-1123 label. |
-
-## Functionality
-
-The endpoint:
-1. Validates `namespace` and `secretName` query parameters
-2. Reads the specified Kubernetes secret from the namespace
-3. Extracts `MAAS_BASE_URL` and `MAAS_API_KEY` from the secret (key names are matched case-insensitively)
-4. Creates a Models as a Service client using those credentials
-5. Calls the Models as a Service server to list available models
-6. Translates the response from Models as a Service's native format into a stable public API format
-7. Returns the models wrapped in a data envelope
-
-### Secret Requirements
-
-The secret must contain both keys (names are matched case-insensitively):
-
-| Key | Description |
-|-----|-------------|
-| `MAAS_BASE_URL` | The URL of the Models as a Service server (e.g., `http://maas-svc.my-namespace.svc.cluster.local:8321`) |
-| `MAAS_API_KEY` | The API key for authenticating with the Models as a Service server. The key may be present but empty for no-auth servers. |
-
-### Middleware Chain
-
-The request passes through the following middleware:
-
 ```text
-AttachNamespace -> AttachMaaSClientFromSecret -> MaaSModelsHandler
+GET /api/v1/maas/models?namespace=<namespace>&secretName=<secret>
 ```
 
-### Client Creation Precedence
+The endpoint is protected by the same namespace and service-access middleware as the other service-backed endpoints. It calls the hosted MaaS API directly; it does not call the MaaS BFF.
 
-The `AttachMaaSClientFromSecret` middleware determines how to create the Models as a Service client using the following precedence:
+## Selected Secret
 
-| Priority | Condition | Behavior |
-|----------|-----------|----------|
-| 1 | `MockMaaSClient` flag is set | Creates a mock client, skips secret lookup |
-| 2 | Normal | Reads credentials from the named Kubernetes secret (`secretName` + `namespace`) |
+The selected Kubernetes Secret must contain:
 
-There is no `MaaS_URL` environment override. Local development should use `MOCK_MAAS_CLIENT=true`, or a secret whose base URL is a reachable in-cluster address. Loopback URLs in the secret are rejected.
+| Key             | Required value                                                                  |
+| --------------- | ------------------------------------------------------------------------------- |
+| `MAAS_BASE_URL` | Hosted MaaS service base URL, such as `https://maas.apps.example.com/maas-api/` |
+| `MAAS_API_KEY`  | API key used for the upstream `Authorization: Bearer` header                    |
 
-## Response Format
+Both values must be non-empty for this endpoint. Other Secret keys do not affect this per-request credential validation.
 
-The response follows the envelope pattern:
+The BFF calls:
+
+```text
+GET {MAAS_BASE_URL}/v1/models
+Authorization: Bearer <MAAS_API_KEY>
+```
+
+Valid base paths are preserved before `/v1/models` is appended.
+
+## Response
+
+The response is an AutoRAG-owned envelope containing the complete unfiltered upstream model list:
 
 ```json
 {
   "data": {
     "models": [
       {
-        "id": "llama3.2:3b",
-        "type": "llm",
-        "provider": "ollama",
-        "resource_path": "ollama://models/llama3.2:3b"
-      },
-      {
-        "id": "all-minilm:l6-v2",
-        "type": "embedding",
-        "provider": "ollama",
-        "resource_path": "ollama://models/all-minilm:l6-v2"
+        "id": "granite-3-8b-instruct",
+        "display_name": "Granite 3 8B Instruct",
+        "description": "IBM Granite 3 8B instruction-tuned language model.",
+        "owned_by": "maas-models",
+        "ready": true
       }
     ]
   }
 }
 ```
 
-**Response Fields:**
+Only `id`, optional display metadata, optional `owned_by`, and `ready` are exposed. URLs, subscriptions, raw metadata, capabilities, categories, and pagination are not exposed. The BFF does not classify or filter models by category.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Model identifier (e.g., `llama3.2:3b`) |
-| `type` | string | Model type: `llm` or `embedding` |
-| `provider` | string | Provider identifier (e.g., `ollama`, `huggingface`) |
-| `resource_path` | string | Full provider resource path (e.g., `ollama://models/llama3.2:3b`) |
+## Errors and Security
 
-## Error Responses
+- `400`: missing or invalid query parameters, incomplete selected Secret, or invalid MaaS URL
+- `401`/`403`: upstream or Kubernetes authorization failure
+- `404`: selected Secret or upstream resource not found
+- `502`: invalid or unreachable upstream response/connection
+- `503`: MaaS temporarily unavailable or timed out
 
-| Status Code | Description |
-|-------------|-------------|
-| 400 | Bad Request - Missing or invalid `namespace` or `secretName`, or secret missing required keys |
-| 401 | Unauthorized - Missing authentication |
-| 404 | Not Found - Secret does not exist in the namespace |
-| 500 | Internal Server Error |
-| 502 | Bad Gateway - Models as a Service server connection failed |
+The BFF validates the URL scheme and host, rejects embedded credentials, query strings, fragments, and blocked address resolutions, uses configured CA bundles/TLS settings, disables redirects, limits response size, and applies an operation timeout. Secret values and raw upstream response bodies are not logged.
 
-## Examples
+## Local Mock
 
-### Retrieve models using a secret
-
-```bash
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/maas/models?namespace=my-namespace&secretName=my-maas-secret'
-```
-
-### Error: Missing secretName
-
-```bash
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/maas/models?namespace=my-namespace'
-```
-
-Response (400):
-```json
-{
-  "error": {
-    "code": "400",
-    "message": "missing required query parameter: secretName"
-  }
-}
-```
-
-### Error: Secret not found
-
-```bash
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/maas/models?namespace=my-namespace&secretName=nonexistent'
-```
-
-Response (404):
-```json
-{
-  "error": {
-    "code": "404",
-    "message": "secret \"nonexistent\" not found in namespace \"my-namespace\""
-  }
-}
-```
-
-## Local Development
-
-### Mock Mode
-
-Start the BFF with mock clients to test without a cluster or Models as a Service server:
+For local contract testing without a hosted MaaS service:
 
 ```bash
 cd packages/autorag/bff
-make run MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true
-```
-
-```bash
-curl 'http://localhost:4000/api/v1/maas/models?namespace=default&secretName=any-secret'
-```
-
-### Full E2E
-
-1. Create a secret with Models as a Service credentials. Use an in-cluster service DNS name (loopback URLs such as `http://localhost:8321` are rejected):
-
-   ```bash
-   oc create secret generic my-maas-secret \
-     --namespace=<namespace> \
-     --from-literal=MAAS_BASE_URL=http://<maas-service>.<namespace>.svc.cluster.local:8321 \
-     --from-literal=MAAS_API_KEY=dummy
-   ```
-
-   For a BFF running on your laptop, prefer mock mode (`MOCK_MAAS_CLIENT=true`) instead of pointing the secret at a port-forwarded localhost URL.
-
-2. Start the BFF without mock flags:
-
-   ```bash
-   cd packages/autorag/bff
-   make run
-   ```
-
-3. Call the endpoint. This HTTP example is loopback-only and non-portable; do not send the bearer token to a non-localhost host:
-
-   ```bash
-   curl -H "Authorization: Bearer $(oc whoami -t)" \
-     'http://localhost:4000/api/v1/maas/models?namespace=<namespace>&secretName=my-maas-secret'
-   ```
-
-## Security
-
-- Authentication is enforced by the `InjectRequestIdentity` global middleware
-- Secret access is authorized by Kubernetes RBAC — the user must have `get` permission on the named secret in the namespace
-- The `secretName` parameter is validated as a DNS-1123 label to prevent injection
-- The Models as a Service base URL from the secret is validated to reject loopback, link-local, and unspecified addresses (SSRF protection)
-- Secret values (API keys) are not logged
-- The Models as a Service API key is sent as `Authorization` over HTTPS, loopback HTTP, and Kubernetes service FQDNs (`<service>.<namespace>.svc.cluster.local`). It is omitted for other `http://` hosts to avoid leaking the token on untrusted cleartext URLs.
-
-## Implementation Details
-
-### Files
-
-| File | Purpose |
-|------|---------|
-| `internal/api/middleware.go` | `AttachMaaSClientFromSecret` middleware — reads secret, creates client |
-| `internal/api/maas_models_handler.go` | HTTP handler — calls repository, returns envelope response |
-| `internal/repositories/maas_models.go` | Repository — calls Models as a Service client, translates response format |
-| `internal/integrations/maas/maas_client.go` | Models as a Service client — wraps OpenAI SDK for model listing |
-| `internal/helpers/maas.go` | Context helper — retrieves Models as a Service client from request context |
-| `internal/api/app.go` | Route registration and API path constants |
-| `api/openapi/autorag.yaml` | OpenAPI specification |
-
-### Testing
-
-```bash
-# Run handler tests
-go test -v ./internal/api -run TestMaaSModelsHandler
-
-# Run middleware tests
-go test -v ./internal/api -run TestAttachMaaSClientFromSecret
-
-# Run all tests
-go test ./...
+make run DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true
 ```

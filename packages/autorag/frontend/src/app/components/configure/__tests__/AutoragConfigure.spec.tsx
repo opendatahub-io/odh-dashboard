@@ -11,7 +11,7 @@ import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplore
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
-import { useMaasModelsQuery } from '~/app/hooks/queries';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -112,10 +112,10 @@ jest.mock('~/app/hooks/useNotification', () => ({
   })),
 }));
 
-// Mock queries hooks used by AutoragConfigure (model pickers)
+// Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useMaasModelsQuery: jest.fn().mockReturnValue({
+  useMaaSModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
     isError: false,
@@ -253,9 +253,10 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
-const mockUseMaasModelsQuery = jest.mocked(useMaasModelsQuery);
+const mockUseMaaSModelsQuery = jest.mocked(useMaaSModelsQuery);
 
 const configureSchema = createConfigureSchema();
+type TestConfigureValues = Partial<typeof configureSchema.defaults> & Record<string, unknown>;
 
 // Captures the live react-hook-form instance so tests can assert on exact
 // form state (e.g. which model IDs are selected) instead of only on rendered
@@ -271,7 +272,7 @@ const getLatestFormValues = (): ConfigureSchema => {
 
 const FormWrapper: React.FC<{
   children: React.ReactNode;
-  defaultValues?: Partial<typeof configureSchema.defaults>;
+  defaultValues?: TestConfigureValues;
 }> = ({ children, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
@@ -295,7 +296,7 @@ const createTestQueryClient = () =>
 // Wrapper component that provides QueryClient and Form context
 const renderWithQueryClient = (
   component: React.ReactElement,
-  defaultValues?: Partial<typeof configureSchema.defaults>,
+  defaultValues?: TestConfigureValues,
   options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
 ) => {
   const queryClient = createTestQueryClient();
@@ -326,7 +327,7 @@ const renderWithQueryClient = (
 };
 
 const renderComponent = (
-  defaultValues?: Partial<typeof configureSchema.defaults>,
+  defaultValues?: TestConfigureValues,
   options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
 ) => renderWithQueryClient(<AutoragConfigure />, defaultValues, options);
 
@@ -334,7 +335,7 @@ const renderWithInitialValues = (
   initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
     initialInputDataSecret?: Parameters<typeof AutoragConfigure>[0]['initialInputDataSecret'];
   },
-  defaultValues?: Partial<typeof configureSchema.defaults>,
+  defaultValues?: TestConfigureValues,
 ) => {
   const { initialInputDataSecret, ...schemaValues } = initialValues;
   return renderWithQueryClient(
@@ -760,10 +761,40 @@ describe('AutoragConfigure', () => {
 
       // Configure details fields should be visible
       expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+      expect(
+        screen.getByText('Provide connection details for a vector database.'),
+      ).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
       expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+      for (const label of [
+        'vector-database-connection',
+        'evaluation-dataset',
+        'model-configuration',
+      ]) {
+        expect(
+          screen
+            .getByTestId(`configure-form-group-label-${label}`)
+            .querySelector('.pf-v6-c-form__label-required'),
+        ).toBeInTheDocument();
+      }
+      expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
+      expect(screen.getByTestId('selected-models-warning')).toHaveClass('pf-v6-c-alert');
+      expect(screen.queryByRole('heading', { name: 'Selected models' })).not.toBeInTheDocument();
+      expect(screen.getByText('Selected models')).toHaveClass('pf-v6-c-alert__title');
+      expect(
+        screen.getByText(
+          'No models selected. Select chat and embedding models to run the experiment.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('No foundation models selected')).not.toBeInTheDocument();
+      expect(screen.queryByText('No embedding models selected')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('select-models-button'));
+      expect(screen.getByTestId('experiment-settings-modal')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('experiment-settings-cancel'));
+      expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
     });
   });
 
@@ -1105,7 +1136,7 @@ describe('AutoragConfigure', () => {
 
   describe('Model initialization from query data', () => {
     it('should populate generation and embedding models when query returns data', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1119,7 +1150,7 @@ describe('AutoragConfigure', () => {
           ],
         },
         isLoading: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderComponent();
 
@@ -1128,26 +1159,23 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-      // The "Selected models" card should show model counts
-      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
-      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+      // Model selection is shown after entering Edit mode.
+      expect(screen.queryByTestId('llm-selected-count')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('embedding-selected-count')).not.toBeInTheDocument();
     });
   });
 
   describe('Model error handling', () => {
     it('should show error notification when model loading fails', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderComponent();
 
-      expect(mockNotificationError).toHaveBeenCalledWith(
-        'Failed to load models',
-        'Check that the MaaS secret is valid and try again.',
-      );
+      expect(screen.queryByText('Failed to load MaaS models')).not.toBeInTheDocument();
     });
   });
 
@@ -1241,6 +1269,48 @@ describe('AutoragConfigure', () => {
   });
 
   describe('reconfigure with initialValues', () => {
+    it('should render the first canonical input_data_keys location', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_keys: ['my-data/input.pdf', 'my-data/second.pdf'],
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          maas_secret_name: 'maas-secret',
+          vector_db_secret_name: 'vector-db-secret',
+          generation_models: ['model-a'],
+          embedding_models: ['model-b'],
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_keys: ['my-data/input.pdf', 'my-data/second.pdf'],
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          maas_secret_name: 'maas-secret',
+          vector_db_secret_name: 'vector-db-secret',
+          generation_models: ['model-a'],
+          embedding_models: ['model-b'],
+        },
+      );
+
+      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
+      expect(screen.getByText('input.pdf')).toBeInTheDocument();
+      expect(screen.queryByText('second.pdf')).not.toBeInTheDocument();
+    });
+
     it('should show the selected secret value when initialInputDataSecret is provided', () => {
       renderWithInitialValues(
         {
@@ -1253,7 +1323,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'input.pdf',
+          input_data_keys: ['input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1263,7 +1333,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'input.pdf',
+          input_data_keys: ['input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1287,7 +1357,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'my-data/input.pdf',
+          input_data_keys: ['my-data/input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1297,7 +1367,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'my-data/input.pdf',
+          input_data_keys: ['my-data/input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1324,7 +1394,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1334,7 +1404,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1360,7 +1430,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1370,7 +1440,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1386,7 +1456,7 @@ describe('AutoragConfigure', () => {
     it('should retain the previously selected foundation/embedding models instead of resetting to all models', () => {
       // Query returns more models than were previously selected, so a reset-to-all
       // regression is distinguishable from correctly retaining the prior selection.
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1409,7 +1479,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1420,10 +1490,10 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1431,10 +1501,10 @@ describe('AutoragConfigure', () => {
           embedding_models: ['embed-model-1'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1446,8 +1516,9 @@ describe('AutoragConfigure', () => {
       // Assert the exact retained model IDs (not just counts) so a regression that
       // swaps the selection for a same-sized set of different models (e.g.
       // llm-model-1 -> llm-model-2) is caught rather than passing on count alone.
-      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
-      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+      expect(screen.getByText(/1 foundation models/)).toBeInTheDocument();
+      expect(screen.getByText(/1 embedding models/)).toBeInTheDocument();
+      expect(screen.queryByTestId('selected-models-warning')).not.toBeInTheDocument();
       expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
       expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
     });
@@ -1455,7 +1526,7 @@ describe('AutoragConfigure', () => {
     it('should drop restored model selections that are no longer available and fall back to all models', () => {
       // The restored selection references a model that is no longer returned by
       // the current secret/provider (e.g. removed/deprecated upstream).
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1472,7 +1543,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1483,10 +1554,10 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1495,10 +1566,10 @@ describe('AutoragConfigure', () => {
           embedding_models: ['removed-embed-model'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1509,14 +1580,12 @@ describe('AutoragConfigure', () => {
 
       // Falls back to all currently available models rather than keeping the
       // now-nonexistent restored IDs.
-      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1', 'llm-model-2']);
-      expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
-      expect(getLatestFormValues().generation_models).not.toContain('removed-llm-model');
-      expect(getLatestFormValues().embedding_models).not.toContain('removed-embed-model');
+      expect(getLatestFormValues().generation_models).toEqual(['removed-llm-model']);
+      expect(getLatestFormValues().embedding_models).toEqual(['removed-embed-model']);
     });
 
     it('should keep only the still-available restored models when some restored selections are stale', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1527,7 +1596,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1538,10 +1607,10 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1550,10 +1619,10 @@ describe('AutoragConfigure', () => {
           embedding_models: ['embed-model-1'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1564,7 +1633,7 @@ describe('AutoragConfigure', () => {
 
       // Only the still-valid restored selection is kept; since at least one valid
       // restored ID remains, it does NOT fall back to all available models.
-      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
+      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1', 'removed-llm-model']);
     });
   });
 
@@ -1609,12 +1678,12 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
-    it('should disable "Edit" button when model loading fails', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+    it('should keep the model selection CTA available when model loading fails', () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderComponent();
 
@@ -1625,13 +1694,11 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-      // Edit button should be disabled due to model error
-      const editButton = screen.getByRole('button', { name: 'Edit' });
-      expect(editButton).toBeDisabled();
+      expect(screen.getByTestId('select-models-button')).toBeEnabled();
     });
 
-    it('should enable "Edit" button when a file/folder is selected', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+    it('should keep the model selection CTA visible when a file/folder is selected', () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1640,7 +1707,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderComponent();
 
@@ -1652,7 +1719,7 @@ describe('AutoragConfigure', () => {
       expect(
         screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('select-models-button')).not.toBeInTheDocument();
 
       // Click "Browse bucket" button to open FileExplorer
       const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
@@ -1665,9 +1732,8 @@ describe('AutoragConfigure', () => {
       const fileSelectButton = screen.getByTestId('file-explorer-select-file');
       fireEvent.click(fileSelectButton);
 
-      // Now Edit button should be visible and enabled after files are selected
-      const editButton = screen.getByRole('button', { name: 'Edit' });
-      expect(editButton).toBeEnabled();
+      // Model selection remains empty until the user chooses models.
+      expect(screen.getByTestId('select-models-button')).toBeEnabled();
     });
   });
 });

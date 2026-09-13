@@ -13,18 +13,18 @@ import React, { useEffect, useRef } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
-import MaasConnectionModal from '~/app/components/common/MaasConnectionModal';
+import MaaSConnectionModal from '~/app/components/common/MaaSConnectionModal';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 
 type AutoragCreateProps = {
-  initialMaasSecret?: SecretSelection;
+  initialMaaSSecret?: SecretSelection;
 };
 
-function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Element {
+function AutoragCreate({ initialMaaSSecret }: AutoragCreateProps): React.JSX.Element {
   const { namespace } = useParams();
-  const [selectedMaasSecret, setSelectedMaasSecret] = React.useState<SecretSelection | undefined>(
-    initialMaasSecret,
+  const [selectedMaaSSecret, setSelectedMaaSSecret] = React.useState<SecretSelection | undefined>(
+    initialMaaSSecret,
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
@@ -39,10 +39,10 @@ function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Ele
   // no selection appears to be made.
   // Skip the reset when an initial secret is provided (reconfigure flow).
   useEffect(() => {
-    if (!initialMaasSecret) {
+    if (!initialMaaSSecret) {
       setValue('maas_secret_name', '');
     }
-  }, [setValue, initialMaasSecret]);
+  }, [setValue, initialMaaSSecret]);
 
   // Use a div instead of PF's <Form> to avoid nested <form> elements,
   // since AutoragConfigurePage already renders <Stack component="form">.
@@ -104,9 +104,9 @@ function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Ele
                   placeholder="Select MaaS secret"
                   type="maas"
                   namespace={namespace ?? ''}
-                  value={selectedMaasSecret?.uuid}
+                  value={selectedMaaSSecret?.uuid}
                   onChange={(secret) => {
-                    setSelectedMaasSecret(secret);
+                    setSelectedMaaSSecret(secret);
                     field.onChange(!secret || secret.invalid ? '' : secret.name);
                   }}
                   onRefreshReady={(refresh) => {
@@ -129,20 +129,23 @@ function AutoragCreate({ initialMaasSecret }: AutoragCreateProps): React.JSX.Ele
         )}
       />
       {isConnectionModalOpen && (
-        <MaasConnectionModal
+        <MaaSConnectionModal
           namespace={namespace ?? ''}
           onClose={() => setIsConnectionModalOpen(false)}
           onSubmit={async (secretName) => {
             const refresh = secretsRefreshRef.current;
             if (!refresh) {
-              return;
+              throw new Error('The MaaS Secret list could not be refreshed.');
             }
             const list = await refresh();
             const secret = list?.find((s) => s.name === secretName);
-            if (secret) {
-              setSelectedMaasSecret({ ...secret, invalid: false });
-              setValue('maas_secret_name', secret.name, { shouldValidate: true });
+            if (!secret) {
+              throw new Error(
+                'The new MaaS Secret was not found after refreshing the Secret list.',
+              );
             }
+            setSelectedMaaSSecret({ ...secret, invalid: false });
+            setValue('maas_secret_name', secret.name, { shouldValidate: true });
           }}
         />
       )}

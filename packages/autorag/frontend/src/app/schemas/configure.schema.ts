@@ -14,6 +14,7 @@ import {
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 
+export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus', 'remote::pgvector'];
 export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
@@ -50,7 +51,7 @@ function createConfigureSchema() {
 
       input_data_secret_name: z.string().min(1).default(''),
       input_data_bucket_name: z.string().min(1).default(''),
-      input_data_key: z.string().min(1).default(''),
+      input_data_keys: z.array(z.string().trim().min(1)).min(1).default([]),
 
       test_data_secret_name: z.string().min(1).default(''),
       test_data_bucket_name: z.string().min(1).default(''),

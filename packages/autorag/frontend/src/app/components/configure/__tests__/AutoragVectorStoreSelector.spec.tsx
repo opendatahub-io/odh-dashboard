@@ -1,60 +1,47 @@
-import * as React from 'react';
-import { act, render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React, { act } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useParams } from 'react-router';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
-import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
-import { mockSecretListItem } from '~/__mocks__/mockSecretListItem';
-import type { SecretSelection } from '~/app/components/common/SecretSelector';
+import { SecretListItem } from '~/app/types';
+
+let mockVectorModalOnSubmit: ((name: string) => Promise<void>) | undefined;
+let mockVectorRefresh: () => Promise<SecretListItem[] | undefined> = async () => [];
+
+jest.mock('~/app/components/common/VectorDbConnectionModal', () => ({
+  __esModule: true,
+  default: ({ onSubmit }: { onSubmit: (name: string) => Promise<void> }) => {
+    mockVectorModalOnSubmit = onSubmit;
+    return <div data-testid="vector-db-modal" />;
+  },
+}));
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
-  useParams: jest.fn(() => ({ namespace: 'test-namespace' })),
+  useParams: jest.fn(),
 }));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
-
-const secretSelectorState: {
-  emit: (selection: SecretSelection | undefined) => void;
-  props: Record<string, unknown>;
-} = {
-  emit: () => undefined,
-  props: {},
-};
 
 jest.mock('~/app/components/common/SecretSelector', () => ({
   __esModule: true,
-  default: (props: {
-    onChange: (selection: SecretSelection | undefined) => void;
-    dataTestId?: string;
-    type?: string;
-    namespace?: string;
-    value?: string;
-    isDisabled?: boolean;
+  default: ({
+    onChange,
+    dataTestId,
+    type,
+    onRefreshReady,
+  }: {
+    onChange: (value: unknown) => void;
+    dataTestId: string;
+    type: string;
+    onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
   }) => {
-    Object.assign(secretSelectorState.props, props);
-    secretSelectorState.emit = props.onChange;
+    onRefreshReady?.(mockVectorRefresh);
     return (
       <button
-        type="button"
-        data-testid={props.dataTestId}
-        onClick={() =>
-          props.onChange(
-            mockSecretListItem({
-              uuid: 'uid-pg',
-              name: 'pg-secret',
-              type: 'pgvector',
-            }),
-          )
-        }
+        data-testid={dataTestId}
+        data-secret-type={type}
+        onClick={() => onChange({ uuid: 'vector-db-1', name: 'vector-db-secret', invalid: false })}
       >
         Select vector database secret
       </button>
@@ -62,185 +49,105 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
   },
 }));
 
-const configureSchema = createConfigureSchema();
+const schema = createConfigureSchema();
+const mockUseParams = jest.mocked(useParams);
 
-const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const FormWrapper: React.FC<{
+  children: React.ReactNode;
+  onChange?: (values: typeof schema.defaults) => void;
+}> = ({ children, onChange }) => {
   const form = useForm({
     mode: 'onChange',
-    resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: schema.defaults,
   });
+  React.useEffect(() => {
+    const subscription = form.watch((values) => onChange?.(values as typeof schema.defaults));
+    return () => subscription.unsubscribe();
+  }, [form, onChange]);
   return <FormProvider {...form}>{children}</FormProvider>;
 };
 
 describe('AutoragVectorStoreSelector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    secretSelectorState.props = {};
-    secretSelectorState.emit = () => undefined;
+    mockVectorRefresh = async () => [];
+    mockVectorModalOnSubmit = undefined;
+    mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
-  it('sets vector_db_secret_name and fires tracking when a PGVector secret is selected', () => {
-    /* eslint-disable camelcase */
-    const onVectorStoreConfigured = jest.fn();
-    const onFormChange = jest.fn();
-    const trackingValue = {
-      onKnowledgeSourceConfigured: jest.fn(),
-      onEvaluationSourceConfigured: jest.fn(),
-      onVectorStoreConfigured,
-      onModelsConfigured: jest.fn(),
-    };
-
-    const Wrapper: React.FC = () => {
-      const form = useForm({
-        mode: 'onChange',
-        resolver: zodResolver(configureSchema.full),
-        defaultValues: configureSchema.defaults,
-      });
-      React.useEffect(() => {
-        const sub = form.watch((values) => onFormChange(values));
-        return () => sub.unsubscribe();
-      }, [form]);
-      return (
-        <RunTriggeredTrackingContext.Provider value={trackingValue}>
-          <FormProvider {...form}>
-            <AutoragVectorStoreSelector />
-          </FormProvider>
-        </RunTriggeredTrackingContext.Provider>
-      );
-    };
-
-    render(<Wrapper />);
-    fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
-
-    expect(onFormChange).toHaveBeenCalledWith(
-      expect.objectContaining({ vector_db_secret_name: 'pg-secret' }),
-    );
-    /* eslint-enable camelcase */
-    expect(onVectorStoreConfigured).toHaveBeenCalledWith('pgvector');
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.VECTOR_STORE_CONFIGURED,
-      expect.objectContaining({
-        providerType: 'pgvector',
-        outcome: TrackingOutcome.submit,
-        success: true,
-      }),
-    );
-  });
-
-  it('should request vector-db secrets for the routed namespace', () => {
+  it('should query the strict vector-db Secret filter', () => {
     render(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
     );
-    expect(secretSelectorState.props).toMatchObject({
-      type: 'vector-db',
-      namespace: 'test-namespace',
-    });
+
+    expect(screen.getByTestId('vector-db-secret-selector')).toHaveAttribute(
+      'data-secret-type',
+      'vector-db',
+    );
   });
 
-  it('should seed the selector value from initialSecret', () => {
-    const initialSecret = mockSecretListItem({
-      uuid: 'uid-initial',
-      name: 'initial-vector-db',
-      type: 'pgvector',
-    });
-    render(
-      <FormWrapper>
-        <AutoragVectorStoreSelector initialSecret={initialSecret} />
-      </FormWrapper>,
-    );
-    expect(secretSelectorState.props.value).toBe('uid-initial');
-  });
-
-  it('should clear vector_db_secret_name and fire no tracking when the selection is cleared', () => {
-    /* eslint-disable camelcase */
-    const onFormChange = jest.fn();
-    const trackingValue = {
-      onKnowledgeSourceConfigured: jest.fn(),
-      onEvaluationSourceConfigured: jest.fn(),
-      onVectorStoreConfigured: jest.fn(),
-      onModelsConfigured: jest.fn(),
-    };
-
-    const Wrapper: React.FC = () => {
-      const form = useForm({
-        mode: 'onChange',
-        resolver: zodResolver(configureSchema.full),
-        defaultValues: configureSchema.defaults,
-      });
-      React.useEffect(() => {
-        const sub = form.watch((values) => onFormChange(values));
-        return () => sub.unsubscribe();
-      }, [form]);
-      return (
-        <RunTriggeredTrackingContext.Provider value={trackingValue}>
-          <FormProvider {...form}>
-            <AutoragVectorStoreSelector />
-          </FormProvider>
-        </RunTriggeredTrackingContext.Provider>
-      );
-    };
-
-    render(<Wrapper />);
-    act(() => secretSelectorState.emit(undefined));
-    expect(onFormChange).toHaveBeenCalledWith(
-      expect.objectContaining({ vector_db_secret_name: '' }),
-    );
-    /* eslint-enable camelcase */
-    expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
-  });
-
-  it('should clear vector_db_secret_name for an invalid secret', () => {
-    /* eslint-disable camelcase */
-    const onFormChange = jest.fn();
-    const trackingValue = {
-      onKnowledgeSourceConfigured: jest.fn(),
-      onEvaluationSourceConfigured: jest.fn(),
-      onVectorStoreConfigured: jest.fn(),
-      onModelsConfigured: jest.fn(),
-    };
-
-    const Wrapper: React.FC = () => {
-      const form = useForm({
-        mode: 'onChange',
-        resolver: zodResolver(configureSchema.full),
-        defaultValues: configureSchema.defaults,
-      });
-      React.useEffect(() => {
-        const sub = form.watch((values) => onFormChange(values));
-        return () => sub.unsubscribe();
-      }, [form]);
-      return (
-        <RunTriggeredTrackingContext.Provider value={trackingValue}>
-          <FormProvider {...form}>
-            <AutoragVectorStoreSelector />
-          </FormProvider>
-        </RunTriggeredTrackingContext.Provider>
-      );
-    };
-
-    render(<Wrapper />);
-    act(() =>
-      secretSelectorState.emit({
-        ...mockSecretListItem({ uuid: 'uid-pg', name: 'pg-secret', type: 'pgvector' }),
-        invalid: true,
-      }),
-    );
-    expect(onFormChange).toHaveBeenCalledWith(
-      expect.objectContaining({ vector_db_secret_name: '' }),
-    );
-    /* eslint-enable camelcase */
-    expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
-  });
-
-  it('renders the secret selector toggle', () => {
+  it('should render an action to add a vector database connection', () => {
     render(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
     );
-    expect(screen.getByTestId('vector-store-select-toggle')).toBeInTheDocument();
+
+    expect(screen.getByTestId('add-vector-db-connection-button')).toHaveTextContent(
+      'Add new connection',
+    );
+    expect(screen.getByTestId('add-vector-db-connection-button')).toHaveClass(
+      'pf-v6-u-text-nowrap',
+    );
+    expect(
+      screen.getByTestId('add-vector-db-dropdown-toggle').closest('.pf-v6-c-menu-toggle'),
+    ).toHaveClass('pf-m-secondary');
+  });
+
+  it('should offer Milvus and PGVector creation options', async () => {
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-vector-db-dropdown-toggle'));
+    });
+    expect(screen.getByTestId('add-milvus-connection-option')).toHaveTextContent(
+      'Add Milvus connection',
+    );
+    expect(screen.getByTestId('add-pgvector-connection-option')).toHaveTextContent(
+      'Add PGVector connection',
+    );
+  });
+
+  it('should store the selected vector database Secret name', () => {
+    let values: typeof schema.defaults | undefined;
+
+    render(
+      <FormWrapper onChange={(nextValues) => (values = nextValues)}>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('vector-db-secret-selector'));
+    expect(values?.vector_db_secret_name).toBe('vector-db-secret');
+  });
+
+  it('should reject creation when the new vector database Secret is missing after refresh', async () => {
+    mockVectorRefresh = async () => [];
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+    fireEvent.click(screen.getByTestId('add-vector-db-connection-button'));
+    await expect(mockVectorModalOnSubmit?.('new-vector-db-secret')).rejects.toThrow(
+      'not found after refreshing',
+    );
+    expect(screen.getByTestId('vector-db-modal')).toBeInTheDocument();
   });
 });

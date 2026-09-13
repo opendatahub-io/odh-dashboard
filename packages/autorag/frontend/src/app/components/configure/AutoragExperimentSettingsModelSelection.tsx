@@ -2,13 +2,14 @@ import {
   CodeBlock,
   CodeBlockCode,
   Content,
+  Alert,
   Flex,
   Label,
   Pagination,
   Popover,
-  Spinner,
   Stack,
   StackItem,
+  Spinner,
   Tab,
   TabAction,
   TabContentBody,
@@ -19,15 +20,15 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-table';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
-import { useController, useFormContext, useWatch } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
-import { useMaasModelsQuery } from '~/app/hooks/queries';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { MaasModelType } from '~/app/types';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
+import type { MaaSModel } from '~/app/types';
 
 type ModelTab = {
-  modelType: MaasModelType;
+  modelType: 'llm' | 'embedding';
   label: string;
   popoverHeader: string;
   description: string;
@@ -80,46 +81,40 @@ const ModelsToTestHelpContent: React.FC = () => (
 
 const DEFAULT_PER_PAGE = 5;
 
-const AutoragExperimentSettingsModelSelection: React.FC = () => {
-  const [activeModelType, setActiveModelType] = React.useState<MaasModelType>('llm');
+type AutoragExperimentSettingsModelSelectionProps = {
+  generationModels: string[];
+  embeddingModels: string[];
+  onGenerationModelsChange: (models: string[]) => void;
+  onEmbeddingModelsChange: (models: string[]) => void;
+};
+
+const AutoragExperimentSettingsModelSelection: React.FC<
+  AutoragExperimentSettingsModelSelectionProps
+> = ({ generationModels, embeddingModels, onGenerationModelsChange, onEmbeddingModelsChange }) => {
+  const [activeModelType, setActiveModelType] = React.useState<'llm' | 'embedding'>('llm');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const form = useFormContext<ConfigureSchema>();
   const { namespace = '' } = useParams();
 
-  const form = useFormContext<ConfigureSchema>();
-
-  const maasSecretName = useWatch({
-    control: form.control,
-    name: 'maas_secret_name',
-  });
-
-  const { data: llmModelsData, isLoading: isLlmLoading } = useMaasModelsQuery(
-    namespace,
-    maasSecretName,
-    'llm',
-  );
-  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useMaasModelsQuery(
-    namespace,
-    maasSecretName,
-    'embedding',
-  );
-
-  const isLoading = isLlmLoading || isEmbeddingLoading;
-
-  const { field: generationModelField } = useController({
-    control: form.control,
-    name: 'generation_models',
-  });
-
-  const { field: embeddingModelField } = useController({
-    control: form.control,
-    name: 'embedding_models',
-  });
-
+  const {
+    data: modelsData,
+    isError,
+    isLoading,
+  } = useMaaSModelsQuery(namespace, form.watch('maas_secret_name'));
+  const availableMaaSModels: MaaSModel[] = modelsData?.models ?? [];
   const tabData = {
-    llm: { field: generationModelField, models: llmModelsData?.models ?? [] },
-    embedding: { field: embeddingModelField, models: embeddingModelsData?.models ?? [] },
+    llm: {
+      selectedModels: generationModels,
+      onChange: onGenerationModelsChange,
+      models: availableMaaSModels,
+    },
+    embedding: {
+      selectedModels: embeddingModels,
+      onChange: onEmbeddingModelsChange,
+      models: availableMaaSModels,
+    },
   };
 
   const activeModels = tabData[activeModelType].models;
@@ -183,9 +178,13 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
         </Flex>
       </Content>
       <div data-testid="model-selection-section">
-        {isLoading ? (
-          <Spinner size="md" aria-label="Loading models" />
-        ) : (
+        {isLoading ? <Spinner size="md" aria-label="Loading MaaS models" /> : null}
+        {isError ? (
+          <Alert variant="danger" isInline title="Failed to load MaaS models">
+            Check that the selected MaaS connection is valid and try again.
+          </Alert>
+        ) : null}
+        {!isLoading && !isError ? (
           <Tabs
             activeKey={activeModelType}
             onSelect={(_, key) => {
@@ -198,8 +197,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
             aria-label="Model selection tabs"
           >
             {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
-              const { field, models } = tabData[modelType];
-              const selectedModels = field.value;
+              const { selectedModels, onChange, models } = tabData[modelType];
               const selectedCount = selectedModels.filter((id) =>
                 models.some((model) => model.id === id),
               ).length;
@@ -210,7 +208,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                 );
 
               const handleSelectAll = (isSelecting: boolean) => {
-                field.onChange(
+                onChange(
                   isSelecting
                     ? models.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
                     : [],
@@ -221,7 +219,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                 const updated = isSelecting
                   ? [...selectedModels, modelId]
                   : selectedModels.filter((selectedModel) => selectedModel !== modelId);
-                field.onChange(updated.toSorted((a, b) => a.localeCompare(b)));
+                onChange(updated.toSorted((a, b) => a.localeCompare(b)));
               };
 
               return (
@@ -238,7 +236,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                         className="pf-v6-u-ml-xs"
                         data-testid={`${modelType}-selected-count`}
                       >
-                        {selectedCount}
+                        {selectedCount}&#8725;{models.length}
                       </Label>
                     </TabTitleText>
                   }
@@ -303,7 +301,11 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                                         handleToggleModel(model.id, isSelecting),
                                     }}
                                   />
-                                  <Td dataLabel="Model name">{model.id}</Td>
+                                  <Td dataLabel="Model name">
+                                    <span title={model.description || model.owned_by || undefined}>
+                                      {model.display_name || model.id}
+                                    </span>
+                                  </Td>
                                 </Tr>
                               ))}
                             </Tbody>
@@ -316,7 +318,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
               );
             })}
           </Tabs>
-        )}
+        ) : null}
       </div>
     </Flex>
   );

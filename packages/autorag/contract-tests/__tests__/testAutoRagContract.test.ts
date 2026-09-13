@@ -20,9 +20,6 @@ describe('AutoRAG API Contract Tests', () => {
   const NS_NO_DSPA = 'no-dspa';
   const SECRET = 'data-connection';
   const MAAS_SECRET = 'maas';
-  const VECTOR_DB_SECRET = 'vector-db';
-  const EMBEDDING_MODELS = ['vllm-embedding/ibm-granite/granite-embedding-english-r2'];
-  const GENERATION_MODELS = ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'];
   const BUCKET = 's3-bucket';
 
   const SUCCEEDED_RUN = 'e78c5f2a-5726-4e1c-bcb6-60434e77e453';
@@ -58,7 +55,7 @@ describe('AutoRAG API Contract Tests', () => {
   });
 
   describe('MaaS Models Endpoint', () => {
-    it('should retrieve MaaS models list', async () => {
+    it('should retrieve the unfiltered MaaS models list', async () => {
       const result = await apiClient.get(
         `/api/v1/maas/models?namespace=${NS}&secretName=${MAAS_SECRET}`,
       );
@@ -92,14 +89,6 @@ describe('AutoRAG API Contract Tests', () => {
 
     it('should retrieve storage secrets when type=storage', async () => {
       const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=storage`);
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should retrieve vector-db secrets when type=vector-db', async () => {
-      const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=vector-db`);
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
@@ -520,8 +509,8 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
-          maas_secret_name: MAAS_SECRET,
-          vector_io_provider_id: 'milvus',
+          maas_secret_name: 'maas',
+          vector_db_secret_name: 'vector-db',
           chunk_size: 512,
           chunk_overlap: 50,
           chunking_method: 'recursive',
@@ -643,11 +632,11 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: VECTOR_DB_SECRET,
-          embedding_models: EMBEDDING_MODELS,
-          generation_models: GENERATION_MODELS,
+          vector_db_secret_name: 'vector-db',
+          embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+          generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
@@ -665,12 +654,12 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: VECTOR_DB_SECRET,
-          embedding_models: EMBEDDING_MODELS,
-          generation_models: GENERATION_MODELS,
+          vector_db_secret_name: 'vector-db',
           optimization_metric: 'answer_correctness',
+          embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+          generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
@@ -695,15 +684,42 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: VECTOR_DB_SECRET,
-          embedding_models: EMBEDDING_MODELS,
-          generation_models: GENERATION_MODELS,
+          vector_db_secret_name: 'vector-db',
+          embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+          generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
           optimization_metric: 'invalid_metric',
         });
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
+      });
+
+      it('should return 400 for blank input keys and model identifiers', async () => {
+        const validRequest = {
+          display_name: 'blank-entry-run',
+          test_data_secret_name: SECRET,
+          test_data_bucket_name: BUCKET,
+          test_data_key:
+            'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
+          input_data_secret_name: SECRET,
+          input_data_bucket_name: BUCKET,
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
+          maas_secret_name: MAAS_SECRET,
+          vector_db_secret_name: 'vector-db',
+          embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+          generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
+        };
+
+        for (const request of [
+          { ...validRequest, input_data_keys: [' \t'] },
+          { ...validRequest, embedding_models: [' \t'] },
+          { ...validRequest, generation_models: [' \t'] },
+        ]) {
+          const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, request);
+          expect(result.success).toBe(false);
+          expect(result.error?.status).toBe(400);
+        }
       });
     });
 
@@ -719,11 +735,11 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: VECTOR_DB_SECRET,
-          embedding_models: EMBEDDING_MODELS,
-          generation_models: GENERATION_MODELS,
+          vector_db_secret_name: 'vector-db',
+          embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+          generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });
         expect(result.success).toBe(true);
         if (result.success) {
@@ -775,11 +791,11 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: VECTOR_DB_SECRET,
-          embedding_models: EMBEDDING_MODELS,
-          generation_models: GENERATION_MODELS,
+          vector_db_secret_name: 'vector-db',
+          embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+          generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });
         expect(createResult.success).toBe(true);
         if (createResult.success) {

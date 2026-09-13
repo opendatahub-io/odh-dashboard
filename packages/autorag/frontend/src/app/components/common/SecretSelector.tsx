@@ -102,8 +102,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
       }
 
       const requiredKeysForType = additionalRequiredKeys[secret.type];
-      // TypeScript thinks this check is unnecessary because additionalRequiredKeys is typed as { [type: string]: string[] }
-      // and secret.type is 's3' | 'maas' at this point (after the !secret.type check above).
+      // TypeScript thinks this check is unnecessary because additionalRequiredKeys is typed as { [type: string]: string[] }.
       // However, additionalRequiredKeys is optional and may not contain entries for all possible secret types,
       // so this runtime check is needed.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -203,11 +202,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   if (isLoading) {
-    return (
-      <div data-testid={`${dataTestId}-loading`}>
-        <Skeleton />
-      </div>
-    );
+    return <Skeleton />;
   }
 
   return (

@@ -405,6 +405,15 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "invalid_request_body",
 		},
 		{
+			name:           "legacy create field in body",
+			namespace:      ns,
+			body:           `{"display_name":"x","input_data_key":"docs/"}`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
 			name:           "oversized body",
 			namespace:      ns,
 			body:           `{"display_name":"` + strings.Repeat("x", 10<<20) + `"}`,
@@ -805,7 +814,7 @@ func TestEnableManagedPipelinesHandler(t *testing.T) {
 func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 	ns := "test-ns"
 
-	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","vector_io_provider_id":"milvus"}}`
+	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","vector_db_secret_name":"vector-db"}}`
 
 	tests := []struct {
 		name           string
