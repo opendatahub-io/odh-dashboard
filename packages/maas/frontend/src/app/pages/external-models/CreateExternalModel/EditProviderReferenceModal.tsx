@@ -12,19 +12,19 @@ import {
 } from '@patternfly/react-core';
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
-import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
-import { configPairsToRecord } from './ModelConfigPairsEditor';
 import {
   getProviderReferenceFieldErrors,
   hasProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
   ProviderReferenceFormData,
-} from '../validations';
+} from '~/app/pages/external-models/validations';
 import {
   getProviderDisplayName,
   isProviderReferenceApiFormat,
   recordToConfigPairs,
-} from '../providerReferenceUtils';
+} from '~/app/pages/external-models/providerReferenceUtils';
+import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
+import { configPairsToRecord } from './ModelConfigPairsEditor';
 
 type EditProviderReferenceModalProps = {
   isOpen: boolean;

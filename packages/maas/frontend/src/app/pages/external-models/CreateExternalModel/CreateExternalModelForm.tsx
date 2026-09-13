@@ -29,19 +29,19 @@ import { APIOptions } from 'mod-arch-core';
 import { createExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { CreateExternalModelRequest, ProviderRef } from '~/app/types/external-models';
+import {
+  DISTRIBUTE_EQUALLY_POPOVER_CONTENT,
+  EXTERNAL_MODEL_FIELD_MAX_LENGTH,
+  PROVIDER_REFS_ZERO_TOTAL_WEIGHT_MESSAGE,
+} from '~/app/pages/external-models/const';
+import {
+  hasZeroTotalProviderRefWeight,
+  setProviderRefWeightsEqually,
+} from '~/app/pages/external-models/providerReferenceUtils';
+import { createExternalModelFormSchema } from '~/app/pages/external-models/validations';
 import AddProviderReferenceWizard from './AddProviderReferenceWizard';
 import EditProviderReferenceModal from './EditProviderReferenceModal';
 import ProviderReferencesTable from './ProviderReferencesTable';
-import {
-  createExternalModelFormSchema,
-  EXTERNAL_MODEL_FIELD_MAX_LENGTH,
-} from '../validations';
-import {
-  DISTRIBUTE_EQUALLY_POPOVER_CONTENT,
-  hasZeroTotalProviderRefWeight,
-  PROVIDER_REFS_ZERO_TOTAL_WEIGHT_MESSAGE,
-  setProviderRefWeightsEqually,
-} from '../providerReferenceUtils';
 
 type CreateExternalModelFormProps = {
   namespace: string;

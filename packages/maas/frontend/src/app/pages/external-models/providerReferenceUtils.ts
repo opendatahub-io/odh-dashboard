@@ -1,28 +1,8 @@
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import { ConfigPair } from './CreateExternalModel/ModelConfigPairsEditor';
+import { PROVIDER_REFERENCE_API_FORMATS, ProviderReferenceApiFormat } from './const';
 
-export const PROVIDER_REFERENCE_API_FORMATS = {
-  'openai-chat': {
-    label: 'OpenAI Chat',
-    defaultPath: '/v1/chat/completions',
-    pathHelper: 'Pre-filled with /v1/chat/completions — the standard OpenAI Chat Completions path.',
-  },
-  messages: {
-    label: 'Anthropic Messages',
-    defaultPath: '/v1/messages',
-    pathHelper:
-      'Pre-filled with /v1/messages — the Anthropic Messages API path. Auth uses the x-api-key header, not Bearer.',
-  },
-} as const;
-
-export type ProviderReferenceApiFormat = keyof typeof PROVIDER_REFERENCE_API_FORMATS;
-
-export const PROVIDER_REFERENCE_API_FORMAT_OPTIONS = Object.entries(
-  PROVIDER_REFERENCE_API_FORMATS,
-).map(([key, value]) => ({
-  key,
-  label: value.label,
-}));
+export type { ProviderReferenceApiFormat };
 
 export const isProviderReferenceApiFormat = (value: string): value is ProviderReferenceApiFormat =>
   value in PROVIDER_REFERENCE_API_FORMATS;
@@ -51,12 +31,6 @@ export const getProviderRefsTotalWeight = (providerRefs: ProviderRef[]): number 
 
 export const hasZeroTotalProviderRefWeight = (providerRefs: ProviderRef[]): boolean =>
   providerRefs.length > 0 && getProviderRefsTotalWeight(providerRefs) === 0;
-
-export const PROVIDER_REFS_ZERO_TOTAL_WEIGHT_MESSAGE =
-  'Total weight is 0. At least one provider reference must have a weight greater than 0.';
-
-export const DISTRIBUTE_EQUALLY_POPOVER_CONTENT =
-  'Resets all provider reference weights to 1, giving each provider an equal share of traffic. You can adjust individual weights afterwards.';
 
 export const setProviderRefWeightsEqually = (providerRefs: ProviderRef[]): ProviderRef[] =>
   providerRefs.map((ref) => ({ ...ref, weight: 1 }));

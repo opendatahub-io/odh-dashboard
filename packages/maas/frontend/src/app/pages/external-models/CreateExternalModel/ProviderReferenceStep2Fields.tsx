@@ -14,42 +14,26 @@ import {
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { ExternalProvider } from '~/app/types/external-models';
-import InheritedProviderConfig from './InheritedProviderConfig';
-import ModelConfigPairsEditor from './ModelConfigPairsEditor';
+import {
+  ADD_PATH_PLACEHOLDER_HELPER,
+  CONFIG_EXAMPLES_HELPER,
+  EDIT_INHERITED_CONFIG_HELPER,
+  EDIT_KEY_VALUE_PAIRS_DESCRIPTION,
+  EDIT_PATH_PLACEHOLDER_HELPER,
+  EXTERNAL_MODEL_FIELD_MAX_LENGTH,
+  INHERITED_CONFIG_PREVIEW_COUNT,
+  PROVIDER_REFERENCE_API_FORMAT_OPTIONS,
+  PROVIDER_REFERENCE_API_FORMATS,
+  PROVIDER_REFERENCE_PATH_MAX_LENGTH,
+} from '~/app/pages/external-models/const';
 import {
   ProviderReferenceFieldErrors,
   ProviderReferenceFormData,
   ProviderReferenceHelperVariant,
-  EXTERNAL_MODEL_FIELD_MAX_LENGTH,
-  PROVIDER_REFERENCE_PATH_MAX_LENGTH,
-} from '../validations';
-import {
-  isProviderReferenceApiFormat,
-  PROVIDER_REFERENCE_API_FORMAT_OPTIONS,
-  PROVIDER_REFERENCE_API_FORMATS,
-} from '../providerReferenceUtils';
-
-const INHERITED_CONFIG_PREVIEW_COUNT = 5;
-
-const ADD_PATH_PLACEHOLDER_HELPER =
-  'Only the path uses {key} placeholders. {model} is filled automatically from the Target model ID. Other keys come from provider configuration — add a model override in Advanced settings only if this model needs a different value.';
-
-const EDIT_PATH_PLACEHOLDER_HELPER =
-  'Wrap any key from the key-value pairs section in curly braces to insert its value — for example, /v1/projects/{project}/locations/{location}/chat/completions.';
-
-const EDIT_KEY_VALUE_PAIRS_DESCRIPTION =
-  'Configuration keys and values for this model reference. These can be used as {key} placeholders in the path below. Inherited values from the provider you select or create above will appear here. To change provider-level key-value pairs, update them in the provider section above. Use model configuration to override inherited values or add new ones.';
-
-const EDIT_INHERITED_CONFIG_HELPER =
-  'These values come from the external provider and are available for {key} resolution in the path. Add an override below to change a value for this model.';
-
-const CONFIG_EXAMPLES_HELPER = (
-  <>
-    For example, Vertex AI providers typically need <strong>project</strong> and{' '}
-    <strong>location</strong> keys (e.g., project=my-gcp-project, location=us-central1). AWS Bedrock
-    may need <strong>region</strong>.
-  </>
-);
+} from '~/app/pages/external-models/validations';
+import { isProviderReferenceApiFormat } from '~/app/pages/external-models/providerReferenceUtils';
+import ModelConfigPairsEditor from './ModelConfigPairsEditor';
+import InheritedProviderConfig from './InheritedProviderConfig';
 
 type ProviderReferenceFormFieldProps = {
   form: ProviderReferenceFormData;

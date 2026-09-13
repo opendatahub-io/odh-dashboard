@@ -1,14 +1,14 @@
 import React from 'react';
 import { Modal, ModalVariant, Wizard, WizardHeader, WizardStep } from '@patternfly/react-core';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
-import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
-import AddProviderReferenceWizardFooter from './AddProviderReferenceWizardFooter';
-import { configPairsToRecord } from './ModelConfigPairsEditor';
 import {
   getProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
   ProviderReferenceFormData,
-} from '../validations';
+} from '~/app/pages/external-models/validations';
+import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
+import AddProviderReferenceWizardFooter from './AddProviderReferenceWizardFooter';
+import { configPairsToRecord } from './ModelConfigPairsEditor';
 import SelectProviderStep, { ProviderSourceType } from './SelectProviderStep';
 
 type AddProviderReferenceWizardProps = {

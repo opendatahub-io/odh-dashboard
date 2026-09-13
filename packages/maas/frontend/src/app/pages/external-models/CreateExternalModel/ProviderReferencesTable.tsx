@@ -13,11 +13,15 @@ import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import {
+  EXCLUDED_FROM_ROUTING_POPOVER_CONTENT,
+  WEIGHT_POPOVER_CONTENT,
+} from '~/app/pages/external-models/const';
+import {
+  formatProviderRefWeightPercentage,
   getApiFormatLabel,
   getProviderDisplayName,
-  formatProviderRefWeightPercentage,
   isProviderRefExcludedFromRouting,
-} from '../providerReferenceUtils';
+} from '~/app/pages/external-models/providerReferenceUtils';
 
 type ProviderReferencesTableProps = {
   providerRefs: ProviderRef[];
@@ -26,12 +30,6 @@ type ProviderReferencesTableProps = {
   onEdit: (index: number) => void;
   onRemove: (index: number) => void;
 };
-
-const WEIGHT_POPOVER_CONTENT =
-  'Weights are relative integers that determine traffic distribution. The system calculates percentages from the ratio of all weights. Set to 0 to temporarily disable a provider without removing it. Example: weights of 5, 3, 2 result in 50%, 30%, 20% traffic split.';
-
-const EXCLUDED_FROM_ROUTING_POPOVER_CONTENT =
-  'This provider reference will not receive any traffic but remains configured for easy re-enablement. Set weight to 1 or higher to include it in routing again. In the actual CRD, a weight of 0 removes the provider reference from active routing.';
 
 const tableCellClassName = 'pf-v6-u-align-content-center';
 

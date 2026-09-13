@@ -2,16 +2,16 @@ import React from 'react';
 import { Form } from '@patternfly/react-core';
 import { ExternalProvider } from '~/app/types/external-models';
 import {
+  ProviderReferenceFieldErrors,
+  ProviderReferenceFormData,
+  ProviderReferenceHelperVariant,
+} from '~/app/pages/external-models/validations';
+import {
   ProviderReferenceApiFormatField,
   ProviderReferenceConfigSection,
   ProviderReferencePathField,
   ProviderReferenceTargetModelField,
 } from './ProviderReferenceStep2Fields';
-import {
-  ProviderReferenceFieldErrors,
-  ProviderReferenceFormData,
-  ProviderReferenceHelperVariant,
-} from '../validations';
 
 type ProviderReferenceStep2FormProps = {
   form: ProviderReferenceFormData;

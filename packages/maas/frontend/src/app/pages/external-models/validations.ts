@@ -2,15 +2,11 @@ import { z } from 'zod';
 import { ExternalProvider } from '~/app/types/external-models';
 import { ConfigPair } from './CreateExternalModel/ModelConfigPairsEditor';
 import {
+  EXTERNAL_MODEL_FIELD_MAX_LENGTH,
+  PROVIDER_REFERENCE_PATH_MAX_LENGTH,
   ProviderReferenceApiFormat,
-  recordToConfigPairs,
-} from './providerReferenceUtils';
-
-/** Matches CRD maxLength for spec.modelName and spec.externalProviderRefs[].targetModel. */
-export const EXTERNAL_MODEL_FIELD_MAX_LENGTH = 253;
-
-/** Matches CRD maxLength for spec.externalProviderRefs[].path. */
-export const PROVIDER_REFERENCE_PATH_MAX_LENGTH = 512;
+} from './const';
+import { recordToConfigPairs } from './providerReferenceUtils';
 
 const PROVIDER_REFERENCE_PATH_PATTERN = /^\/.*/;
 
@@ -215,7 +211,19 @@ export const validateProviderReferenceForm = (
   return undefined;
 };
 
-export const createExternalModelFormSchema = (externalProviders: ExternalProvider[]) =>
+export const createExternalModelFormSchema = (
+  externalProviders: ExternalProvider[],
+): z.ZodObject<{
+  modelName: z.ZodType<string>;
+  providerRefs: z.ZodType<
+    Array<{
+      targetModel: string;
+      path: string;
+      providerName: string;
+      config?: Record<string, string>;
+    }>
+  >;
+}> =>
   z.object({
     modelName: z
       .string()
