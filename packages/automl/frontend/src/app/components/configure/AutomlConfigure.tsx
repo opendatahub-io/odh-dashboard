@@ -295,6 +295,14 @@ function AutomlConfigure({
   );
   const filteredNonASCIIColumnCount = schemaColumns.length - columns.length;
 
+  // Synchronize dataset metadata with the form resolver, including after file changes.
+  useEffect(() => {
+    setValue('training_data_column_count', schemaColumns.length, { shouldValidate: true });
+    if (schemaColumns.length === 2) {
+      setValue('id_column', '', { shouldValidate: true });
+    }
+  }, [schemaColumns.length, setValue]);
+
   const selectedColumn = columns.find((c) => c.name === targetColumn);
 
   useEffect(() => {
@@ -1026,6 +1034,7 @@ function AutomlConfigure({
 
                     {isTaskTypeSelected && isTimeseries && (
                       <ConfigureTimeseriesForm
+                        columnCount={schemaColumns.length}
                         columns={columns}
                         isLoadingColumns={isLoadingColumns}
                         isFetchingColumns={isFetchingColumns}

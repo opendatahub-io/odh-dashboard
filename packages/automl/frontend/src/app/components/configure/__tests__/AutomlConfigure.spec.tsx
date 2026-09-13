@@ -992,6 +992,8 @@ describe('AutomlConfigure', () => {
       selectTargetColumn('amount');
       expect(screen.getByTestId('task-type-radio-timeseries')).toBeChecked();
       expectPredictionTypeRecommended('timeseries');
+      expect(screen.getByTestId('id_column-select')).toBeDisabled();
+      expect(screen.getByTestId('id_column-select')).toHaveTextContent('Not required');
       expect(screen.getByText(/No manual item ID column is required/)).toBeInTheDocument();
       selectPredictionType('regression');
       expect(screen.getByTestId('task-type-radio-regression')).toBeChecked();
@@ -1062,7 +1064,7 @@ describe('AutomlConfigure', () => {
         selectPredictionType('timeseries');
 
         expect(screen.getByText('Timestamp column')).toBeInTheDocument();
-        expect(screen.getByText('ID column (optional)')).toBeInTheDocument();
+        expect(screen.getByText('ID column')).toBeInTheDocument();
       });
 
       it('should not show timeseries fields for non-timeseries prediction types', () => {
@@ -1072,7 +1074,7 @@ describe('AutomlConfigure', () => {
         selectPredictionType('binary');
 
         expect(screen.queryByText('Timestamp column')).not.toBeInTheDocument();
-        expect(screen.queryByText('ID column (optional)')).not.toBeInTheDocument();
+        expect(screen.queryByText('ID column')).not.toBeInTheDocument();
       });
 
       it('should clear timeseries fields that conflict with the newly selected target column', () => {
