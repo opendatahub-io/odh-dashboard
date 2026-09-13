@@ -19,8 +19,8 @@ For detailed prerequisites, setup instructions, and configuration options, see t
 ```bash
 cd packages/autorag
 
-# With mocked services (fastest for local development)
-make dev-start
+# With all services mocked, including MaaS (fastest for local development)
+make dev-start-mock
 ```
 
 ---

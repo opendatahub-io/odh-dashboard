@@ -37,10 +37,10 @@ After building it, you can run our app with:
 make run
 ```
 
-If you want to use a different port or mock kubernetes client you can run:
+For a fully mocked local BFF, including MaaS model discovery, run:
 
 ```shell
-make run PORT=8000 MOCK_K8S_CLIENT=true
+make run PORT=8000 DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_S3_CLIENT=true AUTH_METHOD=disabled
 ```
 
 If you want to change the log level on deployment, add the LOG_LEVEL argument when running, supported levels are: ERROR, WARN, INFO, DEBUG. The default level is INFO.
@@ -52,24 +52,25 @@ make run LOG_LEVEL=DEBUG
 
 ## Flags / Environment Variables
 
-| Flag | Env Var | Description                                                                            |
-|------|---------|----------------------------------------------------------------------------------------|
-| `-port` | `PORT` | Listen port (default 4000)                                                             |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`)                                    |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.)                                   |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution                                       |
-| `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls                                       |
-| `-mock-s3-client` | `MOCK_S3_CLIENT` | Use mock client for S3 SDK calls                                                       |
+| Flag                            | Env Var                        | Description                                                                                                        |
+| ------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `-port`                         | `PORT`                         | Listen port (default 4000)                                                                                         |
+| `-deployment-mode`              | `DEPLOYMENT_MODE`              | `standalone` or `integrated` (default `standalone`)                                                                |
+| `-dev-mode`                     | `DEV_MODE`                     | Enables relaxed behaviors (namespaces listing, etc.)                                                               |
+| `-mock-k8s-client`              | `MOCK_K8S_CLIENT`              | Use in‑memory stub for namespace/user resolution                                                                   |
+| `-mock-maas-client`             | `MOCK_MAAS_CLIENT`             | Use mock client for MaaS model discovery (avoids external MaaS calls)                                              |
+| `-mock-pipeline-server-client`  | `MOCK_PIPELINE_SERVER_CLIENT`  | Use mock client for Kubeflow Pipelines API calls                                                                   |
+| `-mock-s3-client`               | `MOCK_S3_CLIENT`               | Use mock client for S3 SDK calls                                                                                   |
 | `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `documents-rag-optimization-pipeline`) |
-| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets                                         |
-| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO)                                                |
-| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins                                                           |
-| `-auth-method` | `AUTH_METHOD` | Authentication method: `disabled`, `internal`, or `user_token` (default: `user_token`) |
-| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization)                               |
-| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer)                                                 |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key)                                |
-| `-key-file` | `KEY_FILE` | TLS key path                                                                           |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)                                                    |
+| `-static-assets-dir`            | `STATIC_ASSETS_DIR`            | Directory to serve single‑page frontend assets                                                                     |
+| `-log-level`                    | `LOG_LEVEL`                    | ERROR, WARN, INFO, DEBUG (default INFO)                                                                            |
+| `-allowed-origins`              | `ALLOWED_ORIGINS`              | Comma separated CORS origins                                                                                       |
+| `-auth-method`                  | `AUTH_METHOD`                  | Authentication method: `disabled`, `internal`, or `user_token` (default: `user_token`)                             |
+| `-auth-header`                  | `AUTH_HEADER`                  | Header to read bearer token from (default Authorization)                                                           |
+| `-auth-prefix`                  | `AUTH_PREFIX`                  | Expected value prefix (default Bearer)                                                                             |
+| `-cert-file`                    | `CERT_FILE`                    | TLS certificate path (enables TLS when paired with key)                                                            |
+| `-key-file`                     | `KEY_FILE`                     | TLS key path                                                                                                       |
+| `-insecure-skip-verify`         | `INSECURE_SKIP_VERIFY`         | Skip upstream TLS verify (dev only)                                                                                |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
 
@@ -123,12 +124,11 @@ Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 - **`user_token` (default)**: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview. This is the production mode and the default for `make run`.
 - **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
 - **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true`). Useful for local testing. **Not recommended for production.**
-- Mock MaaS model discovery is enabled with `MOCK_MAAS_CLIENT=true` for local contract testing.
+- Mock MaaS model discovery is enabled with `MOCK_MAAS_CLIENT=true`; fully mocked Makefile targets set this automatically so fake MaaS credentials never reach an external service.
 
 ### Sample local calls
 
 When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all endpoints.
-
 
 ```shell
 curl -i localhost:4000/healthcheck
@@ -144,6 +144,7 @@ curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: applica
 ```
 
 For detailed API documentation, see:
+
 - [Secrets API](docs/secrets-endpoint.md)
 - [Pipeline Runs API](../docs/pipeline-runs-api.md)
 
@@ -228,7 +229,7 @@ For local Kubeflow installations with self-signed certificates, you may need to 
 ```yaml
 env:
   - name: INSECURE_SKIP_VERIFY
-    value: "true"
+    value: 'true'
 ```
 
 **Local development:**

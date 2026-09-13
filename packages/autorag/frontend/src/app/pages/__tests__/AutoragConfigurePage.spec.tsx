@@ -1260,10 +1260,8 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('AutoRAG Run Reconfigured tracking', () => {
-    // Matches the models mocked to return above — AutoragConfigure's own
-    // model-initialization effect always resets generation_models/embedding_models to "select
-    // all available models" on mount, overwriting whatever a reconfigure's initialValues
-    // provided, so this is the only way to get a genuine "no changes" baseline for `models`.
+    // Keep model selection mocked because these page tests focus on navigation and submission,
+    // not the model-selection table implementation.
     const noChangeReconfigureInitialValues = {
       display_name: 'Original Run - 1',
       maas_secret_name: 'Test MaaS Secret',

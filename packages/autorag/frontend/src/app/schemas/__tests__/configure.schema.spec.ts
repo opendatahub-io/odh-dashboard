@@ -60,6 +60,14 @@ describe('Configure Schema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('should reject more than ten canonical corpus locations', () => {
+    const result = schema.full.safeParse({
+      ...validData,
+      input_data_keys: Array.from({ length: 11 }, (_, index) => `input/${index}.pdf`),
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('should reject whitespace-only canonical corpus locations and model IDs', () => {
     const result = schema.full.safeParse({
       ...validData,

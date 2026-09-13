@@ -189,6 +189,57 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
   });
 
+  it('should trim restored canonical input data keys', async () => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_secret_name: 'storage',
+        input_data_keys: ['  documents/a.pdf  ', '\tdocuments/b.pdf\n'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({
+      input_data_keys: ['documents/a.pdf', 'documents/b.pdf'],
+    });
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
+  });
+
+  it('should warn and default whitespace-only canonical input data keys', async () => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['  '],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ input_data_keys: [] });
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
+  });
+
   it('should restore a current run persisted with the temporary KFP input_data_key adapter', async () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(
@@ -333,6 +384,28 @@ describe('AutoragReconfigureLoader', () => {
     expect(mockWarning).not.toHaveBeenCalledWith(
       'Unable to restore all settings',
       expect.stringContaining('selected models are no longer available'),
+    );
+  });
+
+  it('should warn when storage Secrets cannot be loaded for a legacy run', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'storage'
+        ? Promise.reject(new Error('storage request failed'))
+        : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({ input_data_key: 'legacy.pdf', ogx_secret_name: 'ogx' }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Unable to load connection secrets',
+      'The previously used connection secrets could not be loaded. You will need to manually select connection secrets.',
     );
   });
 });

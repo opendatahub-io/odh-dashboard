@@ -2,7 +2,6 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';
-import * as z from 'zod';
 import React from 'react';
 import { useParams } from 'react-router';
 import { getSecrets } from '~/app/api/k8s';
@@ -81,11 +80,13 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
   }
 
   /* eslint-disable camelcase */
-  const inputDataKeys = z.array(z.string().min(1)).min(1).max(10).safeParse(params.input_data_keys);
-  if (inputDataKeys.success) {
+  const inputDataKeys = Array.isArray(params.input_data_keys)
+    ? configureBase.shape.input_data_keys.safeParse(params.input_data_keys)
+    : undefined;
+  if (inputDataKeys?.success) {
     data.input_data_keys = inputDataKeys.data;
   } else if (hasCurrentConnectionParameters(params) && hasNonEmptyString(params.input_data_key)) {
-    data.input_data_keys = [params.input_data_key];
+    data.input_data_keys = [params.input_data_key.trim()];
   } else if ('input_data_keys' in params) {
     data.input_data_keys = [];
     hasInvalidFields = true;
@@ -157,8 +158,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
 
   React.useEffect(() => {
     if (
-      !isLegacyRun &&
-      (storageSecretsError || maasSecretsError || vectorDbSecretsError) &&
+      (storageSecretsError || (!isLegacyRun && (maasSecretsError || vectorDbSecretsError))) &&
       !shownWarnings.current.secretsLoadError
     ) {
       shownWarnings.current.secretsLoadError = true;
