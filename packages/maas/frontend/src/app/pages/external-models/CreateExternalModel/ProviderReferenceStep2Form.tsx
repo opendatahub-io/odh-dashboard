@@ -11,7 +11,7 @@ import {
   ProviderReferenceFieldErrors,
   ProviderReferenceFormData,
   ProviderReferenceHelperVariant,
-} from './providerReferenceFormTypes';
+} from '../validations';
 
 type ProviderReferenceStep2FormProps = {
   form: ProviderReferenceFormData;

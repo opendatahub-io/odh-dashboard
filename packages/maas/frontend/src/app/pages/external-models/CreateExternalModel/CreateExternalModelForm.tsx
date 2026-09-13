@@ -26,92 +26,22 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
-import { z } from 'zod';
 import { createExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
-import {
-  CreateExternalModelRequest,
-  ExternalProvider,
-  ProviderRef,
-} from '~/app/types/external-models';
+import { CreateExternalModelRequest, ProviderRef } from '~/app/types/external-models';
 import AddProviderReferenceWizard from './AddProviderReferenceWizard';
 import EditProviderReferenceModal from './EditProviderReferenceModal';
 import ProviderReferencesTable from './ProviderReferencesTable';
 import {
+  createExternalModelFormSchema,
   EXTERNAL_MODEL_FIELD_MAX_LENGTH,
-  getUtf8ByteLength,
-  hasControlCharacters,
+} from '../validations';
+import {
   DISTRIBUTE_EQUALLY_POPOVER_CONTENT,
   hasZeroTotalProviderRefWeight,
   PROVIDER_REFS_ZERO_TOTAL_WEIGHT_MESSAGE,
   setProviderRefWeightsEqually,
-  validateExternalModelFieldLength,
-  validateProviderReferencePath,
-  validateProviderRefPathPlaceholders,
-} from './providerReferenceUtils';
-
-const createExternalModelFormSchema = (externalProviders: ExternalProvider[]) =>
-  z.object({
-    modelName: z
-      .string()
-      .trim()
-      .min(1, 'Name is required')
-      .refine((value) => getUtf8ByteLength(value) <= EXTERNAL_MODEL_FIELD_MAX_LENGTH, {
-        message: `Cannot exceed ${EXTERNAL_MODEL_FIELD_MAX_LENGTH} bytes`,
-      })
-      .refine((value) => !hasControlCharacters(value), {
-        message: 'Name cannot contain control characters or newlines',
-      }),
-    providerRefs: z
-      .array(
-        z
-          .object({
-            targetModel: z.string(),
-            path: z.string(),
-            providerName: z.string(),
-            config: z.record(z.string()).optional(),
-          })
-          .passthrough(),
-      )
-      .superRefine((refs, ctx) => {
-        refs.forEach((ref, index) => {
-          const targetModelError = validateExternalModelFieldLength(
-            ref.targetModel.trim(),
-            'Target model ID',
-          );
-          if (targetModelError) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: targetModelError,
-              path: [index, 'targetModel'],
-            });
-          }
-
-          const pathError = validateProviderReferencePath(ref.path);
-          if (pathError) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: pathError,
-              path: [index, 'path'],
-            });
-          } else {
-            const provider = externalProviders.find((item) => item.name === ref.providerName);
-            const placeholderError = validateProviderRefPathPlaceholders(
-              ref.path,
-              provider?.config,
-              ref.config,
-            );
-            if (placeholderError) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: placeholderError,
-                path: [index, 'path'],
-              });
-            }
-          }
-        });
-      }),
-  });
+} from '../providerReferenceUtils';
 
 type CreateExternalModelFormProps = {
   namespace: string;

@@ -8,7 +8,7 @@ import {
   getProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
   ProviderReferenceFormData,
-} from './providerReferenceFormTypes';
+} from '../validations';
 import SelectProviderStep, { ProviderSourceType } from './SelectProviderStep';
 
 type AddProviderReferenceWizardProps = {

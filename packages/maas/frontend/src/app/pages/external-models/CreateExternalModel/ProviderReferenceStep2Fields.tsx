@@ -20,14 +20,14 @@ import {
   ProviderReferenceFieldErrors,
   ProviderReferenceFormData,
   ProviderReferenceHelperVariant,
-} from './providerReferenceFormTypes';
-import {
   EXTERNAL_MODEL_FIELD_MAX_LENGTH,
   PROVIDER_REFERENCE_PATH_MAX_LENGTH,
+} from '../validations';
+import {
   isProviderReferenceApiFormat,
   PROVIDER_REFERENCE_API_FORMAT_OPTIONS,
   PROVIDER_REFERENCE_API_FORMATS,
-} from './providerReferenceUtils';
+} from '../providerReferenceUtils';
 
 const INHERITED_CONFIG_PREVIEW_COUNT = 5;
 

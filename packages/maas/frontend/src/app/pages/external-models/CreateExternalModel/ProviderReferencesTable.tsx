@@ -17,7 +17,7 @@ import {
   getProviderDisplayName,
   formatProviderRefWeightPercentage,
   isProviderRefExcludedFromRouting,
-} from './providerReferenceUtils';
+} from '../providerReferenceUtils';
 
 type ProviderReferencesTableProps = {
   providerRefs: ProviderRef[];

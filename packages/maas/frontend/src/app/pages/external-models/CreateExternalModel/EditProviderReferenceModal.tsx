@@ -19,12 +19,12 @@ import {
   hasProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
   ProviderReferenceFormData,
-} from './providerReferenceFormTypes';
+} from '../validations';
 import {
   getProviderDisplayName,
   isProviderReferenceApiFormat,
   recordToConfigPairs,
-} from './providerReferenceUtils';
+} from '../providerReferenceUtils';
 
 type EditProviderReferenceModalProps = {
   isOpen: boolean;
