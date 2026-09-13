@@ -995,6 +995,10 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('id_column-select')).toBeDisabled();
       expect(screen.getByTestId('id_column-select')).toHaveTextContent('Not required');
       expect(screen.getByText(/No manual item ID column is required/)).toBeInTheDocument();
+      expect(screen.getByText('Time series recommended')).toBeInTheDocument();
+      expect(screen.getByText(/Time series is recommended because/)).toHaveTextContent(
+        'Time series is recommended because your target column amount contains numbers, and your dataset also has a timestamp column, observed.',
+      );
       selectPredictionType('regression');
       expect(screen.getByTestId('task-type-radio-regression')).toBeChecked();
       expect(screen.getByTestId('task-type-radio-timeseries')).not.toBeChecked();

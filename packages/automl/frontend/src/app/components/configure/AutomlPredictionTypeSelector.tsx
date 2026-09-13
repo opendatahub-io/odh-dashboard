@@ -22,6 +22,7 @@ import {
 import { WarningTriangleIcon } from '@patternfly/react-icons';
 import type { ColumnSchema } from '~/app/hooks/queries';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { findTimestampColumn } from '~/app/utilities/columnUtils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import {
   assessPredictionTypes,
@@ -150,6 +151,8 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
     () => getInferredPredictionType(selectedColumn, columns),
     [selectedColumn, columns],
   );
+  const timestampColumn = findTimestampColumn(columns);
+  const isTimeSeriesRecommended = inferredTaskType === TASK_TYPE_TIMESERIES;
   const { recommended, notRecommended } = React.useMemo(() => {
     const partitioned = partitionPredictionTypeAssessments(assessments);
     return {
@@ -190,18 +193,36 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
 
   return (
     <Stack hasGutter className="pf-v6-u-w-100">
-      {selectedColumn && (columns.length === 2 || value === TASK_TYPE_TIMESERIES) && (
-        <StackItem>
-          <Alert isInline variant="info" title="Time series dataset format">
-            {columns.length === 2 && inferredTaskType === TASK_TYPE_TIMESERIES
-              ? 'This dataset supports a single-item time series experiment. No manual item ID column is required.'
-              : 'Use a timestamp column and a numeric target column, with an optional item ID column for multiple time series.'}{' '}
-            Use ISO 8601 (for example, 2026-01-15T10:30:00Z) or common date strings (for example,
-            2026-01-15). Unix epoch integers are not automatically detected; you can select time
-            series manually.
-          </Alert>
-        </StackItem>
-      )}
+      {selectedColumn &&
+        (isTimeSeriesRecommended || columns.length === 2 || value === TASK_TYPE_TIMESERIES) && (
+          <StackItem>
+            <Alert
+              isInline
+              variant="info"
+              title={
+                isTimeSeriesRecommended ? 'Time series recommended' : 'Time series dataset format'
+              }
+            >
+              {isTimeSeriesRecommended ? (
+                <>
+                  Time series is recommended because your target column{' '}
+                  <code className="automl-prediction-type-column-name">{selectedColumn.name}</code>{' '}
+                  contains numbers, and your dataset also has a timestamp column,{' '}
+                  <code className="automl-prediction-type-column-name">{timestampColumn}</code>.
+                  {columns.length === 2 &&
+                    ' No manual item ID column is required for this two-column dataset.'}
+                </>
+              ) : (
+                <>
+                  Use a timestamp column and a numeric target column. The timestamp records when
+                  each value was measured, and the target contains the numbers you want to predict.
+                  Use dates such as 2026-01-15 or 2026-01-15T10:30:00Z. Dates stored as Unix epoch
+                  numbers are not detected automatically; you can select time series manually.
+                </>
+              )}
+            </Alert>
+          </StackItem>
+        )}
       {recommended.map((assessment) => (
         <StackItem key={assessment.value}>
           <PredictionTypeCard
