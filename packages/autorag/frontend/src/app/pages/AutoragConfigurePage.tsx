@@ -141,6 +141,7 @@ function AutoragConfigurePage({
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
+  const [maasModelsReady, setMaaSModelsReady] = useState(false);
   // Populated by the Knowledge/Evaluation/Vector-store selectors via RunTriggeredTrackingContext
   // when the user actually (re)selects a source/provider in this session — see the context's
   // doc comment for why this can't be safely derived from form data alone. Read at submit time
@@ -357,7 +358,7 @@ function AutoragConfigurePage({
           data-testid="autorag-create-run-button"
           type="submit"
           variant="primary"
-          isDisabled={!form.formState.isValid || form.formState.isSubmitting}
+          isDisabled={!form.formState.isValid || form.formState.isSubmitting || !maasModelsReady}
           isLoading={form.formState.isSubmitting}
           spinnerAriaValueText="Submitting"
         >
@@ -561,6 +562,7 @@ function AutoragConfigurePage({
                     initialInputDataSecret={initialInputDataSecret}
                     initialVectorDbSecret={initialVectorDbSecret}
                     isReconfigure={!!sourceRunId}
+                    onMaaSModelsReady={setMaaSModelsReady}
                   />
                 )}
               </PageSection>

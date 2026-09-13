@@ -151,6 +151,15 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
 
   // Clear stale selection when secrets refresh and current value is no longer valid
   React.useEffect(() => {
+    if (!loaded || error || !valueName) {
+      return;
+    }
+    if (!secretsList.some((secret) => secret.name === valueName)) {
+      onChange(undefined);
+    }
+  }, [error, loaded, onChange, secretsList, valueName]);
+
+  React.useEffect(() => {
     if (!loaded || error || !selectedValue) {
       return;
     }

@@ -5,8 +5,18 @@ import {
   isModArchResponse,
   restGET,
 } from 'mod-arch-core';
+import * as z from 'zod';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { MaaSModelsResponse, NamespaceKind, SecretListItem } from '~/app/types';
+
+const SecretListItemSchema = z.object({
+  uuid: z.string(),
+  name: z.string(),
+  type: z.string().optional(),
+  data: z.record(z.string(), z.string()),
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+});
 
 export const getUser =
   (hostPath: string) =>
@@ -44,7 +54,11 @@ export const getSecrets =
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/secrets`, queryParams, opts),
     ).then((response) => {
       if (isModArchResponse<SecretListItem[]>(response)) {
-        return response.data;
+        try {
+          return SecretListItemSchema.array().parse(response.data);
+        } catch {
+          throw new Error('Invalid response format');
+        }
       }
       throw new Error('Invalid response format');
     });

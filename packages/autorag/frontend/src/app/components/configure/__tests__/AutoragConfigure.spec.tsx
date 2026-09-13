@@ -476,16 +476,15 @@ describe('AutoragConfigure', () => {
       expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
     });
 
-    it('should not warn for fully available new-run selections', async () => {
+    it('should remove unavailable selections for a new run without a restore warning', async () => {
       renderComponent({
         maas_secret_name: 'maas-secret',
         generation_models: ['removed-generation'],
         embedding_models: ['removed-embedding'],
       });
 
-      await waitFor(() =>
-        expect(getLatestFormValues().generation_models).toEqual(['removed-generation']),
-      );
+      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
+      expect(getLatestFormValues().embedding_models).toEqual([]);
       expect(mockNotificationWarning).not.toHaveBeenCalled();
     });
 
@@ -541,10 +540,12 @@ describe('AutoragConfigure', () => {
       } as unknown as ReturnType<typeof useMaaSModelsQuery>);
       renderWithInitialValues(restoredValues, undefined, true);
 
-      await waitFor(() =>
-        expect(getLatestFormValues().generation_models).toEqual(restoredValues.generation_models),
+      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
+      expect(getLatestFormValues().embedding_models).toEqual([]);
+      expect(mockNotificationWarning).toHaveBeenCalledWith(
+        'Unable to restore all settings',
+        'Some selected models are no longer available and could not be restored. Select replacement models to continue.',
       );
-      expect(mockNotificationWarning).not.toHaveBeenCalled();
     });
   });
 
@@ -1776,10 +1777,9 @@ describe('AutoragConfigure', () => {
         },
       );
 
-      // Falls back to all currently available models rather than keeping the
-      // now-nonexistent restored IDs.
-      expect(getLatestFormValues().generation_models).toEqual(['removed-llm-model']);
-      expect(getLatestFormValues().embedding_models).toEqual(['removed-embed-model']);
+      // Removed restored IDs are cleared rather than silently replaced.
+      expect(getLatestFormValues().generation_models).toEqual([]);
+      expect(getLatestFormValues().embedding_models).toEqual([]);
     });
 
     it('should keep only the still-available restored models when some restored selections are stale', () => {
@@ -1831,7 +1831,7 @@ describe('AutoragConfigure', () => {
 
       // Only the still-valid restored selection is kept; since at least one valid
       // restored ID remains, it does NOT fall back to all available models.
-      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1', 'removed-llm-model']);
+      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
     });
   });
 

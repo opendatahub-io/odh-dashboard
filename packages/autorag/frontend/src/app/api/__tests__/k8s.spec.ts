@@ -1,5 +1,5 @@
 import { handleRestFailures, restGET, isModArchResponse } from 'mod-arch-core';
-import { getMaaSModels, getSecretByName } from '~/app/api/k8s';
+import { getMaaSModels, getSecretByName, getSecrets } from '~/app/api/k8s';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/autorag',
@@ -77,6 +77,43 @@ describe('getSecretByName', () => {
     await expect(getSecretByName('')('ns', 'secret')({ signal: undefined })).rejects.toThrow(
       'Invalid response format',
     );
+  });
+});
+
+describe('getSecrets', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((p) => p as never);
+    mockIsModArchResponse.mockReturnValue(true);
+  });
+
+  const fetchSecrets = async (data: unknown) => {
+    mockRestGET.mockReturnValue(Promise.resolve({ data }) as never);
+    return getSecrets('')('test-ns', 'maas')({ signal: undefined });
+  };
+
+  it('should return valid SecretListItem entries', async () => {
+    const data = [
+      {
+        uuid: 'secret-uuid',
+        name: 'maas-secret',
+        data: { BASE_URL: '[REDACTED]' },
+        type: 'maas',
+      },
+    ];
+
+    await expect(fetchSecrets(data)).resolves.toEqual(data);
+  });
+
+  it.each([
+    ['null response data', null],
+    ['null list item', [null]],
+    ['missing uuid', [{ name: 'secret', data: {} }]],
+    ['non-string uuid', [{ uuid: 1, name: 'secret', data: {} }]],
+    ['missing name', [{ uuid: 'uuid', data: {} }]],
+    ['non-string name', [{ uuid: 'uuid', name: 1, data: {} }]],
+  ])('should reject %s with the invalid response error', async (_description, data) => {
+    await expect(fetchSecrets(data)).rejects.toThrow('Invalid response format');
   });
 });
 

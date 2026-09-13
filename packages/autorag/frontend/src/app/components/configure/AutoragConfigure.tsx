@@ -152,6 +152,7 @@ type AutoragConfigureProps = {
   initialInputDataSecret?: SecretSelection;
   initialVectorDbSecret?: SecretSelection;
   isReconfigure?: boolean;
+  onMaaSModelsReady?: (ready: boolean) => void;
 };
 
 const MAAS_MODELS_ERROR_TITLE = 'Failed to load MaaS models';
@@ -165,6 +166,7 @@ function AutoragConfigure({
   initialInputDataSecret,
   initialVectorDbSecret,
   isReconfigure = false,
+  onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -272,9 +274,24 @@ function AutoragConfigure({
   });
 
   useEffect(() => {
-    if (!isReconfigure || !maasModelsQuery.isSuccess || maasModels.length === 0) {
+    if (!maasModelsLoaded) {
+      onMaaSModelsReady?.(false);
+    }
+  }, [maasModelsLoaded, onMaaSModelsReady]);
+
+  useEffect(() => {
+    if (!maasModelsLoaded) {
       return;
     }
+
+    const availableModelIds = new Set(maasModels.map((model) => model.id));
+    const restoredGenerationModels = generationModels.filter((id) => availableModelIds.has(id));
+    const restoredEmbeddingModels = embeddingModels.filter((id) => availableModelIds.has(id));
+    onMaaSModelsReady?.(
+      maasModels.length > 0 &&
+        restoredGenerationModels.length > 0 &&
+        restoredEmbeddingModels.length > 0,
+    );
 
     const resultKey = `${maasSecretName}:${maasModels
       .map((model) => model.id)
@@ -285,28 +302,26 @@ function AutoragConfigure({
     }
     reconciledMaaSResultRef.current = resultKey;
 
-    const availableModelIds = new Set(maasModels.map((model) => model.id));
-    const restoredGenerationModels = generationModels.filter((id) => availableModelIds.has(id));
-    const restoredEmbeddingModels = embeddingModels.filter((id) => availableModelIds.has(id));
     const modelsWereRemoved =
       restoredGenerationModels.length !== generationModels.length ||
       restoredEmbeddingModels.length !== embeddingModels.length;
 
-    if (!modelsWereRemoved) {
-      return;
+    if (modelsWereRemoved) {
+      setValue('generation_models', restoredGenerationModels, { shouldValidate: true });
+      setValue('embedding_models', restoredEmbeddingModels, { shouldValidate: true });
+      if (isReconfigure) {
+        notification.warning(MODEL_RESTORE_WARNING_TITLE, MODEL_RESTORE_WARNING_MESSAGE);
+      }
     }
-
-    setValue('generation_models', restoredGenerationModels, { shouldValidate: true });
-    setValue('embedding_models', restoredEmbeddingModels, { shouldValidate: true });
-    notification.warning(MODEL_RESTORE_WARNING_TITLE, MODEL_RESTORE_WARNING_MESSAGE);
   }, [
     embeddingModels,
     generationModels,
     isReconfigure,
     maasModels,
-    maasModelsQuery.isSuccess,
+    maasModelsLoaded,
     maasSecretName,
     notification,
+    onMaaSModelsReady,
     setValue,
   ]);
 
