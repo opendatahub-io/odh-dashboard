@@ -1,6 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import {
+  Alert,
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -189,6 +190,18 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
 
   return (
     <Stack hasGutter className="pf-v6-u-w-100">
+      {selectedColumn && (columns.length === 2 || value === TASK_TYPE_TIMESERIES) && (
+        <StackItem>
+          <Alert isInline variant="info" title="Time series dataset format">
+            {columns.length === 2 && inferredTaskType === TASK_TYPE_TIMESERIES
+              ? 'This dataset supports a single-item time series experiment. No manual item ID column is required.'
+              : 'Use a timestamp column and a numeric target column, with an optional item ID column for multiple time series.'}{' '}
+            Use ISO 8601 (for example, 2026-01-15T10:30:00Z) or common date strings (for example,
+            2026-01-15). Unix epoch integers are not automatically detected; you can select time
+            series manually.
+          </Alert>
+        </StackItem>
+      )}
       {recommended.map((assessment) => (
         <StackItem key={assessment.value}>
           <PredictionTypeCard

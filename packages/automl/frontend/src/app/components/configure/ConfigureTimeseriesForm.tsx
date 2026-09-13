@@ -140,12 +140,11 @@ function ConfigureTimeseriesForm({
 
       <StackItem className="automl-configure__form-field">
         <ConfigureFormGroup
-          label="ID column"
+          label="ID column (optional)"
           labelHelp={{
             header: 'ID column',
-            body: 'Name of the column that identifies each time series (e.g. product_id, store_id).',
+            body: 'Optional for a single-item time series. For multiple items, select the column identifying each time series (for example, product_id or store_id).',
           }}
-          isRequired
         >
           <LoadingFormField loading={isLoadingColumns || isFetchingColumns}>
             <Controller

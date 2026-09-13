@@ -979,6 +979,44 @@ describe('AutomlConfigure', () => {
       });
     });
 
+    it('should default a two-column temporal dataset to time series and preserve an override', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'amount', type: 'double', task_type: 'multiclass', unique_count: 3 },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByTestId('task-type-radio-timeseries')).toBeChecked();
+      expectPredictionTypeRecommended('timeseries');
+      expect(screen.getByText(/No manual item ID column is required/)).toBeInTheDocument();
+      selectPredictionType('regression');
+      expect(screen.getByTestId('task-type-radio-regression')).toBeChecked();
+      expect(screen.getByTestId('task-type-radio-timeseries')).not.toBeChecked();
+    });
+
+    it('should show format guidance without recommending time series for categorical targets', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'category', type: 'string', task_type: 'multiclass', unique_count: 3 },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('category');
+      expect(screen.getByTestId('task-type-radio-multiclass')).toBeChecked();
+      expect(
+        screen.getByText(/Use a timestamp column and a numeric target column/),
+      ).toBeInTheDocument();
+      showOtherPredictionTypes();
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
+    });
+
     describe('Target column', () => {
       it('should render the target column dropdown after file selection', () => {
         renderComponent();
@@ -1024,7 +1062,7 @@ describe('AutomlConfigure', () => {
         selectPredictionType('timeseries');
 
         expect(screen.getByText('Timestamp column')).toBeInTheDocument();
-        expect(screen.getByText('ID column')).toBeInTheDocument();
+        expect(screen.getByText('ID column (optional)')).toBeInTheDocument();
       });
 
       it('should not show timeseries fields for non-timeseries prediction types', () => {
@@ -1034,10 +1072,14 @@ describe('AutomlConfigure', () => {
         selectPredictionType('binary');
 
         expect(screen.queryByText('Timestamp column')).not.toBeInTheDocument();
-        expect(screen.queryByText('ID column')).not.toBeInTheDocument();
+        expect(screen.queryByText('ID column (optional)')).not.toBeInTheDocument();
       });
 
       it('should clear timeseries fields that conflict with the newly selected target column', () => {
+        mockuseS3GetFileSchemaQuery.mockReturnValue({
+          data: [...MOCK_COLUMNS, { name: 'observed', type: 'timestamp', task_type: 'multiclass' }],
+          isLoading: false,
+        } as ReturnType<typeof useS3GetFileSchemaQuery>);
         renderWithInitialValues(
           {
             initialInputDataSecret: {
@@ -1665,7 +1707,7 @@ describe('AutomlConfigure', () => {
       );
 
       showOtherPredictionTypes();
-      expectPredictionTypeNotRecommended('timeseries');
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
       expectPredictionTypeNotRecommended('regression');
       expectPredictionTypeEnabled('timeseries');
       expectPredictionTypeEnabled('regression');
@@ -1767,7 +1809,7 @@ describe('AutomlConfigure', () => {
       expectPredictionTypeRecommended('binary');
       showOtherPredictionTypes();
       expectPredictionTypeNotRecommended('multiclass');
-      expectPredictionTypeNotRecommended('timeseries');
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
       expectPredictionTypeNotRecommended('regression');
       expectPredictionTypeEnabled('multiclass');
       expectPredictionTypeEnabled('timeseries');

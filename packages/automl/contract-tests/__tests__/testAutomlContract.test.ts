@@ -551,6 +551,22 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
+      it('should create a single-item timeseries run without an ID column', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-single-item-timeseries',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          task_type: 'timeseries',
+          target: 'sales',
+          timestamp_column: 'date',
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+      });
+
       it('should return 400 for missing required fields', async () => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'incomplete-run',

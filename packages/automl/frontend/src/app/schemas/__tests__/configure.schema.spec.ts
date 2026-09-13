@@ -71,6 +71,24 @@ describe('createConfigureSchema', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should submit a single-item time series without an ID column', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'amount',
+        timestamp_column: 'observed',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('id_column');
+        expect(result.data.task_type).toBe(TASK_TYPE_TIMESERIES);
+      }
+    });
+
     it('should require target_column for all task types', () => {
       for (const taskType of TASK_TYPES) {
         const data: Record<string, unknown> = {

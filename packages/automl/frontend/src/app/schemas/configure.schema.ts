@@ -104,14 +104,6 @@ function createConfigureSchema() {
       (data) => {
         const issues: z.core.$ZodRawIssue[] = [];
         if (data.task_type === TASK_TYPE_TIMESERIES) {
-          if (!data.id_column || data.id_column.trim() === '') {
-            issues.push({
-              code: 'custom',
-              path: ['id_column'],
-              message: 'ID column is required',
-              input: data.id_column,
-            });
-          }
           if (!data.timestamp_column || data.timestamp_column.trim() === '') {
             issues.push({
               code: 'custom',
@@ -200,6 +192,9 @@ function createConfigureSchema() {
       (data) => {
         if (data.task_type === TASK_TYPE_TIMESERIES) {
           data.target = data.target_column;
+          if (!data.id_column?.trim()) {
+            delete data.id_column;
+          }
           delete data.label_column;
         } else {
           data.label_column = data.target_column;
