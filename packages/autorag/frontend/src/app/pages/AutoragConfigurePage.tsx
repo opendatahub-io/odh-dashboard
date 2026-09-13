@@ -127,10 +127,13 @@ function AutoragConfigurePage({
 
   // RHF does not validate defaultValues automatically in onChange mode. Reconfigure values are
   // loaded before this page mounts, so validate them once after the form and its dependent fields
-  // are registered instead of requiring the user to reselect an unchanged connection.
+  // are registered instead of requiring the user to reselect an unchanged connection. A new run
+  // must remain pristine until the user interacts with or submits the form.
   useEffect(() => {
-    void form.trigger();
-  }, [form, initialFormValues]);
+    if (sourceRunId && initialValues) {
+      void form.trigger();
+    }
+  }, [form, initialFormValues, initialValues, sourceRunId]);
 
   const [displayName, description, maasSecretName] = useWatch({
     control: form.control,

@@ -470,6 +470,16 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByText(/MaaS connection/i)).toBeInTheDocument();
     });
 
+    it('should not show a Name validation error on a new run', async () => {
+      renderWithProviders(<AutoragConfigurePage />);
+
+      expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
+      expect(
+        screen.queryByText('Invalid input: expected string, received undefined'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    });
+
     it('should NOT render AutoragConfigure component on initial load', async () => {
       renderWithProviders(<AutoragConfigurePage />);
       // AutoragConfigure has "Documents" and "Configure Details" headings
