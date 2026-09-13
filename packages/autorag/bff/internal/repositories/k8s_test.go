@@ -359,6 +359,25 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("annotation does not replace required filter keys", func(t *testing.T) {
+		k8sAnnotated := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					annotatedSecret("incomplete", "storage", map[string]string{
+						"AWS_ACCESS_KEY_ID": "a",
+					}),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sAnnotated, context.Background(), "ns", "storage")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 0 {
+			t.Fatalf("expected annotated secret without required keys to be excluded, got %v", result)
+		}
+	})
+
 	t.Run("k8s service error propagated", func(t *testing.T) {
 		failing := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {

@@ -1045,9 +1045,9 @@ components:
                - 's3': S3 storage secret (has all required S3 classification keys)
                - 'ogx': Open GenAI Stack secret (has all required OGX classification keys)
 
-            When filtering with the ?type= parameter, the annotated type (if present) takes precedence over key-based classification
-            for determining inclusion in results. This means a secret with connection-type='storage' will be included in ?type=storage
-            results even if it lacks the typical storage classification keys.
+            When filtering with the ?type= parameter, inclusion is determined by the required key presence for the selected filter.
+            A non-empty connection-type annotation cannot replace the required keys. After inclusion, the annotation takes precedence
+            only for the returned type field.
 
             This field is omitted from the response if the secret doesn't match any recognized type and has no connection-type annotation.
           example: s3
