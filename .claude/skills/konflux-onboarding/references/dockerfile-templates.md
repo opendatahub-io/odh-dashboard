@@ -95,7 +95,7 @@ ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
 ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
 
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:<digest>
-ARG GOLANG_BASE_IMAGE=registry.redhat.io/ubi9/go-toolset@sha256:<digest>
+ARG GOLANG_BASE_IMAGE=registry.redhat.io/ubi9/go-toolset@sha256:685ccca486cc2c82b0818d835abecb1aed7a396e76ba416cfc47c28067f5d365
 ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal@sha256:<digest>
 
 # UI build stage (same as upstream, using SHA-pinned NODE_BASE_IMAGE)
