@@ -147,6 +147,11 @@ def reconcile_producers(result):
         inspected["producers"] = ran
     result["inspected"] = inspected
 
+    _, challenger_problem = challenger_state(ledger, result.get("findings") or [])
+    if challenger_problem:
+        add_limit(inspected, challenger_problem)
+        result["inspected"] = inspected
+
     verification = []
     for row in result.get("verification") or []:
         dimension = LEDGER_ROW_DIMENSION.get(row.get("id"))
@@ -227,6 +232,11 @@ def unverified_producers(result):
     for classifier in result.get("classifications") or []:
         if classifier.get("status") == "unavailable":
             names.append(classifier.get("id") or "classifier")
+    ledger = load_ledger()
+    if ledger is not None:
+        _, problem = challenger_state(ledger, result.get("findings") or [])
+        if problem:
+            names.append("challenger (its ledger record contradicts the reported findings)")
     return names
 
 def cap_confidence(result):
@@ -435,6 +445,36 @@ def detail_block(summary, body_lines, open_by_default=False):
     attr = " open" if open_by_default else ""
     return [f"<details{attr}>", f"<summary>{summary}</summary>", ""] + body_lines + ["", "</details>"]
 
+def challenger_state(ledger, findings):
+    """Read the ledger's challenger record, and catch it contradicting itself.
+
+    The sanctioned skip is an empty finding set (step 6d). A run that skips for
+    another reason has to say so; recording the empty-set reason instead makes
+    the ledger assert something the finding list disproves. Since the ledger
+    exists precisely to let the host check the review's account of itself, a
+    contradiction here is reported, not absorbed."""
+    raw = (ledger.get("challenger") or "").strip()
+    if not raw:
+        return "", None
+    if raw == "ran":
+        return "✅ ran", None
+    if raw == "failed":
+        return "❌ failed", None
+    if raw == "pending":
+        return ('❔ ledger left at "pending" — never rewritten after collect',
+                'The producer ledger still records the challenger as "pending", so whether it ran is unknown.')
+    if raw.startswith("skipped"):
+        _, _, reason = raw.partition(":")
+        reason = reason.strip()
+        claims_empty = not reason or "no finding" in reason.lower() or raw == "skipped-empty-set"
+        count = len(findings)
+        if claims_empty and count:
+            return (f'⚠️ skipped — recorded as "no findings to adjudicate", but {count} finding(s) were reported',
+                    f"The ledger records the challenger as skipped for an empty finding set, but {count} "
+                    f"finding(s) were reported. Its real reason for skipping was not recorded.")
+        return f"➖ skipped — {clean(reason) if reason else 'no findings to adjudicate'}", None
+    return clean(raw), None
+
 def producer_rows(result):
     """What ran, and what each one found — from the dispatch ledger.
 
@@ -464,10 +504,8 @@ def producer_rows(result):
         for name in ledger.get(key) or []:
             if isinstance(name, str):
                 rows.append((clean(name), "✅ ran", count_cell(name)))
-    challenger = ledger.get("challenger") or ""
-    if challenger:
-        label = {"ran": "✅ ran", "skipped-empty-set": "➖ skipped (no findings to adjudicate)",
-                 "failed": "❌ failed"}.get(challenger, clean(challenger))
+    label, _ = challenger_state(ledger, findings)
+    if label:
         rows.append(("challenger", label, "—"))
     for row in ledger.get("skipped") or []:
         if isinstance(row, dict) and isinstance(row.get("id"), str):
@@ -879,6 +917,42 @@ run_self_test() {
     fail=1
   else
     echo "PASS unmet Jira criteria stay expanded, clean ones collapse"
+  fi
+
+  # The ledger claiming an empty-set skip while findings exist is the exact
+  # shape run 243 produced. The host must contradict it, not repeat it.
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"skipped-empty-set"}' > "${tmp}/ch-bad.json"
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"high\",\"category\":\"off-by-one\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Out of bounds.\",\"why\":\"undefined.\",\"remediation\":\"length - 1.\"}]}" > "${tmp}/ch.json"
+  ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-bad.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-out.json"
+  body=$(jq -r .body "${tmp}/ch-out.json")
+  if ! grep -q 'recorded as "no findings to adjudicate", but 1 finding(s) were reported' <<<"${body}"; then
+    echo "FAIL challenger-contradiction: host repeated a ledger claim the findings disprove" >&2
+    fail=1
+  elif ! jq -e '.confidence.level == "medium"' "${tmp}/ch-out.json" >/dev/null; then
+    echo "FAIL challenger-contradiction: a self-contradicting ledger left confidence untouched" >&2
+    fail=1
+  else
+    echo "PASS contradictory challenger record is reported and caps confidence"
+  fi
+
+  # An honest skip with a stated reason renders as-is.
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"skipped: re-review, findings unchanged since prior run"}' > "${tmp}/ch-ok.json"
+  ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-ok.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-ok-out.json"
+  if ! grep -q '➖ skipped — re-review, findings unchanged since prior run' <<<"$(jq -r .body "${tmp}/ch-ok-out.json")"; then
+    echo "FAIL challenger-reason: a stated skip reason was not rendered" >&2
+    fail=1
+  else
+    echo "PASS challenger skip reason renders verbatim"
+  fi
+
+  # A ledger never rewritten after collect is not the same as a skip.
+  printf '%s' '{"dispatched":["correctness"],"adapters":[],"skipped":[],"challenger":"pending"}' > "${tmp}/ch-pending.json"
+  ( export REVIEW_PRODUCER_LEDGER="${tmp}/ch-pending.json"; transform_review_result "${tmp}/ch.json" ) > "${tmp}/ch-p-out.json"
+  if ! grep -q 'never rewritten after collect' <<<"$(jq -r .body "${tmp}/ch-p-out.json")"; then
+    echo "FAIL challenger-pending: an un-rewritten ledger was read as a real state" >&2
+    fail=1
+  else
+    echo "PASS un-rewritten challenger record is flagged, not believed"
   fi
 
   if [[ "${fail}" -ne 0 ]]; then
