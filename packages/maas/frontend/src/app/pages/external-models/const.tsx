@@ -29,6 +29,9 @@ export const deploymentsExternalPath = (namespace: string): string =>
 export const createExternalModelPath = (namespace: string): string =>
   `${deploymentsExternalPath(namespace)}/register`;
 
+export const editExternalModelPath = (namespace: string, modelName: string): string =>
+  `${deploymentsExternalPath(namespace)}/${encodeURIComponent(modelName)}/edit`;
+
 /** Matches CRD maxLength for spec.modelName and spec.externalProviderRefs[].targetModel. */
 export const EXTERNAL_MODEL_FIELD_MAX_LENGTH = 253;
 

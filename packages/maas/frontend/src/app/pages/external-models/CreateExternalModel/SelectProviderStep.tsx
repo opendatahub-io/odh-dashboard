@@ -15,7 +15,12 @@ import { Link } from 'react-router-dom';
 import { ExternalProvider } from '~/app/types/external-models';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 
-export type ProviderSourceType = 'existing' | 'create-new';
+export const ProviderSource = {
+  EXISTING: 'existing',
+  CREATE_NEW: 'create-new',
+} as const;
+
+export type ProviderSourceType = (typeof ProviderSource)[keyof typeof ProviderSource];
 
 type SelectProviderStepProps = {
   namespace: string;

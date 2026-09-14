@@ -2,9 +2,8 @@ import React from 'react';
 import { Modal, ModalVariant, Wizard, WizardHeader, WizardStep } from '@patternfly/react-core';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import {
-  getProviderReferenceFieldErrors,
   getVisibleProviderReferenceFieldErrors,
-  hasProviderReferenceFieldErrors,
+  getProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
   ProviderReferenceFieldTouched,
   ProviderReferenceFormData,
@@ -12,7 +11,7 @@ import {
 import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
 import AddProviderReferenceWizardFooter from './AddProviderReferenceWizardFooter';
 import { configPairsToRecord } from './ModelConfigPairsEditor';
-import SelectProviderStep, { ProviderSourceType } from './SelectProviderStep';
+import SelectProviderStep, { ProviderSource, type ProviderSourceType } from './SelectProviderStep';
 
 type AddProviderReferenceWizardProps = {
   isOpen: boolean;
@@ -42,7 +41,9 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   onClose,
   onAdd,
 }) => {
-  const [providerSource, setProviderSource] = React.useState<ProviderSourceType>('existing');
+  const [providerSource, setProviderSource] = React.useState<ProviderSourceType>(
+    ProviderSource.EXISTING,
+  );
   const [providerName, setProviderName] = React.useState('');
   const [configureForm, setConfigureForm] =
     React.useState<ProviderReferenceFormData>(emptyConfigureForm);
@@ -50,14 +51,15 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
 
   React.useEffect(() => {
     if (isOpen) {
-      setProviderSource('existing');
+      setProviderSource(ProviderSource.EXISTING);
       setProviderName('');
       setConfigureForm(emptyConfigureForm());
       setFieldTouched({});
     }
   }, [isOpen]);
 
-  const isStepOneValid = providerSource === 'existing' && providerName.trim() !== '';
+  const isStepOneValid =
+    providerSource === ProviderSource.EXISTING && providerName.trim() !== '';
 
   const selectedProvider = React.useMemo(
     () => externalProviders.find((provider) => provider.name === providerName),
@@ -69,9 +71,10 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
     [selectedProvider?.config],
   );
 
-  const isAddDisabled = isProviderReferenceFormIncomplete(configureForm);
+  const isAddDisabled = isProviderReferenceFormIncomplete(configureForm, validationContext);
   const configureFieldErrors = getProviderReferenceFieldErrors(configureForm, validationContext);
   const visibleFieldErrors = getVisibleProviderReferenceFieldErrors(
+    configureForm,
     configureFieldErrors,
     fieldTouched,
   );
@@ -86,7 +89,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
 
   const handleAdd = React.useCallback(() => {
     setFieldTouched(allConfigureFieldsTouched());
-    if (!isStepOneValid || hasProviderReferenceFieldErrors(configureForm, validationContext)) {
+    if (!isStepOneValid || isProviderReferenceFormIncomplete(configureForm, validationContext)) {
       return;
     }
 

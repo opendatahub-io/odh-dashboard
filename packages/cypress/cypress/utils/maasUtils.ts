@@ -1132,6 +1132,9 @@ export const mockExternalProvidersForCreateFlow = (): ExternalProvider[] => [
     lastTransitionTime: '2025-03-01T10:00:00Z',
     conditionType: 'Ready',
     reason: 'ready',
+    config: {
+      project: 'my-project',
+    },
   }),
 ];
 

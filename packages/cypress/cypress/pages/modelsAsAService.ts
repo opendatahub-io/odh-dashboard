@@ -1911,7 +1911,7 @@ class CreateExternalModelPage {
   }
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('cancel-create-external-model-button');
+    return cy.findByTestId('cancel-external-model-button');
   }
 
   findProviderRefEditButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1951,6 +1951,80 @@ class CreateExternalModelPage {
 
   findDistributeEquallyHelp(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('distribute-equally-help');
+  }
+}
+
+class EditExternalModelPage {
+  visit(modelName: string, namespace = 'test-project'): void {
+    cy.visitWithLogin(
+      `/ai-hub/models/deployments/external/${namespace}/${encodeURIComponent(modelName)}/edit`,
+    );
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findPageDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findBreadcrumbExternalModelsLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('breadcrumb-external-models-link');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-name');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-description');
+  }
+
+  findProjectInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-project');
+  }
+
+  findProviderReferencesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-references-table');
+  }
+
+  findAddProviderReferenceButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-provider-reference-button');
+  }
+
+  findProviderRefEditButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-edit-${index}`);
+  }
+
+  findProviderRefRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-row-${index}`);
+  }
+
+  findDistributeEquallyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('distribute-equally-button');
+  }
+
+  findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('update-external-model-button');
+  }
+
+  findUpdateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSaveButton();
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('cancel-external-model-button');
+  }
+
+  findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByText('Failed to update external model');
   }
 }
 
@@ -2081,6 +2155,18 @@ class EditProviderReferenceModal extends ProviderReferenceModalBase {
     return cy.findByTestId('edit-provider-reference-modal');
   }
 
+  findExternalProviderSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-ref-external-provider-section');
+  }
+
+  findExternalProviderInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-ref-external-provider');
+  }
+
+  findConfigurationSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-ref-configuration-section');
+  }
+
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('edit-provider-reference-submit');
   }
@@ -2178,6 +2264,10 @@ class ExternalModelTableRow extends TableRow {
     return this.findExpandedProviderRow(providerName).findByTestId(
       `expanded-table-row-weight-${providerName}`,
     );
+  }
+
+  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Edit');
   }
 }
 
@@ -2450,6 +2540,7 @@ export const overviewTabPage = new OverviewTabPage();
 export const maasGovernancePage = new MaaSGovernancePage();
 export const externalModelsPage = new ExternalModelsPage();
 export const createExternalModelPage = new CreateExternalModelPage();
+export const editExternalModelPage = new EditExternalModelPage();
 export const addProviderReferenceWizard = new AddProviderReferenceWizard();
 export const editProviderReferenceModal = new EditProviderReferenceModal();
 export const deleteExternalModelModal = new DeleteExternalModelModal();
