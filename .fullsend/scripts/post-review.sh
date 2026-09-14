@@ -147,6 +147,12 @@ def reconcile_producers(result):
         inspected["producers"] = ran
     result["inspected"] = inspected
 
+    stray = summary_scope_problem(result)
+    if stray:
+        add_limit(inspected, "The change summary cites files that are not in this PR's diff: "
+                             + ", ".join(stray) + ".")
+        result["inspected"] = inspected
+
     _, challenger_problem = challenger_state(ledger, result.get("findings") or [])
     if challenger_problem:
         add_limit(inspected, challenger_problem)
@@ -215,6 +221,28 @@ def normalize_protected_findings(result):
         }
     return result
 
+PATH_TOKEN = re.compile(r"(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+")
+
+def summary_scope_problem(result):
+    """File paths the change summary cites that this PR does not touch.
+
+    change_summary is meant to describe the PR's own diff. On a re-review whose
+    head has just merged the base branch in, `changed_since_prior` is full of
+    base-branch files the PR does not own, and summarizing those produces a
+    confident description of somebody else's change. The instruction not to do
+    that has now been ignored once, so the host checks it."""
+    summary = result.get("change_summary") or ""
+    changed = changed_paths()
+    if not summary or not changed:
+        return []
+    stray = []
+    for token in PATH_TOKEN.findall(summary):
+        if any(token == f or f.endswith("/" + token) or token.endswith("/" + f) for f in changed):
+            continue
+        if token not in stray:
+            stray.append(token)
+    return stray
+
 def unverified_producers(result):
     """Everything this run could not establish, by whatever shape reported it.
 
@@ -242,6 +270,8 @@ def unverified_producers(result):
 def cap_confidence(result):
     """Confidence follows the weaker of proof quality and completeness."""
     missing = unverified_producers(result)
+    if summary_scope_problem(result):
+        missing = missing + ["the change summary (it describes files outside this PR's diff)"]
     if not missing:
         return result
     confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
@@ -537,6 +567,12 @@ def render_body(result, previous_md, action):
         return "\n".join(lines).rstrip() + "\n"
 
     lines += ["", "## Change summary", "", clean(result.get("change_summary"))]
+    stray = summary_scope_problem(result)
+    if stray:
+        changed = changed_paths()
+        lines += ["", f"> ⚠️ This summary names files that are not in this PR's diff "
+                      f"(`{'`, `'.join(stray)}`). This PR changes "
+                      f"{len(changed)} file(s): `{'`, `'.join(changed)}`."]
     lines += ["", "## Status", "", f"{mark(ACTION_MARK, action)} {status_text(result, action)}"]
 
     # ---- One uniform list of every judgement this review made. ----
@@ -860,14 +896,14 @@ run_self_test() {
   fi
 
   # An unavailable readiness check is an incomplete review, even when every
-  # verification row passed. This is the shape the 51-minute smoke run hit:
-  # ci-status-review could-not-verify while confidence still claimed high.
-  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"ci-status-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}]}" > "${tmp}/unavailable-check.json"
+  # verification row passed. This is the shape the 51-minute smoke run hit: a
+  # readiness check reported could-not-verify while confidence still claimed high.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}]}" > "${tmp}/unavailable-check.json"
   transform_review_result "${tmp}/unavailable-check.json" > "${tmp}/unavailable-check-out.json"
-  if ! jq -e '.confidence.level == "medium" and (.confidence.why | contains("ci-status-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+  if ! jq -e '.confidence.level == "medium" and (.confidence.why | contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
     echo "FAIL unavailable-check: confidence stayed high despite an unverifiable readiness check" >&2
     fail=1
-  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("ci-status-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
     echo "FAIL unavailable-check: the limit was not recorded in inspected" >&2
     fail=1
   else
@@ -953,6 +989,45 @@ run_self_test() {
     fail=1
   else
     echo "PASS un-rewritten challenger record is flagged, not believed"
+  fi
+
+  # The exact shape runs 240/243/246 produced: the summary describes the
+  # base-branch merge instead of the PR's own four files.
+  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Infrastructure-only update: modified .fullsend/scripts/post-review.sh and .fullsend/skills/pr-review/SKILL.md.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/scope.json"
+  (
+    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/useSmokeQuota.ts
+docs/admin-dashboard.md"
+    transform_review_result "${tmp}/scope.json"
+  ) > "${tmp}/scope-out.json"
+  body=$(jq -r .body "${tmp}/scope-out.json")
+  if ! grep -q "names files that are not in this PR's diff" <<<"${body}"; then
+    echo "FAIL summary-scope: a summary describing files outside the diff went unchallenged" >&2
+    fail=1
+  elif ! grep -q 'post-review.sh' <<<"${body}"; then
+    echo "FAIL summary-scope: the offending paths were not named" >&2
+    fail=1
+  elif ! jq -e '.confidence.level == "medium"' "${tmp}/scope-out.json" >/dev/null; then
+    echo "FAIL summary-scope: confidence stayed high on a summary of the wrong change" >&2
+    fail=1
+  else
+    echo "PASS out-of-diff change summary is challenged and caps confidence"
+  fi
+
+  # A summary that names only files the PR touches must pass clean.
+  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Adds a quota panel in frontend/src/pages/smokeReview/useSmokeQuota.ts and documents it.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/scope-ok.json"
+  (
+    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/useSmokeQuota.ts
+docs/admin-dashboard.md"
+    transform_review_result "${tmp}/scope-ok.json"
+  ) > "${tmp}/scope-ok-out.json"
+  if grep -q "names files that are not in this PR's diff" <<<"$(jq -r .body "${tmp}/scope-ok-out.json")"; then
+    echo "FAIL summary-scope: an in-diff summary was falsely challenged" >&2
+    fail=1
+  elif ! jq -e '.confidence.level == "high"' "${tmp}/scope-ok-out.json" >/dev/null; then
+    echo "FAIL summary-scope: an in-diff summary should not cap confidence" >&2
+    fail=1
+  else
+    echo "PASS in-diff change summary passes clean"
   fi
 
   if [[ "${fail}" -ne 0 ]]; then
