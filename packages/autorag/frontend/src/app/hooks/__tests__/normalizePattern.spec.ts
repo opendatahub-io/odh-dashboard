@@ -60,18 +60,20 @@ describe('normalizePattern', () => {
       expect(overallScore?.optimization_metric).toBe(true);
     });
 
-    it('should synthesize vector_store_binding from vector_store', () => {
+    it('should normalize vector_store into the canonical binding shape', () => {
       const result = normalizePattern(v1, 'my-provider');
       expect(result.settings.vector_store_binding).toEqual({
-        provider_id: 'my-provider',
         provider_type: 'milvus',
-        vector_store_id: 'col0',
+        collection_name: 'col0',
       });
     });
 
-    it('should use empty provider_id when vectorIoProviderId is not given', () => {
+    it('should normalize a legacy vector store without a provider id', () => {
       const result = normalizePattern(v1);
-      expect(result.settings.vector_store_binding?.provider_id).toBe('');
+      expect(result.settings.vector_store_binding).toEqual({
+        provider_type: 'milvus',
+        collection_name: 'col0',
+      });
     });
 
     it('should prefer existing vector_store_binding over vector_store', () => {
@@ -88,9 +90,8 @@ describe('normalizePattern', () => {
       };
       const result = normalizePattern(v1WithBinding);
       expect(result.settings.vector_store_binding).toEqual({
-        provider_id: 'existing',
         provider_type: 'pgvector',
-        vector_store_id: 'vs-1',
+        collection_name: 'vs-1',
       });
     });
 
@@ -131,9 +132,8 @@ describe('normalizePattern', () => {
       settings: {
         ...baseSettings,
         vector_store_binding: {
-          provider_id: 'prov-1',
           provider_type: 'milvus',
-          vector_store_id: 'col0',
+          collection_name: 'col0',
         },
       },
       evaluation: {

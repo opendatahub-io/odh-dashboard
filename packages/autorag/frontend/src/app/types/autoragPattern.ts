@@ -26,7 +26,7 @@ export type AutoragPatternSettingsV1 = {
     datasource_type: string;
     collection_name: string;
   };
-  vector_store_binding?: AutoragVectorStoreBinding;
+  vector_store_binding?: AutoragLegacyVectorStoreBinding;
   chunking: {
     method: string;
     chunk_size: number;
@@ -75,11 +75,16 @@ export type AutoragPatternV1 = {
 // V2 (current) schema — inference-oriented structure
 // ---------------------------------------------------------------------------
 
-export type AutoragVectorStoreBinding = {
+export type AutoragLegacyVectorStoreBinding = {
   provider_id: string;
   provider_type: string;
   /** Possibly null when the pipeline did not bind a collection */
   vector_store_id: string | null;
+};
+
+export type AutoragVectorStoreBinding = {
+  provider_type: string;
+  collection_name: string;
 };
 
 export type AutoragEvaluationMetric = {

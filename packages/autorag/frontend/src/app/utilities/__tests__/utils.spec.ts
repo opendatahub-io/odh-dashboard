@@ -737,7 +737,7 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
     ],
   },
   settings: {
-    vector_store_binding: { provider_id: '', provider_type: '', vector_store_id: '' },
+    vector_store_binding: { provider_type: '', collection_name: '' },
     chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
     embedding: {
       model_id: '',

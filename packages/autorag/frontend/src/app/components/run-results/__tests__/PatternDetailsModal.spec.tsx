@@ -27,9 +27,8 @@ const mockPattern: AutoragPattern = {
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
@@ -280,10 +279,10 @@ describe('PatternDetailsModal', () => {
 
       await user.click(screen.getByTestId('tab-vector_store_binding'));
 
-      expect(screen.getByText('Provider ID')).toBeInTheDocument();
-      expect(screen.getByText('milvus')).toBeInTheDocument();
       expect(screen.getByText('Provider Type')).toBeInTheDocument();
-      expect(screen.getByText('remote::milvus')).toBeInTheDocument();
+      expect(screen.getByText('milvus')).toBeInTheDocument();
+      expect(screen.getByText('Collection Name')).toBeInTheDocument();
+      expect(screen.getByText('vs_collection0')).toBeInTheDocument();
     });
 
     it('should show generation settings when Generation tab is clicked', async () => {

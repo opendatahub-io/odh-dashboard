@@ -30,9 +30,8 @@ const canonicalPattern = {
   settings: {
     ...baseSettings,
     vector_store_binding: {
-      provider_id: 'prov-1',
       provider_type: 'milvus',
-      vector_store_id: 'col0',
+      collection_name: 'col0',
     },
   },
   evaluation: {
@@ -62,6 +61,18 @@ describe('CanonicalPatternSchema', () => {
         name: 'overall_score',
       });
     }
+  });
+
+  it('should parse the delivered canonical binding shape', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: { provider_type: 'milvus', collection_name: 'run-collection' },
+      },
+    });
+
+    expect(result.success).toBe(true);
   });
 
   it('should preserve nullable canonical aggregate scores', () => {

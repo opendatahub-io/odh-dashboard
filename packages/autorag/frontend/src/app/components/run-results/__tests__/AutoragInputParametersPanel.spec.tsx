@@ -166,9 +166,8 @@ describe('AutoragInputParametersPanel', () => {
             duration_seconds: 10,
             settings: {
               vector_store_binding: {
-                provider_id: 'milvus-provider',
                 provider_type: 'milvus',
-                vector_store_id: 'vs-1',
+                collection_name: 'vs-1',
               },
               chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
               embedding: {

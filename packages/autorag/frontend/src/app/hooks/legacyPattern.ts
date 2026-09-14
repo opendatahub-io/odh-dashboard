@@ -1,7 +1,11 @@
 /** Legacy pattern.json schema and its isolated conversion to the unified model. */
 /* eslint-disable camelcase */
 import * as z from 'zod';
-import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
+import type {
+  AutoragEvaluationMetric,
+  AutoragPattern,
+  AutoragVectorStoreBinding,
+} from '~/app/types/autoragPattern';
 
 const ScoreMetricSchema = z
   .object({
@@ -102,7 +106,7 @@ export function normalizeLegacyPattern(
     metrics.push(synthesizedOverallScore);
   }
 
-  const vectorStoreBinding =
+  const legacyVectorStoreBinding =
     raw.settings.vector_store_binding ??
     (raw.settings.vector_store
       ? {
@@ -112,6 +116,13 @@ export function normalizeLegacyPattern(
         }
       : undefined);
   const { detected_language: detectedLanguage, ...generationRest } = raw.settings.generation;
+
+  const vectorStoreBinding: AutoragVectorStoreBinding | undefined = legacyVectorStoreBinding
+    ? {
+        provider_type: legacyVectorStoreBinding.provider_type,
+        collection_name: legacyVectorStoreBinding.vector_store_id ?? '',
+      }
+    : undefined;
 
   return {
     name: raw.name,

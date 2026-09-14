@@ -135,9 +135,8 @@ const createMockPattern = (name: string): AutoragPattern => ({
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: {
       method: 'fixed',

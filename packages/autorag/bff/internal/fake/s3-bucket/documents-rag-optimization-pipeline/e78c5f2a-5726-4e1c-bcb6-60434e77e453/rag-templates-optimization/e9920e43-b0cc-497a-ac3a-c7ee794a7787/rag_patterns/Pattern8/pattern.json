@@ -34,9 +34,8 @@
   "duration_seconds": 4,
   "settings": {
     "vector_store_binding": {
-      "provider_id": "milvus",
-      "vector_store_id": "vs_123764f5-d34c-4fac-a3b9-b8cdd88ce7eb",
-      "provider_type": "remote::milvus"
+      "provider_type": "milvus",
+      "collection_name": "vs_123764f5-d34c-4fac-a3b9-b8cdd88ce7eb"
     },
     "chunking": {
       "method": "recursive",
