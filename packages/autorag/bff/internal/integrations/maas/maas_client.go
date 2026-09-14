@@ -119,10 +119,19 @@ func buildModelsURL(rawBaseURL string) (string, error) {
 	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Hostname() == "" {
 		return "", fmt.Errorf("MaaS base URL must not contain credentials, query, fragment, or an empty host")
 	}
-	if err := validateMaaSHost(parsed.Hostname()); err != nil {
-		return "", err
+	if parsed.Scheme == "http" && !isLocalMaaSHost(parsed.Hostname()) {
+		return "", fmt.Errorf("MaaS base URL must use HTTPS for non-local endpoints")
+	}
+	if parsed.Scheme != "http" || !isLocalMaaSHost(parsed.Hostname()) {
+		if err := validateMaaSHost(parsed.Hostname()); err != nil {
+			return "", err
+		}
 	}
 	return parsed.JoinPath("v1", "models").String(), nil
+}
+
+func isLocalMaaSHost(host string) bool {
+	return strings.EqualFold(host, "localhost") || host == "127.0.0.1" || host == "::1"
 }
 
 func validateMaaSHost(host string) error {
@@ -187,7 +196,7 @@ func setAuthHeader(req *http.Request, apiKey string) {
 	if apiKey == "" {
 		return
 	}
-	if req.URL.Scheme == "https" || req.URL.Hostname() == "localhost" || req.URL.Hostname() == "127.0.0.1" {
+	if req.URL.Scheme == "https" || isLocalMaaSHost(req.URL.Hostname()) {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 }

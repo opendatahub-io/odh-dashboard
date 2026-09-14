@@ -58,7 +58,7 @@ Only `id`, optional display metadata, optional `owned_by`, and `ready` are expos
 - `502`: invalid or unreachable upstream response/connection
 - `503`: MaaS temporarily unavailable or timed out
 
-The BFF validates the URL scheme and host, rejects embedded credentials, query strings, fragments, and blocked address resolutions, uses configured CA bundles/TLS settings, disables redirects, limits response size, and applies an operation timeout. Secret values and raw upstream response bodies are not logged.
+The BFF requires HTTPS for non-local MaaS URLs. Plain HTTP is allowed only for explicit local development hosts (`localhost`, `127.0.0.1`, and IPv6 loopback `::1`). It also validates the URL host, rejects embedded credentials, query strings, fragments, and blocked address resolutions, uses configured CA bundles/TLS settings, disables redirects, limits response size, and applies an operation timeout. Secret values and raw upstream response bodies are not logged.
 
 ## Local Mock
 

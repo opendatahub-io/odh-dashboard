@@ -72,3 +72,29 @@ func TestGetMaaSModelsRequiresCredentials(t *testing.T) {
 		t.Fatalf("expected MaaS credential validation error, got %v", err)
 	}
 }
+
+func TestGetMaaSModelsPropagatesURLValidation(t *testing.T) {
+	k8s := &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MAAS_BASE_URL": []byte("http://maas-api.namespace.svc.cluster.local"),
+				"MAAS_API_KEY":  []byte("key"),
+			}}, nil
+		},
+	}
+	client := &mockMaaSClient{
+		listModelsFn: func(context.Context, string, string) ([]models.MaaSNativeModel, error) {
+			return nil, maas.NewMaaSError(maas.ErrCodeInvalidRequest, "MaaS base URL must use HTTPS for non-local endpoints", 400)
+		},
+	}
+
+	repo := NewMaaSRepository(slog.Default(), client, k8s)
+	_, err := repo.GetMaaSModels(context.Background(), "ns", "maas")
+	var maaSErr *maas.MaaSError
+	if !errors.As(err, &maaSErr) {
+		t.Fatalf("expected MaaS URL validation error, got %v", err)
+	}
+	if maaSErr.StatusCode != 400 || maaSErr.Code != maas.ErrCodeInvalidRequest {
+		t.Fatalf("unexpected MaaS error: %+v", maaSErr)
+	}
+}

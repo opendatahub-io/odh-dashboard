@@ -43,6 +43,36 @@ func TestListModels(t *testing.T) {
 	assert.Equal(t, "model-a", got[0].ID)
 }
 
+func TestListModelsRejectsRemoteHTTPBeforeOutboundRequest(t *testing.T) {
+	outbound := false
+	client := NewMaaSClient(&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		outbound = true
+		return nil, fmt.Errorf("unexpected outbound request")
+	})})
+
+	_, err := client.ListModels(context.Background(), "http://maas-api.odh-ai-gateway-infra.svc.cluster.local:8080", "test-key")
+	var maaSErr *MaaSError
+	require.ErrorAs(t, err, &maaSErr)
+	assert.Equal(t, ErrCodeInvalidRequest, maaSErr.Code)
+	assert.Equal(t, http.StatusBadRequest, maaSErr.StatusCode)
+	assert.Contains(t, maaSErr.Message, "must use HTTPS")
+	assert.False(t, outbound, "rejected remote HTTP URL must not make an outbound request")
+}
+
+func TestListModelsAllowsLocalHTTPAndForwardsBearer(t *testing.T) {
+	client := NewMaaSClient(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		assert.Equal(t, "http", r.URL.Scheme)
+		assert.Equal(t, "Bearer local-key", r.Header.Get("Authorization"))
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"object":"list","data":[]}`)),
+		}, nil
+	})})
+
+	_, err := client.ListModels(context.Background(), "http://[::1]:8080/maas-api", "local-key")
+	require.NoError(t, err)
+}
+
 func TestBuildModelsURL(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -53,6 +83,11 @@ func TestBuildModelsURL(t *testing.T) {
 		{name: "root base", baseURL: "https://maas.apps.cluster/", want: "https://maas.apps.cluster/v1/models"},
 		{name: "path base", baseURL: "https://maas.apps.cluster/maas-api/", want: "https://maas.apps.cluster/maas-api/v1/models"},
 		{name: "private cluster address allowed", baseURL: "https://10.0.0.15/", want: "https://10.0.0.15/v1/models"},
+		{name: "remote HTTP rejected", baseURL: "http://maas.apps.cluster/", wantErr: true},
+		{name: "in-cluster HTTP rejected", baseURL: "http://maas-api.namespace.svc.cluster.local/", wantErr: true},
+		{name: "localhost HTTP allowed", baseURL: "http://localhost:8080/", want: "http://localhost:8080/v1/models"},
+		{name: "IPv4 loopback HTTP allowed", baseURL: "http://127.0.0.1:8080/", want: "http://127.0.0.1:8080/v1/models"},
+		{name: "IPv6 loopback HTTP allowed", baseURL: "http://[::1]:8080/", want: "http://[::1]:8080/v1/models"},
 		{name: "credentials rejected", baseURL: "https://user:pass@maas.apps.cluster", wantErr: true},
 		{name: "query rejected", baseURL: "https://maas.apps.cluster?token=secret", wantErr: true},
 		{name: "fragment rejected", baseURL: "https://maas.apps.cluster#models", wantErr: true},

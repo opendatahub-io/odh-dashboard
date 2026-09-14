@@ -73,4 +73,19 @@ func TestMaaSModelsHandler(t *testing.T) {
 		repo.AssertExpectations(t)
 	})
 
+	t.Run("remote HTTP URL validation maps to bad request", func(t *testing.T) {
+		repo.On("GetMaaSModels", mock.Anything, "ns", "remote-http").Return(nil, maas.NewMaaSError(
+			maas.ErrCodeInvalidRequest,
+			"MaaS base URL must use HTTPS for non-local endpoints",
+			http.StatusBadRequest,
+		)).Once()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/maas/models?secretName=remote-http", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "ns"))
+		rr := httptest.NewRecorder()
+		handler.MaaSModelsHandler(rr, req, httprouter.Params{})
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "must use HTTPS")
+		repo.AssertExpectations(t)
+	})
+
 }
