@@ -1,7 +1,8 @@
 # testManifestLinks.cy.ts Test Data #
 #
 # This test validates URLs found in manifest YAML files.
-# It uses tiered timeouts:
+# Reachability checks status/redirects only (no response body download).
+# Per-request timeouts:
 #   - Internal domains (*.redhat.com): 5s
 #   - Normal external URLs: 15s
 #   - Known slow domains (catalog.redhat.com, etc.): 30s

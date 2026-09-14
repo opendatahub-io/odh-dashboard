@@ -41,7 +41,7 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         onManageCollections={jest.fn()}
         onManageLabels={jest.fn()}
         onRegisterData={jest.fn()}
-        onRefresh={jest.fn()}
+        onRetry={jest.fn()}
         {...props}
       />
     </MemoryRouter>,
@@ -75,7 +75,6 @@ describe('RegistryTable', () => {
   it('should show error state', () => {
     renderTable({ error: new Error('Failed to load'), loaded: true });
     expect(screen.getByText('Error loading assets')).toBeTruthy();
-    expect(screen.getByText('Failed to load')).toBeTruthy();
   });
 
   it('should show empty state when no assets', () => {

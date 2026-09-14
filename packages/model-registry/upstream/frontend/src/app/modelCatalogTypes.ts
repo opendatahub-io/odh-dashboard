@@ -49,6 +49,7 @@ export type CatalogSource = {
   assetType?: CatalogAssetType;
   hasApiKey?: boolean;
   authenticated?: boolean;
+  hfUsername?: string;
 };
 
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };
@@ -478,6 +479,7 @@ export type DeleteCatalogSourceConfig = (opts: APIOptions, sourceId: string) => 
 
 // Preview types
 export type CatalogSourcePreviewRequest = {
+  id?: string;
   type: string;
   includedModels?: string[];
   excludedModels?: string[];
@@ -487,6 +489,8 @@ export type CatalogSourcePreviewRequest = {
 export type CatalogSourcePreviewModel = {
   name: string;
   included: boolean;
+  hfAccessType?: string;
+  hfGatedAccessGranted?: boolean;
 };
 
 export type CatalogSourcePreviewSummary = {
@@ -515,11 +519,14 @@ export type PreviewCatalogSource = (
   queryParams?: PreviewCatalogSourceQueryParams,
 ) => Promise<CatalogSourcePreviewResult>;
 
+export type DeleteCatalogSourceCredentials = (opts: APIOptions, sourceId: string) => Promise<void>;
+
 export type ModelCatalogSettingsAPIs = {
   getCatalogSourceConfigs: GetCatalogSourceConfigs;
   createCatalogSourceConfig: CreateCatalogSourceConfig;
   getCatalogSourceConfig: GetCatalogSourceConfig;
   updateCatalogSourceConfig: UpdateCatalogSourceConfig;
   deleteCatalogSourceConfig: DeleteCatalogSourceConfig;
+  deleteCatalogSourceCredentials: DeleteCatalogSourceCredentials;
   previewCatalogSource: PreviewCatalogSource;
 };

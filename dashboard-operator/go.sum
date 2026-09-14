@@ -95,8 +95,16 @@ github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 h1:BHT72Gu3keYf3ZEu2J
 github.com/google/pprof v0.0.0-20250403155104-27863c87afa6/go.mod h1:boTsfXsheKC2y+lKOCMpSfarhxDeIzfZG1jqGcPl3cA=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/hashicorp/errwrap v1.0.0 h1:hLrqtEDnRye3+sgx6z4qVLNuviH3MR5aQ0ykNJa/UYA=
+github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
+github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=
+github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
 github.com/huandu/xstrings v1.5.0 h1:2ag3IFq9ZDANvthTwTiqSSZLjDc+BedvHPAp5tJy2TI=
 github.com/huandu/xstrings v1.5.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
+github.com/itchyny/gojq v0.12.19 h1:ttXA0XCLEMoaLOz5lSeFOZ6u6Q3QxmG46vfgI4O0DEs=
+github.com/itchyny/gojq v0.12.19/go.mod h1:5galtVPDywX8SPSOrqjGxkBeDhSxEW1gSxoy7tn1iZY=
+github.com/itchyny/timefmt-go v0.1.8 h1:1YEo1JvfXeAHKdjelbYr/uCuhkybaHCeTkH8Bo791OI=
+github.com/itchyny/timefmt-go v0.1.8/go.mod h1:5E46Q+zj7vbTgWY8o5YkMeYb4I6GeWLFnetPy5oBrAI=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/k8s-manifest-kit/engine v0.2.1-0.20260716110219-fb67c5bea55e h1:0lh1fMF2W9xgf5/9rygreNMv92+PLKczdhotJ3r+CQ4=
@@ -139,6 +147,8 @@ github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJw
 github.com/opencontainers/image-spec v1.1.1/go.mod h1:qpqAh3Dmcf36wStyyWU+kCeDgrGnAve2nCC8+7h8Q0M=
 github.com/opendatahub-io/odh-platform-utilities v0.2.1-0.20260804085229-7872bf1402b9 h1:Tr6yI0fD3Wq/SHlNpxgmXK1w6HdtJh2BP/7Fsw1N6a4=
 github.com/opendatahub-io/odh-platform-utilities v0.2.1-0.20260804085229-7872bf1402b9/go.mod h1:RbnUlLqR+D6BxqpZFjtzkKcz9UtB6BjMUOiLuBY0aeE=
+github.com/opendatahub-io/odh-platform-utilities/framework v0.1.0 h1:jRKIPs6iOVNO97Oc/dq/8a3TSCZr5gFk+SU33LcUsKE=
+github.com/opendatahub-io/odh-platform-utilities/framework v0.1.0/go.mod h1:/nIqgY+gC69mclLgIK1Nu6aa3n4qNwuciySSKZx0A8E=
 github.com/opendatahub-io/operator-chaos v0.0.0-20260521100204-4dab974d613c h1:olKZNTyNTTaLVnGyNimB4nSihohMghshSoqDWfSmFwI=
 github.com/opendatahub-io/operator-chaos v0.0.0-20260521100204-4dab974d613c/go.mod h1:f9D+8VSCrpTB2EeGD6F26ZkaO8GN7dCbT9lFZfZ68t0=
 github.com/openshift/api v3.9.0+incompatible h1:fJ/KsefYuZAjmrr3+5U9yZIZbTOpVkDDLDLFresAeYs=

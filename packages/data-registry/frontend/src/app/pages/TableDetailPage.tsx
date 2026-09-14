@@ -218,6 +218,14 @@ const TableDetailPage: React.FC = () => {
     </Flex>
   );
 
+  const refresh = React.useCallback(() => {
+    if (isVolume) {
+      refreshVolume();
+    } else {
+      refreshGenericTable();
+    }
+  }, [isVolume, refreshGenericTable, refreshVolume]);
+
   return (
     <ApplicationsPage
       title={title}
@@ -225,6 +233,7 @@ const TableDetailPage: React.FC = () => {
       headerAction={headerAction}
       loaded={loaded}
       loadError={loadError}
+      onRetry={refresh}
       empty={loaded && !asset}
       emptyStatePage={
         <EmptyState

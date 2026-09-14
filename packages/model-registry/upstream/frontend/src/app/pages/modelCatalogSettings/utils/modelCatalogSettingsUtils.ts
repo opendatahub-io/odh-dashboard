@@ -1,11 +1,16 @@
 import {
   CatalogSourceConfig,
   CatalogSourceConfigPayload,
+  CatalogSourcePreviewModel,
   CatalogSourceType,
 } from '~/app/modelCatalogTypes';
+import { isHfGatedAccessDeniedFromFields } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { ManageSourceFormData } from '~/app/pages/modelCatalogSettings/useManageSourceData';
 import { generateSourceIdFromName } from '~/app/shared/catalogSettings/utils/generateSourceIdFromName';
 import { parseCommaSeparatedList } from '~/app/shared/catalogSettings/utils/parseCommaSeparatedList';
+
+export const isPreviewModelGatedAccessDenied = (model: CatalogSourcePreviewModel): boolean =>
+  isHfGatedAccessDeniedFromFields(model.hfAccessType, model.hfGatedAccessGranted);
 
 export const catalogSourceConfigToFormData = (
   sourceConfig: CatalogSourceConfig,
@@ -31,7 +36,7 @@ export const catalogSourceConfigToFormData = (
 
   return {
     ...common,
-    accessToken: sourceConfig.apiKey ?? '',
+    accessToken: '',
     organization: sourceConfig.allowedOrganization ?? '',
     yamlContent: '',
   };
@@ -70,6 +75,31 @@ export const transformFormDataToConfig = (
   };
 };
 
+export const resolveHuggingFaceApiKeyField = (
+  apiKey: string | undefined,
+  options: {
+    tokenModified: boolean;
+    hasExistingApiKey: boolean;
+    forPreview: boolean;
+  },
+): { apiKey?: string } => {
+  const { tokenModified, hasExistingApiKey, forPreview } = options;
+
+  if (!tokenModified && hasExistingApiKey) {
+    return {};
+  }
+
+  if (forPreview) {
+    return apiKey ? { apiKey } : {};
+  }
+
+  if (!tokenModified) {
+    return {};
+  }
+
+  return { apiKey: apiKey ?? '' };
+};
+
 export const getPayloadForConfig = (
   sourceConfig: CatalogSourceConfig,
   isEditMode = false,
@@ -94,7 +124,11 @@ export const getPayloadForConfig = (
       ...(sourceConfig.type === CatalogSourceType.YAML && { yaml: sourceConfig.yaml }),
       ...(sourceConfig.type === CatalogSourceType.HUGGING_FACE && {
         allowedOrganization: sourceConfig.allowedOrganization,
-        ...(tokenModified && sourceConfig.apiKey ? { apiKey: sourceConfig.apiKey } : {}),
+        ...resolveHuggingFaceApiKeyField(sourceConfig.apiKey, {
+          tokenModified,
+          hasExistingApiKey: false,
+          forPreview: false,
+        }),
       }),
     };
   }
