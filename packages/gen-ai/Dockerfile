@@ -10,6 +10,7 @@ COPY frontend/package.json ./frontend/
 COPY frontend/src/package.json ./frontend/src/
 # Copy required workspace packages
 COPY packages/plugin-core/ ./packages/plugin-core/
+COPY packages/app-config/ ./packages/app-config/
 COPY packages/tsconfig/ ./packages/tsconfig/
 # Copy frontend source (for @odh-dashboard/internal exports)
 COPY frontend/src/ ./frontend/src/
@@ -21,10 +22,10 @@ COPY packages/gen-ai/frontend/ ./packages/gen-ai/frontend/
 RUN chown -R default:root /usr/src/workspace && chmod -R g+w /usr/src/workspace
 USER default
 # Install workspace dependencies at root level
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 # Change to module directory and install module dependencies
 WORKDIR /usr/src/workspace/packages/gen-ai/frontend
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 ENV DEPLOYMENT_MODE=standalone
 RUN npm run build:prod
 
@@ -32,7 +33,9 @@ RUN npm run build:prod
 FROM registry.redhat.io/ubi9/go-toolset:1.26 AS bff-builder
 WORKDIR /usr/src/app
 COPY packages/gen-ai/bff/go.mod packages/gen-ai/bff/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 RUN go mod download
+COPY pkg/tls/ /pkg/tls/
 COPY packages/gen-ai/bff/cmd/ cmd/
 COPY packages/gen-ai/bff/internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd
@@ -43,12 +46,6 @@ WORKDIR /
 COPY --from=bff-builder /tmp/bff ./
 COPY --from=ui-builder /usr/src/workspace/packages/gen-ai/frontend/dist/ ./static/
 COPY packages/gen-ai/bff/openapi/ ./openapi/
-
-# Suppress protobuf duplicate-registration panic caused by mlflow-go's
-# stub trace.proto conflicting with the OTel SDK's real trace.proto.
-# Remove once the mlflow-go proto conflict is resolved (e.g. mlflow-go
-# adopts go.opentelemetry.io/proto/otlp directly).
-ENV GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn
 
 # OAuth environment variables
 ENV OAUTH_ENABLED=false \

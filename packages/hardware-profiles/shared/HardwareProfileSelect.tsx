@@ -33,6 +33,7 @@ import {
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
   orderHardwareProfiles,
+  prioritizeHardwareProfiles,
 } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
@@ -93,6 +94,7 @@ type HardwareProfileSelectProps = {
   allowExistingSettings: boolean;
   hardwareProfileConfig: HardwareProfileConfig;
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
+  isHardwareProfilePreferred?: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
   project?: string;
   selectionIndicator?: React.ReactNode;
@@ -113,6 +115,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   allowExistingSettings = false,
   hardwareProfileConfig,
   isHardwareProfileSupported,
+  isHardwareProfilePreferred,
   onChange,
   project,
 }) => {
@@ -130,6 +133,20 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const hardwareProfileOrder = React.useMemo(
     () => dashboardConfig?.spec.hardwareProfileOrder || [],
     [dashboardConfig?.spec.hardwareProfileOrder],
+  );
+
+  const orderProfiles = React.useCallback(
+    (profiles: HardwareProfileKind[]) => {
+      if (isHardwareProfilePreferred) {
+        return prioritizeHardwareProfiles(
+          profiles,
+          isHardwareProfilePreferred,
+          hardwareProfileOrder,
+        );
+      }
+      return orderHardwareProfiles(profiles, hardwareProfileOrder);
+    },
+    [hardwareProfileOrder, isHardwareProfilePreferred],
   );
 
   const projectForKueue = React.useMemo(() => {
@@ -161,13 +178,12 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   );
 
   const options = React.useMemo(() => {
-    const enabledProfiles = orderHardwareProfiles(
+    const enabledProfiles = orderProfiles(
       filterProfilesByKueue(
         hardwareProfiles.filter(isHardwareProfileEnabled),
         kueueFilteringState,
         availableLocalQueueNames,
       ),
-      hardwareProfileOrder,
     );
 
     if (initialHardwareProfile && !enabledProfiles.includes(initialHardwareProfile)) {
@@ -249,7 +265,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     isQueueMissing,
     availableLocalQueueNames,
     kueueFilteringState,
-    hardwareProfileOrder,
+    orderProfiles,
   ]);
 
   const renderMenuItem = (
@@ -326,7 +342,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     ) {
       filteredProfiles.push(initialHardwareProfile);
     }
-    return orderHardwareProfiles(filteredProfiles, hardwareProfileOrder).filter((profile) =>
+    return orderProfiles(filteredProfiles).filter((profile) =>
       getHardwareProfileDisplayName(profile)
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),

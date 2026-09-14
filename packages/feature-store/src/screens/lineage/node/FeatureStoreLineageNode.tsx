@@ -12,7 +12,6 @@ import {
   AnchorEnd,
 } from '@patternfly/react-topology';
 import { CubeIcon } from '@patternfly/react-icons';
-import { chart_color_black_500 as chartColorBlack } from '@patternfly/react-tokens';
 import { useEdgeHighlighting } from '@odh-dashboard/internal/components/lineage/edge/edgeStateUtils';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
 import LineageTaskPill from '@odh-dashboard/internal/components/lineage/node/LineageTaskPill';
@@ -21,7 +20,8 @@ import {
   LineageTargetAnchor,
 } from '@odh-dashboard/internal/components/lineage/anchors/customAnchors';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
+import { LINEAGE_PILL_ICON_SIZE } from '../../../utils/featureStoreObjects.tsx';
+import FeatureStoreLineagePillIcon from '../../../components/FeatureStoreLineagePillIcon';
 import {
   FEATURE_STORE_EVENTS,
   LineageNodeSelectedProperties,
@@ -56,12 +56,32 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     );
 
     const entityIcon = data?.entityType ? (
-      getEntityTypeIcon(data.entityType, selected)
+      <foreignObject
+        width={LINEAGE_PILL_ICON_SIZE}
+        height={LINEAGE_PILL_ICON_SIZE}
+        aria-hidden="true"
+      >
+        <FeatureStoreLineagePillIcon entityType={data.entityType} selected={selected} />
+      </foreignObject>
     ) : (
-      <CubeIcon style={{ color: selected ? '#ffffff' : chartColorBlack.value }} />
+      <g aria-hidden="true">
+        <CubeIcon
+          style={{
+            color: selected
+              ? 'var(--ai-fs-lineage-pill--AccentIconColor)'
+              : 'var(--pf-t--global--text--color--regular)',
+            width: LINEAGE_PILL_ICON_SIZE,
+            height: LINEAGE_PILL_ICON_SIZE,
+          }}
+        />
+      </g>
     );
     const truncateLength = data?.truncateLength ?? 30;
     const nodeClassName = isConnectedToSelection ? 'pf-m-highlighted' : '';
+    const pillBackgroundColor =
+      !selected && data?.entityType
+        ? 'var(--pf-t--global--background--color--primary--default)'
+        : undefined;
 
     // Create badge for feature views showing feature count
     const badge = (() => {
@@ -80,35 +100,19 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
 
     const handleNodeClick = React.useCallback(
       (e: React.MouseEvent) => {
-        let pillElement: Element | null = e.target instanceof Element ? e.target : null;
+        const { currentTarget } = e;
+        const pillElement =
+          currentTarget instanceof Element
+            ? currentTarget.querySelector('[data-testid="lineage-pill-background"]') ??
+              currentTarget.querySelector('foreignObject') ??
+              currentTarget
+            : null;
 
-        while (pillElement && pillElement !== e.currentTarget) {
-          if (pillElement.tagName === 'rect') {
-            const className = pillElement.getAttribute('class') || '';
-            if (
-              className.includes('pill') ||
-              className.includes('background') ||
-              className.includes('Background')
-            ) {
-              break;
-            }
-          }
-          pillElement = pillElement.parentElement;
-        }
-        if (!pillElement || pillElement.tagName !== 'rect') {
-          const { currentTarget } = e;
-          if (currentTarget instanceof Element) {
-            const anyRect = currentTarget.querySelector('rect');
-            if (anyRect) {
-              pillElement = anyRect;
-            }
-          }
-        }
-
+        // Store click position and pill element for popover positioning
         setClickPosition({
           x: e.clientX,
           y: e.clientY,
-          pillElement: pillElement?.tagName === 'rect' ? pillElement : null,
+          pillElement,
         });
 
         fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NODE_SELECTED, {
@@ -116,9 +120,8 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           pageType: lineagePageType,
         } satisfies LineageNodeSelectedProperties);
 
-        if (onSelect) {
-          onSelect(e);
-        }
+        // Call original selection handler with proper signature
+        onSelect?.(e);
       },
       [setClickPosition, onSelect, data?.entityType, lineagePageType],
     );
@@ -144,6 +147,8 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       <g
         ref={hoverRef}
         className={nodeClassName}
+        data-testid={`feature-store-lineage-node-${element.getId()}`}
+        data-lineage-focus-label={badge ? `${element.getLabel()}, ${badge}` : element.getLabel()}
         style={{
           filter: isConnectedToSelection
             ? 'drop-shadow(0 0 6px rgba(0, 123, 255, 0.6))'
@@ -159,12 +164,14 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
           status={RunStatus.Idle}
           customStatusIcon={entityIcon}
+          statusIconSize={LINEAGE_PILL_ICON_SIZE}
           hideDetailsAtMedium
           hiddenDetailsShownStatuses={[RunStatus.Idle]}
           truncateLength={truncateLength}
           badge={badge}
           hover={hover}
           width={nodeWidth}
+          pillBackgroundColor={pillBackgroundColor}
           x={0} // Position relative to the group
           y={0}
           disableTooltip // Disable small tooltip to avoid conflict with popover

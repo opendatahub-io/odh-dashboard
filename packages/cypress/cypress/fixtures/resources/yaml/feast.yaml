@@ -42,7 +42,7 @@ spec:
       local:
         persistence:
           file:
-            path: s3://${awsBucketName}/feast-test/credit_scoring_local/registry.pb
+            path: s3://${awsBucketName}/feast-test/${namespace}/credit_scoring_local/registry.pb
         server:
           envFrom:
           - secretRef:

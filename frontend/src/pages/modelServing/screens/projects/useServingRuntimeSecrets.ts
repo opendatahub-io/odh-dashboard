@@ -5,7 +5,7 @@ import useFetch, {
   FetchStateObject,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { getSecretsByLabel } from '#~/api';
+import { getSecretsByLabel } from '@odh-dashboard/k8s-core/api/secrets';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 

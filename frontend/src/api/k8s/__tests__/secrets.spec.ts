@@ -12,17 +12,15 @@ import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sRe
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import {
-  assembleISSecretBody,
-  assembleSecret,
-  assembleSecretISStorage,
   assembleSecretSA,
   createSecret,
   deleteSecret,
   getSecret,
   getSecretsByLabel,
   replaceSecret,
-} from '#~/api/k8s/secrets';
-import { SecretModel } from '#~/api/models/k8s';
+} from '@odh-dashboard/k8s-core/api/secrets';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { assembleISSecretBody, assembleSecret, assembleSecretISStorage } from '#~/api/k8s/secrets';
 
 jest.mock('@odh-dashboard/foundation', () => {
   const actual = jest.requireActual('@odh-dashboard/foundation');

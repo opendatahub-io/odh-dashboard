@@ -1,4 +1,4 @@
-import { SelectionOptions } from '@odh-dashboard/internal/components/MultiSelection';
+import { SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import {
   LineageData,
   convertToLineageEdgeModel,

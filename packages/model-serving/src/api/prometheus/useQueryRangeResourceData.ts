@@ -5,8 +5,8 @@ import {
   type PrometheusQueryRangeResultValue,
 } from '@odh-dashboard/ui-core/types/metrics';
 import { TimeframeStep, TimeframeTimeRange } from '@odh-dashboard/ui-core/utilities/metrics';
-import { PendingContextResourceData } from '@odh-dashboard/internal/types';
-import { useMakeFetchObject } from '@odh-dashboard/internal/utilities/useMakeFetchObject';
+import { PendingContextResourceData } from '@odh-dashboard/ui-core/types/prometheus';
+import { useMakeFetchObject } from '@odh-dashboard/ui-core/hooks/useMakeFetchObject';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
 
 const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(

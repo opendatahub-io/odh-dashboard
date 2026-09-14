@@ -1,6 +1,7 @@
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import {
   mockCompletedStates,
@@ -8,7 +9,6 @@ import {
   mockInitialStates,
   mockInProgressStates,
 } from '#~/concepts/__tests__/mockNotebookStates';
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import { EventStatus } from '#~/types';
 
 describe('Start Notebook modal', () => {

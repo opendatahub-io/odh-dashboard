@@ -35,6 +35,9 @@ export const isPvcUpdateRequired = (
     (existingAnnotations[PvcModelAnnotation.MODEL_NAME] || '') !== (storageData.modelName || '');
   const modelPathChanged =
     (existingAnnotations[PvcModelAnnotation.MODEL_PATH] || '') !== (storageData.modelPath || '');
+  const contextTypeAnnotationsChanged = Object.entries(
+    storageData.contextTypeAnnotations ?? {},
+  ).some(([key, value]) => (existingAnnotations[key] || '') !== (value || ''));
 
   return (
     getDisplayNameFromK8sResource(existingPvc) !== storageData.name ||
@@ -42,7 +45,8 @@ export const isPvcUpdateRequired = (
     existingPvc.spec.resources.requests.storage !== storageData.size ||
     existingPvc.spec.storageClassName !== storageData.storageClassName ||
     modelNameChanged ||
-    modelPathChanged
+    modelPathChanged ||
+    contextTypeAnnotationsChanged
   );
 };
 

@@ -1,5 +1,5 @@
 import { QuickStart } from '@patternfly/quickstarts';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 export const fetchQuickStarts = (): Promise<QuickStart[]> => {
   const url = '/api/quickstarts';

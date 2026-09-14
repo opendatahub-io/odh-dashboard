@@ -355,7 +355,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			subsRepo := repositories.NewSubscriptionsRepository(testLogger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 			policiesRepo := repositories.NewPoliciesRepository(testLogger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 			modelRefsRepo := repositories.NewMaaSModelRefsRepository(testLogger, k8Factory)
-			repos, err := repositories.NewRepositories(testLogger, k8Factory, envConfig, subsRepo, policiesRepo, modelRefsRepo, nil, nil)
+			repos, err := repositories.NewRepositories(testLogger, k8Factory, envConfig, subsRepo, policiesRepo, modelRefsRepo, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			app := &App{

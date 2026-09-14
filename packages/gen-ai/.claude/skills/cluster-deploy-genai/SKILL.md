@@ -81,10 +81,10 @@ oc whoami --show-server
 # jq (required for JSON patching)
 jq --version
 
-# Go >= 1.24
+# Go >= 1.26
 go version
 
-# Node >= 22
+# Node >= 22.18.0
 node --version
 
 # npm deps installed (check for node_modules at repo root)
@@ -327,7 +327,7 @@ rm -f packages/gen-ai/Dockerfile.dev-deploy
 
 ## Troubleshooting
 
-### Podman machine OOM (SIGKILL on webpack)
+### Podman machine OOM (SIGKILL on rspack)
 
 Increase podman machine memory:
 

@@ -3,6 +3,14 @@ import { AxiosError } from 'axios';
 import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import {
+  KueueWorkloadStatus,
+  type KueueWorkloadStatusWithMessage,
+} from '@odh-dashboard/k8s-core/kueue/types';
+import {
+  getKueueSubStepInfo,
+  getRequeuedMessage,
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import { createRoleBinding, getRoleBinding } from '#~/services/roleBindingService';
 import {
   EnvVarReducedTypeKeyValues,
@@ -15,8 +23,6 @@ import {
   ResourceGetter,
   VariableRow,
 } from '#~/types';
-import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
-import { getKueueSubStepInfo, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { useUser } from '#~/redux/selectors';
 import { EMPTY_USER_STATE } from '#~/pages/notebookController/const';

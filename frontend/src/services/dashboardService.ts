@@ -1,6 +1,6 @@
 // TODO: Delete once we refactor Admin panel to support Passthrough API
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { DASHBOARD_CONFIG } from '#~/utilities/const';
 
 export const getDashboardConfigBackend = (namespace: string): Promise<DashboardConfigKind> =>

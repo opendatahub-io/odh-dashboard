@@ -1,5 +1,10 @@
+import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
-import { applyNIMServingRuntimeShmMounts, removeNIMServingRuntimeResources } from '../utils';
+import {
+  applyNIMServingRuntimeCredentials,
+  applyNIMServingRuntimeShmMounts,
+  removeNIMServingRuntimeResources,
+} from '../utils';
 
 const makeServingRuntime = (
   containers: ServingRuntimeKind['spec']['containers'],
@@ -106,6 +111,102 @@ const CONTAINER_RESOURCES = {
   limits: { cpu: '0', memory: '0Gi' },
   requests: { cpu: '0', memory: '0Gi' },
 };
+
+describe('applyNIMServingRuntimeCredentials', () => {
+  const makeNIMAccount = () => {
+    const account = mockNimAccount({
+      namespace: 'test-project',
+      apiKeySecretName: 'project-nim-api-key',
+    });
+    account.status = {
+      ...account.status,
+      nimPullSecret: { name: 'project-nim-pull-secret' },
+    };
+    return account;
+  };
+
+  it('should replace NIM credential placeholders while preserving unrelated references', () => {
+    const runtime = makeServingRuntime([
+      {
+        name: 'kserve-container',
+        env: [
+          {
+            name: 'NGC_API_KEY',
+            valueFrom: { secretKeyRef: { name: 'nvidia-nim-secrets', key: 'NGC_API_KEY' } },
+          },
+          {
+            name: 'UNRELATED_SECRET',
+            valueFrom: { secretKeyRef: { name: 'unrelated-secret', key: 'token' } },
+          },
+        ],
+      },
+      {
+        name: 'sidecar',
+        env: [
+          {
+            name: 'NGC_API_KEY',
+            valueFrom: { secretKeyRef: { name: 'nvidia-nim-secrets', key: 'NGC_API_KEY' } },
+          },
+        ],
+      },
+    ]);
+    runtime.spec.imagePullSecrets = [{ name: 'ngc-secret' }, { name: 'unrelated-pull-secret' }];
+
+    const result = applyNIMServingRuntimeCredentials(runtime, makeNIMAccount());
+
+    expect(result.spec.containers[0].env).toEqual([
+      {
+        name: 'NGC_API_KEY',
+        valueFrom: { secretKeyRef: { name: 'project-nim-api-key', key: 'NGC_API_KEY' } },
+      },
+      {
+        name: 'UNRELATED_SECRET',
+        valueFrom: { secretKeyRef: { name: 'unrelated-secret', key: 'token' } },
+      },
+    ]);
+    expect(result.spec.containers[1].env?.[0].valueFrom?.secretKeyRef?.name).toBe(
+      'project-nim-api-key',
+    );
+    expect(result.spec.imagePullSecrets).toEqual([
+      { name: 'project-nim-pull-secret' },
+      { name: 'unrelated-pull-secret' },
+    ]);
+  });
+
+  it('should not mutate the input ServingRuntime', () => {
+    const runtime = makeServingRuntime([
+      {
+        name: 'kserve-container',
+        env: [
+          {
+            name: 'NGC_API_KEY',
+            valueFrom: { secretKeyRef: { name: 'nvidia-nim-secrets', key: 'NGC_API_KEY' } },
+          },
+        ],
+      },
+    ]);
+    runtime.spec.imagePullSecrets = [{ name: 'ngc-secret' }];
+
+    applyNIMServingRuntimeCredentials(runtime, makeNIMAccount());
+
+    expect(runtime.spec.containers[0].env?.[0].valueFrom?.secretKeyRef?.name).toBe(
+      'nvidia-nim-secrets',
+    );
+    expect(runtime.spec.imagePullSecrets).toEqual([{ name: 'ngc-secret' }]);
+  });
+
+  it('should leave runtimes without NIM credential placeholders unchanged', () => {
+    const runtime = makeServingRuntime([
+      {
+        name: 'kserve-container',
+        env: [{ name: 'UNRELATED', valueFrom: { secretKeyRef: { name: 'other', key: 'key' } } }],
+      },
+    ]);
+    runtime.spec.imagePullSecrets = [{ name: 'other-pull-secret' }];
+
+    expect(applyNIMServingRuntimeCredentials(runtime, makeNIMAccount())).toEqual(runtime);
+  });
+});
 
 describe('removeNIMServingRuntimeResources', () => {
   it('should drop the resources from every container', () => {

@@ -38,24 +38,42 @@ type MaaSModelRefsRepositoryInterface interface {
 	DeleteMaaSModelRef(ctx context.Context, namespace, name string, dryRun bool) error
 }
 
-// ExternalModelsRepositoryInterface defines the contract for ExternalModel list and delete operations.
+// ExternalModelsRepositoryInterface defines the contract for ExternalModel operations.
 type ExternalModelsRepositoryInterface interface {
 	ListExternalModels(ctx context.Context, namespace string) ([]models.ExternalModelSummary, error)
+	CreateExternalModel(ctx context.Context, request models.CreateExternalModelRequest) (*models.ExternalModelSummary, error)
+	UpdateExternalModel(ctx context.Context, namespace, name string, request models.UpdateExternalModelRequest) (*models.ExternalModelSummary, error)
 	DeleteExternalModel(ctx context.Context, namespace, name string) error
+}
+
+// ExternalProvidersRepositoryInterface defines the contract for ExternalProvider operations.
+type ExternalProvidersRepositoryInterface interface {
+	ListExternalProviders(ctx context.Context, namespace string) ([]models.ExternalProviderSummary, error)
+	CreateExternalProvider(ctx context.Context, request models.CreateExternalProviderRequest) (*models.ExternalProviderSummary, error)
+	UpdateExternalProvider(ctx context.Context, namespace, name string, request models.UpdateExternalProviderRequest) (*models.ExternalProviderSummary, error)
+	DeleteExternalProvider(ctx context.Context, namespace, name string) error
+}
+
+// SecretsRepositoryInterface defines the contract for Secret operations.
+type SecretsRepositoryInterface interface {
+	ListSecrets(ctx context.Context, namespace string) ([]models.SecretSummary, error)
+	CreateSecret(ctx context.Context, request models.CreateSecretRequest) (*models.CreateSecretResponse, error)
 }
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck    *HealthCheckRepository
-	User           *UserRepository
-	Namespace      *NamespaceRepository
-	APIKeys        *APIKeysRepository
-	Models         *ModelsRepository
-	Subscriptions  SubscriptionsRepositoryInterface
-	Policies       PoliciesRepositoryInterface
-	MaaSModelRefs  MaaSModelRefsRepositoryInterface
-	ExternalModels ExternalModelsRepositoryInterface
-	Yaml           YamlRepositoryInterface
+	HealthCheck       *HealthCheckRepository
+	User              *UserRepository
+	Namespace         *NamespaceRepository
+	APIKeys           *APIKeysRepository
+	Models            *ModelsRepository
+	Subscriptions     SubscriptionsRepositoryInterface
+	Policies          PoliciesRepositoryInterface
+	MaaSModelRefs     MaaSModelRefsRepositoryInterface
+	ExternalModels    ExternalModelsRepositoryInterface
+	ExternalProviders ExternalProvidersRepositoryInterface
+	Secrets           SecretsRepositoryInterface
+	Yaml              YamlRepositoryInterface
 }
 
 func NewRepositories(
@@ -66,6 +84,8 @@ func NewRepositories(
 	policies PoliciesRepositoryInterface,
 	maasModelRefs MaaSModelRefsRepositoryInterface,
 	externalModels ExternalModelsRepositoryInterface,
+	externalProviders ExternalProvidersRepositoryInterface,
+	secrets SecretsRepositoryInterface,
 	yamlRepo YamlRepositoryInterface,
 ) (*Repositories, error) {
 	apiKeysRepo, err := NewAPIKeysRepository(logger, config.MaasApiUrl)
@@ -79,15 +99,17 @@ func NewRepositories(
 	}
 
 	return &Repositories{
-		HealthCheck:    NewHealthCheckRepository(),
-		User:           NewUserRepository(),
-		Namespace:      NewNamespaceRepository(),
-		APIKeys:        apiKeysRepo,
-		Models:         modelsRepo,
-		Subscriptions:  subscriptions,
-		Policies:       policies,
-		MaaSModelRefs:  maasModelRefs,
-		ExternalModels: externalModels,
-		Yaml:           yamlRepo,
+		HealthCheck:       NewHealthCheckRepository(),
+		User:              NewUserRepository(),
+		Namespace:         NewNamespaceRepository(),
+		APIKeys:           apiKeysRepo,
+		Models:            modelsRepo,
+		Subscriptions:     subscriptions,
+		Policies:          policies,
+		MaaSModelRefs:     maasModelRefs,
+		ExternalModels:    externalModels,
+		ExternalProviders: externalProviders,
+		Secrets:           secrets,
+		Yaml:              yamlRepo,
 	}, nil
 }

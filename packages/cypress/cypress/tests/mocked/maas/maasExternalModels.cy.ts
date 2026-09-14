@@ -7,9 +7,12 @@ import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sRe
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
-  externalModelPathModal,
+  pathModal,
   externalModelProviderUrlModal,
   externalModelsPage,
+  deleteExternalModelModal,
+  phaseModal,
+  externalProvidersPage,
 } from '../../../pages/modelsAsAService';
 import { mockExternalModels, mockMaasNamespaces } from '../../../utils/maasUtils';
 
@@ -97,6 +100,22 @@ describe('External Models Page', () => {
     externalModelsPage.findPage().should('not.exist');
   });
 
+  it('should link to the external providers page', () => {
+    cy.interceptOdh(
+      'GET /maas/api/v1/externalmodel',
+      { query: { namespace: TEST_PROJECT } },
+      { data: [] },
+    );
+    cy.interceptOdh(
+      'GET /maas/api/v1/externalprovider',
+      { query: { namespace: TEST_PROJECT } },
+      { data: [] },
+    );
+    externalModelsPage.visit();
+    externalModelsPage.findExternalProvidersButton().click();
+    externalProvidersPage.findPageTitle().should('exist');
+  });
+
   describe('with external models', () => {
     beforeEach(() => {
       cy.interceptOdh(
@@ -118,11 +137,6 @@ describe('External Models Page', () => {
         .should('contain.text', 'External GPT-4o model routed through OpenAI provider.');
       gptRow.findProviderLabel('openai-prod').should('contain.text', 'OpenAI Production');
       gptRow.findPhaseLabel().should('contain.text', 'Ready');
-      gptRow.findPhaseLabel().click();
-      gptRow
-        .findPhasePopover()
-        .should('contain.text', 'Ready')
-        .and('contain.text', 'GPT-4o External');
 
       gptRow.findExpandButton().click();
       gptRow.findExpandedProviderName('openai-prod').should('contain.text', 'OpenAI Production');
@@ -139,9 +153,9 @@ describe('External Models Page', () => {
       externalModelProviderUrlModal.findCloseButton().click();
 
       gptRow.findExpandedViewPathButton('openai-prod').click();
-      externalModelPathModal.findInputValue().should('have.value', '/v1/chat/completions');
-      externalModelPathModal.findProviderRef().should('contain.text', 'openai');
-      externalModelPathModal.findCloseButton().click();
+      pathModal.findInputValue().should('have.value', '/v1/chat/completions');
+      pathModal.findSubContent().should('contain.text', 'openai');
+      pathModal.findCloseButton().click();
 
       const splitRow = externalModelsPage.getRow('Claude A/B Split');
       splitRow.findExpandButton().click();
@@ -168,12 +182,21 @@ describe('External Models Page', () => {
       externalModelProviderUrlModal.findCloseButton().click();
 
       splitRow.findExpandedViewPathButton('anthropic-dev').click();
-      externalModelPathModal.findInputValue().should('have.value', '/v1/messages');
-      externalModelPathModal.findProviderRef().should('contain.text', 'anthropic');
-      externalModelPathModal.findCloseButton().click();
+      pathModal.findInputValue().should('have.value', '/v1/messages');
+      pathModal.findSubContent().should('contain.text', 'anthropic');
+      pathModal.findCloseButton().click();
 
       const awaitingRow = externalModelsPage.getRow('Awaiting Pairing Model');
       awaitingRow.findPhaseLabel().should('contain.text', 'Pending');
+      awaitingRow.findPhaseLabel().click();
+      phaseModal.find().should('exist');
+      phaseModal.findAlert().should('exist');
+      phaseModal.findAlertBody().should('exist');
+      phaseModal.findApiDetailsButton().should('exist').click();
+      phaseModal.findAlertDetailsCodeBlock().should('exist');
+      phaseModal.findCloseButton().click();
+      phaseModal.shouldBeOpen(false);
+
       awaitingRow.findGovernanceWarning().should('exist').click();
       awaitingRow
         .findGovernanceWarningPopover()
@@ -211,31 +234,31 @@ describe('External Models Page', () => {
       externalModelsPage.findRows().should('have.length', 4);
     });
 
-    // it('should delete an external model', () => {
-    //   cy.interceptOdh(
-    //     'DELETE /maas/api/v1/externalmodel/:namespace/:name',
-    //     { path: { namespace: TEST_PROJECT, name: 'gpt-4o-external' } },
-    //     { data: null },
-    //   ).as('deleteExternalModel');
+    it('should delete an external model', () => {
+      cy.interceptOdh(
+        'DELETE /maas/api/v1/externalmodel/:namespace/:name',
+        { path: { namespace: TEST_PROJECT, name: 'gpt-4o-external' } },
+        { data: null },
+      ).as('deleteExternalModel');
 
-    //   externalModelsPage.getRow('GPT-4o External').findKebabAction('Delete').click();
-    //   deleteExternalModelModal.shouldShowResourceName('GPT-4o External');
-    //   deleteExternalModelModal.findInput().type('GPT-4o External');
-    //   deleteExternalModelModal.findSubmitButton().should('be.enabled');
+      externalModelsPage.getRow('GPT-4o External').findKebabAction('Delete').click();
+      deleteExternalModelModal.shouldShowResourceName('GPT-4o External');
+      deleteExternalModelModal.findInput().type('GPT-4o External');
+      deleteExternalModelModal.findSubmitButton().should('be.enabled');
 
-    //   cy.interceptOdh(
-    //     'GET /maas/api/v1/externalmodel',
-    //     { query: { namespace: TEST_PROJECT } },
-    //     {
-    //       data: mockExternalModels().filter((model) => model.name !== 'gpt-4o-external'),
-    //     },
-    //   ).as('listExternalModels');
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalmodel',
+        { query: { namespace: TEST_PROJECT } },
+        {
+          data: mockExternalModels().filter((model) => model.name !== 'gpt-4o-external'),
+        },
+      ).as('listExternalModels');
 
-    //   deleteExternalModelModal.findSubmitButton().click();
-    //   cy.wait('@deleteExternalModel');
-    //   cy.wait('@listExternalModels');
-    //   externalModelsPage.findRows().should('have.length', 3);
-    //   externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
-    // });
+      deleteExternalModelModal.findSubmitButton().click();
+      cy.wait('@deleteExternalModel');
+      cy.wait('@listExternalModels');
+      externalModelsPage.findRows().should('have.length', 3);
+      externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
+    });
   });
 });

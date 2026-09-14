@@ -172,6 +172,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	var policiesRepo repositories.PoliciesRepositoryInterface
 	var modelRefsRepo repositories.MaaSModelRefsRepositoryInterface
 	var externalModelsRepo repositories.ExternalModelsRepositoryInterface
+	var externalProvidersRepo repositories.ExternalProvidersRepositoryInterface
+	var secretsRepo repositories.SecretsRepositoryInterface
 	var yamlRepo repositories.YamlRepositoryInterface
 
 	if cfg.MockK8Client {
@@ -179,16 +181,20 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		policiesRepo = repositories.NewMockPoliciesRepository(logger)
 		modelRefsRepo = repositories.NewMockMaaSModelRefsRepository(logger)
 		externalModelsRepo = repositories.NewMockExternalModelsRepository(logger, modelRefsRepo)
+		externalProvidersRepo = repositories.NewMockExternalProvidersRepository(logger)
+		secretsRepo = repositories.NewMockSecretsRepository(logger)
 		yamlRepo = repositories.NewMockYamlRepository(logger)
 	} else {
 		subscriptionsRepo = repositories.NewSubscriptionsRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 		policiesRepo = repositories.NewPoliciesRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 		modelRefsRepo = repositories.NewMaaSModelRefsRepository(logger, k8sFactory)
 		externalModelsRepo = repositories.NewExternalModelsRepository(logger, k8sFactory, modelRefsRepo)
+		externalProvidersRepo = repositories.NewExternalProvidersRepository(logger, k8sFactory)
+		secretsRepo = repositories.NewSecretsRepository(logger, k8sFactory)
 		yamlRepo = repositories.NewYamlRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 	}
 
-	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg, subscriptionsRepo, policiesRepo, modelRefsRepo, externalModelsRepo, yamlRepo)
+	repos, err := repositories.NewRepositories(logger, k8sFactory, cfg, subscriptionsRepo, policiesRepo, modelRefsRepo, externalModelsRepo, externalProvidersRepo, secretsRepo, yamlRepo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repositories: %w", err)
 	}
@@ -288,6 +294,8 @@ func (app *App) Routes() http.Handler {
 	attachPolicyHandlers(apiRouter, app)
 	attachMaaSModelRefHandlers(apiRouter, app)
 	attachExternalModelHandlers(apiRouter, app)
+	attachExternalProviderHandlers(apiRouter, app)
+	attachSecretHandlers(apiRouter, app)
 	attachYamlHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithMaasApi(app, ListModelsHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))

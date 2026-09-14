@@ -227,6 +227,13 @@ class McpServerDetailsPage {
     return cy.findByTestId('mcp-deploy-button');
   }
 
+  clickDeployButton() {
+    return this.findDeployButton()
+      .should('be.visible')
+      .and('not.have.attr', 'aria-disabled', 'true')
+      .click();
+  }
+
   findBreadcrumbServerName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('breadcrumb-server-name');
   }

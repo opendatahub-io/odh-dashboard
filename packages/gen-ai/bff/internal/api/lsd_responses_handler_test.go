@@ -2108,14 +2108,7 @@ func TestProcessResponseCitations(t *testing.T) {
 }
 
 func TestMockRAGCitationPipeline(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	mockClient := lsmocks.NewMockLlamaStackClient()
-
-	app := App{
-		config:       config.EnvConfig{Port: 4000},
-		logger:       logger,
-		repositories: repositories.NewRepositories(),
-	}
 
 	t.Run("non-streaming RAG strips markers and produces annotations", func(t *testing.T) {
 		params := llamastack.CreateResponseParams{
@@ -2196,7 +2189,6 @@ func TestMockRAGCitationPipeline(t *testing.T) {
 		assert.Equal(t, "mock_document.txt", ann.Filename, "filename must be resolved from attributes")
 	})
 
-	_ = app // ensure app is referenced for future handler-level tests
 }
 
 // TestIsEventTypeSupported_ReasoningEvents verifies reasoning event types are supported

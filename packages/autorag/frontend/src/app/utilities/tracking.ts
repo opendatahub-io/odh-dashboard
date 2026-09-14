@@ -145,24 +145,20 @@ export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties):
   fireFormTrackingEvent(AUTORAG_EVENTS.MODELS_SELECTED, properties);
 };
 
-/** Categorized vector I/O provider type, derived from the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist. */
+/** Categorized vector database backend, derived from the secret type (milvus or pgvector). */
 export type VectorStoreProviderType = 'milvus' | 'pgvector';
 
-/**
- * Maps a raw `OgxVectorStoreProvider.provider_type` (e.g. `"remote::milvus"`) to the categorized
- * {@link VectorStoreProviderType} used in analytics. Returns `undefined` for any provider type
- * outside the current allowlist — callers must skip firing the tracking event in that case rather
- * than forwarding an uncategorized value. This keeps the tracked property to a fixed, non-sensitive
- * set even though the underlying `provider_id` is a free-form, admin-assigned string that must
- * never be sent to analytics.
- */
-export const toVectorStoreProviderType = (
-  providerType: string,
+/** Maps a vector-db secret `type` (annotation or key classification) to analytics. */
+export const toVectorStoreProviderTypeFromSecret = (
+  secretType?: string,
 ): VectorStoreProviderType | undefined => {
-  switch (providerType) {
-    case 'remote::milvus':
+  if (!secretType) {
+    return undefined;
+  }
+  switch (secretType.toLowerCase()) {
+    case 'milvus':
       return 'milvus';
-    case 'remote::pgvector':
+    case 'pgvector':
       return 'pgvector';
     default:
       return undefined;
@@ -177,11 +173,11 @@ export type VectorStoreConfiguredProperties = {
 };
 
 /**
- * Fires when the user selects a vector I/O provider in the "Configure details" step of the
+ * Fires when the user selects a vector database secret in the "Configure details" step of the
  * configure flow. Fires on every selection change (consistent with Knowledge/Evaluation Source,
  * which re-fire on every upload/replace), from the Select's `onSelect` handler only — never from
  * the effect that clears a stale selection when the provider list refreshes, and never from the
- * initial/reconfigure pre-fill of `vector_io_provider_id`. This is a pure local field selection
+ * initial/reconfigure pre-fill of `vector_db_secret_name`. This is a pure local field selection
  * with no direct backend call, so `outcome` is always `submit` and `success` is always `true`.
  */
 export const fireAutoragVectorStoreConfigured = (
@@ -192,10 +188,7 @@ export const fireAutoragVectorStoreConfigured = (
 
 /** Product-wide, camelCase taxonomy for the RAG optimization metric, independent of the schema's snake_case values. */
 export type RagOptimizationMetric =
-  | 'overallScore'
-  | 'answerFaithfulness'
-  | 'answerCorrectness'
-  | 'contextCorrectness';
+  'overallScore' | 'answerFaithfulness' | 'answerCorrectness' | 'contextCorrectness';
 
 /* eslint-disable camelcase -- keys mirror the schema's snake_case optimization_metric values */
 const RAG_OPTIMIZATION_METRIC_MAP: Record<string, RagOptimizationMetric> = {
@@ -428,11 +421,7 @@ export type AutoragFunnelStep = 'defineDetails' | 'knowledge' | 'evaluation' | '
  * taxonomy but are not currently fired by this package — see {@link fireAutoragFlowExited}.
  */
 export type AutoragExitDestination =
-  | 'experimentsList'
-  | 'home'
-  | 'projects'
-  | 'otherGenAi'
-  | 'none';
+  'experimentsList' | 'home' | 'projects' | 'otherGenAi' | 'none';
 
 /**
  * Fires when the user leaves the configure flow before creating a run — either via an explicit
@@ -627,10 +616,7 @@ export const fireAutoragCodeSnippetsExported = (
  * taxonomy is updated.
  */
 export type LeaderboardPresetType =
-  | 'optimizationMetrics'
-  | 'optimizationMetricsAndChunking'
-  | 'fullConfiguration'
-  | 'other';
+  'optimizationMetrics' | 'optimizationMetricsAndChunking' | 'fullConfiguration' | 'other';
 
 /**
  * Fires when the user selects a preset from the "Manage columns" modal's "Quick select" control

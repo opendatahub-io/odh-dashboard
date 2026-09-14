@@ -18,11 +18,9 @@ import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributed
 import {
   ClusterQueueModel,
   LocalQueueModel,
-  RayClusterModel,
-  RayJobModel,
-  TrainJobModel,
   WorkloadModel,
-} from '@odh-dashboard/internal/api/models';
+} from '@odh-dashboard/k8s-core/api/models';
+import { RayClusterModel, RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { ProjectModel, PodModel } from '../../../utils/models';
 
 export const projectName = 'test-rayjobs-project';

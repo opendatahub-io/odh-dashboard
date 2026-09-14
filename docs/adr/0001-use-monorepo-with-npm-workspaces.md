@@ -75,4 +75,4 @@ odh-dashboard/
 - [docs/architecture.md](../architecture.md)
 - [npm workspaces documentation](https://docs.npmjs.com/cli/v10/using-npm/workspaces)
 - [Turbo documentation](https://turbo.build/repo/docs)
-- [ADR 0002: Use Webpack Module Federation](0002-use-webpack-module-federation.md)
+- [ADR 0002: Use Module Federation](0002-use-rspack-module-federation.md)

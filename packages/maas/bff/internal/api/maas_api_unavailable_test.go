@@ -17,7 +17,7 @@ import (
 
 func TestRequireMaasApiReady_Returns503WhenUnavailable(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	repos, err := repositories.NewRepositories(logger, nil, config.EnvConfig{}, nil, nil, nil, nil, nil)
+	repos, err := repositories.NewRepositories(logger, nil, config.EnvConfig{}, nil, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("NewRepositories: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestRequireMaasApiReady_Returns503WhenUnavailable(t *testing.T) {
 
 func TestHandlerWithMaasApi_Returns503WhenUnavailable(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	repos, err := repositories.NewRepositories(logger, nil, config.EnvConfig{}, nil, nil, nil, nil, nil)
+	repos, err := repositories.NewRepositories(logger, nil, config.EnvConfig{}, nil, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("NewRepositories: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestHandlerWithMaasApi_AllowsRequestWhenReady(t *testing.T) {
 	defer maasFakeServer.Close()
 
 	envConfig := config.EnvConfig{MaasApiUrl: maasFakeServer.URL}
-	repos, err := repositories.NewRepositories(logger, nil, envConfig, nil, nil, nil, nil, nil)
+	repos, err := repositories.NewRepositories(logger, nil, envConfig, nil, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("NewRepositories: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestWireMaasApiURL_EnablesReadyHandlers(t *testing.T) {
 	defer maasFakeServer.Close()
 
 	envConfig := config.EnvConfig{MaasApiUrl: ""}
-	repos, err := repositories.NewRepositories(logger, nil, envConfig, nil, nil, nil, nil, nil)
+	repos, err := repositories.NewRepositories(logger, nil, envConfig, nil, nil, nil, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("NewRepositories: %v", err)
 	}
