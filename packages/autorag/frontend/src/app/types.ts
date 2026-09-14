@@ -190,5 +190,5 @@ export type LegacyRunCredentials = {
 export type EvaluationFileEntry = {
   question: string;
   correct_answers: string[];
-  correct_answer_document_ids: string[];
+  correct_answer_document_keys: string[];
 };

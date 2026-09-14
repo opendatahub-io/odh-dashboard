@@ -272,11 +272,12 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["test_data_secret_name"] != "test-secret" {
 			t.Errorf("test_data_secret_name = %v", params["test_data_secret_name"])
 		}
-		if params["input_data_key"] != "docs/" {
-			t.Errorf("input_data_key = %v", params["input_data_key"])
+		inputDataKeys, ok := params["input_data_keys"].([]string)
+		if !ok || len(inputDataKeys) != 1 || inputDataKeys[0] != "docs/" {
+			t.Errorf("input_data_keys = %v", params["input_data_keys"])
 		}
-		if _, ok := params["input_data_keys"]; ok {
-			t.Error("input_data_keys should not be forwarded to KFP")
+		if _, ok := params["input_data_key"]; ok {
+			t.Error("input_data_key should not be created by the builder")
 		}
 		if params["maas_secret_name"] != "maas-secret" {
 			t.Errorf("maas_secret_name = %v", params["maas_secret_name"])
@@ -327,11 +328,12 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["vector_db_secret_name"] != "provider-x" {
 			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
 		}
-		if params["input_data_key"] != "docs/first/" {
-			t.Errorf("input_data_key = %v, want first corpus key", params["input_data_key"])
+		inputDataKeys, ok := params["input_data_keys"].([]string)
+		if !ok || len(inputDataKeys) != 2 || inputDataKeys[0] != "docs/first/" || inputDataKeys[1] != "docs/second/" {
+			t.Errorf("input_data_keys = %v, want ordered input keys", params["input_data_keys"])
 		}
-		if _, ok := params["input_data_keys"]; ok {
-			t.Error("input_data_keys should not be forwarded to KFP")
+		if _, ok := params["input_data_key"]; ok {
+			t.Error("input_data_key should not be created by the builder")
 		}
 		if params["optimization_max_rag_patterns"] != 10 {
 			t.Errorf("optimization_max_rag_patterns = %v", params["optimization_max_rag_patterns"])
@@ -341,16 +343,18 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 	})
 
-	t.Run("KFP compatibility adapter forwards legacy input field", func(t *testing.T) {
+	t.Run("forwards canonical input data keys without legacy field", func(t *testing.T) {
 		req := validRequest()
+		req.InputDataKeys = []string{"docs/first/", "docs/second/"}
 		kfp := BuildPipelineRunInput(req, "pid", "vid")
 		params := kfp.RuntimeConfig.Parameters
 
-		if params["input_data_key"] != "docs/" {
-			t.Errorf("input_data_key = %v", params["input_data_key"])
+		inputDataKeys, ok := params["input_data_keys"].([]string)
+		if !ok || len(inputDataKeys) != 2 || inputDataKeys[0] != "docs/first/" || inputDataKeys[1] != "docs/second/" {
+			t.Errorf("input_data_keys = %v, want ordered input keys", params["input_data_keys"])
 		}
-		if _, ok := params["input_data_keys"]; ok {
-			t.Error("input_data_keys should not be forwarded to KFP")
+		if _, ok := params["input_data_key"]; ok {
+			t.Error("input_data_key should not be created by the builder")
 		}
 		if _, ok := params["maas_secret_name"]; !ok {
 			t.Error("maas_secret_name should be forwarded")

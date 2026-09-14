@@ -628,8 +628,8 @@ paths:
         The optional pipelineType parameter selects which discovered pipeline to use
         (currently only "autorag" is supported). Returns 404 Not Found if required managed
         pipelines are unavailable in the namespace. The Pipeline Server (DSPipelineApplication) is also
-        auto-discovered. The BFF maps AutoRAG-specific parameters to KFP v2beta1 runtime
-        config and submits the run.
+        auto-discovered. The BFF maps AutoRAG-specific parameters, including the ordered input_data_keys list,
+        to KFP v2beta1 runtime config and submits the run.
 
   /api/v1/pipeline-runs/{runId}:
     summary: Get a single pipeline run by ID

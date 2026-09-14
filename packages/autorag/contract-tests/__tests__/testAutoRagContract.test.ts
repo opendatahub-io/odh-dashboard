@@ -632,7 +632,10 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
-          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
+          input_data_keys: [
+            'autorag input data/pdf/bank_policies_pdf/documents',
+            'autorag input data/pdf/bank_policies_pdf/archive',
+          ],
           maas_secret_name: MAAS_SECRET,
           vector_db_secret_name: 'vector-db',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
@@ -642,6 +645,17 @@ describe('AutoRAG API Contract Tests', () => {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
           status: 200,
         });
+        if (result.success) {
+          type RunEnvelope = {
+            data: { runtime_config?: { parameters?: Record<string, unknown> } };
+          };
+          const parameters = (result.response.data as RunEnvelope).data.runtime_config?.parameters;
+          expect(parameters?.input_data_keys).toEqual([
+            'autorag input data/pdf/bank_policies_pdf/documents',
+            'autorag input data/pdf/bank_policies_pdf/archive',
+          ]);
+          expect(parameters).not.toHaveProperty('input_data_key');
+        }
       });
 
       it('should create a pipeline run with all optional fields', async () => {

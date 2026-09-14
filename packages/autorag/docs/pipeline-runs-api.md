@@ -392,7 +392,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 **Notes:**
 - Unknown JSON fields are rejected (strict decoding)
 - `input_data_keys` supports one to ten input locations in the public request contract. The current UI selects one location.
-- Until the pipeline contract supports multiple input keys, the BFF's temporary KFP boundary adapter forwards the first `input_data_keys` entry as the internal `input_data_key` parameter. `input_data_key` is not part of the public create request contract.
+- `input_data_keys` is forwarded to KFP as the ordered list of input locations. `input_data_key` is not part of the public create request contract or new-run runtime parameters.
 - `maas_secret_name` and `vector_db_secret_name` replace the legacy OGX/provider fields for new creation flows. Legacy provider fields remain readable for existing results and compatibility paths.
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF - no manual configuration needed
 - The BFF discovers the managed AutoRAG pipeline by exact display name
