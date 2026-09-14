@@ -1,82 +1,43 @@
-[frontend requirements]: ./frontend/docs/dev-setup.md#requirements
-[BFF requirements]: ./bff/README.md#pre-requisites
-[frontend dev setup]: ./frontend/docs/dev-setup.md#development
-[BFF dev setup]: ./bff/README.md#development
-[issue]: https://github.com/opendatahub-io/mod-arch-library/issues/new/choose
-[contributing guidelines]: https://github.com/opendatahub-io/mod-arch-library/blob/main/CONTRIBUTING.md
-
 # Contributing
 
-Individual bug fixes are welcome. Please open an [issue] to track the fix you are planning to implement. If you are unsure how best to solve it, start by opening the issue and note your desire to contribute.
-We have [contributing guidelines] available for you to follow.
+Agent Ops keeps its frontend in this repository and consumes the OpenShell
+Dashboard BFF as an immutable upstream image. BFF behavior changes belong in
+the upstream repository; downstream changes should be limited to packaging,
+module integration, and artifact updates.
 
-## Requirements
+## Development
 
-To review the requirements, please refer to:
-
-- [Frontend requirements]
-- [BFF requirements]
-
-## Set Up
-
-### Development
-
-There are multiple development modes available depending on your needs:
-
-#### Mock Mode (Recommended for Local Development)
-
-Use `make dev-start` to run the application in **mock mode** with mocked Kubernetes client. This is the recommended approach for local development as it:
-
-- Requires no cluster connection
-- Uses `user_token` authentication (the default)
-- Provides fast feedback loop for UI/BFF development
+Install the frontend dependencies, configure an OpenShell gateway, and run the
+assembled image with the frontend:
 
 ```bash
 make dev-install-dependencies
-make dev-start
-```
-
-#### Federated Mode (Tapping into a Real Cluster)
-
-Use `make dev-start-federated` when you need to test against a real ODH/RHOAI cluster. This mode:
-
-- Connects to a real Kubernetes cluster (requires port-forwarding)
-- Uses `user_token` authentication with `x-forwarded-access-token` header
-- Is required for testing real cluster integrations
-
-```bash
-# First, set up port-forwarding to your cluster
-kubectl port-forward svc/your-service -n your-namespace 8085:8080
-
-# Then start the federated dev environment
+export OPENSHELL_GATEWAY_URL=grpcs://gateway.example.com:443
+export GATEWAY_CERT_DIR=/path/to/gateway-certificates # optional
 make dev-start-federated
 ```
 
-#### Kubeflow Mode (Kubeflow Central Dashboard)
+The standalone and Kubeflow frontend modes remain available through
+`make dev-start` and `make dev-start-kubeflow`. They use the same imported BFF;
+there is no downstream mock Go server.
 
-Use `make dev-start-kubeflow` only if developing for Kubeflow Central Dashboard. This mode:
+## Updating the BFF artifact
 
-- Uses `internal` authentication with `kubeflow-userid` header
-- Is specific to Kubeflow environments
+1. Verify the upstream source commit and published image digest.
+2. Update `bff/upstream.lock.yaml` and the default image argument in both
+   Dockerfiles in the same change.
+3. Run the downstream integration checks and build both Dockerfiles.
+4. Record any upstream transport, FIPS, or release limitation in the package
+   README.
+
+## Verification
 
 ```bash
-make dev-start-kubeflow
+npm run test:contract
+make help
 ```
 
-> **Summary:** Use `dev-start` (mock mode) for most development work. Use `dev-start-federated` when you need to test against a real cluster.
+For a read-only live gateway check, provide the required ROSA environment
+variables and run `npm run test:integration:rosa`.
 
-Alternatively, follow the steps in the [frontend dev setup] and [BFF dev setup] guides for manual setup.
-
-### Kubernetes Deployment
-
-For an in-depth guide on how to deploy the Agent Ops UI, please refer to the [local kubernetes deployment](./docs/local-deployment-guide.md) documentation.
-
-To quickly enable the Agent Ops UI in your Kind cluster, you can use the following command:
-
-```shell
-make kind-deployment
-```
-
-## Debugging and Testing
-
-See [frontend testing guidelines](frontend/docs/testing.md) for testing the frontend.
+Frontend implementation and testing guidance remains in `frontend/docs/`.

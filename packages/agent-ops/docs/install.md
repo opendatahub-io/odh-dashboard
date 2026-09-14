@@ -1,5 +1,9 @@
 # Installing mod-arch-starter via `npx`
 
+> **Historical starter documentation:** Agent Ops is no longer installed from
+> `mod-arch-starter` and no longer builds a local Go BFF. Use the package
+> Makefile and the upstream image workflow documented in the package README.
+
 Use the published `mod-arch-installer` CLI to scaffold a fresh copy of this starter without cloning the entire repository.
 
 ```bash

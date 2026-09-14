@@ -1,5 +1,9 @@
 # Local Deployment Guide
 
+> **Historical starter documentation:** The Kind workflow below describes the
+> removed local Go BFF and is not part of the upstream-BFF POC. Use
+> `make dev-start-federated` or `make test-integration-rosa` instead.
+
 ## Local kubernetes deployment of Mod Arch
 
 To test the BFF locally without mocking the k8s calls the Mod Arch backend can be deployed locally using kind.
