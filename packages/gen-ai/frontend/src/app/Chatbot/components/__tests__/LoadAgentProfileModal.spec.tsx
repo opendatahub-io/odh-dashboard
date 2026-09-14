@@ -44,14 +44,15 @@ describe('LoadAgentProfileModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('should always show the saved agent comparison warning', () => {
+  it('should always show the saved agent comparison warning', async () => {
     jest.mocked(mockGenAiContextValue.apiState.api.listAgentProfiles).mockResolvedValue({
       profiles: [],
       totalCount: 0,
-    } as never);
+    });
 
     renderModal();
 
+    await screen.findByText('No agents found.');
     expect(
       screen.getByText("Side-by-side chat comparison isn't available for saved agents."),
     ).toBeInTheDocument();
@@ -78,7 +79,7 @@ describe('LoadAgentProfileModal', () => {
 
     expect(screen.getByTestId('load-agent-profile-button-uuid-1')).toHaveClass('pf-m-small');
     expect(screen.getByRole('grid')).not.toHaveClass('pf-m-compact');
-    expect(screen.getByText('Coding assistant')).toHaveClass('pf-v6-u-font-weight-bold');
+    expect(screen.getByText('Coding assistant').tagName).toBe('STRONG');
   });
 
   it('should explain why the loaded agent button is disabled', async () => {

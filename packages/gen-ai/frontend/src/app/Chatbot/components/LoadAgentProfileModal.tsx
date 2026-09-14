@@ -149,7 +149,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
                   data-testid={`load-agent-profile-row-${profile.profileId}`}
                 >
                   <Td dataLabel="Name">
-                    <div className="pf-v6-u-font-weight-bold">{profile.displayName}</div>
+                    <strong>{profile.displayName}</strong>
                     {profile.description && (
                       <div className="pf-v6-u-text-color-subtle">{profile.description}</div>
                     )}
