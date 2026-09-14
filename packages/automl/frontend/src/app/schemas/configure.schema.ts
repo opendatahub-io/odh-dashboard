@@ -106,11 +106,11 @@ function createConfigureSchema() {
       (data) => {
         const issues: z.core.$ZodRawIssue[] = [];
         if (data.task_type === TASK_TYPE_TIMESERIES) {
-          if ((data.training_data_column_count ?? 0) >= 3 && !data.id_column?.trim()) {
+          if (data.training_data_column_count !== 2 && !data.id_column?.trim()) {
             issues.push({
               code: 'custom',
               path: ['id_column'],
-              message: 'ID column is required for datasets with 3 or more columns',
+              message: 'ID column is required unless the dataset has exactly 2 columns',
               input: data.id_column,
             });
           }

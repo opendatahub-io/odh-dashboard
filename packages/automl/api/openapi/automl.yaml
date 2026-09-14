@@ -1431,7 +1431,7 @@ components:
             id_column:
               type: string
               minLength: 1
-              description: Optional column identifying each time series (item_id). Omit for a single-item time series.
+              description: Column identifying each time series (item_id). Required for CSV datasets with three or more columns. Omission is accepted only when the CSV has exactly two columns matching target and timestamp_column. The BFF verifies the CSV before creating the run.
               example: "item_id"
             timestamp_column:
               type: string

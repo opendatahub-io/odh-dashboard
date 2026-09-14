@@ -552,11 +552,23 @@ describe('AutoML API Contract Tests', () => {
       });
 
       it('should create a single-item timeseries run without an ID column', async () => {
+        const key = 'single-item-contract.csv';
+        const csv = `date,sales\n${Array.from(
+          { length: 100 },
+          (_, i) => `2026-01-${String((i % 28) + 1).padStart(2, '0')},${i + 2}`,
+        ).join('\n')}`;
+        const form = new FormData();
+        form.append('file', new Blob([csv], { type: 'text/csv' }), key);
+        const upload = await apiClient.postFormData(
+          `/api/v1/s3/files/${key}?namespace=${NS}&secretName=${SECRET}&bucket=${BUCKET}`,
+          form,
+        );
+        expect(upload.success).toBe(true);
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'contract-test-single-item-timeseries',
           train_data_secret_name: SECRET,
           train_data_bucket_name: BUCKET,
-          train_data_file_key: TABULAR_CSV_FILE,
+          train_data_file_key: key,
           task_type: 'timeseries',
           target: 'sales',
           timestamp_column: 'date',
@@ -565,6 +577,20 @@ describe('AutoML API Contract Tests', () => {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
           status: 200,
         });
+      });
+
+      it('should reject a direct time series request without ID for three or more CSV columns', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-missing-timeseries-id',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TIMESERIES_CSV_FILE,
+          task_type: 'timeseries',
+          target: 'target',
+          timestamp_column: 'timestamp',
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
       });
 
       it('should return 400 for missing required fields', async () => {

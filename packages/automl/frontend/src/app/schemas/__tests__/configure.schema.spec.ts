@@ -92,7 +92,39 @@ describe('createConfigureSchema', () => {
       }
     });
 
-    it.each([3, 4])('should require an ID selection for %s columns', (columnCount) => {
+    it.each([undefined, 0, 1, 3, 4])(
+      'should require an ID selection for column count %s',
+      (columnCount) => {
+        const data = {
+          ...schema.defaults,
+          display_name: 'test',
+          train_data_secret_name: 'secret',
+          train_data_bucket_name: 'bucket',
+          train_data_file_key: 'file.csv',
+          task_type: TASK_TYPE_TIMESERIES,
+          target_column: 'amount',
+          timestamp_column: 'observed',
+          ...(columnCount === undefined ? {} : { training_data_column_count: columnCount }),
+        };
+        for (const idColumn of [undefined, '', '   ']) {
+          const result = schema.full.safeParse({ ...data, id_column: idColumn });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.issues).toEqual(
+              expect.arrayContaining([expect.objectContaining({ path: ['id_column'] })]),
+            );
+          }
+        }
+        const valid = schema.full.safeParse({ ...data, id_column: 'item' });
+        expect(valid.success).toBe(true);
+        if (valid.success) {
+          expect(valid.data.id_column).toBe('item');
+          expect(valid.data).not.toHaveProperty('training_data_column_count');
+        }
+      },
+    );
+
+    it('should load reconfigured parameters without column count and validate after metadata arrives', () => {
       const data = {
         ...schema.defaults,
         display_name: 'test',
@@ -102,20 +134,22 @@ describe('createConfigureSchema', () => {
         task_type: TASK_TYPE_TIMESERIES,
         target_column: 'amount',
         timestamp_column: 'observed',
-        training_data_column_count: columnCount,
       };
-      const result = schema.full.safeParse(data);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues).toEqual(
-          expect.arrayContaining([expect.objectContaining({ path: ['id_column'] })]),
-        );
-      }
-      const valid = schema.full.safeParse({ ...data, id_column: 'item' });
-      expect(valid.success).toBe(true);
-      if (valid.success) {
-        expect(valid.data.id_column).toBe('item');
-        expect(valid.data).not.toHaveProperty('training_data_column_count');
+      // Reconfiguration loads through the base schema, before fetching dataset metadata.
+      const loaded = schema.base.partial().parse(data);
+      expect(loaded.training_data_column_count).toBeUndefined();
+      expect(schema.full.safeParse(loaded).success).toBe(false);
+      for (const idColumn of [undefined, '', '   ']) {
+        const result = schema.full.safeParse({
+          ...loaded,
+          training_data_column_count: 2,
+          id_column: idColumn,
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data).not.toHaveProperty('id_column');
+          expect(result.data).not.toHaveProperty('training_data_column_count');
+        }
       }
     });
 
