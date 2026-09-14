@@ -55,6 +55,7 @@ export type MockDashboardConfigType = {
   workbenchesV2?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
@@ -116,6 +117,7 @@ export const mockDashboardConfig = ({
   disableModelCatalog = false,
   mcpCatalog = false,
   mcpRegistry = false,
+  genAiMcpRegistryServers = false,
   toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
@@ -312,6 +314,7 @@ export const mockDashboardConfig = ({
       disableModelCatalog,
       mcpCatalog,
       mcpRegistry,
+      genAiMcpRegistryServers,
       toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,

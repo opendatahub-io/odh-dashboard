@@ -102,6 +102,15 @@ class MCPTab {
     return new PlaygroundMCPServerRow(rowSelector, serverName, serverUrl);
   }
 
+  getRegisteredServerRow(serverName: string, serverUrl: string): PlaygroundMCPServerRow {
+    const rowSelector = () =>
+      this.findMCPRegisteredServersTable().contains(
+        'tr',
+        serverName,
+      ) as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>;
+    return new PlaygroundMCPServerRow(rowSelector, serverName, serverUrl);
+  }
+
   verifyServerAutoUnlocked(serverName: string, serverUrl: string): void {
     const serverRow = this.getServerRow(serverName, serverUrl);
 

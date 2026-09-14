@@ -27,6 +27,7 @@ import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
 import { MCPServer, MCPServerFromAPI } from '~/app/types';
 import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { useChatbotConfigStore, selectSelectedMcpServerIds } from '~/app/Chatbot/store';
@@ -79,6 +80,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
 }) => {
   const isDarkMode = useDarkMode();
   const { api, apiAvailable } = useGenAiAPI();
+  const mcpRegistryServersEnabled = useGenAiMcpRegistryServers();
   const { namespace } = React.useContext(GenAiContext);
 
   const initialSelectedServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
@@ -107,7 +109,8 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     [transformedServers],
   );
 
-  const showRegisteredSection = registryAvailable && registeredServers.length > 0;
+  const showRegisteredSection =
+    mcpRegistryServersEnabled && registryAvailable && registeredServers.length > 0;
 
   // Section expand/collapse state
   const [isRegisteredExpanded, setIsRegisteredExpanded] = React.useState(true);

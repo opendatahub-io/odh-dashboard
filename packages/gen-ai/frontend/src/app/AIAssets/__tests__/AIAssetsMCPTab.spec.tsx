@@ -174,6 +174,84 @@ describe('AIAssetsMCPTab', () => {
     expect(screen.getByText('server-1')).toBeInTheDocument();
   });
 
+  it('should render registered and manual servers when genAiMcpRegistryServers is enabled', () => {
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [
+        {
+          name: 'registered-server',
+          url: 'http://registered.example.com',
+          transport: 'sse',
+          logo: '',
+          source: 'registry',
+        },
+        {
+          name: 'manual-server',
+          url: 'http://manual.example.com',
+          transport: 'sse',
+          logo: '',
+          source: 'configmap',
+        },
+      ] as MCPServerFromAPI[],
+      configMapName: null,
+      registryAvailable: true,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
+
+    render(<AIAssetsMCPTab />, {
+      wrapper: withDashboardConfig({ genAiMcpRegistryServers: true }),
+    });
+
+    expect(screen.getByTestId('server-registered-server')).toBeInTheDocument();
+    expect(screen.getByTestId('server-manual-server')).toBeInTheDocument();
+  });
+
+  it('should hide registered servers and keep manual servers when the flag is disabled', () => {
+    const servers = [
+      {
+        name: 'registered-server',
+        url: 'http://registered.example.com',
+        transport: 'sse',
+        logo: '',
+        source: 'registry',
+      },
+      {
+        name: 'manual-server',
+        url: 'http://manual.example.com',
+        transport: 'sse',
+        logo: '',
+        source: 'configmap',
+      },
+    ] as MCPServerFromAPI[];
+    mockUseFetchMCPServers.mockReturnValue({
+      data: servers,
+      configMapName: null,
+      registryAvailable: true,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
+
+    render(<AIAssetsMCPTab />, {
+      wrapper: withDashboardConfig({ genAiMcpRegistryServers: false }),
+    });
+
+    expect(screen.queryByTestId('server-registered-server')).not.toBeInTheDocument();
+    expect(screen.getByTestId('server-manual-server')).toBeInTheDocument();
+    expect(mockUseMCPServerStatuses).toHaveBeenCalledWith([servers[1]], true);
+  });
+
   it('should show registry unavailable banner when mcpRegistry flag is enabled and registry is down', () => {
     mockUseFetchMCPServers.mockReturnValue({
       data: [
