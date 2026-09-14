@@ -317,23 +317,24 @@ export const setGlobalMLflowNamespaces = (
       });
     });
 
-    return cy.then(() => {
-      for (const { namespace: ns, name } of configs) {
-        const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: namespaces } });
-        patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
-      }
+    return cy
+      .then(() => {
+        for (const { namespace: ns, name } of configs) {
+          const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: namespaces } });
+          patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
+        }
 
-      cy.step('Wait for globalMLflowNamespaces to be confirmed in all config instances');
-      for (const { namespace: ns, name } of configs) {
-        const expected = JSON.stringify(namespaces);
-        pollUntilSuccess(
-          `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
-          `globalMLflowNamespaces to be set in ${ns}`,
-          { maxAttempts: 30, pollIntervalMs: 2000 },
-        );
-      }
-      return baselines;
-    });
+        cy.step('Wait for globalMLflowNamespaces to be confirmed in all config instances');
+        for (const { namespace: ns, name } of configs) {
+          const expected = JSON.stringify(namespaces);
+          pollUntilSuccess(
+            `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
+            `globalMLflowNamespaces to be set in ${ns}`,
+            { maxAttempts: 30, pollIntervalMs: 2000 },
+          );
+        }
+      })
+      .then(() => baselines);
   });
 
 /**
