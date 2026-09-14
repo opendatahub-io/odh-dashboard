@@ -47,7 +47,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   let globalNamespace: string;
   let servingRuntimeName: string;
   let hardwareProfileName: string;
-  let globalMLflowNamespacesBaselines: GlobalMLflowNamespacesBaseline[] = [];
+  const globalMLflowNamespacesBaselines: GlobalMLflowNamespacesBaseline[] = [];
   const uuid = generateTestUUID();
   const globalPromptName = `global-prompt-${uuid}`;
   const projectPromptName = `project-prompt-${uuid}`;
@@ -132,9 +132,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       .then(() => {
         cy.step('Configure global namespaces');
         cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
-        setGlobalMLflowNamespaces([globalNamespace]).then((baselines) => {
-          globalMLflowNamespacesBaselines = baselines;
-        });
+        setGlobalMLflowNamespaces([globalNamespace], globalMLflowNamespacesBaselines);
         forceDashboardConfigRefresh();
       })
       .then(() => {

@@ -289,43 +289,53 @@ export const getOdhDashboardConfigs = (): Cypress.Chainable<ConfigInstance[]> =>
  * Polls until the change is confirmed.
  *
  * @param namespaces - Array of namespace strings to set as global MLflow namespaces.
+ * @param baselineStore - Mutable store for setup-time values shared with cleanup and retries.
  */
 export const setGlobalMLflowNamespaces = (
   namespaces: string[],
+  baselineStore: GlobalMLflowNamespacesBaseline[],
 ): Cypress.Chainable<GlobalMLflowNamespacesBaseline[]> =>
   getOdhDashboardConfigs().then((configs) => {
-    const baselines: GlobalMLflowNamespacesBaseline[] = [];
+    const capturedBaselines: GlobalMLflowNamespacesBaseline[] = [];
 
-    cy.wrap(configs).each((config) => {
-      const { namespace: ns, name } = config as unknown as ConfigInstance;
-      cy.exec(`oc get OdhDashboardConfig ${name} -n ${ns} -o json`, {
-        failOnNonZeroExit: false,
-      }).then((result) => {
-        if (result.exitCode !== 0) {
-          throw new Error(
-            `Failed to get OdhDashboardConfig ${name} in ${ns}: ${result.stderr || result.stdout}`,
-          );
-        }
-        const resource = JSON.parse(result.stdout) as {
-          spec?: { globalMLflowNamespaces?: string[] };
-        };
-        const baseline: GlobalMLflowNamespacesBaseline = { namespace: ns, name };
-        if (Object.prototype.hasOwnProperty.call(resource.spec ?? {}, 'globalMLflowNamespaces')) {
-          baseline.globalMLflowNamespaces = resource.spec?.globalMLflowNamespaces;
-        }
-        baselines.push(baseline);
+    if (baselineStore.length === 0) {
+      cy.wrap(configs).each((config) => {
+        const { namespace: ns, name } = config as unknown as ConfigInstance;
+        cy.exec(`oc get OdhDashboardConfig ${name} -n ${ns} -o json`, {
+          failOnNonZeroExit: false,
+        }).then((result) => {
+          if (result.exitCode !== 0) {
+            throw new Error(
+              `Failed to get OdhDashboardConfig ${name} in ${ns}: ${
+                result.stderr || result.stdout
+              }`,
+            );
+          }
+          const resource = JSON.parse(result.stdout) as {
+            spec?: { globalMLflowNamespaces?: string[] };
+          };
+          const baseline: GlobalMLflowNamespacesBaseline = { namespace: ns, name };
+          if (Object.prototype.hasOwnProperty.call(resource.spec ?? {}, 'globalMLflowNamespaces')) {
+            baseline.globalMLflowNamespaces = resource.spec?.globalMLflowNamespaces;
+          }
+          capturedBaselines.push(baseline);
+        });
       });
-    });
+
+      cy.then(() => {
+        baselineStore.push(...capturedBaselines);
+      });
+    }
 
     return cy
       .then(() => {
-        for (const { namespace: ns, name } of configs) {
+        for (const { namespace: ns, name } of baselineStore.length > 0 ? baselineStore : configs) {
           const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: namespaces } });
           patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
         }
 
         cy.step('Wait for globalMLflowNamespaces to be confirmed in all config instances');
-        for (const { namespace: ns, name } of configs) {
+        for (const { namespace: ns, name } of baselineStore.length > 0 ? baselineStore : configs) {
           const expected = JSON.stringify(namespaces);
           pollUntilSuccess(
             `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
@@ -334,7 +344,7 @@ export const setGlobalMLflowNamespaces = (
           );
         }
       })
-      .then(() => baselines);
+      .then(() => baselineStore);
   });
 
 /**
