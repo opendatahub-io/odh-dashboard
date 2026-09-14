@@ -1,25 +1,20 @@
 import * as React from 'react';
 import {
   Button,
-  Divider,
-  Flex,
-  FlexItem,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
   InputGroup,
   InputGroupItem,
-  MenuToggle,
-  MenuToggleElement,
-  Select,
-  SelectList,
-  SelectOption,
   Stack,
   TextInput,
 } from '@patternfly/react-core';
-import { EyeIcon, EyeSlashIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { FieldValidationProps } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { SecretSummary } from '~/app/types/external-models';
 import {
@@ -28,7 +23,6 @@ import {
   CREATE_NEW_SECRET_VALUE,
   SECRET_API_KEY_DATA_KEY,
 } from '~/app/pages/external-providers/const';
-import { getSecretDisplayLabel } from '~/app/pages/external-providers/utils';
 
 type CredentialSecretFieldProps = {
   secrets: SecretSummary[];
@@ -53,11 +47,24 @@ const credentialSecretHelpContent = (
       that stores the authentication credentials needed to connect to the provider.
     </p>
     <p>
-      <strong>Expected format:</strong> The secret should contain a data key (e.g.,{' '}
-      <code>apiKey</code> or <code>credentials</code>) whose value is your API key or token.
+      <strong>Expected format:</strong> The secret must contain the data key{' '}
+      <code>{SECRET_API_KEY_DATA_KEY}</code> whose value is your API key or token.
     </p>
   </>
 );
+
+const filterSecretOptions = (
+  filterValue: string,
+  options: TypeaheadSelectOption[],
+): TypeaheadSelectOption[] => {
+  const createNewOption = options.find((option) => option.value === CREATE_NEW_SECRET_VALUE);
+  const secretOptions = options.filter((option) => option.value !== CREATE_NEW_SECRET_VALUE);
+  const filteredSecrets = secretOptions.filter((option) =>
+    String(option.content).toLowerCase().includes(filterValue.toLowerCase()),
+  );
+
+  return createNewOption ? [...filteredSecrets, createNewOption] : filteredSecrets;
+};
 
 const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
   secrets,
@@ -74,27 +81,25 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
   secretValidationMessage,
   secretValueValidationMessage,
 }) => {
-  const [isSelectOpen, setIsSelectOpen] = React.useState(false);
   const [isApiKeyVisible, setIsApiKeyVisible] = React.useState(false);
 
-  const selectedDropdownValue = isNewSecret ? CREATE_NEW_SECRET_VALUE : credentialSecretRef;
-
-  const selectedExistingSecret = React.useMemo(
-    () => secrets.find((secret) => secret.name === credentialSecretRef),
-    [credentialSecretRef, secrets],
+  const secretSelectOptions = React.useMemo<TypeaheadSelectOption[]>(
+    () => [
+      ...secrets.map((secret) => ({
+        value: secret.name,
+        content: secret.name,
+        'data-testid': `credential-secret-option-${secret.name}`,
+      })),
+      {
+        value: CREATE_NEW_SECRET_VALUE,
+        content: 'Create new secret',
+        'data-testid': 'credential-secret-create-new-option',
+      },
+    ],
+    [secrets],
   );
 
-  const toggleLabel = React.useMemo(() => {
-    if (isNewSecret) {
-      return 'Create new secret';
-    }
-    if (credentialSecretRef) {
-      return getSecretDisplayLabel(
-        selectedExistingSecret ?? { name: credentialSecretRef, displayName: undefined },
-      );
-    }
-    return 'Select a credential secret';
-  }, [credentialSecretRef, isNewSecret, selectedExistingSecret]);
+  const selectedSecretValue = isNewSecret ? CREATE_NEW_SECRET_VALUE : credentialSecretRef;
 
   const handleSecretValueBlur = () => {
     secretValueValidationProps?.onBlur();
@@ -102,11 +107,6 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
     if (trimmed !== secretValue) {
       onSecretValueChange(trimmed);
     }
-  };
-
-  const handleSecretValuePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
-    event.preventDefault();
-    onSecretValueChange(event.clipboardData.getData('text').trim());
   };
 
   const newSecretHelperText = credentialSecretRef.trim() ? (
@@ -134,69 +134,38 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
           />
         }
       >
+        <TypeaheadSelect
+          id="credential-secret"
+          dataTestId="credential-secret-toggle"
+          selectOptions={secretSelectOptions}
+          selected={selectedSecretValue}
+          onSelect={(_event, value) => {
+            const selection = String(value);
+            if (selection === CREATE_NEW_SECRET_VALUE) {
+              onSelectCreateNew();
+              return;
+            }
+            if (selection) {
+              onSelectExisting(selection);
+            }
+          }}
+          filterFunction={filterSecretOptions}
+          placeholder="Select a credential secret"
+          previewDescription={false}
+          isRequired={false}
+          isDisabled={!secretsLoaded}
+          noOptionsAvailableMessage="No secrets are available"
+          popperProps={{ maxWidth: 'trigger' }}
+          isScrollable
+        />
         <FormHelperText>
           <HelperText>
             <HelperTextItem>
-              Select an existing secret by its display name, or create a new one and set the Secret
-              resource name plus API key.
+              Select an existing secret, or create a new one and set the Secret resource name plus
+              API key.
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
-        <Select
-          id="credential-secret"
-          isOpen={isSelectOpen}
-          selected={selectedDropdownValue}
-          onSelect={(_event, value) => {
-            const selection = String(value ?? '');
-            if (selection === CREATE_NEW_SECRET_VALUE) {
-              onSelectCreateNew();
-            } else if (selection) {
-              onSelectExisting(selection);
-            }
-            setIsSelectOpen(false);
-          }}
-          onOpenChange={(open) => setIsSelectOpen(open)}
-          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-            <MenuToggle
-              ref={toggleRef}
-              onClick={() => setIsSelectOpen((open) => !open)}
-              isExpanded={isSelectOpen}
-              isDisabled={!secretsLoaded}
-              isFullWidth
-              data-testid="credential-secret-toggle"
-            >
-              {toggleLabel}
-            </MenuToggle>
-          )}
-        >
-          <SelectList>
-            {secrets.map((secret) => (
-              <SelectOption
-                key={secret.name}
-                value={secret.name}
-                description={secret.name}
-                data-testid={`credential-secret-option-${secret.name}`}
-              >
-                {getSecretDisplayLabel(secret)}
-              </SelectOption>
-            ))}
-            <Divider component="li" />
-            <SelectOption
-              value={CREATE_NEW_SECRET_VALUE}
-              data-testid="credential-secret-create-new-option"
-            >
-              <Flex
-                spaceItems={{ default: 'spaceItemsSm' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem>
-                  <PlusCircleIcon color="var(--pf-t--global--icon--color--brand--default)" />
-                </FlexItem>
-                <FlexItem>Create new secret</FlexItem>
-              </Flex>
-            </SelectOption>
-          </SelectList>
-        </Select>
         {!isNewSecret && secretValidationMessage && (
           <FormHelperText>
             <HelperText>
@@ -208,15 +177,6 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
         {isNewSecret && (
           <Stack hasGutter className="pf-v6-u-pl-lg pf-v6-u-pt-md">
             <FormGroup label="Secret name" isRequired fieldId="credential-secret-name">
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>
-                    The Kubernetes Secret resource name. Must be lowercase, alphanumeric, and may
-                    contain hyphens. Existing secrets in the dropdown are listed by a friendly
-                    display name.
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
               <TextInput
                 isRequired
                 id="credential-secret-name"
@@ -227,6 +187,14 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
                 data-testid="credential-secret-name-input"
                 {...secretNameValidationProps}
               />
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    The Kubernetes Secret resource name. Must be lowercase, alphanumeric, and may
+                    contain hyphens.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
               {secretValidationMessage && (
                 <FormHelperText>
                   <HelperText>
@@ -249,7 +217,6 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
                     placeholder="Paste your API key"
                     onChange={(_event, value) => onSecretValueChange(value)}
                     onBlur={handleSecretValueBlur}
-                    onPaste={handleSecretValuePaste}
                     data-testid="credential-secret-value-input"
                     validated={secretValueValidationProps?.validated}
                   />

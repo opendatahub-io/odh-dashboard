@@ -8,6 +8,8 @@ const authMechanismSchema = z.enum(['apikey', 'sigv4', 'oauth2']);
 export const AUTH_MECHANISM_VALUES = authMechanismSchema.options;
 
 export const getConfigPairsValidationError = (pairs: ConfigPair[]): string | undefined => {
+  const seenKeys = new Set<string>();
+
   for (const { key, value } of pairs) {
     const trimmedKey = key.trim();
     const trimmedValue = value.trim();
@@ -20,9 +22,14 @@ export const getConfigPairsValidationError = (pairs: ConfigPair[]): string | und
       return 'Each configuration pair must include both a key and a value';
     }
 
-    if (/\s/.test(key)) {
+    if (/\s/.test(trimmedKey)) {
       return 'Configuration keys cannot contain spaces';
     }
+
+    if (seenKeys.has(trimmedKey)) {
+      return 'Configuration keys must be unique';
+    }
+    seenKeys.add(trimmedKey);
   }
 
   return undefined;
@@ -38,14 +45,19 @@ export const createExternalProviderFormSchema = z
       .refine((value) => ENDPOINT_FQDN_PATTERN.test(value.trim()), {
         message: 'Endpoint must be an FQDN with no scheme or path (for example, api.openai.com)',
       }),
-    authMechanism: authMechanismSchema,
+    authMechanism: z
+      .string()
+      .min(1, 'Authentication is required')
+      .refine((value): value is AuthMechanism => isAuthMechanism(value), {
+        message: 'Authentication is required',
+      }),
     credentialSecretRef: z.string().min(1, 'Credential secret is required'),
     isNewSecret: z.boolean(),
     secretValue: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     const secretName = data.credentialSecretRef.trim();
-    if (!K8S_SECRET_NAME_PATTERN.test(secretName)) {
+    if (data.isNewSecret && !K8S_SECRET_NAME_PATTERN.test(secretName)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:

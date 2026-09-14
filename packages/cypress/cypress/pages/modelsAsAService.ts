@@ -2469,6 +2469,11 @@ class CreateExternalProviderModal extends Modal {
     cy.findByTestId(`provider-type-option-${value}`).click();
   }
 
+  selectAuthentication(value: string): void {
+    this.find().findByTestId('external-provider-auth-toggle').click();
+    cy.findByTestId(`external-provider-auth-option-${value}`).click();
+  }
+
   selectExistingSecret(secretName: string): void {
     this.find().findByTestId('credential-secret-toggle').click();
     cy.findByTestId(`credential-secret-option-${secretName}`).click();
@@ -2509,6 +2514,8 @@ class CreateExternalProviderModal extends Modal {
       this.findSecretNameInput().type(options.newSecret.name);
       this.findSecretValueInput().type(options.newSecret.apiKey);
     }
+
+    this.selectAuthentication('apikey');
   }
 }
 

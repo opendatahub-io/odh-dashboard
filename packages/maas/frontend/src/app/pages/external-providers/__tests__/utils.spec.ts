@@ -94,9 +94,19 @@ describe('getConfigPairsValidationError', () => {
     expect(getConfigPairsValidationError([{ key: 'my key', value: 'value' }])).toBe(
       'Configuration keys cannot contain spaces',
     );
-    expect(getConfigPairsValidationError([{ key: ' region', value: 'value' }])).toBe(
-      'Configuration keys cannot contain spaces',
-    );
+  });
+
+  it('allows keys with surrounding whitespace after trimming', () => {
+    expect(getConfigPairsValidationError([{ key: ' region ', value: 'value' }])).toBeUndefined();
+  });
+
+  it('rejects duplicate configuration keys', () => {
+    expect(
+      getConfigPairsValidationError([
+        { key: 'region', value: 'us-east-1' },
+        { key: 'region', value: 'eu-west-1' },
+      ]),
+    ).toBe('Configuration keys must be unique');
   });
 });
 
@@ -112,6 +122,15 @@ describe('createExternalProviderFormSchema', () => {
 
   it('accepts a valid existing-secret payload', () => {
     expect(createExternalProviderFormSchema.safeParse(validBase).success).toBe(true);
+  });
+
+  it('requires authentication to be selected', () => {
+    expect(
+      createExternalProviderFormSchema.safeParse({
+        ...validBase,
+        authMechanism: '',
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects endpoints with schemes', () => {
@@ -131,5 +150,26 @@ describe('createExternalProviderFormSchema', () => {
       secretValue: '',
     });
     expect(result.success).toBe(false);
+  });
+
+  it('allows existing secrets with dots in the name', () => {
+    expect(
+      createExternalProviderFormSchema.safeParse({
+        ...validBase,
+        credentialSecretRef: 'team.api.key',
+        isNewSecret: false,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects invalid names when creating a new secret', () => {
+    expect(
+      createExternalProviderFormSchema.safeParse({
+        ...validBase,
+        credentialSecretRef: 'team.api.key',
+        isNewSecret: true,
+        secretValue: 'secret-value',
+      }).success,
+    ).toBe(false);
   });
 });

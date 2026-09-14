@@ -31,11 +31,6 @@ const ProviderTypeField: React.FC<ProviderTypeFieldProps> = ({
 
   return (
     <FormGroup label="Provider type" isRequired fieldId="provider-type">
-      <FormHelperText>
-        <HelperText>
-          <HelperTextItem>Select a known provider type.</HelperTextItem>
-        </HelperText>
-      </FormHelperText>
       <Select
         id="provider-type"
         isOpen={isOpen}
@@ -69,6 +64,11 @@ const ProviderTypeField: React.FC<ProviderTypeFieldProps> = ({
           ))}
         </SelectList>
       </Select>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>Select a known provider type.</HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       {validationMessage && (
         <FormHelperText>
           <HelperText>

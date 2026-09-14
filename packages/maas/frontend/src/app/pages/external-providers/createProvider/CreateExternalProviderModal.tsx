@@ -55,8 +55,7 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
   namespace,
   onClose,
 }) => {
-  const { secrets, secretsLoaded, refreshSecrets, refreshExternalProviders } =
-    useExternalModelsContext();
+  const { secrets, secretsLoaded, refreshSecrets } = useExternalModelsContext();
   const { isCreating: isCreatingProvider, createExternalProviderCallback } =
     useCreateExternalProvider();
   const { isCreating: isCreatingSecret, createSecretCallback } = useCreateSecret();
@@ -66,14 +65,14 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
   const [formData, setFormData] = React.useState<{
     provider: string;
     endpointUrl: string;
-    authMechanism: AuthMechanism;
+    authMechanism: AuthMechanism | '';
     credentialSecretRef: string;
     isNewSecret: boolean;
     secretValue: string;
   }>({
     provider: '',
     endpointUrl: '',
-    authMechanism: 'apikey',
+    authMechanism: '',
     credentialSecretRef: '',
     isNewSecret: false,
     secretValue: '',
@@ -82,6 +81,7 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
   const [isAdvancedExpanded, setIsAdvancedExpanded] = React.useState(false);
   const [isAuthOpen, setIsAuthOpen] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | undefined>();
+  const createdSecretNameRef = React.useRef<string | undefined>();
 
   const { getFieldValidation, getFieldValidationProps, markFieldTouched } = useZodFormValidation(
     formData,
@@ -109,19 +109,30 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
     setSubmitError(undefined);
 
     try {
-      if (formData.isNewSecret) {
+      const secretName = formData.credentialSecretRef.trim();
+
+      if (formData.isNewSecret && createdSecretNameRef.current !== secretName) {
         await createSecretCallback({
           namespace,
-          name: formData.credentialSecretRef.trim(),
+          name: secretName,
           value: formData.secretValue.trim(),
         });
+        createdSecretNameRef.current = secretName;
         refreshSecrets();
       }
 
+      if (!isAuthMechanism(formData.authMechanism)) {
+        return;
+      }
+
       await createExternalProviderCallback(
-        toCreateExternalProviderRequest(namespace, nameDescData, formData, configPairs),
+        toCreateExternalProviderRequest(
+          namespace,
+          nameDescData,
+          { ...formData, authMechanism: formData.authMechanism },
+          configPairs,
+        ),
       );
-      refreshExternalProviders();
       onClose(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create external provider';
@@ -130,7 +141,15 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
   };
 
   return (
-    <Modal variant={ModalVariant.medium} isOpen onClose={() => onClose()}>
+    <Modal
+      variant={ModalVariant.medium}
+      isOpen
+      onClose={() => {
+        if (!isSubmitting) {
+          onClose();
+        }
+      }}
+    >
       <ModalHeader title="Add external provider" />
       <ModalBody>
         <Form className="pf-v6-u-w-100">
@@ -160,15 +179,6 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
           />
 
           <FormGroup label="Endpoint" isRequired fieldId="external-provider-endpoint">
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>
-                  The fully qualified domain name (FQDN) of the provider API — for example,
-                  api.openai.com or us-central1-aiplatform.googleapis.com. Do not include https://
-                  or a path; the path is configured per model.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
             <TextInput
               isRequired
               id="external-provider-endpoint"
@@ -181,6 +191,15 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
               data-testid="external-provider-endpoint-input"
               {...getFieldValidationProps(['endpointUrl'])}
             />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  The fully qualified domain name (FQDN) of the provider API — for example,
+                  api.openai.com or us-central1-aiplatform.googleapis.com. Do not include https://
+                  or a path; the path is configured per model.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
             {getFieldValidation(['endpointUrl']).map((validation) => (
               <FormHelperText key={validation.path.join('.')}>
                 <HelperText>
@@ -231,15 +250,10 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
           />
 
           <FormGroup label="Authentication" isRequired fieldId="external-provider-auth">
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>API key or bearer token authentication.</HelperTextItem>
-              </HelperText>
-            </FormHelperText>
             <Select
               id="external-provider-auth"
               isOpen={isAuthOpen}
-              selected={formData.authMechanism}
+              selected={formData.authMechanism || undefined}
               onSelect={(_event, value) => {
                 const nextValue = String(value);
                 if (isAuthMechanism(nextValue)) {
@@ -259,7 +273,9 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
                   isFullWidth
                   data-testid="external-provider-auth-toggle"
                 >
-                  {mapAuthMechanismToHumanReadable(formData.authMechanism)}
+                  {formData.authMechanism
+                    ? mapAuthMechanismToHumanReadable(formData.authMechanism)
+                    : 'Select authentication'}
                 </MenuToggle>
               )}
             >
@@ -275,6 +291,18 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
                 ))}
               </SelectList>
             </Select>
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>API key or bearer token authentication.</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+            {getFieldValidation(['authMechanism']).map((validation) => (
+              <FormHelperText key={validation.path.join('.')}>
+                <HelperText>
+                  <HelperTextItem variant="error">{validation.message}</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            ))}
           </FormGroup>
 
           <ExpandableSection

@@ -192,6 +192,7 @@ describe('External providers', () => {
       createExternalProviderModal.selectProviderType('openai');
       createExternalProviderModal.findEndpointInput().type('api.openai.com');
       createExternalProviderModal.selectExistingSecret('openai-api-key');
+      createExternalProviderModal.selectAuthentication('apikey');
       createExternalProviderModal.findSubmitButton().click();
 
       cy.wait('@createExternalProvider').then((interception) => {

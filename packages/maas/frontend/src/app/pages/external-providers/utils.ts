@@ -137,7 +137,7 @@ export const convertStringToProviderType = (providerType: string): ProviderTypes
       return ProviderTypes.AWSBedrock;
     case 'azure':
       return ProviderTypes.Azure;
-    case 'google-vertex-ai':
+    case 'vertex':
       return ProviderTypes.GoogleVertexAI;
     default:
       return '-';

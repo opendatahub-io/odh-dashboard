@@ -69,7 +69,7 @@ export const externalProviderTypeFilterOptions: ExternalProviderFilterOption[] =
   { label: 'Anthropic', value: 'anthropic' },
   { label: 'AWS Bedrock', value: 'aws-bedrock' },
   { label: 'Azure', value: 'azure' },
-  { label: 'Google Vertex AI', value: 'google-vertex-ai' },
+  { label: 'Google Vertex AI', value: 'vertex' },
 ];
 
 export const externalProviderAuthenticationFilterOptions: ExternalProviderFilterOption[] = [
