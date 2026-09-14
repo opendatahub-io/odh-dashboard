@@ -8,6 +8,7 @@ import type { ModelLocationData } from '@odh-dashboard/model-serving/shared/type
 import { ModelLocationType } from '@odh-dashboard/model-serving/shared/types/form-data';
 import {
   mapK8sEnvToEnvironmentVariable,
+  type EnvironmentVariable,
   type ModelTypeFieldData,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { ExtractionResult } from '@odh-dashboard/model-serving/extension-points';
@@ -45,7 +46,7 @@ export const extractNIMReplicas = (deployment: NIMDeployment): ExtractionResult<
 
 export const extractNIMEnvironmentVariables = (
   deployment: NIMDeployment,
-): { enabled: boolean; variables: ReturnType<typeof mapK8sEnvToEnvironmentVariable>[] } | null => {
+): { enabled: boolean; variables: EnvironmentVariable[] } | null => {
   const envVars = deployment.model.spec.env;
   if (!envVars || envVars.length === 0) {
     return null;

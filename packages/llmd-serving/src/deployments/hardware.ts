@@ -6,7 +6,10 @@ import {
   MODEL_SERVING_VISIBILITY,
 } from '@odh-dashboard/hardware-profiles/shared';
 import type { ExtractionResult } from '@odh-dashboard/model-serving/extension-points';
-import { mapK8sEnvToEnvironmentVariable } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import {
+  mapK8sEnvToEnvironmentVariable,
+  type EnvironmentVariable,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
 
 export const LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
@@ -64,7 +67,7 @@ export const extractRuntimeArgs = (
 
 export const extractEnvironmentVariables = (
   deployment: LLMdDeployment,
-): { enabled: boolean; variables: ReturnType<typeof mapK8sEnvToEnvironmentVariable>[] } => {
+): { enabled: boolean; variables: EnvironmentVariable[] } => {
   const envVars = deployment.model.spec.template?.containers?.[0]?.env || [];
   return {
     enabled: envVars.length > 0,

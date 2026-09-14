@@ -122,6 +122,23 @@ describe('mapK8sEnvToEnvironmentVariable', () => {
     });
   });
 
+  it('should map unsupported valueFrom refs to empty value env vars', () => {
+    expect(
+      mapK8sEnvToEnvironmentVariable({
+        name: 'POD_NAME',
+        valueFrom: {
+          fieldRef: {
+            fieldPath: 'metadata.name',
+          },
+        },
+      }),
+    ).toEqual({
+      type: EnvironmentVariableType.Value,
+      name: 'POD_NAME',
+      value: '',
+    });
+  });
+
   it('should default empty values to empty string', () => {
     expect(
       mapK8sEnvToEnvironmentVariable({

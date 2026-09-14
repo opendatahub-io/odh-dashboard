@@ -14,6 +14,7 @@ import {
   filterRuntimeArgsForContainer,
   mapEnvironmentVariablesToK8sEnv,
   mapK8sEnvToEnvironmentVariable,
+  type EnvironmentVariable,
   type K8sEnvironmentVariable,
   type ModelTypeFieldData,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
@@ -159,7 +160,7 @@ export const extractRuntimeArgs = (
 
 export const extractEnvironmentVariables = (
   llmdDeployment: LLMdDeployment,
-): { enabled: boolean; variables: ReturnType<typeof mapK8sEnvToEnvironmentVariable>[] } | null => {
+): { enabled: boolean; variables: EnvironmentVariable[] } | null => {
   const envVars =
     llmdDeployment.model.spec.template?.containers
       ?.find((container) => container.name === 'main')

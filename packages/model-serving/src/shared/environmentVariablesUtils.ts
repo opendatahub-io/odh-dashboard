@@ -57,8 +57,35 @@ export type K8sSecretKeyRef = {
   optional?: boolean;
 };
 
+export type K8sConfigMapKeyRef = {
+  name: string;
+  key: string;
+  optional?: boolean;
+};
+
+export type K8sFieldRef = {
+  apiVersion?: string;
+  fieldPath: string;
+};
+
+export type K8sResourceFieldRef = {
+  containerName?: string;
+  divisor?: string;
+  resource: string;
+};
+
+/**
+ * Kubernetes container env `valueFrom` as defined by serving CRDs.
+ * The wizard only supports `secretKeyRef`; other refs are not editable in the UI.
+ */
 export type K8sEnvironmentVariableValueFrom = {
-  secretKeyRef: K8sSecretKeyRef;
+  secretKeyRef?: K8sSecretKeyRef;
+  /** Not supported by the deployment wizard. */
+  configMapKeyRef?: K8sConfigMapKeyRef;
+  /** Not supported by the deployment wizard. */
+  fieldRef?: K8sFieldRef;
+  /** Not supported by the deployment wizard. */
+  resourceFieldRef?: K8sResourceFieldRef;
 };
 
 /** Env var as written to serving CRs (value or secretKeyRef, never both). */
@@ -66,43 +93,16 @@ export type K8sEnvironmentVariable =
   | { name: string; value: string }
   | {
       name: string;
-      valueFrom: K8sEnvironmentVariableValueFrom;
+      valueFrom: {
+        secretKeyRef: K8sSecretKeyRef;
+      };
     };
 
-/** Env var as read from CRs (looser than write shape). */
+/** Env var as read from serving CRs (matches CRD OpenAPI shapes). */
 export type K8sEnvironmentVariableInput = {
   name: string;
   value?: string | number;
-  valueFrom?: K8sEnvironmentVariableValueFrom | Record<string, unknown>;
-};
-
-const isK8sEnvironmentVariableValueFrom = (
-  valueFrom: K8sEnvironmentVariableValueFrom | Record<string, unknown>,
-): valueFrom is K8sEnvironmentVariableValueFrom => {
-  const { secretKeyRef } = valueFrom;
-  return (
-    secretKeyRef !== null &&
-    typeof secretKeyRef === 'object' &&
-    'name' in secretKeyRef &&
-    'key' in secretKeyRef &&
-    typeof secretKeyRef.name === 'string' &&
-    typeof secretKeyRef.key === 'string'
-  );
-};
-
-const getSecretKeyRef = (
-  valueFrom: K8sEnvironmentVariableValueFrom | Record<string, unknown>,
-): K8sSecretKeyRef | undefined => {
-  if (!isK8sEnvironmentVariableValueFrom(valueFrom)) {
-    return undefined;
-  }
-
-  const { secretKeyRef } = valueFrom;
-  return {
-    name: secretKeyRef.name,
-    key: secretKeyRef.key,
-    ...(secretKeyRef.optional ? { optional: true } : {}),
-  };
+  valueFrom?: K8sEnvironmentVariableValueFrom;
 };
 
 export const createDefaultEnvironmentVariable = (): ValueEnvironmentVariable => ({
@@ -203,25 +203,21 @@ export const mapEnvironmentVariablesToK8sEnv = (
 export const mapK8sEnvToEnvironmentVariable = (
   envVar: K8sEnvironmentVariableInput,
 ): EnvironmentVariable => {
-  if (envVar.valueFrom) {
-    const secretKeyRef = getSecretKeyRef(envVar.valueFrom);
-    if (secretKeyRef) {
-      return {
-        type: EnvironmentVariableType.Secret,
-        name: envVar.name,
-        secretName: secretKeyRef.name,
-        secretKey: secretKeyRef.key,
-        ...(secretKeyRef.optional ? { optional: true } : {}),
-      };
-    }
+  const secretKeyRef = envVar.valueFrom?.secretKeyRef;
+  if (secretKeyRef) {
+    return {
+      type: EnvironmentVariableType.Secret,
+      name: envVar.name,
+      secretName: secretKeyRef.name,
+      secretKey: secretKeyRef.key,
+      ...(secretKeyRef.optional ? { optional: true } : {}),
+    };
   }
-
-  const value = envVar.value != null ? String(envVar.value) : '';
 
   return {
     type: EnvironmentVariableType.Value,
     name: envVar.name,
-    value,
+    value: envVar.value != null ? String(envVar.value) : '',
   };
 };
 
