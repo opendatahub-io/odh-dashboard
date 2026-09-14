@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"os"
@@ -26,8 +27,10 @@ import (
 )
 
 const (
-	dashboardCRDName = "dashboards.components.platform.opendatahub.io"
-	preflightTimeout = 30 * time.Second
+	dashboardCRDName       = "dashboards.components.platform.opendatahub.io"
+	serviceCAConfigMapName = "openshift-service-ca.crt"
+	serviceCAConfigMapKey  = "service-ca.crt"
+	preflightTimeout       = 30 * time.Second
 )
 
 var (
@@ -36,6 +39,8 @@ var (
 	testNamespace     string
 	testGatewayDomain string
 	dashboardUID      types.UID
+	gatewayCARoots    *x509.CertPool
+	serviceCARoots    *x509.CertPool
 )
 
 func TestMain(m *testing.M) {
@@ -172,12 +177,62 @@ func initializeE2E() error {
 		)
 	}
 
+	gatewayRoots, err := loadGatewayCARoots(os.Getenv("TEST_GATEWAY_CA_BUNDLE"))
+	if err != nil {
+		return err
+	}
+	serviceRoots, err := loadServiceCARoots(ctx, c, namespace)
+	if err != nil {
+		return err
+	}
+
 	k8sClient = c
 	restConfig = config
 	testNamespace = namespace
 	testGatewayDomain = gatewayDomain
+	gatewayCARoots = gatewayRoots
+	serviceCARoots = serviceRoots
 
 	return nil
+}
+
+func loadGatewayCARoots(bundlePath string) (*x509.CertPool, error) {
+	roots, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("load system certificate roots: %w", err)
+	}
+	if bundlePath == "" {
+		return roots, nil
+	}
+
+	info, err := os.Stat(bundlePath)
+	if err != nil {
+		return nil, fmt.Errorf("cannot access TEST_GATEWAY_CA_BUNDLE: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.New("TEST_GATEWAY_CA_BUNDLE must point to a regular file")
+	}
+	bundle, err := os.ReadFile(bundlePath)
+	if err != nil {
+		return nil, fmt.Errorf("read TEST_GATEWAY_CA_BUNDLE: %w", err)
+	}
+	if !roots.AppendCertsFromPEM(bundle) {
+		return nil, errors.New("TEST_GATEWAY_CA_BUNDLE does not contain a valid PEM certificate")
+	}
+	return roots, nil
+}
+
+func loadServiceCARoots(ctx context.Context, c client.Client, namespace string) (*x509.CertPool, error) {
+	configMap := &corev1.ConfigMap{}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: serviceCAConfigMapName}, configMap); err != nil {
+		return nil, fmt.Errorf("get Service CA ConfigMap %s/%s: %w", namespace, serviceCAConfigMapName, err)
+	}
+	bundle := configMap.Data[serviceCAConfigMapKey]
+	roots := x509.NewCertPool()
+	if bundle == "" || !roots.AppendCertsFromPEM([]byte(bundle)) {
+		return nil, fmt.Errorf("Service CA ConfigMap %s/%s does not contain a valid %q PEM bundle", namespace, serviceCAConfigMapName, serviceCAConfigMapKey)
+	}
+	return roots, nil
 }
 
 func newE2EScheme() (*runtime.Scheme, error) {

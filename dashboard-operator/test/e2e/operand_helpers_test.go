@@ -180,6 +180,13 @@ func TestMissingOperandResources(t *testing.T) {
 
 	inventory.deployments = inventory.deployments[1:]
 	require.Contains(t, missingOperandResources(inventory), "Deployment/{odh-dashboard,rhods-dashboard}")
+
+	inventory.deployments = append(inventory.deployments, appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard"}})
+	inventory.services[0].Name = "rhods-dashboard"
+	require.ElementsMatch(t, []string{
+		"Deployment/{odh-dashboard,rhods-dashboard}",
+		"Service/{odh-dashboard,rhods-dashboard}",
+	}, missingOperandResources(inventory))
 }
 
 func TestFindCoreDeployment(t *testing.T) {

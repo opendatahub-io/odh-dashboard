@@ -180,20 +180,19 @@ func missingOperandResources(inventory operandInventory) []string {
 			missing = append(missing, "Service/"+operand.service)
 		}
 	}
-	if !containsEither(deployments, "odh-dashboard", "rhods-dashboard") {
+	odhCorePair := contains(deployments, "odh-dashboard") && contains(services, "odh-dashboard")
+	rhodsCorePair := contains(deployments, "rhods-dashboard") && contains(services, "rhods-dashboard")
+	if !odhCorePair && !rhodsCorePair {
 		missing = append(missing, "Deployment/{odh-dashboard,rhods-dashboard}")
-	}
-	if !containsEither(services, "odh-dashboard", "rhods-dashboard") {
 		missing = append(missing, "Service/{odh-dashboard,rhods-dashboard}")
 	}
 	sort.Strings(missing)
 	return missing
 }
 
-func containsEither(items map[string]struct{}, first, second string) bool {
-	_, firstFound := items[first]
-	_, secondFound := items[second]
-	return firstFound || secondFound
+func contains(items map[string]struct{}, name string) bool {
+	_, found := items[name]
+	return found
 }
 
 func findCoreDeployment(deployments []appsv1.Deployment) (*appsv1.Deployment, error) {

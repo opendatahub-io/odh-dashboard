@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,7 +83,7 @@ func TestE2E_DashboardRoute_Admitted(t *testing.T) {
 	defer cancel()
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, dashboardURL.String(), nil)
 	require.NoError(t, err)
-	response, err := insecureTestHTTPClient().Do(request)
+	response, err := routeHTTPClient().Do(request)
 	require.NoError(t, err)
 	defer func() {
 		require.NoError(t, response.Body.Close())
@@ -122,14 +123,16 @@ func TestE2E_BFFHealthchecks(t *testing.T) {
 			healthcheckURL := fmt.Sprintf("https://127.0.0.1:%d/healthcheck", localPort)
 			request, err := http.NewRequestWithContext(ctx, http.MethodGet, healthcheckURL, nil)
 			require.NoError(t, err)
-			response, err := insecureTestHTTPClient().Do(request)
+			response, err := bffHTTPClient(target.service).Do(request)
 			require.NoError(t, err)
 			defer func() {
 				require.NoError(t, response.Body.Close())
 			}()
 			body, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, response.StatusCode, "healthcheck response: %s", string(body))
+			require.Equal(t, http.StatusOK, response.StatusCode,
+				"healthcheck returned status %s, content type %q, and %d response bytes",
+				response.Status, response.Header.Get("Content-Type"), len(body))
 		})
 	}
 }
@@ -177,11 +180,20 @@ func TestE2E_PodDisruptionBudget_Created(t *testing.T) {
 	require.True(t, anyReadyPod(pods.Items), "PDB selector does not select a ready pod")
 }
 
-func insecureTestHTTPClient() *http.Client {
+func routeHTTPClient() *http.Client {
+	return verifiedHTTPClient(testGatewayDomain, gatewayCARoots)
+}
+
+func bffHTTPClient(serviceName string) *http.Client {
+	return verifiedHTTPClient(fmt.Sprintf("%s.%s.svc", serviceName, testNamespace), serviceCARoots)
+}
+
+func verifiedHTTPClient(serverName string, roots *x509.CertPool) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{ //nolint:gosec // E2E clusters may use a self-signed ingress or Service certificate.
-		MinVersion:         tls.VersionTLS12,
-		InsecureSkipVerify: true,
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		RootCAs:    roots,
+		ServerName: serverName,
 	}
 	return &http.Client{
 		Transport: transport,

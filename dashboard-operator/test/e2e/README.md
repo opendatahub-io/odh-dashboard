@@ -21,8 +21,9 @@ delete that singleton resource.
 - A kubeconfig stored in one file.
 - A configured Gateway whose externally reachable hostname is known.
 - RBAC to get the test Namespace and Dashboard CRD; get, create, patch, and
-  delete Dashboards; get Deployments, Services, Endpoints, Pods,
-  PodDisruptionBudgets, and HTTPRoutes in the test namespace; and create the
+  delete Dashboards; get and list Deployments, Services, Pods,
+  PodDisruptionBudgets, and HTTPRoutes; get Endpoints and the
+  `openshift-service-ca.crt` ConfigMap in the test namespace; and create the
   `pods/portforward` subresource.
 
 Set the required environment variables:
@@ -31,6 +32,8 @@ Set the required environment variables:
 export KUBECONFIG=/absolute/path/to/kubeconfig
 export TEST_NAMESPACE=dashboard-operator-e2e
 export TEST_GATEWAY_DOMAIN=dashboard.example.com
+# Optional for gateways signed by a CA outside the host's system trust bundle:
+export TEST_GATEWAY_CA_BUNDLE=/absolute/path/to/gateway-ca.pem
 ```
 
 `TestMain` verifies connectivity, the namespace, the gateway domain, the
@@ -117,7 +120,7 @@ and the core PodDisruptionBudget selects ready Dashboard pods.
 
 The BFF checks use the HTTPS Service ports declared by the current module
 registry (`8043`, `8143`, `8243`, `8343`, `8543`, `8643`, `8743`, and `8843`).
-They port-forward to a ready backing pod through the Kubernetes API and relax
-certificate verification only for these test requests because OpenShift
-Service certificates and development ingress certificates may not be trusted
-by the host running the suite.
+They port-forward to a ready backing pod through the Kubernetes API and verify
+each certificate with the namespace's `openshift-service-ca.crt` bundle and the
+Service DNS name. The external route uses the expected gateway domain and the
+host's system trust bundle, augmented by `TEST_GATEWAY_CA_BUNDLE` when set.
