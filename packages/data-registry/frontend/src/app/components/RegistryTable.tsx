@@ -21,6 +21,9 @@ import {
   Dropdown,
   DropdownList,
   DropdownItem,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
@@ -107,7 +110,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     if (searchText) {
       const lower = searchText.toLowerCase();
       result = result.filter(
-        (a) => a.name.toLowerCase().includes(lower) || a.description.toLowerCase().includes(lower),
+        (a) =>
+          a.name.toLowerCase().includes(lower) ||
+          a.description.toLowerCase().includes(lower) ||
+          a.labels.some((label) => label.toLowerCase().includes(lower)),
       );
     }
     if (selectedLabels.length > 0) {
@@ -203,7 +209,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               onClick={() => setIsValueOpen((prev) => !prev)}
               isExpanded={isValueOpen}
               data-testid="filter-value"
-              style={{ width: '180px' }}
+              style={{ minWidth: '180px' }}
             >
               Labels{' '}
               {selectedLabels.length > 0 ? (
@@ -247,7 +253,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               onClick={() => setIsValueOpen((prev) => !prev)}
               isExpanded={isValueOpen}
               data-testid="filter-value"
-              style={{ width: '180px' }}
+              style={{ minWidth: '180px' }}
             >
               {selectedAssetType || 'All asset types'}
             </MenuToggle>
@@ -278,7 +284,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             onClick={() => setIsValueOpen((prev) => !prev)}
             isExpanded={isValueOpen}
             data-testid="filter-value"
-            style={{ width: '180px' }}
+            style={{ minWidth: '180px' }}
           >
             {selectedFormat
               ? FORMAT_OPTIONS.find((f) => f.key === selectedFormat)?.label || selectedFormat
@@ -345,108 +351,112 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ gap: 0 }}>
-          {/* Category selector */}
-          <FlexItem style={{ marginRight: '3px' }}>
-            <Select
-              isOpen={isCategoryOpen}
-              selected={filterCategory}
-              onSelect={(_event, value) => {
-                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                setFilterCategory(value as FilterCategory);
-                setIsCategoryOpen(false);
-                setIsValueOpen(false);
-              }}
-              onOpenChange={setIsCategoryOpen}
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsCategoryOpen((prev) => !prev)}
-                  isExpanded={isCategoryOpen}
-                  data-testid="filter-category"
-                  style={{ width: '150px' }}
-                >
-                  <FilterIcon /> {CATEGORY_LABELS[filterCategory]}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                <SelectOption value="labels">Labels</SelectOption>
-                <SelectOption value="assetType">Asset type</SelectOption>
-                <SelectOption value="format">Format</SelectOption>
-              </SelectList>
-            </Select>
-          </FlexItem>
-          {/* Value selector */}
-          <FlexItem style={{ marginRight: '6px' }}>{renderValueDropdown()}</FlexItem>
-          {/* Search */}
-          <FlexItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
-            <SearchInput
-              placeholder="Filter by name, description or keywords"
-              value={searchText}
-              onChange={(_event, value) => {
-                setSearchText(value);
-                setPage(1);
-              }}
-              onClear={() => {
-                setSearchText('');
-                setPage(1);
-              }}
-              data-testid="asset-search"
-              style={{ width: '340px' }}
-            />
-          </FlexItem>
-          {/* Register data button */}
-          <FlexItem>
-            <Button
-              variant="primary"
-              onClick={onRegisterData}
-              isDisabled={!hasWriteAccess}
-              data-testid="register-data-button"
-            >
-              Register data
-            </Button>
-          </FlexItem>
-          {/* Kebab */}
-          <FlexItem>
-            <Dropdown
-              isOpen={isKebabOpen}
-              onSelect={() => setIsKebabOpen(false)}
-              onOpenChange={setIsKebabOpen}
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsKebabOpen((prev) => !prev)}
-                  isExpanded={isKebabOpen}
-                  variant="plain"
-                  aria-label="Actions"
-                  data-testid="registry-kebab"
-                >
-                  <EllipsisVIcon />
-                </MenuToggle>
-              )}
-            >
-              <DropdownList>
-                <DropdownItem
-                  key="manage-collections"
-                  onClick={onManageCollections}
-                  isDisabled={!hasWriteAccess}
-                  data-testid="manage-collections-action"
-                >
-                  Manage collections
-                </DropdownItem>
-                <DropdownItem
-                  key="manage-labels"
-                  onClick={onManageLabels}
-                  isDisabled={!hasWriteAccess}
-                  data-testid="manage-labels-action"
-                >
-                  Manage labels
-                </DropdownItem>
-              </DropdownList>
-            </Dropdown>
-          </FlexItem>
-        </Flex>
+        <Toolbar>
+          <ToolbarContent>
+            {/* Category selector */}
+            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
+              <Select
+                isOpen={isCategoryOpen}
+                selected={filterCategory}
+                onSelect={(_event, value) => {
+                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                  setFilterCategory(value as FilterCategory);
+                  setIsCategoryOpen(false);
+                  setIsValueOpen(false);
+                }}
+                onOpenChange={setIsCategoryOpen}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsCategoryOpen((prev) => !prev)}
+                    isExpanded={isCategoryOpen}
+                    data-testid="filter-category"
+                    style={{ minWidth: '150px' }}
+                  >
+                    <FilterIcon /> {CATEGORY_LABELS[filterCategory]}
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  <SelectOption value="labels">Labels</SelectOption>
+                  <SelectOption value="assetType">Asset type</SelectOption>
+                  <SelectOption value="format">Format</SelectOption>
+                </SelectList>
+              </Select>
+            </ToolbarItem>
+            {/* Value selector */}
+            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
+              {renderValueDropdown()}
+            </ToolbarItem>
+            {/* Search */}
+            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
+              <SearchInput
+                placeholder="Filter by name, description or keywords"
+                value={searchText}
+                onChange={(_event, value) => {
+                  setSearchText(value);
+                  setPage(1);
+                }}
+                onClear={() => {
+                  setSearchText('');
+                  setPage(1);
+                }}
+                data-testid="asset-search"
+                style={{ minWidth: '340px' }}
+              />
+            </ToolbarItem>
+            {/* Register data button */}
+            <ToolbarItem>
+              <Button
+                variant="primary"
+                onClick={onRegisterData}
+                isDisabled={!hasWriteAccess}
+                data-testid="register-data-button"
+              >
+                Register data
+              </Button>
+            </ToolbarItem>
+            {/* Kebab */}
+            <ToolbarItem>
+              <Dropdown
+                isOpen={isKebabOpen}
+                onSelect={() => setIsKebabOpen(false)}
+                onOpenChange={setIsKebabOpen}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsKebabOpen((prev) => !prev)}
+                    isExpanded={isKebabOpen}
+                    variant="plain"
+                    aria-label="Actions"
+                    data-testid="registry-kebab"
+                  >
+                    <EllipsisVIcon />
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  <DropdownItem
+                    key="manage-collections"
+                    onClick={onManageCollections}
+                    isDisabled={!hasWriteAccess}
+                    data-testid="manage-collections-action"
+                  >
+                    Manage collections
+                  </DropdownItem>
+                  <DropdownItem
+                    key="manage-labels"
+                    onClick={onManageLabels}
+                    isDisabled={!hasWriteAccess}
+                    data-testid="manage-labels-action"
+                  >
+                    Manage labels
+                  </DropdownItem>
+                </DropdownList>
+              </Dropdown>
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
 
         {/* Active filter chips */}
         {hasActiveFilters ? (

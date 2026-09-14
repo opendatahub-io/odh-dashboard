@@ -76,11 +76,16 @@ func (app *App) DataRegistryReverseProxy() http.Handler {
 
 		if identity.UserID == "" {
 			client, err := app.kubernetesClientFactory.GetClient(r.Context())
-			if err == nil {
-				if userID, err := client.GetUser(identity); err == nil {
-					identity.UserID = userID
-				}
+			if err != nil {
+				app.serviceUnavailableResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
 			}
+			userID, err := client.GetUser(identity)
+			if err != nil || userID == "" {
+				app.unauthorizedResponse(w, r, fmt.Errorf("failed to resolve verified user"))
+				return
+			}
+			identity.UserID = userID
 		}
 
 		reverseProxy.ServeHTTP(w, r)

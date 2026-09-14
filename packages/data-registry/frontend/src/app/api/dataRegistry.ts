@@ -34,6 +34,12 @@ const schemaFieldSchema = z.object({
   nullable: z.boolean().optional(),
 });
 
+const connectionRefSchema = z.union([
+  z.object({ type: z.literal('dch'), id: z.string() }),
+  // eslint-disable-next-line camelcase
+  z.object({ type: z.literal('rhai'), secret_name: z.string() }),
+]);
+
 const assetResponseSchema = z
   .object({
     name: z.string(),
@@ -53,8 +59,14 @@ const volumeInfoSchema = z
     'storage-location': z.string(),
     labels: z.array(z.string()).nullable().optional(),
     properties: z.record(z.string(), z.string()).optional(),
+    // eslint-disable-next-line camelcase
+    connection_ref: connectionRefSchema.nullable().optional(),
   })
   .passthrough();
+
+const listVolumesResponseSchema = z.object({
+  volumes: z.array(volumeInfoSchema).optional(),
+});
 
 const fetchJSON = async <T>(url: string, schema?: z.ZodType<T>): Promise<T> => {
   const response = await fetch(url);
@@ -141,7 +153,7 @@ export const deleteGenericTable = (
 // Volumes
 
 export const fetchVolumes = (project: string, collection: string): Promise<ListVolumesResponse> =>
-  fetchJSON(registryUrl(`/${project}/namespaces/${collection}/volumes`));
+  fetchJSON(registryUrl(`/${project}/namespaces/${collection}/volumes`), listVolumesResponseSchema);
 
 export const createVolume = async (
   project: string,

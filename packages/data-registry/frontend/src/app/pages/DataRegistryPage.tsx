@@ -195,9 +195,9 @@ const DataRegistryPage: React.FC = () => {
           </PageSection>
           <PageSection hasBodyWrapper={false}>
             <Content component="p">
-              Select a data registry to view and manage your enterprise data resources. Data
-              registries provide a structured and organized way to discover, share, version, and
-              connect schemas, datasets, and data sources across your projects.
+              View and manage data assets registered in the selected project. The data registry
+              provides a structured and organized way to discover, share, version, and connect
+              schemas, datasets, and data sources.
             </Content>
           </PageSection>
           <RegistryTable

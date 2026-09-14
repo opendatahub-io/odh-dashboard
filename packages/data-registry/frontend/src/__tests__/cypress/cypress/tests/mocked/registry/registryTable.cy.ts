@@ -405,9 +405,9 @@ describe('Register Volume', () => {
         location: '/data/docs',
       });
       expect(interception.request.body.properties).to.deep.include({
-        purpose: 'ML training',
-        license: 'apache-2.0',
-        maturity: 'production',
+        volume_purpose: 'ML training',
+        volume_license: 'apache-2.0',
+        volume_maturity: 'production',
         pii_status: 'none',
       });
     });
