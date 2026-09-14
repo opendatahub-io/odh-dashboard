@@ -834,8 +834,13 @@ JSON
 ```
 
 After collect (step 5), rewrite the same file with `"returned"` — the
-ids that actually produced a parseable result — and set `"challenger"`
-to `ran`, `skipped-empty-set`, or `failed`.
+ids that actually produced a parseable result — and set `"challenger"` to
+`ran`, `failed`, or `skipped: <reason in your own words>`. Record the
+reason you actually had. Do not reach for the nearest listed value when
+none fits: the host cross-checks this record against the finding list, so
+`skipped: no findings to adjudicate` alongside a non-empty finding set is
+reported back as a contradiction rather than believed. Leaving the field
+at `pending` is likewise treated as "never rewritten", not as a skip.
 
 Every registry row must appear in exactly one of `dispatched`,
 `skipped`, or `adapters`. The host reconciles the review's own claims
@@ -989,6 +994,13 @@ keep both** — they serve different remediation audiences. A logic error
 and an auth bypass on the same line are two distinct findings.
 
 #### 6d. Challenger pass (dedicated sub-agent)
+
+**An empty merged finding set is the only sanctioned reason to skip the
+challenger.** Its job is adversarial review of findings that a
+re-review inherits just as much as a first review does: findings carried
+forward unchallenged are exactly the ones most likely to be stale. If you
+skip it for any other reason, record that reason verbatim in the ledger
+(step 4c) — never as the empty-set reason.
 
 **Skip the challenger when the merged finding set is empty.** It
 adjudicates findings; with nothing to adjudicate it can only spend a
@@ -1326,8 +1338,15 @@ the review did not complete.
 Every non-failure result must include:
 
 - `schema_version: "2"`.
-- `change_summary`: one short independent read of what the diff does, not a
-  file list and not copied from the PR body.
+- `change_summary`: one short independent read of what **this PR's diff**
+  does — base branch to head — not a file list and not copied from the PR
+  body. It is not a summary of `changed_since_prior`. On a re-review those
+  two differ, and they differ most when the head has just merged the base
+  branch in: the incremental delta is then full of base-branch files the PR
+  does not own. Describing those produces a confident summary of somebody
+  else's change. `changed_since_prior` exists to scope re-review dispatch
+  (step 3c) and has no place here. When in doubt, re-read the PR files list
+  from step 2 and summarize exactly those.
 - `findings[]` when issues survive synthesis. Critical/high/medium findings
   require `why`; critical/high findings also require `remediation`.
 - `risk: { level, why }`: blast radius if this change ships wrong. `low` is
