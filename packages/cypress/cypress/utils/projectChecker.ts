@@ -72,7 +72,6 @@ export const findActiveProjectByPrefix = (prefix: string): Cypress.Chainable<str
       return checkNext(0);
     });
 
-
 export const createCleanProject = (projectName: string): Cypress.Chainable<boolean> =>
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
