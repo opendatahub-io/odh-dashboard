@@ -157,9 +157,9 @@ type AutoragConfigureProps = {
 
 const MAAS_MODELS_ERROR_TITLE = 'Failed to load MaaS models';
 const MAAS_MODELS_ERROR_MESSAGE = 'Check that the selected MaaS connection is valid and try again.';
-const MODEL_RESTORE_WARNING_TITLE = 'Unable to restore all settings';
+const MODEL_RESTORE_WARNING_TITLE = 'Some previously selected models are unavailable';
 const MODEL_RESTORE_WARNING_MESSAGE =
-  'Some selected models are no longer available and could not be restored. Select replacement models to continue.';
+  'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.';
 
 function AutoragConfigure({
   initialValues,

@@ -467,8 +467,8 @@ describe('AutoragConfigure', () => {
         );
       });
       expect(mockNotificationWarning).toHaveBeenCalledWith(
-        'Unable to restore all settings',
-        'Some selected models are no longer available and could not be restored. Select replacement models to continue.',
+        'Some previously selected models are unavailable',
+        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
       );
     });
 
@@ -498,8 +498,8 @@ describe('AutoragConfigure', () => {
       await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
       expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
       expect(mockNotificationWarning).toHaveBeenCalledWith(
-        'Unable to restore all settings',
-        'Some selected models are no longer available and could not be restored. Select replacement models to continue.',
+        'Some previously selected models are unavailable',
+        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
       );
     });
 
@@ -614,8 +614,8 @@ describe('AutoragConfigure', () => {
       await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
       expect(getLatestFormValues().embedding_models).toEqual([]);
       expect(mockNotificationWarning).toHaveBeenCalledWith(
-        'Unable to restore all settings',
-        'Some selected models are no longer available and could not be restored. Select replacement models to continue.',
+        'Some previously selected models are unavailable',
+        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
       );
     });
   });

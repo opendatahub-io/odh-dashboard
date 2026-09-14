@@ -410,8 +410,8 @@ describe('AutoragReconfigureLoader', () => {
       'The previously used vector database connection "missing-vector-db" could not be found. Please select a new connection.',
     );
     expect(mockWarning).not.toHaveBeenCalledWith(
-      'Unable to restore all settings',
-      expect.stringContaining('selected models are no longer available'),
+      'Some previously selected models are unavailable',
+      'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
     );
   });
 
