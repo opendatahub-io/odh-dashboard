@@ -688,7 +688,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -741,7 +741,7 @@ describe('AutoragResults', () => {
       expect(buildStageMapTopologyMock).toHaveBeenCalled();
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -773,7 +773,7 @@ describe('AutoragResults', () => {
 
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -786,7 +786,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -800,7 +800,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
