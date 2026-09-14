@@ -291,8 +291,12 @@ class GenAiPlayground {
     return cy.findByTestId('prompt-variable-input-panel');
   }
 
+  scrollPromptTabToBottom() {
+    return cy.findByTestId('chatbot-settings-page-tab-content-prompt').scrollTo('bottom');
+  }
+
   findVariableInput(variableName: string) {
-    return cy.findByTestId(`prompt-variable-input-${variableName}`);
+    return cy.findByTestId(`prompt-variable-input-${variableName}`).scrollIntoView();
   }
 
   // RAG / Knowledge upload methods
