@@ -227,9 +227,9 @@ function AutoragConfigure({
     () => maasModelsQuery.data?.models ?? [],
     [maasModelsQuery.data],
   );
-  const maasModelsLoaded =
-    maasModelsQuery.isSuccess ||
-    (!maasModelsQuery.isLoading && !maasModelsQuery.isError && !!maasModelsQuery.data);
+  const hasMaaSModelsData = !!maasModelsQuery.data;
+  const maasModelsError = maasModelsQuery.isError && !hasMaaSModelsData;
+  const maasModelsLoaded = hasMaaSModelsData;
   const maasModelsErrorRef = useRef<string>();
   const maasModelsSecretRef = useRef(maasSecretName);
   const reconciledMaaSResultRef = useRef<string>();
@@ -239,7 +239,7 @@ function AutoragConfigure({
       maasModelsSecretRef.current = maasSecretName;
       maasModelsErrorRef.current = undefined;
     }
-    if (!maasModelsQuery.isError || !maasSecretName) {
+    if (!maasModelsError || !maasSecretName) {
       return;
     }
 
@@ -250,7 +250,7 @@ function AutoragConfigure({
 
     maasModelsErrorRef.current = errorKey;
     notification.error(MAAS_MODELS_ERROR_TITLE, MAAS_MODELS_ERROR_MESSAGE);
-  }, [maasModelsQuery.error, maasModelsQuery.isError, maasSecretName, notification]);
+  }, [maasModelsError, maasModelsQuery.error, maasSecretName, notification]);
 
   const [
     inputDataSecretName,
@@ -1082,8 +1082,7 @@ function AutoragConfigure({
                         description="Select models to determine how documents are retrieved and which models generate responses."
                         isRequired
                       >
-                        {maasModelsQuery.isError ||
-                        (maasModelsLoaded && maasModels.length === 0) ? (
+                        {maasModelsError || (maasModelsLoaded && maasModels.length === 0) ? (
                           <Alert
                             variant="danger"
                             isInline

@@ -307,4 +307,31 @@ describe('useMaaSModelsQuery', () => {
     expect(secondObserver.result.current.data).toEqual(models);
     expect(getMaaSModelsMock).toHaveBeenCalledTimes(1);
   });
+
+  it('should settle into usable model data when the first request fails', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: 1, retryDelay: 0 } },
+    });
+    const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+    const models = {
+      models: [{ id: 'llama-3-8b', ready: true }],
+    };
+    const request = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('temporary failure'))
+      .mockResolvedValueOnce(models);
+    getMaaSModelsMock.mockReturnValue((() => request) as never);
+
+    const { result } = renderHook(() => useMaaSModelsQuery('test-ns', 'maas-secret'), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toEqual(models);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
 });

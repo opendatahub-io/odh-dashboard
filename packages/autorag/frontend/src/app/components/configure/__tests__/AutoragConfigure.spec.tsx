@@ -1426,6 +1426,74 @@ describe('AutoragConfigure', () => {
         'Failed to load MaaS models',
         'Check that the selected MaaS connection is valid and try again.',
       );
+      expect(mockNotificationError).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep retained model data usable during a background refetch error', async () => {
+      const onMaaSModelsReady = jest.fn();
+      const models = {
+        models: [
+          { id: 'generation-model', ready: true },
+          { id: 'embedding-model', ready: true },
+        ],
+      };
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: models,
+        isLoading: false,
+        isFetching: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          maas_secret_name: 'maas-secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_keys: ['input.txt'],
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['generation-model'],
+          embedding_models: ['embedding-model'],
+        },
+        undefined,
+        false,
+        { onMaaSModelsReady },
+      );
+
+      expect(screen.getByText('1 foundation models')).toBeInTheDocument();
+      expect(screen.getByText('1 embedding models')).toBeInTheDocument();
+
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: models,
+        isLoading: false,
+        isFetching: true,
+        isError: true,
+        isSuccess: false,
+        error: new Error('background refetch failed'),
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+      fireEvent.click(screen.getByTestId('preset-radio-balanced'));
+
+      await waitFor(() => {
+        expect(screen.getByText('1 foundation models')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('maas-models-error')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('selected-models-warning')).not.toBeInTheDocument();
+      expect(mockNotificationError).not.toHaveBeenCalled();
+      expect(onMaaSModelsReady).toHaveBeenLastCalledWith(true);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+      const generationRows = screen.getAllByTestId('model-row-generation-model');
+      expect(generationRows).toHaveLength(2);
+      expect(generationRows[0].querySelector('input')).toBeEnabled();
     });
 
     it('should show the page-level error and disable model selection when no models are returned', () => {
