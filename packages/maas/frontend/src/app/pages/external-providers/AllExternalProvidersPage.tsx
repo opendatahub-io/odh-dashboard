@@ -121,12 +121,11 @@ const AllExternalProvidersPage: React.FC = () => {
         errorMessage="Error loading external providers"
         empty={noProjects}
         emptyStatePage={<NoProjectsPage />}
-        data-testid="all-external-providers-page"
         breadcrumb={breadcrumb}
         provideChildrenPadding
         removeChildrenTopPadding
       >
-        <Stack hasGutter>
+        <Stack hasGutter data-testid="all-external-providers-page">
           <StackItem>
             <MaaSExternalResourcesProjectSelector
               namespace={resolvedNamespace || ''}
