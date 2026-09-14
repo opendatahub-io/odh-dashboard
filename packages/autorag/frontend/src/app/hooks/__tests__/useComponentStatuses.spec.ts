@@ -15,7 +15,7 @@ import {
   matchesComponentTaskName,
   resolveActiveRunLevelPrefix,
   resolveComponentTaskS3Prefix,
-  ComponentStatusFileSchema,
+  parseComponentStatusArtifact,
   useComponentStatuses,
 } from '~/app/hooks/useComponentStatuses';
 import type { ComponentStatusFile } from '~/app/hooks/useComponentStatuses';
@@ -433,6 +433,108 @@ describe('mergeStatusIntoStageMap', () => {
     expect(mergedComponent.metadata).toEqual({});
   });
 
+  it('should normalize canonical nested status and metrics into the stage map model', () => {
+    const status = parseComponentStatusArtifact({
+      component_id: 'rag_optimization',
+      started_at: '2026-06-04T17:49:19.223056Z',
+      metadata: { display_name: 'RAG Templates Optimization Status' },
+      stages: [
+        {
+          id: 'optimize_templates',
+          status: {
+            state: 'completed',
+            step: 'evaluation',
+            message: { level: 'info', text: 'Optimization complete' },
+          },
+          metrics: {
+            selected_patterns: ['pattern_a', 'pattern_b'],
+            max_rag_patterns: 2,
+          },
+        },
+      ],
+    });
+    const result = mergeStatusIntoStageMap(
+      mockComponentStageMap,
+      new Map([['rag_optimization', status]]),
+    );
+    const stage = result.components
+      .find((component) => component.id === 'rag_optimization')!
+      .stages.find((candidate) => candidate.id === 'optimize_templates')!;
+
+    expect(stage.status).toBe('completed');
+    expect(stage.step).toBe('evaluation');
+    expect(stage.message).toEqual({ level: 'info', text: 'Optimization complete' });
+    expect(stage.max_rag_patterns).toBe(2);
+    expect(stage.selected_patterns).toEqual(['pattern_a', 'pattern_b']);
+  });
+
+  it('should keep canonical running status valid without completed_at', () => {
+    const status = parseComponentStatusArtifact({
+      component_id: 'rag_optimization',
+      started_at: '2026-06-04T17:49:19.223056Z',
+      metadata: { display_name: 'RAG Templates Optimization Status' },
+      stages: [
+        {
+          id: 'optimize_templates',
+          status: { state: 'running', running_at: '2026-06-04T17:49:20Z' },
+        },
+      ],
+    });
+
+    expect(status.completed_at).toBeUndefined();
+    expect(status.stages[0].status).toBe('running');
+    expect(status.stages[0].running_at).toBe('2026-06-04T17:49:20Z');
+    expect(isComponentFullyComplete(status)).toBe(false);
+  });
+
+  it('should cache canonical failed components as terminal', () => {
+    const status = parseComponentStatusArtifact({
+      component_id: 'rag_optimization',
+      started_at: '2026-06-04T17:49:19.223056Z',
+      completed_at: '2026-06-04T17:49:21Z',
+      metadata: { display_name: 'RAG Templates Optimization Status' },
+      stages: [
+        {
+          id: 'optimize_templates',
+          status: { state: 'failed' },
+          error: 'ValueError: optimization failed',
+        },
+      ],
+    });
+
+    expect(isComponentFullyComplete(status)).toBe(true);
+  });
+
+  it('should reject malformed canonical status artifacts locally', () => {
+    expect(() =>
+      parseComponentStatusArtifact({
+        component_id: 'rag_optimization',
+        started_at: '2026-06-04T17:49:19.223056Z',
+        metadata: { display_name: 'RAG Templates Optimization Status' },
+        stages: [
+          {
+            id: 'optimize_templates',
+            status: { state: 'pending' },
+            timestamp: 'unsupported',
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('should clear a stale error when a canonical stage recovers', () => {
+    const recovered = mergeStageWithStatus(
+      { id: 'optimize_templates', description: 'Optimize templates', error: 'old failure' },
+      {
+        id: 'optimize_templates',
+        status: 'completed',
+      },
+    );
+
+    expect(recovered.status).toBe('completed');
+    expect(recovered.error).toBeUndefined();
+  });
+
   it('should preserve original stage descriptions after merge', () => {
     const statusFiles = new Map([['rag_optimization', mockComponentStatus]]);
     const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
@@ -645,7 +747,7 @@ describe('mergeStatusIntoStageMap', () => {
       ],
     };
 
-    expect(() => ComponentStatusFileSchema.parse(leaderboardStatus)).not.toThrow();
+    expect(() => parseComponentStatusArtifact(leaderboardStatus)).not.toThrow();
 
     const result = mergeStatusIntoStageMap(
       mockComponentStageMap,
@@ -665,7 +767,7 @@ describe('mergeStatusIntoStageMap', () => {
       { length: MAX_PATTERN_SELECTION_STEPS + 5 },
       (_, index) => `step_${index}`,
     );
-    const parsed = ComponentStatusFileSchema.parse({
+    const parsed = parseComponentStatusArtifact({
       component_id: 'rag_optimization',
       stages: [
         {
@@ -685,7 +787,7 @@ describe('mergeStatusIntoStageMap', () => {
       'embedding',
       'retrieval',
     ];
-    const parsed = ComponentStatusFileSchema.parse({
+    const parsed = parseComponentStatusArtifact({
       component_id: 'rag_optimization',
       stages: [
         {
@@ -710,7 +812,7 @@ describe('mergeStatusIntoStageMap', () => {
   });
 
   it('should reject malformed selected_patterns during status parsing', () => {
-    const objectParsed = ComponentStatusFileSchema.parse({
+    const objectParsed = parseComponentStatusArtifact({
       component_id: 'rag_optimization',
       stages: [
         {
@@ -721,7 +823,7 @@ describe('mergeStatusIntoStageMap', () => {
     });
     expect(objectParsed.stages[0].selected_patterns).toBeUndefined();
 
-    const mixedParsed = ComponentStatusFileSchema.parse({
+    const mixedParsed = parseComponentStatusArtifact({
       component_id: 'rag_optimization',
       stages: [
         {
@@ -732,7 +834,7 @@ describe('mergeStatusIntoStageMap', () => {
     });
     expect(mixedParsed.stages[0].selected_patterns).toEqual(['pattern_b']);
 
-    const emptyParsed = ComponentStatusFileSchema.parse({
+    const emptyParsed = parseComponentStatusArtifact({
       component_id: 'rag_optimization',
       stages: [
         {
@@ -745,7 +847,7 @@ describe('mergeStatusIntoStageMap', () => {
   });
 
   it('should normalize documented stage statuses and drop unsupported ones during parsing', () => {
-    const parsed = ComponentStatusFileSchema.parse({
+    const parsed = parseComponentStatusArtifact({
       component_id: 'rag_optimization',
       stages: [
         { id: 'load_benchmark', status: ' Completed ' },
@@ -808,7 +910,7 @@ describe('mergeStatusIntoStageMap', () => {
   });
 
   it('should not clear canonical selected_patterns when a non-empty array has no valid strings', () => {
-    const nonStringParsed = ComponentStatusFileSchema.parse({
+    const nonStringParsed = parseComponentStatusArtifact({
       component_id: 'rag_optimization',
       stages: [
         {
