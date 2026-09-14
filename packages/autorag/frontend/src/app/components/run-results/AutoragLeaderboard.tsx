@@ -387,6 +387,9 @@ type AutoragLeaderboardProps = {
   onRunIndexingPipeline?: (patternName: string) => void;
 };
 
+// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
+const OGX_ACTIONS_ENABLED = false;
+
 function AutoragLeaderboard({
   onViewDetails,
   onSaveNotebook,
@@ -1154,8 +1157,10 @@ function AutoragLeaderboard({
                   >
                     <ActionsColumn
                       items={[
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        ...(patterns[entry.patternKey].inference?.responses_template && onTryPattern
+                        /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+                        ...(OGX_ACTIONS_ENABLED &&
+                        patterns[entry.patternKey].inference?.responses_template &&
+                        onTryPattern
                           ? [
                               {
                                 title: 'Try this pattern',
@@ -1163,12 +1168,15 @@ function AutoragLeaderboard({
                               },
                             ]
                           : []),
+                        /* eslint-enable @typescript-eslint/no-unnecessary-condition */
                         {
                           title: 'View details',
                           onClick: () => handleViewDetails(entry.pattern),
                         },
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        ...(patterns[entry.patternKey].inference?.responses_template && onViewCode
+                        /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+                        ...(OGX_ACTIONS_ENABLED &&
+                        patterns[entry.patternKey].inference?.responses_template &&
+                        onViewCode
                           ? [
                               {
                                 title: 'View code',
@@ -1176,6 +1184,7 @@ function AutoragLeaderboard({
                               },
                             ]
                           : []),
+                        /* eslint-enable @typescript-eslint/no-unnecessary-condition */
                         ...(onRunIndexingPipeline &&
                         patternHasIndexingPipelineSpec(patterns[entry.patternKey])
                           ? [

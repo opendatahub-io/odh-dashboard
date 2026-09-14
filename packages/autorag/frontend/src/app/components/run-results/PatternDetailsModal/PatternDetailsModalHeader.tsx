@@ -41,6 +41,9 @@ type PatternDetailsModalHeaderProps = {
   comparisonPatternIndex?: number | null;
 };
 
+// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
+const OGX_ACTIONS_ENABLED = false;
+
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   patterns,
   selectedIndex,
@@ -186,7 +189,8 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                 )}
               >
                 <DropdownList>
-                  {data.inference?.responses_template && onTryPattern && (
+                  {/* eslint-disable @typescript-eslint/no-unnecessary-condition */}
+                  {OGX_ACTIONS_ENABLED && data.inference?.responses_template && onTryPattern && (
                     <DropdownItem
                       key="try-pattern"
                       value="try-pattern"
@@ -195,7 +199,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       Try this pattern
                     </DropdownItem>
                   )}
-                  {data.inference?.responses_template && onViewCode && (
+                  {OGX_ACTIONS_ENABLED && data.inference?.responses_template && onViewCode && (
                     <DropdownItem
                       key="view-code"
                       value="view-code"
@@ -204,6 +208,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       View code
                     </DropdownItem>
                   )}
+                  {/* eslint-enable @typescript-eslint/no-unnecessary-condition */}
                   {onRunIndexingPipeline && patternHasIndexingPipelineSpec(data) && (
                     <DropdownItem
                       key="run-indexing"
