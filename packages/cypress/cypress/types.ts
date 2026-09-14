@@ -344,6 +344,20 @@ export type DataScienceProjectData = {
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
 };
 
+export type NIMProjectScopedTestData = {
+  projectNamePrefix: string;
+  modelNamePrefix: string;
+  modelDescription: string;
+  nimImageNameWithGpu: string;
+  nimImageNameWithoutGpu: string;
+  nimModelId: string;
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
+  pvcNamePrefix: string;
+  pvcSizeGi: number;
+  tokenDisplayName: string;
+};
+
 export type RoutingTestData = DataScienceProjectData & {
   routingConfigName: string;
   routingConfigFixture: string;
