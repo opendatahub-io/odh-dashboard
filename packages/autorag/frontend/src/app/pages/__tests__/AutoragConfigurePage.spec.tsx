@@ -910,6 +910,62 @@ describe('AutoragConfigurePage', () => {
       ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
     });
+
+    it('should keep Create run disabled while the changed MaaS connection models are loading', async () => {
+      const user = userEvent.setup();
+      let secondMaaSModelsReady = false;
+      const readyModels = {
+        data: {
+          models: [
+            { id: 'llama-3-8b', type: 'llm' },
+            { id: 'text-embedding-ada-002', type: 'embedding' },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>;
+      const loadingModels = {
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>;
+      mockUseMaaSModelsQuery.mockImplementation((_namespace, secretName) => {
+        if (secretName === 'Second MaaS Secret' && !secondMaaSModelsReady) {
+          return loadingModels;
+        }
+        return readyModels;
+      });
+
+      renderWithProviders(<AutoragConfigurePage />);
+
+      await user.type(await screen.findByLabelText(/Name/i), 'Test Experiment');
+      await user.click(await screen.findByTestId('maas-secret-selector-select-secret'));
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+
+      await user.click(await screen.findByTestId('aws-secret-selector-select-secret'));
+      await user.click(await screen.findByRole('button', { name: 'Browse bucket' }));
+      await user.click(await screen.findByTestId('file-explorer-select-file'));
+
+      const backButton = await screen.findByRole('button', { name: 'Back' });
+      await user.click(backButton);
+      await user.click(await screen.findByTestId('maas-secret-selector-select-second-secret'));
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+
+      const createRunButton = await screen.findByRole('button', { name: 'Create run' });
+      expect(createRunButton).toBeDisabled();
+      await user.click(createRunButton);
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+
+      secondMaaSModelsReady = true;
+      await user.click(await screen.findByRole('button', { name: 'Back' }));
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Create run' })).toBeEnabled());
+      await user.click(screen.getByRole('button', { name: 'Create run' }));
+
+      await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+    });
   });
 
   describe('Configure step - Create run', () => {

@@ -324,6 +324,7 @@ function AutoragConfigurePage({
   }, []);
 
   const handleBackToCreate = useCallback(() => {
+    setMaaSModelsReady(false);
     setStep('create');
   }, []);
 
