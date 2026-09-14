@@ -75,7 +75,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const globalProjectPromptsAvailable = config.globalProjectPrompts ?? false;
   const connectionTestAvailable = config.connectionTest ?? false;
   const mcpRegistryAvailable = config.mcpRegistry ?? false;
-  const externalModelsAvailable = config.externalModels ?? false;
   const llmdTemplatesAvailable = config.llmdTemplates ?? false;
   const vllmDeploymentOnMaaSAvailable = config.vLLMDeploymentOnMaaS ?? false;
   const modelCatalogAvailable = !config.disableModelCatalog;
@@ -149,12 +148,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             description: 'Deploy agents for your projects from the OpenShift Console.',
             flagName: 'agentOps',
             available: agentOpsAvailable,
-          },
-          {
-            title: 'External models',
-            description: 'View models from external providers alongside your deployed models.',
-            flagName: 'externalModels',
-            available: externalModelsAvailable,
           },
           {
             title: 'Safety and security insights',
@@ -333,7 +326,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       globalProjectPromptsAvailable,
       connectionTestAvailable,
       mcpRegistryAvailable,
-      externalModelsAvailable,
       llmdTemplatesAvailable,
       vllmDeploymentOnMaaSAvailable,
       aiHubAvailable,
