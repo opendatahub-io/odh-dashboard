@@ -9,6 +9,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import QuotaUsageTreeView from './QuotaUsageTreeView';
+import './QuotaUsageNavPanel.scss';
 import { QuotaSelection, QuotaTreeNode } from '../../types';
 import {
   collectAllExpandableNodeIds,
@@ -147,6 +148,7 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
 
   const navToolbar = (
     <Toolbar
+      className="gpuaas-quota-usage-nav-panel__toolbar"
       inset={{ default: 'insetNone' }}
       style={toolbarInsetStyle}
       aria-label="Cohort hierarchy filters"
@@ -180,24 +182,26 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
   return (
     <>
       {navToolbar}
-      <QuotaUsageTreeView
-        expandStateKey={treeExpandKey}
-        nodes={filteredTree}
-        selectedNodeId={selectedNodeId}
-        expandedNodeIds={mergedExpandedIds}
-        allExpanded={allExpanded}
-        onSelectNode={handleSelectNode}
-        onExpand={handleExpand}
-        onCollapse={handleCollapse}
-      />
-      {filteredTree.length === 0 && (
-        <EmptyState
-          headingLevel="h4"
-          titleText="No results found"
-          variant={EmptyStateVariant.sm}
-          data-testid="quota-usage-nav-search-empty"
+      <div className="gpuaas-quota-usage-nav-panel__tree">
+        <QuotaUsageTreeView
+          expandStateKey={treeExpandKey}
+          nodes={filteredTree}
+          selectedNodeId={selectedNodeId}
+          expandedNodeIds={mergedExpandedIds}
+          allExpanded={allExpanded}
+          onSelectNode={handleSelectNode}
+          onExpand={handleExpand}
+          onCollapse={handleCollapse}
         />
-      )}
+        {filteredTree.length === 0 && (
+          <EmptyState
+            headingLevel="h4"
+            titleText="No results found"
+            variant={EmptyStateVariant.sm}
+            data-testid="quota-usage-nav-search-empty"
+          />
+        )}
+      </div>
     </>
   );
 };
