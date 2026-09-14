@@ -1431,8 +1431,10 @@ components:
             id_column:
               type: string
               minLength: 1
-              pattern: '\S'
-              description: Column identifying each time series (item_id). Required for CSV datasets with three or more columns. Omission is accepted only when the CSV has exactly two columns matching target and timestamp_column. When supplied, the value must be non-empty after trimming whitespace and a leading BOM; omit the property instead of sending an empty or whitespace-only string. The BFF verifies the CSV before creating the run.
+              # Match normalizeColumnName: strip one initial BOM, then Go strings.TrimSpace.
+              # The remaining name must be non-empty ASCII; Unicode whitespace is allowed only at the edges.
+              pattern: '^\uFEFF?[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]*[\u0000-\u0008\u000E-\u001F\u0021-\u007F][\u0000-\u007F]*[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]*$'
+              description: Column identifying each time series (item_id). Required for CSV datasets with three or more columns. Omission is accepted only when the CSV has exactly two columns matching target and timestamp_column. When supplied, the value must contain only ASCII characters and be non-empty after removing one leading BOM and trimming surrounding whitespace; omit the property instead of sending an empty or whitespace-only string. The BFF verifies the CSV before creating the run.
               example: "item_id"
             timestamp_column:
               type: string
