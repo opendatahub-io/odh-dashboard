@@ -296,6 +296,7 @@ func TestEvalHubClient_GetEvaluationJobLogs(t *testing.T) {
 		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "text/plain", r.Header.Get("Accept"))
 		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("X-Log-Truncated", "true")
 		_, _ = w.Write([]byte(logContent))
 	}))
 	defer server.Close()
@@ -304,7 +305,8 @@ func TestEvalHubClient_GetEvaluationJobLogs(t *testing.T) {
 	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
 
 	require.NoError(t, err)
-	assert.Equal(t, logContent, result)
+	assert.Equal(t, logContent, result.Logs)
+	assert.True(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_WithParams(t *testing.T) {
@@ -326,7 +328,8 @@ func TestEvalHubClient_GetEvaluationJobLogs_WithParams(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, "logs", result)
+	assert.Equal(t, "logs", result.Logs)
+	assert.False(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_EmptyNamespace(t *testing.T) {
@@ -380,6 +383,7 @@ func TestEvalHubClient_GetEvaluationJobBenchmarkLogs(t *testing.T) {
 		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "text/plain", r.Header.Get("Accept"))
 		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("X-Log-Truncated", "false")
 		_, _ = w.Write([]byte(logContent))
 	}))
 	defer server.Close()
@@ -388,7 +392,8 @@ func TestEvalHubClient_GetEvaluationJobBenchmarkLogs(t *testing.T) {
 	result, err := client.GetEvaluationJobBenchmarkLogs(context.Background(), "job-1", 0, "my-ns", GetJobLogsParams{})
 
 	require.NoError(t, err)
-	assert.Equal(t, logContent, result)
+	assert.Equal(t, logContent, result.Logs)
+	assert.False(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobBenchmarkLogs_EmptyNamespace(t *testing.T) {
