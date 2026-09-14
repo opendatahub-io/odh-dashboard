@@ -475,6 +475,20 @@ def producer_rows(result):
             rows.append((clean(row["id"]), f"➖ skipped — {reason}", "—"))
     return rows, True
 
+def signal(marker, name, result, detail_lines, open_by_default=False):
+    """One status-bearing thing: a scannable line, expandable for the why.
+
+    Risk, confidence, product ask, Jira adherence, readiness checks and
+    verification rows all have the same shape — a name, a verdict, and a
+    rationale — so they get the same treatment instead of six bespoke
+    sections. Anything unmet opens by default; a problem is never hidden
+    behind a click."""
+    head = f"{marker} <strong>{name}</strong> — {result}".strip()
+    if not detail_lines:
+        return [f"<details><summary>{head}</summary>", "", "_No further detail reported._", "", "</details>"]
+    attr = " open" if open_by_default else ""
+    return [f"<details{attr}>", f"<summary>{head}</summary>", ""] + detail_lines + ["", "</details>"]
+
 def render_body(result, previous_md, action):
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     lines = render_header(result, action)
@@ -485,29 +499,69 @@ def render_body(result, previous_md, action):
         return "\n".join(lines).rstrip() + "\n"
 
     lines += ["", "## Change summary", "", clean(result.get("change_summary"))]
+    lines += ["", "## Status", "", f"{mark(ACTION_MARK, action)} {status_text(result, action)}"]
 
-    # Status: one scannable line. The rationale is real content but it is
-    # reference material, not the headline, so it collapses.
+    # ---- One uniform list of every judgement this review made. ----
+    signals = []
+
     risk = result.get("risk") if isinstance(result.get("risk"), dict) else {}
     confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
     risk_level = (risk.get("level") or "unspecified").lower()
     conf_level = (confidence.get("level") or "unspecified").lower()
-    lines += [
-        "",
-        "## Status",
-        "",
-        f"{mark(ACTION_MARK, action)} {status_text(result, action)}",
-        "",
-        f"**Risk:** {mark(LEVEL_MARK, risk_level)} {clean(risk_level)} · "
-        f"**Confidence:** {mark(CONFIDENCE_MARK, conf_level)} {clean(conf_level)}",
-    ]
-    rationale = []
-    if risk.get("why"):
-        rationale += [f"**Risk — {clean(risk_level)}.** {clean(risk.get('why'))}", ""]
-    if confidence.get("why"):
-        rationale += [f"**Confidence — {clean(conf_level)}.** {clean(confidence.get('why'))}"]
-    if rationale:
-        lines += [""] + detail_block("Why this risk and confidence", rationale)
+    signals += signal(mark(LEVEL_MARK, risk_level), "Risk", clean(risk_level),
+                      [clean(risk.get("why"))] if risk.get("why") else [],
+                      open_by_default=risk_level in ("high", "critical"))
+    signals += signal(mark(CONFIDENCE_MARK, conf_level), "Confidence", clean(conf_level),
+                      [clean(confidence.get("why"))] if confidence.get("why") else [],
+                      open_by_default=conf_level == "low")
+
+    pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else None
+    if pa and (pa.get("status") or "none") != "none":
+        status = pa.get("status") or "none"
+        needs_attention = bool(pa.get("needs_human")) or status.startswith("mismatch")
+        body = []
+        if pa.get("aligned"):
+            body += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
+        if pa.get("mismatched"):
+            body += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
+        body += ["The PR description is the source of truth. This is not a check of the diff against acceptance criteria."]
+        label = f"<code>{clean(status)}</code>" + (" · needs human review" if pa.get("needs_human") else "")
+        signals += signal("⚠️" if needs_attention else "✅", "Product ask", label, body,
+                          open_by_default=needs_attention)
+
+    criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
+    if criteria:
+        unmet = [c for c in criteria if (c.get("verdict") or "") in ("MISS", "PARTIAL")]
+        tally = {}
+        for c in criteria:
+            tally[c.get("verdict") or "?"] = tally.get(c.get("verdict") or "?", 0) + 1
+        counts = " · ".join(f"{mark(VERDICT_MARK, v)} {n} {v}".strip() for v, n in sorted(tally.items()))
+        table = ["| Criterion | Verdict | Evidence |", "| --- | --- | --- |"]
+        for c in criteria:
+            verdict = c.get("verdict") or ""
+            stale = " · stale comment" if c.get("stale_comment") else ""
+            table.append(
+                f"| {table_cell(c.get('criterion'))} | "
+                f"{(mark(VERDICT_MARK, verdict) + ' ' + table_cell(verdict)).strip()}{stale} "
+                f"| {table_cell(c.get('evidence'))} |")
+        signals += signal("❌" if unmet else "✅", "Jira acceptance criteria", counts, table,
+                          open_by_default=bool(unmet))
+
+    for check in result.get("checks") if isinstance(result.get("checks"), list) else []:
+        status = check.get("status") or ""
+        details = [f"- {clean(d)}" for d in check.get("details") or []]
+        signals += signal(mark(STATUS_MARK, status), clean(check.get("id")),
+                          f"{clean(status)} · {clean(check.get('summary'))}", details,
+                          open_by_default=status == "fail")
+
+    for row in result.get("verification") or []:
+        res = row.get("result") or ""
+        signals += signal(mark(STATUS_MARK, res), clean(row.get("label")), clean(res),
+                          [clean(row.get("notes"))] if row.get("notes") else [],
+                          open_by_default=res == "fail")
+
+    if signals:
+        lines += ["", "## Checks", ""] + signals
 
     decision = result.get("decision_needed") if isinstance(result.get("decision_needed"), dict) else None
     if decision:
@@ -518,22 +572,15 @@ def render_body(result, previous_md, action):
 
     findings = result.get("findings") or []
     if findings:
-        lines += [
-            "",
-            "## Findings",
-            "",
-            "⛔ Critical, 🔴 High, and functional 🟠 Medium block the agent bar. 🟡 Low and ⚪ Info do not.",
-        ]
+        lines += ["", "## Findings", "",
+                  "⛔ Critical, 🔴 High, and functional 🟠 Medium block the agent bar. 🟡 Low and ⚪ Info do not."]
         for severity, items in group_findings(findings):
             lines += ["", f"### {mark(SEVERITY_MARK, severity)} {severity.capitalize()} ({len(items)})"]
             for finding in items:
                 loc = render_location(result, finding, run_url)
                 actionable = " · actionable follow-up" if finding.get("actionable") and severity in ("low", "info") else ""
                 origin = f"`{clean(finding.get('dimension'))}` · " if finding.get("dimension") else ""
-                lines += [
-                    "",
-                    f"- {origin}**{clean(finding.get('category'))}** ({loc}){actionable}: {clean(finding.get('description'))}",
-                ]
+                lines += ["", f"- {origin}**{clean(finding.get('category'))}** ({loc}){actionable}: {clean(finding.get('description'))}"]
                 if finding.get("why"):
                     lines.append(f"  - Why: {clean(finding.get('why'))}")
                 if finding.get("remediation"):
@@ -541,72 +588,7 @@ def render_body(result, previous_md, action):
     elif action == "approve":
         lines += ["", "Looks good to me."]
 
-    # Product ask: expanded only when it needs a decision. An aligned ask is
-    # confirmation, not news.
-    pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else None
-    if pa and (pa.get("status") or "none") != "none":
-        status = pa.get("status") or "none"
-        needs_attention = bool(pa.get("needs_human")) or status.startswith("mismatch")
-        body = []
-        if pa.get("aligned"):
-            body += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
-        if pa.get("mismatched"):
-            body += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
-        body += ["The PR description is the source of truth. This section does not review the diff against Jira acceptance criteria."]
-        heading = f"{'⚠️' if needs_attention else '✅'} <strong>Product ask</strong> — <code>{clean(status)}</code>"
-        if pa.get("needs_human"):
-            heading += " · needs human review"
-        if needs_attention:
-            lines += ["", "## Product ask", "", f"**Status:** `{clean(status)}` · needs human review"
-                      if pa.get("needs_human") else f"**Status:** `{clean(status)}`", ""] + body
-        else:
-            lines += [""] + detail_block(heading, body)
-
-    # Jira criteria: expanded only when something is unmet.
-    criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
-    if criteria:
-        unmet = [c for c in criteria if (c.get("verdict") or "") in ("MISS", "PARTIAL")]
-        tally = {}
-        for c in criteria:
-            v = c.get("verdict") or "?"
-            tally[v] = tally.get(v, 0) + 1
-        summary_counts = " · ".join(f"{mark(VERDICT_MARK, v)} {n} {v}".strip() for v, n in sorted(tally.items()))
-        table = ["| Criterion | Verdict | Evidence |", "| --- | --- | --- |"]
-        for criterion in criteria:
-            verdict = criterion.get("verdict") or ""
-            stale = " · stale comment" if criterion.get("stale_comment") else ""
-            table.append(
-                f"| {table_cell(criterion.get('criterion'))} | "
-                f"{(mark(VERDICT_MARK, verdict) + ' ' + table_cell(verdict)).strip()}{stale} "
-                f"| {table_cell(criterion.get('evidence'))} |"
-            )
-        if unmet:
-            lines += ["", "## Jira acceptance criteria", ""] + table
-        else:
-            lines += [""] + detail_block(
-                f"✅ <strong>Jira acceptance criteria</strong> — {summary_counts}", table)
-
-    # Readiness checks: the per-check detail rows were the bulk of the noise.
-    checks = result.get("checks") if isinstance(result.get("checks"), list) else []
-    if checks:
-        lines += ["", "## Readiness checks", "", "| Check | Result | Summary |", "| --- | --- | --- |"]
-        for check in checks:
-            status = check.get("status") or ""
-            lines.append(
-                f"| {table_cell(check.get('id'))} | "
-                f"{(mark(STATUS_MARK, status) + ' ' + table_cell(status)).strip()} "
-                f"| {table_cell(check.get('summary'))} |"
-            )
-        detail_lines = []
-        for check in checks:
-            details = check.get("details") or []
-            if details:
-                detail_lines += [f"**{clean(check.get('id'))}**", ""] + [f"- {clean(d)}" for d in details] + [""]
-        if detail_lines:
-            lines += [""] + detail_block("Check details", detail_lines)
-
-    # Everything below is provenance and audit. One collapsed block.
-    verification = result.get("verification") or []
+    # ---- Provenance and audit. ----
     inspected = result.get("inspected") if isinstance(result.get("inspected"), dict) else {}
     labels = result.get("label_actions") if isinstance(result.get("label_actions"), dict) else {}
     classifications = result.get("classifications") if isinstance(result.get("classifications"), list) else []
@@ -614,25 +596,11 @@ def render_body(result, previous_md, action):
 
     rows, from_ledger = producer_rows(result)
     if rows:
-        details_body += [
-            "### Producers", "",
-            "| Producer | Ran | Findings |", "| --- | --- | --- |",
-        ]
+        details_body += ["### Producers", "", "| Producer | Ran | Findings |", "| --- | --- | --- |"]
         for name, ran, count in rows:
             details_body.append(f"| {name} | {ran} | {count} |")
         if not from_ledger:
             details_body += ["", "_No dispatch ledger for this run — this list is self-reported by the agent._"]
-        details_body.append("")
-
-    if verification:
-        details_body += ["### Verification", "", "| Check | Result | Notes |", "| --- | --- | --- |"]
-        for row in verification:
-            res = row.get("result") or ""
-            details_body.append(
-                f"| {table_cell(row.get('label'))} | "
-                f"{(mark(STATUS_MARK, res) + ' ' + table_cell(res)).strip()} "
-                f"| {table_cell(row.get('notes'))} |"
-            )
         details_body.append("")
 
     if classifications:
@@ -641,25 +609,21 @@ def render_body(result, previous_md, action):
             for item in classifier.get("classifications") or []:
                 details_body.append(
                     f"| {table_cell(classifier.get('id'))} | {table_cell(item.get('subject'))} "
-                    f"| {table_cell(item.get('classification'))} | {table_cell(item.get('reason'))} |"
-                )
+                    f"| {table_cell(item.get('classification'))} | {table_cell(item.get('reason'))} |")
             if not classifier.get("classifications"):
                 details_body.append(
                     f"| {table_cell(classifier.get('id'))} | — | {table_cell(classifier.get('status'))} "
-                    f"| {table_cell(classifier.get('summary'))} |"
-                )
+                    f"| {table_cell(classifier.get('summary'))} |")
         details_body.append("")
 
     if inspected.get("could_not_verify"):
-        details_body += ["### Could not verify", ""]
-        details_body += [f"- {clean(item)}" for item in inspected["could_not_verify"]]
-        details_body.append("")
+        details_body += ["### Could not verify", ""] + [f"- {clean(i)}" for i in inspected["could_not_verify"]] + [""]
     if inspected.get("summary"):
         details_body += ["### Evidence", "", clean(inspected["summary"]), ""]
 
-    signals = clean(os.environ.get("REVIEW_SIGNALS"))
-    if signals:
-        details_body += ["### Signals", "", signals, ""]
+    sig = clean(os.environ.get("REVIEW_SIGNALS"))
+    if sig:
+        details_body += ["### Signals", "", sig, ""]
     if labels and labels.get("actions"):
         details_body += ["### Labels", ""]
         reason = clean(labels.get("reason"))
@@ -670,11 +634,9 @@ def render_body(result, previous_md, action):
     if details_body:
         ran = sum(1 for _, state, _ in rows if state.startswith("✅"))
         skipped = len(rows) - ran
-        blurb = f"{ran} producer(s) ran, {skipped} skipped" if rows else "verification and evidence"
+        blurb = f"{ran} producer(s) ran, {skipped} skipped" if rows else "evidence and provenance"
         lines += [""] + detail_block(f"🔍 <strong>Review details</strong> — {blurb}", details_body)
 
-    # previous_md is available if a later renderer wants history; this
-    # body is the current run only.
     _ = previous_md
     return "\n".join(lines).rstrip() + "\n"
 
@@ -725,7 +687,8 @@ run_self_test() {
     if ! grep -q '## Change summary' <<<"${body}" ||
        ! grep -q '## Status' <<<"${body}" ||
        ! grep -q '<summary>🔍 <strong>Review details</strong>' <<<"${body}" ||
-       ! grep -q '### Verification' <<<"${body}"; then
+       ! grep -q '## Checks' <<<"${body}" ||
+       ! grep -q '<strong>Blocking findings</strong>' <<<"${body}"; then
       echo "FAIL ${name}: required rendered sections missing" >&2
       fail=1
       return
@@ -778,8 +741,8 @@ run_self_test() {
   printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}],\"classifications\":[{\"id\":\"example-classifier\",\"status\":\"completed\",\"summary\":\"One failed check classified.\",\"classifications\":[{\"subject\":\"unit\",\"classification\":\"flaky\",\"reason\":\"Repeated on unrelated PRs.\"}]}]}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
-  if ! grep -q '## Readiness checks' <<<"${body}" ||
-     ! grep -q 'test-impact-review' <<<"${body}" ||
+  if ! grep -q '## Checks' <<<"${body}" ||
+     ! grep -q '<strong>test-impact-review</strong>' <<<"${body}" ||
      ! grep -q '<strong>Jira acceptance criteria</strong>' <<<"${body}" ||
      ! grep -q 'Permission is checked' <<<"${body}" ||
      ! grep -q '### Classifications' <<<"${body}" ||
@@ -908,7 +871,7 @@ run_self_test() {
   # Unmet criteria stay expanded; an all-clear set collapses.
   printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Gate is present\",\"verdict\":\"MISS\",\"evidence\":\"No gate in diff.\"}]}" > "${tmp}/jira-miss.json"
   body=$(transform_review_result "${tmp}/jira-miss.json" | jq -r .body)
-  if ! grep -q '## Jira acceptance criteria' <<<"${body}"; then
+  if ! grep -q '<details open>' <<<"${body}"; then
     echo "FAIL jira-miss: an unmet criterion must stay expanded" >&2
     fail=1
   elif grep -q '<summary>✅ <strong>Jira acceptance criteria' <<<"${body}"; then
