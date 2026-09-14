@@ -2,73 +2,22 @@ import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { useS3ListFilesQuery, fetchS3Json } from '~/app/hooks/queries';
 import {
-  AutoragPatternSchema,
-  isV1RawPattern,
-  type AutoragRawPattern,
+  isCanonicalRawPattern,
+  parsePatternArtifact,
+  type RawPatternArtifact,
 } from '~/app/hooks/patternSchema';
+import { normalizeLegacyPattern } from '~/app/hooks/legacyPattern';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
-import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
 /* eslint-disable camelcase */
 export function normalizePattern(
-  raw: AutoragRawPattern,
+  raw: RawPatternArtifact,
   vectorIoProviderId?: string,
 ): AutoragPattern {
-  if (isV1RawPattern(raw)) {
-    const synthesizedOverallScore: AutoragEvaluationMetric = {
-      evaluator: 'custom',
-      name: 'overall_score',
-      scores: { mean: raw.final_score, ci_low: null, ci_high: null },
-      optimization_metric: true,
-    };
-
-    // V1 has no per-metric optimization flag; synthesize overall_score from final_score.
-    // Replace any existing overall_score from raw.scores so getMetricByName and
-    // getOptimizationMetric return the same entry.
-    const metrics: AutoragEvaluationMetric[] = Object.entries(raw.scores).map(([name, metric]) =>
-      name === 'overall_score'
-        ? synthesizedOverallScore
-        : { evaluator: 'unitxt' as const, name, scores: metric },
-    );
-    if (!metrics.some((m) => m.name === 'overall_score')) {
-      metrics.push(synthesizedOverallScore);
-    }
-
-    // Mid-release V1 already has vector_store_binding; OG V1 has vector_store
-    const vectorStoreBinding =
-      raw.settings.vector_store_binding ??
-      (raw.settings.vector_store
-        ? {
-            provider_id: vectorIoProviderId ?? '',
-            provider_type: raw.settings.vector_store.datasource_type,
-            vector_store_id: raw.settings.vector_store.collection_name,
-          }
-        : undefined);
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the V1 key, re-map below
-    const { detected_language: detectedLang, ...generationRest } = raw.settings.generation;
-
-    return {
-      name: raw.name,
-      iteration: raw.iteration,
-      max_combinations: raw.max_combinations,
-      duration_seconds: raw.duration_seconds,
-      settings: {
-        vector_store_binding: vectorStoreBinding,
-        chunking: raw.settings.chunking,
-        embedding: raw.settings.embedding,
-        retrieval: raw.settings.retrieval,
-        generation: {
-          ...generationRest,
-          language: detectedLang,
-        },
-      },
-      evaluation: { metrics },
-      inference: raw.settings.responses_template
-        ? { responses_template: raw.settings.responses_template }
-        : undefined,
-    };
+  if (!isCanonicalRawPattern(raw)) {
+    return normalizeLegacyPattern(raw, vectorIoProviderId);
   }
 
   return {
@@ -273,10 +222,9 @@ export function useAutoragResults(
             throw new Error('namespace and key are required');
           }
 
-          const raw = await fetchS3Json(namespace, patternJsonPath, {
-            signal,
-            schema: AutoragPatternSchema,
-          });
+          const raw = parsePatternArtifact(
+            await fetchS3Json(namespace, patternJsonPath, { signal }),
+          );
 
           const params = pipelineRun?.runtime_config?.parameters;
           const providerId =

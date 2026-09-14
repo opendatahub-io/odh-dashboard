@@ -27,7 +27,7 @@ export function metricValues(
   metrics: AutoRAGEvaluationMetricResult[],
   allMetricNames: string[],
 ): number[] {
-  const byName = new Map(metrics.map((m) => [m.name, m.score]));
+  const byName = new Map(metrics.map((m) => [m.name, m.score ?? 0]));
   return allMetricNames.map((name) => byName.get(name) ?? 0);
 }
 

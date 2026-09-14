@@ -161,13 +161,13 @@ export type AutoragPattern = {
 
 export type AutoRAGEvaluationAnswerContext = {
   text: string;
-  document_id: string;
+  document_key: string;
 };
 
 export type AutoRAGEvaluationMetricResult = {
   name: string;
   evaluator: string;
-  score: number;
+  score: number | null;
 };
 
 export type AutoRAGEvaluationResult = {

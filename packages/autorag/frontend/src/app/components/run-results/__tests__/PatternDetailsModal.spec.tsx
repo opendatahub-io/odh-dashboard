@@ -85,7 +85,7 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     correct_answers: ['Model A is available.', 'Model B is also available.'],
     question_id: 'q0',
     answer: 'Several models are available.',
-    answer_contexts: [{ text: 'Models include A and B.', document_id: 'doc0' }],
+    answer_contexts: [{ text: 'Models include A and B.', document_key: 'doc0' }],
     metrics: [
       { name: 'answer_correctness', evaluator: 'unitxt', score: 0.75 },
       { name: 'faithfulness', evaluator: 'unitxt', score: 0.5 },
@@ -99,7 +99,7 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     correct_answers: ['RAG retrieves documents and generates answers.'],
     question_id: 'q1',
     answer: 'RAG uses retrieval and generation.',
-    answer_contexts: [{ text: 'RAG is a pattern.', document_id: 'doc1' }],
+    answer_contexts: [{ text: 'RAG is a pattern.', document_key: 'doc1' }],
     metrics: [
       { name: 'answer_correctness', evaluator: 'unitxt', score: 0.6 },
       { name: 'faithfulness', evaluator: 'unitxt', score: 0.8 },

@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { normalizePattern } from '~/app/hooks/useAutoragResults';
-import type { AutoragRawPatternV1, AutoragRawPatternV2 } from '~/app/hooks/patternSchema';
+import type { CanonicalRawPattern } from '~/app/hooks/patternSchema';
+import type { LegacyRawPattern } from '~/app/hooks/legacyPattern';
 
 const baseSettings = {
   chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
@@ -21,7 +22,7 @@ const baseFields = {
 
 describe('normalizePattern', () => {
   describe('V1 patterns', () => {
-    const v1: AutoragRawPatternV1 = {
+    const v1: LegacyRawPattern = {
       ...baseFields,
       settings: {
         ...baseSettings,
@@ -74,7 +75,7 @@ describe('normalizePattern', () => {
     });
 
     it('should prefer existing vector_store_binding over vector_store', () => {
-      const v1WithBinding: AutoragRawPatternV1 = {
+      const v1WithBinding: LegacyRawPattern = {
         ...v1,
         settings: {
           ...v1.settings,
@@ -94,7 +95,7 @@ describe('normalizePattern', () => {
     });
 
     it('should move responses_template to inference block', () => {
-      const v1WithTemplate: AutoragRawPatternV1 = {
+      const v1WithTemplate: LegacyRawPattern = {
         ...v1,
         settings: { ...v1.settings, responses_template: { model: 'test' } },
       };
@@ -108,7 +109,7 @@ describe('normalizePattern', () => {
     });
 
     it('should replace existing overall_score in scores rather than duplicate', () => {
-      const v1WithOverallScore: AutoragRawPatternV1 = {
+      const v1WithOverallScore: LegacyRawPattern = {
         ...v1,
         scores: {
           ...v1.scores,
@@ -125,7 +126,7 @@ describe('normalizePattern', () => {
   });
 
   describe('V2 patterns', () => {
-    const v2: AutoragRawPatternV2 = {
+    const v2: CanonicalRawPattern = {
       ...baseFields,
       settings: {
         ...baseSettings,
@@ -169,7 +170,7 @@ describe('normalizePattern', () => {
     });
 
     it('should preserve null metric means through normalization', () => {
-      const v2WithNullMean: AutoragRawPatternV2 = {
+      const v2WithNullMean: CanonicalRawPattern = {
         ...v2,
         evaluation: {
           metrics: [
