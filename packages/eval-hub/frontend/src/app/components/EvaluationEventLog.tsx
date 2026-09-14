@@ -476,7 +476,11 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
                   <SelectOption value={ALL_BENCHMARKS}>All benchmarks</SelectOption>
                   {benchmarks.map((bm) =>
                     bm.benchmark_index != null ? (
-                      <SelectOption key={bm.key} value={String(bm.benchmark_index)}>
+                      <SelectOption
+                        key={bm.key}
+                        value={String(bm.benchmark_index)}
+                        data-testid={`benchmark-log-option-${bm.id}`}
+                      >
                         {bm.id}
                       </SelectOption>
                     ) : null,

@@ -41,7 +41,7 @@ class EvaluationResultsPage {
   }
 
   selectBenchmark(name: string) {
-    return cy.findAllByText(name).last().click();
+    return cy.findByTestId(`benchmark-log-option-${name}`).click();
   }
 
   findBenchmarksGrid() {
