@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import MCPServersPanel from '~/app/Chatbot/mcp/MCPServersPanel';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { MCPServerFromAPI } from '~/app/types/mcp';
+import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
 
 // --- Mock dependencies ---
 
@@ -14,6 +15,11 @@ jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
 
 jest.mock('~/app/hooks/useGenAiAPI', () => ({
   useGenAiAPI: jest.fn(() => ({ api: {}, apiAvailable: true })),
+}));
+
+jest.mock('~/app/hooks/useGenAiMcpRegistryServers', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/store', () => ({
@@ -143,6 +149,8 @@ const mockGenAiContextValue = {
   refreshAPIState: jest.fn(),
 };
 
+const mockUseGenAiMcpRegistryServers = jest.mocked(useGenAiMcpRegistryServers);
+
 const createServer = (overrides: Partial<MCPServerFromAPI> = {}): MCPServerFromAPI => ({
   name: 'test-server',
   url: 'http://test-server:8080/sse',
@@ -189,6 +197,7 @@ const renderPanel = (props: Partial<MCPServersPanelProps> = {}) => {
 describe('MCPServersPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiMcpRegistryServers.mockReturnValue(false);
   });
 
   describe('Loading and error states', () => {
@@ -264,6 +273,10 @@ describe('MCPServersPanel', () => {
       source: 'configmap',
     });
 
+    beforeEach(() => {
+      mockUseGenAiMcpRegistryServers.mockReturnValue(true);
+    });
+
     it('should show both Registered and Manual Connection sections when registryAvailable is true and registry servers exist', () => {
       renderPanel({
         servers: [registryServer, manualServer],
@@ -322,6 +335,29 @@ describe('MCPServersPanel', () => {
       expect(screen.queryByTestId('mcp-registered-section')).not.toBeInTheDocument();
       expect(screen.getByTestId('mcp-manual-section')).toBeInTheDocument();
     });
+  });
+
+  it('should hide registered servers and keep manual servers when the flag is disabled', () => {
+    const registryServer = createServer({
+      name: 'Registry Server',
+      url: 'http://registry:8080/sse',
+      source: 'registry',
+    });
+    const manualServer = createServer({
+      name: 'Manual Server',
+      url: 'http://manual:8080/sse',
+      source: 'configmap',
+    });
+
+    renderPanel({
+      servers: [registryServer, manualServer],
+      registryAvailable: true,
+    });
+
+    expect(screen.queryByTestId('mcp-registered-section')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-server-row-http://registry:8080/sse')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mcp-server-row-http://manual:8080/sse')).toBeInTheDocument();
+    expect(screen.getByTestId('mcp-manual-section')).toBeInTheDocument();
   });
 
   describe('Section toggles', () => {
