@@ -1006,6 +1006,45 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('task-type-radio-timeseries')).not.toBeChecked();
     });
 
+    it('should use the raw dataset count for ID guidance when a non-ASCII column is hidden', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'amount', type: 'double', task_type: 'regression' },
+          { name: '店舗', type: 'string', task_type: 'multiclass' },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByText('Time series recommended')).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Your dataset does not contain an ID column/),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('id_column-select')).toBeEnabled();
+      expect(screen.getByTestId('id_column-select')).toHaveTextContent('Select a column');
+    });
+
+    it('should show unsupported-format guidance only after manually selecting time series', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'date', type: 'integer', task_type: 'regression' },
+          { name: 'amount', type: 'double', task_type: 'regression' },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByTestId('task-type-radio-regression')).toBeChecked();
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+      selectPredictionType('timeseries');
+      expect(screen.getByText('Time series dataset format')).toBeInTheDocument();
+      selectPredictionType('regression');
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+    });
+
     it('should show format guidance without recommending time series for categorical targets', () => {
       mockuseS3GetFileSchemaQuery.mockReturnValue({
         data: [
@@ -1018,6 +1057,8 @@ describe('AutomlConfigure', () => {
       selectSecretAndFile();
       selectTargetColumn('category');
       expect(screen.getByTestId('task-type-radio-multiclass')).toBeChecked();
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+      selectPredictionType('timeseries');
       expect(
         screen.getByText(/Use a timestamp column and a numeric target column/),
       ).toBeInTheDocument();

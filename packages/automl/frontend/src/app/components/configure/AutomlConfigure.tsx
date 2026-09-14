@@ -1017,6 +1017,7 @@ function AutomlConfigure({
                             name="task_type"
                             render={({ field }) => (
                               <AutomlPredictionTypeSelector
+                                columnCount={schemaColumns.length}
                                 value={field.value}
                                 onChange={field.onChange}
                                 onClearTimeseriesTimestamp={() =>
