@@ -169,6 +169,16 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		})
 	}
 
+	t.Run("rejects model IDs selected in both categories", func(t *testing.T) {
+		req := validRequest()
+		req.GenerationModels = []string{"shared-model"}
+		req.EmbeddingsModels = []string{"embedding-model", "shared-model"}
+		err := ValidateCreateAutoRAGRunRequest(req)
+		if err == nil || !strings.Contains(err.Error(), `model "shared-model" cannot be selected in both`) {
+			t.Fatalf("expected cross-category model validation error, got %v", err)
+		}
+	})
+
 	t.Run("rejects more than ten corpus keys", func(t *testing.T) {
 		req := validRequest()
 		req.InputDataKeys = make([]string, 11)

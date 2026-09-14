@@ -201,13 +201,16 @@ const AutoragExperimentSettingsModelSelection: React.FC<
                 tabData[modelType === 'llm' ? 'embedding' : 'llm'].selectedModels;
               const oppositeSelectedModelIds = new Set(oppositeSelectedModels);
               const selectableModels = tabModels.filter((model) => model.ready);
+              const selectableModelsNotInOppositeCategory = selectableModels.filter(
+                (model) => !oppositeSelectedModelIds.has(model.id),
+              );
               const selectableModelIds = new Set(selectableModels.map((model) => model.id));
               const selectedCount = selectedModels.filter((id) =>
                 selectableModelIds.has(id),
               ).length;
               const allSelected =
-                selectableModels.length > 0 &&
-                selectableModels.every((model) =>
+                selectableModelsNotInOppositeCategory.length > 0 &&
+                selectableModelsNotInOppositeCategory.every((model) =>
                   selectedModels.some((selectedModel) => selectedModel === model.id),
                 );
 

@@ -735,6 +735,26 @@ describe('AutoRAG API Contract Tests', () => {
           expect(result.error?.status).toBe(400);
         }
       });
+
+      it('should return 400 when a model is selected in both categories', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'overlapping-model-run',
+          test_data_secret_name: SECRET,
+          test_data_bucket_name: BUCKET,
+          test_data_key:
+            'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
+          input_data_secret_name: SECRET,
+          input_data_bucket_name: BUCKET,
+          input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
+          maas_secret_name: MAAS_SECRET,
+          vector_db_secret_name: 'vector-db',
+          embedding_models: ['shared-model'],
+          generation_models: ['shared-model'],
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+      });
     });
 
     describe('Terminate Pipeline Run', () => {

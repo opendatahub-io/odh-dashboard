@@ -42,6 +42,20 @@ const hasLegacyRuntimeParameters = (params?: Record<string, unknown>): boolean =
   !hasCurrentConnectionParameters(params) &&
   LEGACY_RUNTIME_FIELDS.some((field) => field in params);
 
+/* eslint-disable camelcase */
+const normalizeRestoredModelOverlap = (data: Record<string, unknown>): Record<string, unknown> => {
+  if (!Array.isArray(data.generation_models) || !Array.isArray(data.embedding_models)) {
+    return data;
+  }
+
+  const generationModelIds = new Set(data.generation_models);
+  return {
+    ...data,
+    embedding_models: data.embedding_models.filter((modelId) => !generationModelIds.has(modelId)),
+  };
+};
+/* eslint-enable camelcase */
+
 const RECONFIGURE_FIELDS = [
   'description',
   'input_data_secret_name',
@@ -92,9 +106,11 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
     hasInvalidFields = true;
   }
 
+  const normalizedData = normalizeRestoredModelOverlap(data);
+
   /* eslint-enable camelcase */
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return { data: data as Partial<ConfigureSchema>, hasInvalidFields };
+  return { data: normalizedData as Partial<ConfigureSchema>, hasInvalidFields };
 };
 
 function AutoragReconfigureLoader(): React.JSX.Element {

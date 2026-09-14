@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -60,16 +61,23 @@ func TestListModelsRejectsRemoteHTTPBeforeOutboundRequest(t *testing.T) {
 }
 
 func TestListModelsAllowsLocalHTTPAndForwardsBearer(t *testing.T) {
-	client := NewMaaSClient(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		assert.Equal(t, "http", r.URL.Scheme)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/v1/models", r.URL.Path)
 		assert.Equal(t, "Bearer local-key", r.Header.Get("Authorization"))
-		return &http.Response{
-			StatusCode: http.StatusOK,
-			Body:       io.NopCloser(strings.NewReader(`{"object":"list","data":[]}`)),
-		}, nil
-	})})
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := io.WriteString(w, `{"object":"list","data":[]}`); err != nil {
+			t.Errorf("failed to write response: %v", err)
+		}
+	}))
+	t.Cleanup(server.Close)
 
-	_, err := client.ListModels(context.Background(), "http://[::1]:8080/maas-api", "local-key")
+	client := NewDefaultMaaSClient(MaaSClientConfig{
+		LookupIP: func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("127.0.0.1")}, nil
+		},
+	})
+	port := server.Listener.Addr().(*net.TCPAddr).Port
+	_, err := client.ListModels(context.Background(), fmt.Sprintf("http://localhost:%d", port), "local-key")
 	require.NoError(t, err)
 }
 
@@ -132,6 +140,24 @@ func TestMaaSSafeDialContextRejectsUnsafeResolvedAddress(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "blocked")
 	assert.False(t, baseDialed, "unsafe resolved address must not reach the dialer")
+}
+
+func TestMaaSSafeDialContextRejectsNonLoopbackLocalhost(t *testing.T) {
+	baseDialed := false
+	dial := maaSSafeDialContext(
+		func(context.Context, string, string) (net.Conn, error) {
+			baseDialed = true
+			return nil, fmt.Errorf("unexpected dial")
+		},
+		func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("192.0.2.10")}, nil
+		},
+	)
+
+	_, err := dial(context.Background(), "tcp", "localhost:443")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "blocked")
+	assert.False(t, baseDialed, "localhost resolving to a non-loopback address must not reach the dialer")
 }
 
 func TestMaaSSafeDialContextDialsValidatedAddressWithoutResolvingAgain(t *testing.T) {

@@ -77,4 +77,24 @@ describe('Configure Schema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('should reject model IDs selected in both categories', () => {
+    const result = schema.full.safeParse({
+      ...validData,
+      generation_models: ['shared-model'],
+      embedding_models: ['shared-model'],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['embedding_models', 0],
+            message: expect.stringContaining('shared-model'),
+          }),
+        ]),
+      );
+    }
+  });
 });

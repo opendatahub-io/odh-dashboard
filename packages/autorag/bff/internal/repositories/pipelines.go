@@ -364,6 +364,16 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
 	}
 
+	generationModelIDs := make(map[string]struct{}, len(req.GenerationModels))
+	for _, model := range req.GenerationModels {
+		generationModelIDs[model] = struct{}{}
+	}
+	for _, model := range req.EmbeddingsModels {
+		if _, exists := generationModelIDs[model]; exists {
+			return NewValidationError(fmt.Sprintf("model %q cannot be selected in both embedding_models and generation_models", model))
+		}
+	}
+
 	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
 		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of speed, balanced", *req.Preset))
 	}

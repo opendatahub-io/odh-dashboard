@@ -117,12 +117,19 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
     await user.click(screen.getAllByTestId('model-row-model-a')[0].querySelector('input')!);
     await user.click(screen.getByTestId('embedding-models-tab'));
-    await user.click(screen.getByTestId('embedding-models-table').querySelector('thead input')!);
+    const selectAll = screen.getByTestId('embedding-models-table').querySelector('thead input')!;
+    await user.click(selectAll);
 
     expect(screen.getByTestId('llm-selected-count')).toHaveTextContent(/1.2/);
     expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent(/1.2/);
+    expect(selectAll).toBeChecked();
     expect(screen.getAllByTestId('model-row-model-a')[1].querySelector('input')).toBeDisabled();
     expect(screen.getAllByTestId('model-row-model-b')[1].querySelector('input')).toBeChecked();
+
+    await user.click(selectAll);
+
+    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent(/0.2/);
+    expect(selectAll).not.toBeChecked();
   });
 
   it('should show an unready model but disable its checkbox with an explanation', () => {

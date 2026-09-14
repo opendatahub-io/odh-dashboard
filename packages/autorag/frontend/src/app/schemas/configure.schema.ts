@@ -92,6 +92,23 @@ function createConfigureSchema() {
         return data;
       },
     ],
+    validators: [
+      (data) => {
+        const generationModelIds = new Set(data.generation_models);
+        return data.embedding_models.flatMap((modelId, index) =>
+          generationModelIds.has(modelId)
+            ? [
+                {
+                  code: 'custom' as const,
+                  input: modelId,
+                  message: `Model "${modelId}" cannot be selected as both a foundation and embedding model`,
+                  path: ['embedding_models', index],
+                },
+              ]
+            : [],
+        );
+      },
+    ],
     /* eslint-enable no-param-reassign */
   });
 }

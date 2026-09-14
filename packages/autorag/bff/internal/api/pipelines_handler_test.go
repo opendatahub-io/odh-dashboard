@@ -491,6 +491,22 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 	}
 }
 
+func TestCreatePipelineRunHandlerReturnsModelOverlapValidationError(t *testing.T) {
+	h, repo := newTestPipelinesHandler()
+	repo.On("CreateRun", mock.Anything, "test-ns", mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
+		Return(nil, repositories.NewValidationError(`model "shared-model" cannot be selected in both embedding_models and generation_models`))
+
+	body := `{"display_name":"overlapping-model-run","test_data_secret_name":"secret","test_data_bucket_name":"bucket","test_data_key":"eval.json","input_data_secret_name":"secret","input_data_bucket_name":"bucket","input_data_keys":["docs"],"maas_secret_name":"maas","vector_db_secret_name":"vector-db","embedding_models":["shared-model"],"generation_models":["shared-model"]}`
+	req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", "test-ns", body)
+	rr := httptest.NewRecorder()
+
+	h.CreatePipelineRunHandler(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Contains(t, rr.Body.String(), "shared-model")
+	repo.AssertExpectations(t)
+}
+
 // ---------- TerminatePipelineRunHandler ----------
 
 func TestTerminatePipelineRunHandler(t *testing.T) {

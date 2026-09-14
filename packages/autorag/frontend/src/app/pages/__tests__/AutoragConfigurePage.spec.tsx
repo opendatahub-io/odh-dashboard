@@ -2059,6 +2059,36 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('Reconfigure mode (with initialValues and sourceRunId)', () => {
+    it('should disable Create new run for overlapping restored model selections', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{
+            display_name: 'Original Run - 1',
+            input_data_secret_name: 'input-secret',
+            input_data_bucket_name: 'input-bucket',
+            input_data_keys: ['documents/input.pdf'],
+            test_data_secret_name: 'test-secret',
+            test_data_bucket_name: 'test-bucket',
+            test_data_key: 'evaluation-dataset.json',
+            maas_secret_name: 'maas-secret',
+            vector_db_secret_name: 'vector-db-secret',
+            generation_models: ['llama-3-8b'],
+            embedding_models: ['llama-3-8b'],
+          }}
+          sourceRunId="source-run"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Create new run' })).toBeDisabled();
+      });
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+    });
+
     it('should display reconfigure title when sourceRunId and sourceRunName are provided', async () => {
       renderWithProviders(
         <AutoragConfigurePage

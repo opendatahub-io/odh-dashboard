@@ -163,7 +163,14 @@ func maaSSafeDialContext(
 		if err != nil {
 			return nil, fmt.Errorf("MaaS host %q cannot be resolved: %w", host, err)
 		}
+		allowLocalhost := strings.EqualFold(host, "localhost")
 		for _, ip := range ips {
+			if allowLocalhost {
+				if !ip.IsLoopback() {
+					return nil, fmt.Errorf("MaaS host %q resolves to blocked address", host)
+				}
+				continue
+			}
 			if err := validateMaaSIP(ip); err != nil {
 				return nil, fmt.Errorf("MaaS host %q resolves to blocked address: %w", host, err)
 			}

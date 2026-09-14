@@ -189,6 +189,34 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
   });
 
+  it('should resolve restored model overlap in favor of generation models without warning', async () => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_secret_name: 'storage',
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['shared-model', 'generation-model'],
+        embedding_models: ['shared-model', 'embedding-model'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({
+      generation_models: ['shared-model', 'generation-model'],
+      embedding_models: ['embedding-model'],
+    });
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Unable to restore all settings',
+      'Some parameters from the previous run could not be parsed. Default values will be used instead.',
+    );
+  });
+
   it('should trim restored canonical input data keys', async () => {
     mockUsePipelineRunQuery.mockReturnValue({
       data: createRun({
