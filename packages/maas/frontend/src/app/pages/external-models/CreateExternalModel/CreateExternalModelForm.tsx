@@ -19,7 +19,6 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
-import { ZodErrorHelperText } from '@odh-dashboard/ui-core';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -61,7 +60,6 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
 
   const [providerRefs, setProviderRefs] = React.useState<ProviderRef[]>([]);
   const [providerRefsTouched, setProviderRefsTouched] = React.useState(false);
-  const [modelNameTouched, setModelNameTouched] = React.useState(false);
   const [isAddProviderModalOpen, setIsAddProviderModalOpen] = React.useState(false);
   const [isEditProviderModalOpen, setIsEditProviderModalOpen] = React.useState(false);
   const [editingProviderRefIndex, setEditingProviderRefIndex] = React.useState<number | null>(null);
@@ -83,25 +81,23 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
 
   const { getFieldValidation } = useZodFormValidation(formData, externalModelFormSchema);
 
-  const modelNameErrors = modelNameTouched ? getFieldValidation(['modelName'], true) : [];
   const providerRefsErrors = providerRefsTouched ? getFieldValidation(['providerRefs'], true) : [];
   const providerRefsValidationError =
-    providerRefs.length > 0 && providerRefsErrors.length > 0
-      ? providerRefsErrors[0].message
-      : undefined;
+    providerRefsErrors.length > 0 ? providerRefsErrors[0].message : undefined;
   const showZeroTotalWeightWarning = hasZeroTotalProviderRefWeight(providerRefs);
 
-  const canSubmit =
-    isK8sNameDescriptionDataValid(nameDescData) &&
-    nameDescData.name.trim() !== '' &&
-    providerRefs.length > 0 &&
-    getFieldValidation(['providerRefs'], true).length === 0 &&
-    !isSubmitting;
+  const isSubmitDisabled =
+    nameDescData.name.trim() === '' || providerRefs.length === 0 || isSubmitting;
 
   const handleSubmit = async () => {
-    setModelNameTouched(true);
     setProviderRefsTouched(true);
-    if (!canSubmit || getFieldValidation(['modelName'], true).length > 0) {
+
+    if (
+      isSubmitDisabled ||
+      !isK8sNameDescriptionDataValid(nameDescData) ||
+      getFieldValidation(['modelName'], true).length > 0 ||
+      getFieldValidation(['providerRefs'], true).length > 0
+    ) {
       return;
     }
 
@@ -172,6 +168,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   };
 
   const handleOpenAddProviderModal = () => {
+    setProviderRefsTouched(true);
     setIsAddProviderModalOpen(true);
   };
 
@@ -201,7 +198,6 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
             nameHelperText="The client-facing model name. Consumers use this to identify the model in API requests."
             maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
           />
-          <ZodErrorHelperText zodIssue={modelNameErrors} />
         </FormSection>
 
         <FormSection title="Provider reference configuration" titleElement="h2">
@@ -321,7 +317,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           <Button
             variant="primary"
             onClick={handleSubmit}
-            isDisabled={!canSubmit}
+            isDisabled={isSubmitDisabled}
             isLoading={isSubmitting}
             data-testid="create-external-model-button"
           >

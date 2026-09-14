@@ -5,7 +5,7 @@ import { PROVIDER_REFERENCE_API_FORMATS, ProviderReferenceApiFormat } from './co
 export type { ProviderReferenceApiFormat };
 
 export const isProviderReferenceApiFormat = (value: string): value is ProviderReferenceApiFormat =>
-  value in PROVIDER_REFERENCE_API_FORMATS;
+  Object.prototype.hasOwnProperty.call(PROVIDER_REFERENCE_API_FORMATS, value);
 
 export const getApiFormatLabel = (apiFormat: string): string =>
   isProviderReferenceApiFormat(apiFormat)

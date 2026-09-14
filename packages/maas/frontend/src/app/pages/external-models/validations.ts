@@ -30,6 +30,11 @@ export type ProviderReferenceFieldErrors = {
   path?: string;
 };
 
+export type ProviderReferenceFieldTouched = {
+  targetModel?: boolean;
+  path?: boolean;
+};
+
 export type ProviderReferenceValidationContext = {
   inheritedConfig?: Record<string, string>;
 };
@@ -142,7 +147,6 @@ export const validateProviderRefPathPlaceholders = (
 export const isProviderReferenceFormIncomplete = (form: ProviderReferenceFormData): boolean =>
   !form.targetModel.trim() || !form.path.trim();
 
-/** Format/length errors for non-empty fields only (empty required fields are handled via incomplete). */
 export const getProviderReferenceFieldErrors = (
   form: ProviderReferenceFormData,
   context?: ProviderReferenceValidationContext,
@@ -150,7 +154,9 @@ export const getProviderReferenceFieldErrors = (
   const errors: ProviderReferenceFieldErrors = {};
 
   const trimmedTargetModel = form.targetModel.trim();
-  if (trimmedTargetModel) {
+  if (!trimmedTargetModel) {
+    errors.targetModel = 'Target model ID is required';
+  } else {
     const targetModelError = validateExternalModelFieldLength(
       trimmedTargetModel,
       'Target model ID',
@@ -160,24 +166,37 @@ export const getProviderReferenceFieldErrors = (
     }
   }
 
-  const trimmedPath = form.path.trim();
-  if (trimmedPath) {
-    const pathError = validateProviderReferencePath(form.path);
-    if (pathError && pathError !== 'Path is required') {
-      errors.path = pathError;
-    } else {
-      const placeholderError = validateProviderReferencePathPlaceholders(
-        form.path,
-        context?.inheritedConfig,
-        form.configPairs,
-      );
-      if (placeholderError) {
-        errors.path = placeholderError;
-      }
+  const pathError = validateProviderReferencePath(form.path);
+  if (pathError) {
+    errors.path = pathError;
+  } else {
+    const placeholderError = validateProviderReferencePathPlaceholders(
+      form.path,
+      context?.inheritedConfig,
+      form.configPairs,
+    );
+    if (placeholderError) {
+      errors.path = placeholderError;
     }
   }
 
   return errors;
+};
+
+export const getVisibleProviderReferenceFieldErrors = (
+  errors: ProviderReferenceFieldErrors,
+  touched: ProviderReferenceFieldTouched,
+): ProviderReferenceFieldErrors => {
+  const visible: ProviderReferenceFieldErrors = {};
+
+  if (touched.targetModel && errors.targetModel) {
+    visible.targetModel = errors.targetModel;
+  }
+  if (touched.path && errors.path) {
+    visible.path = errors.path;
+  }
+
+  return visible;
 };
 
 export const hasProviderReferenceFieldErrors = (
@@ -246,6 +265,7 @@ export const createExternalModelFormSchema = (
           })
           .passthrough(),
       )
+      .min(1, 'Add at least one provider reference')
       .superRefine((refs, ctx) => {
         refs.forEach((ref, index) => {
           const targetModelError = validateExternalModelFieldLength(

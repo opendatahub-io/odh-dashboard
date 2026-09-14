@@ -89,11 +89,12 @@ export const ProviderReferenceApiFormatField: React.FC<ProviderReferenceApiForma
 
 type ProviderReferenceTargetModelFieldProps = ProviderReferenceValidatedFieldProps & {
   showHelperText?: boolean;
+  onBlur?: () => void;
 };
 
 export const ProviderReferenceTargetModelField: React.FC<
   ProviderReferenceTargetModelFieldProps
-> = ({ form, onChange, fieldErrors, showHelperText = false }) => {
+> = ({ form, onChange, fieldErrors, showHelperText = false, onBlur }) => {
   const targetModelError = fieldErrors?.targetModel;
 
   return (
@@ -106,6 +107,7 @@ export const ProviderReferenceTargetModelField: React.FC<
         maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
         validated={targetModelError ? 'error' : 'default'}
         onChange={(_event, value) => onChange({ targetModel: value })}
+        onBlur={onBlur}
       />
       {targetModelError ? (
         <FormHelperText>
@@ -131,6 +133,7 @@ export const ProviderReferenceTargetModelField: React.FC<
 type ProviderReferencePathFieldProps = ProviderReferenceValidatedFieldProps & {
   showResetButton?: boolean;
   pathHelperVariant: ProviderReferenceHelperVariant;
+  onBlur?: () => void;
 };
 
 export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProps> = ({
@@ -139,6 +142,7 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
   fieldErrors,
   showResetButton = false,
   pathHelperVariant,
+  onBlur,
 }) => {
   const pathError = fieldErrors?.path;
   const apiFormatConfig = PROVIDER_REFERENCE_API_FORMATS[form.apiFormat];
@@ -152,6 +156,7 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
         maxLength={PROVIDER_REFERENCE_PATH_MAX_LENGTH}
         validated={pathError ? 'error' : 'default'}
         onChange={(_event, value) => onChange({ path: value })}
+        onBlur={onBlur}
       />
       <FormHelperText>
         <HelperText>

@@ -1977,24 +1977,24 @@ class ProviderReferenceModalBase extends Modal {
     this.findPathInput().type(path, { parseSpecialCharSequences: false });
   }
 
+  findAdvancedSettingsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-advanced-settings');
+  }
+
+  // PF v6 ExpandableSection puts data-testid on the section root; the toggle is a child button.
   findAdvancedSettingsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // PF v6 ExpandableSection does not forward data-testid to the toggle button.
-    return this.find()
-      .findByTestId('provider-ref-advanced-settings')
-      .find('button[aria-expanded]')
-      .first();
+    return this.findAdvancedSettingsSection().find('button[aria-expanded]').first();
   }
 
   expandAdvancedSettings(): void {
     this.findAdvancedSettingsToggle()
       .scrollIntoView()
       .then(($btn) => {
-        if ($btn.attr('aria-expanded') === 'false') {
+        if ($btn.attr('aria-expanded') !== 'true') {
           cy.wrap($btn).click();
         }
       });
     this.findAdvancedSettingsToggle().should('have.attr', 'aria-expanded', 'true');
-    this.findAddConfigurationPairButton().should('be.visible');
   }
 
   findAddConfigurationPairButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2003,7 +2003,7 @@ class ProviderReferenceModalBase extends Modal {
 
   addModelConfigPair(index: number, key: string, value: string): void {
     this.expandAdvancedSettings();
-    this.findAddConfigurationPairButton().click();
+    this.findAddConfigurationPairButton().scrollIntoView().should('be.visible').click();
     this.find()
       .findByTestId(`provider-ref-config-key-${index}`)
       .type(key, { parseSpecialCharSequences: false });
@@ -2013,7 +2013,7 @@ class ProviderReferenceModalBase extends Modal {
   }
 
   findInheritedProviderConfig(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('inherited-provider-config');
+    return this.find().findByTestId('inherited-provider-config').scrollIntoView();
   }
 
   findInheritedConfigKey(key: string): Cypress.Chainable<JQuery<HTMLElement>> {

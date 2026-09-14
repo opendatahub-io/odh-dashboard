@@ -3,7 +3,10 @@ import { Modal, ModalVariant, Wizard, WizardHeader, WizardStep } from '@patternf
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import {
   getProviderReferenceFieldErrors,
+  getVisibleProviderReferenceFieldErrors,
+  hasProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
+  ProviderReferenceFieldTouched,
   ProviderReferenceFormData,
 } from '~/app/pages/external-models/validations';
 import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
@@ -27,6 +30,11 @@ const emptyConfigureForm = (): ProviderReferenceFormData => ({
   configPairs: [],
 });
 
+const allConfigureFieldsTouched = (): ProviderReferenceFieldTouched => ({
+  targetModel: true,
+  path: true,
+});
+
 const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   isOpen,
   namespace,
@@ -38,14 +46,14 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   const [providerName, setProviderName] = React.useState('');
   const [configureForm, setConfigureForm] =
     React.useState<ProviderReferenceFormData>(emptyConfigureForm);
-  const [configureTouched, setConfigureTouched] = React.useState(false);
+  const [fieldTouched, setFieldTouched] = React.useState<ProviderReferenceFieldTouched>({});
 
   React.useEffect(() => {
     if (isOpen) {
       setProviderSource('existing');
       setProviderName('');
       setConfigureForm(emptyConfigureForm());
-      setConfigureTouched(false);
+      setFieldTouched({});
     }
   }, [isOpen]);
 
@@ -61,20 +69,24 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
     [selectedProvider?.config],
   );
 
-  const isConfigureIncomplete = isProviderReferenceFormIncomplete(configureForm);
+  const isAddDisabled = isProviderReferenceFormIncomplete(configureForm);
   const configureFieldErrors = getProviderReferenceFieldErrors(configureForm, validationContext);
+  const visibleFieldErrors = getVisibleProviderReferenceFieldErrors(
+    configureFieldErrors,
+    fieldTouched,
+  );
 
   const handleConfigureChange = (updates: Partial<ProviderReferenceFormData>) => {
     setConfigureForm((prev) => ({ ...prev, ...updates }));
   };
 
+  const handleFieldTouch = (field: keyof ProviderReferenceFieldTouched) => {
+    setFieldTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleAdd = React.useCallback(() => {
-    setConfigureTouched(true);
-    if (
-      !isStepOneValid ||
-      isProviderReferenceFormIncomplete(configureForm) ||
-      Object.keys(getProviderReferenceFieldErrors(configureForm, validationContext)).length > 0
-    ) {
+    setFieldTouched(allConfigureFieldsTouched());
+    if (!isStepOneValid || hasProviderReferenceFieldErrors(configureForm, validationContext)) {
       return;
     }
 
@@ -93,12 +105,12 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
     () => (
       <AddProviderReferenceWizardFooter
         isNextDisabled={!isStepOneValid}
-        isAddDisabled={isConfigureIncomplete}
+        isAddDisabled={isAddDisabled}
         submitLabel="Add"
         onAdd={handleAdd}
       />
     ),
-    [handleAdd, isConfigureIncomplete, isStepOneValid],
+    [handleAdd, isAddDisabled, isStepOneValid],
   );
 
   return (
@@ -137,7 +149,9 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
             form={configureForm}
             selectedProvider={selectedProvider}
             onChange={handleConfigureChange}
-            fieldErrors={configureTouched ? configureFieldErrors : undefined}
+            fieldErrors={visibleFieldErrors}
+            onTargetModelBlur={() => handleFieldTouch('targetModel')}
+            onPathBlur={() => handleFieldTouch('path')}
           />
         </WizardStep>
       </Wizard>

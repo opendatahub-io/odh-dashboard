@@ -14,8 +14,10 @@ import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSec
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import {
   getProviderReferenceFieldErrors,
+  getVisibleProviderReferenceFieldErrors,
   hasProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
+  ProviderReferenceFieldTouched,
   ProviderReferenceFormData,
 } from '~/app/pages/external-models/validations';
 import {
@@ -33,6 +35,11 @@ type EditProviderReferenceModalProps = {
   onClose: () => void;
   onSave: (providerRef: ProviderRef) => void;
 };
+
+const allProviderReferenceFieldsTouched = (): ProviderReferenceFieldTouched => ({
+  targetModel: true,
+  path: true,
+});
 
 const providerRefToFormState = (providerRef: ProviderRef): ProviderReferenceFormData => ({
   apiFormat: isProviderReferenceApiFormat(providerRef.apiFormat)
@@ -54,12 +61,12 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
   const [form, setForm] = React.useState<ProviderReferenceFormData>(() =>
     providerRefToFormState(providerRef),
   );
-  const [touched, setTouched] = React.useState(false);
+  const [fieldTouched, setFieldTouched] = React.useState<ProviderReferenceFieldTouched>({});
 
   React.useEffect(() => {
     if (isOpen) {
       setForm(providerRefToFormState(providerRef));
-      setTouched(false);
+      setFieldTouched({});
     }
   }, [isOpen, providerRef]);
 
@@ -73,20 +80,21 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
     () => ({ inheritedConfig: selectedProvider?.config }),
     [selectedProvider?.config],
   );
-  const isFormIncomplete = isProviderReferenceFormIncomplete(form);
+  const isSaveDisabled = isProviderReferenceFormIncomplete(form);
   const fieldErrors = getProviderReferenceFieldErrors(form, validationContext);
-  const visibleFieldErrors = touched ? fieldErrors : undefined;
+  const visibleFieldErrors = getVisibleProviderReferenceFieldErrors(fieldErrors, fieldTouched);
 
   const handleChange = (updates: Partial<ProviderReferenceFormData>) => {
     setForm((prev) => ({ ...prev, ...updates }));
   };
 
+  const handleFieldTouch = (field: keyof ProviderReferenceFieldTouched) => {
+    setFieldTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleSave = () => {
-    setTouched(true);
-    if (
-      isProviderReferenceFormIncomplete(form) ||
-      hasProviderReferenceFieldErrors(form, validationContext)
-    ) {
+    setFieldTouched(allProviderReferenceFieldsTouched());
+    if (hasProviderReferenceFieldErrors(form, validationContext)) {
       return;
     }
 
@@ -131,6 +139,8 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
               fieldErrors={visibleFieldErrors}
               helperVariant="edit"
               wrapInForm={false}
+              onTargetModelBlur={() => handleFieldTouch('targetModel')}
+              onPathBlur={() => handleFieldTouch('path')}
             />
           </FormSection>
         </Form>
@@ -139,7 +149,7 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
         <Button
           variant="primary"
           onClick={handleSave}
-          isDisabled={isFormIncomplete}
+          isDisabled={isSaveDisabled}
           data-testid="edit-provider-reference-submit"
         >
           Save

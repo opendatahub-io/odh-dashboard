@@ -368,9 +368,15 @@ describe('External Models Page', () => {
       addProviderReferenceWizard.shouldBeOpen(false);
 
       createExternalModelPage.findProviderReferencesTable().should('exist');
-      createExternalModelPage
-        .findProviderRefRow(0)
-        .should('contain.text', '/{key}/v1/chat/completions');
+      createExternalModelPage.findProviderRefRow(0).should('contain.text', 'claude-sonnet-4');
+
+      createExternalModelPage.findProviderRefEditButton(0).click();
+      editProviderReferenceModal.shouldBeOpen();
+      editProviderReferenceModal
+        .findPathInput()
+        .should('have.value', '/{key}/v1/chat/completions');
+      editProviderReferenceModal.findCancelButton().click();
+      editProviderReferenceModal.shouldBeOpen(false);
     });
 
     it('should edit a provider reference', () => {

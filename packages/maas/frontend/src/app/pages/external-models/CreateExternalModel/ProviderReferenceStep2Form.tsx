@@ -19,6 +19,8 @@ type ProviderReferenceStep2FormProps = {
   onChange: (updates: Partial<ProviderReferenceFormData>) => void;
   fieldErrors?: ProviderReferenceFieldErrors;
   helperVariant?: ProviderReferenceHelperVariant;
+  onTargetModelBlur?: () => void;
+  onPathBlur?: () => void;
   /** Set false when fields render inside a parent Form (e.g. edit provider ref modal). */
   wrapInForm?: boolean;
 };
@@ -29,6 +31,8 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
   onChange,
   fieldErrors,
   helperVariant = 'add',
+  onTargetModelBlur,
+  onPathBlur,
   wrapInForm = true,
 }) => {
   const fields = (
@@ -43,6 +47,7 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
         onChange={onChange}
         fieldErrors={fieldErrors}
         showHelperText={helperVariant === 'add'}
+        onBlur={onTargetModelBlur}
       />
       <ProviderReferencePathField
         form={form}
@@ -50,6 +55,7 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
         fieldErrors={fieldErrors}
         pathHelperVariant={helperVariant}
         showResetButton
+        onBlur={onPathBlur}
       />
       <ProviderReferenceConfigSection
         form={form}
