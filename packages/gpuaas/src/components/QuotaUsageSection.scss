@@ -5,3 +5,11 @@
     --pf-v6-c-tree-view__list-item--m-expanded__node-toggle-icon--Rotate: 0deg;
   }
 }
+
+.gpuaas-quota-usage-summary-content {
+  background-color: transparent;
+}
+
+.gpuaas-quota-usage-meter__value {
+  color: var(--pf-t--global--text--color--regular);
+}

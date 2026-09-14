@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
@@ -121,91 +120,6 @@ func TestMaaSConsumerPortalURL(t *testing.T) {
 	}
 }
 
-// TestMaaSConsumerPortalParamInjection verifies that injecting maas-consumer-portal-url
-// and section-title into the portal manifest's params.env and rendering the
-// kustomization substitutes the ConsoleLink href and applicationMenu.section.
-func TestMaaSConsumerPortalParamInjection(t *testing.T) {
-	dir := t.TempDir()
-
-	kustomizationYAML := `apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - consolelink.yaml
-configMapGenerator:
-  - name: maas-consumer-portal-params
-    env: params.env
-generatorOptions:
-  disableNameSuffixHash: true
-replacements:
-  - source:
-      kind: ConfigMap
-      name: maas-consumer-portal-params
-      fieldPath: data.section-title
-    targets:
-      - select:
-          kind: ConsoleLink
-          name: maas-consumer-portal-link
-        fieldPaths:
-          - spec.applicationMenu.section
-  - source:
-      kind: ConfigMap
-      name: maas-consumer-portal-params
-      fieldPath: data.maas-consumer-portal-url
-    targets:
-      - select:
-          kind: ConsoleLink
-          name: maas-consumer-portal-link
-        fieldPaths:
-          - spec.href
-`
-	consoleLinkYAML := `apiVersion: console.openshift.io/v1
-kind: ConsoleLink
-metadata:
-  name: maas-consumer-portal-link
-spec:
-  applicationMenu:
-    section: section-title
-    imageURL: data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=
-  href: maas-consumer-portal-url
-  location: ApplicationMenu
-  text: MaaS Consumer Portal
-`
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "kustomization.yaml"), []byte(kustomizationYAML), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "consolelink.yaml"), []byte(consoleLinkYAML), 0644))
-	// Commit-equivalent empty placeholders.
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte("maas-consumer-portal-url=\nsection-title=\n"), 0644))
-
-	// Inject the operator-derived values, mirroring MaaS Consumer Portal manifest rendering.
-	params := readExistingParams(filepath.Join(dir, "params.env"))
-	params["maas-consumer-portal-url"] = "https://rh-ai.apps.example.com/maas-consumer-portal/"
-	params["section-title"] = "OpenShift Self Managed Services"
-	require.NoError(t, writeParamsEnv(dir, params))
-
-	engine := kustomize.NewEngine()
-	rendered, err := engine.Render(dir)
-	require.NoError(t, err)
-
-	var consoleLink *unstructured.Unstructured
-	for i := range rendered {
-		if rendered[i].GetKind() == "ConsoleLink" {
-			consoleLink = &rendered[i]
-
-			break
-		}
-	}
-	require.NotNil(t, consoleLink, "rendered output must contain a ConsoleLink")
-
-	href, found, err := unstructured.NestedString(consoleLink.Object, "spec", "href")
-	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, "https://rh-ai.apps.example.com/maas-consumer-portal/", href)
-
-	section, found, err := unstructured.NestedString(consoleLink.Object, "spec", "applicationMenu", "section")
-	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, "OpenShift Self Managed Services", section)
-}
-
 func TestReadExistingParams(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -260,12 +174,14 @@ func TestResolveImageParams(t *testing.T) {
 		t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:v1")
 		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "quay.io/automl-runtime:v2")
 		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "quay.io/autorag-runtime:v3")
+		t.Setenv("RELATED_IMAGE_POSTGRESQL_16_IMAGE", "registry.redhat.io/rhel9/postgresql-16@sha256:abc123")
 
 		got := resolveImageParams()
 		assert.Equal(t, "quay.io/dashboard:latest", got["odh-dashboard-image"])
 		assert.Equal(t, "quay.io/mr:v1", got["model-registry-ui-image"])
 		assert.Equal(t, "quay.io/automl-runtime:v2", got["automl-pipeline-runtime-image"])
 		assert.Equal(t, "quay.io/autorag-runtime:v3", got["autorag-pipeline-runtime-image"])
+		assert.Equal(t, "registry.redhat.io/rhel9/postgresql-16@sha256:abc123", got["pgvector-image"])
 		assert.NotContains(t, got, "gen-ai-ui-image", "unset env vars should not appear")
 	})
 

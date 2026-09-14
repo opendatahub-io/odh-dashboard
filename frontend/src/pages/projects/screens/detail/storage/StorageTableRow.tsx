@@ -32,7 +32,7 @@ type StorageTableRowProps = {
   rowIndex: number;
   obj: StorageTableData;
   storageContextTypes?: StorageContextType[];
-  storageContextTypesLoaded: boolean;
+  storageContextTypesLoaded?: boolean;
   storageClassesLoaded: boolean;
   showConnectedResources: boolean;
   additionalResourcesLoaded: boolean;

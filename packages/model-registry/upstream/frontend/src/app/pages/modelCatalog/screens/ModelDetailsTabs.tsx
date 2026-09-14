@@ -27,6 +27,7 @@ type ModelDetailsTabsProps = {
   artifactLoaded: boolean;
   artifactsLoadError: Error | undefined;
   gatedAccessDenied: boolean;
+  hfUsername?: string;
 };
 
 const ModelDetailsTabs = ({
@@ -37,6 +38,7 @@ const ModelDetailsTabs = ({
   artifactLoaded,
   artifactsLoadError,
   gatedAccessDenied,
+  hfUsername,
 }: ModelDetailsTabsProps): React.JSX.Element => {
   const navigate = useNavigate();
   const tabExtensions = useExtensions(isDetailTabExtension);
@@ -80,7 +82,7 @@ const ModelDetailsTabs = ({
         data-testid="model-overview-tab-content"
         padding={{ default: 'noPadding' }}
       >
-        <ModelGatedAccessRequiredView model={model} />
+        <ModelGatedAccessRequiredView model={model} hfUsername={hfUsername} />
       </PageSection>
     );
   }

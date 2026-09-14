@@ -9,6 +9,7 @@ import FeatureStoreLineageNodePopover from './node/FeatureStoreLineageNodePopove
 import { applyLineageFilters } from './utils';
 import { LineagePageProvider } from './LineagePageContext';
 import FeatureStoreLineageToolbar from '../../components/FeatureStoreLineageToolbar';
+// import FeatureStoreLineageLegend from '../../components/FeatureStoreLineageLegend';
 import useFeatureStoreLineage from '../../apiHooks/useFeatureStoreLineage';
 import useFeatureViewLineage from '../../apiHooks/useFeatureViewLineage';
 import {
@@ -206,6 +207,11 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           componentFactory={componentFactory}
           popoverComponent={PopoverComponent}
           toolbarComponent={ToolbarComponent}
+          // legendComponent={
+          //   lineageDataLoaded && !error && visualizationData.nodes.length > 0
+          //     ? FeatureStoreLineageLegend
+          //     : undefined
+          // }
           autoResetOnDataChange
         />
       </LineagePageProvider>

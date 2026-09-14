@@ -2980,6 +2980,13 @@ components:
           type: boolean
           nullable: true
           readOnly: true
+        hfUsername:
+          description: |-
+            The Hugging Face username associated with the stored API token.
+            Null when no token exists or authentication failed.
+          type: string
+          nullable: true
+          readOnly: true
         assetType:
           $ref: "#/components/schemas/assetType"
           description: |-
@@ -3613,8 +3620,9 @@ components:
           type: object
           description: |-
             Type-specific configuration properties. For yaml sources, provide `yaml` (catalog
-            content) or `yamlCatalogPath`. For Hugging Face sources, `apiKey` (forwarded for preview;
-            catalog may read from env only) and `allowedOrganization` may be included.
+            content) or `yamlCatalogPath`. For Hugging Face sources, `apiKey` (raw Hugging Face
+            access token forwarded to catalog for preview; omitted on edit when no credentials exist)
+            and `allowedOrganization` may be included.
           additionalProperties: true
     CatalogSourcePreviewItem:
       description: An asset in the preview response with inclusion status.
@@ -3630,6 +3638,17 @@ components:
         included:
           type: boolean
           description: Whether this asset would be included based on the source configuration
+        hfAccessType:
+          type: string
+          description: |-
+            Hugging Face access type classification. Only present for Hugging Face sources.
+            Possible values: public, private, gated_auto, gated_manual.
+          example: gated_auto
+        hfGatedAccessGranted:
+          type: boolean
+          description: |-
+            Whether the configured API key has been granted access to this gated model.
+            Only present for gated Hugging Face models when the information is available.
     CatalogSourcePreviewModel:
       description: |-
         Deprecated alias for `CatalogSourcePreviewItem`. A model or asset with its inclusion status.

@@ -111,7 +111,7 @@ const initIntercepts = (options = {}) => {
 };
 
 const visitWithData = () => {
-  cy.visit('/main-view?project=test-project');
+  cy.visit('/ai-hub/data/browse?project=test-project');
   cy.findByTestId('registry-table', { timeout: 15000 }).should('exist');
 };
 
@@ -128,7 +128,7 @@ describe('Registry Table', () => {
   });
 
   it('should show empty state when no project selected', () => {
-    cy.visit('/main-view');
+    cy.visit('/ai-hub/data/browse');
     cy.contains('Select a project').should('exist');
   });
 
@@ -159,6 +159,102 @@ describe('Registry Table', () => {
     visitWithData();
     cy.contains('production').should('exist');
     cy.contains('claims').should('exist');
+  });
+
+  it('should delete a table from the browse view', () => {
+    cy.intercept(
+      'DELETE',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { statusCode: 204 },
+    ).as('deleteTable');
+
+    visitWithData();
+    cy.findByTestId('asset-actions-table-analytics-claims-data').click();
+    cy.findByTestId('asset-delete-table-analytics-claims-data').click();
+    cy.findByTestId('delete-asset-confirmation').type('claims-data');
+    cy.findByTestId('delete-asset-confirm').click();
+    cy.wait('@deleteTable');
+    cy.findByTestId('delete-asset-modal').should('not.exist');
+  });
+
+  it('should navigate to the asset detail view to edit a table', () => {
+    cy.intercept(
+      'GET',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: mockAssetsResponse.assets[0] },
+    ).as('getTable');
+
+    visitWithData();
+    cy.findByTestId('asset-actions-table-analytics-claims-data').click();
+    cy.findByTestId('asset-edit-table-analytics-claims-data').click();
+    cy.url().should(
+      'include',
+      '/ai-hub/data/browse/assets/table/test-project/analytics/claims-data?edit=true',
+    );
+    cy.wait('@getTable');
+    cy.findByTestId('edit-asset-modal').should('exist');
+  });
+
+  it('should delete a volume from the browse view', () => {
+    cy.intercept('DELETE', `${REGISTRY_API}/test-project/namespaces/analytics/volumes/raw-docs`, {
+      statusCode: 204,
+    }).as('deleteVolume');
+
+    visitWithData();
+    cy.findByTestId('asset-actions-volume-analytics-raw-docs').click();
+    cy.findByTestId('asset-delete-volume-analytics-raw-docs').click();
+    cy.findByTestId('delete-asset-confirmation').type('raw-docs');
+    cy.findByTestId('delete-asset-confirm').click();
+    cy.wait('@deleteVolume');
+    cy.findByTestId('delete-asset-modal').should('not.exist');
+  });
+
+  it('should clamp pagination after deleting the only asset on the last page', () => {
+    const lastPageAssetName = 'last-page-asset';
+    let analyticsAssets = [
+      ...mockAssetsResponse.assets,
+      ...Array.from({ length: 9 }, (_, index) => ({
+        ...mockAssetsResponse.assets[0],
+        name: index === 8 ? lastPageAssetName : `extra-asset-${index}`,
+      })),
+    ];
+
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces`, {
+      body: { namespaces: [['analytics']] },
+    });
+    cy.intercept(
+      'GET',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables`,
+      (request) => request.reply({ body: { assets: analyticsAssets } }),
+    ).as('getAnalyticsAssets');
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      body: { volumes: [] },
+    });
+    cy.intercept(
+      'DELETE',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/${lastPageAssetName}`,
+      (request) => {
+        analyticsAssets = analyticsAssets.filter((asset) => asset.name !== lastPageAssetName);
+        request.reply({ statusCode: 204 });
+      },
+    ).as('deleteLastPageAsset');
+
+    visitWithData();
+    cy.wait('@getAnalyticsAssets');
+
+    const pagination = () => cy.findByTestId('registry-pagination');
+    pagination().find('[data-action=next]').click();
+    cy.findByText(lastPageAssetName).should('exist');
+
+    cy.findByTestId(`asset-actions-table-analytics-${lastPageAssetName}`).click();
+    cy.findByTestId(`asset-delete-table-analytics-${lastPageAssetName}`).click();
+    cy.findByTestId('delete-asset-confirmation').type(lastPageAssetName);
+    cy.findByTestId('delete-asset-confirm').click();
+
+    cy.wait('@deleteLastPageAsset');
+    cy.wait('@getAnalyticsAssets');
+    pagination().findByRole('spinbutton', { name: 'Current page' }).should('have.value', '1');
+    cy.findByText('claims-data').should('exist');
   });
 
   it('should create a new collection', () => {

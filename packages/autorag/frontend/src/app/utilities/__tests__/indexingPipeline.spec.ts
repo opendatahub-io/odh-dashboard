@@ -46,7 +46,7 @@ const patternWithSpec: AutoragPattern = {
         input_data_secret_name: 'data-connection',
         input_data_bucket_name: 'bucket',
         input_data_key: 'docs/',
-        ogx_secret_name: 'ogx',
+        maas_secret_name: 'maas',
         vector_io_provider_id: 'milvus',
         chunk_size: 512,
         chunk_overlap: 50,
