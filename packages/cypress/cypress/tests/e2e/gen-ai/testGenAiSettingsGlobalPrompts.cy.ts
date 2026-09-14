@@ -21,6 +21,7 @@ import {
   removeGlobalMLflowNamespaces,
   waitForGlobalPromptsInBFF,
 } from '../../../utils/oc_commands/genAi';
+import type { GlobalMLflowNamespacesBaseline } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
@@ -46,6 +47,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   let globalNamespace: string;
   let servingRuntimeName: string;
   let hardwareProfileName: string;
+  let globalMLflowNamespacesBaselines: GlobalMLflowNamespacesBaseline[] = [];
   const uuid = generateTestUUID();
   const globalPromptName = `global-prompt-${uuid}`;
   const projectPromptName = `project-prompt-${uuid}`;
@@ -130,7 +132,9 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       .then(() => {
         cy.step('Configure global namespaces');
         cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
-        setGlobalMLflowNamespaces([globalNamespace]);
+        setGlobalMLflowNamespaces([globalNamespace]).then((baselines) => {
+          globalMLflowNamespacesBaselines = baselines;
+        });
         forceDashboardConfigRefresh();
       })
       .then(() => {
@@ -165,7 +169,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       deleteStalePromptByName(globalNamespace, globalPromptName);
       deleteOpenShiftProject(globalNamespace, { wait: false, ignoreNotFound: true });
     }
-    removeGlobalMLflowNamespaces();
+    removeGlobalMLflowNamespaces(globalMLflowNamespacesBaselines);
     disablePromptManagementFeatures();
 
     if (servingRuntimeName) {

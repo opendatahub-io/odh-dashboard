@@ -248,6 +248,9 @@ export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void =
 };
 
 type ConfigInstance = { namespace: string; name: string };
+export type GlobalMLflowNamespacesBaseline = ConfigInstance & {
+  globalMLflowNamespaces?: string[];
+};
 
 /**
  * Get all OdhDashboardConfig instances in the cluster.
@@ -287,45 +290,80 @@ export const getOdhDashboardConfigs = (): Cypress.Chainable<ConfigInstance[]> =>
  *
  * @param namespaces - Array of namespace strings to set as global MLflow namespaces.
  */
-export const setGlobalMLflowNamespaces = (namespaces: string[]): void => {
+export const setGlobalMLflowNamespaces = (
+  namespaces: string[],
+): Cypress.Chainable<GlobalMLflowNamespacesBaseline[]> =>
   getOdhDashboardConfigs().then((configs) => {
-    for (const { namespace: ns, name } of configs) {
-      const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: namespaces } });
-      patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
-    }
+    const baselines: GlobalMLflowNamespacesBaseline[] = [];
 
-    cy.step('Wait for globalMLflowNamespaces to be confirmed in all config instances');
-    for (const { namespace: ns, name } of configs) {
-      const expected = JSON.stringify(namespaces);
-      pollUntilSuccess(
-        `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
-        `globalMLflowNamespaces to be set in ${ns}`,
-        { maxAttempts: 30, pollIntervalMs: 2000 },
-      );
-    }
+    cy.wrap(configs).each((config) => {
+      const { namespace: ns, name } = config as unknown as ConfigInstance;
+      cy.exec(`oc get OdhDashboardConfig ${name} -n ${ns} -o json`, {
+        failOnNonZeroExit: false,
+      }).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `Failed to get OdhDashboardConfig ${name} in ${ns}: ${result.stderr || result.stdout}`,
+          );
+        }
+        const resource = JSON.parse(result.stdout) as {
+          spec?: { globalMLflowNamespaces?: string[] };
+        };
+        const baseline: GlobalMLflowNamespacesBaseline = { namespace: ns, name };
+        if (Object.prototype.hasOwnProperty.call(resource.spec ?? {}, 'globalMLflowNamespaces')) {
+          baseline.globalMLflowNamespaces = resource.spec?.globalMLflowNamespaces;
+        }
+        baselines.push(baseline);
+      });
+    });
+
+    return cy.then(() => {
+      for (const { namespace: ns, name } of configs) {
+        const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: namespaces } });
+        patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
+      }
+
+      cy.step('Wait for globalMLflowNamespaces to be confirmed in all config instances');
+      for (const { namespace: ns, name } of configs) {
+        const expected = JSON.stringify(namespaces);
+        pollUntilSuccess(
+          `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
+          `globalMLflowNamespaces to be set in ${ns}`,
+          { maxAttempts: 30, pollIntervalMs: 2000 },
+        );
+      }
+      return baselines;
+    });
   });
-};
 
 /**
- * Remove globalMLflowNamespaces from all OdhDashboardConfig instances.
- * Sets the field to an empty array.
- * Assumes fresh cluster where default is empty.
+ * Restore globalMLflowNamespaces in OdhDashboardConfig instances to their setup-time values.
  */
-export const removeGlobalMLflowNamespaces = (): void => {
-  getOdhDashboardConfigs().then((configs) => {
-    for (const { namespace: ns, name } of configs) {
-      const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: [] } });
-      patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
-    }
+export const removeGlobalMLflowNamespaces = (baselines: GlobalMLflowNamespacesBaseline[]): void => {
+  for (const baseline of baselines) {
+    const { namespace: ns, name } = baseline;
+    const patchContent = JSON.stringify({
+      spec: {
+        globalMLflowNamespaces: Object.prototype.hasOwnProperty.call(
+          baseline,
+          'globalMLflowNamespaces',
+        )
+          ? baseline.globalMLflowNamespaces
+          : null,
+      },
+    });
+    patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
 
-    for (const { namespace: ns, name } of configs) {
-      pollUntilSuccess(
-        `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '(.spec.globalMLflowNamespaces // []) == []'`,
-        `globalMLflowNamespaces to be removed in ${ns}`,
-        { maxAttempts: 15, pollIntervalMs: 2000 },
-      );
-    }
-  });
+    pollUntilSuccess(
+      Object.prototype.hasOwnProperty.call(baseline, 'globalMLflowNamespaces')
+        ? `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${JSON.stringify(
+            baseline.globalMLflowNamespaces,
+          )}'`
+        : `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '(.spec | has("globalMLflowNamespaces") | not)'`,
+      `globalMLflowNamespaces to be restored in ${ns}`,
+      { maxAttempts: 15, pollIntervalMs: 2000 },
+    );
+  }
 };
 
 /**
