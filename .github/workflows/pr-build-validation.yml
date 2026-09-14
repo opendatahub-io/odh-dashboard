@@ -409,8 +409,9 @@ jobs:
           set -euo pipefail
           # Overlays that must render and schema-validate cleanly. This set mirrors what the
           # dashboard-operator actually renders at runtime (see dashboard-operator/internal/
-          # controller/{actions,support,module_deploy}.go): the platform base overlays, the
-          # observability manifests, the MaaS consumer-portal ConsoleLink, and every module
+          # controller/{actions,support,module_deploy,maas_consumer_portal}.go): the platform
+          # base overlays (which pull in the ConsoleLink via manifests/{base,rhoai}/consolelink),
+          # the observability manifests, the MaaS consumer-portal distribution, and every module
           # overlay (rendered per enabled module). Keeping these in sync means a broken
           # resources: path in any of them is caught here instead of at deploy time.
           OVERLAYS=(
@@ -419,7 +420,7 @@ jobs:
             manifests/rhoai
             manifests/observability/odh
             manifests/observability/rhoai
-            manifests/maas-consumer-portal-consolelink/rhoai
+            manifests/distributions/maas-consumer-portal
           )
 
           # Dynamically append every module overlay (manifests/modules/<slug>) so newly
