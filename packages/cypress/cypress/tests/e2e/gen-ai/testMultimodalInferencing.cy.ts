@@ -115,7 +115,11 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       );
 
       cy.step('Verify image preview appears');
-      genAiPlayground.findImagePreview({ timeout: 10000 }).should('be.visible');
+      genAiPlayground
+        .findImagePreview({ timeout: 10000 })
+        .should('be.visible')
+        .findByRole('button', { name: `Close ${testData.image.fileName}` })
+        .should('be.visible');
 
       cy.step('Type a message and send');
       const message = testData.inference.visionTestMessage;
@@ -129,9 +133,13 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.findImageInUserMessage().should('exist');
 
       cy.step('Wait for and verify model response to image');
+      genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
       genAiPlayground
         .findAllAssistantMessages({ timeout: 60000 })
-        .should('have.length.at.least', 1);
+        .last()
+        .invoke('text')
+        .should('match', /\S/)
+        .and('not.contain', 'Sorry, I encountered an error');
     },
   );
 });
