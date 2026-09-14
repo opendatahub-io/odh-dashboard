@@ -27,11 +27,13 @@ import useCatalogDeployPrefillData from '~/odh/hooks/useCatalogDeployPrefillData
 import {
   decodeParams,
   getModelName,
+  getSourceFromSourceId,
   hasModelArtifacts,
   isModelValidated,
   isRedHatModel,
   getHfAccessLabelVariant,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
@@ -74,6 +76,11 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
     () => actionExtensions.some((action) => action.properties.group === MODEL_CATALOG_DEPLOY_GROUP),
     [actionExtensions],
   );
+  const { catalogSources } = React.useContext(ModelCatalogContext);
+  const hfUsername = getSourceFromSourceId(
+    decodedParams.sourceId || '',
+    catalogSources,
+  )?.hfUsername;
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
@@ -127,13 +134,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
 
   const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
     if (gatedAccessDenied) {
-      return (
-        <Tooltip content={MODEL_CATALOG_GATED_ACCESS_REQUIRED.REQUEST_ACCESS_BUTTON_TOOLTIP}>
-          <Button variant={variant} isAriaDisabled data-testid="register-model-button">
-            Register model
-          </Button>
-        </Tooltip>
-      );
+      return registerButtonTooltip('', MODEL_CATALOG_GATED_ACCESS_REQUIRED.REGISTER_BUTTON_TOOLTIP);
     }
 
     if (!modelRegistriesLoaded || modelRegistriesLoadError) {
@@ -270,8 +271,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                   componentProps={{
                     ...catalogDeployProps,
                     ...(gatedAccessDenied && {
-                      disabledTooltip:
-                        MODEL_CATALOG_GATED_ACCESS_REQUIRED.REQUEST_ACCESS_BUTTON_TOOLTIP,
+                      disabledTooltip: MODEL_CATALOG_GATED_ACCESS_REQUIRED.REGISTER_BUTTON_TOOLTIP,
                     }),
                   }}
                 />
@@ -290,6 +290,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
             artifactLoaded={artifactLoaded}
             artifactsLoadError={artifactsLoadError}
             gatedAccessDenied={gatedAccessDenied}
+            hfUsername={hfUsername}
           />
         )}
       </ApplicationsPage>
