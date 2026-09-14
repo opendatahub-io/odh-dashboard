@@ -179,15 +179,16 @@ Runs only when a PR changes files in a package that has a `Dockerfile.workspace`
 Runs independently of the Docker build (no image needed), so it fails fast on manifest regressions.
 
 - ✅ **Kustomize build testing**
-  - Builds: Each overlay — `manifests/base`, `manifests/odh`, `manifests/rhoai`
+  - Builds: The set the `dashboard-operator` actually renders — the platform overlays (`manifests/base`, `manifests/odh`, `manifests/rhoai`), the observability overlays (`manifests/observability/{odh,rhoai}`), the MaaS consumer-portal distribution (`manifests/distributions/maas-consumer-portal`), and every module overlay under `manifests/modules/<slug>` (discovered automatically, so a new module needs no workflow edit). The ConsoleLink overlays are covered transitively through the platform overlays.
   - Validates: YAML syntax, kustomization references, resource generation
   - Catches: Missing files, broken `resources:`/`patches:` paths, ConfigMapGenerator errors
 
 - ✅ **Kubernetes schema validation** (kubeconform)
-  - Pipes: Each `kustomize build` output through `kubeconform -strict -ignore-missing-schemas`
+  - Pipes: Each `kustomize build` output through `kubeconform -strict -ignore-missing-schemas` (parsed as JSON)
   - Validates: Resources conform to the Kubernetes API schema (v1.31.0)
   - Skips: CRDs without a published schema (`-ignore-missing-schemas`) so custom resources don't false-fail
-  - Catches: Invalid field names, wrong types, malformed spec sections before they reach a cluster
+  - Fails: When a *built-in* Kubernetes kind is skipped — i.e. a skipped resource in the core group, `*.k8s.io`, or `apps`/`batch`/`policy`/`autoscaling`/`extensions`. Those always have a schema, so a skip there means a misspelled `kind` or `apiVersion`. This guard is what makes `-ignore-missing-schemas` safe to use.
+  - Catches: Invalid field names, wrong types, malformed spec sections, and typo'd built-in kinds before they reach a cluster
 
 ## Usage
 

@@ -332,7 +332,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: write  # for upload-artifact
     needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
