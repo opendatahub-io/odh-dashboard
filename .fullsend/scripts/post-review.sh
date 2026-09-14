@@ -454,7 +454,7 @@ def status_text(result, action):
     return "This review did not complete. Do not treat this head as reviewed."
 
 SEVERITY_MARK = {"critical": "⛔", "high": "🔴", "medium": "🟠", "low": "🟡", "info": "⚪"}
-STATUS_MARK = {"pass": "✅", "warning": "⚠️", "fail": "❌", "not-applicable": "➖", "could-not-verify": "❔"}
+STATUS_MARK = {"pass": "✅", "warning": "🟡", "fail": "❌", "not-applicable": "➖", "could-not-verify": "❔"}
 VERDICT_MARK = {"PASS": "✅", "PARTIAL": "🟠", "MISS": "❌", "SKIP": "➖"}
 ACTION_MARK = {"approve": "✅", "comment": "💬", "request-changes": "🔴", "reject": "⛔", "failure": "❌"}
 LEVEL_MARK = {"low": "🟢", "medium": "🟠", "high": "🔴", "critical": "⛔"}
@@ -499,7 +499,7 @@ def challenger_state(ledger, findings):
         claims_empty = not reason or "no finding" in reason.lower() or raw == "skipped-empty-set"
         count = len(findings)
         if claims_empty and count:
-            return (f'⚠️ skipped — recorded as "no findings to adjudicate", but {count} finding(s) were reported',
+            return (f'🟡 skipped — recorded as "no findings to adjudicate", but {count} finding(s) were reported',
                     f"The ledger records the challenger as skipped for an empty finding set, but {count} "
                     f"finding(s) were reported. Its real reason for skipping was not recorded.")
         return f"➖ skipped — {clean(reason) if reason else 'no findings to adjudicate'}", None
@@ -570,7 +570,7 @@ def render_body(result, previous_md, action):
     stray = summary_scope_problem(result)
     if stray:
         changed = changed_paths()
-        lines += ["", f"> ⚠️ This summary names files that are not in this PR's diff "
+        lines += ["", f"> 🟡 This summary names files that are not in this PR's diff "
                       f"(`{'`, `'.join(stray)}`). This PR changes "
                       f"{len(changed)} file(s): `{'`, `'.join(changed)}`."]
     lines += ["", "## Status", "", f"{mark(ACTION_MARK, action)} {status_text(result, action)}"]
@@ -600,7 +600,7 @@ def render_body(result, previous_md, action):
             body += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
         body += ["The PR description is the source of truth. This is not a check of the diff against acceptance criteria."]
         label = f"<code>{clean(status)}</code>" + (" · needs human review" if pa.get("needs_human") else "")
-        signals += signal("⚠️" if needs_attention else "✅", "Product ask", label, body,
+        signals += signal("🟡" if needs_attention else "✅", "Product ask", label, body,
                           open_by_default=needs_attention)
 
     criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
@@ -1028,6 +1028,40 @@ docs/admin-dashboard.md"
     fail=1
   else
     echo "PASS in-diff change summary passes clean"
+  fi
+
+  # Every U+FE0F variation selector is stripped from the comment before it is
+  # posted -- the live body carries none. A glyph that needs one to be coloured
+  # (U+26A0 WARNING SIGN is the one that bit us) therefore renders monochrome on
+  # GitHub no matter how the source is written. Every marker must be a character
+  # that is emoji-presentation by default, so scan the rendered body rather than
+  # trusting the marker tables.
+  jq -r .body "${tmp}/scope-out.json" "${tmp}/ledger-out.json" "${tmp}/prov-out.json" \
+      "${tmp}/request-changes-out.json" "${tmp}/structured-out.json" \
+    | python3 -c '
+import sys, unicodedata
+text = sys.stdin.read()
+bad = set()
+for index, char in enumerate(text):
+    if char == "\ufe0f":
+        bad.add("U+FE0F after " + hex(ord(text[index - 1])))
+        continue
+    if ord(char) < 0x2100 or unicodedata.category(char) != "So":
+        continue
+    # Symbols below U+1F000 that are not emoji by default need a selector.
+    if ord(char) < 0x1F000 and ord(char) not in {
+        0x2705, 0x274C, 0x2754, 0x2796, 0x26D4, 0x26AA, 0x21B3,
+    }:
+        bad.add(hex(ord(char)) + " " + unicodedata.name(char, "?"))
+if bad:
+    print("\n".join(sorted(bad)))
+' > "${tmp}/glyphs.txt"
+  if [[ -s "${tmp}/glyphs.txt" ]]; then
+    echo "FAIL glyphs: markers that need a stripped variation selector, or a stray one:" >&2
+    cat "${tmp}/glyphs.txt" >&2
+    fail=1
+  else
+    echo "PASS every rendered marker is coloured without a variation selector"
   fi
 
   if [[ "${fail}" -ne 0 ]]; then
