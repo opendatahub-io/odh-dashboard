@@ -21,7 +21,10 @@ import {
 import { ExclamationCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
 import type { AutoRAGEvaluationResult, TabContentProps } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
-import SampleQAEntry from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
+import SampleQAEntry, {
+  MetricScores,
+  RetrievedContextSection,
+} from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
 import ComparisonRadarChart from '~/app/components/run-results/PatternDetailsModal/components/ComparisonRadarChart';
 import { collectAllMetricNames } from '~/app/components/run-results/PatternDetailsModal/components/radarChartUtils';
 
@@ -68,6 +71,14 @@ const ComparisonQAEntry: React.FC<{
                 comparisonLabel={comparisonLabel}
                 allMetricNames={allMetricNames}
               />
+              <MetricScores
+                metrics={primaryResult.metrics}
+                testId={`qa-primary-metric-scores-${primaryResult.question_id}`}
+              />
+              <MetricScores
+                metrics={comparisonResult.metrics}
+                testId={`qa-comparison-metric-scores-${primaryResult.question_id}`}
+              />
             </StackItem>
           )}
           <StackItem>
@@ -108,6 +119,18 @@ const ComparisonQAEntry: React.FC<{
             </Grid>
           </StackItem>
           <StackItem>
+            <RetrievedContextSection
+              result={primaryResult}
+              testId={`qa-primary-retrieved-context-${primaryResult.question_id}`}
+            />
+            {comparisonResult && (
+              <RetrievedContextSection
+                result={comparisonResult}
+                testId={`qa-comparison-retrieved-context-${primaryResult.question_id}`}
+              />
+            )}
+          </StackItem>
+          <StackItem>
             <ExpandableSection
               toggleText={`View expected answer (${primaryResult.correct_answers.length})`}
               isExpanded={isExpanded}
@@ -134,6 +157,17 @@ const ComparisonQAEntry: React.FC<{
     </Card>
   );
 };
+
+export function getComparisonResult(
+  primaryResult: AutoRAGEvaluationResult,
+  comparisonByQuestionId: Map<string, AutoRAGEvaluationResult>,
+  comparisonResults: AutoRAGEvaluationResult[],
+  index: number,
+): AutoRAGEvaluationResult | undefined {
+  return primaryResult.question_id
+    ? comparisonByQuestionId.get(primaryResult.question_id)
+    : comparisonResults[index];
+}
 
 const EMPTY_RESULTS: AutoRAGEvaluationResult[] = [];
 
@@ -202,11 +236,12 @@ const SampleQATab: React.FC<TabContentProps> = ({
         <StackItem key={`qa-${primaryResult.question_id || index}`}>
           <ComparisonQAEntry
             primaryResult={primaryResult}
-            comparisonResult={
-              primaryResult.question_id
-                ? comparisonByQuestionId.get(primaryResult.question_id)
-                : comparisonResults[index]
-            }
+            comparisonResult={getComparisonResult(
+              primaryResult,
+              comparisonByQuestionId,
+              comparisonResults,
+              index,
+            )}
             primaryLabel={primaryLabel}
             comparisonLabel={comparisonLabel}
             questionNumber={index + 1}
