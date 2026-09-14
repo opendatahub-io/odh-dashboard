@@ -137,9 +137,25 @@ describe('NIM Models Deployments', () => {
     cy.testA11y();
 
     deleteModelServingModal.findSubmitButton().click();
-    cy.wait('@deleteInferenceService');
-    cy.wait('@deleteServingRuntime');
-    cy.wait('@deleteNIMPVC');
+
+    cy.wait('@deleteInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+    cy.wait('@deleteInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+    cy.wait('@deleteServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+    cy.wait('@deleteServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+    cy.wait('@deleteNIMPVC').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+    cy.wait('@deleteNIMPVC').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
   });
 
   it('should confirm deletion when the NIM cache PVC has no other dependents', () => {
