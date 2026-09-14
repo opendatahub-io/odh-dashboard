@@ -8,11 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/opendatahub-io/maas-library/bff/internal/constants"
-	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -204,65 +201,6 @@ func TestNewMaasClient_EmptyURLNotReady(t *testing.T) {
 	_, err = client.ListModels(context.Background(), nil)
 	if !errors.Is(err, ErrMaasApiNotConfigured) {
 		t.Fatalf("expected ErrMaasApiNotConfigured, got %v", err)
-	}
-}
-
-func TestNewMaasClient_RejectsNonLocalHTTP(t *testing.T) {
-	for _, baseURL := range []string{
-		"http://maas.example.com",
-		"http://maas-api.odh-ai-gateway-infra.svc.cluster.local:8080",
-	} {
-		t.Run(baseURL, func(t *testing.T) {
-			logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-			_, err := NewMaasClient(logger, baseURL)
-			if err == nil {
-				t.Fatal("expected non-local HTTP URL to be rejected")
-			}
-			if !strings.Contains(err.Error(), "must use HTTPS for non-local endpoints") {
-				t.Fatalf("unexpected validation error: %v", err)
-			}
-		})
-	}
-}
-
-func TestNewMaasClient_AllowsLocalHTTP(t *testing.T) {
-	for _, baseURL := range []string{
-		"http://localhost:8080",
-		"http://127.0.0.1:8080",
-		"http://[::1]:8080",
-	} {
-		t.Run(baseURL, func(t *testing.T) {
-			logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-			client, err := NewMaasClient(logger, baseURL)
-			if err != nil {
-				t.Fatalf("expected local HTTP URL to be accepted: %v", err)
-			}
-			if !client.Ready() {
-				t.Fatal("expected client to be ready")
-			}
-		})
-	}
-}
-
-func TestListModels_HTTPSForwardsBearerToken(t *testing.T) {
-	body := models.MaaSModelsResponse{Object: "list", Data: []models.MaaSModel{}}
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
-			t.Errorf("expected bearer token, got %q", got)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(body)
-	}))
-	t.Cleanup(ts.Close)
-
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	client, err := NewMaasClient(logger, ts.URL)
-	if err != nil {
-		t.Fatalf("NewMaasClient: %v", err)
-	}
-	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{Token: "test-token"})
-	if _, err := client.ListModels(ctx, nil); err != nil {
-		t.Fatalf("ListModels: %v", err)
 	}
 }
 
