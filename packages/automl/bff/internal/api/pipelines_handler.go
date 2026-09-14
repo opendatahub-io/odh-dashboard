@@ -154,7 +154,11 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 			return
 		}
 		req = normalized
-		if req.IDColumn == nil || *req.IDColumn == "" {
+		if req.IDColumn != nil && *req.IDColumn == "" {
+			badRequestResponse(h.logger, w, r, "id_column must be non-empty when supplied; omit it for a two-column dataset")
+			return
+		}
+		if req.IDColumn == nil {
 			schema, err := h.schemas.GetCSVSchema(r.Context(), repositories.S3RequestContext{
 				Namespace:  namespace,
 				SecretName: req.TrainDataSecretName,
@@ -179,7 +183,6 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 				badRequestResponse(h.logger, w, r, "omitting id_column requires exactly two CSV columns matching target and timestamp_column")
 				return
 			}
-			req.IDColumn = nil
 		}
 	}
 

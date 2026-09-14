@@ -579,6 +579,24 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
+      it.each(['', '   ', '\t\n', '\ufeff'])(
+        'should reject a supplied blank time series ID %j before reading CSV',
+        async (idColumn) => {
+          const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+            display_name: 'contract-test-blank-timeseries-id',
+            train_data_secret_name: SECRET,
+            train_data_bucket_name: BUCKET,
+            train_data_file_key: 'nonexistent-blank-id.csv',
+            task_type: 'timeseries',
+            target: 'target',
+            timestamp_column: 'timestamp',
+            id_column: idColumn,
+          });
+          expect(result.success).toBe(false);
+          expect(result.error?.status).toBe(400);
+        },
+      );
+
       it('should reject a direct time series request without ID for three or more CSV columns', async () => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'contract-test-missing-timeseries-id',
