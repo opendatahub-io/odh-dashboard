@@ -197,6 +197,9 @@ const AutoragExperimentSettingsModelSelection: React.FC<
           >
             {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
               const { selectedModels, onChange, models: tabModels } = tabData[modelType];
+              const oppositeSelectedModels =
+                tabData[modelType === 'llm' ? 'embedding' : 'llm'].selectedModels;
+              const oppositeSelectedModelIds = new Set(oppositeSelectedModels);
               const selectableModels = tabModels.filter((model) => model.ready);
               const selectableModelIds = new Set(selectableModels.map((model) => model.id));
               const selectedCount = selectedModels.filter((id) =>
@@ -209,13 +212,21 @@ const AutoragExperimentSettingsModelSelection: React.FC<
                 );
 
               const handleSelectAll = (isSelecting: boolean) => {
-                onChange(
-                  isSelecting
-                    ? selectableModels
-                        .map((model) => model.id)
-                        .toSorted((a, b) => a.localeCompare(b))
-                    : [],
+                if (!isSelecting) {
+                  onChange([]);
+                  return;
+                }
+
+                const selectedIds = selectableModels
+                  .filter((model) => !oppositeSelectedModelIds.has(model.id))
+                  .map((model) => model.id)
+                  .toSorted((a, b) => a.localeCompare(b));
+                const updatedOppositeModels = oppositeSelectedModels.filter(
+                  (id) => !selectedIds.includes(id),
                 );
+
+                onChange(selectedIds);
+                tabData[modelType === 'llm' ? 'embedding' : 'llm'].onChange(updatedOppositeModels);
               };
 
               const handleToggleModel = (model: MaaSModel, isSelecting: boolean) => {
@@ -224,9 +235,17 @@ const AutoragExperimentSettingsModelSelection: React.FC<
                 }
                 const modelId = model.id;
                 const updated = isSelecting
-                  ? [...selectedModels, modelId]
+                  ? [
+                      ...selectedModels.filter((selectedModel) => selectedModel !== modelId),
+                      modelId,
+                    ]
                   : selectedModels.filter((selectedModel) => selectedModel !== modelId);
                 onChange(updated.toSorted((a, b) => a.localeCompare(b)));
+                if (isSelecting) {
+                  tabData[modelType === 'llm' ? 'embedding' : 'llm'].onChange(
+                    oppositeSelectedModels.filter((id) => id !== modelId),
+                  );
+                }
               };
 
               return (
@@ -299,31 +318,54 @@ const AutoragExperimentSettingsModelSelection: React.FC<
                               {sortedAndPaginatedModels.map((model) => (
                                 <Tr key={model.id} data-testid={`model-row-${model.id}`}>
                                   <Td dataLabel="Select">
-                                    <Checkbox
-                                      id={`select-${modelType}-${model.id}`}
-                                      isChecked={selectedModels.some(
-                                        (selectedModel) => selectedModel === model.id,
-                                      )}
-                                      isDisabled={!model.ready}
-                                      aria-label={
-                                        model.ready
-                                          ? `Select ${model.display_name || model.id}`
-                                          : `${
-                                              model.display_name || model.id
-                                            } unavailable: model is not ready`
-                                      }
-                                      onChange={(_, isSelecting) =>
-                                        handleToggleModel(model, isSelecting)
-                                      }
-                                    />
+                                    {(() => {
+                                      const selectedInOtherCategory = oppositeSelectedModelIds.has(
+                                        model.id,
+                                      );
+                                      const isUnavailable = !model.ready;
+                                      const checkboxDisabled =
+                                        isUnavailable || selectedInOtherCategory;
+                                      const modelName = model.display_name || model.id;
+                                      const disabledReason = isUnavailable
+                                        ? 'unavailable: model is not ready'
+                                        : `unavailable: already selected in ${
+                                            modelType === 'llm'
+                                              ? 'Embedding models'
+                                              : 'Foundation models'
+                                          }`;
+
+                                      return (
+                                        <Checkbox
+                                          id={`select-${modelType}-${model.id}`}
+                                          isChecked={selectedModels.some(
+                                            (selectedModel) => selectedModel === model.id,
+                                          )}
+                                          isDisabled={checkboxDisabled}
+                                          aria-label={
+                                            checkboxDisabled
+                                              ? `${modelName} ${disabledReason}`
+                                              : `Select ${modelName}`
+                                          }
+                                          onChange={(_, isSelecting) =>
+                                            handleToggleModel(model, isSelecting)
+                                          }
+                                        />
+                                      );
+                                    })()}
                                   </Td>
                                   <Td dataLabel="Model name">
                                     <span title={model.description || model.owned_by || undefined}>
                                       {model.display_name || model.id}
                                     </span>
-                                    {!model.ready && (
+                                    {(!model.ready || oppositeSelectedModelIds.has(model.id)) && (
                                       <span className="pf-v6-screen-reader">
-                                        Unavailable: model is not ready
+                                        {model.ready
+                                          ? `Unavailable: already selected in ${
+                                              modelType === 'llm'
+                                                ? 'Embedding models'
+                                                : 'Foundation models'
+                                            }`
+                                          : 'Unavailable: model is not ready'}
                                       </span>
                                     )}
                                   </Td>

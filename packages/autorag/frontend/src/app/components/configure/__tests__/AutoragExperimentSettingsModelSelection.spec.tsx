@@ -85,7 +85,7 @@ describe('AutoragExperimentSettingsModelSelection', () => {
     );
   });
 
-  it('should allow independent generation and embedding selections', async () => {
+  it('should disable a model in the opposite category after it is selected', async () => {
     const user = userEvent.setup();
     render(
       <FormWrapper>
@@ -95,10 +95,34 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
     await user.click(screen.getAllByTestId('model-row-model-a')[0].querySelector('input')!);
     await user.click(screen.getByTestId('embedding-models-tab'));
-    await user.click(screen.getAllByTestId('model-row-model-a')[1].querySelector('input')!);
+
+    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent(/1.2/);
+    expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent(/0.2/);
+    expect(screen.getAllByTestId('model-row-model-a')[1].querySelector('input')).toBeDisabled();
+    expect(
+      screen.getAllByTestId('model-row-model-a')[1].querySelector('input'),
+    ).toHaveAccessibleName('Model A unavailable: already selected in Foundation models');
+    expect(screen.getAllByText('Unavailable: already selected in Foundation models')).toHaveLength(
+      1,
+    );
+  });
+
+  it('should select only models not selected in the opposite category with select all', async () => {
+    const user = userEvent.setup();
+    render(
+      <FormWrapper>
+        <ModelSelectionForm />
+      </FormWrapper>,
+    );
+
+    await user.click(screen.getAllByTestId('model-row-model-a')[0].querySelector('input')!);
+    await user.click(screen.getByTestId('embedding-models-tab'));
+    await user.click(screen.getByTestId('embedding-models-table').querySelector('thead input')!);
 
     expect(screen.getByTestId('llm-selected-count')).toHaveTextContent(/1.2/);
     expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent(/1.2/);
+    expect(screen.getAllByTestId('model-row-model-a')[1].querySelector('input')).toBeDisabled();
+    expect(screen.getAllByTestId('model-row-model-b')[1].querySelector('input')).toBeChecked();
   });
 
   it('should show an unready model but disable its checkbox with an explanation', () => {

@@ -28,6 +28,15 @@ type ModelSelectionDraft = {
   embeddingModels: string[];
 };
 
+// Foundation selections win when persisted values overlap before the user makes a choice.
+const resolveModelSelectionOverlap = ({
+  generationModels,
+  embeddingModels,
+}: ModelSelectionDraft): ModelSelectionDraft => ({
+  generationModels,
+  embeddingModels: embeddingModels.filter((modelId) => !generationModels.includes(modelId)),
+});
+
 const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
   isOpen,
   onClose,
@@ -44,20 +53,22 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
   const { onModelsConfigured } = useRunTriggeredTracking();
   const [draft, setDraft] = React.useState<ModelSelectionDraft>(() => {
     const values = getValues();
-    return {
+    return resolveModelSelectionOverlap({
       generationModels: values.generation_models,
       embeddingModels: values.embedding_models,
-    };
+    });
   });
   React.useEffect(() => {
     if (!isOpen) {
       return;
     }
     const values = getValues();
-    setDraft({
-      generationModels: values.generation_models,
-      embeddingModels: values.embedding_models,
-    });
+    setDraft(
+      resolveModelSelectionOverlap({
+        generationModels: values.generation_models,
+        embeddingModels: values.embedding_models,
+      }),
+    );
   }, [getValues, isOpen]);
 
   const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);

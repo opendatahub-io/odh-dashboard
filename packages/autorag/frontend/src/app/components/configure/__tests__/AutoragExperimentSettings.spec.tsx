@@ -12,13 +12,19 @@ import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 
 jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', () => {
   const MockModelSelection = ({
+    generationModels,
+    embeddingModels,
     onGenerationModelsChange,
     onEmbeddingModelsChange,
   }: {
+    generationModels: string[];
+    embeddingModels: string[];
     onGenerationModelsChange: (models: string[]) => void;
     onEmbeddingModelsChange: (models: string[]) => void;
   }) => (
     <div data-testid="mock-model-selection">
+      <span data-testid="draft-generation-values">{generationModels.join(',')}</span>
+      <span data-testid="draft-embedding-values">{embeddingModels.join(',')}</span>
       <button
         data-testid="draft-generation-model"
         onClick={() => onGenerationModelsChange(['draft-generation'])}
@@ -170,6 +176,22 @@ describe('AutoragExperimentSettings', () => {
       await waitFor(() => {
         expect(screen.getByTestId('experiment-settings-save')).toBeEnabled();
       });
+    });
+
+    it('should resolve restored overlaps in favor of foundation models', () => {
+      renderComponent(
+        {},
+        {
+          defaultValues: {
+            generation_models: ['shared-model'],
+            embedding_models: ['shared-model', 'embedding-model'],
+          },
+        },
+      );
+
+      expect(screen.getByTestId('draft-generation-values')).toHaveTextContent('shared-model');
+      expect(screen.getByTestId('draft-embedding-values')).toHaveTextContent('embedding-model');
+      expect(screen.getByTestId('draft-embedding-values')).not.toHaveTextContent('shared-model');
     });
 
     it('should call revertChanges and onClose when Cancel is clicked', async () => {
