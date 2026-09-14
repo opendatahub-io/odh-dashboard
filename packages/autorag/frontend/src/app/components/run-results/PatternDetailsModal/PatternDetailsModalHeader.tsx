@@ -22,14 +22,14 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedScore,
-  getMetricByName,
+  getRankableOptimizationMetric,
 } from '~/app/utilities/utils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
   selectedIndex: number;
-  rank: number;
+  rank?: number;
   optimizedMetric?: string;
   onPatternChange: (index: number) => void;
   onDownload: () => void;
@@ -120,7 +120,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
             </StackItem>
             <StackItem>
               <Title headingLevel="h2" size="lg" data-testid="pattern-rank">
-                {rank}
+                {rank ?? 'Unranked'}
               </Title>
             </StackItem>
           </Stack>
@@ -137,7 +137,9 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
             <StackItem>
               <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
                 {optimizedMetric
-                  ? formatMetricValue(getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A')
+                  ? formatMetricValue(
+                      getRankableOptimizationMetric(data, optimizedMetric)?.scores.mean ?? 'N/A',
+                    )
                   : getOptimizedScore(data).toFixed(3)}
               </Title>
             </StackItem>

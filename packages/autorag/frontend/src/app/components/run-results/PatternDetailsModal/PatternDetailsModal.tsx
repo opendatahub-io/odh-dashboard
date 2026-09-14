@@ -25,8 +25,9 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedScore,
-  getMetricByName,
+  getRankableOptimizationMetric,
 } from '~/app/utilities/utils';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import {
   fireAutoragPatternsCompared,
   fireAutoragPatternDetailsDownloadInitiated,
@@ -46,7 +47,7 @@ export type PatternDetailsModalProps = {
   onClose: () => void;
   patterns: AutoragPattern[];
   selectedIndex: number;
-  rank: number;
+  rank?: number;
   optimizedMetric?: string;
   onPatternChange: (index: number) => void;
   namespace?: string;
@@ -93,7 +94,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
 
   const data = patterns[selectedIndex];
 
-  const rankMap = React.useMemo(() => computePatternRankMap(patterns), [patterns]);
+  const rankMap = React.useMemo(
+    () => computePatternRankMap(patterns, optimizedMetric ?? DEFAULT_OPTIMIZATION_METRIC),
+    [patterns, optimizedMetric],
+  );
 
   // Primary pattern evaluation results
   const {
@@ -380,7 +384,13 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           fireAutoragPatternsCompared(
             comparisonEnabled ? 'changed' : 'initial',
             comparisonRank - primaryRank,
-            getOptimizedScore(comparisonPattern) - getOptimizedScore(data),
+            (optimizedMetric
+              ? (getRankableOptimizationMetric(comparisonPattern, optimizedMetric)?.scores.mean ??
+                0)
+              : getOptimizedScore(comparisonPattern)) -
+              (optimizedMetric
+                ? (getRankableOptimizationMetric(data, optimizedMetric)?.scores.mean ?? 0)
+                : getOptimizedScore(data)),
           );
           setComparisonPatternIndex(index);
           setComparisonEnabled(true);
@@ -400,7 +410,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   {formatPatternName(data.name)} |{' '}
                   {optimizedMetric
                     ? `${formatMetricName(optimizedMetric)} (optimized): ${formatMetricValue(
-                        getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A',
+                        getRankableOptimizationMetric(data, optimizedMetric)?.scores.mean ?? 'N/A',
                       )}`
                     : `Final score: ${getOptimizedScore(data)}`}
                 </p>

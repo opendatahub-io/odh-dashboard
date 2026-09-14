@@ -1,4 +1,5 @@
 import {
+  Alert,
   Bullseye,
   Button,
   Card,
@@ -41,6 +42,9 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedMetricForRAG,
+  getMetricByName,
+  getRankableOptimizationMetric,
+  isPatternRankable,
   isRunInProgress,
   orderPatternsByLeaderboardRank,
 } from '~/app/utilities/utils';
@@ -57,7 +61,7 @@ import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
 
 type LeaderboardEntry = {
-  rank: number;
+  rank?: number;
   pattern: string;
   patternKey: string;
   metrics: Record<string, { mean: number | string }>;
@@ -563,13 +567,8 @@ function AutoragLeaderboard({
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
-        const scoreLookup = Object.fromEntries(
-          pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
-        );
-
         const getMetricObject = (metricName: string) => {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- key may not exist at runtime
-          const meanValue = scoreLookup[metricName.toLowerCase()]?.mean;
+          const meanValue = getMetricByName(pattern, metricName)?.scores.mean;
           const isValidNumber = typeof meanValue === 'number' && Number.isFinite(meanValue);
           return {
             mean: isValidNumber ? meanValue : 'N/A',
@@ -582,10 +581,11 @@ function AutoragLeaderboard({
           metrics[key] = getMetricObject(key);
         });
 
-        const optimizedMetricValue = getMetricObject(optimizedMetric).mean;
+        const optimizedMetricValue =
+          getRankableOptimizationMetric(pattern, optimizedMetric)?.scores.mean ?? 'N/A';
 
         return {
-          rank: 0, // Will be assigned after sorting by optimized metric initially
+          rank: undefined, // Assigned only to patterns with a valid objective metric
           patternKey: patternName,
           pattern: pattern.name || patternName,
           metrics,
@@ -621,16 +621,33 @@ function AutoragLeaderboard({
       bestPatternKey,
     );
 
-    const rankedEntries = orderedPatternKeys.map((patternKey, index) => ({
-      ...entryByKey[patternKey],
-      rank: index + 1,
-    }));
+    let nextRank = 1;
+    const rankedEntries = orderedPatternKeys.map((patternKey) => {
+      const entry = entryByKey[patternKey];
+      return {
+        ...entry,
+        rank:
+          typeof entry.optimizedMetricValue === 'number' &&
+          Number.isFinite(entry.optimizedMetricValue)
+            ? nextRank++
+            : undefined,
+      };
+    });
 
     // Apply user-selected sorting
     if (activeSort.id === 'rank') {
-      return rankedEntries.toSorted((a, b) =>
-        activeSort.direction === 'asc' ? a.rank - b.rank : b.rank - a.rank,
-      );
+      return rankedEntries.toSorted((a, b) => {
+        if (a.rank === undefined && b.rank === undefined) {
+          return 0;
+        }
+        if (a.rank === undefined) {
+          return 1;
+        }
+        if (b.rank === undefined) {
+          return -1;
+        }
+        return activeSort.direction === 'asc' ? a.rank - b.rank : b.rank - a.rank;
+      });
     }
     if (activeSort.id === 'pattern') {
       return rankedEntries.toSorted((a, b) => {
@@ -790,24 +807,29 @@ function AutoragLeaderboard({
     return sc ? `${sc.testId}-header` : undefined;
   };
 
-  const getCellTestId = (colId: string, rank: number): string | undefined => {
+  const getCellTestId = (
+    colId: string,
+    rank: number | undefined,
+    patternKey: string,
+  ): string | undefined => {
+    const rowId = rank ?? `unranked-${patternKey}`;
     if (colId === 'rank') {
-      return `rank-${rank}`;
+      return `rank-${rowId}`;
     }
     if (colId === 'pattern') {
-      return `pattern-name-${rank}`;
+      return `pattern-name-${rowId}`;
     }
     if (colId === 'modelNames') {
-      return `model-name-${rank}`;
+      return `model-name-${rowId}`;
     }
     if (colId === 'optimized-metric') {
-      return `metric-${optimizedMetric}-${rank}`;
+      return `metric-${optimizedMetric}-${rowId}`;
     }
     if (colId.startsWith('metric:')) {
-      return `metric-${colId.slice('metric:'.length)}-${rank}`;
+      return `metric-${colId.slice('metric:'.length)}-${rowId}`;
     }
     const sc = SETTINGS_COLUMNS.find((c) => c.id === colId);
-    return sc ? `${sc.testId}-${rank}` : undefined;
+    return sc ? `${sc.testId}-${rowId}` : undefined;
   };
 
   const renderHeaderContent = (col: { id: string; label: string }): React.ReactNode => {
@@ -848,7 +870,7 @@ function AutoragLeaderboard({
           {entry.rank}
         </Label>
       ) : (
-        entry.rank
+        (entry.rank ?? 'Unranked')
       );
     }
     if (col.id === 'pattern') {
@@ -1039,6 +1061,18 @@ function AutoragLeaderboard({
     <Card>
       <CardBody>
         <Content component={ContentVariants.h3}>Results</Content>
+        {Object.values(patterns).some(
+          (pattern) => !isPatternRankable(pattern, optimizedMetric),
+        ) && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Some patterns could not be ranked"
+            data-testid="invalid-objective-warning"
+          >
+            Patterns without exactly one finite objective metric are shown as unranked.
+          </Alert>
+        )}
         <Toolbar hasNoPadding>
           <ToolbarContent alignItems="center">
             <ToolbarItem>
@@ -1096,12 +1130,15 @@ function AutoragLeaderboard({
             </Thead>
             <Tbody>
               {data.map((entry) => (
-                <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+                <Tr
+                  key={entry.patternKey}
+                  data-testid={`leaderboard-row-${entry.rank ?? `unranked-${entry.patternKey}`}`}
+                >
                   {visibleColumns.map((col) => (
                     <Td
                       key={col.id}
                       dataLabel={col.label}
-                      data-testid={getCellTestId(col.id, entry.rank)}
+                      data-testid={getCellTestId(col.id, entry.rank, entry.patternKey)}
                       className={col.id === 'rank' ? 'autorag-leaderboard__rank-cell' : undefined}
                     >
                       {renderCellContent(col, entry)}
@@ -1113,7 +1150,7 @@ function AutoragLeaderboard({
                     hasLeftBorder
                     stickyMinWidth="50px"
                     stickyRightOffset="0"
-                    data-testid={`leaderboard-actions-${entry.rank}`}
+                    data-testid={`leaderboard-actions-${entry.rank ?? `unranked-${entry.patternKey}`}`}
                   >
                     <ActionsColumn
                       items={[

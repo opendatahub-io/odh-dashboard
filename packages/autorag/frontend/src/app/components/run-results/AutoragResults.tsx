@@ -189,7 +189,10 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
 
-  const rankMap = React.useMemo(() => computePatternRankMap(patternsArray), [patternsArray]);
+  const rankMap = React.useMemo(
+    () => computePatternRankMap(patternsArray, optimizedMetric),
+    [patternsArray, optimizedMetric],
+  );
 
   const selectedIndex = React.useMemo(
     () =>

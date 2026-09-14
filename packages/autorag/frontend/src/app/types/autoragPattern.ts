@@ -184,7 +184,7 @@ export type AutoRAGEvaluationResult = {
  */
 export type PatternDataBundle = {
   pattern: AutoragPattern;
-  rank: number;
+  rank?: number;
   evaluationResults?: AutoRAGEvaluationResult[];
   isEvaluationLoading: boolean;
   isEvaluationError: boolean;

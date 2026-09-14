@@ -146,6 +146,28 @@ describe('PatternDetailsModal', () => {
     expect(screen.getByTestId('pattern-rank')).toHaveTextContent('3');
   });
 
+  it('should display an invalid objective pattern as unranked while keeping details available', () => {
+    const invalidPattern = {
+      ...mockPattern,
+      evaluation: {
+        metrics: mockPattern.evaluation.metrics.filter((metric) => metric.name !== 'overall_score'),
+      },
+    };
+
+    render(
+      <PatternDetailsModal
+        {...defaultProps}
+        patterns={[invalidPattern]}
+        rank={undefined}
+        optimizedMetric="overall_score"
+      />,
+    );
+
+    expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('pattern-rank')).toHaveTextContent('Unranked');
+    expect(screen.getByTestId('pattern-details-content')).toBeInTheDocument();
+  });
+
   it('should display final score in the header', () => {
     render(<PatternDetailsModal {...defaultProps} />);
     expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.660');

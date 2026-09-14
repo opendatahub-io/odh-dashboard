@@ -915,6 +915,35 @@ describe('AutoragLeaderboard component', () => {
       const tooltip = within(metricCell).getByText('0.954').closest('span');
       expect(tooltip).toBeInTheDocument();
     });
+
+    it('should display N/A for a null objective mean', () => {
+      const pattern = createMockPattern('Null objective', { faithfulness: 0.9 });
+      pattern.evaluation.metrics[0].scores.mean = null;
+
+      renderWithContext({
+        patterns: { pattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('metric-faithfulness-unranked-pattern')).toHaveTextContent('N/A');
+      expect(screen.getByTestId('rank-unranked-pattern')).toHaveTextContent('Unranked');
+    });
+
+    it('should keep invalid objective patterns visible and rank only valid patterns contiguously', () => {
+      const invalidPattern = createMockPattern('Invalid objective', { answer_correctness: 0.99 });
+
+      renderWithContext({
+        patterns: { invalid: invalidPattern, ...mockStandardPatterns },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('leaderboard-row-unranked-invalid')).toBeInTheDocument();
+      expect(screen.getByTestId('rank-unranked-invalid')).toHaveTextContent('Unranked');
+      expect(screen.getByTestId('leaderboard-row-1')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-row-2')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-row-3')).toBeInTheDocument();
+      expect(screen.getByTestId('invalid-objective-warning')).toBeInTheDocument();
+    });
   });
 
   // ========================================================================
