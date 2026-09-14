@@ -896,14 +896,14 @@ run_self_test() {
   fi
 
   # An unavailable readiness check is an incomplete review, even when every
-  # verification row passed. This is the shape the 51-minute smoke run hit:
-  # ci-status-review could-not-verify while confidence still claimed high.
-  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"ci-status-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}]}" > "${tmp}/unavailable-check.json"
+  # verification row passed. This is the shape the 51-minute smoke run hit: a
+  # readiness check reported could-not-verify while confidence still claimed high.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"could-not-verify\",\"summary\":\"CI host context was unavailable.\"}]}" > "${tmp}/unavailable-check.json"
   transform_review_result "${tmp}/unavailable-check.json" > "${tmp}/unavailable-check-out.json"
-  if ! jq -e '.confidence.level == "medium" and (.confidence.why | contains("ci-status-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+  if ! jq -e '.confidence.level == "medium" and (.confidence.why | contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
     echo "FAIL unavailable-check: confidence stayed high despite an unverifiable readiness check" >&2
     fail=1
-  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("ci-status-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
+  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("test-impact-review"))' "${tmp}/unavailable-check-out.json" >/dev/null; then
     echo "FAIL unavailable-check: the limit was not recorded in inspected" >&2
     fail=1
   else

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Host snapshot of a linked Jira issue for the description-jira section LLM.
+# Host snapshot of a linked Jira issue for the jira-pr-review section LLM.
 #
 # Parses an issue key from the PR title/body (prefers Product ask / tracking).
 # Reads only the existing Dashboard preflight secrets: JIRA_URL,
