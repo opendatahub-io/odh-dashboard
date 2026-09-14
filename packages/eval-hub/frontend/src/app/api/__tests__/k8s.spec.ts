@@ -261,6 +261,27 @@ describe('getCollection', () => {
     );
   });
 
+  it('should sanitize malformed collection string arrays', async () => {
+    mockRestGET.mockResolvedValue({
+      data: {
+        name: 'Test',
+        resource: { id: 'col-1' },
+        domains: ['safety', 123],
+        ai_entities: 'model',
+        industries: [null, 'healthcare'],
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollection('', 'test-ns', 'col-1')({});
+
+    expect(result).toMatchObject({
+      domains: ['safety'],
+      ai_entities: undefined,
+      industries: ['healthcare'],
+    });
+  });
+
   it('should reject with an error when collectionId is empty', async () => {
     await expect(getCollection('', 'test-ns', '')({})).rejects.toThrow(
       'collectionId must not be empty',
