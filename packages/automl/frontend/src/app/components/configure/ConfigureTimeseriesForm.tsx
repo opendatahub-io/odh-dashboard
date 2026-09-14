@@ -185,7 +185,9 @@ function ConfigureTimeseriesForm({
                         data-testid="id_column-select"
                         status={columnsError || fieldState.error ? 'danger' : undefined}
                       >
-                        {isTwoColumnDataset ? 'Not required' : field.value || 'Select a column'}
+                        {isTwoColumnDataset
+                          ? 'Auto-generated ID column'
+                          : field.value || 'Select a column'}
                       </MenuToggle>
                     )}
                   >

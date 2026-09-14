@@ -46,7 +46,7 @@ describe('ConfigureTimeseriesForm', () => {
     const toggle = screen.getByTestId('id_column-select');
     if (columnCount === 2) {
       expect(toggle).toBeDisabled();
-      expect(toggle).toHaveTextContent('Not required');
+      expect(toggle).toHaveTextContent('Auto-generated ID column');
       fireEvent.click(toggle);
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     } else {

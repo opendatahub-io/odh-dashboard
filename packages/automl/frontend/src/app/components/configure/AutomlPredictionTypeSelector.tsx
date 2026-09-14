@@ -210,7 +210,7 @@ const AutomlPredictionTypeSelector: React.FC<AutomlPredictionTypeSelectorProps> 
                   contains numbers, and your dataset also has a timestamp column,{' '}
                   <code className="automl-prediction-type-column-name">{timestampColumn}</code>.
                   {columns.length === 2 &&
-                    ' No manual item ID column is required for this two-column dataset.'}
+                    ' Your dataset does not contain an ID column. An ID column will be automatically generated during training.'}
                 </>
               ) : (
                 <>

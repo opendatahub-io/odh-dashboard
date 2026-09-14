@@ -993,8 +993,10 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('task-type-radio-timeseries')).toBeChecked();
       expectPredictionTypeRecommended('timeseries');
       expect(screen.getByTestId('id_column-select')).toBeDisabled();
-      expect(screen.getByTestId('id_column-select')).toHaveTextContent('Not required');
-      expect(screen.getByText(/No manual item ID column is required/)).toBeInTheDocument();
+      expect(screen.getByTestId('id_column-select')).toHaveTextContent('Auto-generated ID column');
+      expect(screen.getByText(/Your dataset does not contain an ID column/)).toHaveTextContent(
+        'Your dataset does not contain an ID column. An ID column will be automatically generated during training.',
+      );
       expect(screen.getByText('Time series recommended')).toBeInTheDocument();
       expect(screen.getByText(/Time series is recommended because/)).toHaveTextContent(
         'Time series is recommended because your target column amount contains numbers, and your dataset also has a timestamp column, observed.',
