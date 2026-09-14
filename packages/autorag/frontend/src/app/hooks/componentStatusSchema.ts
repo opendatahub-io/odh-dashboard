@@ -83,6 +83,7 @@ export function normalizeComponentStageStatus(
   const normalized = value.trim().toLowerCase();
   return normalized === 'completed' ||
     normalized === 'started' ||
+    normalized === 'running' ||
     normalized === 'failed' ||
     normalized === 'skipped'
     ? normalized

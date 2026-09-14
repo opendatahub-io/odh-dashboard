@@ -346,25 +346,25 @@ export function getOptimizedScore(pattern: AutoragPattern): number {
 }
 
 /**
- * Compute a rank map from an array of patterns, ranked by optimization metric score descending.
- * Returns a Record mapping pattern name to rank (1-based).
+ * Compute a rank map from a pattern record, ranked by optimization metric score descending.
+ * Returns a Record mapping pattern record key to rank (1-based).
  *
  * Uses the uniquely named finite metric matching the run's `optimization_metric` parameter.
  */
 export function computePatternRankMap(
-  patterns: AutoragPattern[],
+  patterns: Record<string, AutoragPattern>,
   objectiveName = DEFAULT_OPTIMIZATION_METRIC,
 ): Record<string, number> {
-  const sorted = patterns
-    .filter((pattern) => isPatternRankable(pattern, objectiveName))
+  const sorted = Object.entries(patterns)
+    .filter(([, pattern]) => isPatternRankable(pattern, objectiveName))
     .toSorted(
-      (a, b) =>
+      ([, a], [, b]) =>
         getRankableOptimizationMetric(b, objectiveName)!.scores.mean! -
         getRankableOptimizationMetric(a, objectiveName)!.scores.mean!,
     );
   const map: Record<string, number> = {};
-  sorted.forEach((p, i) => {
-    map[p.name] = i + 1;
+  sorted.forEach(([key], i) => {
+    map[key] = i + 1;
   });
   return map;
 }

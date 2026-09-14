@@ -228,6 +228,8 @@ interface RenderWithContextOptions {
   namespace?: string;
 }
 
+type TestOptimizationMetric = 'faithfulness' | 'answer_correctness' | 'context_correctness';
+
 const renderWithContext = ({
   patterns = {},
   pipelineRun,
@@ -239,11 +241,10 @@ const renderWithContext = ({
   optimizationMetric,
   namespace = 'test-namespace',
 }: RenderWithContextOptions = {}) => {
-  const finalOptimizationMetric: 'faithfulness' | 'answer_correctness' | 'context_correctness' =
+  const finalOptimizationMetric: TestOptimizationMetric =
     optimizationMetric ??
     ((pipelineRun?.runtime_config?.parameters as Record<string, unknown> | undefined)
-      ?.optimization_metric as
-      'faithfulness' | 'answer_correctness' | 'context_correctness' | undefined) ??
+      ?.optimization_metric as TestOptimizationMetric | undefined) ??
     'faithfulness';
 
   const contextValue = {
@@ -880,6 +881,27 @@ describe('AutoragLeaderboard component', () => {
   // ========================================================================
 
   describe('metric display', () => {
+    it('should keep metrics with the same name from different evaluators independent', () => {
+      const pattern = createMockPattern('Duplicate metric names', { faithfulness: 0.8 });
+      pattern.evaluation.metrics.push({
+        evaluator: 'custom',
+        name: 'faithfulness',
+        scores: { mean: 0.2, ci_high: 0.2, ci_low: 0.2 },
+      });
+
+      renderWithContext({
+        patterns: { duplicate: pattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
+      });
+      showAllColumns();
+
+      expect(screen.getAllByTestId('metric-header-faithfulness')).toHaveLength(2);
+      const row = screen.getByTestId('leaderboard-row-unranked-duplicate');
+      expect(within(row).getAllByTestId('metric-faithfulness-unranked-duplicate')).toHaveLength(2);
+      expect(within(row).getByText('0.800')).toBeInTheDocument();
+      expect(within(row).getByText('0.200')).toBeInTheDocument();
+    });
+
     it('should display all metrics for each pattern', () => {
       renderWithContext({
         patterns: mockPatternsWithExtraMetrics,

@@ -80,6 +80,38 @@ describe('CanonicalPatternSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('should reject non-finite canonical aggregate scores', () => {
+    const nonFiniteScore = JSON.parse('{"mean":1e999}');
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      evaluation: {
+        metrics: [
+          {
+            ...canonicalPattern.evaluation.metrics[1],
+            scores: { ...canonicalPattern.evaluation.metrics[1].scores, mean: nonFiniteScore.mean },
+          },
+        ],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject non-finite canonical row scores', () => {
+    const nonFiniteScore = JSON.parse('{"mean":1e999}');
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      evaluation: {
+        metrics: [
+          {
+            ...canonicalPattern.evaluation.metrics[0],
+            scores: { ...canonicalPattern.evaluation.metrics[0].scores, mean: nonFiniteScore.mean },
+          },
+        ],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('should reject malformed canonical patterns', () => {
     expect(CanonicalPatternSchema.safeParse({ name: 'bad', evaluation: {} }).success).toBe(false);
   });

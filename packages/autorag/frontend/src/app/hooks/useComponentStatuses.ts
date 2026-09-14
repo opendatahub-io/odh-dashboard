@@ -81,11 +81,16 @@ function readSelectedPatternsFromRecord(
 }
 
 export function parseComponentStatusArtifact(value: unknown): ComponentStatusFile {
-  if (
+  const isCanonicalArtifact =
     isPlainObject(value) &&
     Array.isArray(value.stages) &&
-    value.stages.some((stage) => isPlainObject(stage) && isPlainObject(stage.status))
-  ) {
+    (value.stages.some((stage) => isPlainObject(stage) && isPlainObject(stage.status)) ||
+      (value.stages.length === 0 &&
+        isPlainObject(value.metadata) &&
+        typeof value.metadata.display_name === 'string' &&
+        typeof value.started_at === 'string'));
+
+  if (isCanonicalArtifact) {
     return normalizeCanonicalComponentStatus(CanonicalComponentStatusFileSchema.parse(value));
   }
   return parseLegacyComponentStatus(value);

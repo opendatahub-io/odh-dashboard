@@ -8,6 +8,11 @@ import {
 
 const LEGACY_COMPONENT_STAGE_STATUSES = ['completed', 'started', 'failed', 'skipped'] as const;
 
+const normalizeLegacyComponentStageStatus = (value: unknown) => {
+  const normalized = normalizeComponentStageStatus(value);
+  return normalized === 'running' ? undefined : normalized;
+};
+
 const LegacyComponentStatusStageSchema = z
   .object({
     id: z.string(),
@@ -28,7 +33,7 @@ const LegacyComponentStatusStageSchema = z
       z.array(z.string()).optional(),
     ),
     status: z.preprocess(
-      normalizeComponentStageStatus,
+      normalizeLegacyComponentStageStatus,
       z.enum(LEGACY_COMPONENT_STAGE_STATUSES).optional(),
     ),
     timestamp: z.string().optional(),

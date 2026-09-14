@@ -790,11 +790,11 @@ describe('formatDurationBetween', () => {
 
 describe('computePatternRankMap', () => {
   it('should rank patterns by final_score descending', () => {
-    const patterns = [
-      makeRankPattern('low', 0.3),
-      makeRankPattern('high', 0.9),
-      makeRankPattern('mid', 0.6),
-    ];
+    const patterns = {
+      low: makeRankPattern('low', 0.3),
+      high: makeRankPattern('high', 0.9),
+      mid: makeRankPattern('mid', 0.6),
+    };
     expect(computePatternRankMap(patterns)).toEqual({
       high: 1,
       mid: 2,
@@ -803,19 +803,19 @@ describe('computePatternRankMap', () => {
   });
 
   it('should return empty map for empty array', () => {
-    expect(computePatternRankMap([])).toEqual({});
+    expect(computePatternRankMap({})).toEqual({});
   });
 
   it('should handle single pattern', () => {
-    expect(computePatternRankMap([makeRankPattern('solo', 0.5)])).toEqual({ solo: 1 });
+    expect(computePatternRankMap({ solo: makeRankPattern('solo', 0.5) })).toEqual({ solo: 1 });
   });
 
   it('should assign sequential ranks for tied scores', () => {
-    const patterns = [
-      makeRankPattern('a', 0.7),
-      makeRankPattern('b', 0.7),
-      makeRankPattern('c', 0.7),
-    ];
+    const patterns = {
+      a: makeRankPattern('a', 0.7),
+      b: makeRankPattern('b', 0.7),
+      c: makeRankPattern('c', 0.7),
+    };
     const rankMap = computePatternRankMap(patterns);
     expect(Object.values(rankMap).toSorted()).toEqual([1, 2, 3]);
   });
@@ -828,30 +828,39 @@ describe('computePatternRankMap', () => {
     };
     const validLow = makeRankPattern('low', 0.3);
 
-    expect(computePatternRankMap([validHigh, invalid, validLow])).toEqual({
+    expect(computePatternRankMap({ high: validHigh, invalid, low: validLow })).toEqual({
       high: 1,
       low: 2,
     });
   });
 
   it('should not mutate the original array', () => {
-    const patterns = [makeRankPattern('z', 0.1), makeRankPattern('a', 0.9)];
-    const originalOrder = patterns.map((p) => p.name);
+    const patterns = { z: makeRankPattern('z', 0.1), a: makeRankPattern('a', 0.9) };
+    const originalOrder = Object.keys(patterns);
     computePatternRankMap(patterns);
-    expect(patterns.map((p) => p.name)).toEqual(originalOrder);
+    expect(Object.keys(patterns)).toEqual(originalOrder);
   });
 
   it('should handle negative and zero scores', () => {
-    const patterns = [
-      makeRankPattern('neg', -0.2),
-      makeRankPattern('zero', 0),
-      makeRankPattern('pos', 0.3),
-    ];
+    const patterns = {
+      neg: makeRankPattern('neg', -0.2),
+      zero: makeRankPattern('zero', 0),
+      pos: makeRankPattern('pos', 0.3),
+    };
     expect(computePatternRankMap(patterns)).toEqual({
       pos: 1,
       zero: 2,
       neg: 3,
     });
+  });
+
+  it('should keep duplicate display names independent by record key', () => {
+    expect(
+      computePatternRankMap({
+        first: makeRankPattern('Shared name', 0.4),
+        second: makeRankPattern('Shared name', 0.9),
+      }),
+    ).toEqual({ second: 1, first: 2 });
   });
 });
 

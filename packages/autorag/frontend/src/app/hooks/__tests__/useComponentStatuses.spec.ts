@@ -468,6 +468,43 @@ describe('mergeStatusIntoStageMap', () => {
     expect(stage.selected_patterns).toEqual(['pattern_a', 'pattern_b']);
   });
 
+  it('should preserve canonical running status when merging into the stage map model', () => {
+    const status = parseComponentStatusArtifact({
+      component_id: 'rag_optimization',
+      started_at: '2026-06-04T17:49:19.223056Z',
+      metadata: { display_name: 'RAG Templates Optimization Status' },
+      stages: [{ id: 'optimize_templates', status: { state: 'running' } }],
+    });
+
+    const result = mergeStatusIntoStageMap(
+      mockComponentStageMap,
+      new Map([['rag_optimization', status]]),
+    );
+
+    const stage = result.components
+      .find((component) => component.id === 'rag_optimization')!
+      .stages.find((candidate) => candidate.id === 'optimize_templates')!;
+
+    expect(stage.status).toBe('running');
+  });
+
+  it('should parse an empty canonical artifact with the canonical parser', () => {
+    const parsed = parseComponentStatusArtifact({
+      component_id: 'rag_optimization',
+      started_at: '2026-06-04T17:49:19.223056Z',
+      metadata: { display_name: 'RAG Templates Optimization Status' },
+      stages: [],
+    });
+
+    expect(parsed).toEqual({
+      component_id: 'rag_optimization',
+      started_at: '2026-06-04T17:49:19.223056Z',
+      completed_at: undefined,
+      metadata: { display_name: 'RAG Templates Optimization Status' },
+      stages: [],
+    });
+  });
+
   it('should keep canonical running status valid without completed_at', () => {
     const status = parseComponentStatusArtifact({
       component_id: 'rag_optimization',
@@ -868,7 +905,7 @@ describe('mergeStatusIntoStageMap', () => {
       { id: 'load_benchmark', description: 'Load benchmark', status: 'completed' },
       {
         id: 'load_benchmark',
-        status: 'running',
+        status: 'pending',
         timestamp: '2026-06-04T17:49:19.232065Z',
       } as unknown as ComponentStatusFile['stages'][number],
     );
@@ -879,7 +916,7 @@ describe('mergeStatusIntoStageMap', () => {
       { id: 'load_benchmark', description: 'Load benchmark', status: 'failed' },
       {
         id: 'load_benchmark',
-        status: 'pending',
+        status: 'unknown',
       } as unknown as ComponentStatusFile['stages'][number],
     );
     expect(failedPreserved.status).toBe('failed');

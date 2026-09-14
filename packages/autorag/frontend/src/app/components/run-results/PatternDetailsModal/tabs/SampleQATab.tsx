@@ -164,9 +164,13 @@ export function getComparisonResult(
   comparisonResults: AutoRAGEvaluationResult[],
   index: number,
 ): AutoRAGEvaluationResult | undefined {
-  return primaryResult.question_id
-    ? comparisonByQuestionId.get(primaryResult.question_id)
-    : comparisonResults[index];
+  const comparisonAtIndex = comparisonResults[index];
+
+  return comparisonResults.length <= index ||
+    !primaryResult.question_id ||
+    !comparisonAtIndex.question_id
+    ? comparisonAtIndex
+    : comparisonByQuestionId.get(primaryResult.question_id);
 }
 
 const EMPTY_RESULTS: AutoRAGEvaluationResult[] = [];

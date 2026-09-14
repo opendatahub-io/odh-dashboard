@@ -859,18 +859,17 @@ describe('AutoragResults', () => {
     };
     const patterns = { Pattern1: patternWithTemplate };
 
-    it('should call onTryPattern with source: resultsTable from the leaderboard action', () => {
+    it('should not expose Try this pattern from the leaderboard action', () => {
       const onTryPattern = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
 
       const row = screen.getByTestId('leaderboard-row-1');
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('Try this pattern'));
 
-      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
     });
 
-    it('should call onTryPattern with source: patternDetails from the pattern details modal action', async () => {
+    it('should not expose Try this pattern from the pattern details modal action', async () => {
       const user = userEvent.setup();
       const onTryPattern = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, {
@@ -883,10 +882,8 @@ describe('AutoragResults', () => {
 
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
-      const tryPatternAction = await screen.findByText('Try this pattern');
-      await user.click(tryPatternAction);
 
-      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
     }, 15_000);
   });
 
@@ -927,18 +924,17 @@ describe('AutoragResults', () => {
     };
     const patterns = { Pattern1: patternWithTemplate };
 
-    it('should call onViewCode with source: resultsTable from the leaderboard action', () => {
+    it('should not expose View code from the leaderboard action', () => {
       const onViewCode = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
 
       const row = screen.getByTestId('leaderboard-row-1');
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('View code'));
 
-      expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
 
-    it('should call onViewCode with source: patternDetails from the pattern details modal action', async () => {
+    it('should not expose View code from the pattern details modal action', async () => {
       const user = userEvent.setup();
       const onViewCode = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
@@ -949,10 +945,8 @@ describe('AutoragResults', () => {
 
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
-      const viewCodeAction = await screen.findByText('View code');
-      await user.click(viewCodeAction);
 
-      expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'patternDetails');
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
     }, 15_000);
   });
 

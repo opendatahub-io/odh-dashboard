@@ -3,38 +3,40 @@
 import * as z from 'zod';
 import { LegacyPatternSchema, type LegacyRawPattern } from './legacyPattern';
 
+const FiniteNumberSchema = z.number().finite();
+
 const ScoreMetricSchema = z
   .object({
-    mean: z.number().nullable(),
-    ci_low: z.number().nullable(),
-    ci_high: z.number().nullable(),
+    mean: FiniteNumberSchema.nullable(),
+    ci_low: FiniteNumberSchema.nullable(),
+    ci_high: FiniteNumberSchema.nullable(),
   })
   .passthrough();
 
 const PatternBaseSchema = z
   .object({
     name: z.string(),
-    iteration: z.number(),
-    max_combinations: z.number(),
-    duration_seconds: z.number(),
+    iteration: FiniteNumberSchema,
+    max_combinations: FiniteNumberSchema,
+    duration_seconds: FiniteNumberSchema,
   })
   .passthrough();
 
 const ChunkingSchema = z
   .object({
     method: z.string(),
-    chunk_size: z.number(),
-    chunk_overlap: z.number(),
+    chunk_size: FiniteNumberSchema,
+    chunk_overlap: FiniteNumberSchema,
   })
   .passthrough();
 
 const RetrievalSchema = z
   .object({
     method: z.string(),
-    number_of_chunks: z.number(),
+    number_of_chunks: FiniteNumberSchema,
     search_mode: z.string().optional(),
     ranker_strategy: z.string().optional(),
-    ranker_alpha: z.number().optional(),
+    ranker_alpha: FiniteNumberSchema.optional(),
   })
   .passthrough();
 
@@ -44,9 +46,9 @@ const EmbeddingSchema = z
     distance_metric: z.string().optional(),
     embedding_params: z
       .object({
-        embedding_dimension: z.number(),
-        context_length: z.number().optional(),
-        timeout: z.number().nullable().optional(),
+        embedding_dimension: FiniteNumberSchema,
+        context_length: FiniteNumberSchema.optional(),
+        timeout: FiniteNumberSchema.nullable().optional(),
         model_type: z.string().nullable().optional(),
         provider_id: z.string().nullable().optional(),
         provider_resource_id: z.string().nullable().optional(),
@@ -72,8 +74,8 @@ const PatternSettingsSchema = z
     generation: z
       .object({
         model_id: z.string(),
-        temperature: z.number().optional(),
-        max_completion_tokens: z.number().optional(),
+        temperature: FiniteNumberSchema.optional(),
+        max_completion_tokens: FiniteNumberSchema.optional(),
         context_template_text: z.string().optional(),
         user_message_text: z.string().optional(),
         system_message_text: z.string().optional(),

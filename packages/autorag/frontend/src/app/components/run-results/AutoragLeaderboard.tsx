@@ -42,7 +42,6 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedMetricForRAG,
-  getMetricByName,
   getRankableOptimizationMetric,
   isPatternRankable,
   isRunInProgress,
@@ -75,6 +74,27 @@ type LeaderboardEntry = {
   retrievalSearchMode: string;
   retrievalRankerStrategy: string;
   generationModelId: string;
+};
+
+type MetricColumn = {
+  id: string;
+  evaluator: string;
+  name: string;
+};
+
+const getMetricColumnId = (evaluator: string, name: string): string =>
+  `metric:${JSON.stringify([evaluator.toLowerCase(), name.toLowerCase()])}`;
+
+const getMetricColumnName = (id: string): string | undefined => {
+  if (!id.startsWith('metric:')) {
+    return undefined;
+  }
+  try {
+    const parsed: unknown = JSON.parse(id.slice('metric:'.length));
+    return Array.isArray(parsed) && typeof parsed[1] === 'string' ? parsed[1] : undefined;
+  } catch {
+    return undefined;
+  }
 };
 
 // Format a settings cell value: capitalize the first letter, with special cases
@@ -320,7 +340,7 @@ const getColumnAnalyticsName = (
     return mapOptimizationMetric(optimizedMetricKey) ?? 'otherMetric';
   }
   if (columnId.startsWith('metric:')) {
-    return mapOptimizationMetric(columnId.slice('metric:'.length)) ?? 'otherMetric';
+    return mapOptimizationMetric(getMetricColumnName(columnId) ?? '') ?? 'otherMetric';
   }
   return SETTINGS_COLUMN_ANALYTICS_NAMES[columnId] ?? 'other';
 };
@@ -419,21 +439,27 @@ function AutoragLeaderboard({
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
 
   // Extract all unique metric keys across all patterns
-  const metricKeys = React.useMemo(() => {
-    const keysSet = new Set<string>();
+  const metricKeys = React.useMemo<MetricColumn[]>(() => {
+    const columns = new Map<string, MetricColumn>();
     Object.values(patterns).forEach((pattern: AutoragPattern) => {
       pattern.evaluation.metrics.forEach((m) => {
-        keysSet.add(m.name.toLowerCase());
+        const id = getMetricColumnId(m.evaluator, m.name);
+        columns.set(id, { id, evaluator: m.evaluator, name: m.name });
       });
     });
-    return Array.from(keysSet).toSorted();
+    return Array.from(columns.values()).toSorted((a, b) =>
+      `${a.name}:${a.evaluator}`.localeCompare(`${b.name}:${b.evaluator}`),
+    );
   }, [patterns]);
 
   // Metric keys excluding the optimized metric (shown in sticky column)
-  const nonOptimizedMetricKeys = React.useMemo(
-    () => metricKeys.filter((key) => key.toLowerCase() !== optimizedMetric.toLowerCase()),
-    [metricKeys, optimizedMetric],
+  const optimizedMetricColumns = metricKeys.filter(
+    (metric) => metric.name.toLowerCase() === optimizedMetric.toLowerCase(),
   );
+  const nonOptimizedMetricKeys =
+    optimizedMetricColumns.length === 1
+      ? metricKeys.filter((metric) => metric.id !== optimizedMetricColumns[0].id)
+      : metricKeys;
 
   // Column definitions — source of truth for column IDs, labels, and default order.
   // Default order: leading columns first, then remaining sorted by priority / alphabetically.
@@ -449,9 +475,9 @@ function AutoragLeaderboard({
     ];
 
     const remainingColumns = [
-      ...nonOptimizedMetricKeys.map((key) => ({
-        id: `metric:${key}`,
-        label: getColumnName(`metric:${key}`, formatMetricName(key)),
+      ...nonOptimizedMetricKeys.map((metric) => ({
+        id: metric.id,
+        label: getColumnName(metric.id, formatMetricName(metric.name)),
       })),
       ...SETTINGS_COLUMNS.map((col) => ({
         id: col.id,
@@ -570,8 +596,12 @@ function AutoragLeaderboard({
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
-        const getMetricObject = (metricName: string) => {
-          const meanValue = getMetricByName(pattern, metricName)?.scores.mean;
+        const getMetricObject = (metric: MetricColumn) => {
+          const meanValue = pattern.evaluation.metrics.find(
+            (candidate) =>
+              candidate.evaluator.toLowerCase() === metric.evaluator.toLowerCase() &&
+              candidate.name.toLowerCase() === metric.name.toLowerCase(),
+          )?.scores.mean;
           const isValidNumber = typeof meanValue === 'number' && Number.isFinite(meanValue);
           return {
             mean: isValidNumber ? meanValue : 'N/A',
@@ -580,8 +610,8 @@ function AutoragLeaderboard({
 
         // Build metrics object with all available metrics
         const metrics: Record<string, { mean: number | string }> = {};
-        metricKeys.forEach((key) => {
-          metrics[key] = getMetricObject(key);
+        metricKeys.forEach((metric) => {
+          metrics[metric.id] = getMetricObject(metric);
         });
 
         const optimizedMetricValue =
@@ -660,8 +690,12 @@ function AutoragLeaderboard({
     }
     if (activeSort.id === 'modelNames') {
       return rankedEntries.toSorted((a, b) => {
-        const aDisplay = `${getModelIdShortName(a.generationModelId)} / ${getModelIdShortName(a.embeddingsModelId)}`;
-        const bDisplay = `${getModelIdShortName(b.generationModelId)} / ${getModelIdShortName(b.embeddingsModelId)}`;
+        const aDisplay = `${getModelIdShortName(a.generationModelId)} / ${getModelIdShortName(
+          a.embeddingsModelId,
+        )}`;
+        const bDisplay = `${getModelIdShortName(b.generationModelId)} / ${getModelIdShortName(
+          b.embeddingsModelId,
+        )}`;
         const comparison =
           aDisplay.localeCompare(bDisplay) ||
           a.generationModelId.localeCompare(b.generationModelId) ||
@@ -672,8 +706,7 @@ function AutoragLeaderboard({
 
     // Sort by metric column (optimized or non-optimized)
     if (activeSort.id === 'optimized-metric' || activeSort.id.startsWith('metric:')) {
-      const metricKey =
-        activeSort.id === 'optimized-metric' ? null : activeSort.id.slice('metric:'.length);
+      const metricKey = activeSort.id === 'optimized-metric' ? null : activeSort.id;
       return rankedEntries.toSorted((a, b) => {
         const aVal = metricKey ? a.metrics[metricKey].mean : a.optimizedMetricValue;
         const bVal = metricKey ? b.metrics[metricKey].mean : b.optimizedMetricValue;
@@ -764,7 +797,7 @@ function AutoragLeaderboard({
   // "Organize by" presets for the manage columns modal
   const columnPresets: ColumnPreset[] = React.useMemo(() => {
     const leadingKeys = ['rank', 'pattern', 'modelNames', 'optimized-metric'];
-    const metricColumnKeys = nonOptimizedMetricKeys.map((key) => `metric:${key}`);
+    const metricColumnKeys = nonOptimizedMetricKeys.map((metric) => metric.id);
     const chunkingKeys = ['chunkingMethod', 'chunkingChunkSize', 'chunkingChunkOverlap'];
     const allSettingKeys = SETTINGS_COLUMNS.map((col) => col.id);
 
@@ -804,7 +837,7 @@ function AutoragLeaderboard({
       return `metric-header-${optimizedMetric}`;
     }
     if (colId.startsWith('metric:')) {
-      return `metric-header-${colId.slice('metric:'.length)}`;
+      return `metric-header-${getMetricColumnName(colId)}`;
     }
     const sc = SETTINGS_COLUMNS.find((c) => c.id === colId);
     return sc ? `${sc.testId}-header` : undefined;
@@ -829,7 +862,7 @@ function AutoragLeaderboard({
       return `metric-${optimizedMetric}-${rowId}`;
     }
     if (colId.startsWith('metric:')) {
-      return `metric-${colId.slice('metric:'.length)}-${rowId}`;
+      return `metric-${getMetricColumnName(colId)}-${rowId}`;
     }
     const sc = SETTINGS_COLUMNS.find((c) => c.id === colId);
     return sc ? `${sc.testId}-${rowId}` : undefined;
@@ -873,6 +906,7 @@ function AutoragLeaderboard({
           {entry.rank}
         </Label>
       ) : (
+        // eslint-disable-next-line prettier/prettier -- preserve the JSX fallback expression format
         (entry.rank ?? 'Unranked')
       );
     }
@@ -906,8 +940,7 @@ function AutoragLeaderboard({
       return <MetricCell value={entry.optimizedMetricValue} />;
     }
     if (col.id.startsWith('metric:')) {
-      const metricKey = col.id.slice('metric:'.length);
-      return <MetricCell value={entry.metrics[metricKey].mean} />;
+      return <MetricCell value={entry.metrics[col.id].mean} />;
     }
     const settingsCol = SETTINGS_COLUMNS.find((c) => c.id === col.id);
     if (settingsCol) {
@@ -1153,7 +1186,9 @@ function AutoragLeaderboard({
                     hasLeftBorder
                     stickyMinWidth="50px"
                     stickyRightOffset="0"
-                    data-testid={`leaderboard-actions-${entry.rank ?? `unranked-${entry.patternKey}`}`}
+                    data-testid={`leaderboard-actions-${
+                      entry.rank ?? `unranked-${entry.patternKey}`
+                    }`}
                   >
                     <ActionsColumn
                       items={[

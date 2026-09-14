@@ -804,6 +804,25 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByTestId('comparison-column-header-comparison')).toBeInTheDocument();
     });
 
+    it('should display an unranked comparison pattern as Unranked', async () => {
+      const user = userEvent.setup();
+      const invalidComparisonPattern = {
+        ...comparisonPattern,
+        evaluation: { metrics: [] },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[mockPattern, invalidComparisonPattern]}
+        />,
+      );
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+
+      expect(screen.getByTestId('comparison-pattern-rank-1')).toHaveTextContent('Unranked');
+    });
+
     it('should disable confirm button when the already-compared pattern is still selected', async () => {
       const user = userEvent.setup();
       const thirdPattern: AutoragPattern = {

@@ -12,16 +12,34 @@ const result = (question_id?: string, document_key = 'document-key'): AutoRAGEva
 });
 
 describe('getComparisonResult', () => {
-  it('should match comparison rows by question id instead of document key', () => {
+  it('should use the row index when the primary row has no question id', () => {
+    const comparison = result('comparison-id', 'comparison-document');
+
+    expect(getComparisonResult(result(undefined), new Map(), [comparison], 0)).toBe(comparison);
+  });
+
+  it('should use the row index when the comparison row has no question id', () => {
+    const primary = result('q1', 'primary-document');
+    const comparison = result(undefined, 'comparison-document');
+
+    expect(getComparisonResult(primary, new Map(), [comparison], 0)).toBe(comparison);
+  });
+
+  it('should match comparison rows by matching question ids', () => {
     const primary = result('q1', 'primary-document');
     const comparison = result('q1', 'different-document');
 
-    expect(getComparisonResult(primary, new Map([['q1', comparison]]), [], 0)).toBe(comparison);
+    expect(getComparisonResult(primary, new Map([['q1', comparison]]), [comparison], 0)).toBe(
+      comparison,
+    );
   });
 
-  it('should fall back to the row index when the primary row has no question id', () => {
-    const comparison = result(undefined, 'comparison-document');
+  it('should not match comparison rows with mismatched question ids', () => {
+    const primary = result('q1', 'primary-document');
+    const comparison = result('q2', 'comparison-document');
 
-    expect(getComparisonResult(result(undefined), new Map(), [comparison], 0)).toBe(comparison);
+    expect(
+      getComparisonResult(primary, new Map([['q2', comparison]]), [comparison], 0),
+    ).toBeUndefined();
   });
 });
