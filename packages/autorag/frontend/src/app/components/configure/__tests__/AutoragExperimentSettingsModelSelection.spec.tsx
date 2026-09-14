@@ -15,6 +15,7 @@ const schema = createConfigureSchema();
 const models = [
   { id: 'model-a', display_name: 'Model A', ready: true },
   { id: 'model-b', description: 'Model B description', ready: true },
+  { id: 'model-c', display_name: 'Model C', ready: false },
 ];
 
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -98,5 +99,32 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
     expect(screen.getByTestId('llm-selected-count')).toHaveTextContent(/1.2/);
     expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent(/1.2/);
+  });
+
+  it('should show an unready model but disable its checkbox with an explanation', () => {
+    render(
+      <FormWrapper>
+        <ModelSelectionForm />
+      </FormWrapper>,
+    );
+
+    const checkbox = screen.getAllByTestId('model-row-model-c')[0].querySelector('input');
+    expect(checkbox).toBeDisabled();
+    expect(checkbox).toHaveAccessibleName('Model C unavailable: model is not ready');
+    expect(screen.getAllByText('Unavailable: model is not ready')).toHaveLength(2);
+  });
+
+  it('should exclude unready models from select all and selected counts', async () => {
+    const user = userEvent.setup();
+    render(
+      <FormWrapper>
+        <ModelSelectionForm />
+      </FormWrapper>,
+    );
+
+    await user.click(screen.getByTestId('llm-models-table').querySelector('thead input')!);
+
+    expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2∕2');
+    expect(screen.getAllByTestId('model-row-model-c')[0].querySelector('input')).not.toBeChecked();
   });
 });

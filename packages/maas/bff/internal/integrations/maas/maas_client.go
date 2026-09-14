@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -81,11 +82,18 @@ func (c *MaasClient) SetBaseURL(baseURL string) error {
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return fmt.Errorf("maas-api base URL %q is missing scheme or host", baseURL)
 	}
+	if strings.EqualFold(parsed.Scheme, "http") && !isLocalDevelopmentHost(parsed.Hostname()) {
+		return fmt.Errorf("maas-api base URL %q must use HTTPS for non-local endpoints", baseURL)
+	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.prefix = parsed.JoinPath("v1")
 	return nil
+}
+
+func isLocalDevelopmentHost(host string) bool {
+	return strings.EqualFold(host, "localhost") || host == "127.0.0.1" || host == "::1"
 }
 
 // Ready reports whether a base URL has been configured.

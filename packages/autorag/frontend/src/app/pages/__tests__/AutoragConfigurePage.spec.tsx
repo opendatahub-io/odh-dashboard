@@ -279,9 +279,9 @@ jest.mock('~/app/hooks/queries', () => ({
   useMaaSModelsQuery: jest.fn(() => ({
     data: {
       models: [
-        { id: 'llama-3-8b', type: 'llm' },
-        { id: 'llama-3-70b', type: 'llm' },
-        { id: 'text-embedding-ada-002', type: 'embedding' },
+        { id: 'llama-3-8b', type: 'llm', ready: true },
+        { id: 'llama-3-70b', type: 'llm', ready: true },
+        { id: 'text-embedding-ada-002', type: 'embedding', ready: true },
       ],
     },
     isLoading: false,
@@ -496,9 +496,9 @@ describe('AutoragConfigurePage', () => {
         ({
           data: {
             models: [
-              { id: 'llama-3-8b', type: 'llm' },
-              { id: 'llama-3-70b', type: 'llm' },
-              { id: 'text-embedding-ada-002', type: 'embedding' },
+              { id: 'llama-3-8b', type: 'llm', ready: true },
+              { id: 'llama-3-70b', type: 'llm', ready: true },
+              { id: 'text-embedding-ada-002', type: 'embedding', ready: true },
             ],
           },
           isLoading: false,
@@ -917,8 +917,8 @@ describe('AutoragConfigurePage', () => {
       const readyModels = {
         data: {
           models: [
-            { id: 'llama-3-8b', type: 'llm' },
-            { id: 'text-embedding-ada-002', type: 'embedding' },
+            { id: 'llama-3-8b', type: 'llm', ready: true },
+            { id: 'text-embedding-ada-002', type: 'embedding', ready: true },
           ],
         },
         isLoading: false,

@@ -472,6 +472,10 @@ function AutoragConfigurePage({
                 return;
               }
 
+              if (!maasModelsReady) {
+                return;
+              }
+
               form.handleSubmit(
                 async (data: ConfigureSchema) => {
                   // Computed up front so it's available in both the success and failure branches

@@ -1,6 +1,7 @@
 import {
   CodeBlock,
   CodeBlockCode,
+  Checkbox,
   Content,
   Flex,
   Label,
@@ -196,24 +197,32 @@ const AutoragExperimentSettingsModelSelection: React.FC<
           >
             {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
               const { selectedModels, onChange, models: tabModels } = tabData[modelType];
+              const selectableModels = tabModels.filter((model) => model.ready);
+              const selectableModelIds = new Set(selectableModels.map((model) => model.id));
               const selectedCount = selectedModels.filter((id) =>
-                tabModels.some((model) => model.id === id),
+                selectableModelIds.has(id),
               ).length;
               const allSelected =
-                tabModels.length > 0 &&
-                tabModels.every((model) =>
+                selectableModels.length > 0 &&
+                selectableModels.every((model) =>
                   selectedModels.some((selectedModel) => selectedModel === model.id),
                 );
 
               const handleSelectAll = (isSelecting: boolean) => {
                 onChange(
                   isSelecting
-                    ? tabModels.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
+                    ? selectableModels
+                        .map((model) => model.id)
+                        .toSorted((a, b) => a.localeCompare(b))
                     : [],
                 );
               };
 
-              const handleToggleModel = (modelId: string, isSelecting: boolean) => {
+              const handleToggleModel = (model: MaaSModel, isSelecting: boolean) => {
+                if (!model.ready) {
+                  return;
+                }
+                const modelId = model.id;
                 const updated = isSelecting
                   ? [...selectedModels, modelId]
                   : selectedModels.filter((selectedModel) => selectedModel !== modelId);
@@ -234,7 +243,7 @@ const AutoragExperimentSettingsModelSelection: React.FC<
                         className="pf-v6-u-ml-xs"
                         data-testid={`${modelType}-selected-count`}
                       >
-                        {selectedCount}&#8725;{tabModels.length}
+                        {selectedCount}&#8725;{selectableModels.length}
                       </Label>
                     </TabTitleText>
                   }
@@ -287,22 +296,36 @@ const AutoragExperimentSettingsModelSelection: React.FC<
                               </Tr>
                             </Thead>
                             <Tbody>
-                              {sortedAndPaginatedModels.map((model, rowIndex) => (
+                              {sortedAndPaginatedModels.map((model) => (
                                 <Tr key={model.id} data-testid={`model-row-${model.id}`}>
-                                  <Td
-                                    select={{
-                                      rowIndex,
-                                      isSelected: selectedModels.some(
+                                  <Td dataLabel="Select">
+                                    <Checkbox
+                                      id={`select-${modelType}-${model.id}`}
+                                      isChecked={selectedModels.some(
                                         (selectedModel) => selectedModel === model.id,
-                                      ),
-                                      onSelect: (_, isSelecting) =>
-                                        handleToggleModel(model.id, isSelecting),
-                                    }}
-                                  />
+                                      )}
+                                      isDisabled={!model.ready}
+                                      aria-label={
+                                        model.ready
+                                          ? `Select ${model.display_name || model.id}`
+                                          : `${
+                                              model.display_name || model.id
+                                            } unavailable: model is not ready`
+                                      }
+                                      onChange={(_, isSelecting) =>
+                                        handleToggleModel(model, isSelecting)
+                                      }
+                                    />
+                                  </Td>
                                   <Td dataLabel="Model name">
                                     <span title={model.description || model.owned_by || undefined}>
                                       {model.display_name || model.id}
                                     </span>
+                                    {!model.ready && (
+                                      <span className="pf-v6-screen-reader">
+                                        Unavailable: model is not ready
+                                      </span>
+                                    )}
                                   </Td>
                                 </Tr>
                               ))}

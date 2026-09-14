@@ -284,7 +284,9 @@ function AutoragConfigure({
       return;
     }
 
-    const availableModelIds = new Set(maasModels.map((model) => model.id));
+    const availableModelIds = new Set(
+      maasModels.filter((model) => model.ready).map((model) => model.id),
+    );
     const restoredGenerationModels = generationModels.filter((id) => availableModelIds.has(id));
     const restoredEmbeddingModels = embeddingModels.filter((id) => availableModelIds.has(id));
     onMaaSModelsReady?.(
@@ -294,7 +296,7 @@ function AutoragConfigure({
     );
 
     const resultKey = `${maasSecretName}:${maasModels
-      .map((model) => model.id)
+      .map((model) => `${model.id}:${model.ready}`)
       .toSorted()
       .join('|')}`;
     if (reconciledMaaSResultRef.current === resultKey) {

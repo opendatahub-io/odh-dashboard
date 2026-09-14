@@ -29,7 +29,12 @@ type Props = {
 const isValidUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url.trim());
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    if (parsed.protocol === 'https:') {
+      return true;
+    }
+    return (
+      parsed.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+    );
   } catch {
     return false;
   }
@@ -98,7 +103,7 @@ const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
     <Modal isOpen onClose={isSaving ? undefined : onClose} variant="medium">
       <ModalHeader
         title="Add MaaS connection"
-        description="Provide credentials for accessing an external Models as a Service (MaaS) server. The generation and embedding models registered in the MaaS server will be considered when generating RAG patterns. Vector I/O providers in the MaaS server can be used to create a collection for retrieval."
+        description="Provide credentials for accessing an external Models as a Service (MaaS) server. The generation and embedding models registered in the MaaS server will be considered when generating RAG patterns."
       />
       <ModalBody>
         <Form>
@@ -127,7 +132,7 @@ const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
               <HelperText>
                 <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
                   {showBaseUrlError
-                    ? 'Enter a valid URL (e.g. https://example.com).'
+                    ? 'Enter a valid HTTPS URL or a local HTTP URL (for example, https://example.com or http://localhost:8080).'
                     : 'The base URL of the MaaS connection.'}
                 </HelperTextItem>
               </HelperText>

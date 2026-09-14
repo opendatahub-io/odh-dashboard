@@ -304,7 +304,9 @@ const createTestQueryClient = () =>
 const renderWithQueryClient = (
   component: React.ReactElement,
   defaultValues?: TestConfigureValues,
-  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
+  options?: {
+    onKnowledgeSourceConfigured?: (sourceType: string) => void;
+  },
 ) => {
   const queryClient = createTestQueryClient();
   const tree = (
@@ -335,8 +337,16 @@ const renderWithQueryClient = (
 
 const renderComponent = (
   defaultValues?: TestConfigureValues,
-  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
-) => renderWithQueryClient(<AutoragConfigure />, defaultValues, options);
+  options?: {
+    onKnowledgeSourceConfigured?: (sourceType: string) => void;
+    onMaaSModelsReady?: (ready: boolean) => void;
+  },
+) =>
+  renderWithQueryClient(
+    <AutoragConfigure onMaaSModelsReady={options?.onMaaSModelsReady} />,
+    defaultValues,
+    options,
+  );
 
 const renderWithInitialValues = (
   initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
@@ -344,6 +354,7 @@ const renderWithInitialValues = (
   },
   defaultValues?: TestConfigureValues,
   isReconfigure = false,
+  options?: { onMaaSModelsReady?: (ready: boolean) => void },
 ) => {
   const { initialInputDataSecret, ...schemaValues } = initialValues;
   return renderWithQueryClient(
@@ -351,6 +362,7 @@ const renderWithInitialValues = (
       initialValues={schemaValues}
       initialInputDataSecret={initialInputDataSecret}
       isReconfigure={isReconfigure}
+      onMaaSModelsReady={options?.onMaaSModelsReady}
     />,
     {
       ...defaultValues,
@@ -458,6 +470,65 @@ describe('AutoragConfigure', () => {
         'Unable to restore all settings',
         'Some selected models are no longer available and could not be restored. Select replacement models to continue.',
       );
+    });
+
+    it('should remove unready restored IDs and show the restore warning', async () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            { id: 'unready-generation', ready: false },
+            { id: 'available-embedding', ready: true },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          ...restoredValues,
+          generation_models: ['unready-generation'],
+          embedding_models: ['available-embedding'],
+        },
+        undefined,
+        true,
+      );
+
+      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
+      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
+      expect(mockNotificationWarning).toHaveBeenCalledWith(
+        'Unable to restore all settings',
+        'Some selected models are no longer available and could not be restored. Select replacement models to continue.',
+      );
+    });
+
+    it('should report the model configuration as not ready when only unready models exist', async () => {
+      const onMaaSModelsReady = jest.fn();
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            { id: 'unready-generation', ready: false },
+            { id: 'unready-embedding', ready: false },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          ...restoredValues,
+          generation_models: ['unready-generation'],
+          embedding_models: ['unready-embedding'],
+        },
+        undefined,
+        false,
+        { onMaaSModelsReady },
+      );
+
+      await waitFor(() => expect(onMaaSModelsReady).toHaveBeenLastCalledWith(false));
     });
 
     it('should leave an empty category invalid when all its restored IDs are unavailable', async () => {
@@ -1288,12 +1359,19 @@ describe('AutoragConfigure', () => {
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'llm-model-1',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-1',
+              ready: true,
+            },
             {
               id: 'embed-model-1',
               type: 'embedding',
               provider: 'ollama',
               resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+              ready: true,
             },
           ],
         },
@@ -1659,20 +1737,34 @@ describe('AutoragConfigure', () => {
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'llm-model-1',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-1',
+              ready: true,
+            },
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'llm-model-2',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-2',
+              ready: true,
+            },
             {
               id: 'embed-model-1',
               type: 'embedding',
               provider: 'ollama',
               resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+              ready: true,
             },
             {
               id: 'embed-model-2',
               type: 'embedding',
               provider: 'ollama',
               resource_path: 'ollama://embed-2', // eslint-disable-line camelcase
+              ready: true,
             },
           ],
         },
@@ -1729,14 +1821,27 @@ describe('AutoragConfigure', () => {
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'llm-model-1',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-1',
+              ready: true,
+            },
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'llm-model-2',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-2',
+              ready: true,
+            },
             {
               id: 'embed-model-1',
               type: 'embedding',
               provider: 'ollama',
               resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+              ready: true,
             },
           ],
         },
@@ -1787,9 +1892,21 @@ describe('AutoragConfigure', () => {
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'llm-model-1',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-1',
+              ready: true,
+            },
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'llm-model-2',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-2',
+              ready: true,
+            },
           ],
         },
         isLoading: false,
@@ -1912,7 +2029,13 @@ describe('AutoragConfigure', () => {
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm' },
+            {
+              id: 'llm-model',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm',
+              ready: true,
+            },
           ],
         },
         isLoading: false,

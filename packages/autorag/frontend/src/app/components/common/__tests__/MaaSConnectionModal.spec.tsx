@@ -36,7 +36,7 @@ describe('MaaSConnectionModal', () => {
     expect(screen.getByRole('heading', { name: 'Add MaaS connection' })).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Provide credentials for accessing an external Models as a Service (MaaS) server. The generation and embedding models registered in the MaaS server will be considered when generating RAG patterns. Vector I/O providers in the MaaS server can be used to create a collection for retrieval.',
+        'Provide credentials for accessing an external Models as a Service (MaaS) server. The generation and embedding models registered in the MaaS server will be considered when generating RAG patterns.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('maas-connection-name')).toBeInTheDocument();
@@ -117,4 +117,52 @@ describe('MaaSConnectionModal', () => {
 
     expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
   });
+
+  it.each(['http://maas.example.com', 'http://maas.namespace.svc.cluster.local'])(
+    'should reject non-local HTTP URL %s',
+    async (url) => {
+      renderModal();
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('maas-connection-name'), {
+          target: { value: 'MaaS connection' },
+        });
+        fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
+          target: { value: url },
+        });
+        fireEvent.change(screen.getByTestId('maas-connection-api-key'), {
+          target: { value: 'test-key' },
+        });
+        fireEvent.blur(screen.getByTestId('maas-connection-base-url'));
+      });
+
+      expect(screen.getByRole('button', { name: 'Add connection' })).toBeDisabled();
+      expect(
+        screen.getByText(
+          'Enter a valid HTTPS URL or a local HTTP URL (for example, https://example.com or http://localhost:8080).',
+        ),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it.each(['http://localhost:8080', 'http://127.0.0.1:8080', 'http://[::1]:8080'])(
+    'should allow local HTTP URL %s',
+    async (url) => {
+      renderModal();
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('maas-connection-name'), {
+          target: { value: 'MaaS connection' },
+        });
+        fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
+          target: { value: url },
+        });
+        fireEvent.change(screen.getByTestId('maas-connection-api-key'), {
+          target: { value: 'test-key' },
+        });
+      });
+
+      expect(screen.getByRole('button', { name: 'Add connection' })).toBeEnabled();
+    },
+  );
 });
