@@ -38,9 +38,9 @@ odh-dashboard/
 
 ## Development Requirements
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.0.0
-- **Go**: >= 1.26 (for packages with BFF), >= 1.25 (for dashboard-operator)
+- **Node.js**: >= 22.18.0
+- **npm**: 11.8.0
+- **Go**: >= 1.26 (for packages with BFF and dashboard-operator; see each package's `go.mod`)
 
 ## Key Technologies
 

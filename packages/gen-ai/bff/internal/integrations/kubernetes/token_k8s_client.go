@@ -2025,7 +2025,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			if resolvedMaaSType == "" {
 				resolvedMaaSType = "llm"
 			}
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension)
+			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension, true)
 			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
 		} else if models.IsExternalModelSource(model.ModelSourceType) {
 			// Handle external models from ConfigMap
@@ -2058,7 +2058,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			if resolvedClusterType == "" {
 				resolvedClusterType = details.modelType
 			}
-			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension)
+			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension, false)
 			kc.Logger.Info("Added cluster model to configuration", "model", details.modelID, "providerID", providerID, "endpoint", details.endpointURL, "maxTokens", model.MaxTokens)
 		}
 	}

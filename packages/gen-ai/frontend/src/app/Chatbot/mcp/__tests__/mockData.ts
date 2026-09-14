@@ -13,6 +13,8 @@ export const mockServer: MCPServer = {
   connectionUrl: 'http://test-server.com',
   tools: 0,
   version: '1.0',
+  source: 'configmap',
+  logo: null,
 };
 
 // Mock Tools

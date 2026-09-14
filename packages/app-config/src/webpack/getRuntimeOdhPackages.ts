@@ -61,6 +61,7 @@ const getWorkspacePackages = (root: string): WorkspacePackageInfo[] => {
     const stdout = execFileSync('npm', ['query', '.workspace', '--json'], {
       encoding: 'utf8',
       cwd: root,
+      shell: process.platform === 'win32',
     });
     const packages: WorkspacePackageInfo[] = JSON.parse(stdout);
     if (packages.length === 0) {

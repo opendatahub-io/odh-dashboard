@@ -11,3 +11,11 @@ rules:
       - watch
     resources:
       - configmaps
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get

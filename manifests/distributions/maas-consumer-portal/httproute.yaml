@@ -8,12 +8,29 @@ spec:
       kind: Gateway
       namespace: openshift-ingress
   hostnames:
-    - maas-consumer-portal-hostname
+    - gateway-domain
   rules:
     - matches:
         - path:
+            type: Exact
+            value: /maas-consumer-portal
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /maas-consumer-portal/
+            statusCode: 302
+    - matches:
+        - path:
             type: PathPrefix
-            value: /
+            value: /maas-consumer-portal
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
       backendRefs:
         - name: maas-consumer-portal
           port: 8443

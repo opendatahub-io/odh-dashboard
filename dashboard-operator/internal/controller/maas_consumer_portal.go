@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -35,11 +34,10 @@ import (
 const conditionMaaSConsumerPortalAvailable = "MaaSConsumerPortalAvailable"
 
 const (
-	maasConsumerPortalConsoleLinkName = "maas-consumer-portal-link"
-	maasConsumerPortalDeploymentName  = "maas-consumer-portal"
-	maasConsumerPortalPartOf          = maasConsumerPortalDeploymentName
-	maasConsumerPortalHostPrefix      = maasConsumerPortalDeploymentName
-	maasConsumerPortalGatewayName     = "data-science-gateway"
+	maasConsumerPortalDeploymentName = "maas-consumer-portal"
+	maasConsumerPortalPartOf         = maasConsumerPortalDeploymentName
+	maasConsumerPortalGatewayName    = "data-science-gateway"
+	maasConsumerPortalBasePath       = "/maas-consumer-portal/"
 )
 
 var ErrMaaSConsumerPortalUnsupportedPlatform = errors.New("maas consumer portal is supported only on RHOAI")
@@ -56,7 +54,7 @@ func maasConsumerPortalURL(domain string) (string, bool) {
 	if domain == "" {
 		return "", false
 	}
-	return fmt.Sprintf("https://%s.%s/", maasConsumerPortalHostPrefix, domain), true
+	return fmt.Sprintf("https://%s%s", domain, maasConsumerPortalBasePath), true
 }
 
 // reconcileMaaSConsumerPortal independently manages the portal bundle. Its resources
@@ -69,12 +67,13 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, d
 	if !maasConsumerPortalSupportedPlatform(r.Platform) {
 		return r.reconcileUnsupportedMaaSConsumerPortal(ctx, dashboard, cm)
 	}
-	url, ok := maasConsumerPortalURL(portalGatewayDomain(dashboard))
+	gatewayDomain := portalGatewayDomain(dashboard)
+	url, ok := maasConsumerPortalURL(gatewayDomain)
 	if !ok {
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable, conditions.WithReason("MaaSConsumerPortalDomainRequired"), conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"))
-		return 0
+		return maasConsumerPortalRetryInterval
 	}
-	if err := r.deployMaaSConsumerPortalBundle(ctx, dashboard, url); err != nil {
+	if err := r.deployMaaSConsumerPortalBundle(ctx, dashboard, gatewayDomain); err != nil {
 		// The module and federation steps run before the bundle. Preserve their
 		// specific failure conditions instead of replacing them with a generic
 		// bundle-apply failure, while still applying the portal's desired bundle.
@@ -131,7 +130,7 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortalAvailability(ctx contex
 		return maasConsumerPortalRetryInterval
 	}
 	var route gatewayv1.HTTPRoute
-	if err := r.Get(ctx, client.ObjectKey{Name: maasConsumerPortalHostPrefix, Namespace: r.ApplicationsNamespace}, &route); err != nil {
+	if err := r.Get(ctx, client.ObjectKey{Name: maasConsumerPortalDeploymentName, Namespace: r.ApplicationsNamespace}, &route); err != nil {
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable,
 			conditions.WithReason("MaaSConsumerPortalRouteUnavailable"),
 			conditions.WithMessage("getting MaaS Consumer Portal HTTPRoute: %s", err))
@@ -144,7 +143,7 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortalAvailability(ctx contex
 		return maasConsumerPortalRetryInterval
 	}
 	var dep appsv1.Deployment
-	if err := r.Get(ctx, client.ObjectKey{Name: maasConsumerPortalHostPrefix, Namespace: r.ApplicationsNamespace}, &dep); err != nil || !deploymentAvailable(&dep) {
+	if err := r.Get(ctx, client.ObjectKey{Name: maasConsumerPortalDeploymentName, Namespace: r.ApplicationsNamespace}, &dep); err != nil || !deploymentAvailable(&dep) {
 		if err == nil {
 			err = errors.New("deployment is not Available")
 		}
@@ -197,16 +196,14 @@ func portalRouteReady(route *gatewayv1.HTTPRoute) bool {
 	return false
 }
 
-func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard, url string) error {
+func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard, gatewayDomain string) error {
 	m := maasConsumerPortalManifestInfo(r.ManifestsBasePath)
 	params := readExistingParams(filepath.Join(m.String(), "params.env"))
 	maps.Copy(params, resolveImageParams())
 	params["dashboard-namespace"] = r.ApplicationsNamespace
 	params["gateway-name"] = maasConsumerPortalGatewayName
 	params["maas-consumer-portal-federation-config"] = maasConsumerPortalFederationConfigMapName
-	params["maas-consumer-portal-hostname"] = strings.TrimSuffix(strings.TrimPrefix(url, "https://"), "/")
-	params["maas-consumer-portal-url"] = url
-	params["section-title"] = sectionTitle[r.Platform]
+	params["gateway-domain"] = gatewayDomain
 	if err := writeParamsEnv(m.String(), params); err != nil {
 		return fmt.Errorf("writing MaaS Consumer Portal params: %w", err)
 	}
@@ -272,7 +269,7 @@ func (r *DashboardReconciler) deleteMaaSConsumerPortalServingCertificate(ctx con
 	// Delete it explicitly rather than relying on label selection or garbage collection.
 	return r.deleteMaaSConsumerPortalObjects(ctx,
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{
-			Name:      maasConsumerPortalHostPrefix + "-tls",
+			Name:      maasConsumerPortalDeploymentName + "-tls",
 			Namespace: r.ApplicationsNamespace,
 		}},
 	)
@@ -289,15 +286,6 @@ func (r *DashboardReconciler) deleteLabeledMaaSConsumerPortalCustomResources(ctx
 		}
 	} else {
 		errs = append(errs, r.deleteMaaSConsumerPortalUnstructuredItems(ctx, routes.Items))
-	}
-	consoleLinks := &unstructured.UnstructuredList{}
-	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
-	if err := r.List(ctx, consoleLinks, client.MatchingLabels{labels.PlatformPartOf: maasConsumerPortalPartOf}); err != nil {
-		if !meta.IsNoMatchError(err) {
-			errs = append(errs, err)
-		}
-	} else {
-		errs = append(errs, r.deleteMaaSConsumerPortalUnstructuredItems(ctx, consoleLinks.Items))
 	}
 	return errors.Join(errs...)
 }

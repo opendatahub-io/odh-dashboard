@@ -2,10 +2,14 @@ import React from 'react';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { useSettings } from 'mod-arch-core';
 
+import { PORTAL_BASE_PATH } from '../portalPaths';
+
 // Logout via oauth2-proxy's GET sign-out endpoint, matching the main dashboard
 // (frontend/src/app/appUtils.ts). GET is CSRF-able but the only impact is an
 // unwanted logout; POST hardening would require oauth2-proxy support.
-export const PORTAL_SIGN_OUT_PATH = '/oauth2/sign_out';
+export const PORTAL_SIGN_OUT_PATH = `/oauth2/sign_out?rd=${encodeURIComponent(
+  `${PORTAL_BASE_PATH}/`,
+)}`;
 
 const navigateTo = (path: string): void => {
   window.location.href = path;

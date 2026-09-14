@@ -38,7 +38,7 @@ const assetResponseSchema = z
     name: z.string(),
     // eslint-disable-next-line camelcase
     asset_type: z.string(),
-    columns: z.array(schemaFieldSchema).optional(),
+    columns: z.array(schemaFieldSchema).nullable().optional(),
     labels: z.array(z.string()).nullable().optional(),
   })
   .passthrough();
@@ -51,6 +51,7 @@ const volumeInfoSchema = z
     'volume-type': z.string(),
     'storage-location': z.string(),
     labels: z.array(z.string()).nullable().optional(),
+    properties: z.record(z.string(), z.string()).optional(),
   })
   .passthrough();
 
@@ -270,3 +271,18 @@ export const createLabel = async (
 export const deleteLabel = async (project: string, label: string): Promise<void> => {
   await fetchRequest(registryUrl(`/${project}/labels/${encodeURIComponent(label)}`), 'DELETE');
 };
+
+// Error type guards
+
+export const is503Error = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 503;
+
+export const is403Error = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 403;
+
+export const isConnectionError = (error: unknown): boolean =>
+  !(error instanceof ApiError) &&
+  error instanceof Error &&
+  (error.message.includes('NetworkError') ||
+    error.message.includes('Failed to fetch') ||
+    error.message.toLowerCase().includes('network'));
