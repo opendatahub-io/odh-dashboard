@@ -852,12 +852,23 @@ Do **not** include section payloads or context snapshots.
    `include_findings: true`. Collect the returned `findings[]`, but do
    not send the named section object through synthesis or challenger.
 
+**Stamp every collected finding with its producer.** As you take each array,
+set `dimension` on each of its findings to the registry id it came from —
+`correctness`, `style-review`, the `cli-adapter` id for an envelope, and so on.
+For a finding you raise yourself in step 6e, use `orchestrator`. Do this at
+collect, where the provenance is still known; after synthesis merges arrays it
+is gone. The host renders a producer table from this: without it a reader
+cannot tell a dimension that ran and found nothing from one that never ran, and
+the review reads as an unattributable wall of findings. When merging two
+findings (step 6b), keep both ids, comma-separated.
+
 Standard finding shape:
 
 ```json
 {
   "severity": "critical|high|medium|low|info",
   "category": "<dimension-specific category>",
+  "dimension": "<registry id of the producer that raised this>",
   "file": "<relative path>",
   "line": "<line number, optional>",
   "description": "<explanation>",
