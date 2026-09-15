@@ -8,6 +8,82 @@ import type { AutoragTestData } from '../types';
 
 const RESOURCES_PATH = 'resources/autorag';
 
+type MaaSModel = { id?: unknown; ready?: unknown };
+
+const getRequiredMaaSConfig = (name: string): string => {
+  const value = Cypress.env(name);
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`MaaS readiness check requires ${name} to be configured.`);
+  }
+  return value.trim();
+};
+
+const getMaaSServiceRoot = (): string => {
+  const configuredUrl = getRequiredMaaSConfig('MAAS_URL');
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(configuredUrl);
+  } catch {
+    throw new Error('MaaS readiness check requires MAAS_URL to be an HTTPS service root.');
+  }
+
+  if (
+    parsedUrl.protocol !== 'https:' ||
+    !parsedUrl.hostname ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.search ||
+    parsedUrl.hash
+  ) {
+    throw new Error('MaaS readiness check requires MAAS_URL to be an HTTPS service root.');
+  }
+
+  return `${parsedUrl.origin}${parsedUrl.pathname.replace(/\/+$/, '')}`;
+};
+
+const isMaaSModel = (value: unknown): value is MaaSModel =>
+  typeof value === 'object' && value !== null;
+
+/**
+ * Verify the hosted MaaS models before provisioning AutoRAG resources.
+ * Response details and credentials are intentionally never logged or included in failures.
+ */
+export const checkAutoragMaaSReadiness = (): Cypress.Chainable<
+  Cypress.Response<Record<string, unknown>>
+> => {
+  const serviceRoot = getMaaSServiceRoot();
+  const apiKey = getRequiredMaaSConfig('MAAS_API_KEY');
+  const generationModelId = getRequiredMaaSConfig('MAAS_GENERATION_MODEL_ID');
+  const embeddingModelId = getRequiredMaaSConfig('MAAS_EMBEDDING_MODEL_ID');
+
+  return cy
+    .request({
+      method: 'GET',
+      url: `${serviceRoot}/v1/models`,
+      headers: { Authorization: `Bearer ${apiKey}` },
+      failOnStatusCode: false,
+      log: false,
+    })
+    .then((response): void => {
+      if (response.status !== 200) {
+        throw new Error(`MaaS readiness check returned HTTP ${response.status}.`);
+      }
+
+      const payload: unknown = response.body;
+      if (typeof payload !== 'object' || payload === null || !('data' in payload)) {
+        throw new Error('MaaS readiness check returned invalid model data.');
+      }
+
+      const models = Array.isArray(payload.data) ? payload.data.filter(isMaaSModel) : [];
+      for (const modelId of [generationModelId, embeddingModelId]) {
+        const model = models.find((candidate) => candidate.id === modelId);
+        if (!model || model.ready !== true) {
+          throw new Error('A configured MaaS model is missing or not ready.');
+        }
+      }
+    });
+};
+
 /**
  * Full configure flow for an AutoRAG run.
  *

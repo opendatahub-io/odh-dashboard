@@ -22,6 +22,7 @@ import {
 import type { AutoragTestData } from '../../../types';
 import {
   configureAutoragRun,
+  checkAutoragMaaSReadiness,
   submitAutoragRun,
   verifyAutoragRunSubmitted,
   waitForAutoragRunCompletion,
@@ -59,6 +60,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       .then(() =>
         isOgxOperatorManaged().then((isManaged) => {
           if (isExternalMaas()) {
+            checkAutoragMaaSReadiness();
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
             allowOgxAccess(projectName);
 

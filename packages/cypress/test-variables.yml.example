@@ -47,3 +47,5 @@ OGX_URL: https://ogx.apps.your-cluster.com
 OGX_API_KEY: your-api-key-here
 MAAS_URL: https://maas.apps.your-cluster.com
 MAAS_API_KEY: your-api-key-here
+MAAS_GENERATION_MODEL_ID: your-generation-model-id
+MAAS_EMBEDDING_MODEL_ID: your-embedding-model-id

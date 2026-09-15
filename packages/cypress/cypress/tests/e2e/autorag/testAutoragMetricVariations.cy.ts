@@ -21,6 +21,7 @@ import {
 } from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
+  checkAutoragMaaSReadiness,
   submitAutoragRun,
   verifyAutoragRunSubmitted,
 } from '../../../utils/autoragTestFlows';
@@ -54,6 +55,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       .then(() =>
         isOgxOperatorManaged().then((isManaged) => {
           if (isExternalMaas()) {
+            checkAutoragMaaSReadiness();
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
             allowOgxAccess(projectName);
 

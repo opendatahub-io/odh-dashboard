@@ -22,6 +22,7 @@ import {
 } from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
+  checkAutoragMaaSReadiness,
   submitAutoragRun,
   verifyAutoragRunSubmitted,
   verifyAutoragRunStopped,
@@ -53,6 +54,7 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
       .then(() =>
         isOgxOperatorManaged().then((isManaged) => {
           if (isExternalMaas()) {
+            checkAutoragMaaSReadiness();
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
             allowOgxAccess(projectName);
 

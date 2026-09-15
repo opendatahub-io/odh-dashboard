@@ -101,6 +101,8 @@ const OGX_URL = testConfig?.OGX_URL;
 const OGX_API_KEY = testConfig?.OGX_API_KEY;
 const MAAS_URL = testConfig?.MAAS_URL;
 const MAAS_API_KEY = testConfig?.MAAS_API_KEY;
+const MAAS_GENERATION_MODEL_ID = testConfig?.MAAS_GENERATION_MODEL_ID;
+const MAAS_EMBEDDING_MODEL_ID = testConfig?.MAAS_EMBEDDING_MODEL_ID;
 
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
@@ -126,6 +128,8 @@ export const cypressEnv = {
   OGX_API_KEY,
   MAAS_URL,
   MAAS_API_KEY,
+  MAAS_GENERATION_MODEL_ID,
+  MAAS_EMBEDDING_MODEL_ID,
   CLUSTER_AUTH,
 };
 
