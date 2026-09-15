@@ -153,7 +153,10 @@ describe('External Models Page', () => {
       gptRow.findExpandedCredentialSecret('openai-prod').should('contain.text', 'openai-api-key');
       gptRow.findExpandedApiFormat('openai-prod').should('contain.text', 'openai-chat');
       gptRow.findExpandedTargetModel('openai-prod').should('contain.text', 'gpt-4o');
-      gptRow.findExpandedWeight('openai-prod').should('contain.text', '100');
+      gptRow
+        .findExpandedWeight('openai-prod')
+        .should('contain.text', '1')
+        .and('contain.text', '(100%)');
 
       gptRow.findExpandedViewUrlButton('openai-prod').click();
       externalModelProviderUrlModal.findInputValue().should('have.value', 'api.openai.com');
@@ -171,14 +174,20 @@ describe('External Models Page', () => {
       splitRow
         .findExpandedProviderName('anthropic-dev')
         .should('contain.text', 'Anthropic Development');
-      splitRow.findExpandedWeight('anthropic-dev').should('contain.text', '60');
+      splitRow
+        .findExpandedWeight('anthropic-dev')
+        .should('contain.text', '6')
+        .and('contain.text', '(60%)');
       splitRow
         .findExpandedAuthMechanism('bedrock-us-east')
         .should('contain.text', 'Signature Version 4');
       splitRow
         .findExpandedCredentialSecret('bedrock-us-east')
         .should('contain.text', 'bedrock-credentials-us-east');
-      splitRow.findExpandedWeight('bedrock-us-east').should('contain.text', '40');
+      splitRow
+        .findExpandedWeight('bedrock-us-east')
+        .should('contain.text', '4')
+        .and('contain.text', '(40%)');
 
       splitRow.findExpandedViewUrlButton('bedrock-us-east').click();
       externalModelProviderUrlModal
@@ -384,7 +393,9 @@ describe('External Models Page', () => {
 
       createExternalModelPage.findProviderRefEditButton(0).click();
       editProviderReferenceModal.findExternalProviderSection().should('exist');
-      editProviderReferenceModal.findExternalProviderInput().should('have.value', 'Anthropic Provider');
+      editProviderReferenceModal
+        .findExternalProviderInput()
+        .should('have.value', 'Anthropic Provider');
       editProviderReferenceModal.findConfigurationSection().should('exist');
       editProviderReferenceModal.findApiFormatSelect().should('contain.text', 'OpenAI Chat');
       editProviderReferenceModal.findTargetModelInput().should('have.value', 'claude-sonnet-4');
@@ -655,7 +666,9 @@ describe('Edit External Model Page', () => {
     editExternalModelPage.findProviderRefEditButton(0).click();
     editProviderReferenceModal.shouldBeOpen();
     editProviderReferenceModal.findExternalProviderSection().should('exist');
-    editProviderReferenceModal.findExternalProviderInput().should('have.value', 'OpenAI Production');
+    editProviderReferenceModal
+      .findExternalProviderInput()
+      .should('have.value', 'OpenAI Production');
     editProviderReferenceModal.findConfigurationSection().should('exist');
     editProviderReferenceModal.findApiFormatSelect().should('contain.text', 'OpenAI Chat');
     editProviderReferenceModal.findTargetModelInput().should('have.value', 'gpt-4o');

@@ -128,7 +128,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
     try {
       const apiOpts: APIOptions = {};
 
-      if (isEditing && externalModel) {
+      if (externalModel) {
         const request: UpdateExternalModelRequest = {
           displayName: trimmedName,
           modelName: trimmedName,
@@ -357,7 +357,9 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
             onClick={handleSubmit}
             isDisabled={isSubmitDisabled}
             isLoading={isSubmitting}
-            data-testid={isEditing ? 'update-external-model-button' : 'create-external-model-button'}
+            data-testid={
+              isEditing ? 'update-external-model-button' : 'create-external-model-button'
+            }
           >
             {isEditing
               ? isSubmitting

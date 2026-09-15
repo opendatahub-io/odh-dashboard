@@ -17,7 +17,11 @@ import {
 } from '~/app/types/event-tracking';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { externalModelsColumns } from './columns';
-import { editExternalModelPath, GovernancePairingWarning, MissingMaaSModelRefWarning } from './const';
+import {
+  editExternalModelPath,
+  GovernancePairingWarning,
+  MissingMaaSModelRefWarning,
+} from './const';
 import {
   getExternalModelResource,
   isAwaitingGovernancePairing,
@@ -241,8 +245,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         items={[
           {
             title: 'Edit',
-            onClick: () => onEditExternalModel(externalModel.namespace, externalModel.name)
-              
+            onClick: () => onEditExternalModel(externalModel.namespace, externalModel.name),
           },
           {
             title: 'Delete',

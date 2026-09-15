@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
-import { Label, Button } from '@patternfly/react-core';
+import { Button, Flex, Label } from '@patternfly/react-core';
 import { Table } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -18,6 +18,7 @@ import {
   ExternalModelProviderDetailViewedProperties,
   convertStringToExternalModelProviderType,
 } from '~/app/types/event-tracking';
+import { formatProviderRefWeightPercentage } from '~/app/pages/external-models/providerReferenceUtils';
 import { ExternalModelsExpandedRowColumns } from './columns';
 
 type ExternalModelsExpandedTableRowProps = {
@@ -35,7 +36,7 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
     <Table
       data={externalModel.providerRefs}
       columns={ExternalModelsExpandedRowColumns}
-      rowRenderer={(row: ProviderRef) => (
+      rowRenderer={(row: ProviderRef, index: number) => (
         <Tr data-testid={`expanded-provider-row-${row.providerName}`}>
           <Td>
             <TableRowTitleDescription
@@ -111,7 +112,12 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
           <Td data-testid={`expanded-table-row-target-model-${row.providerName}`}>
             {row.targetModel}
           </Td>
-          <Td data-testid={`expanded-table-row-weight-${row.providerName}`}>{row.weight}</Td>
+          <Td data-testid={`expanded-table-row-weight-${row.providerName}`}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <span>{row.weight}</span>
+              <span>({formatProviderRefWeightPercentage(externalModel.providerRefs, index)})</span>
+            </Flex>
+          </Td>
         </Tr>
       )}
     />

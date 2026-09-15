@@ -81,7 +81,11 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
   );
   const isSaveDisabled = isProviderReferenceFormIncomplete(form, validationContext);
   const fieldErrors = getProviderReferenceFieldErrors(form, validationContext);
-  const visibleFieldErrors = getVisibleProviderReferenceFieldErrors(form, fieldErrors, fieldTouched);
+  const visibleFieldErrors = getVisibleProviderReferenceFieldErrors(
+    form,
+    fieldErrors,
+    fieldTouched,
+  );
 
   const handleChange = (updates: Partial<ProviderReferenceFormData>) => {
     setForm((prev) => ({ ...prev, ...updates }));

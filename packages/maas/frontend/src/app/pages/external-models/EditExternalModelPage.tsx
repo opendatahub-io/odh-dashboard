@@ -19,7 +19,10 @@ const EditExternalModelPage: React.FC = () => {
   }
 
   const returnTo = deploymentsExternalPath(resolvedNamespace ?? '');
-  const loaded = namespacesLoaded && externalModelsLoaded && (externalProvidersLoaded || !!externalProvidersError);
+  const loaded =
+    namespacesLoaded &&
+    externalModelsLoaded &&
+    (externalProvidersLoaded || !!externalProvidersError);
   const externalModel = externalModels.find((model) => model.name === modelName);
   const displayName = externalModel?.displayName ?? externalModel?.modelName ?? modelName;
 

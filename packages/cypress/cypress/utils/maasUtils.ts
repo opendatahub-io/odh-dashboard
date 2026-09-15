@@ -1002,7 +1002,7 @@ export const mockExternalModel = (options: Partial<ExternalModel> = {}): Externa
   providerRefs: [
     {
       providerName: 'openai-prod',
-      weight: 100,
+      weight: 1,
       apiFormat: 'openai-chat',
       path: '/v1/chat/completions',
       targetModel: 'gpt-4o',
@@ -1037,7 +1037,7 @@ export const mockExternalModels = (): ExternalModel[] => [
     providerRefs: [
       {
         providerName: 'anthropic-dev',
-        weight: 60,
+        weight: 6,
         apiFormat: 'anthropic',
         path: '/v1/messages',
         targetModel: 'claude-sonnet-4-5-20241022',
@@ -1053,7 +1053,7 @@ export const mockExternalModels = (): ExternalModel[] => [
       },
       {
         providerName: 'bedrock-us-east',
-        weight: 40,
+        weight: 4,
         apiFormat: 'anthropic',
         path: '/v1/messages',
         targetModel: 'anthropic.claude-3-sonnet',

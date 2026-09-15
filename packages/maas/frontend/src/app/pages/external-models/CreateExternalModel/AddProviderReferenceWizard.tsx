@@ -58,8 +58,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
     }
   }, [isOpen]);
 
-  const isStepOneValid =
-    providerSource === ProviderSource.EXISTING && providerName.trim() !== '';
+  const isStepOneValid = providerSource === ProviderSource.EXISTING && providerName.trim() !== '';
 
   const selectedProvider = React.useMemo(
     () => externalProviders.find((provider) => provider.name === providerName),
