@@ -1,11 +1,11 @@
+import type { SecretKind } from '@odh-dashboard/k8s-core';
+import type { SecretOps } from '@odh-dashboard/plugin-core';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { HF_TOKEN_ENV_NAME } from '../../shared/hfTokenConstants';
 import {
   getHfTokenSecretNameFromDeployment,
   patchHfTokenSecretOwnerReference,
 } from '../hfTokenSecretUtils';
-import type { SecretOps } from '@odh-dashboard/plugin-core';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
 
 const makeSecret = (name: string): SecretKind =>
   ({

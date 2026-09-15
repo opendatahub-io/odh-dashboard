@@ -1,4 +1,3 @@
-import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { SecretOps } from '@odh-dashboard/plugin-core';
 import { HF_TOKEN_ENV_NAME } from '../shared/hfTokenConstants';
 import type { InferenceServiceKind } from '../shared';
@@ -33,11 +32,7 @@ export const patchHfTokenSecretOwnerReference = async (
 
   try {
     const secret = await ops.getSecret(deployment.metadata.namespace, secretName);
-    await ops.patchSecretWithOwnerReference(
-      secret,
-      deployment as K8sResourceCommon & { metadata: { name: string } },
-      uid,
-    );
+    await ops.patchSecretWithOwnerReference(secret, deployment, uid);
   } catch (err) {
     console.warn('Skipping HF token secret owner reference patch', err);
   }
