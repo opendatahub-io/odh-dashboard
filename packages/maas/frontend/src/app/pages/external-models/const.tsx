@@ -127,8 +127,7 @@ const MISSING_MAAS_MODEL_REF_BODY = (
   <div>
     <p>
       MaaS governance features (subscriptions, authorization policies, API keys) require a
-      MaaSModelRef resource that references this external model. This resource must be deployed in
-      the same namespace as the external model.
+      MaaSModelRef resource that references this external model.
     </p>
   </div>
 );
