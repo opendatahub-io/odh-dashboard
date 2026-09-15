@@ -71,15 +71,32 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  const handleProviderSourceChange = React.useCallback(
+    (source: ProviderSourceType) => {
+      setProviderSource(source);
+      setCreatedProviderOverride(undefined);
+      setProviderName('');
+
+      if (source === 'create-new') {
+        createProviderForm.reset();
+      }
+    },
+    [createProviderForm],
+  );
+
   const isStepOneValid =
     providerSource === 'existing' ? providerName.trim() !== '' : createProviderForm.isFormValid;
 
   const selectedProvider = React.useMemo(() => {
-    if (createdProviderOverride && createdProviderOverride.name === providerName) {
+    if (
+      providerSource === 'create-new' &&
+      createdProviderOverride &&
+      createdProviderOverride.name === providerName
+    ) {
       return createdProviderOverride;
     }
     return externalProviders.find((provider) => provider.name === providerName);
-  }, [createdProviderOverride, externalProviders, providerName]);
+  }, [createdProviderOverride, externalProviders, providerName, providerSource]);
 
   const validationContext = React.useMemo(
     () => ({ inheritedConfig: selectedProvider?.config }),
@@ -128,16 +145,18 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   }, [createProviderForm, namespace]);
 
   const handleNext = React.useCallback(async (): Promise<boolean> => {
-    if (providerSource === 'create-new') {
-      const pendingProvider = buildPendingProvider();
-      if (!pendingProvider) {
-        return false;
-      }
-
-      setCreatedProviderOverride(pendingProvider);
-      setProviderName(pendingProvider.name);
+    if (providerSource !== 'create-new') {
+      setCreatedProviderOverride(undefined);
+      return true;
     }
 
+    const pendingProvider = buildPendingProvider();
+    if (!pendingProvider) {
+      return false;
+    }
+
+    setCreatedProviderOverride(pendingProvider);
+    setProviderName(pendingProvider.name);
     return true;
   }, [buildPendingProvider, providerSource]);
 
@@ -221,7 +240,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
           <SelectProviderStep
             namespace={namespace}
             providerSource={providerSource}
-            onProviderSourceChange={setProviderSource}
+            onProviderSourceChange={handleProviderSourceChange}
             providerName={providerName}
             onProviderNameChange={setProviderName}
             externalProviders={externalProviders}

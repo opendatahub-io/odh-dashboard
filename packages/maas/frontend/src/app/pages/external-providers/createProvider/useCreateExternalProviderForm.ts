@@ -86,7 +86,6 @@ export const useCreateExternalProviderForm = (
   const [isAdvancedExpanded, setIsAdvancedExpanded] = React.useState(false);
   const [isAuthOpen, setIsAuthOpen] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | undefined>();
-  const createdSecretNameRef = React.useRef<string | undefined>();
 
   const { getFieldValidation, getFieldValidationProps, markFieldTouched } = useZodFormValidation(
     formData,
@@ -110,7 +109,6 @@ export const useCreateExternalProviderForm = (
     setIsAdvancedExpanded(false);
     setIsAuthOpen(false);
     setSubmitError(undefined);
-    createdSecretNameRef.current = undefined;
   }, [onNameDescChange]);
 
   const handleProviderChange = React.useCallback((providerType: string) => {
@@ -125,16 +123,21 @@ export const useCreateExternalProviderForm = (
     setSubmitError(undefined);
 
     try {
-      const secretName = formData.credentialSecretRef.trim();
+      const credentialSecretRef = formData.credentialSecretRef.trim();
 
-      if (formData.isNewSecret && createdSecretNameRef.current !== secretName) {
+      if (formData.isNewSecret) {
         await createSecretCallback({
           namespace,
-          name: secretName,
+          name: credentialSecretRef,
           value: formData.secretValue.trim(),
         });
-        createdSecretNameRef.current = secretName;
         refreshSecrets();
+        setFormData((current) => ({
+          ...current,
+          isNewSecret: false,
+          credentialSecretRef,
+          secretValue: '',
+        }));
       }
 
       if (!isAuthMechanism(formData.authMechanism)) {
@@ -144,7 +147,12 @@ export const useCreateExternalProviderForm = (
       const request = toCreateExternalProviderRequest(
         namespace,
         nameDescData,
-        { ...formData, authMechanism: formData.authMechanism },
+        {
+          provider: formData.provider,
+          endpointUrl: formData.endpointUrl,
+          authMechanism: formData.authMechanism,
+          credentialSecretRef,
+        },
         configPairs,
       );
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Alert,
-  Form,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -47,23 +46,15 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
     [externalProviders],
   );
 
-  const handleProviderSourceChange = (source: ProviderSourceType) => {
-    onProviderSourceChange(source);
-    if (source === 'create-new') {
-      onProviderNameChange('');
-      createProviderForm.reset();
-    }
-  };
-
   return (
-    <Form>
+    <>
       <FormGroup hasNoPaddingTop isStack>
         <Radio
           id="provider-source-existing"
           name="provider-source"
           label="Use existing provider"
           isChecked={providerSource === 'existing'}
-          onChange={() => handleProviderSourceChange('existing')}
+          onChange={() => onProviderSourceChange('existing')}
           data-testid="provider-source-existing"
           body={
             providerSource === 'existing' ? (
@@ -121,7 +112,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
           name="provider-source"
           label="Create new provider"
           isChecked={providerSource === 'create-new'}
-          onChange={() => handleProviderSourceChange('create-new')}
+          onChange={() => onProviderSourceChange('create-new')}
           data-testid="provider-source-create-new"
           body={
             providerSource === 'create-new' ? (
@@ -130,7 +121,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
           }
         />
       </FormGroup>
-    </Form>
+    </>
   );
 };
 
