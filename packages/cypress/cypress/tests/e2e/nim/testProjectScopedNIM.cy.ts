@@ -54,7 +54,7 @@ describe('A user can deploy a project-scoped NIM', () => {
         projectName = `${testData.projectNamePrefix}-${uuid}`;
         modelName = `${testData.modelNamePrefix}-${uuid}`;
         nimPVCName = `${testData.pvcNamePrefix}-${uuid}`;
-        hardwareProfileName = testData.hardwareProfileName;
+        hardwareProfileName = `${testData.hardwareProfileName}-${uuid}`;
       })
       .then(() => {
         cy.step('Use an administrator OC session for cluster setup');
