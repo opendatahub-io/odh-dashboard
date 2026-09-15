@@ -26,15 +26,15 @@ help: ## Display this help.
 ############ Dev Environment ############
 
 .PHONY: dev-install-dependencies
-dev-install-dependencies: ## Install frontend dependencies
-	cd frontend && npm install
+dev-install-dependencies: ## Explain how to install frontend dependencies
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated: ## Run the federated Module Federation dev server (use with host on :4000; :9109 alone only serves remoteEntry.js)
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 pnpm run start:dev
 
 .PHONY: dev-start-federated
-dev-start-federated: ## Start the MF remote dev server on :9109 (pair with npm run dev:frontend + dev:backend on :4000)
+dev-start-federated: ## Start the MF remote dev server on :9109 (pair with pnpm run dev:frontend + dev:backend on :4000)
 	@trap 'exit 0' INT; \
 	"$(MAKE)" dev-frontend-federated
 
@@ -42,7 +42,7 @@ dev-start-federated: ## Start the MF remote dev server on :9109 (pair with npm r
 
 .PHONY: frontend-build-federated
 frontend-build-federated: ## Build the federated remote bundle
-	cd frontend && DEPLOYMENT_MODE=federated npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=federated pnpm run build:prod
 
 .PHONY: build
 build: frontend-build-federated
