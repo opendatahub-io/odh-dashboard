@@ -52,11 +52,9 @@ USER default
 RUN npm install -g pnpm@11.22.0
 RUN pnpm install --frozen-lockfile
 
-# The module frontend is an npm island outside the pnpm workspace.
-# Install its webpack toolchain from package-lock.json, then build with npm.
+# Build the module frontend from the shared pnpm workspace.
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional
-RUN npm run build:prod
+RUN pnpm run build:prod
 
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder

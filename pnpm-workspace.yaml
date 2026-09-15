@@ -7,11 +7,13 @@ packages:
   - packages/automl/frontend
   - packages/autorag/frontend
   - packages/autox-core/ui
+  - packages/data-connect-hub/frontend
   - packages/data-registry/frontend
   - packages/eval-hub/frontend
   - packages/gen-ai/frontend
   - packages/maas/frontend
   - packages/mlflow/frontend
+  - packages/model-serving/frontend
   - packages/model-serving/cypress
   - packages/kserve/cypress
   - packages/llmd-serving/cypress
@@ -21,7 +23,7 @@ packages:
   - distributions/rhaii
   - distributions/maas-consumer-portal
 
-# Transitional: flat node_modules like npm for webpack/MF. Remove in Epic 2 (RHOAIENG-83228).
+# Transitional: publicly hoist dependencies for build/test tooling. Remove in RHOAIENG-83228.
 shamefullyHoist: true
 autoInstallPeers: true
 
@@ -58,6 +60,8 @@ overrides:
   '@types/tar': '^6.1.13'
   jsonpath-plus: '^10.4.0'
   tough-cookie: '^4.1.4'
+  # @kubernetes/client-node@0.12.3 declares tar@^6, but main requires this patched major.
+  '@kubernetes/client-node>tar': '^7.5.22'
   redux: '^4.2.1'
   form-data: '^4.0.5'
   axios: '^1.17.0'
@@ -79,3 +83,6 @@ overrides:
   '@mui/material@>=7>@mui/utils': '^7.3.11'
   '@mui/material@>=7>@mui/system': '^7.3.11'
   '@tanstack/react-query@>=5>@tanstack/query-core': '5.101.4'
+  'brace-expansion@^1': '1.1.18'
+  'brace-expansion@^2': '2.1.4'
+  'brace-expansion@^5': '5.0.9'
