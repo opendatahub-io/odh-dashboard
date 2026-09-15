@@ -92,7 +92,7 @@ export const PROVIDER_REFERENCE_API_FORMAT_OPTIONS = Object.entries(
 export const INHERITED_CONFIG_PREVIEW_COUNT = 5;
 
 export const ADD_PATH_PLACEHOLDER_HELPER =
-  'Only the path uses {key} placeholders. {model} is filled automatically from the Target model ID. Other keys come from provider configuration — add a model override in Advanced settings only if this model needs a different value.';
+  "The URL path appended to the provider endpoint when routing requests. Placeholders such as {project} or {location} are replaced with values from the provider's key-value pairs. This field is prefilled with the default path for the selected API format.";
 
 export const EDIT_PATH_PLACEHOLDER_HELPER =
   'Wrap any key from the key-value pairs section in curly braces to insert its value — for example, /v1/projects/{project}/locations/{location}/chat/completions.';

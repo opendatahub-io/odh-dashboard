@@ -23,6 +23,14 @@ export type ProviderReferenceFormData = {
   configPairs: ConfigPair[];
 };
 
+export type InitialProviderReferenceFormData = {
+  apiFormat: ProviderReferenceApiFormat | undefined;
+  path: string | undefined;
+  targetModel: string | undefined;
+  weight: number;
+  configPairs: ConfigPair[];
+};
+
 export type ProviderReferenceFieldErrors = {
   targetModel?: string;
   path?: string;
@@ -142,12 +150,12 @@ export const validateProviderRefPathPlaceholders = (
   );
 
 export const getProviderReferenceFieldErrors = (
-  form: ProviderReferenceFormData,
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
   context?: ProviderReferenceValidationContext,
 ): ProviderReferenceFieldErrors => {
   const errors: ProviderReferenceFieldErrors = {};
 
-  const trimmedTargetModel = form.targetModel.trim();
+  const trimmedTargetModel = form.targetModel?.trim();
   if (!trimmedTargetModel) {
     errors.targetModel = 'Target model ID is required';
   } else {
@@ -160,12 +168,12 @@ export const getProviderReferenceFieldErrors = (
     }
   }
 
-  const pathError = validateProviderReferencePath(form.path);
+  const pathError = validateProviderReferencePath(form.path ?? '');
   if (pathError) {
     errors.path = pathError;
   } else {
     const placeholderError = validateProviderReferencePathPlaceholders(
-      form.path,
+      form.path ?? '',
       context?.inheritedConfig,
       form.configPairs,
     );
