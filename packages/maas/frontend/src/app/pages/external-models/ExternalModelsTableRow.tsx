@@ -16,6 +16,7 @@ import {
   ExternalModelsInfoPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import { convertStringToProviderType } from '~/app/pages/external-providers/utils';
 import { externalModelsColumns } from './columns';
 import {
   editExternalModelPath,
@@ -30,7 +31,6 @@ import {
 import PathModal from './modals/ExternalModelsPathModal';
 import ProviderURLModal from './modals/ExternalModelsProviderModal';
 import ExternalModelsExpandedTableRow from './expanded/ExternalModelsExpandedTableRow';
-import { convertStringToProviderType } from '../external-providers/utils';
 
 const VISIBLE_LABEL_ROWS = 2;
 const enum ToggleLocation {

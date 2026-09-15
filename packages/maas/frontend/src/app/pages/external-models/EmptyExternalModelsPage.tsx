@@ -2,8 +2,8 @@ import React from 'react';
 import { Button, EmptyState, EmptyStateBody, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
+import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 import { createExternalModelPath } from './const';
-import { externalProvidersManagementPath } from '../external-providers/const';
 
 const EmptyExternalModelsPage: React.FC<{ namespace: string }> = ({ namespace }) => (
   <EmptyState

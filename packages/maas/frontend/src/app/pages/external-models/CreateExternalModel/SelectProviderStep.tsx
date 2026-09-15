@@ -47,11 +47,18 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
 
   return (
     <>
-      <FormGroup hasNoPaddingTop isStack>
+      <FormGroup label="Provider" hasNoPaddingTop isStack>
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              Select the provider that supplies the model endpoint and credentials.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
         <Radio
           id="provider-source-existing"
           name="provider-source"
-          label="Use existing provider"
+          label="Select existing provider"
           isChecked={providerSource === ProviderSource.EXISTING}
           onChange={() => onProviderSourceChange(ProviderSource.EXISTING)}
           data-testid="provider-source-existing"
@@ -80,13 +87,6 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
                   popperProps={{ maxWidth: 'trigger' }}
                   toggleProps={{ id: 'provider-ref-provider' }}
                 />
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>
-                      Select the external provider that supplies the endpoint and credentials.
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
                 {externalProviders.length === 0 && (
                   <Alert
                     variant="info"
