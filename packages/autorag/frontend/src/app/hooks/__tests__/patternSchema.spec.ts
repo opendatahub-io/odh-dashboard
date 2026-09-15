@@ -191,6 +191,17 @@ describe('CanonicalPatternSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('should reject whitespace-only model IDs', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        embedding: { ...canonicalPattern.settings.embedding, model_id: '   ' },
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('should reject malformed canonical patterns', () => {
     expect(CanonicalPatternSchema.safeParse({ name: 'bad', evaluation: {} }).success).toBe(false);
   });

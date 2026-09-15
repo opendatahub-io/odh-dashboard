@@ -405,6 +405,15 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "invalid_request_body",
 		},
 		{
+			name:           "legacy create field in body",
+			namespace:      ns,
+			body:           `{"display_name":"x","input_data_key":"docs/"}`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
 			name:           "oversized body",
 			namespace:      ns,
 			body:           `{"display_name":"` + strings.Repeat("x", 10<<20) + `"}`,
@@ -480,6 +489,22 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			repo.AssertExpectations(t)
 		})
 	}
+}
+
+func TestCreatePipelineRunHandlerReturnsModelOverlapValidationError(t *testing.T) {
+	h, repo := newTestPipelinesHandler()
+	repo.On("CreateRun", mock.Anything, "test-ns", mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
+		Return(nil, repositories.NewValidationError(`model "shared-model" cannot be selected in both embedding_models and generation_models`))
+
+	body := `{"display_name":"overlapping-model-run","test_data_secret_name":"secret","test_data_bucket_name":"bucket","test_data_key":"eval.json","input_data_secret_name":"secret","input_data_bucket_name":"bucket","input_data_keys":["docs"],"maas_secret_name":"maas","vector_db_secret_name":"vector-db","embedding_models":["shared-model"],"generation_models":["shared-model"]}`
+	req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", "test-ns", body)
+	rr := httptest.NewRecorder()
+
+	h.CreatePipelineRunHandler(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Contains(t, rr.Body.String(), "shared-model")
+	repo.AssertExpectations(t)
 }
 
 // ---------- TerminatePipelineRunHandler ----------
@@ -805,7 +830,7 @@ func TestEnableManagedPipelinesHandler(t *testing.T) {
 func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 	ns := "test-ns"
 
-	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","vector_io_provider_id":"milvus"}}`
+	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","vector_db_secret_name":"vector-db"}}`
 
 	tests := []struct {
 		name           string

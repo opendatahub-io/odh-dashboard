@@ -88,7 +88,7 @@ const PatternSettingsSchema = z
     retrieval: RetrievalSchema,
     generation: z
       .object({
-        model_id: z.string(),
+        model_id: z.string().trim().min(1),
         temperature: FiniteNumberSchema.optional(),
         max_completion_tokens: FiniteNumberSchema.optional(),
         context_template_text: z.string().optional(),
