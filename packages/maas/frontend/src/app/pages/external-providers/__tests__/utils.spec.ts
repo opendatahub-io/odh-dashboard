@@ -3,11 +3,8 @@ import {
   getSecretDisplayLabel,
   toCreateExternalProviderRequest,
 } from '~/app/pages/external-providers/utils';
-import {
-  createExternalProviderFormSchema,
-  getConfigPairsValidationError,
-} from '~/app/pages/external-providers/validation';
-import { EMPTY_CONFIG_PAIR } from '~/app/pages/external-providers/const';
+import { createExternalProviderFormSchema } from '~/app/pages/external-providers/validation';
+import { EMPTY_CONFIG_PAIR, getConfigPairsValidationError } from '~/app/utilities/configPairs';
 
 describe('external provider form utils', () => {
   it('prefers secret displayName when present', () => {

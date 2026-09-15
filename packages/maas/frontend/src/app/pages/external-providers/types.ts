@@ -1,4 +1,1 @@
-export type ConfigPair = {
-  key: string;
-  value: string;
-};
+export type { ConfigPair } from '~/app/utilities/configPairs';

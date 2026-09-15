@@ -1,88 +1,19 @@
 import * as React from 'react';
 import {
-  Button,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Split,
-  SplitItem,
   Stack,
   StackItem,
-  TextInput,
 } from '@patternfly/react-core';
-import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { ConfigPair } from '~/app/pages/external-providers/types';
-import { EMPTY_CONFIG_PAIR } from '~/app/pages/external-providers/const';
+import ConfigPairsEditor from '~/app/components/ConfigPairsEditor';
+import { ConfigPair, countNonEmptyConfigPairs } from '~/app/utilities/configPairs';
 
 type ProviderConfigKeyValueFieldProps = {
   pairs: ConfigPair[];
   onChange: (pairs: ConfigPair[]) => void;
 };
-
-const updatePair = (
-  pairs: ConfigPair[],
-  index: number,
-  update: Partial<ConfigPair>,
-): ConfigPair[] => pairs.map((pair, i) => (i === index ? { ...pair, ...update } : pair));
-
-const removePair = (pairs: ConfigPair[], index: number): ConfigPair[] => {
-  const next = pairs.filter((_, i) => i !== index);
-  return next.length > 0 ? next : [EMPTY_CONFIG_PAIR];
-};
-
-const ProviderConfigKeyValueField: React.FC<ProviderConfigKeyValueFieldProps> = ({
-  pairs,
-  onChange,
-}) => (
-  <Stack hasGutter>
-    {pairs.map((pair, index) => (
-      <StackItem key={index} data-testid={`provider-config-pair-${index}`}>
-        <Split hasGutter>
-          <SplitItem isFilled>
-            <TextInput
-              aria-label={`Configuration key ${index + 1}`}
-              placeholder="Key"
-              value={pair.key}
-              onChange={(_event, value) => onChange(updatePair(pairs, index, { key: value }))}
-              data-testid={`provider-config-key-${index}`}
-            />
-          </SplitItem>
-          <SplitItem isFilled>
-            <TextInput
-              aria-label={`Configuration value ${index + 1}`}
-              placeholder="Value"
-              value={pair.value}
-              onChange={(_event, value) => onChange(updatePair(pairs, index, { value }))}
-              data-testid={`provider-config-value-${index}`}
-            />
-          </SplitItem>
-          <SplitItem>
-            <Button
-              variant="plain"
-              aria-label={`Remove configuration pair ${index + 1}`}
-              icon={<MinusCircleIcon />}
-              onClick={() => onChange(removePair(pairs, index))}
-              data-testid={`provider-config-remove-${index}`}
-            />
-          </SplitItem>
-        </Split>
-      </StackItem>
-    ))}
-    <StackItem>
-      <Button
-        variant="link"
-        isInline
-        icon={<PlusCircleIcon />}
-        iconPosition="start"
-        onClick={() => onChange([...pairs, EMPTY_CONFIG_PAIR])}
-        data-testid="add-provider-config-pair-button"
-      >
-        Add configuration pair
-      </Button>
-    </StackItem>
-  </Stack>
-);
 
 export const ProviderConfigurationSection: React.FC<
   ProviderConfigKeyValueFieldProps & { validationMessage?: string }
@@ -102,7 +33,13 @@ export const ProviderConfigurationSection: React.FC<
     </StackItem>
     <StackItem>
       <FormGroup label="Provider configuration" fieldId="provider-configuration">
-        <ProviderConfigKeyValueField pairs={pairs} onChange={onChange} />
+        <ConfigPairsEditor
+          pairs={pairs}
+          onChange={onChange}
+          testIdPrefix="provider-config"
+          ensureEmptyRow
+          addButtonTestId="add-provider-config-pair-button"
+        />
         {validationMessage && (
           <FormHelperText>
             <HelperText>
@@ -115,7 +52,6 @@ export const ProviderConfigurationSection: React.FC<
   </Stack>
 );
 
-export const countNonEmptyConfigPairs = (pairs: ConfigPair[]): number =>
-  pairs.filter((pair) => pair.key.trim()).length;
+export { countNonEmptyConfigPairs };
 
-export default ProviderConfigKeyValueField;
+export default ProviderConfigurationSection;

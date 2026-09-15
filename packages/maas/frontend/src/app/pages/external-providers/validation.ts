@@ -1,39 +1,13 @@
 import { z } from 'zod';
 import { AuthMechanism } from '~/app/types/external-models';
+import { getConfigPairsValidationError } from '~/app/utilities/configPairs';
 import { ENDPOINT_FQDN_PATTERN, K8S_SECRET_NAME_PATTERN } from './const';
-import { ConfigPair } from './types';
 
 const authMechanismSchema = z.enum(['apikey', 'sigv4', 'oauth2']);
 
 export const AUTH_MECHANISM_VALUES = authMechanismSchema.options;
 
-export const getConfigPairsValidationError = (pairs: ConfigPair[]): string | undefined => {
-  const seenKeys = new Set<string>();
-
-  for (const { key, value } of pairs) {
-    const trimmedKey = key.trim();
-    const trimmedValue = value.trim();
-
-    if (!trimmedKey && !trimmedValue) {
-      continue;
-    }
-
-    if (!trimmedKey || !trimmedValue) {
-      return 'Each configuration pair must include both a key and a value';
-    }
-
-    if (/\s/.test(trimmedKey)) {
-      return 'Configuration keys cannot contain spaces';
-    }
-
-    if (seenKeys.has(trimmedKey)) {
-      return 'Configuration keys must be unique';
-    }
-    seenKeys.add(trimmedKey);
-  }
-
-  return undefined;
-};
+export { getConfigPairsValidationError };
 
 export const createExternalProviderFormSchema = z
   .object({

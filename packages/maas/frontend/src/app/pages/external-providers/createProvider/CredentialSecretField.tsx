@@ -10,7 +10,7 @@ import {
   Stack,
   TextInput,
 } from '@patternfly/react-core';
-import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
+import { EyeIcon, EyeSlashIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
@@ -23,6 +23,7 @@ import {
   CREATE_NEW_SECRET_VALUE,
   SECRET_API_KEY_DATA_KEY,
 } from '~/app/pages/external-providers/const';
+import styles from './CredentialSecretField.module.scss';
 
 type CredentialSecretFieldProps = {
   secrets: SecretSummary[];
@@ -52,6 +53,8 @@ const credentialSecretHelpContent = (
     </p>
   </>
 );
+
+const EXISTING_SECRETS_GROUP = 'existing-secrets';
 
 const filterSecretOptions = (
   filterValue: string,
@@ -88,11 +91,13 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
       ...secrets.map((secret) => ({
         value: secret.name,
         content: secret.name,
+        group: EXISTING_SECRETS_GROUP,
         'data-testid': `credential-secret-option-${secret.name}`,
       })),
       {
         value: CREATE_NEW_SECRET_VALUE,
         content: 'Create new secret',
+        icon: <PlusCircleIcon aria-hidden />,
         'data-testid': 'credential-secret-create-new-option',
       },
     ],
@@ -155,6 +160,7 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
           isRequired={false}
           isDisabled={!secretsLoaded}
           noOptionsAvailableMessage="No secrets are available"
+          className={styles.credentialSecretSelectMenu}
           popperProps={{ maxWidth: 'trigger' }}
           isScrollable
         />

@@ -13,6 +13,8 @@ import TypeaheadSelect, {
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { Link } from 'react-router-dom';
 import { ExternalProvider } from '~/app/types/external-models';
+import CreateExternalProviderForm from '~/app/pages/external-providers/createProvider/CreateExternalProviderForm';
+import { UseCreateExternalProviderFormReturn } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 
 export type ProviderSourceType = 'existing' | 'create-new';
@@ -24,6 +26,7 @@ type SelectProviderStepProps = {
   providerName: string;
   onProviderNameChange: (providerName: string) => void;
   externalProviders: ExternalProvider[];
+  createProviderForm: UseCreateExternalProviderFormReturn;
 };
 
 const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
@@ -33,6 +36,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
   providerName,
   onProviderNameChange,
   externalProviders,
+  createProviderForm,
 }) => {
   const providerOptions = React.useMemo<TypeaheadSelectOption[]>(
     () =>
@@ -47,6 +51,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
     onProviderSourceChange(source);
     if (source === 'create-new') {
       onProviderNameChange('');
+      createProviderForm.reset();
     }
   };
 
@@ -120,12 +125,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
           data-testid="provider-source-create-new"
           body={
             providerSource === 'create-new' ? (
-              <Alert
-                variant="info"
-                isInline
-                isPlain
-                title="Create new provider is not available here yet"
-              />
+              <CreateExternalProviderForm form={createProviderForm} showProjectField={false} />
             ) : null
           }
         />

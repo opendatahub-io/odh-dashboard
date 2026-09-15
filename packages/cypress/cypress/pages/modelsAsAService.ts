@@ -2059,6 +2059,41 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     cy.findByRole('option', { name: displayName }).click();
   }
 
+  selectCreateNewProvider(): void {
+    this.find().findByTestId('provider-source-create-new').click();
+  }
+
+  selectProviderType(value: string): void {
+    this.find().findByTestId('provider-type-toggle').click();
+    cy.findByTestId(`provider-type-option-${value}`).click();
+  }
+
+  selectAuthentication(value: string): void {
+    this.find().findByTestId('external-provider-auth-toggle').click();
+    cy.findByTestId(`external-provider-auth-option-${value}`).click();
+  }
+
+  selectCreateNewSecret(): void {
+    this.find().findByTestId('credential-secret-toggle').click();
+    cy.findByTestId('credential-secret-create-new-option').click();
+  }
+
+  fillNewProviderFields(options: {
+    displayName: string;
+    providerType: string;
+    endpoint: string;
+    newSecret: { name: string; apiKey: string };
+  }): void {
+    this.selectCreateNewProvider();
+    this.find().findByTestId('external-provider-name-desc-name').type(options.displayName);
+    this.selectProviderType(options.providerType);
+    this.find().findByTestId('external-provider-endpoint-input').type(options.endpoint);
+    this.selectCreateNewSecret();
+    this.find().findByTestId('credential-secret-name-input').type(options.newSecret.name);
+    this.find().findByTestId('credential-secret-value-input').type(options.newSecret.apiKey);
+    this.selectAuthentication('apikey');
+  }
+
   goToConfigureStep(): void {
     this.findNextButton().click();
   }
@@ -2159,6 +2194,12 @@ class ExternalModelTableRow extends TableRow {
   findExpandedCredentialSecret(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findExpandedProviderRow(providerName).findByTestId(
       `expanded-table-row-credential-secret-ref-${providerName}`,
+    );
+  }
+
+  findExpandedProviderStatus(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-provider-status-${providerName}`,
     );
   }
 

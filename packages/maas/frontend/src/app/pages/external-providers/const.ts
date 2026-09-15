@@ -1,4 +1,4 @@
-import { ConfigPair } from './types';
+import { EMPTY_CONFIG_PAIR } from '~/app/utilities/configPairs';
 
 export type ProviderTypeOption = {
   value: string;
@@ -33,7 +33,7 @@ export const ENDPOINT_FQDN_PATTERN =
 
 export const K8S_SECRET_NAME_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
-export const EMPTY_CONFIG_PAIR: ConfigPair = { key: '', value: '' };
+export { EMPTY_CONFIG_PAIR };
 
 /** Select value for the "Create new secret" dropdown option. */
 export const CREATE_NEW_SECRET_VALUE = '__create_new_secret__';

@@ -7,26 +7,14 @@ import {
 } from '~/app/types/external-models';
 import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
 import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
+import { ConfigPair, configPairsToRecord } from '~/app/utilities/configPairs';
 import { ExternalProvidersFilterDataType, ExternalProvidersFilterOptions } from './const';
-import { ConfigPair } from './types';
+
+export { configPairsToRecord };
 
 export const getSecretDisplayLabel = (
   secret: Pick<SecretSummary, 'name' | 'displayName'>,
 ): string => secret.displayName?.trim() || secret.name;
-
-export const configPairsToRecord = (pairs: ConfigPair[]): Record<string, string> | undefined => {
-  const config = pairs.reduce<Record<string, string>>((acc, { key, value }) => {
-    const trimmedKey = key.trim();
-    const trimmedValue = value.trim();
-    if (!trimmedKey || !trimmedValue) {
-      return acc;
-    }
-    acc[trimmedKey] = trimmedValue;
-    return acc;
-  }, {});
-
-  return Object.keys(config).length > 0 ? config : undefined;
-};
 
 export const toCreateExternalProviderRequest = (
   namespace: string,

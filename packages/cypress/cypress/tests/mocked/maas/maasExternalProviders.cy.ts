@@ -10,6 +10,8 @@ import {
   createExternalProviderModal,
   deleteExternalProviderModal,
   externalProvidersPage,
+  pathModal,
+  phaseModal,
 } from '../../../pages/modelsAsAService';
 import {
   mockExternalProvider,
@@ -46,7 +48,7 @@ const setupCommonIntercepts = () => {
   );
 };
 
-const setupExternalProvidersPageIntercepts = (
+const setupExternalProvidersListIntercepts = (
   providers: ReturnType<typeof mockExternalProviders> = [],
 ) => {
   cy.interceptOdh(
@@ -66,14 +68,56 @@ const setupExternalProvidersPageIntercepts = (
   );
 };
 
-describe('External providers', () => {
-  describe('list', () => {
-    beforeEach(() => {
-      setupCommonIntercepts();
-    });
+const setupExternalProvidersCreateIntercepts = () => {
+  setupExternalProvidersListIntercepts([]);
+  cy.interceptOdh(
+    'GET /maas/api/v1/secrets',
+    { query: { namespace: TEST_PROJECT } },
+    { data: mockMaasSecrets() },
+  );
+};
 
+describe('External providers', () => {
+  beforeEach(() => {
+    setupCommonIntercepts();
+  });
+
+  it('should not show the external providers page when the external models feature flag is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ modelAsService: true, externalModels: false }),
+    );
+    externalProvidersPage.visit();
+    externalProvidersPage.findPage().should('not.exist');
+  });
+
+  it('should not show the external providers page when MaaS is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ modelAsService: false, externalModels: true }),
+    );
+    externalProvidersPage.visit();
+    externalProvidersPage.findPage().should('not.exist');
+  });
+
+  it('should not show the external providers page when MaaS is not ready', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        },
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'False', reason: 'NotReady' }],
+      }),
+    );
+    externalProvidersPage.visit();
+    externalProvidersPage.findPage().should('not.exist');
+  });
+
+  describe('list', () => {
     it('shows the empty state when no providers exist', () => {
-      setupExternalProvidersPageIntercepts([]);
+      setupExternalProvidersListIntercepts([]);
       externalProvidersPage.visit();
       externalProvidersPage.findPage().should('exist');
       externalProvidersPage.findPageTitle().should('contain.text', 'External providers');
@@ -82,63 +126,191 @@ describe('External providers', () => {
       externalProvidersPage.findEmptyState().should('exist');
     });
 
-    it('displays provider table content', () => {
-      setupExternalProvidersPageIntercepts(mockExternalProviders());
-      externalProvidersPage.visit();
-      externalProvidersPage.findTable().should('exist');
-      externalProvidersPage.findRows().should('have.length', 5);
+    describe('with external providers', () => {
+      beforeEach(() => {
+        setupExternalProvidersListIntercepts(mockExternalProviders());
+        externalProvidersPage.visit();
+        externalProvidersPage.findPageTitle().should('exist');
+        externalProvidersPage.findDescription().should('exist');
+        externalProvidersPage.findProjectSelector().should('exist');
+        externalProvidersPage.findTable().should('exist');
+        externalProvidersPage.findRows().should('have.length', 5);
+      });
 
-      const anthropicRow = externalProvidersPage.getRow('Anthropic Provider');
-      anthropicRow.findName().should('contain.text', 'Anthropic Provider');
-      anthropicRow.findDescription().should('contain.text', 'Anthropic provider.');
-      anthropicRow.findProviderType().should('contain.text', 'Anthropic');
-      anthropicRow.findAuthMechanism().should('contain.text', 'API key');
-      anthropicRow.findCredentialSecretRef().should('contain.text', 'anthropic-api-key');
-      anthropicRow.findPhaseLabel().should('contain.text', 'Ready');
+      it('displays provider table content with status details', () => {
+        const awsBedrockUsEastRow = externalProvidersPage.getRow('AWS Bedrock US East');
+        awsBedrockUsEastRow.findName().should('contain.text', 'AWS Bedrock US East');
+        awsBedrockUsEastRow
+          .findDescription()
+          .should('contain.text', 'AWS Bedrock US East provider.');
+        awsBedrockUsEastRow.findProviderType().should('contain.text', 'AWS Bedrock');
+        awsBedrockUsEastRow.findPhaseLabel().should('contain.text', 'Ready');
+        awsBedrockUsEastRow.findStatusSubtext().should('not.exist');
+        awsBedrockUsEastRow
+          .findCredentialSecretRef()
+          .should('contain.text', 'bedrock-credentials-us-east');
+        awsBedrockUsEastRow.findAuthMechanism().should('contain.text', 'Signature Version 4');
+        awsBedrockUsEastRow.findEndpointUrlLink('bedrock-us-east').should('exist').click();
+        pathModal.findInputValue().should('have.value', 'bedrock.us-east-1.amazonaws.com');
+        pathModal.findSubContent().should('contain.text', 'Signature Version 4');
+        pathModal.findCloseButton().click();
 
-      const bedrockRow = externalProvidersPage.getRow('AWS Bedrock US East');
-      bedrockRow.findProviderType().should('contain.text', 'AWS Bedrock');
-      bedrockRow.findAuthMechanism().should('contain.text', 'Signature Version 4');
-      bedrockRow.findPhaseLabel().should('contain.text', 'Ready');
+        const anthropicRow = externalProvidersPage.getRow('Anthropic Provider');
+        anthropicRow.findName().should('contain.text', 'Anthropic Provider');
+        anthropicRow.findDescription().should('contain.text', 'Anthropic provider.');
+        anthropicRow.findProviderType().should('contain.text', 'Anthropic');
+        anthropicRow.findAuthMechanism().should('contain.text', 'API key');
+        anthropicRow.findCredentialSecretRef().should('contain.text', 'anthropic-api-key');
+        anthropicRow.findPhaseLabel().should('contain.text', 'Ready');
 
-      externalProvidersPage
-        .getRow('Failed Anthropic Development')
-        .findPhaseLabel()
-        .should('contain.text', 'Failed');
-      externalProvidersPage
-        .getRow('Pending Anthropic Development')
-        .findPhaseLabel()
-        .should('contain.text', 'Pending');
-    });
+        const invalidRow = externalProvidersPage.getRow('Invalid AWS Bedrock US West');
+        invalidRow.findStatusSubtext().should('exist');
+        invalidRow.findPhaseLabel().should('contain.text', 'Invalid').click();
+        phaseModal.find().should('exist');
+        phaseModal.findAlert().should('exist');
+        phaseModal.findAlertBody().should('exist');
+        phaseModal.findApiDetailsButton().should('exist').click();
+        phaseModal.findAlertDetailsCodeBlock().should('exist');
+        phaseModal.findCloseButton().click();
+        phaseModal.shouldBeOpen(false);
 
-    it('filters providers by name', () => {
-      setupExternalProvidersPageIntercepts(mockExternalProviders());
-      externalProvidersPage.visit();
-      externalProvidersPage.findRows().should('have.length', 5);
+        const pendingRow = externalProvidersPage.getRow('Pending Anthropic Development');
+        pendingRow.findStatusSubtext().should('exist');
+        pendingRow.findPhaseLabel().should('contain.text', 'Pending').click();
+        phaseModal.find().should('exist');
+        phaseModal.findAlert().should('exist');
+        phaseModal.findAlertBody().should('exist');
+        phaseModal.findCloseButton().click();
+        phaseModal.shouldBeOpen(false);
 
-      externalProvidersPage.findFilterInput().type('Anthropic Provider');
-      externalProvidersPage.findRows().should('have.length', 1);
-      externalProvidersPage.getRow('Anthropic Provider').findName().should('exist');
+        const failedRow = externalProvidersPage.getRow('Failed Anthropic Development');
+        failedRow.findStatusSubtext().should('exist');
+        failedRow.findPhaseLabel().should('contain.text', 'Failed').click();
+        phaseModal.find().should('exist');
+        phaseModal.findAlert().should('exist');
+        phaseModal.findAlertBody().should('exist');
+        phaseModal.findApiDetailsButton().should('exist').click();
+        phaseModal.findAlertDetailsCodeBlock().should('exist');
+        phaseModal.findCloseButton().click();
+        phaseModal.shouldBeOpen(false);
+      });
 
-      externalProvidersPage.findFilterResetButton().click();
-      externalProvidersPage.findRows().should('have.length', 5);
-    });
+      it('filters and sorts external providers', () => {
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic Provider');
+        externalProvidersPage.findColumnSortButton('External provider').click();
+        externalProvidersPage
+          .findRows()
+          .eq(0)
+          .should('contain.text', 'Pending Anthropic Development');
+        externalProvidersPage.findRows().eq(4).should('contain.text', 'Anthropic Provider');
+        externalProvidersPage.findColumnSortButton('External provider').click();
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic Provider');
+        externalProvidersPage
+          .findRows()
+          .eq(4)
+          .should('contain.text', 'Pending Anthropic Development');
 
-    it('opens the create modal from the toolbar add button', () => {
-      setupExternalProvidersPageIntercepts(mockExternalProviders());
-      externalProvidersPage.visit();
-      externalProvidersPage.findTable().should('exist');
+        externalProvidersPage.findColumnSortButton('Provider type').click();
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic');
+        externalProvidersPage.findRows().eq(4).should('contain.text', 'AWS Bedrock');
+        externalProvidersPage.findColumnSortButton('Provider type').click();
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'AWS Bedrock');
+        externalProvidersPage.findRows().eq(4).should('contain.text', 'Anthropic');
 
-      externalProvidersPage.findAddExternalProviderButton().click();
-      createExternalProviderModal.shouldBeOpen();
-      createExternalProviderModal.findSubmitButton().should('be.disabled');
+        externalProvidersPage.findColumnSortButton('Authentication').click();
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'API key');
+        externalProvidersPage.findRows().eq(4).should('contain.text', 'Signature Version 4');
+        externalProvidersPage.findColumnSortButton('Authentication').click();
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'Signature Version 4');
+        externalProvidersPage.findRows().eq(4).should('contain.text', 'API key');
+
+        externalProvidersPage.findColumnSortButton('Status').click();
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'Failed');
+        externalProvidersPage.findRows().eq(4).should('contain.text', 'Ready');
+        externalProvidersPage.findColumnSortButton('Status').click();
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'Ready');
+        externalProvidersPage.findRows().eq(4).should('contain.text', 'Failed');
+
+        externalProvidersPage.findFilterInput().should('have.value', '');
+        externalProvidersPage.findFilterDropdownButton().click();
+        externalProvidersPage.findFilterDropdownItem('name').click();
+        externalProvidersPage.findFilterInput().type('AWS Bedrock US East');
+        externalProvidersPage.findRows().should('have.length', 1);
+        externalProvidersPage.findRows().should('contain.text', 'AWS Bedrock US East');
+        externalProvidersPage.findFilterResetButton().click();
+
+        externalProvidersPage.findFilterDropdownButton().click();
+        externalProvidersPage.findFilterDropdownItem('authentication').click();
+        externalProvidersPage.selectAuthenticationFilter('sigv4');
+        externalProvidersPage.findRows().should('have.length', 2);
+        externalProvidersPage.findRows().should('contain.text', 'Pending Anthropic Development');
+        externalProvidersPage.findRows().should('contain.text', 'AWS Bedrock US East');
+        externalProvidersPage.findFilterResetButton().click();
+
+        externalProvidersPage.findFilterDropdownButton().click();
+        externalProvidersPage.findFilterDropdownItem('status').click();
+        externalProvidersPage.selectStatusFilter('ready');
+        externalProvidersPage.findRows().should('have.length', 2);
+        externalProvidersPage.findRows().should('contain.text', 'AWS Bedrock US East');
+        externalProvidersPage.findRows().should('contain.text', 'Anthropic Provider');
+        externalProvidersPage.findFilterResetButton().click();
+
+        externalProvidersPage.findFilterDropdownButton().click();
+        externalProvidersPage.findFilterDropdownItem('providerType').click();
+        externalProvidersPage.selectProviderTypeFilter('aws-bedrock');
+        externalProvidersPage.findRows().should('have.length', 2);
+        externalProvidersPage.findRows().should('contain.text', 'AWS Bedrock US East');
+        externalProvidersPage.findRows().should('contain.text', 'Invalid AWS Bedrock US West');
+
+        externalProvidersPage.findFilterDropdownButton().click();
+        externalProvidersPage.findFilterDropdownItem('name').click();
+        externalProvidersPage.findFilterInput().type('Invalid');
+        externalProvidersPage.findRows().should('have.length', 1);
+        externalProvidersPage.findRows().should('contain.text', 'Invalid AWS Bedrock US West');
+        externalProvidersPage.findFilterResetButton().click();
+
+        externalProvidersPage.findFilterInput().type('abc123');
+        externalProvidersPage.findEmptyFilterState().should('exist');
+      });
+
+      it('opens the create modal from the toolbar add button', () => {
+        externalProvidersPage.findAddExternalProviderButton().click();
+        createExternalProviderModal.shouldBeOpen();
+        createExternalProviderModal.findSubmitButton().should('be.disabled');
+      });
+
+      it('deletes an external provider', () => {
+        cy.interceptOdh(
+          'DELETE /maas/api/v1/externalprovider/:namespace/:name',
+          { path: { namespace: TEST_PROJECT, name: 'bedrock-us-east' } },
+          { data: null },
+        ).as('deleteExternalProvider');
+
+        externalProvidersPage.getRow('AWS Bedrock US East').findKebabAction('Delete').click();
+        deleteExternalProviderModal.shouldShowResourceName('AWS Bedrock US East');
+        deleteExternalProviderModal.findInput().type('AWS Bedrock US East');
+        deleteExternalProviderModal.findSubmitButton().should('be.enabled');
+
+        cy.interceptOdh(
+          'GET /maas/api/v1/externalprovider',
+          { query: { namespace: TEST_PROJECT } },
+          {
+            data: mockExternalProviders().filter((provider) => provider.name !== 'bedrock-us-east'),
+          },
+        ).as('listExternalProviders');
+
+        deleteExternalProviderModal.findSubmitButton().click();
+        cy.wait('@deleteExternalProvider');
+        cy.wait('@listExternalProviders');
+        externalProvidersPage.findRows().should('have.length', 4);
+        externalProvidersPage.findTable().should('not.contain', 'AWS Bedrock US East');
+      });
     });
   });
 
   describe('create', () => {
     beforeEach(() => {
-      setupCommonIntercepts();
-      setupExternalProvidersPageIntercepts([]);
+      setupExternalProvidersCreateIntercepts();
       externalProvidersPage.visit();
       externalProvidersPage.findPage().should('exist');
     });
@@ -286,42 +458,6 @@ describe('External providers', () => {
       createExternalProviderModal.shouldBeOpen();
       createExternalProviderModal.findCancelButton().click();
       createExternalProviderModal.shouldBeOpen(false);
-    });
-  });
-
-  describe('delete', () => {
-    beforeEach(() => {
-      setupCommonIntercepts();
-      setupExternalProvidersPageIntercepts(mockExternalProviders());
-      externalProvidersPage.visit();
-      externalProvidersPage.findTable().should('exist');
-    });
-
-    it('deletes an external provider', () => {
-      cy.interceptOdh(
-        'DELETE /maas/api/v1/externalprovider/:namespace/:name',
-        { path: { namespace: TEST_PROJECT, name: 'anthropic-dev' } },
-        { data: null },
-      ).as('deleteExternalProvider');
-
-      externalProvidersPage.getRow('Anthropic Provider').findKebabAction('Delete').click();
-      deleteExternalProviderModal.shouldShowResourceName('Anthropic Provider');
-      deleteExternalProviderModal.findInput().type('Anthropic Provider');
-      deleteExternalProviderModal.findSubmitButton().should('be.enabled');
-
-      cy.interceptOdh(
-        'GET /maas/api/v1/externalprovider',
-        { query: { namespace: TEST_PROJECT } },
-        {
-          data: mockExternalProviders().filter((provider) => provider.name !== 'anthropic-dev'),
-        },
-      ).as('listExternalProviders');
-
-      deleteExternalProviderModal.findSubmitButton().click();
-      cy.wait('@deleteExternalProvider');
-      cy.wait('@listExternalProviders');
-      externalProvidersPage.findRows().should('have.length', 4);
-      externalProvidersPage.findTable().should('not.contain', 'Anthropic Provider');
     });
   });
 });

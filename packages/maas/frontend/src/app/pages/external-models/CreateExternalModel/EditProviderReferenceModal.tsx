@@ -25,8 +25,8 @@ import {
   isProviderReferenceApiFormat,
   recordToConfigPairs,
 } from '~/app/pages/external-models/providerReferenceUtils';
+import { configPairsToRecord } from '~/app/utilities/configPairs';
 import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
-import { configPairsToRecord } from './ModelConfigPairsEditor';
 
 type EditProviderReferenceModalProps = {
   isOpen: boolean;
