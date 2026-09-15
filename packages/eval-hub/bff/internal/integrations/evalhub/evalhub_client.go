@@ -840,7 +840,10 @@ func getRaw(c *EvalHubClient, ctx context.Context, path string, extraHeaders map
 	}
 	defer resp.Body.Close()
 
-	const maxLogResponseSize = 10 * 1024 * 1024 // 10 MiB
+	// TODO: Remove this temporary BFF response-size guard when log responses
+	// stream directly to clients after the backend team exposes a normal
+	// X-Log-Truncated response header.
+	const maxLogResponseSize = 64 * 1024 * 1024 // 64 MiB; includes headroom over the upstream limit
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxLogResponseSize+1))
 	if err != nil {
 		return EvaluationJobLogsResponse{}, err
@@ -848,15 +851,26 @@ func getRaw(c *EvalHubClient, ctx context.Context, path string, extraHeaders map
 	if len(body) > maxLogResponseSize {
 		return EvaluationJobLogsResponse{}, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxLogResponseSize)
 	}
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return EvaluationJobLogsResponse{}, &httpError{
 			StatusCode: resp.StatusCode,
 			Body:       string(body),
 		}
 	}
+
 	return EvaluationJobLogsResponse{
 		Logs:      string(body),
-		Truncated: strings.EqualFold(strings.TrimSpace(resp.Header.Get("X-Log-Truncated")), "true"),
+		Truncated: isLogTruncated(logTruncatedValue(resp)),
 	}, nil
+}
+
+func isLogTruncated(value string) bool {
+	return strings.EqualFold(strings.TrimSpace(value), "true")
+}
+
+func logTruncatedValue(resp *http.Response) string {
+	if value := resp.Trailer.Get("X-Log-Truncated"); value != "" {
+		return value
+	}
+	return resp.Header.Get("X-Log-Truncated")
 }

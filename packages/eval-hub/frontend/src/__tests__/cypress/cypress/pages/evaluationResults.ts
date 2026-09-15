@@ -40,8 +40,8 @@ class EvaluationResultsPage {
     return cy.findByTestId('benchmark-log-selector');
   }
 
-  selectBenchmark(name: string) {
-    return cy.findByTestId(`benchmark-log-option-${name}`).click();
+  findBenchmarkLogOption(name: string) {
+    return cy.findByTestId(`benchmark-log-option-${name}`);
   }
 
   findBenchmarksGrid() {

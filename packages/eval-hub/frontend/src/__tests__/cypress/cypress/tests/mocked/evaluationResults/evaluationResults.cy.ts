@@ -184,7 +184,7 @@ describe('Evaluation Results Page - Collection', () => {
     cy.wait('@jobLogs').its('request.query.tail_lines').should('eq', '500');
 
     evaluationResultsPage.findBenchmarkLogSelector().click();
-    evaluationResultsPage.selectBenchmark('harmful_request_refusal');
+    evaluationResultsPage.findBenchmarkLogOption('harmful_request_refusal').click();
     cy.wait('@benchmarkLogs').its('request.query.tail_lines').should('eq', '500');
     evaluationResultsPage.findDownloadLogsButton().click();
     cy.wait('@benchmarkLogs').its('request.query.tail_lines').should('eq', '-1');
