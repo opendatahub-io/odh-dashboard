@@ -2,9 +2,9 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
@@ -134,7 +134,12 @@ func (r *MockExternalModelsRepository) UpdateExternalModel(ctx context.Context, 
 			}
 			r.created[i] = updated
 			if err := r.syncMaaSModelRefOnUpdate(ctx, namespace, name, request); err != nil {
-				return nil, err
+				r.logger.Warn(
+					"failed to sync MaaSModelRef for ExternalModel (mock)",
+					slog.String("namespace", namespace),
+					slog.String("name", name),
+					slog.Any("err", err),
+				)
 			}
 			return &updated, nil
 		}
@@ -156,7 +161,12 @@ func (r *MockExternalModelsRepository) UpdateExternalModel(ctx context.Context, 
 				updated.ProviderRefs = request.ProviderRefs
 			}
 			if err := r.syncMaaSModelRefOnUpdate(ctx, namespace, name, request); err != nil {
-				return nil, err
+				r.logger.Warn(
+					"failed to sync MaaSModelRef for ExternalModel (mock)",
+					slog.String("namespace", namespace),
+					slog.String("name", name),
+					slog.Any("err", err),
+				)
 			}
 			return &updated, nil
 		}
@@ -214,7 +224,7 @@ func (r *MockExternalModelsRepository) syncMaaSModelRefOnUpdate(
 		DisplayName: request.DisplayName,
 		Description: request.Description,
 	}, false)
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if err != nil && errors.Is(err, ErrNotFound) {
 		return nil
 	}
 	return err
@@ -222,7 +232,7 @@ func (r *MockExternalModelsRepository) syncMaaSModelRefOnUpdate(
 
 func (r *MockExternalModelsRepository) deleteMaaSModelRefForExternalModel(ctx context.Context, namespace, name string) error {
 	err := r.modelRefsRepo.DeleteMaaSModelRef(ctx, namespace, name, false)
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if err != nil && errors.Is(err, ErrNotFound) {
 		return nil
 	}
 	return err

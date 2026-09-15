@@ -172,7 +172,7 @@ npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 Cypress tests require a frontend server to be running.
 
-Using the webpack development server allows for auto rebuilding the dashboard frontend as code changes are made.
+Using the rspack development server allows for auto rebuilding the dashboard frontend as code changes are made.
 
 To have turbo run a cypress server for the frontend folder and all federated modules run the following from the root of the repository:
 

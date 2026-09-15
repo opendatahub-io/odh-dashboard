@@ -447,7 +447,7 @@ Matched against issue summary, description text, and **Jira labels** (non-area l
 | `dashboard-area-distributed-workloads` | distributed workload, Kueue, workload metrics, cluster queue, local queue, quota | `ClusterQueue`, `LocalQueue`, `Workload` |
 | `dashboard-area-user-management` | user management, group settings, RBAC, permissions, role binding | `Role`, `RoleBinding`, `ClusterRole` |
 | `dashboard-area-home` | home page, landing page, overview page, welcome, getting started | |
-| `dashboard-area-infrastructure` | webpack, build, CI, docker, module federation, navigation, sidebar, header, app shell, plugin, extension | |
+| `dashboard-area-infrastructure` | webpack, rspack, build, CI, docker, module federation, navigation, sidebar, header, app shell, plugin, extension | |
 | `dashboard-area-patternfly` | PatternFly, PF, component library, design system | |
 | `dashboard-area-pf6` | PF6, PatternFly 6, PatternFly migration, PF upgrade | |
 | `dashboard-area-bff` | BFF, backend-for-frontend, Go backend, shared middleware, common middleware, RequireAccessToService, RequireValidIdentity, SelfSubjectAccessReview, SSAR, BFF route, BFF module | |

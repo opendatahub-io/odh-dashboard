@@ -11,9 +11,10 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 
 const CustomPropertiesSection: React.FC = () => {
-  const { control, register } = useFormContext<RegisterDataFormData>();
+  const { control, register } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const { fields, append, remove } = useFieldArray({ control, name: 'customProperties' });
 
   return (

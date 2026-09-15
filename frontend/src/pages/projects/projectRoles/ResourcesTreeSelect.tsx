@@ -3,7 +3,7 @@ import {
   MultiSelection,
   GroupSelectionOptions,
   SelectionOptions,
-} from '#~/components/MultiSelection';
+} from '@odh-dashboard/ui-core/components/MultiSelection';
 import {
   RESOURCE_CATEGORIES,
   ALL_RESOURCES_WILDCARD,

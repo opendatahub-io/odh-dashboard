@@ -1,14 +1,11 @@
 import React from 'react';
 import AllExternalModelsPage from '~/app/pages/external-models/AllExternalModelsPage';
-import { ExternalModelsProvider } from '~/app/context/ExternalModelsContext';
-import MaaSFederatedProviders from './MaaSFederatedProviders';
+import ExternalModelsAreaProviders from './ExternalModelsAreaProviders';
 
 const ExternalModelsWrapper: React.FC = () => (
-  <MaaSFederatedProviders>
-    <ExternalModelsProvider>
-      <AllExternalModelsPage />
-    </ExternalModelsProvider>
-  </MaaSFederatedProviders>
+  <ExternalModelsAreaProviders>
+    <AllExternalModelsPage />
+  </ExternalModelsAreaProviders>
 );
 
 export default ExternalModelsWrapper;

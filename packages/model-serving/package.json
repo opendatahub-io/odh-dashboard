@@ -3,21 +3,36 @@
   "name": "@odh-dashboard/model-serving",
   "description": "Plugin to display model deployments. Used in combination with specific model serving platform extensions.",
   "version": "0.0.0",
+  "module-federation": {
+    "name": "modelServing",
+    "local": {
+      "port": 9109
+    }
+  },
   "e2eCiTags": [
     "@ModelServingCI"
   ],
   "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "install:module": "npm install --prefix frontend",
+    "cypress:server:build": "cd frontend && cross-env DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
+    "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
+    "cypress:server": "cd frontend && serve ./public-cypress -p 9109 -s -L",
+    "cypress:server:e2e": "npm run cypress:server",
+    "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9109 PROXY_PORT=4000 npm run start:dev",
+    "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9109/healthcheck",
+    "cypress:server:e2e:wait": "npm run cypress:server:wait",
+    "lint": "eslint . && cd frontend && npm run test:lint",
+    "lint:fix": "eslint . --fix && cd frontend && npm run test:fix",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit && cd frontend && npm run test:type-check"
   },
   "exports": {
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
+    "./shared/types/deploy-prefill": "./src/shared/types/deploy-prefill.ts",
     "./shared": "./src/shared/index.ts",
     "./shared/types": "./src/shared/types.ts",
     "./shared/components": "./src/shared/components/index.ts",
@@ -79,14 +94,15 @@
     "./__mocks__/mockLegacyNimResource": "./src/__mocks__/mockLegacyNimResource.ts",
     "./__mocks__/mockPrometheusBias": "./src/__mocks__/mockPrometheusBias.ts",
     "./__mocks__/mockPrometheusServing": "./src/__mocks__/mockPrometheusServing.ts",
-    "./__mocks__/mockMetricsRequests": "./src/__mocks__/mockMetricsRequests.ts"
+    "./__mocks__/mockMetricsRequests": "./src/__mocks__/mockMetricsRequests.ts",
+    "./__mocks__/mockValidatedConfigurations": "./__mocks__/mockValidatedConfigurations.ts",
+    "./__mocks__/mockPrometheusQueryResponse": "./__mocks__/mockPrometheusQueryResponse.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",
     "@odh-dashboard/hardware-profiles": "*",
-    "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/model-registry": "*",
+    "axios": "^1.17.0",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/trustyai": "*",
     "@odh-dashboard/ui-core": "*",
@@ -95,6 +111,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"

@@ -3,7 +3,7 @@ import {
   MultiSelection,
   GroupSelectionOptions,
   SelectionOptions,
-} from '#~/components/MultiSelection';
+} from '@odh-dashboard/ui-core/components/MultiSelection';
 import { API_GROUP_CATEGORIES, ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
 import { CORE_GROUP_ID } from './ruleModalUtils';
 import {

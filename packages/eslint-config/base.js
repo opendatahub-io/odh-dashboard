@@ -36,7 +36,7 @@ module.exports = {
           {
             name: '^axios$',
             importNames: ['default'],
-            message: 'Import from `~/utilities/axios` instead.',
+            message: 'Import from `@odh-dashboard/ui-core/utilities/axios` instead.',
           },
         ],
         patterns: [

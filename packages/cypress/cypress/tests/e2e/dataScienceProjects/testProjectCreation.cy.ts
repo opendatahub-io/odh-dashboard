@@ -102,10 +102,9 @@ describe('Verify Project - Creation and Deletion', () => {
       deleteModal.findInput().type(projectName);
       deleteModal.findSubmitButton().should('be.enabled').click();
 
-      // Verify project deletion
+      // Verify project deletion — filter without waiting for a row (the inverse of create)
       cy.step(`Verify that the project ${projectName} has been deleted`);
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findEmptyResults();
+      projectListPage.filterByNameAndExpectEmpty(projectName);
     },
   );
   it(

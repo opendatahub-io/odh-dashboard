@@ -177,11 +177,17 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const hasUserInteractedRef = React.useRef<boolean>(false);
   const notebookIdRef = React.useRef<string | undefined>();
 
+  const featureStoreStatus = useIsAreaAvailable(SupportedArea.FEATURE_STORE);
+  const isFeastOperatorAvailable = featureStoreStatus.status;
+  const featureStoreApiAvailable = featureStoresLoaded && !featureStoresError;
+  const featureStoresLoading =
+    isFeastOperatorAvailable && !featureStoresLoaded && !featureStoresError;
+
   React.useEffect(() => {
     const currentNotebookId = existingNotebook?.metadata.uid;
     const notebookChanged = notebookIdRef.current !== currentNotebookId;
 
-    if (existingNotebook && availableFeatureStores.length > 0) {
+    if (existingNotebook && featureStoresLoaded && !featureStoresError) {
       if (notebookChanged || !hasUserInteractedRef.current) {
         const featureStores = getFeatureStoresFromNotebook(
           existingNotebook,
@@ -198,7 +204,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       notebookIdRef.current = undefined;
       hasUserInteractedRef.current = false;
     }
-  }, [existingNotebook, availableFeatureStores]);
+  }, [existingNotebook, availableFeatureStores, featureStoresLoaded, featureStoresError]);
 
   const [envVariables, setEnvVariables, envVariablesLoaded, deletedConfigMaps, deletedSecrets] =
     useNotebookEnvVariables(existingNotebook, [
@@ -243,9 +249,6 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const editNotebookDisplayName = existingNotebook
     ? getDisplayNameFromK8sResource(existingNotebook)
     : '';
-
-  const featureStoreStatus = useIsAreaAvailable(SupportedArea.FEATURE_STORE);
-  const isFeastOperatorAvailable = featureStoreStatus.status;
 
   const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
 
@@ -505,6 +508,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  featureStoreApiAvailable={featureStoreApiAvailable}
+                  featureStoresLoading={featureStoresLoading}
                   existingNotebook={existingNotebook}
                   existingSecretsData={existingSecretsData}
                 />

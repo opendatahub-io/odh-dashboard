@@ -7,9 +7,10 @@ import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';
+import { RoleBindingModel } from '@odh-dashboard/k8s-core/api/models';
 import { permissions, roleBindingPermissionsChangeModal } from '../../../../pages/permissions';
 import { be } from '../../../../utils/should';
-import { ProjectModel, RoleBindingModel } from '../../../../utils/models';
+import { ProjectModel } from '../../../../utils/models';
 import { asProjectEditUser } from '../../../../utils/mockUsers';
 
 const userSubjects: RoleBindingSubject[] = [

@@ -46,6 +46,29 @@ export enum PhaseStatus {
   UNKNOWN = 'Unknown',
 }
 
+export const convertStringToPhaseStatus = (status: string | undefined): PhaseStatus => {
+  switch (status) {
+    case PhaseStatus.UNHEALTHY:
+      return PhaseStatus.UNAVAILABLE;
+    case PhaseStatus.ACTIVE:
+      return PhaseStatus.READY;
+    case PhaseStatus.PENDING:
+      return PhaseStatus.PENDING;
+    case PhaseStatus.FAILED:
+      return PhaseStatus.FAILED;
+    case PhaseStatus.INVALID:
+      return PhaseStatus.INVALID;
+    case PhaseStatus.DEGRADED:
+      return PhaseStatus.DEGRADED;
+    case PhaseStatus.UNAVAILABLE:
+      return PhaseStatus.UNAVAILABLE;
+    case PhaseStatus.UNKNOWN:
+      return PhaseStatus.UNKNOWN;
+    default:
+      return PhaseStatus.UNKNOWN;
+  }
+};
+
 export const getPhaseProps = (
   phase: string | undefined,
 ): { icon: React.ReactNode; status?: LabelProps['status']; color?: LabelProps['color'] } => {

@@ -1,6 +1,6 @@
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import type { NotebookStatus } from '#~/types';
 import { EventStatus } from '#~/types';
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import { getStatusSubtitle } from '#~/pages/projects/notebook/NotebookStateStatus';
 
 describe('getStatusSubtitle', () => {

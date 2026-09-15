@@ -1,14 +1,14 @@
 import { act } from 'react';
 import { waitFor, renderHook } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { StatusResponse } from '#~/redux/types';
 import { useAppDispatch } from '#~/redux/hooks';
 import useDetectUser from '#~/utilities/useDetectUser';
 import { getUserFulfilled, getUserPending, getUserRejected } from '#~/redux/actions/actions';
 
 // Mock Axios
-jest.mock('#~/utilities/axios');
+jest.mock('@odh-dashboard/ui-core/utilities/axios');
 
 // Mock the useDispatch hook
 jest.mock('#~/redux/hooks', () => ({

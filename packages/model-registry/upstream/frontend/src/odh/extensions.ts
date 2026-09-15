@@ -311,18 +311,6 @@ const extensions: (
       component: () => import('./components/McpRegistryServerDeployAction'),
     },
   },
-  {
-    type: 'core.action',
-    flags: {
-      required: [SupportedArea.MODEL_CATALOG],
-    },
-    properties: {
-      id: 'deploy-catalog-model',
-      label: 'Deploy model',
-      group: 'model-catalog.deploy',
-      component: () => import('./components/CatalogDeployAction'),
-    },
-  },
 ];
 
 export default extensions;

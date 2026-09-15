@@ -96,6 +96,7 @@ export type PVCReplacements = {
   PVC_SIZE: string;
   STORAGE_CLASS: string;
   notebookImage?: string;
+  hardwareProfileName?: string;
 };
 
 export type PVCLoaderPodReplacements = {
@@ -118,6 +119,7 @@ export type WBEditTestData = {
   pvcStorageName: string;
   connectionDescription: string;
   notebookImage: string;
+  hardwareProfileName: string;
 };
 
 export type KueueWorkbenchTestData = {
@@ -136,14 +138,17 @@ export type KueueWorkbenchTestData = {
 export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   updatedCpuQuota: number;
   updatedMemoryQuota: number;
+  exceededQuotaMessage: string;
+  queuedCpuQuota: number;
+  queuedMemoryQuota: number;
   waitingForQuotaMessage: string;
-  queuePositionMarker: string;
 };
 
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
   notebookImage: string;
+  hardwareProfileName: string;
 };
 
 export type WBVariablesTestData = {
@@ -160,6 +165,7 @@ export type WBVariablesTestData = {
   FAKE_CM_KEY: string;
   FAKE_CM_VALUE: string;
   notebookImage: string;
+  hardwareProfileName: string;
 };
 
 export type WBTolerationsTestData = {
@@ -200,6 +206,7 @@ export type WBStatusTestData = {
   wbStatusTestNamespace: string;
   wbStatusTestDescription: string;
   notebookImage: string;
+  hardwareProfileName: string;
 };
 
 export type WBStorageClassesTestData = {
@@ -212,6 +219,7 @@ export type WBStorageClassesTestData = {
   storageRWO: string;
   storageMultiAccess: string;
   notebookImage: string;
+  hardwareProfileName: string;
   mountPathA: string;
   mountPathB: string;
   mountPathC: string;
@@ -269,6 +277,8 @@ export type TestConfig = {
   OCI_MODEL_URI: string;
   OGX_URL?: string;
   OGX_API_KEY?: string;
+  MAAS_URL?: string;
+  MAAS_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -679,10 +689,31 @@ export type FeatureStoreTestData = {
   feastInstanceName: string;
   feastCreditScoringProject: string;
   feastDriverRankingProject: string;
+  datasetName: string;
+  featureServiceName: string;
   dspProjectName: string;
   workbenchName: string;
   sectionTab: string;
   notebookImage: string;
+  hardwareProfileName: string;
+};
+
+export type FeatureStoreAdminLifecycleTestData = {
+  createPageTitle: string;
+  managePageTitle: string;
+  statusReady: string;
+  wizardSteps: {
+    details: string;
+    registry: string;
+    onlineOfflineStores: string;
+    advancedOptions: string;
+    review: string;
+  };
+  expandedDetails: {
+    feastProject: string;
+    conditions: string;
+  };
+  deleteAction: string;
 };
 
 export type GenAiTestData = {
@@ -800,6 +831,7 @@ export type ModelAsAServiceTestData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
+  llmInferenceServiceFixturePath: string;
   hardwareProfileName: string;
   modelLocationURI: string;
   connectionNameSuffix: string;
@@ -957,7 +989,8 @@ export type AutoragTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;
   s3SecretName: string;
-  ogxSecretName: string;
+  maasSecretName: string;
+  vectorDbSecretName: string;
   runName: string;
   runDescription: string;
   documentFile: string;

@@ -109,7 +109,7 @@ import type {
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
-import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
+import type { ExternalModel, ExternalProvider } from '@odh-dashboard/maas/types/external-models';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -1172,6 +1172,10 @@ declare global {
           response: OdhResponse<{ data: ExternalModel[] }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /maas/api/v1/externalmodel',
+          response: OdhResponse<{ data: ExternalModel }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'DELETE /maas/api/v1/externalmodel/:namespace/:name',
           options: { path: { namespace: string; name: string } },
           response: OdhResponse<{ data: null }>,
@@ -1251,6 +1255,16 @@ declare global {
           type: 'DELETE /maas/api/v1/delete-policy/:name',
           options: { path: { name: string } },
           response: OdhResponse<{ data: { message: string } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/externalprovider/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<{ data: null }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/externalprovider',
+          options: { query: { namespace: string } },
+          response: OdhResponse<{ data: ExternalProvider[] }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/subscriptions/:id',

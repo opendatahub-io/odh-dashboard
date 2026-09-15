@@ -3,6 +3,7 @@ import legacyUiExtensions from './legacy-ui';
 import projectKeyExtensions from './project-key';
 import wizardExtensions from './wizard';
 import nimKServeExtensions from './nim-kserve';
+import clusterStorageExtensions from './cluster-storage';
 import nimServiceExtensions from './nim-service';
 
 const extensions: Extension[] = [
@@ -11,6 +12,7 @@ const extensions: Extension[] = [
   ...wizardExtensions,
   ...nimKServeExtensions,
   ...nimServiceExtensions,
+  ...clusterStorageExtensions,
 ];
 
 export default extensions;

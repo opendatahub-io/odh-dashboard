@@ -8,12 +8,12 @@ import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/m
 import {
   assembleServiceAccount,
   createServiceAccount,
-  deleteServiceAccount,
   getServiceAccount,
-} from '#~/api/k8s/serviceAccounts';
+} from '@odh-dashboard/k8s-core/api/serviceAccounts';
+import { ServiceAccountModel } from '@odh-dashboard/k8s-core/api/models';
+import { deleteServiceAccount } from '#~/api/k8s/serviceAccounts';
 import { ServiceAccountKind } from '#~/k8sTypes';
 import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
-import { ServiceAccountModel } from '#~/api/models';
 
 const name = 'test';
 const namespace = 'test-project';

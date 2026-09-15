@@ -17,14 +17,14 @@ import { typedObjectImage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import type { ProjectKind, Connection } from '@odh-dashboard/k8s-core';
 import { getConnectionTypeRef, uriToModelLocation } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import {
   useServingConnections,
   useWatchConnectionTypes,
 } from '@odh-dashboard/plugin-core/host-api';
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
+import ProjectSelector from './ProjectSelector';
 import useRegistryConnections from './useRegistryConnections';
 import { useExtractFormDataFromRegistry } from './useExtractFormDataFromRegistry';
+import type { ModelDeployPrefillInfo } from '../src/shared/types/deploy-prefill';
 import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizard/useNavigateToDeploymentWizard';
 import { ExistingConnectionField } from '../src/components/deploymentWizard/fields/modelLocationFields/ExistingConnectionField';
 import {

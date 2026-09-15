@@ -4,17 +4,17 @@ import React from 'react';
 import {
   fetchS3File,
   fetchS3Json,
-  useOgxModelsQuery,
+  useMaasModelsQuery,
   useSecretCredentialsQuery,
 } from '~/app/hooks/queries';
-import { getOgxModels, getSecretByName } from '~/app/api/k8s';
+import { getMaasModels, getSecretByName } from '~/app/api/k8s';
 
 jest.mock('~/app/api/k8s', () => ({
-  getOgxModels: jest.fn(),
+  getMaasModels: jest.fn(),
   getSecretByName: jest.fn(),
 }));
 
-const getOgxModelsMock = jest.mocked(getOgxModels);
+const getMaasModelsMock = jest.mocked(getMaasModels);
 const getSecretByNameMock = jest.mocked(getSecretByName);
 
 global.fetch = jest.fn();
@@ -247,7 +247,7 @@ describe('useSecretCredentialsQuery', () => {
   });
 
   it('should fetch when both namespace and secretName are provided', async () => {
-    const mockData = { OGX_CLIENT_API_KEY: 'key', OGX_CLIENT_BASE_URL: 'url' };
+    const mockData = { MAAS_API_KEY: 'key', MAAS_BASE_URL: 'url' };
     getSecretByNameMock.mockReturnValue((() => () => Promise.resolve(mockData)) as never);
 
     const { result } = renderHook(() => useSecretCredentialsQuery('test-ns', 'my-secret'), {
@@ -278,7 +278,7 @@ describe('useSecretCredentialsQuery', () => {
   });
 });
 
-describe('useOgxModelsQuery', () => {
+describe('useMaasModelsQuery', () => {
   const createWrapper = () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -296,7 +296,7 @@ describe('useOgxModelsQuery', () => {
   });
 
   const mockModelsResponse = (models: ReturnType<typeof mockModel>[]) => {
-    getOgxModelsMock.mockReturnValue((() => () => Promise.resolve({ models })) as never);
+    getMaasModelsMock.mockReturnValue((() => () => Promise.resolve({ models })) as never);
   };
 
   beforeEach(() => {
@@ -304,7 +304,7 @@ describe('useOgxModelsQuery', () => {
   });
 
   it('should be disabled when namespace is empty', () => {
-    const { result } = renderHook(() => useOgxModelsQuery('', 'secret'), {
+    const { result } = renderHook(() => useMaasModelsQuery('', 'secret'), {
       wrapper: createWrapper(),
     });
 
@@ -313,7 +313,7 @@ describe('useOgxModelsQuery', () => {
   });
 
   it('should be disabled when secretName is empty', () => {
-    const { result } = renderHook(() => useOgxModelsQuery('ns', ''), {
+    const { result } = renderHook(() => useMaasModelsQuery('ns', ''), {
       wrapper: createWrapper(),
     });
 
@@ -324,7 +324,7 @@ describe('useOgxModelsQuery', () => {
   it('should return only llm and embedding models', async () => {
     mockModelsResponse([mockModel('model-1', 'llm'), mockModel('model-2', 'embedding')]);
 
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret'), {
+    const { result } = renderHook(() => useMaasModelsQuery('ns', 'secret'), {
       wrapper: createWrapper(),
     });
 
@@ -344,7 +344,7 @@ describe('useOgxModelsQuery', () => {
       mockModel('speech-1', 'speech-to-text'),
     ]);
 
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret'), {
+    const { result } = renderHook(() => useMaasModelsQuery('ns', 'secret'), {
       wrapper: createWrapper(),
     });
 
@@ -359,7 +359,7 @@ describe('useOgxModelsQuery', () => {
   it('should return empty models when all types are unknown', async () => {
     mockModelsResponse([mockModel('reranker-1', 'reranker'), mockModel('tts-1', 'text-to-speech')]);
 
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret'), {
+    const { result } = renderHook(() => useMaasModelsQuery('ns', 'secret'), {
       wrapper: createWrapper(),
     });
 
@@ -377,7 +377,7 @@ describe('useOgxModelsQuery', () => {
       mockModel('reranker-1', 'reranker'),
     ]);
 
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret', 'llm'), {
+    const { result } = renderHook(() => useMaasModelsQuery('ns', 'secret', 'llm'), {
       wrapper: createWrapper(),
     });
 
@@ -390,9 +390,9 @@ describe('useOgxModelsQuery', () => {
   });
 
   it('should throw on invalid response structure', async () => {
-    getOgxModelsMock.mockReturnValue((() => () => Promise.resolve({ invalid: 'data' })) as never);
+    getMaasModelsMock.mockReturnValue((() => () => Promise.resolve({ invalid: 'data' })) as never);
 
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret'), {
+    const { result } = renderHook(() => useMaasModelsQuery('ns', 'secret'), {
       wrapper: createWrapper(),
     });
 
@@ -400,6 +400,6 @@ describe('useOgxModelsQuery', () => {
       expect(result.current.isError).toBe(true);
     });
 
-    expect(result.current.error?.message).toBe('Invalid Open GenAI Stack models response');
+    expect(result.current.error?.message).toBe('Invalid MaaS models response');
   });
 });

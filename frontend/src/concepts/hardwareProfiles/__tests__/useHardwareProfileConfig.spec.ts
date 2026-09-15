@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { act } from '@testing-library/react';
 import { renderHook, testHook } from '@odh-dashboard/jest-config/hooks';
+import * as pluginCore from '@odh-dashboard/plugin-core';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import { SchedulingType } from '@odh-dashboard/k8s-core';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
@@ -10,7 +11,6 @@ import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
-import * as reduxSelectors from '#~/redux/selectors';
 import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -18,17 +18,18 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   useIsAreaAvailable: jest.fn(),
 }));
 
-jest.mock('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
-
-jest.mock('#~/redux/selectors', () => ({
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core'),
   useDashboardNamespace: jest.fn(),
 }));
+
+jest.mock('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
 
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);
 const mockUseHardwareProfiles = jest.mocked(
   useHardwareProfilesModule.useHardwareProfilesByFeatureVisibility,
 );
-const mockUseDashboardNamespace = jest.mocked(reduxSelectors.useDashboardNamespace);
+const mockUseDashboardNamespace = jest.mocked(pluginCore.useDashboardNamespace);
 
 describe('useHardwareProfileConfig', () => {
   beforeEach(() => {

@@ -22,8 +22,9 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
+import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
+import { createPipelinesCR, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';

@@ -73,7 +73,7 @@ func readDistributionConfig(ctx context.Context, cli client.Client, namespace st
 	logger := log.FromContext(ctx)
 
 	cm := &corev1.ConfigMap{}
-	key := types.NamespacedName{Name: distributionConfigMapName, Namespace: namespace}
+	key := types.NamespacedName{Name: resolveDistributionConfigMapName(), Namespace: namespace}
 
 	if err := cli.Get(ctx, key, cm); err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -121,7 +121,7 @@ func readPlatformVersion(ctx context.Context, cli client.Client, namespace strin
 	logger := log.FromContext(ctx)
 
 	cm := &corev1.ConfigMap{}
-	key := types.NamespacedName{Name: distributionConfigMapName, Namespace: namespace}
+	key := types.NamespacedName{Name: resolveDistributionConfigMapName(), Namespace: namespace}
 
 	if err := cli.Get(ctx, key, cm); err != nil {
 		if k8serrors.IsNotFound(err) {

@@ -805,7 +805,7 @@ func TestEnableManagedPipelinesHandler(t *testing.T) {
 func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 	ns := "test-ns"
 
-	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","ogx_secret_name":"ogx","vector_io_provider_id":"milvus"}}`
+	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","vector_io_provider_id":"milvus"}}`
 
 	tests := []struct {
 		name           string

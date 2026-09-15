@@ -5,9 +5,9 @@ import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { definedFeatureFlags, SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { DevFeatureFlags } from '#~/types';
-import axios from '#~/utilities/axios';
 import { isDefinedFeatureFlag } from '#~/concepts/areas/utils';
 
 const PARAM_NAME = 'devFeatureFlags';

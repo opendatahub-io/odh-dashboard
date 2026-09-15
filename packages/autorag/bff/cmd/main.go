@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/api"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
 )
 
 func main() {
@@ -25,13 +25,13 @@ func main() {
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
-	flag.BoolVar(&cfg.MockOGXClient, "mock-ogx-client", getEnvAsBool("MOCK_OGX_CLIENT", false), "Use mock Open GenAI Stack client")
+	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock Models as a Service client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
 
 	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "documents-rag-optimization-pipeline"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: documents-rag-optimization-pipeline)")
 	flag.StringVar(&cfg.IndexingPipelineNamePrefix, "indexing-pipeline-name-prefix", getEnvAsString("INDEXING_PIPELINE_NAME_PREFIX", "documents-indexing-pipeline"), "Display name for identifying the documents indexing managed pipeline during discovery (default: documents-indexing-pipeline)")
-	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Preferred pipeline version display name during discovery (default: constants.DefaultPipelineVersionSuffix, e.g. 3.5.0)")
+	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Optional explicit pipeline version display name pin during discovery")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
@@ -86,13 +86,13 @@ func main() {
 
 	// Prevent mock clients from being enabled in production — MockS3Client in particular
 	// bypasses SSRF protections (the mock skips endpoint validation entirely).
-	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) {
+	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockMaaSClient) {
 		logger.Error("mock clients can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)
 	}
 
 	// Prevent disabling TLS verification in production — all authenticated outbound
-	// clients (pipelines, S3, OGX) send bearer or SA tokens over TLS.
+	// clients (pipelines, S3, MaaS) send bearer or SA tokens over TLS.
 	if cfg.InsecureSkipVerify && !cfg.DevMode {
 		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)
@@ -100,7 +100,7 @@ func main() {
 
 	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
 	if cfg.DevMode &&
-		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) &&
+		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockMaaSClient) &&
 		cfg.AuthMethod == config.AuthMethodUser {
 		cfg.AuthMethod = config.AuthMethodDisabled
 	}
@@ -142,16 +142,20 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
+	if certFile != "" && keyFile != "" {
+		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
+		if err != nil {
+			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
+			os.Exit(1)
+		}
+		srv.TLSConfig = tlsCfg
+	}
+
 	// Start the server in a goroutine
 	go func() {
 		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
 		var err error
 		if certFile != "" && keyFile != "" {
-			// Configure TLS if both cert and key files are provided
-			tlsConfig := &tls.Config{
-				MinVersion: tls.VersionTLS13,
-			}
-			srv.TLSConfig = tlsConfig
 			err = srv.ListenAndServeTLS(certFile, keyFile)
 		} else {
 			err = srv.ListenAndServe()

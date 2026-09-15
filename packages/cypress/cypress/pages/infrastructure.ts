@@ -16,12 +16,12 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-tab-utilization');
   }
 
-  findClusterQueueUtilizationTab() {
-    return cy.findByTestId('infrastructure-tab-cluster-queue-utilization');
+  findQuotaUsageTab() {
+    return cy.findByTestId('infrastructure-tab-quota-usage');
   }
 
-  switchToClusterQueueUtilizationTab() {
-    this.findClusterQueueUtilizationTab().click();
+  switchToQuotaUsageTab() {
+    this.findQuotaUsageTab().click();
     return this;
   }
 
@@ -53,8 +53,8 @@ class InfrastructurePage {
     return cy.findByTestId('hardware-usage-error');
   }
 
-  findClusterQueueUtilizationSection() {
-    return cy.findByTestId('infrastructure-cluster-queue-utilization-section');
+  findQuotaUsageSection() {
+    return cy.findByTestId('infrastructure-quota-usage-section');
   }
 
   findTotalAcceleratorsCard() {
@@ -71,6 +71,10 @@ class InfrastructurePage {
 
   findRefreshBadge() {
     return cy.findByTestId('infrastructure-refresh-badge');
+  }
+
+  findQuotaRefreshBadge() {
+    return cy.findByTestId('quota-usage-refresh-badge');
   }
 
   findHardwareUsageEmpty() {
@@ -116,77 +120,185 @@ class InfrastructurePage {
     return cy.findByTestId('borrowing-count-label');
   }
 
-  findCQUtilizationSection() {
-    return cy.findByTestId('infrastructure-cluster-queue-utilization-section');
+  findQuotaUsageDescription() {
+    return cy.findByTestId('infrastructure-quota-usage-description');
   }
 
-  scrollToCQUtilizationSection() {
-    this.findCQUtilizationSection().scrollIntoView();
+  findQuotaUsageEmptyState() {
+    return cy.findByTestId('quota-usage-empty');
+  }
+
+  findQuotaUsageTreeNode(name: string) {
+    return this.findQuotaUsageSection().findByTestId(`gpuaas-quota-usage-tree-node-${name}`);
+  }
+
+  findQuotaUsageBreadcrumb() {
+    return cy.findByTestId('quota-usage-breadcrumb');
+  }
+
+  findQuotaUsageBreadcrumbSegment(segment: string) {
+    return cy.findByTestId(`quota-usage-breadcrumb-${segment}`);
+  }
+
+  findQuotaUsageDetailTitle() {
+    return cy.findByTestId('quota-usage-detail-title');
+  }
+
+  findQuotaUsageNavSearch() {
+    return cy.findByTestId('quota-usage-nav-search');
+  }
+
+  findQuotaUsageNavSearchEmpty() {
+    return cy.findByTestId('quota-usage-nav-search-empty');
+  }
+
+  findQuotaUsageNavSearchOrEmptyState(timeout = 60000) {
+    return cy.get(
+      '[data-testid="quota-usage-nav-search"], [data-testid="quota-usage-section"], [data-testid="quota-usage-empty"], [data-testid="quota-usage-error"]',
+      { timeout },
+    );
+  }
+
+  shouldHaveQuotaUsageNavSearchOrEmptyState() {
+    this.findQuotaUsageSection().should('be.visible');
+    this.findQuotaUsageNavSearchOrEmptyState().should('exist');
     return this;
   }
 
-  findCQUtilizationSubtitle() {
-    return cy.findByTestId('infrastructure-cluster-queue-utilization-description');
+  findQuotaUsageCollapseAll() {
+    return cy.findByTestId('quota-usage-collapse-all');
   }
 
-  findCQUtilizationEmptyState() {
-    return cy.findByTestId('cq-utilization-empty');
+  findQuotaUsageExpandAll() {
+    return cy.findByTestId('quota-usage-expand-all');
   }
 
-  findCQUtilizationError() {
-    return cy.findByTestId('cq-utilization-error');
+  findQuotaUsageWorkloadsSection() {
+    return cy.findByTestId('quota-usage-workloads-section');
   }
 
-  findCohortAccordion(cohortName: string) {
-    return cy.findByTestId(`cohort-accordion-${cohortName}`);
+  findClusterQueueWorkloadsTable() {
+    return cy.findByTestId('cluster-queue-workloads-table');
   }
 
-  findCohortBorrowBadge() {
-    return cy.findByTestId('cohort-borrow-badge');
+  findClusterQueueWorkloadsEmptyState() {
+    return cy.findByTestId('cluster-queue-workloads-empty-state');
   }
 
-  findCohortUnallocatedBorrowable() {
-    return cy.findByTestId('cohort-unallocated-borrowable');
+  findClusterQueueWorkloadsLoading() {
+    return cy.findByTestId('cluster-queue-workloads-loading');
   }
 
-  findCQCard(cqName: string) {
-    return cy.get(`[data-testid="cq-card-${cqName}"]`);
+  findClusterQueueWorkloadsError() {
+    return cy.findByTestId('cluster-queue-workloads-error');
   }
 
-  findCQBorrowBadge() {
-    return cy.findByTestId('cq-borrowed-badge');
+  findClusterQueueWorkloadRow(namespace: string, name: string) {
+    return cy.findByTestId(`cluster-queue-workload-row-${namespace}-${name}`);
   }
 
-  findCQWorkloadCounts() {
-    return cy.findByTestId('cq-workload-counts');
+  findClusterQueueWorkloadsNameFilter() {
+    return cy.findByTestId('cluster-queue-workloads-name-filter');
   }
 
-  findHardwareModelBadge(modelName: string) {
-    return cy.findByTestId(`hardware-model-badge-${modelName}`);
+  findClusterQueueWorkloadsStatusFilter() {
+    return cy.findByTestId('cluster-queue-workloads-status-filter');
   }
 
-  findAcceleratorDonutChart() {
-    return cy.findByTestId('accelerator-donut-chart');
+  findQuotaUsageSummarySection() {
+    return cy.findByTestId('quota-usage-summary-section');
   }
 
-  findAcceleratorDonutChartInCard(cqName: string) {
-    return this.findCQCard(cqName).findByTestId('accelerator-donut-chart');
+  findQuotaUsageDetailPartialError() {
+    return cy.findByTestId('quota-usage-detail-partial-error');
   }
 
-  findDcgmComputeDonutInCard(cqName: string) {
-    return this.findCQCard(cqName).findByTestId('dcgm-compute-donut');
+  findQuotaUsageSummaryWorkloads() {
+    return cy.findByTestId('quota-usage-summary-workloads');
   }
 
-  findDcgmMemoryDonutInCard(cqName: string) {
-    return this.findCQCard(cqName).findByTestId('dcgm-memory-donut');
+  findQuotaUsageSummaryCapacity() {
+    return cy.findByTestId('quota-usage-summary-capacity');
   }
 
-  findCQBorrowBadgeInCard(cqName: string) {
-    return this.findCQCard(cqName).find('[data-testid="cq-borrowed-badge"]');
+  findQuotaUsageSummaryCompute() {
+    return cy.findByTestId('quota-usage-summary-compute');
   }
 
-  findWorkloadCountsInCard(cqName: string) {
-    return this.findCQCard(cqName).find('[data-testid="cq-workload-counts"]');
+  findQuotaUsageSummaryMemory() {
+    return cy.findByTestId('quota-usage-summary-memory');
+  }
+
+  findQuotaUsageSummaryCapacityOverQuota() {
+    return cy.findByTestId('quota-usage-summary-capacity-over-quota');
+  }
+
+  findQuotaUsageSummaryComputeOverQuota() {
+    return cy.findByTestId('quota-usage-summary-compute-over-quota');
+  }
+
+  findQuotaUsageSummaryMemoryOverQuota() {
+    return cy.findByTestId('quota-usage-summary-memory-over-quota');
+  }
+
+  findQuotaUsageBorrowingLink() {
+    return cy.findByTestId('quota-usage-borrowing-link');
+  }
+
+  findQuotaUsageBorrowingEnabledBadge() {
+    return cy.findByTestId('quota-usage-borrowing-enabled-badge');
+  }
+
+  findQuotaUsageBorrowingClusterQueueList() {
+    return cy.findByTestId('quota-usage-borrowing-cluster-queue-list');
+  }
+
+  findQuotaUsageBorrowingClusterQueueLink(clusterQueueName: string) {
+    return cy.findByTestId(`quota-usage-borrowing-cluster-queue-link-${clusterQueueName}`);
+  }
+
+  findQuotaUsageAcceleratorTableSection() {
+    return cy.findByTestId('quota-usage-accelerator-table-section');
+  }
+
+  findQuotaUsageAcceleratorTableSearch() {
+    return cy.findByTestId('quota-usage-accelerator-table-search');
+  }
+
+  findQuotaUsageAcceleratorRow(model: string) {
+    const modelId = model.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return cy.findByTestId(`quota-usage-accelerator-row-${modelId}`);
+  }
+
+  findQuotaUsageMeterCapacity(model: string) {
+    const modelId = model.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return cy.findByTestId(`quota-usage-meter-capacity-${modelId}`);
+  }
+
+  findQuotaUsageMeterCompute(model: string) {
+    const modelId = model.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return cy.findByTestId(`quota-usage-meter-compute-${modelId}`);
+  }
+
+  findQuotaUsageMeterMemory(model: string) {
+    const modelId = model.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return cy.findByTestId(`quota-usage-meter-memory-${modelId}`);
+  }
+
+  findQuotaUsageViewKueueProjectsLink() {
+    return cy.findByTestId('quota-usage-view-kueue-projects');
+  }
+
+  findKueueProjectsModal() {
+    return cy.findByTestId('kueue-projects-modal');
+  }
+
+  findKueueProjectsRow(projectName: string) {
+    return cy.findByTestId(`kueue-projects-row-${projectName}`);
+  }
+
+  findKueueProjectsCloseButton() {
+    return cy.findByTestId('kueue-projects-close-button');
   }
 
   findOpenPopover() {

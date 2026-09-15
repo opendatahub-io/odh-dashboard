@@ -72,7 +72,7 @@ paths:
            dev impersonation feature (`DEV_IMPERSONATE_USER`) is active.
 
         2. `x-forwarded-access-token` — fallback for standalone federated dev mode
-           where the webpack proxy injects the real user's token directly.
+           where the rspack proxy injects the real user's token directly.
       responses:
         '200':
           description: Access check result
@@ -3112,6 +3112,11 @@ components:
           description: Description (from openshift.io/description annotation)
         modelName:
           type: string
+          description: ModelName is the client-facing model name used in inference request bodies.
+                       Clients send this value in the "model" field of chat completion requests.
+                       Defaults to metadata.name if not set. Use this field when the desired
+                       model name contains characters not allowed in Kubernetes resource names
+                       (dots, colons, slashes, uppercase).
         providerRefs:
           type: array
           items:
@@ -3144,6 +3149,11 @@ components:
           description: Optional description (openshift.io/description annotation)
         modelName:
           type: string
+          description: ModelName is the client-facing model name used in inference request bodies.
+                       Clients send this value in the "model" field of chat completion requests.
+                       Defaults to metadata.name if not set. Use this field when the desired
+                       model name contains characters not allowed in Kubernetes resource names
+                       (dots, colons, slashes, uppercase).
         providerRefs:
           type: array
           items:

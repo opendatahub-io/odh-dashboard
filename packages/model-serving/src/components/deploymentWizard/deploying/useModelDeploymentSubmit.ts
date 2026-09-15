@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSecretOps } from '@odh-dashboard/plugin-core/host-api';
+import { useSecretOps } from '@odh-dashboard/plugin-core';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
@@ -44,6 +44,8 @@ export const useModelDeploymentSubmit = (
     formState,
     initialWizardData,
     deployMethod?.properties.platform,
+    !!existingDeployment,
+    externalData,
   );
   const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,

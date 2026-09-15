@@ -6,7 +6,11 @@ import {
   SubscriptionModelEntry,
   TokenRateLimit,
 } from '~/app/types/subscriptions';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import {
+  MaaSEvents,
+  SubscriptionTokenLimitsConfiguredCancelProperties,
+  SubscriptionTokenLimitsConfiguredSuccessProperties,
+} from '~/app/types/event-tracking';
 
 /** Returns the corrected edit-modal row index after deletions, or null if that row was removed. */
 export const reindexAfterRemove = (
@@ -92,7 +96,7 @@ export const useSubscriptionModels = (
       fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED, {
         outcome: TrackingOutcome.submit,
         limitCount: rateLimits.length,
-      });
+      } satisfies SubscriptionTokenLimitsConfiguredSuccessProperties);
       if (editLimitsTarget == null) {
         return;
       }
@@ -110,7 +114,7 @@ export const useSubscriptionModels = (
     setEditLimitsTarget(null);
     fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED, {
       outcome: TrackingOutcome.cancel,
-    });
+    } satisfies SubscriptionTokenLimitsConfiguredCancelProperties);
   }, []);
 
   return {

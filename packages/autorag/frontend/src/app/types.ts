@@ -128,30 +128,17 @@ export type PipelineRun = {
   state_history?: PipelineRunStateHistoryEntry[];
 };
 
-export type OgxModelType = 'llm' | 'embedding';
+export type MaasModelType = 'llm' | 'embedding';
 
-export type OgxModel = {
+export type MaasModel = {
   id: string;
-  type: OgxModelType;
+  type: MaasModelType;
   provider: string;
   resource_path: string;
 };
 
-export type OgxModelsResponse = {
-  models: OgxModel[];
-};
-
-export type OgxVectorStoreProvider = {
-  provider_id: string;
-  provider_type: string;
-};
-
-export type OgxVectorStoreProvidersResponse = {
-  vector_store_providers: OgxVectorStoreProvider[];
-};
-
-export type OgxFilteredVectorStoreProvidersResponse = OgxVectorStoreProvidersResponse & {
-  totalProviderCount: number;
+export type MaasModelsResponse = {
+  models: MaasModel[];
 };
 
 export type SecretListItem = {
@@ -193,7 +180,7 @@ export type Envelope<M, D> = {
   data: D;
 };
 
-export type OgxCredentials = {
+export type MaasCredentials = {
   baseUrl: string;
   apiKey: string;
 };

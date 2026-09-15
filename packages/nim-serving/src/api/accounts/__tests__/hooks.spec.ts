@@ -14,6 +14,19 @@ describe('useNIMAccountStatus', () => {
     jest.clearAllMocks();
   });
 
+  it('should expose Account list errors without marking the request loaded', async () => {
+    const error = new Error('Forbidden');
+    mockListNIMAccounts.mockRejectedValue(error);
+
+    const renderResult = testHook(useNIMAccountStatus)('test-ns');
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult.result.current.loaded).toBe(false);
+    expect(renderResult.result.current.loadError).toBe(error);
+    expect(renderResult.result.current.nimAccount).toBeNull();
+    expect(renderResult.result.current.status).toBe(NIMAccountStatus.LOADING);
+  });
+
   it('should return NOT_FOUND when no account exists', async () => {
     mockListNIMAccounts.mockResolvedValue([]);
 

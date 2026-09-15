@@ -8,7 +8,7 @@ import {
   type PrometheusQueryRangeResultValue,
 } from '@odh-dashboard/ui-core/types/metrics';
 import { RefreshIntervalValue } from '@odh-dashboard/ui-core/utilities/metrics';
-import useRefreshInterval from '@odh-dashboard/internal/utilities/useRefreshInterval';
+import useRefreshInterval from '@odh-dashboard/ui-core/hooks/useRefreshInterval';
 import { PerformanceMetricType } from '@odh-dashboard/model-serving/shared/types';
 import { PROMETHEUS_BIAS_PATH } from './prometheus/const';
 import useQueryRangeResourceData from './prometheus/useQueryRangeResourceData';
