@@ -70,38 +70,25 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
         return cleanupServingRuntimeTemplate(servingRuntimeName);
       })
       .then(() => {
-        const prefix = testData.projectNamePrefix;
-        return cy
-          .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, {
-            failOnNonZeroExit: false,
-          })
-          .then((result) => {
-            const existing = result.stdout.split(' ').find((name) => name.startsWith(prefix));
-            if (existing) {
-              projectName = existing;
-              cy.log(`Reusing existing project: ${projectName}`);
-            } else {
-              projectName = `${prefix}-${uuid}`;
-              cy.step(`Create project ${projectName}`);
-              createCleanProject(projectName);
-              waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
-            }
+        projectName = `${testData.projectNamePrefix}-${uuid}`;
+        cy.step(`Create project ${projectName}`);
+        createCleanProject(projectName);
+        waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
 
-            return cy
-              .exec(
-                `oc get inferenceservices -n ${projectName} -o jsonpath='{.items[?(@.metadata.name=="${testData.modelDeploymentName}")].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null`,
-                {
-                  failOnNonZeroExit: false,
-                },
-              )
-              .then((isResult) => {
-                if (isResult.stdout.trim() === 'True') {
-                  cy.log('Model already deployed and ready');
-                  return;
-                }
-                cy.step('Deploy Gen AI model');
-                deployGenAiModel(projectName, testData);
-              });
+        return cy
+          .exec(
+            `oc get inferenceservices -n ${projectName} -o jsonpath='{.items[?(@.metadata.name=="${testData.modelDeploymentName}")].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null`,
+            {
+              failOnNonZeroExit: false,
+            },
+          )
+          .then((isResult) => {
+            if (isResult.stdout.trim() === 'True') {
+              cy.log('Model already deployed and ready');
+              return;
+            }
+            cy.step('Deploy Gen AI model');
+            deployGenAiModel(projectName, testData);
           });
       })
       .then(() => {
