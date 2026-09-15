@@ -4,39 +4,48 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { expandPattern, listWorkspacePackagesFromManifest } = require('../query-workspace-packages');
+const { listWorkspacePackagesFromManifest } = require('../query-workspace-packages');
 
-describe('expandPattern', () => {
-  it('throws for unsupported ** globs', () => {
-    assert.throws(
-      () => expandPattern('/repo', 'packages/**/frontend'),
-      /Unsupported workspace glob/,
-    );
-  });
-});
+const writePackageJson = (directory, contents) => {
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'package.json'), JSON.stringify(contents));
+};
 
 describe('listWorkspacePackagesFromManifest', () => {
-  it('emits repo-relative path/location and resolves absolute package dirs', () => {
+  it('uses pnpm workspace patterns and returns full package metadata with relative paths', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'odh-ws-'));
     try {
       fs.writeFileSync(
         path.join(root, 'pnpm-workspace.yaml'),
-        ['packages:', '  - packages/*'].join('\n'),
+        ['packages:', "  - 'packages/**'", "  - '!packages/excluded'"].join('\n'),
       );
-      fs.mkdirSync(path.join(root, 'packages', 'alpha'), { recursive: true });
-      fs.writeFileSync(
-        path.join(root, 'packages', 'alpha', 'package.json'),
-        JSON.stringify({ name: '@test/alpha' }),
-      );
-      fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'root' }));
+      writePackageJson(root, { name: 'root', private: true });
+      writePackageJson(path.join(root, 'packages', 'alpha'), {
+        name: '@test/alpha',
+        exports: { './extensions': './extensions.js' },
+      });
+      writePackageJson(path.join(root, 'packages', 'nested', 'beta'), {
+        name: '@test/beta',
+        cypress: { mocked: 'tests/mocked/**/*.cy.ts' },
+      });
+      writePackageJson(path.join(root, 'packages', 'excluded'), { name: '@test/excluded' });
 
       const packages = listWorkspacePackagesFromManifest(root);
-      const alpha = packages.find((pkg) => pkg.name === '@test/alpha');
 
-      assert.ok(alpha);
-      assert.equal(alpha.path, 'packages/alpha');
-      assert.equal(alpha.location, 'packages/alpha');
-      assert.equal(path.resolve(root, alpha.path), path.join(root, 'packages', 'alpha'));
+      assert.deepEqual(
+        packages.map((pkg) => pkg.name),
+        ['root', '@test/alpha', '@test/beta'],
+      );
+      assert.deepEqual(packages[1].exports, { './extensions': './extensions.js' });
+      assert.deepEqual(packages[2].cypress, { mocked: 'tests/mocked/**/*.cy.ts' });
+      assert.equal(packages[1].path, 'packages/alpha');
+      assert.equal(packages[1].location, 'packages/alpha');
+      assert.equal(packages[2].path, 'packages/nested/beta');
+      assert.equal(path.resolve(root, packages[2].path), path.join(root, 'packages/nested/beta'));
+      assert.equal(
+        packages.some((pkg) => pkg.name === '@test/excluded'),
+        false,
+      );
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
