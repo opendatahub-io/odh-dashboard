@@ -62,8 +62,12 @@ const ComparisonQAEntry: React.FC<{
               {primaryResult.question}
             </Content>
           </StackItem>
-          {comparisonResult && (
-            <StackItem>
+          <StackItem>
+            <MetricScores
+              metrics={primaryResult.metrics}
+              testId={`qa-primary-metric-scores-${primaryResult.question_id}`}
+            />
+            {comparisonResult && (
               <ComparisonRadarChart
                 primaryMetrics={primaryResult.metrics}
                 primaryLabel={primaryLabel}
@@ -71,16 +75,14 @@ const ComparisonQAEntry: React.FC<{
                 comparisonLabel={comparisonLabel}
                 allMetricNames={allMetricNames}
               />
-              <MetricScores
-                metrics={primaryResult.metrics}
-                testId={`qa-primary-metric-scores-${primaryResult.question_id}`}
-              />
+            )}
+            {comparisonResult && (
               <MetricScores
                 metrics={comparisonResult.metrics}
                 testId={`qa-comparison-metric-scores-${primaryResult.question_id}`}
               />
-            </StackItem>
-          )}
+            )}
+          </StackItem>
           <StackItem>
             <Grid hasGutter>
               <GridItem span={6} data-testid={`qa-primary-answer-${primaryResult.question_id}`}>
@@ -121,11 +123,13 @@ const ComparisonQAEntry: React.FC<{
           <StackItem>
             <RetrievedContextSection
               result={primaryResult}
+              label={primaryLabel}
               testId={`qa-primary-retrieved-context-${primaryResult.question_id}`}
             />
             {comparisonResult && (
               <RetrievedContextSection
                 result={comparisonResult}
+                label={comparisonLabel}
                 testId={`qa-comparison-retrieved-context-${primaryResult.question_id}`}
               />
             )}

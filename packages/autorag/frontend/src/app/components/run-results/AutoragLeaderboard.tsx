@@ -460,6 +460,14 @@ function AutoragLeaderboard({
     optimizedMetricColumns.length === 1
       ? metricKeys.filter((metric) => metric.id !== optimizedMetricColumns[0].id)
       : metricKeys;
+  const metricNameCounts = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    metricKeys.forEach((metric) => {
+      const normalizedName = metric.name.toLowerCase();
+      counts.set(normalizedName, (counts.get(normalizedName) ?? 0) + 1);
+    });
+    return counts;
+  }, [metricKeys]);
 
   // Column definitions — source of truth for column IDs, labels, and default order.
   // Default order: leading columns first, then remaining sorted by priority / alphabetically.
@@ -477,7 +485,10 @@ function AutoragLeaderboard({
     const remainingColumns = [
       ...nonOptimizedMetricKeys.map((metric) => ({
         id: metric.id,
-        label: getColumnName(metric.id, formatMetricName(metric.name)),
+        label:
+          metricNameCounts.get(metric.name.toLowerCase()) === 1
+            ? getColumnName(metric.id, formatMetricName(metric.name))
+            : `${formatMetricName(metric.name)} (${metric.evaluator})`,
       })),
       ...SETTINGS_COLUMNS.map((col) => ({
         id: col.id,
@@ -493,7 +504,7 @@ function AutoragLeaderboard({
     });
 
     return [...leadingColumns, ...remainingColumns];
-  }, [nonOptimizedMetricKeys, optimizedMetric]);
+  }, [metricNameCounts, nonOptimizedMetricKeys, optimizedMetric]);
 
   // Column visibility and ordering state — whitelist approach so new columns are hidden by default
   const DEFAULT_VISIBLE_IDS = React.useMemo(
@@ -817,8 +828,8 @@ function AutoragLeaderboard({
     ];
   }, [nonOptimizedMetricKeys]);
 
-  const handleViewDetails = (patternName: string) => {
-    onViewDetails?.(patternName);
+  const handleViewDetails = (patternKey: string) => {
+    onViewDetails?.(patternKey);
   };
 
   // -- Column render helpers (used in the unified column loop) --
@@ -907,7 +918,7 @@ function AutoragLeaderboard({
         </Label>
       ) : (
         // eslint-disable-next-line prettier/prettier -- preserve the JSX fallback expression format
-        (entry.rank ?? 'Unranked')
+        entry.rank ?? 'Unranked'
       );
     }
     if (col.id === 'pattern') {
@@ -915,7 +926,7 @@ function AutoragLeaderboard({
         <Button
           variant="link"
           isInline
-          onClick={() => handleViewDetails(entry.pattern)}
+          onClick={() => handleViewDetails(entry.patternKey)}
           data-testid={`pattern-link-${entry.rank}`}
         >
           {formatPatternName(entry.pattern)}
@@ -1206,7 +1217,7 @@ function AutoragLeaderboard({
                         /* eslint-enable @typescript-eslint/no-unnecessary-condition */
                         {
                           title: 'View details',
-                          onClick: () => handleViewDetails(entry.pattern),
+                          onClick: () => handleViewDetails(entry.patternKey),
                         },
                         /* eslint-disable @typescript-eslint/no-unnecessary-condition */
                         ...(OGX_ACTIONS_ENABLED &&

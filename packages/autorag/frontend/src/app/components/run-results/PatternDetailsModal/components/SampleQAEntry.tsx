@@ -19,8 +19,9 @@ import { metricIdentity } from './radarChartUtils';
 
 export const RetrievedContextSection: React.FC<{
   result: AutoRAGEvaluationResult;
+  label?: string;
   testId?: string;
-}> = ({ result, testId = `qa-retrieved-context-${result.question_id}` }) => {
+}> = ({ result, label, testId = `qa-retrieved-context-${result.question_id}` }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   if (result.answer_contexts.length === 0) {
@@ -29,7 +30,11 @@ export const RetrievedContextSection: React.FC<{
 
   return (
     <ExpandableSection
-      toggleText={`Retrieved context (${result.answer_contexts.length})`}
+      toggleText={
+        label
+          ? `Retrieved context (${label}) (${result.answer_contexts.length})`
+          : `Retrieved context (${result.answer_contexts.length})`
+      }
       isExpanded={isExpanded}
       onToggle={(_event, expanded) => setIsExpanded(expanded)}
       isIndented

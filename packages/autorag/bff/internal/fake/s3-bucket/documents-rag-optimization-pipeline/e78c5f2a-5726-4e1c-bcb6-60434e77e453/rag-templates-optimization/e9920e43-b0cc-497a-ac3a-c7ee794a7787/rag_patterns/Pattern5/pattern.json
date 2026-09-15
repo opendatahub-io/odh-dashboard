@@ -62,7 +62,9 @@
         "code": "en",
         "name": "English"
       }
-    },
+    }
+  },
+  "inference": {
     "responses_template": {
       "model": "vllm-inference/meta-llama/Llama-3.1-8B-Instruct",
       "stream": false,

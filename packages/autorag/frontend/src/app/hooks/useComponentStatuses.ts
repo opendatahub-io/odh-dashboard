@@ -279,15 +279,14 @@ export function mergeStageWithStatus(
   }
   // Prefer a validated payload status; otherwise keep a validated canonical status so
   // unsupported values cannot clear or overwrite completed/failed (or any prior) status.
-  const normalizedStatus =
-    normalizeComponentStageStatus(statusStage.status) ??
-    normalizeComponentStageStatus(stage.status);
+  const incomingStatus = normalizeComponentStageStatus(statusStage.status);
+  const normalizedStatus = incomingStatus ?? normalizeComponentStageStatus(stage.status);
   if (normalizedStatus !== undefined) {
     result.status = normalizedStatus;
   }
-  if (Object.hasOwn(statusStage, 'error')) {
+  if (typeof statusStage.error === 'string') {
     result.error = statusStage.error;
-  } else {
+  } else if (incomingStatus !== undefined && incomingStatus !== 'failed') {
     delete result.error;
   }
   const selectedPatterns =

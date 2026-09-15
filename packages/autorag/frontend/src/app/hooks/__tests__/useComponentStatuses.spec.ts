@@ -912,14 +912,23 @@ describe('mergeStatusIntoStageMap', () => {
     expect(completedPreserved.status).toBe('completed');
     expect(completedPreserved.timestamp).toBe('2026-06-04T17:49:19.232065Z');
 
+    const legacyStatus = parseComponentStatusArtifact({
+      component_id: 'rag_optimization',
+      stages: [{ id: 'load_benchmark', status: 'unknown' }],
+    });
+    expect(legacyStatus.stages[0].status).toBeUndefined();
+
     const failedPreserved = mergeStageWithStatus(
-      { id: 'load_benchmark', description: 'Load benchmark', status: 'failed' },
       {
         id: 'load_benchmark',
-        status: 'unknown',
-      } as unknown as ComponentStatusFile['stages'][number],
+        description: 'Load benchmark',
+        status: 'failed',
+        error: 'localized failure details',
+      },
+      legacyStatus.stages[0],
     );
     expect(failedPreserved.status).toBe('failed');
+    expect(failedPreserved.error).toBe('localized failure details');
 
     const progressed = mergeStageWithStatus(
       { id: 'load_benchmark', description: 'Load benchmark', status: 'started' },

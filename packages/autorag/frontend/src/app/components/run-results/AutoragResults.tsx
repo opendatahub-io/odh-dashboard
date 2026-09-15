@@ -199,9 +199,15 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
   );
 
   const selectedIndex = React.useMemo(
-    () => (selectedPatternKey !== null ? Math.max(0, patternKeys.indexOf(selectedPatternKey)) : 0),
+    () => (selectedPatternKey !== null ? patternKeys.indexOf(selectedPatternKey) : -1),
     [selectedPatternKey, patternKeys],
   );
+
+  React.useEffect(() => {
+    if (selectedPatternKey !== null && selectedIndex < 0) {
+      setSelectedPatternKey(null);
+    }
+  }, [selectedIndex, selectedPatternKey]);
 
   const runIndexingPattern = runIndexingPatternName ? patterns[runIndexingPatternName] : undefined;
 
@@ -355,7 +361,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
           />
         </StackItem>
       </Stack>
-      {selectedPatternKey !== null && patternsArray.length > 0 && (
+      {selectedPatternKey !== null && selectedIndex >= 0 && (
         <React.Suspense fallback={null}>
           <PatternDetailsModal
             isOpen

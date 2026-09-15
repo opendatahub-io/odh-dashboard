@@ -891,9 +891,24 @@ describe('AutoragLeaderboard component', () => {
         patterns: { duplicate: pattern },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
       });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(
+        screen.getByRole('checkbox', { name: 'Answer faithfulness (unitxt)' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', { name: 'Answer faithfulness (custom)' }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Save'));
+
       showAllColumns();
 
-      expect(screen.getAllByTestId('metric-header-faithfulness')).toHaveLength(2);
+      expect(
+        screen.getByRole('columnheader', { name: /Answer faithfulness \(unitxt\)/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('columnheader', { name: /Answer faithfulness \(custom\)/i }),
+      ).toBeInTheDocument();
       const row = screen.getByTestId('leaderboard-row-unranked-duplicate');
       expect(within(row).getAllByTestId('metric-faithfulness-unranked-duplicate')).toHaveLength(2);
       expect(within(row).getByText('0.800')).toBeInTheDocument();

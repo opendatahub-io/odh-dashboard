@@ -3,7 +3,9 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
-import SampleQAEntry from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
+import SampleQAEntry, {
+  RetrievedContextSection,
+} from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
 
 const result = (contexts: AutoRAGEvaluationResult['answer_contexts']): AutoRAGEvaluationResult => ({
   question: 'What is RAG?',
@@ -31,6 +33,28 @@ describe('SampleQAEntry', () => {
     expect(screen.getByText('Canonical context')).toBeInTheDocument();
     expect(screen.getByText('s3://bucket/path/canonical.jsonl')).toBeInTheDocument();
     expect(screen.getByText('/mnt/data/legacy/document.txt')).toBeInTheDocument();
+  });
+
+  it('should include the pattern label in comparison context toggle names', () => {
+    render(
+      <>
+        <RetrievedContextSection
+          result={result([{ text: 'Primary', document_key: 'primary' }])}
+          label="pattern 0"
+        />
+        <RetrievedContextSection
+          result={result([{ text: 'Comparison', document_key: 'comparison' }])}
+          label="pattern 1"
+        />
+      </>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Retrieved context (pattern 0) (1)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Retrieved context (pattern 1) (1)' }),
+    ).toBeInTheDocument();
   });
 
   it('should not render a context section when contexts are absent', () => {

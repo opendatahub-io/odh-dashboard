@@ -388,21 +388,31 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
         optimizedMetric={optimizedMetric ?? ''}
         onSelectPattern={(index) => {
           const comparisonPattern = patterns[index];
-          const primaryRank = rankMap[patternKeys[selectedIndex]] ?? rank ?? 0;
-          const comparisonRank = rankMap[patternKeys[index]] ?? 0;
-          const getComparisonScore = (pattern: AutoragPattern): number => {
-            if (optimizedMetric) {
-              return getRankableOptimizationMetric(pattern, optimizedMetric)?.scores.mean ?? 0;
-            }
-            return getOptimizedScore(pattern);
+          const primaryRank = rankMap[patternKeys[selectedIndex]] ?? rank;
+          const comparisonRank = rankMap[patternKeys[index]];
+          const comparisonObjective = optimizedMetric ?? DEFAULT_OPTIMIZATION_METRIC;
+          const getComparisonScore = (pattern: AutoragPattern): number | undefined => {
+            const mean = getRankableOptimizationMetric(pattern, comparisonObjective)?.scores.mean;
+            return typeof mean === 'number' && Number.isFinite(mean) ? mean : undefined;
           };
           const comparisonScore = getComparisonScore(comparisonPattern);
           const primaryScore = getComparisonScore(data);
-          fireAutoragPatternsCompared(
-            comparisonEnabled ? 'changed' : 'initial',
-            comparisonRank - primaryRank,
-            comparisonScore - primaryScore,
-          );
+          const hasValidRank = (value: number | undefined): value is number =>
+            typeof value === 'number' && Number.isInteger(value) && value > 0;
+          if (
+            hasValidRank(primaryRank) &&
+            hasValidRank(comparisonRank) &&
+            typeof primaryScore === 'number' &&
+            Number.isFinite(primaryScore) &&
+            typeof comparisonScore === 'number' &&
+            Number.isFinite(comparisonScore)
+          ) {
+            fireAutoragPatternsCompared(
+              comparisonEnabled ? 'changed' : 'initial',
+              comparisonRank - primaryRank,
+              comparisonScore - primaryScore,
+            );
+          }
           setComparisonPatternIndex(index);
           setComparisonEnabled(true);
         }}

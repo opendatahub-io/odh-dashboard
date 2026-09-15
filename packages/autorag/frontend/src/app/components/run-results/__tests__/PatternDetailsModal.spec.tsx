@@ -957,6 +957,58 @@ describe('PatternDetailsModal', () => {
         });
       });
 
+      it('should not fire when the comparison pattern is unranked', async () => {
+        const user = userEvent.setup();
+        const unrankedPattern = {
+          ...comparisonPattern,
+          evaluation: { metrics: [] },
+        };
+        render(
+          <PatternDetailsModal
+            {...defaultProps}
+            patterns={[mockPattern, unrankedPattern]}
+            optimizedMetric="overall_score"
+          />,
+        );
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
+
+      it('should not fire when the primary pattern is unranked', async () => {
+        const user = userEvent.setup();
+        const unrankedPattern = {
+          ...mockPattern,
+          evaluation: { metrics: [] },
+        };
+        render(
+          <PatternDetailsModal
+            {...defaultProps}
+            patterns={[unrankedPattern, comparisonPattern]}
+            selectedIndex={0}
+            rank={undefined}
+            optimizedMetric="overall_score"
+          />,
+        );
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
+
       it('should not fire when the comparison select modal is cancelled', async () => {
         const user = userEvent.setup();
         render(<PatternDetailsModal {...twoPatternProps} />);

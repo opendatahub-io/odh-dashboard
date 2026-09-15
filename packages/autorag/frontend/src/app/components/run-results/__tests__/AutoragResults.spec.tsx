@@ -222,35 +222,42 @@ describe('AutoragResults', () => {
     });
   });
 
+  const createResultsElement = (
+    pipelineRun?: PipelineRun,
+    patterns: Record<string, AutoragPattern> = {},
+    namespace = 'test-namespace',
+    contextOverrides?: Partial<AutoragResultsContextProps>,
+    props?: React.ComponentProps<typeof AutoragResults>,
+  ) => (
+    <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
+      <Routes>
+        <Route
+          path="/autorag/:namespace/results"
+          element={
+            <AutoragResultsContext.Provider
+              value={{
+                pipelineRun,
+                patterns,
+                parameters: {},
+                ragPatternsBasePath: 'rag_patterns',
+                ...contextOverrides,
+              }}
+            >
+              <AutoragResults {...props} />
+            </AutoragResultsContext.Provider>
+          }
+        />
+      </Routes>
+    </MemoryRouter>
+  );
+
   const renderWithContext = (
     pipelineRun?: PipelineRun,
     patterns: Record<string, AutoragPattern> = {},
     namespace = 'test-namespace',
     contextOverrides?: Partial<AutoragResultsContextProps>,
     props?: React.ComponentProps<typeof AutoragResults>,
-  ) =>
-    render(
-      <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
-        <Routes>
-          <Route
-            path="/autorag/:namespace/results"
-            element={
-              <AutoragResultsContext.Provider
-                value={{
-                  pipelineRun,
-                  patterns,
-                  parameters: {},
-                  ragPatternsBasePath: 'rag_patterns',
-                  ...contextOverrides,
-                }}
-              >
-                <AutoragResults {...props} />
-              </AutoragResultsContext.Provider>
-            }
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
+  ) => render(createResultsElement(pipelineRun, patterns, namespace, contextOverrides, props));
 
   it('should render the pipeline visualization component', () => {
     renderWithContext(mockPipelineRun);
@@ -966,6 +973,26 @@ describe('AutoragResults', () => {
       );
     });
 
+    it('should select a pattern by record key when its display name differs', async () => {
+      const firstPattern = createMockPattern('First display name');
+      firstPattern.evaluation.metrics[1].scores.mean = 0.95;
+      const secondPattern = createMockPattern('Second display name');
+      secondPattern.evaluation.metrics[1].scores.mean = 0.8;
+
+      renderWithContext(mockPipelineRun, {
+        firstKey: firstPattern,
+        secondKey: secondPattern,
+      });
+
+      fireEvent.click(screen.getByTestId('pattern-link-2'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pattern-details-header')).toHaveTextContent(
+          'Second display name',
+        );
+      });
+    });
+
     it('should fire with source: resultsTable when opening via the row kebab "View details" action', () => {
       renderWithContext(mockPipelineRun, patterns);
 
@@ -977,6 +1004,44 @@ describe('AutoragResults', () => {
         AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
         { source: 'resultsTable' },
       );
+    });
+
+    it('should select a pattern by record key from the row kebab action', async () => {
+      const firstPattern = createMockPattern('First display name');
+      firstPattern.evaluation.metrics[1].scores.mean = 0.95;
+      const secondPattern = createMockPattern('Second display name');
+      secondPattern.evaluation.metrics[1].scores.mean = 0.8;
+
+      renderWithContext(mockPipelineRun, {
+        firstKey: firstPattern,
+        secondKey: secondPattern,
+      });
+
+      const secondRow = screen.getByTestId('leaderboard-row-2');
+      fireEvent.click(within(secondRow).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pattern-details-header')).toHaveTextContent(
+          'Second display name',
+        );
+      });
+    });
+
+    it('should close the details modal when the selected pattern is removed', async () => {
+      const selectedPatterns: Record<string, AutoragPattern> = {
+        stableKey: createMockPattern('Display name'),
+      };
+      const view = renderWithContext(mockPipelineRun, selectedPatterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+      expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
+
+      view.rerender(createResultsElement(mockPipelineRun, {}));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('pattern-details-modal')).not.toBeInTheDocument();
+      });
     });
 
     it('should not fire again when switching patterns via the in-modal pattern selector', () => {

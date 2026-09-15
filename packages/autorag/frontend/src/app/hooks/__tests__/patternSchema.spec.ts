@@ -1,9 +1,13 @@
 /* eslint-disable camelcase */
+import { readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 import {
   CanonicalPatternSchema,
   isCanonicalRawPattern,
   parsePatternArtifact,
 } from '~/app/hooks/patternSchema';
+import { normalizePattern } from '~/app/hooks/useAutoragResults';
+import { getOptimizedScore } from '~/app/utilities/utils';
 import { LegacyPatternSchema } from '~/app/hooks/legacyPattern';
 
 const baseSettings = {
@@ -50,6 +54,11 @@ const canonicalPattern = {
     ],
   },
 };
+
+const bundledPatternsDirectory = path.resolve(
+  __dirname,
+  '../../../../../bff/internal/fake/s3-bucket/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/rag-templates-optimization/e9920e43-b0cc-497a-ac3a-c7ee794a7787/rag_patterns',
+);
 
 describe('CanonicalPatternSchema', () => {
   it('should parse canonical evaluator-qualified aggregate metrics', () => {
@@ -159,5 +168,47 @@ describe('parsePatternArtifact', () => {
 
   it('should reject malformed artifacts', () => {
     expect(() => parsePatternArtifact({ name: 'bad' })).toThrow();
+  });
+
+  it('should parse every bundled canonical fixture with inference responses only', () => {
+    const patternNames = readdirSync(bundledPatternsDirectory)
+      .filter((name) => /^Pattern\d+$/.test(name))
+      .toSorted();
+
+    expect(patternNames).toHaveLength(8);
+
+    patternNames.forEach((patternName) => {
+      const fixture = JSON.parse(
+        readFileSync(path.join(bundledPatternsDirectory, patternName, 'pattern.json'), 'utf8'),
+      ) as Record<string, unknown>;
+      const parsed = parsePatternArtifact(fixture);
+
+      expect(isCanonicalRawPattern(parsed)).toBe(true);
+      if (isCanonicalRawPattern(parsed)) {
+        expect(parsed.inference?.responses_template).toBeDefined();
+        expect((parsed.settings as Record<string, unknown>).responses_template).toBeUndefined();
+      }
+    });
+  });
+
+  it('should preserve Pattern1 objective metadata for final score display', () => {
+    const fixture = JSON.parse(
+      readFileSync(path.join(bundledPatternsDirectory, 'Pattern1', 'pattern.json'), 'utf8'),
+    ) as Record<string, unknown>;
+    const parsed = parsePatternArtifact(fixture);
+
+    expect(isCanonicalRawPattern(parsed)).toBe(true);
+    if (isCanonicalRawPattern(parsed)) {
+      const optimizationMetrics = parsed.evaluation.metrics.filter(
+        (metric) => metric.optimization_metric === true,
+      );
+
+      expect(optimizationMetrics).toHaveLength(1);
+      expect(optimizationMetrics[0]).toMatchObject({
+        evaluator: 'unitxt',
+        name: 'faithfulness',
+      });
+      expect(getOptimizedScore(normalizePattern(parsed))).toBe(0.5895);
+    }
   });
 });
