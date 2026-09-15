@@ -136,6 +136,20 @@ The `package.json` `exports` field defines the public API. Key categories:
 | Build | `make build` (standalone MF remote) |
 | Dev server | `make dev-start-federated` |
 
+### RHAII host integration scope
+
+The RHAII Tilt integration establishes the federation foundation: the host loads the
+`modelServing` remote, supplies project context and the required host/Kubernetes SDK providers,
+and includes KServe extensions plus a local demo model for validation. It is local development and
+demo wiring, not a production model-serving deployment.
+
+The Deploy/Edit wizard is not yet fully supported by that host. A follow-up must integrate the
+remaining host capabilities that the wizard depends on, including access checks, serving-runtime
+templates, serving-connection and connection-type services, project serving-platform configuration,
+and the applicable dashboard configuration, settings, and analytics services. Treat the RHAII
+integration as validation of the established federation contract; do not represent it as complete
+Deploy/Edit wizard support until those host integrations are implemented and verified.
+
 ### Dependency Boundary Status
 
 | Criterion | Status |
