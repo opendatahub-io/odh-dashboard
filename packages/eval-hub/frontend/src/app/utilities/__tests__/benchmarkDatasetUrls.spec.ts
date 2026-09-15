@@ -21,6 +21,10 @@ describe('getBenchmarkDatasetUrl', () => {
     });
 
     it.each([
+      ['telemath', 'https://huggingface.co/datasets/netop/TeleMath'],
+      ['teleqna', 'https://huggingface.co/datasets/netop/TeleQnA'],
+      ['telelogs', 'https://huggingface.co/datasets/netop/TeleLogs'],
+      ['3gpp-tsg', 'https://huggingface.co/datasets/GSMA/ot-lite'],
       ['inspect/telemath', 'https://huggingface.co/datasets/netop/TeleMath'],
       ['inspect/teleqna', 'https://huggingface.co/datasets/netop/TeleQnA'],
       ['inspect/telelogs', 'https://huggingface.co/datasets/netop/TeleLogs'],
