@@ -1,6 +1,5 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
-import { waitForDspaReady } from './oc_commands/dspa';
-import { waitForManagedPipelines } from './autoXPipelines';
+import { waitForAutoXDspaReady, waitForManagedPipelines } from './autoXPipelines';
 import { automlExperimentsPage } from '../pages/automl/experimentsPage';
 import { automlConfigurePage } from '../pages/automl/configurePage';
 import { automlResultsPage } from '../pages/automl/resultsPage';
@@ -24,7 +23,7 @@ export const configureAutomlRun = (
 ): void => {
   cy.step('Login and wait for pipeline server');
   cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-  waitForDspaReady(projectName);
+  waitForAutoXDspaReady(projectName);
   waitForManagedPipelines(projectName);
 
   cy.step('Navigate to AutoML experiments page');
