@@ -1,5 +1,5 @@
 // Ensure the message response column stretches file search to full width
-.pf-chatbot__message-response:has(.chatbot-file-search) {
+.pf-chatbot__message-response:has(.chatbot-file-search, .chatbot-tool-calls) {
   align-items: stretch;
 }
 

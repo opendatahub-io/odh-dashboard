@@ -569,8 +569,8 @@ describe('useChatbotMessages', () => {
     });
   });
 
-  describe('tool response handling', () => {
-    it('should create tool response with isDefaultExpanded set to false', async () => {
+  describe('legacy tool response handling', () => {
+    it('should not create a legacy tool response for a non-streaming response', async () => {
       const mockResponseWithToolData: SimplifiedResponseData = {
         ...mockSuccessResponse,
         toolCallData: {
@@ -591,11 +591,10 @@ describe('useChatbotMessages', () => {
 
       const botMessage = result.current.messages[1];
 
-      // Verify isDefaultExpanded is set to false (key change)
-      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+      expect(botMessage.toolResponse).toBeUndefined();
     });
 
-    it('should create tool response with isDefaultExpanded false in streaming mode', async () => {
+    it('should not create a legacy tool response for a streaming response', async () => {
       const mockStreamingResponseWithToolData: SimplifiedResponseData = {
         ...mockSuccessResponse,
         toolCallData: {
@@ -625,8 +624,7 @@ describe('useChatbotMessages', () => {
 
       const botMessage = result.current.messages[1];
 
-      // Verify isDefaultExpanded is false in streaming mode too
-      expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
+      expect(botMessage.toolResponse).toBeUndefined();
     });
   });
 

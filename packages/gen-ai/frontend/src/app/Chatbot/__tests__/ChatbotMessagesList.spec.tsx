@@ -43,6 +43,11 @@ jest.mock('../ChatbotFileSearchResults', () => ({
   )),
 }));
 
+jest.mock('../ChatbotToolCalls', () => ({
+  __esModule: true,
+  default: jest.fn(({ toolCalls }) => <div data-testid="tool-calls">{toolCalls.length} tools</div>),
+}));
+
 jest.mock('@patternfly/chatbot', () => ({
   Message: jest.fn(
     ({
@@ -91,6 +96,59 @@ describe('ChatbotMessages', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('Tool call visibility', () => {
+    const toolCalls = [
+      {
+        id: 'call-1',
+        type: 'file_search_call',
+        name: 'file_search',
+        category: 'RAG' as const,
+        status: 'in_progress' as const,
+        startedAt: 0,
+      },
+    ];
+
+    it('should display tool calls before answer text starts streaming', () => {
+      render(
+        <ChatbotMessages
+          messageList={[{ id: 'msg-1', role: 'bot', content: '', toolCalls }]}
+          scrollRef={scrollRef}
+          isLoading
+        />,
+      );
+
+      expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
+    });
+
+    it('should hide tool calls while answer text is streaming', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            { id: 'msg-1', role: 'bot', content: 'Answer', toolCalls, isTextStreaming: true },
+          ]}
+          scrollRef={scrollRef}
+          isLoading
+        />,
+      );
+
+      expect(screen.queryByTestId('tool-calls')).not.toBeInTheDocument();
+    });
+
+    it('should display tool calls after answer text finishes streaming', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            { id: 'msg-1', role: 'bot', content: 'Answer', toolCalls, isTextStreaming: false },
+          ]}
+          scrollRef={scrollRef}
+          isLoading={false}
+        />,
+      );
+
+      expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
+    });
   });
 
   describe('Full Failure Error Pattern', () => {

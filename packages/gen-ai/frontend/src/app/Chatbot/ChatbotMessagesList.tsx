@@ -7,6 +7,7 @@ import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
 import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
 import ChatbotFileSearchResults from '~/app/Chatbot/ChatbotFileSearchResults';
+import ChatbotToolCalls from '~/app/Chatbot/ChatbotToolCalls';
 import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
 import './ChatbotMessagesList.scss';
@@ -75,6 +76,8 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           annotations,
           citationMap,
+          toolCalls,
+          isTextStreaming,
           ...messageProps
         } = message;
 
@@ -102,9 +105,17 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
 
         // Add file search results, metrics, and trace link to endContent (if present and no error)
         const traceId = metrics?.trace_id || errorClassification?.traceId;
-        if (message.role === 'bot' && (fileSearchData || metrics || traceId)) {
+        if (message.role === 'bot' && (toolCalls || fileSearchData || metrics || traceId)) {
           extraContent.endContent = (
             <Stack hasGutter>
+              {!errorClassification && !isTextStreaming && toolCalls && toolCalls.length > 0 && (
+                <StackItem>
+                  <ChatbotToolCalls
+                    toolCalls={toolCalls}
+                    isResponseComplete={message.isToolCallStreamComplete ?? !isLoading}
+                  />
+                </StackItem>
+              )}
               {!errorClassification && fileSearchData && (
                 <StackItem>
                   <ChatbotFileSearchResults
