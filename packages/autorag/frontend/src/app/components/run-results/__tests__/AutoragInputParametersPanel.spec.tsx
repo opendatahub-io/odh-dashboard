@@ -5,8 +5,7 @@ import React from 'react';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { PipelineRun } from '~/app/types';
+import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -36,7 +35,7 @@ jest.mock('mod-arch-shared', () => ({
   }) => <button {...props}>{icon}</button>,
 }));
 
-const defaultParameters: Partial<ConfigureSchema> = {
+const defaultParameters: AutoragRuntimeParameters = {
   display_name: 'My Run',
   input_data_secret_name: 's3-connection',
   input_data_bucket_name: 'my-bucket',
@@ -44,8 +43,8 @@ const defaultParameters: Partial<ConfigureSchema> = {
   test_data_secret_name: 's3-connection',
   test_data_bucket_name: 'my-bucket',
   test_data_key: 'eval-data.json',
-  maas_secret_name: 'ls-secret',
-  vector_db_secret_name: 'vector-db-secret',
+  ogx_secret_name: 'ls-secret',
+  vector_io_provider_id: 'milvus',
   optimization_metric: 'faithfulness',
   optimization_max_rag_patterns: 8,
   generation_models: ['llama-4-ma', 'gpt-oss-120b'],
@@ -110,14 +109,31 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should render parameter labels from the label map', () => {
     renderPanel();
-    expect(screen.getByText('MaaS connection')).toBeInTheDocument();
+    expect(screen.getByText('Open GenAI Stack connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection bucket')).toBeInTheDocument();
     expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
-    expect(screen.getByText('Vector database secret')).toBeInTheDocument();
+    expect(screen.getByText('Vector I/O provider')).toBeInTheDocument();
     expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
     expect(screen.getByText('Optimization metric')).toBeInTheDocument();
     expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+  });
+
+  it('should render labels and values for canonical runtime fields', () => {
+    renderPanel({
+      parameters: {
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
+      },
+    });
+
+    expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
+    expect(screen.getByText('MaaS connection')).toBeInTheDocument();
+    expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+    expect(screen.getByText('documents/a.pdf')).toBeInTheDocument();
+    expect(screen.getByText('maas-secret')).toBeInTheDocument();
+    expect(screen.getByText('vector-db-secret')).toBeInTheDocument();
   });
 
   it('should render detected languages with formatted confidence', () => {
@@ -256,7 +272,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         preset: 'unknown_preset',
-      } as unknown as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     expect(screen.getByText('unknown_preset')).toBeInTheDocument();
   });
@@ -309,7 +325,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         some_new_param: 'new-value',
-      } as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     expect(screen.getByText('Some new param')).toBeInTheDocument();
     expect(screen.getByText('new-value')).toBeInTheDocument();
@@ -327,9 +343,9 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         optimization_metric: 'faithfulness',
         input_data_secret_name: 's3-connection',
-        maas_secret_name: 'ls-secret',
+        ogx_secret_name: 'ls-secret',
         description: 'A test run',
-      } as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     const terms = screen.getAllByRole('term');
     // Filter out pipeline-level terms (Pipeline run ID, Pipeline Server output directory)
@@ -341,7 +357,7 @@ describe('AutoragInputParametersPanel', () => {
     const labels = parameterTerms.map((el) => el.textContent);
     expect(labels).toEqual([
       'Description',
-      'MaaS connection',
+      'Open GenAI Stack connection',
       'S3 connection',
       'Optimization metric',
     ]);
@@ -373,7 +389,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         some_flag: true,
-      } as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     expect(screen.getByText('true')).toBeInTheDocument();
   });
@@ -382,7 +398,7 @@ describe('AutoragInputParametersPanel', () => {
     renderPanel({
       parameters: {
         some_list: ['alpha', 'beta', 'gamma'],
-      } as Partial<ConfigureSchema>,
+      } as AutoragRuntimeParameters,
     });
     expect(screen.getByText('alpha, beta, gamma')).toBeInTheDocument();
   });
