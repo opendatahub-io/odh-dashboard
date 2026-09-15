@@ -1,6 +1,6 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { HF_TOKEN_ENV_NAME } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
-import { createSecret, replaceSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import {
   applyHfTokenEnvVar,
   assembleHfTokenSecret,
@@ -10,10 +10,12 @@ import {
 
 jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
   createSecret: jest.fn(),
+  getSecret: jest.fn(),
   replaceSecret: jest.fn(),
 }));
 
 const mockCreateSecret = jest.mocked(createSecret);
+const mockGetSecret = jest.mocked(getSecret);
 const mockReplaceSecret = jest.mocked(replaceSecret);
 
 describe('hfTokenSecret', () => {
@@ -93,6 +95,16 @@ describe('hfTokenSecret', () => {
   });
 
   it('should replace an existing secret when updating a configured token', async () => {
+    mockGetSecret.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: {
+        name: 'existing-secret',
+        namespace: 'test-project',
+        resourceVersion: '123',
+      },
+      data: { OTHER: 'value' },
+    });
     mockReplaceSecret.mockResolvedValue({
       apiVersion: 'v1',
       kind: 'Secret',
@@ -105,7 +117,17 @@ describe('hfTokenSecret', () => {
     });
 
     expect(secretName).toBe('existing-secret');
-    expect(mockReplaceSecret).toHaveBeenCalledTimes(1);
+    expect(mockGetSecret).toHaveBeenCalledWith('test-project', 'existing-secret', undefined);
+    expect(mockReplaceSecret).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          name: 'existing-secret',
+          resourceVersion: '123',
+        }),
+        stringData: { [HF_TOKEN_ENV_NAME]: 'hf_new' },
+      }),
+      undefined,
+    );
     expect(mockCreateSecret).not.toHaveBeenCalled();
   });
 

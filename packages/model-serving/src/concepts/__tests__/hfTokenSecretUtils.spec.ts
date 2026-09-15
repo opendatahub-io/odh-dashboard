@@ -7,11 +7,11 @@ import {
   patchHfTokenSecretOwnerReference,
 } from '../hfTokenSecretUtils';
 
-const makeSecret = (name: string): SecretKind =>
+const makeSecret = (name: string, labels?: Record<string, string>): SecretKind =>
   ({
     apiVersion: 'v1',
     kind: 'Secret',
-    metadata: { name, namespace: 'test-project' },
+    metadata: { name, namespace: 'test-project', labels },
     data: {},
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
@@ -19,7 +19,9 @@ const makeSecret = (name: string): SecretKind =>
 const makeOps = (): jest.Mocked<SecretOps> =>
   ({
     createSecret: jest.fn(),
-    getSecret: jest.fn((_project: string, name: string) => Promise.resolve(makeSecret(name))),
+    getSecret: jest.fn((_project: string, name: string) =>
+      Promise.resolve(makeSecret(name, { 'opendatahub.io/dashboard': 'true' })),
+    ),
     deleteSecret: jest.fn(() => Promise.resolve()),
     patchSecretWithOwnerReference: jest.fn(() => Promise.resolve()),
     patchSecretWithProtocolAnnotation: jest.fn(() => Promise.resolve()),
@@ -91,11 +93,37 @@ describe('hfTokenSecretUtils', () => {
     expect(ops.getSecret).toHaveBeenCalledWith('test-project', 'hf-secret');
     expect(ops.patchSecretWithOwnerReference).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: { name: 'hf-secret', namespace: 'test-project' },
+        metadata: expect.objectContaining({
+          name: 'hf-secret',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        }),
       }),
       deployment,
       'deployment-uid',
     );
+  });
+
+  it('should skip owner reference patch for secrets not managed by the dashboard', async () => {
+    const deployment = mockInferenceServiceK8sResource({
+      env: [
+        {
+          name: HF_TOKEN_ENV_NAME,
+          valueFrom: {
+            secretKeyRef: {
+              name: 'shared-secret',
+              key: HF_TOKEN_ENV_NAME,
+            },
+          },
+        },
+      ],
+    });
+    deployment.metadata.uid = 'deployment-uid';
+    ops.getSecret.mockResolvedValue(makeSecret('shared-secret'));
+
+    await patchHfTokenSecretOwnerReference(ops, deployment, 'deployment-uid');
+
+    expect(ops.patchSecretWithOwnerReference).not.toHaveBeenCalled();
   });
 
   it('should skip owner reference patch when deployment has no HF token env', async () => {

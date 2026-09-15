@@ -1,16 +1,14 @@
 import type { SecretOps } from '@odh-dashboard/plugin-core';
-import { HF_TOKEN_ENV_NAME } from '../shared/hfTokenConstants';
+import {
+  isDashboardManagedHfTokenEnvVar,
+  isDashboardManagedHfTokenSecret,
+} from '../shared/hfTokenConstants';
 import type { InferenceServiceKind } from '../shared';
 
 export const getHfTokenSecretNameFromDeployment = (
   deployment: InferenceServiceKind,
 ): string | undefined => {
-  const hfEnv = deployment.spec.predictor.model?.env?.find(
-    (envVar) =>
-      envVar.name === HF_TOKEN_ENV_NAME &&
-      envVar.valueFrom?.secretKeyRef?.name !== undefined &&
-      envVar.valueFrom.secretKeyRef.key === HF_TOKEN_ENV_NAME,
-  );
+  const hfEnv = deployment.spec.predictor.model?.env?.find(isDashboardManagedHfTokenEnvVar);
 
   return hfEnv?.valueFrom?.secretKeyRef?.name;
 };
@@ -32,6 +30,9 @@ export const patchHfTokenSecretOwnerReference = async (
 
   try {
     const secret = await ops.getSecret(deployment.metadata.namespace, secretName);
+    if (!isDashboardManagedHfTokenSecret(secret)) {
+      return;
+    }
     await ops.patchSecretWithOwnerReference(secret, deployment, uid);
   } catch (err) {
     console.warn('Skipping HF token secret owner reference patch', err);

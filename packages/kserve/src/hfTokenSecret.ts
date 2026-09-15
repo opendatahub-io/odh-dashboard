@@ -1,9 +1,27 @@
 import { getGeneratedSecretName } from '@odh-dashboard/k8s-core';
 import type { K8sAPIOptions, SecretKind } from '@odh-dashboard/k8s-core';
-import { createSecret, replaceSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import type { HuggingFaceApiKeyFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
-import { HF_TOKEN_ENV_NAME } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
+import {
+  HF_TOKEN_DASHBOARD_LABEL,
+  HF_TOKEN_ENV_NAME,
+  isDashboardManagedHfTokenEnvVar,
+} from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+
+const mergeHfTokenIntoExistingSecret = (existingSecret: SecretKind, token: string): SecretKind => ({
+  ...existingSecret,
+  metadata: {
+    ...existingSecret.metadata,
+    labels: {
+      ...existingSecret.metadata.labels,
+      [HF_TOKEN_DASHBOARD_LABEL]: 'true',
+    },
+  },
+  stringData: {
+    [HF_TOKEN_ENV_NAME]: token,
+  },
+});
 
 export const assembleHfTokenSecret = (
   namespace: string,
@@ -16,7 +34,7 @@ export const assembleHfTokenSecret = (
     name: secretName ?? getGeneratedSecretName(),
     namespace,
     labels: {
-      'opendatahub.io/dashboard': 'true',
+      [HF_TOKEN_DASHBOARD_LABEL]: 'true',
     },
   },
   stringData: {
@@ -35,14 +53,15 @@ export const resolveHfTokenSecretName = async (
 
   const trimmedToken = huggingFaceApiKey.token.trim();
   if (trimmedToken) {
-    const secret = assembleHfTokenSecret(
-      namespace,
-      trimmedToken,
-      huggingFaceApiKey.configuredSecretName,
-    );
     const createdSecret = huggingFaceApiKey.configuredSecretName
-      ? await replaceSecret(secret, opts)
-      : await createSecret(secret, opts);
+      ? await replaceSecret(
+          mergeHfTokenIntoExistingSecret(
+            await getSecret(namespace, huggingFaceApiKey.configuredSecretName, opts),
+            trimmedToken,
+          ),
+          opts,
+        )
+      : await createSecret(assembleHfTokenSecret(namespace, trimmedToken), opts);
     return createdSecret.metadata.name;
   }
 
@@ -52,12 +71,7 @@ export const resolveHfTokenSecretName = async (
 export const extractHuggingFaceApiKeyFromEnv = (
   deployment: InferenceServiceKind,
 ): HuggingFaceApiKeyFieldData | null => {
-  const hfEnv = deployment.spec.predictor.model?.env?.find(
-    (envVar) =>
-      envVar.name === HF_TOKEN_ENV_NAME &&
-      envVar.valueFrom?.secretKeyRef?.name !== undefined &&
-      envVar.valueFrom.secretKeyRef.key === HF_TOKEN_ENV_NAME,
-  );
+  const hfEnv = deployment.spec.predictor.model?.env?.find(isDashboardManagedHfTokenEnvVar);
 
   if (!hfEnv?.valueFrom?.secretKeyRef?.name) {
     return null;
