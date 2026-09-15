@@ -393,6 +393,28 @@ describe('ExtensibleDetailTabs', () => {
       expect(defaultOnSelect).toHaveBeenCalledWith('overview');
     });
 
+    it('should hide extension tabs when shouldShow throws synchronously', async () => {
+      const shouldShow = jest.fn(() => {
+        throw new Error('predicate failed');
+      });
+      const extensionTabs = [createMockTabExtension('throwing', 'Throwing', { shouldShow })];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="throwing"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('throwing-tab')).not.toBeInTheDocument();
+      });
+      expect(defaultOnSelect).toHaveBeenCalledWith('overview');
+    });
+
     it('should not call async shouldShow more than once per evaluation cycle', async () => {
       const shouldShow = jest.fn().mockImplementation(() => Promise.resolve(true));
       const extensionTabs = [createMockTabExtension('dedup', 'Dedup', { shouldShow })];

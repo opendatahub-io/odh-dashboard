@@ -51,7 +51,12 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
       if (cached && cached.props === componentProps) {
         promise = cached.promise;
       } else {
-        const result = shouldShow(componentProps);
+        let result: boolean | Promise<boolean>;
+        try {
+          result = shouldShow(componentProps);
+        } catch (error) {
+          result = Promise.reject(error);
+        }
         if (typeof result === 'boolean') {
           syncBatch[ext.uid] = result;
           cacheRef.current.delete(ext.uid);
