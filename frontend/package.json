@@ -132,7 +132,7 @@
     "@rspack/core": "2.1.10",
     "@rspack/dev-server": "^2.1.0",
     "@rspack/plugin-react-refresh": "^2.0.2",
-    "@types/dompurify": "^2.4.0",
+    "@types/dompurify": "^3.2.0",
     "@types/google-protobuf": "^3.15.12",
     "@types/lodash-es": "^4.17.12",
     "@types/react": "^18.3.31",
