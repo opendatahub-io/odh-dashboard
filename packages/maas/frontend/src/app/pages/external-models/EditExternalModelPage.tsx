@@ -53,6 +53,7 @@ const EditExternalModelPage: React.FC = () => {
     >
       {resolvedNamespace && externalModel && (
         <CreateExternalModelForm
+          key={`${resolvedNamespace}/${externalModel.name}`}
           namespace={resolvedNamespace}
           returnTo={returnTo}
           externalModel={externalModel}

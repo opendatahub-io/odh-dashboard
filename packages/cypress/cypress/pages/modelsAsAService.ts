@@ -2011,20 +2011,12 @@ class EditExternalModelPage {
     return cy.findByTestId('distribute-equally-button');
   }
 
-  findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('update-external-model-button');
-  }
-
   findUpdateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findSaveButton();
+    return cy.findByTestId('update-external-model-button');
   }
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('cancel-external-model-button');
-  }
-
-  findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText('Failed to update external model');
   }
 }
 

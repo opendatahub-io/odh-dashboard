@@ -591,7 +591,7 @@ describe('Edit External Model Page', () => {
     editExternalModelPage.findProjectInput().should('have.value', TEST_PROJECT);
     editExternalModelPage.findProviderReferencesTable().should('exist');
     editExternalModelPage.findProviderRefRow(0).should('contain.text', 'gpt-4o');
-    editExternalModelPage.findSaveButton().should('not.be.disabled');
+    editExternalModelPage.findUpdateButton().should('not.be.disabled');
   });
 
   it('should navigate to the edit page from the external models list', () => {
@@ -647,7 +647,7 @@ describe('Edit External Model Page', () => {
       .and('contain.text', 'claude-sonnet-4-5-20241022');
     editExternalModelPage.findDistributeEquallyButton().should('be.visible');
 
-    editExternalModelPage.findSaveButton().click();
+    editExternalModelPage.findUpdateButton().click();
 
     cy.wait('@updateExternalModel').then((interception) => {
       expect(interception.request.body.data.providerRefs).to.have.length(2);
@@ -686,7 +686,6 @@ describe('Edit External Model Page', () => {
     editProviderReferenceModal.shouldBeOpen(false);
 
     editExternalModelPage.findProviderRefRow(0).should('contain.text', 'gpt-4o-mini');
-    editExternalModelPage.findProviderRefRow(0).should('not.contain.text', 'gpt-4o');
   });
 
   it('should save an updated external model', () => {
@@ -718,7 +717,7 @@ describe('Edit External Model Page', () => {
     editProviderReferenceModal.findTargetModelInput().clear().type('gpt-4o-mini');
     editProviderReferenceModal.findSaveButton().click();
 
-    editExternalModelPage.findSaveButton().click();
+    editExternalModelPage.findUpdateButton().click();
 
     cy.wait('@updateExternalModel').then((interception) => {
       expect(interception.request.body.data).to.deep.include({
