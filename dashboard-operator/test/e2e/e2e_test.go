@@ -31,6 +31,7 @@ const (
 	serviceCAConfigMapName = "openshift-service-ca.crt"
 	serviceCAConfigMapKey  = "service-ca.crt"
 	preflightTimeout       = 30 * time.Second
+	fixtureReadyTimeout    = 10 * time.Minute
 )
 
 var (
@@ -66,7 +67,7 @@ func TestMain(m *testing.M) {
 		dashboardv1alpha1.DashboardInstanceName,
 		string(common.ConditionTypeProvisioningSucceeded),
 		metav1.ConditionTrue,
-		e2eCleanupTimeout,
+		fixtureReadyTimeout,
 	); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "E2E fixture readiness failed: %v\n", err)
 		if cleanupErr := cleanupE2EFixture(); cleanupErr != nil {

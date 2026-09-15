@@ -44,6 +44,8 @@ var expectedModuleOperands = []moduleOperand{
 }
 
 var bffTargets = []bffTarget{
+	// notebooks and dataRegistry are inventory operands, but their current BFFs
+	// do not implement the common HTTPS /healthcheck contract exercised here.
 	{name: "modelRegistry", service: "odh-dashboard-model-registry-ui", port: 8043},
 	{name: "genAi", service: "odh-dashboard-gen-ai-ui", port: 8143},
 	{name: "mlflow", service: "odh-dashboard-mlflow-ui", port: 8343},
@@ -158,7 +160,12 @@ func resolveServiceTargetPort(service *corev1.Service, pod *corev1.Pod, serviceP
 }
 
 func routeResponseHealthy(statusCode int) bool {
-	return statusCode >= 100 && statusCode < 500
+	switch statusCode {
+	case 200, 302, 303, 401, 403:
+		return true
+	default:
+		return false
+	}
 }
 
 func missingOperandResources(inventory operandInventory) []string {

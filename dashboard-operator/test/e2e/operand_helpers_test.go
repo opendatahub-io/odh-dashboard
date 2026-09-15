@@ -161,10 +161,12 @@ func TestExpectedModuleOperands(t *testing.T) {
 }
 
 func TestRouteResponseHealthy(t *testing.T) {
-	require.True(t, routeResponseHealthy(200))
-	require.True(t, routeResponseHealthy(401))
-	require.False(t, routeResponseHealthy(503))
-	require.False(t, routeResponseHealthy(0))
+	for _, statusCode := range []int{200, 302, 303, 401, 403} {
+		require.True(t, routeResponseHealthy(statusCode), "status %d", statusCode)
+	}
+	for _, statusCode := range []int{0, 201, 404, 499, 503} {
+		require.False(t, routeResponseHealthy(statusCode), "status %d", statusCode)
+	}
 }
 
 func TestMissingOperandResources(t *testing.T) {
