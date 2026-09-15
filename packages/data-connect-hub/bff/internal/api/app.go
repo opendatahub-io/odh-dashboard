@@ -45,8 +45,10 @@ type App struct {
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
 	// bffClientFactory creates clients for inter-BFF communication
-	bffClientFactory bffclient.BFFClientFactory
-	wsTracker        *proxy.ConnectionTracker
+	bffClientFactory     bffclient.BFFClientFactory
+	wsTracker            *proxy.ConnectionTracker
+	dataConnectHubAPIURL *helper.StringHolder
+	discoveryCancel      context.CancelFunc
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -115,6 +117,22 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	dataConnectHubAPIURL := helper.NewStringHolder(cfg.DataConnectHubAPIURL)
+	var discoveryCancel context.CancelFunc
+	if cfg.DataConnectHubAPIURL == "" && !cfg.MockK8Client {
+		resolveCtx, cancel := context.WithTimeout(context.Background(), dchDiscoveryAttemptTimeout)
+		resolvedURL, resolveErr := discoverDataConnectHubURL(resolveCtx, cfg, logger)
+		cancel()
+		if resolveErr != nil {
+			logger.Warn("Data Connect Hub API URL not available; connections will return an error until configured", "error", resolveErr)
+			discoveryCtx, cancelDiscovery := context.WithCancel(context.Background())
+			discoveryCancel = cancelDiscovery
+			startDataConnectHubDiscovery(discoveryCtx, cfg, logger, dataConnectHubAPIURL)
+		} else {
+			dataConnectHubAPIURL.Set(resolvedURL)
+		}
+	}
+
 	// Initialize BFF client factory for inter-BFF communication
 	var bffFactory bffclient.BFFClientFactory
 	bffConfig := bffclient.NewDefaultBFFClientConfig()
@@ -146,6 +164,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
+		dataConnectHubAPIURL:    dataConnectHubAPIURL,
+		discoveryCancel:         discoveryCancel,
 	}
 
 	app.wsTracker = proxy.NewConnectionTracker(app.logger)
@@ -155,6 +175,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.discoveryCancel != nil {
+		app.discoveryCancel()
+	}
 	if app.wsTracker != nil {
 		app.wsTracker.Stop()
 	}
@@ -175,6 +198,10 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(ConnectionsPath, app.GetConnectionsHandler)
+	apiRouter.GET(ConnectionTypesPath, app.GetConnectionTypesHandler)
+	apiRouter.POST(ConnectionReadinessPath, app.CheckConnectionReadinessHandler)
+	apiRouter.DELETE(ConnectionDeletePath, app.DeleteConnectionHandler)
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

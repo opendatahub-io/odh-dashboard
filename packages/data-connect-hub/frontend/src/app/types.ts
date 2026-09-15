@@ -27,3 +27,27 @@ export type NamespaceKind = {
   name: string;
   displayName?: string;
 };
+
+export type Connection = {
+  metadata: { id: string; tenant_id?: string };
+  resource: {
+    name: string;
+    data_connection_type_id: string;
+    format: 'tabular' | 'binary';
+  };
+  status: {
+    state: 'ready' | 'ingestion_not_ready' | 'not_ready';
+    message?: string;
+    updated_at?: string;
+  };
+};
+
+export type ConnectionType = {
+  metadata: { id: string; tenant_id?: string };
+  resource: {
+    name: string;
+    provider: string;
+    description?: string;
+  };
+  status?: { capabilities: { flight: boolean; rest: boolean } };
+};

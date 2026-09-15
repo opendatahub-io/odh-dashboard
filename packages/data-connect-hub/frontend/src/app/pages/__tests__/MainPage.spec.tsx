@@ -8,6 +8,8 @@ import MainPage from '~/app/pages/MainPage';
 
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn(),
+  asEnumMember: (value: string | undefined) => value,
+  DeploymentMode: { Federated: 'federated' },
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
@@ -70,6 +72,11 @@ jest.mock('~/app/components/ApplicationsPage', () => {
 
   return { __esModule: true, default: ApplicationsPage };
 });
+
+jest.mock('~/app/pages/ConnectionsTab', () => ({
+  __esModule: true,
+  default: () => <div data-testid="connections-tab" />,
+}));
 
 const mockUseNamespaceSelector = jest.mocked(useNamespaceSelector);
 const projects = [

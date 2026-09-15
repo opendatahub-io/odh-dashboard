@@ -17,6 +17,7 @@ type HTTPClientInterface interface {
 	GET(url string) ([]byte, error)
 	POST(url string, body io.Reader) ([]byte, error)
 	PATCH(url string, body io.Reader) ([]byte, error)
+	DELETE(url string) ([]byte, error)
 }
 
 type HTTPClient struct {
@@ -137,7 +138,7 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
-	if response.StatusCode != http.StatusCreated {
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated && response.StatusCode != http.StatusAccepted && response.StatusCode != http.StatusNoContent {
 		var errorResponse ErrorResponse
 		if err := json.Unmarshal(responseBody, &errorResponse); err != nil {
 			// If we can't unmarshal as JSON, create a generic error response with the raw body
@@ -219,6 +220,30 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 	return responseBody, nil
 }
 
+func (c *HTTPClient) DELETE(url string) ([]byte, error) {
+	requestID := uuid.NewString()
+	req, err := http.NewRequest(http.MethodDelete, c.baseURL+url, nil)
+	if err != nil {
+		return nil, err
+	}
+	c.applyHeaders(req)
+	logUpstreamReq(c.logger, requestID, req)
+	response, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	logUpstreamResp(c.logger, requestID, response, body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
+		return nil, newHTTPError(response.StatusCode, body)
+	}
+	return body, nil
+}
+
 func (c *HTTPClient) applyHeaders(req *http.Request) {
 	if c.Headers != nil {
 		for key, values := range c.Headers {
@@ -227,6 +252,17 @@ func (c *HTTPClient) applyHeaders(req *http.Request) {
 			}
 		}
 	}
+}
+
+func newHTTPError(statusCode int, body []byte) error {
+	var errorResponse ErrorResponse
+	if err := json.Unmarshal(body, &errorResponse); err != nil {
+		errorResponse = ErrorResponse{Code: strconv.Itoa(statusCode), Message: string(body)}
+	}
+	if errorResponse.Code == "" {
+		errorResponse.Code = strconv.Itoa(statusCode)
+	}
+	return &HTTPError{StatusCode: statusCode, ErrorResponse: errorResponse}
 }
 
 func logUpstreamReq(logger *slog.Logger, reqId string, req *http.Request) {

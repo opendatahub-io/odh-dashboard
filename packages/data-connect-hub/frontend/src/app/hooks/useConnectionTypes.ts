@@ -1,0 +1,17 @@
+import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
+import React from 'react';
+import { getConnectionTypes } from '~/app/api/dch';
+import { ConnectionType } from '~/app/types';
+
+export const useConnectionTypes = (
+  namespace: string,
+): [ConnectionType[], boolean, Error | undefined] => {
+  const callback = React.useCallback<FetchStateCallbackPromise<ConnectionType[]>>(
+    (opts: APIOptions) =>
+      namespace ? getConnectionTypes('')(opts, namespace) : Promise.resolve([]),
+    [namespace],
+  );
+
+  const [connectionTypes, loaded, error] = useFetchState<ConnectionType[]>(callback, []);
+  return [connectionTypes, loaded, error];
+};

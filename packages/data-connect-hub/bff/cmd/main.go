@@ -53,11 +53,11 @@ func main() {
 
 	// ─── Data Connect Hub API ────────────────────────────────────────
 	flag.StringVar(&cfg.DataConnectHubAPIURL, "data-connect-hub-api-url", getEnvAsString("DATA_CONNECT_HUB_API_URL", ""),
-		"Base URL of the upstream Data Connect Hub API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
-	flag.StringVar(&cfg.DataConnectHubConfigMapName, "data-connect-hub-configmap-name", getEnvAsString("DATA_CONNECT_HUB_CONFIGMAP_NAME", config.DefaultDataConnectHubConfigMapName),
-		"Name of the ConfigMap (in the pod's namespace) holding the Data Connect Hub API URL")
-	flag.StringVar(&cfg.DataConnectHubConfigMapKey, "data-connect-hub-configmap-key", getEnvAsString("DATA_CONNECT_HUB_CONFIGMAP_KEY", config.DefaultDataConnectHubConfigMapKey),
-		"Key within the Data Connect Hub ConfigMap holding the API URL")
+		"Base URL of the upstream Data Connect Hub API. Overrides gateway Route discovery when set (primarily for local dev/tests)")
+	flag.StringVar(&cfg.GatewayNamespace, "gateway-namespace", getEnvAsString("GATEWAY_NAMESPACE", "openshift-ingress"),
+		"Namespace containing the OpenShift gateway Route")
+	flag.StringVar(&cfg.GatewayName, "gateway-name", getEnvAsString("GATEWAY_NAME", "data-science-gateway"),
+		"Name of the OpenShift gateway Route")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")

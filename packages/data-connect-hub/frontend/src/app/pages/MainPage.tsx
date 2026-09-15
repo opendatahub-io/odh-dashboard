@@ -168,7 +168,7 @@ const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
         activeKey={activeTabKey}
         hidden={activeTabKey !== 'connections'}
       >
-        <ConnectionsTab />
+        <ConnectionsTab namespace={selectedProject} />
       </TabContent>
     </ApplicationsPage>
   );
