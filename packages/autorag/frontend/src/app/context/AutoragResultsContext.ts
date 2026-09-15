@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { AutoragRuntimeParameters, LegacyRunCredentials, PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { resolveBestPatternKey } from '~/app/utilities/utils';
+import { getOptimizedMetricForRAG, resolveBestPatternKey } from '~/app/utilities/utils';
 
 export type AutoragResultsContextProps = {
   pipelineRun?: PipelineRun;
@@ -19,7 +19,7 @@ export type AutoragResultsContextProps = {
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
   /**
-   * Client-side winning pattern: the record key of the highest-`final_score` pattern.
+   * Client-side winning pattern: the record key of the highest valid objective score.
    * AutoRAG has no backend `best_model`-equivalent field, so this is always derived from
    * loaded `patterns` (by record key, not display name) rather than the component stage map.
    */
@@ -69,7 +69,7 @@ export function getAutoragContext({
   // fields so read-only results remain usable when the create schema evolves.
   const parameters = pipelineRun?.runtime_config?.parameters;
 
-  const bestPatternKey = resolveBestPatternKey(patterns);
+  const bestPatternKey = resolveBestPatternKey(patterns, getOptimizedMetricForRAG(pipelineRun));
 
   return {
     pipelineRun,
