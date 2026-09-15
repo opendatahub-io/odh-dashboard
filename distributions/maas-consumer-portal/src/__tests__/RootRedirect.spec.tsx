@@ -23,9 +23,9 @@ describe('RootRedirect', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId('current-path').textContent).toBe('/maas/keys-and-subs');
+    expect(screen.getByTestId('current-path').textContent).toBe('/gen-ai-studio/assets');
     expect(screen.getByTestId('redirected-href').textContent).toBe(
-      '/maas-consumer-portal/maas/keys-and-subs',
+      '/maas-consumer-portal/gen-ai-studio/assets',
     );
   });
 });

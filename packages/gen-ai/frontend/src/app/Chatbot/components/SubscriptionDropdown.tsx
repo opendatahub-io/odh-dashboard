@@ -3,7 +3,7 @@ import { FormGroup, MenuToggle, Select, SelectList, SelectOption } from '@patter
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { SubscriptionInfo } from '~/app/types';
-import { isMaasLlamaModelId, splitLlamaModelId } from '~/app/utilities/utils';
+import { splitLlamaModelId } from '~/app/utilities/utils';
 
 interface SubscriptionDropdownProps {
   selectedModel: string;
@@ -49,11 +49,11 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
     if (!selectedModel) {
       return [];
     }
-    if (!isMaaSModel && !isMaasLlamaModelId(selectedModel)) {
-      return [];
-    }
-    const maasModelId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
-    const matchingModel = maasModels.find((m) => m.model_id === maasModelId);
+    const rawId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
+    // Strip "maas-" prefix added by the passthrough models handler so the ID
+    // matches what the MaaS catalog returns (e.g. "publishers/llm/models/gemini-proxy").
+    const maasModelId = rawId.startsWith('maas-') ? rawId.slice(5) : rawId;
+    const matchingModel = maasModels.find((m) => (m.id ?? m.model_id) === maasModelId);
     const subs = matchingModel?.subscriptions;
     // Validate each subscription has the required name field before returning
     return Array.isArray(subs) ? subs.filter(isValidSubscription) : [];
