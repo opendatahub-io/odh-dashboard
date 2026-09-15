@@ -1679,7 +1679,7 @@ describe('clusterQueueWorkloads', () => {
                   },
                 },
               },
-            },
+            } as K8sResourceCommon,
           ],
           inferenceServices: [],
           jobKindByUid: new Map(),
