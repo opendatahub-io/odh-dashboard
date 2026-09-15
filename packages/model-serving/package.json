@@ -103,7 +103,6 @@
   "dependencies": {
     "@odh-dashboard/foundation": "workspace:*",
     "@odh-dashboard/hardware-profiles": "workspace:*",
-    "@odh-dashboard/internal": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
     "@odh-dashboard/plugin-core": "workspace:*",
     "@odh-dashboard/trustyai": "workspace:*",
