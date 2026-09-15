@@ -27,7 +27,7 @@ import {
   ServingRuntimeModel,
 } from './models';
 
-export const initInterceptsForAllProjects = (): void => {
+export const initInterceptsForAllProjects = (options = { nimWizard: true }): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -41,6 +41,7 @@ export const initInterceptsForAllProjects = (): void => {
     mockDashboardConfig({
       disableKServe: false,
       disableNIMModelServing: false,
+      nimWizard: options.nimWizard,
     }),
   );
   cy.interceptK8sList(

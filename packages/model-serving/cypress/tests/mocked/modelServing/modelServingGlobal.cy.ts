@@ -274,7 +274,7 @@ describe('Model Serving Global', () => {
 
   it('All projects with every type of serving listed', () => {
     asClusterAdminUser();
-    initInterceptsForAllProjects();
+    initInterceptsForAllProjects({ nimWizard: false });
 
     // Visit the all-projects view and ensure each project type is listed
     modelServingGlobal.visit();
