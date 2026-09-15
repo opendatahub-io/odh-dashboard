@@ -13,7 +13,7 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
-  getMetricByName,
+  getRankableOptimizationMetric,
 } from '~/app/utilities/utils';
 
 type ColumnDef = {
@@ -40,7 +40,7 @@ const getColumns = (optimizedMetric: string): ColumnDef[] => [
   {
     label: `${formatMetricName(optimizedMetric)} (Optimized)`,
     getValue: (p) => {
-      const mean = getMetricByName(p, optimizedMetric)?.scores.mean;
+      const mean = getRankableOptimizationMetric(p, optimizedMetric)?.scores.mean;
       return mean != null ? formatMetricValue(mean) : 'N/A';
     },
   },
@@ -70,7 +70,8 @@ type PatternComparisonSelectModalProps = {
   isOpen: boolean;
   onClose: () => void;
   patterns: AutoragPattern[];
-  rankMap: Record<string, number>;
+  patternKeys?: string[];
+  rankMap: Partial<Record<string, number>>;
   currentPatternIndex: number;
   excludePatternIndex: number;
   optimizedMetric: string;
@@ -81,6 +82,7 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
   isOpen,
   onClose,
   patterns,
+  patternKeys = patterns.map((_, index) => String(index)),
   rankMap,
   currentPatternIndex,
   excludePatternIndex,
@@ -106,8 +108,12 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
       patterns
         .map((_, i) => i)
         .filter((i) => i !== excludePatternIndex)
-        .toSorted((a, b) => (rankMap[patterns[a].name] ?? 0) - (rankMap[patterns[b].name] ?? 0)),
-    [patterns, excludePatternIndex, rankMap],
+        .toSorted((a, b) => {
+          const aRank = rankMap[patternKeys[a]];
+          const bRank = rankMap[patternKeys[b]];
+          return (aRank ?? Number.MAX_SAFE_INTEGER) - (bRank ?? Number.MAX_SAFE_INTEGER);
+        }),
+    [patterns, excludePatternIndex, patternKeys, rankMap],
   );
 
   return (
@@ -144,7 +150,7 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
             <Tbody>
               {sortedIndices.map((i) => {
                 const pattern = patterns[i];
-                const patternRank = rankMap[pattern.name] ?? 0;
+                const patternRank = rankMap[patternKeys[i]];
                 const isSelected = selectedIndex === i;
 
                 return (
@@ -173,7 +179,7 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
                       stickyMinWidth="70px"
                       stickyLeftOffset="50px"
                     >
-                      {patternRank}
+                      {patternRank ?? 'Unranked'}
                     </Td>
                     <Td
                       dataLabel="Name"
