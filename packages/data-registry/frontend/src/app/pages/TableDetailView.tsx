@@ -194,7 +194,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 {asset.labels && asset.labels.length > 0 ? (
                   <LabelGroup data-testid="asset-labels" numLabels={5}>
                     {asset.labels.map((label) => (
-                      <Label key={label} isCompact>
+                      <Label key={label} isCompact variant="outline">
                         {label}
                       </Label>
                     ))}
@@ -213,7 +213,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 <CardBody>
                   <LabelGroup data-testid="asset-properties" numLabels={5}>
                     {Object.entries(asset.properties).map(([key, value]) => (
-                      <Label key={key} isCompact>
+                      <Label key={key} isCompact variant="outline">
                         {key}: {value}
                       </Label>
                     ))}

@@ -4,7 +4,9 @@ agent: agents/review.md
 
 skills:
   # This local skill replaces Fullsend's inherited pr-review with the
-  # registry-driven dimensions orchestrator.
+  # registry-driven dimensions orchestrator. ODH-owned reviewer skills are
+  # packaged as nested sub-agent definitions inside this skill, rather than
+  # imported as peer skills into the agent's global skill namespace.
   - skills/pr-review
 
 host_files:
@@ -15,6 +17,15 @@ host_files:
     optional: true
 
 model: sonnet
+
+# The base harness allows 20 minutes. The multi-dimension smoke run (PR #71,
+# 4 files, 11 producers) used 16m6s of it — 80% of budget on a deliberately
+# small fixture, and the run that opened this investigation was killed at
+# exactly this cap mid-write. Ordinary PRs qualify more dimensions over more
+# files, so 20 leaves no room. Step 7 of the orchestrator skill now writes and
+# validates the result before any optional work, so a timeout costs enrichment
+# rather than the whole review; this raise is the second half of that belt.
+timeout_minutes: 40
 
 env:
   runner:
@@ -27,7 +38,9 @@ env:
 validation_loop:
   script: scripts/validate-output-schema.sh
   schema: schemas/review-result.schema.json
-  max_iterations: 1
+  # One retry lets the runtime repair a missing or malformed result instead of
+  # turning an otherwise-complete review into a terminal workflow failure.
+  max_iterations: 2
 
 post_script: scripts/post-review.sh
 pre_script: scripts/pre-review.sh
