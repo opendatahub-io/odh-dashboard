@@ -5,7 +5,6 @@ import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import {
   cleanupAutoragInfrastructure,
@@ -23,7 +22,7 @@ import {
 
 const uuid = generateTestUUID();
 
-describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
+describe('AutoRAG Optimization E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
   let autoragWasEnabled = false;
@@ -80,9 +79,44 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       submitAutoragRun(testData, getAutoragInputDataKey(testData, uuid));
     },
   );
+});
 
-  // Regression only: waits for the run to complete (~30 min) and verifies
-  // leaderboard, pattern details, tabs, and notebook download.
+describe('AutoRAG Optimization completion results E2E', () => {
+  const completionUuid = generateTestUUID();
+  let testData: AutoragTestData;
+  let projectName: string;
+  let autoragWasEnabled = false;
+
+  retryableBefore(() =>
+    cy
+      .fixture('e2e/autorag/testAutoragOptimization.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as AutoragTestData;
+        projectName = `${testData.projectNamePrefix}-${completionUuid}`;
+      })
+      .then(() =>
+        isAutoragEnabled().then((wasEnabled) => {
+          autoragWasEnabled = wasEnabled;
+        }),
+      )
+      .then(() => setAutoragEnabled(true))
+      .then(() => checkAutoragMaaSReadiness())
+      .then(() => {
+        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        provisionVectorDatabase(projectName);
+      }),
+  );
+
+  after(() => {
+    if (!autoragWasEnabled) {
+      setAutoragEnabled(false);
+    }
+
+    cleanupAutoragInfrastructure(projectName, testData.maasSecretName, testData.vectorDbSecretName);
+    deleteS3TestFiles(projectName, testData.awsBucket, `*${completionUuid}*`);
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+  });
+
   it(
     'Verify optimization run completes and results are interactive',
     {
@@ -90,11 +124,17 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       retries: { runMode: 0, openMode: 0 },
     },
     () => {
-      cy.step('Navigate to the run results page');
-      autoragResultsPage.findRunsTable().contains(testData.runName).click();
+      configureAutoragRun(testData, projectName, completionUuid, { createConnections: true });
 
-      waitForAutoragRunCompletion();
-      verifyAutoragResultsInteraction();
+      cy.step('Set max RAG patterns to minimize run time');
+      autoragConfigurePage
+        .findMaxRagPatternsInputField()
+        .type(`{selectall}${testData.maxRagPatterns}`);
+
+      submitAutoragRun(testData, getAutoragInputDataKey(testData, completionUuid)).then(() => {
+        waitForAutoragRunCompletion();
+        verifyAutoragResultsInteraction();
+      });
     },
   );
 });
