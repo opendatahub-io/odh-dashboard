@@ -85,7 +85,7 @@ func (app *App) GetConnectionTypesHandler(w http.ResponseWriter, r *http.Request
 			app.serverErrorResponse(w, r, err)
 			return
 		}
-		client, err := httpclient.NewHTTPClient(app.logger, "", apiURL, headers, app.config.InsecureSkipVerify)
+		client, err := httpclient.NewHTTPClient(app.logger, "", apiURL, headers, app.config.InsecureSkipVerify, app.rootCAs)
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to create Data Connect Hub client: %w", err))
 			return

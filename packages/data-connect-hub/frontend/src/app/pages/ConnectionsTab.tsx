@@ -23,7 +23,8 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { EllipsisVIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternfly/react-icons';
+import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { DeleteModal } from '@odh-dashboard/ui-core';
 import { deleteConnection, verifyConnection } from '~/app/api/dch';
@@ -66,6 +67,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
   const [typeOpen, setTypeOpen] = React.useState(false);
   const [actionsFor, setActionsFor] = React.useState<string>();
   const [verifying, setVerifying] = React.useState<Set<string>>(new Set());
+  const [verificationErrors, setVerificationErrors] = React.useState<Map<string, Error>>(new Map());
   const [verificationResponses, setVerificationResponses] = React.useState<Set<string>>(new Set());
   const [verificationBaselines, setVerificationBaselines] = React.useState<
     Map<string, string | undefined>
@@ -75,6 +77,11 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
   const [deleting, setDeleting] = React.useState(false);
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+
+  React.useEffect(() => {
+    setDeleteTarget(undefined);
+    setDeleteError(undefined);
+  }, [namespace]);
 
   const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
   const typeIds = React.useMemo(
@@ -220,12 +227,23 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
   const handleVerify = async (id: string) => {
     const connection = connections.find((item) => item.metadata.id === id);
     setVerificationBaselines((current) => new Map(current).set(id, connection?.status.updated_at));
+    setVerificationErrors((current) => {
+      const next = new Map(current);
+      next.delete(id);
+      return next;
+    });
     setVerifying((current) => new Set(current).add(id));
     setActionsFor(undefined);
     try {
       await verifyConnection('')({}, namespace, id);
+      refresh();
+      setVerificationErrors((current) => {
+        const next = new Map(current);
+        next.delete(id);
+        return next;
+      });
       setVerificationResponses((current) => new Set(current).add(id));
-    } catch {
+    } catch (verificationFailure) {
       setVerifying((current) => {
         const next = new Set(current);
         next.delete(id);
@@ -234,6 +252,16 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
       setVerificationBaselines((current) => {
         const next = new Map(current);
         next.delete(id);
+        return next;
+      });
+      setVerificationErrors((current) => {
+        const next = new Map(current);
+        next.set(
+          id,
+          verificationFailure instanceof Error
+            ? verificationFailure
+            : new Error('Unable to verify connection'),
+        );
         return next;
       });
       setVerificationResponses((current) => {
@@ -384,7 +412,11 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
                 <Td dataLabel="Type">{getTypeName(connection.resource.data_connection_type_id)}</Td>
                 <Td dataLabel="Status">
                   {verifying.has(connection.metadata.id) ? (
-                    <Label variant="outline" status="custom" icon={<Spinner size="sm" />}>
+                    <Label
+                      color="blue"
+                      variant="outline"
+                      icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
+                    >
                       Verifying
                     </Label>
                   ) : connection.status.updated_at ? (
@@ -402,6 +434,13 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
                     <Label variant="outline" color="grey">
                       Unverified
                     </Label>
+                  )}
+                  {verificationErrors.has(connection.metadata.id) && (
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        {verificationErrors.get(connection.metadata.id)?.message}
+                      </HelperTextItem>
+                    </HelperText>
                   )}
                 </Td>
                 <Td isActionCell>

@@ -73,9 +73,13 @@ jest.mock('~/app/components/ApplicationsPage', () => {
   return { __esModule: true, default: ApplicationsPage };
 });
 
+const mockConnectionsTab = jest.fn(({ namespace }: { namespace: string }) => (
+  <div data-testid="connections-tab">{namespace}</div>
+));
+
 jest.mock('~/app/pages/ConnectionsTab', () => ({
   __esModule: true,
-  default: () => <div data-testid="connections-tab" />,
+  default: (props: { namespace: string }) => mockConnectionsTab(props),
 }));
 
 const mockUseNamespaceSelector = jest.mocked(useNamespaceSelector);
@@ -134,6 +138,50 @@ describe('MainPage', () => {
     expect(screen.getByTestId('location').textContent).toBe(
       '/ai-hub/connections/connections?project=project-1',
     );
+  });
+
+  it('should pass the query-selected project to ConnectionsTab', async () => {
+    renderPage('/ai-hub/connections/connections?project=project-2');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith({ namespace: 'project-2' });
+    });
+  });
+
+  it('should pass the preferred project to ConnectionsTab when no project is queried', async () => {
+    mockUseNamespaceSelector.mockReturnValue({
+      namespaces: projects,
+      preferredNamespace: projects[1],
+      updatePreferredNamespace,
+      namespacesLoaded: true,
+      namespacesLoadError: undefined,
+      initializationError: undefined,
+      clearStoredNamespace: jest.fn(),
+    });
+
+    renderPage('/ai-hub/connections/connections');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith({ namespace: 'project-2' });
+    });
+  });
+
+  it('should pass the first project to ConnectionsTab when no project is queried or preferred', async () => {
+    mockUseNamespaceSelector.mockReturnValue({
+      namespaces: projects,
+      preferredNamespace: undefined,
+      updatePreferredNamespace,
+      namespacesLoaded: true,
+      namespacesLoadError: undefined,
+      initializationError: undefined,
+      clearStoredNamespace: jest.fn(),
+    });
+
+    renderPage('/ai-hub/connections/connections');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith({ namespace: 'project-1' });
+    });
   });
 
   it('should update the project query parameter when a project is selected', async () => {

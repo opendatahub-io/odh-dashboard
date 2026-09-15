@@ -9,13 +9,50 @@ import {
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { Connection, ConnectionType } from '~/app/types';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isConnection = (value: unknown): value is Connection => {
+  if (
+    !isRecord(value) ||
+    !isRecord(value.metadata) ||
+    !isRecord(value.resource) ||
+    !isRecord(value.status)
+  ) {
+    return false;
+  }
+  return (
+    typeof value.metadata.id === 'string' &&
+    typeof value.resource.name === 'string' &&
+    typeof value.resource.data_connection_type_id === 'string' &&
+    (value.resource.format === 'tabular' || value.resource.format === 'binary') &&
+    (value.status.state === 'ready' ||
+      value.status.state === 'ingestion_not_ready' ||
+      value.status.state === 'not_ready') &&
+    (value.status.message === undefined || typeof value.status.message === 'string') &&
+    (value.status.updated_at === undefined || typeof value.status.updated_at === 'string')
+  );
+};
+
+const isConnectionType = (value: unknown): value is ConnectionType =>
+  isRecord(value) &&
+  isRecord(value.metadata) &&
+  isRecord(value.resource) &&
+  typeof value.metadata.id === 'string' &&
+  typeof value.resource.name === 'string' &&
+  typeof value.resource.provider === 'string';
+
 export const getConnections =
   (hostPath: string) =>
   (opts: APIOptions, namespace: string): Promise<Connection[]> =>
     handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/connections`, { namespace }, opts),
     ).then((response) => {
-      if (isModArchResponse<Connection[]>(response)) {
+      if (
+        isModArchResponse<unknown>(response) &&
+        Array.isArray(response.data) &&
+        response.data.every(isConnection)
+      ) {
         return response.data;
       }
       throw new Error('Invalid response format');
@@ -32,7 +69,11 @@ export const getConnectionTypes =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<ConnectionType[]>(response)) {
+      if (
+        isModArchResponse<unknown>(response) &&
+        Array.isArray(response.data) &&
+        response.data.every(isConnectionType)
+      ) {
         return response.data;
       }
       throw new Error('Invalid response format');
