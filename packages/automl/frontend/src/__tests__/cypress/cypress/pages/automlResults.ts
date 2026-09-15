@@ -1,5 +1,3 @@
-const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 class AutomlResultsPage {
   visit(namespace: string, runId: string) {
     cy.visit(`/develop-train/automl/results/${namespace}/${runId}`);
@@ -63,7 +61,7 @@ class AutomlResultsPage {
   }
 
   findModelSelectorOption(name: string) {
-    return cy.findByRole('menuitem', { name: new RegExp(escapeRegExp(name)) });
+    return this.findModelSelectorDropdown().findDropdownItem(name, 'model-selector-menu');
   }
 
   findTab(tabName: string) {
