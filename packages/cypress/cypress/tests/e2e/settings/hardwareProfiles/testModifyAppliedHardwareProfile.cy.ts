@@ -140,7 +140,10 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       createSpawnerPage.getNameInput().type(testData.workbenchName);
       createSpawnerPage.getDescriptionInput().type(projectDescription);
       createSpawnerPage.findNotebookImage(testData.notebookImageName).click();
-      hardwareProfileSection.selectPotentiallyDisabledProfile(hardwareProfileName);
+      hardwareProfileSection.selectPotentiallyDisabledProfile(
+        `${hardwareProfileName} ${testData.hardwareProfileDescription} ${testData.hardwareProfileDeploymentSize}`,
+        hardwareProfileName,
+      );
       createSpawnerPage.findSubmitButton().click();
 
       // confirm wb creation
@@ -157,7 +160,10 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
 
       cy.step('Select a different Hardware Profile');
       // update hardware profile selection
-      hardwareProfileSection.selectPotentiallyDisabledProfile(updatedHardwareProfileName);
+      hardwareProfileSection.selectPotentiallyDisabledProfile(
+        `${updatedHardwareProfileName} ${testData.hardwareProfileDescription} ${testData.hardwareProfileDeploymentSize}`,
+        updatedHardwareProfileName,
+      );
       hardwareProfileSection.findSelect().should('contain', updatedHardwareProfileName);
       createSpawnerPage.findSubmitButton().click();
 

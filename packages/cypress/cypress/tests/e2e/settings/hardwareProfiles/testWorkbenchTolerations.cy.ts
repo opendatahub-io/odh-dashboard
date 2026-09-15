@@ -89,7 +89,10 @@ describe('Workbenches - tolerations tests', () => {
       createSpawnerPage.getNameInput().type(testData.workbenchName);
       createSpawnerPage.getDescriptionInput().type(projectDescription);
       createSpawnerPage.findNotebookImage(testData.notebookImageName).click();
-      hardwareProfileSection.selectPotentiallyDisabledProfile(testData.hardwareProfileName);
+      hardwareProfileSection.selectPotentiallyDisabledProfile(
+        testData.hardwareProfileDeploymentSize,
+        hardwareProfileResourceName,
+      );
       createSpawnerPage.findSubmitButton().click();
 
       cy.step(`Wait for workbench ${testData.workbenchName} to display a "Running" status`);

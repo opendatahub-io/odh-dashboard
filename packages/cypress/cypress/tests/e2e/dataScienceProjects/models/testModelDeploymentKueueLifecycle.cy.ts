@@ -142,7 +142,10 @@ const deployModelViaWizard = (ctx: TestContext, modelName: string) => {
   modelServingWizard.findResourceNameButton().click();
   modelServingWizard.findResourceNameInput().should('be.visible');
   modelServingWizard.selectDeploymentMethodByKey(FIXTURE.deploymentMethod);
-  modelServingWizard.selectPotentiallyDisabledProfile(ctx.testData.hardwareProfileDisplayName);
+  modelServingWizard.selectPotentiallyDisabledProfile(
+    ctx.testData.hardwareProfileDisplayName,
+    ctx.testData.hardwareProfileName,
+  );
   modelServingWizard
     .findHardProfileSelection()
     .should('contain.text', ctx.testData.hardwareProfileDisplayName);

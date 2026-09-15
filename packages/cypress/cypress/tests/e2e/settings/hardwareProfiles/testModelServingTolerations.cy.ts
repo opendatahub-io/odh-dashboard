@@ -31,11 +31,13 @@ let resourceName: string;
 let contributor: string;
 let modelName: string;
 let modelFilePath: string;
+let hardwareProfileResourceName: string;
 let tolerationValue: string;
 let modelFormat: string;
 let servingRuntime: string;
 const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
+const hardwareProfileUuid = generateTestUUID();
 
 describe('ModelServing - tolerations tests', () => {
   retryableBefore(() => {
@@ -47,6 +49,7 @@ describe('ModelServing - tolerations tests', () => {
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         modelName = testData.modelName;
         modelFilePath = testData.modelFilePath;
+        hardwareProfileResourceName = `${testData.hardwareProfileName}-${hardwareProfileUuid}`;
         tolerationValue = testData.tolerationValue;
         modelFormat = testData.modelFormat;
         servingRuntime = testData.servingRuntime;
@@ -60,7 +63,9 @@ describe('ModelServing - tolerations tests', () => {
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
 
-        cy.log(`Loaded Hardware Profile Name: ${testData.hardwareProfileName}`);
+        // Load Hardware Profile
+        cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+        // Cleanup Hardware Profile if it already exists
         createCleanHardwareProfile(testData.resourceYamlPath);
 
         // Create a Project for pipelines
@@ -143,7 +148,10 @@ describe('ModelServing - tolerations tests', () => {
         .then((val) => {
           resourceName = val as string;
         });
-      inferenceServiceModal.selectPotentiallyDisabledProfile(testData.hardwareProfileName);
+      inferenceServiceModal.selectPotentiallyDisabledProfile(
+        testData.hardwareProfileDeploymentSize,
+        hardwareProfileResourceName,
+      );
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
