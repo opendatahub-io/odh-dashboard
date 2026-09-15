@@ -14,6 +14,7 @@ on:
       - 'manifests/**'
       - 'dashboard-operator/**'
       - '.github/workflows/pr-build-validation.yml'
+      - '.github/pr-build-simulation/**'
 
 env:
   NODE_VERSION: '22'
@@ -459,9 +460,10 @@ jobs:
             # schema (Dashboard, ConsoleLink, route.openshift.io, ...) pass as "skipped".
             # But that flag also silently skips a *misspelled* built-in kind/apiVersion
             # (e.g. "Deploymnet" or "aps/v1"), masking real typos. To close that gap we
-            # emit JSON and fail if any skipped resource belongs to a core Kubernetes group
-            # (core "" or *.k8s.io or apps/batch/policy/autoscaling/extensions) — those
-            # always have a schema, so a skip there means the kind/apiVersion is wrong.
+            # emit JSON and fail if a skipped resource is really a built-in (see the guard
+            # below). NOTE: kubeconform only lists valid/skipped resources in the JSON when
+            # -verbose is set; without it "resources" holds only invalid/error entries, so
+            # the skip guard would never see anything and silently pass everything.
             KC_JSON=$(mktemp)
             set +e
             kubeconform \
@@ -469,6 +471,7 @@ jobs:
                 -ignore-missing-schemas \
                 -kubernetes-version "$K8S_SCHEMA_VERSION" \
                 -output json \
+                -verbose \
                 "$RENDERED" > "$KC_JSON" 2>/tmp/kubeconform-err
             KC_EXIT=$?
             set -e
@@ -484,13 +487,24 @@ jobs:
             SKIPPED_KINDS=$(jq -r '[.resources[] | select(.status=="statusSkipped") | .kind] | unique | join(", ")' "$KC_JSON" 2>/dev/null || echo "")
             [ -n "$SKIPPED_KINDS" ] && echo "  ℹ️  skipped (no schema): $SKIPPED_KINDS"
 
-            # Fail if a *built-in* kind was skipped — that indicates a typo, not a CRD.
-            BAD_SKIPS=$(jq -r '
+            # Fail if a *built-in* resource was skipped — that indicates a typo, not a CRD.
+            # A skip is a typo if EITHER the apiVersion group is a core built-in group OR the
+            # kind is a well-known built-in kind. We can't match ".k8s.io" broadly: several
+            # CRD groups legitimately live there (apiextensions.k8s.io/CustomResourceDefinition,
+            # gateway.networking.k8s.io/HTTPRoute) and kubeconform has no schema for them, so a
+            # suffix match would false-fail on valid manifests. Hence explicit allowlists:
+            #   - GROUP match catches a misspelled kind under a real group (Deployment -> Deploymnet)
+            #   - KIND  match catches a misspelled group under a real kind  (apps/v1 -> aps/v1)
+            BUILTIN_GROUPS='["", "apps","batch","autoscaling","policy","extensions","rbac.authorization.k8s.io","networking.k8s.io","storage.k8s.io","scheduling.k8s.io","coordination.k8s.io","certificates.k8s.io","admissionregistration.k8s.io","apiregistration.k8s.io","events.k8s.io","discovery.k8s.io","node.k8s.io","flowcontrol.apiserver.k8s.io"]'
+            BUILTIN_KINDS='["Deployment","StatefulSet","DaemonSet","ReplicaSet","ReplicationController","Pod","Service","ConfigMap","Secret","ServiceAccount","PersistentVolumeClaim","PersistentVolume","Namespace","Node","Endpoints","LimitRange","ResourceQuota","Event","Role","RoleBinding","ClusterRole","ClusterRoleBinding","Job","CronJob","Ingress","IngressClass","NetworkPolicy","HorizontalPodAutoscaler","PodDisruptionBudget","StorageClass","PriorityClass","MutatingWebhookConfiguration","ValidatingWebhookConfiguration","APIService","CSIDriver","VolumeAttachment"]'
+            BAD_SKIPS=$(jq -r \
+              --argjson groups "$BUILTIN_GROUPS" \
+              --argjson kinds "$BUILTIN_KINDS" '
               .resources[]
               | select(.status=="statusSkipped")
               | . as $r
               | (if ($r.version | contains("/")) then ($r.version | split("/")[0]) else "" end) as $g
-              | select($g == "" or ($g | endswith(".k8s.io")) or ($g | IN("apps","batch","policy","autoscaling","extensions")))
+              | select(($g | IN($groups[])) or ($r.kind | IN($kinds[])))
               | "  \($r.kind) (\($r.version))"
             ' "$KC_JSON" 2>/dev/null || echo "")
             if [ -n "$BAD_SKIPS" ]; then
