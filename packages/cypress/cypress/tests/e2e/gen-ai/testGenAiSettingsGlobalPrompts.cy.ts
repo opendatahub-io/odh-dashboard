@@ -165,8 +165,6 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
     'Load a global prompt and use it in the playground',
     {
       tags: [
-        '@Sanity',
-        '@SanitySet1',
         '@GenAI',
         '@PromptManagement',
         '@MLflow',
