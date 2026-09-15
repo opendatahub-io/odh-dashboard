@@ -5,6 +5,9 @@ import { LegacyPatternSchema, type LegacyRawPattern } from './legacyPattern';
 
 const FiniteNumberSchema = z.number().finite();
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
 const ScoreMetricSchema = z
   .object({
     mean: FiniteNumberSchema.nullable(),
@@ -57,12 +60,25 @@ const EmbeddingSchema = z
   })
   .passthrough();
 
-const VectorStoreBindingSchema = z
-  .object({
-    provider_type: z.string(),
-    collection_name: z.string(),
-  })
-  .passthrough();
+const VectorStoreBindingSchema = z.preprocess(
+  (value) => {
+    if (!isRecord(value) || Array.isArray(value)) {
+      return value;
+    }
+
+    if (!('collection_name' in value) && typeof value.vector_store_id === 'string') {
+      return { ...value, collection_name: value.vector_store_id };
+    }
+
+    return value;
+  },
+  z
+    .object({
+      provider_type: z.string(),
+      collection_name: z.string(),
+    })
+    .passthrough(),
+);
 
 const PatternSettingsSchema = z
   .object({
@@ -116,9 +132,6 @@ export const CanonicalPatternSchema = PatternBaseSchema.extend({
 
 export type CanonicalRawPattern = z.infer<typeof CanonicalPatternSchema>;
 export type RawPatternArtifact = CanonicalRawPattern | LegacyRawPattern;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
 
 /** Dispatches by persisted shape, with canonical evaluation as the primary path. */
 export const parsePatternArtifact = (value: unknown): RawPatternArtifact => {

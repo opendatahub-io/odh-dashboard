@@ -84,6 +84,65 @@ describe('CanonicalPatternSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('should normalize a legacy vector_store_id in a canonical artifact', () => {
+    const result = parsePatternArtifact({
+      ...canonicalPattern,
+      inference: { responses_template: { model: 'test' } },
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: {
+          provider_id: 'milvus',
+          provider_type: 'milvus',
+          vector_store_id: 'legacy-collection',
+        },
+      },
+    });
+
+    expect(isCanonicalRawPattern(result)).toBe(true);
+    if (isCanonicalRawPattern(result)) {
+      expect(result.settings.vector_store_binding).toEqual({
+        provider_id: 'milvus',
+        provider_type: 'milvus',
+        vector_store_id: 'legacy-collection',
+        collection_name: 'legacy-collection',
+      });
+      expect(result.inference?.responses_template).toEqual({ model: 'test' });
+    }
+  });
+
+  it('should prefer collection_name when both binding fields exist', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: {
+          provider_type: 'milvus',
+          collection_name: 'canonical-collection',
+          vector_store_id: 'legacy-collection',
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.settings.vector_store_binding?.collection_name).toBe(
+        'canonical-collection',
+      );
+    }
+  });
+
+  it('should reject a canonical binding with neither collection field', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: { provider_type: 'milvus' },
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('should preserve nullable canonical aggregate scores', () => {
     const result = CanonicalPatternSchema.safeParse({
       ...canonicalPattern,
