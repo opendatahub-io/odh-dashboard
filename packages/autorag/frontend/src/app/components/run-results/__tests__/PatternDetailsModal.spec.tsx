@@ -172,6 +172,28 @@ describe('PatternDetailsModal', () => {
     expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.660');
   });
 
+  it('should display the run objective for a non-winning canonical pattern without an optimization flag', () => {
+    const nonWinningCanonicalPattern = {
+      ...mockPattern,
+      evaluation: {
+        metrics: mockPattern.evaluation.metrics.map((metric) =>
+          metric.name === 'overall_score' ? { ...metric, optimization_metric: false } : metric,
+        ),
+      },
+    };
+
+    render(
+      <PatternDetailsModal
+        {...defaultProps}
+        patterns={[nonWinningCanonicalPattern]}
+        optimizedMetric="faithfulness"
+        rank={2}
+      />,
+    );
+
+    expect(screen.getByText('0.42')).toBeInTheDocument();
+  });
+
   it('should show plain text when only one pattern exists', () => {
     render(<PatternDetailsModal {...defaultProps} />);
     expect(screen.queryByTestId('pattern-selector-dropdown')).not.toBeInTheDocument();
