@@ -1,7 +1,5 @@
 import * as React from 'react';
-import type { MaasCredentials, PipelineRun } from '~/app/types';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import type { AutoragRuntimeParameters, LegacyRunCredentials, PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { resolveBestPatternKey } from '~/app/utilities/utils';
@@ -14,9 +12,9 @@ export type AutoragResultsContextProps = {
   patternsError?: boolean;
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
-  parameters?: Partial<ConfigureSchema>;
+  parameters?: AutoragRuntimeParameters;
   ragPatternsBasePath?: string;
-  maasCredentials?: MaasCredentials;
+  ogxCredentials?: LegacyRunCredentials;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
@@ -49,7 +47,7 @@ export function getAutoragContext({
   patternsLoadError,
   onRetryPatterns,
   ragPatternsBasePath,
-  maasCredentials,
+  ogxCredentials,
   componentStageMap,
   componentStageMapLoading,
   componentStageMapError,
@@ -62,24 +60,14 @@ export function getAutoragContext({
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
   ragPatternsBasePath?: string;
-  maasCredentials?: MaasCredentials;
+  ogxCredentials?: LegacyRunCredentials;
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
 }): AutoragResultsContextProps {
-  // Validate runtime_config.parameters against ConfigureSchema to ensure type safety
-  const configureSchema = createConfigureSchema();
-  const parseResult = configureSchema.base
-    .partial()
-    .safeParse(pipelineRun?.runtime_config?.parameters ?? {});
-
-  let parameters: Partial<ConfigureSchema> = {};
-  if (parseResult.success) {
-    parameters = parseResult.data;
-  } else {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to parse pipeline runtime parameters:', parseResult.error);
-  }
+  // Runtime parameters are historical data, not create-form input. Preserve unknown and legacy
+  // fields so read-only results remain usable when the create schema evolves.
+  const parameters = pipelineRun?.runtime_config?.parameters;
 
   const bestPatternKey = resolveBestPatternKey(patterns);
 
@@ -93,7 +81,7 @@ export function getAutoragContext({
     onRetryPatterns,
     parameters,
     ragPatternsBasePath,
-    maasCredentials,
+    ogxCredentials,
     componentStageMap,
     componentStageMapLoading,
     componentStageMapError,

@@ -50,6 +50,42 @@ const mockGenAiExtensions: Extension[] = [
       component: jest.fn(),
     },
   },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: { required: ['plugin-gen-ai'] },
+    properties: {
+      id: 'models',
+      title: 'Models',
+      component: jest.fn(),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: { required: ['plugin-gen-ai'] },
+    properties: {
+      id: 'mcpservers',
+      title: 'MCP servers',
+      component: jest.fn(),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: { required: ['plugin-gen-ai', 'externalVectorStores'] },
+    properties: {
+      id: 'vectorstores',
+      title: 'Vector stores',
+      component: jest.fn(),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: { required: ['plugin-gen-ai', 'agentConfigManagement'] },
+    properties: {
+      id: 'agentprofile',
+      title: 'Agents',
+      component: jest.fn(),
+    },
+  },
 ];
 
 const mockMaasExtensions: Extension[] = [
@@ -64,7 +100,7 @@ const mockMaasExtensions: Extension[] = [
     type: 'app.navigation/href',
     flags: { required: ['modelAsService', 'ADMIN_USER'] },
     properties: {
-      id: 'maas-subscription-management-view',
+      id: 'maas-governance-view',
       title: 'MaaS governance',
       href: '/maas/maas-governance',
       section: 'settings',
@@ -110,6 +146,14 @@ const mockMaasExtensions: Extension[] = [
       component: jest.fn(),
     },
   },
+  {
+    type: 'app.route',
+    flags: { required: ['modelAsService', 'ADMIN_USER'] },
+    properties: {
+      path: '/maas/maas-governance/*',
+      component: jest.fn(),
+    },
+  },
 ];
 
 const buildCatalog = (): Record<string, Extension[]> => ({
@@ -136,8 +180,23 @@ describe('MaaS Consumer Portal extensions', () => {
       genAiStudio: true,
       'plugin-gen-ai': true,
       chatPlayground: true,
+      externalVectorStores: true,
+      agentConfigManagement: true,
     });
   };
+
+  it('should suppress only the MCP servers AI asset tab', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const aiAssetTabs = store
+      .getExtensions()
+      .filter((e) => e.type === 'gen-ai.ai-assets/tab')
+      .map((e) => e.properties.id);
+
+    expect(aiAssetTabs).toEqual(['models', 'vectorstores', 'agentprofile']);
+    expect(aiAssetTabs).not.toContain('mcpservers');
+  });
 
   it('should produce no orphaned nav items under suppressed or absent sections', () => {
     const store = new PluginStore(buildCatalog());
@@ -157,7 +216,7 @@ describe('MaaS Consumer Portal extensions', () => {
     expect(orphaned).toHaveLength(0);
   });
 
-  it('should have chat-playground, ai-assets, and API keys at top level (no section)', () => {
+  it('should order AI asset endpoints, API keys, and Playground at top level', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
 
@@ -174,21 +233,60 @@ describe('MaaS Consumer Portal extensions', () => {
         e.type === 'app.navigation/href' && e.properties.id === 'maas-tokens-subscriptions-view',
     );
 
-    expect(playground).toBeDefined();
-    expect(playground?.properties.section).toBeUndefined();
-    expect(playground?.properties.group).toBe('2_playground');
-    expect(playground?.properties.label).toBeUndefined();
-    expect(playground?.properties.href).toBe('/gen-ai-studio/playground');
-
     expect(aiAssets).toBeDefined();
     expect(aiAssets?.properties.section).toBeUndefined();
-    expect(aiAssets?.properties.group).toBe('3_ai_assets');
+    expect(aiAssets?.properties.group).toBe('1_ai_assets');
     expect(aiAssets?.properties.label).toBeUndefined();
 
     expect(apiKeys).toBeDefined();
     expect(apiKeys?.properties.section).toBeUndefined();
-    expect(apiKeys?.properties.group).toBe('1_api_keys');
+    expect(apiKeys?.properties.group).toBe('2_api_keys');
     expect(apiKeys?.properties.title).toBe('API keys');
+
+    expect(playground).toBeDefined();
+    expect(playground?.properties.section).toBeUndefined();
+    expect(playground?.properties.group).toBe('3_playground');
+    expect(playground?.properties.label).toBeUndefined();
+    expect(playground?.properties.href).toBe('/gen-ai-studio/playground');
+
+    expect(
+      [aiAssets, apiKeys, playground]
+        .toSorted((a, b) => String(a?.properties.group).localeCompare(String(b?.properties.group)))
+        .map((extension) => extension?.properties.title),
+    ).toEqual(['AI asset endpoints', 'API keys', 'Playground']);
+  });
+
+  it('should show the MaaS governance navigation item and route only for MaaS admins', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: true });
+
+    const governanceNavigation = store
+      .getExtensions()
+      .find((e) => e.type === 'app.navigation/href' && e.properties.id === 'maas-governance-view');
+    const governanceRoute = store
+      .getExtensions()
+      .find((e) => e.type === 'app.route' && e.properties.path === '/maas/maas-governance/*');
+
+    expect(governanceNavigation?.properties.section).toBeUndefined();
+    expect(governanceNavigation?.properties.group).toBe('4_maas_governance');
+    expect(governanceRoute).toBeDefined();
+  });
+
+  it('should hide the MaaS governance navigation item and route when MaaS admin access is absent', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: false });
+
+    const governanceExtensions = store
+      .getExtensions()
+      .filter(
+        (e) =>
+          (e.type === 'app.navigation/href' && e.properties.id === 'maas-governance-view') ||
+          (e.type === 'app.route' && e.properties.path === '/maas/maas-governance/*'),
+      );
+
+    expect(governanceExtensions).toHaveLength(0);
   });
 
   it('should not contain the gen-ai-studio section', () => {

@@ -48,7 +48,7 @@ Examples:
 How it works:
   1. Gather    Detect PR, sync status, affected packages, Jira key
   2. Review    Fetch PR reviews or run local reviewers (interactive)
-  3. Check     Run all checks, print results table (read-only)
+  3. Check     Orchestrate reusable checks, print results table (read-only)
   4. Fix       Optionally fix failing checks (--fix or interactive)
 ```
 
@@ -188,7 +188,7 @@ If `--review` flag was passed, use those reviewers directly. If `--skip-review` 
 - "Claude review" — invoke `/review` built-in skill
 - "Style review" — invoke `/style-review` for code style and pattern checks
 - "RBAC review" — invoke `/rbac-review` for Kubernetes RBAC permission enforcement checks
-- "Jira Eval review" — invoke `/jira-eval-review` to evaluate code changes against Jira acceptance criteria (requires Jira MCP; reports ➖ if no Jira key found, MCP unavailable, or no acceptance criteria)
+- "Jira PR review" — invoke `/jira-pr-review` to compare the Jira product ask with the PR and evaluate explicit acceptance criteria (requires Jira MCP; reports ➖ if no Jira key found, MCP unavailable, or no acceptance criteria)
 - "Skip review" — no review
 
 Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or errors), report the failure clearly — don't silently fall back to something else.
@@ -197,7 +197,15 @@ Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or 
 
 **This step is read-only. Do not fix, edit, or modify any files during checks.** Just run the checks, record the results, and report them. All fixes happen in Step 4.
 
-Read [references/checks.md](references/checks.md) for the full list of checks and how to run each one in each context (PR synced, PR not synced, no PR).
+Read [references/checks.md](references/checks.md) for the orchestration order and remaining preflight-owned checks.
+
+Invoke these reusable skills with the context gathered in Step 1. They own their respective domain judgments and status mapping; preflight only aggregates their results into the final readiness table:
+
+- `/ci-status-review` — provide PR metadata, sync state, affected paths, and raw CI data when already collected. It uses `analyze-ci.sh` and delegates failed-test classification to `/ci-flake-classifier`.
+- `/test-impact-review` — provide changed paths and the PR body when available.
+- `/pr-description-review` — provide the PR body, changed paths, and PR template when a PR exists.
+
+Do not restate or independently reinterpret their criteria in preflight. If a skill cannot run, report that failure clearly in the results table rather than silently substituting a local heuristic.
 
 Statuses:
 - ✅ passed · ❌ failed · ⚠️ warning · ⏭️ covered by CI (same commit) · ➖ not applicable

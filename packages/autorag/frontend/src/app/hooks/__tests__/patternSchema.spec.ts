@@ -133,6 +133,17 @@ describe('AutoragPatternSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('should reject whitespace-only model IDs', () => {
+    const result = AutoragPatternSchema.safeParse({
+      ...v2Pattern,
+      settings: {
+        ...v2Pattern.settings,
+        embedding: { ...v2Pattern.settings.embedding, model_id: '   ' },
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('should preserve extra fields via passthrough', () => {
     const extended = { ...v2Pattern, extra_field: 'hello' };
     const result = AutoragPatternSchema.safeParse(extended);

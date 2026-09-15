@@ -97,6 +97,10 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 	}, nil
 }
 
+func (m *MockLlamaStackClient) ListModelsWithProviderData(ctx context.Context, _ map[string]interface{}) ([]openai.Model, error) {
+	return m.ListModels(ctx)
+}
+
 // ListVectorStores mock returns two external (non-user) vector stores.
 // The first store's ID matches the first AAE ConfigMap entry so it appears as
 // "already in playground" on the AI asset endpoints page.
