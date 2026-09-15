@@ -38,6 +38,7 @@ const useCatalogDeployPrefillData = (
     const hfAccessType = getCustomPropString(model.customProperties || {}, 'hf_access_type');
     const isPrivateHuggingFace =
       !!hfAccessType && (hfAccessType === 'private' || hfAccessType.startsWith('gated_'));
+    const isGatedHuggingFace = !!hfAccessType && hfAccessType.startsWith('gated_');
 
     return {
       modelName: model.name,
@@ -49,6 +50,7 @@ const useCatalogDeployPrefillData = (
       prefillAlertText: `The ${model.name} model details have been imported from the model catalog.`,
       ...getValidatedConfigurationsForModel(model, isToolCallingEnabled),
       isPrivateHuggingFace,
+      isGatedHuggingFace,
     };
   }, [model, uri, cancelReturnRoute, isToolCallingEnabled, sourceId]);
 

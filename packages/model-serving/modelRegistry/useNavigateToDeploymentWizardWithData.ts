@@ -73,6 +73,9 @@ export const useNavigateToDeploymentWizardWithData = (
       },
       validatedConfigurations: deployPrefillData.validatedConfigurations,
       selectedValidatedConfigurations: deployPrefillData.selectedValidatedConfigurations,
+      isPrivateHuggingFace: deployPrefillData.isPrivateHuggingFace,
+      isGatedHuggingFace: deployPrefillData.isGatedHuggingFace,
+      huggingFaceApiKey: deployPrefillData.isPrivateHuggingFace ? { token: '' } : undefined,
     }),
     [deployPrefillData, connectionTypeObject, resourceName, maxLength],
   );

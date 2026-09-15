@@ -112,3 +112,13 @@ export {
   NIMModelLocationKey,
   NIMModelLocationOption,
 } from '../components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+
+export {
+  HuggingFaceApiKeyField,
+  huggingFaceApiKeyFieldSchema,
+  isHuggingFaceApiKeyConfigured,
+  isValidHuggingFaceApiKey,
+  useHuggingFaceApiKeyField,
+  type HuggingFaceApiKeyFieldData,
+  type HuggingFaceApiKeyFieldHook,
+} from '../components/deploymentWizard/fields/HuggingFaceApiKeyField';

@@ -8,6 +8,7 @@ export type DeployPrefillData = {
   modelType?: 'predictive' | 'generative';
   prefillAlertText?: string;
   isPrivateHuggingFace?: boolean;
+  isGatedHuggingFace?: boolean;
   validatedConfigurations?: {
     forField: string;
     title: string;

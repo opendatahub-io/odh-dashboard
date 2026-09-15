@@ -8,6 +8,11 @@ import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../../../shared/types/form-data';
 import { createConnectionDataSchema } from '../fields/CreateConnectionInputFields';
+import {
+  huggingFaceApiKeyFieldSchema,
+  HuggingFaceApiKeyField,
+  isValidHuggingFaceApiKey,
+} from '../fields/HuggingFaceApiKeyField';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 
@@ -21,6 +26,8 @@ export const modelSourceStepBaseSchema = z.object({
   modelType: modelTypeSelectFieldSchema,
   modelLocationData: modelLocationDataSchema,
   createConnectionData: createConnectionDataSchema.optional(),
+  huggingFaceApiKey: huggingFaceApiKeyFieldSchema.optional(),
+  requiresHuggingFaceApiKey: z.boolean().optional(),
 });
 
 export const modelSourceStepRefinement = (
@@ -38,6 +45,14 @@ export const modelSourceStepRefinement = (
         });
       });
     }
+  }
+
+  if (data.requiresHuggingFaceApiKey && !isValidHuggingFaceApiKey(data.huggingFaceApiKey, true)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Hugging Face API key is required',
+      path: ['huggingFaceApiKey'],
+    });
   }
 };
 
@@ -61,6 +76,8 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
     () => wizardState.fields.filter((f) => f.step === 'modelSource'),
     [wizardState.fields],
   );
+
+  const showHuggingFaceApiKeyField = wizardState.state.requiresHuggingFaceApiKey;
 
   if (!wizardState.loaded.modelSourceLoaded) {
     return <Spinner data-testid="spinner" />;
@@ -87,6 +104,15 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           pvcs={wizardState.state.modelLocationData.pvcs}
           connectionTypes={wizardState.state.modelLocationData.connectionTypes}
         />
+        {showHuggingFaceApiKeyField ? (
+          <HuggingFaceApiKeyField
+            data={wizardState.state.huggingFaceApiKey.data}
+            onChange={wizardState.state.huggingFaceApiKey.setData}
+            isGated={wizardState.initialData?.isGatedHuggingFace}
+            validationProps={validation.getFieldValidationProps(['huggingFaceApiKey'])}
+            validationIssues={validation.getFieldValidation(['huggingFaceApiKey'])}
+          />
+        ) : null}
         {modelSourceExtensionFields.map((field) => (
           <GenericFieldRenderer
             key={field.id}
