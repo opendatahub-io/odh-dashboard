@@ -20,43 +20,9 @@ Checks whether the branch can merge cleanly and is up to date.
 
 ## CI / Build / Lint / Type Check / Unit Tests
 
-These checks are all discovered dynamically via `analyze-ci.sh`:
+Invoke `/ci-status-review` with the PR metadata and sync state from Step 1. It collects raw state through the existing `preflight/scripts/analyze-ci.sh`, interprets CI applicability, and delegates failed-test classification to `/ci-flake-classifier`.
 
-```bash
-${CLAUDE_SKILL_DIR}/scripts/analyze-ci.sh "$owner" "$repo" "$pr_number"
-```
-
-The script returns three things:
-- **pr_checks**: status of every CI check on the PR (name, bucket, link, timestamps)
-- **failures**: for failed/cancelled checks, the job logs
-- **local_workflows**: what CI workflows exist in `.github/workflows/` and what commands they run
-
-**How to use this data:**
-
-| Context | What to do |
-|---|---|
-| PR synced | Read `pr_checks`. Each check with `bucket: "pass"` → ⏭️. Each with `bucket: "fail"` → ❌ (use the failure logs). Each with `bucket: "pending"` → ⚠️ "still running". Report each check by name. |
-| PR not synced | PR checks don't apply to this code. Read `local_workflows` to understand what CI *would* run, then run the equivalent commands locally on affected packages. |
-| No PR | Same as not synced — read `local_workflows`, run locally. |
-
-Don't hardcode check names. Let the script discover what exists and report what it finds. The LLM interprets which checks map to lint, type-check, tests, build, etc. from the workflow names and job commands.
-
-### Flaky Test Classification
-
-When CI failures are found on a synced PR, run the `/ci-flake-classifier` skill to distinguish genuine regressions from known flaky tests:
-
-```bash
-python3 scripts/classify-ci-failures.py "$pr_number"
-```
-
-The skill is defined in `.claude/skills/ci-flake-classifier/SKILL.md`. Map the output classifications to preflight statuses:
-
-- `flaky`, `suspected_flaky`, `external_unknown` → ⚠️ (does not block verdict)
-- `genuine`, `deterministic`, `unknown` → ❌ (blocks verdict)
-
-If only non-blocking classifications → READY WITH WARNINGS. If any blocking → NOT READY. If the classifier is unavailable or fails, fall back to reporting all failures as ❌.
-
-CI row examples: `37 passed · 2 failed: 1 genuine ❌, 1 flaky ⚠️ (seen on 3 other PRs)` or `37 passed · 2 failed (all likely flaky — see details)`.
+Use its per-check and overall statuses directly in the preflight table. When its report says CI does not apply to the local checkout, run the relevant local commands identified in its `Local follow-up` section and report their results separately. Do not duplicate CI interpretation or flake-classification criteria here.
 
 ## Reviews
 
@@ -109,13 +75,13 @@ Report: `Claude (local)` as the source.
 
 Report: `RBAC (local)` as the source. Any critical findings → ❌. Warnings only → ⚠️. None or info only → ✅.
 
-### Jira Eval Review
+### Jira PR Review
 
-Evaluates code changes against Jira acceptance criteria using the `/jira-eval-review` skill. This is separate from the basic Jira check (which only verifies a key is present).
+Compares the Jira product ask with the PR and evaluates code changes against explicit acceptance criteria using `/jira-pr-review`. This is separate from the basic Jira check (which only verifies a key is present).
 
 | Context | How to check |
 |---|---|
-| Ran in Step 2 | Results from `/jira-eval-review` invocation. Verdicts: PASS, PARTIAL, MISS, SKIP. |
+| Ran in Step 2 | Results from `/jira-pr-review` invocation. Verdicts: PASS, PARTIAL, MISS, SKIP. |
 | Not run | ➖ "not run" |
 | No Jira key found | ➖ "no Jira key" |
 | Jira MCP unavailable | ➖ "Jira MCP unavailable" |
@@ -123,11 +89,11 @@ Evaluates code changes against Jira acceptance criteria using the `/jira-eval-re
 
 **Prerequisites:** Requires both a Jira issue key (extracted in Step 1) and a working Jira MCP connection. In CI mode, the `mcp-atlassian` server provides Jira access via GitHub Actions secrets. Locally, the developer's existing Jira MCP authentication is used.
 
-**How to invoke:** Pass the Jira issue key and current PR number (if available) to `/jira-eval-review`. The skill fetches the issue's acceptance criteria, evaluates the code changes against each criterion, and returns per-criterion verdicts.
+**How to invoke:** Pass the Jira issue key and current PR number (if available) to `/jira-pr-review`. The skill validates the target issue, compares the product ask, evaluates the code changes against each criterion, and returns per-criterion verdicts.
 
 **Status mapping:** All PASS → ✅. Any PARTIAL → ⚠️. Any MISS → ❌. All SKIP → ➖.
 
-Report: `Jira Eval (local)` as the source. Include the verdict summary (e.g., "5/5 criteria satisfied" or "3/5 satisfied, 1 partial, 1 missed").
+Report: `Jira PR (local)` as the source. Include the product-ask result and criterion verdict summary (e.g., "aligned; 5/5 criteria satisfied").
 
 ## Jira
 
@@ -140,32 +106,10 @@ Checks that the work is tracked in Jira.
 
 If key found: ✅. If Jira MCP or JIRA_TOKEN available, verify issue exists and is active. If can't verify: ⚠️ "found key, couldn't verify." No key: ❌.
 
-## Test Coverage
+## Test Impact
 
-Checks whether test files were added or updated alongside code changes.
-
-| Context | How to check |
-|---|---|
-| PR (any) | `gh pr diff "$pr_number" --name-only` — look for `.test.`, `.spec.`, `.cy.` files |
-| No PR | `git diff --name-only origin/$base_branch` — same pattern |
-
-Test files present → ✅. No test files but "Test Impact" section in PR body explains why → ✅. Neither → ⚠️. Skip entirely if only non-code files changed.
+Invoke `/test-impact-review` with changed paths and the PR body when available. Use its status and evidence directly; it owns whether a code change has tests, a substantive rationale, or is not applicable.
 
 ## PR Body
 
-Checks that the PR description follows the template.
-
-| Context | How to check |
-|---|---|
-| PR (any) | Check against `.github/pull_request_template.md` — see subsections below |
-| No PR | ➖ "no PR body yet" |
-
-### Subsections to check:
-1. `## Description` has real content (not just HTML comments) → ✅/❌
-2. `## How Has This Been Tested?` has content → ✅/⚠️
-3. `## Test Impact` has content → ✅/⚠️
-4. Checklist: count `- [x]` vs `- [ ]` → report ratio
-5. Jira URL (link to an issue tracker like `issues.redhat.com/browse/` or `atlassian.net/browse/`) present → ✅/❌
-6. If PR touches `.tsx`/`.css`/`.scss` files, check for image/gif links → ⚠️ if missing
-
-Empty Description → ❌. Other missing sections → ⚠️.
+Invoke `/pr-description-review` for a PR body. It owns the ODH template-completeness checks, including Description, testing, Test Impact, checklist context, Jira linkage, and applicable UI evidence. Use its status and evidence directly.

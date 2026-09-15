@@ -33,7 +33,7 @@ const SchemaColumnsTable: React.FC<SchemaColumnsTableProps> = ({ columns }) => {
               {col.name}
             </Td>
             <Td dataLabel="Type">
-              <Label isCompact data-testid={`schema-column-type-${col.name}`}>
+              <Label isCompact variant="outline" data-testid={`schema-column-type-${col.name}`}>
                 {col.type}
               </Label>
             </Td>
