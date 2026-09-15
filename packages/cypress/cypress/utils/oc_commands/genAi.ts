@@ -387,6 +387,7 @@ export const waitForGlobalPromptsInBFF = (
  * @param endpointUrl - Base URL of the external model provider.
  * @param apiKey      - API key / token for the provider.
  * @param modelType   - Model type: 'llm' | 'embedding' | 'transcription'. Defaults to 'llm'.
+ * @param capabilities - Model capabilities exposed to the playground.
  */
 export const createExternalModelViaAPI = (
   namespace: string,
@@ -395,6 +396,7 @@ export const createExternalModelViaAPI = (
   endpointUrl: string,
   apiKey: string,
   modelType = 'llm',
+  capabilities?: string[],
 ): Cypress.Chainable<Cypress.Response<unknown>> =>
   cy.request({
     method: 'POST',
@@ -407,6 +409,7 @@ export const createExternalModelViaAPI = (
       base_url: endpointUrl,
       secret_value: apiKey,
       model_type: modelType,
+      capabilities,
       /* eslint-enable camelcase */
     },
   });

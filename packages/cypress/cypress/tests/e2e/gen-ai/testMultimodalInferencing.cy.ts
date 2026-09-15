@@ -57,6 +57,8 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         testData.model.displayName,
         testData.model.endpointUrl,
         apiKey,
+        'llm',
+        ['vision'],
       )
         .its('status')
         .should('be.oneOf', [200, 201]);
@@ -105,6 +107,11 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
 
       cy.step('Upload an image');
+      genAiPlayground.findAttachmentButton().click();
+      genAiPlayground
+        .findImageUploadMenuItem()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled', 'true');
       genAiPlayground.findImageFileInput().selectFile(
         {
           contents: Cypress.Buffer.from(testData.image.base64Content, 'base64'),
