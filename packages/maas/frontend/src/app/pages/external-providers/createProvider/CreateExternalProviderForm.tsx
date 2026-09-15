@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Alert,
   ExpandableSection,
   Form,
   FormGroup,
@@ -20,6 +19,7 @@ import { AUTH_MECHANISM_VALUES, isAuthMechanism } from '~/app/pages/external-pro
 import CredentialSecretField from './CredentialSecretField';
 import ProviderTypeField from './ProviderTypeField';
 import { ProviderConfigurationSection } from './ProviderConfigKeyValueField';
+import CreateExternalProviderSubmitError from './CreateExternalProviderSubmitError';
 import { UseCreateExternalProviderFormReturn } from './useCreateExternalProviderForm';
 
 type CreateExternalProviderFormProps = {
@@ -225,16 +225,7 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
         />
       </ExpandableSection>
 
-      {submitError && (
-        <Alert
-          variant="danger"
-          isInline
-          title="Failed to create external provider"
-          data-testid="create-external-provider-error"
-        >
-          {submitError}
-        </Alert>
-      )}
+      <CreateExternalProviderSubmitError error={submitError} />
     </Form>
   );
 };

@@ -255,6 +255,9 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
             fieldErrors={visibleFieldErrors}
             onTargetModelBlur={() => handleFieldTouch('targetModel')}
             onPathBlur={() => handleFieldTouch('path')}
+            createProviderSubmitError={
+              providerSource === 'create-new' ? createProviderForm.submitError : undefined
+            }
           />
         </WizardStep>
       </Wizard>
