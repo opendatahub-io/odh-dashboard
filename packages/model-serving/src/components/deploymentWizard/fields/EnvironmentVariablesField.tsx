@@ -37,8 +37,125 @@ import {
   isEnvironmentVariableType,
   mergeEnvironmentVariableUpdates,
   normalizeEnvironmentVariable,
+  type EnvironmentVariable,
   type EnvironmentVariableUpdates,
 } from '../../../shared/environmentVariablesUtils';
+
+type EnvVarTextInputProps = {
+  'data-testid': string;
+  'aria-label': string;
+  value: string;
+  hasError: boolean;
+  isRequired?: boolean;
+  onChange: (value: string) => void;
+  inputRef?: React.Ref<HTMLInputElement>;
+};
+
+const EnvVarTextInput: React.FC<EnvVarTextInputProps> = ({
+  'data-testid': dataTestId,
+  'aria-label': ariaLabel,
+  value,
+  hasError,
+  isRequired = false,
+  onChange,
+  inputRef,
+}) => (
+  <TextInput
+    data-testid={dataTestId}
+    aria-label={ariaLabel}
+    value={value}
+    required={isRequired}
+    onChange={(_event, nextValue) => onChange(nextValue)}
+    ref={inputRef}
+    validated={hasError ? ValidatedOptions.error : ValidatedOptions.default}
+  />
+);
+
+type EnvVarRowErrorsProps = {
+  nameError: string;
+  secretNameError: string;
+  secretKeyError: string;
+};
+
+const EnvVarRowErrors: React.FC<EnvVarRowErrorsProps> = ({
+  nameError,
+  secretNameError,
+  secretKeyError,
+}) => {
+  const errors = [
+    nameError && { label: 'Name', message: nameError },
+    secretNameError && { label: 'Secret name', message: secretNameError },
+    secretKeyError && { label: 'Secret key', message: secretKeyError },
+  ].filter((error): error is { label: string; message: string } => Boolean(error));
+
+  if (errors.length === 0) {
+    return null;
+  }
+
+  return (
+    <FormHelperText>
+      <HelperText>
+        {errors.map(({ label, message }) => (
+          <HelperTextItem key={label} variant="error" icon={<ExclamationCircleIcon />}>
+            {`${label}: ${message}`}
+          </HelperTextItem>
+        ))}
+      </HelperText>
+    </FormHelperText>
+  );
+};
+
+type EnvVarValueFieldsProps = {
+  envVar: EnvironmentVariable;
+  index: number;
+  hasSecretNameError: boolean;
+  hasSecretKeyError: boolean;
+  onUpdate: (updates: EnvironmentVariableUpdates) => void;
+};
+
+const EnvVarValueFields: React.FC<EnvVarValueFieldsProps> = ({
+  envVar,
+  index,
+  hasSecretNameError,
+  hasSecretKeyError,
+  onUpdate,
+}) => {
+  if (envVar.type === EnvironmentVariableType.Value) {
+    return (
+      <TextInput
+        data-testid={`env-var-value-${index}`}
+        aria-label="env var value"
+        value={envVar.value}
+        onChange={(_event, value) => onUpdate({ value })}
+      />
+    );
+  }
+
+  return (
+    <Split hasGutter>
+      <SplitItem isFilled>
+        <EnvVarTextInput
+          data-testid={`env-var-secret-name-${index}`}
+          aria-label="env var secret name"
+          value={envVar.secretName}
+          hasError={hasSecretNameError}
+          isRequired
+          onChange={(value) => onUpdate({ secretName: value })}
+        />
+      </SplitItem>
+      <SplitItem isFilled>
+        <EnvVarTextInput
+          data-testid={`env-var-secret-key-${index}`}
+          aria-label="env var secret key"
+          value={envVar.secretKey}
+          hasError={hasSecretKeyError}
+          isRequired
+          onChange={(value) => onUpdate({ secretKey: value })}
+        />
+      </SplitItem>
+    </Split>
+  );
+};
 
 const disabledEnvVarSchema = z.object({
   type: z.nativeEnum(EnvironmentVariableType).optional(),
@@ -239,103 +356,60 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
                 getEnvironmentVariableFieldErrors(normalizedEnvVar);
 
               return (
-                <Split hasGutter key={index}>
-                  <SplitItem>
-                    <SimpleSelect
-                      dataTestId={`env-var-type-${index}`}
-                      ariaLabel="env var type"
-                      options={envVarTypeOptions}
-                      value={normalizedEnvVar.type}
-                      onChange={(key) => {
-                        if (isEnvironmentVariableType(key)) {
-                          updateEnvVar(index, { type: key });
-                        }
-                      }}
-                      isDisabled={!allowCreate}
-                    />
-                  </SplitItem>
-                  <SplitItem isFilled>
-                    <TextInput
-                      data-testid={`env-var-name-${index}`}
-                      aria-label="env var name"
-                      value={normalizedEnvVar.name}
-                      onChange={(_event, value) => updateEnvVar(index, { name: value })}
-                      ref={index === data.variables.length - 1 ? lastNameFieldRef : undefined}
-                      validated={nameError ? ValidatedOptions.error : ValidatedOptions.default}
-                    />
-                    {nameError && (
-                      <FormHelperText>
-                        <HelperText>
-                          <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-                            {nameError}
-                          </HelperTextItem>
-                        </HelperText>
-                      </FormHelperText>
-                    )}
-                  </SplitItem>
-                  {normalizedEnvVar.type === EnvironmentVariableType.Value ? (
-                    <SplitItem isFilled>
-                      <TextInput
-                        data-testid={`env-var-value-${index}`}
-                        aria-label="env var value"
-                        value={normalizedEnvVar.value}
-                        onChange={(_event, value) => updateEnvVar(index, { value })}
+                <Stack hasGutter key={index}>
+                  <Split hasGutter>
+                    <SplitItem>
+                      <SimpleSelect
+                        dataTestId={`env-var-type-${index}`}
+                        ariaLabel="env var type"
+                        options={envVarTypeOptions}
+                        value={normalizedEnvVar.type}
+                        onChange={(key) => {
+                          if (isEnvironmentVariableType(key)) {
+                            updateEnvVar(index, { type: key });
+                          }
+                        }}
+                        isDisabled={!allowCreate}
                       />
                     </SplitItem>
-                  ) : (
-                    <>
-                      <SplitItem isFilled>
-                        <TextInput
-                          data-testid={`env-var-secret-name-${index}`}
-                          aria-label="env var secret name"
-                          value={normalizedEnvVar.secretName}
-                          onChange={(_event, value) => updateEnvVar(index, { secretName: value })}
-                          validated={
-                            secretNameError ? ValidatedOptions.error : ValidatedOptions.default
-                          }
-                        />
-                        {secretNameError && (
-                          <FormHelperText>
-                            <HelperText>
-                              <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-                                {secretNameError}
-                              </HelperTextItem>
-                            </HelperText>
-                          </FormHelperText>
-                        )}
-                      </SplitItem>
-                      <SplitItem isFilled>
-                        <TextInput
-                          data-testid={`env-var-secret-key-${index}`}
-                          aria-label="env var secret key"
-                          value={normalizedEnvVar.secretKey}
-                          onChange={(_event, value) => updateEnvVar(index, { secretKey: value })}
-                          validated={
-                            secretKeyError ? ValidatedOptions.error : ValidatedOptions.default
-                          }
-                        />
-                        {secretKeyError && (
-                          <FormHelperText>
-                            <HelperText>
-                              <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-                                {secretKeyError}
-                              </HelperTextItem>
-                            </HelperText>
-                          </FormHelperText>
-                        )}
-                      </SplitItem>
-                    </>
-                  )}
-                  <SplitItem>
-                    <Button
-                      aria-label="remove-environment-variable"
-                      onClick={() => removeEnvVar(index)}
-                      variant="plain"
-                      icon={<MinusCircleIcon />}
-                      isDisabled={!allowCreate}
-                    />
-                  </SplitItem>
-                </Split>
+                    <SplitItem isFilled>
+                      <EnvVarTextInput
+                        data-testid={`env-var-name-${index}`}
+                        aria-label="env var name"
+                        value={normalizedEnvVar.name}
+                        hasError={Boolean(nameError)}
+                        isRequired
+                        onChange={(value) => updateEnvVar(index, { name: value })}
+                        inputRef={
+                          index === data.variables.length - 1 ? lastNameFieldRef : undefined
+                        }
+                      />
+                    </SplitItem>
+                    <SplitItem isFilled>
+                      <EnvVarValueFields
+                        envVar={normalizedEnvVar}
+                        index={index}
+                        hasSecretNameError={Boolean(secretNameError)}
+                        hasSecretKeyError={Boolean(secretKeyError)}
+                        onUpdate={(updates) => updateEnvVar(index, updates)}
+                      />
+                    </SplitItem>
+                    <SplitItem>
+                      <Button
+                        aria-label="remove-environment-variable"
+                        onClick={() => removeEnvVar(index)}
+                        variant="plain"
+                        icon={<MinusCircleIcon />}
+                        isDisabled={!allowCreate}
+                      />
+                    </SplitItem>
+                  </Split>
+                  <EnvVarRowErrors
+                    nameError={nameError}
+                    secretNameError={secretNameError}
+                    secretKeyError={secretKeyError}
+                  />
+                </Stack>
               );
             })}
             <Button

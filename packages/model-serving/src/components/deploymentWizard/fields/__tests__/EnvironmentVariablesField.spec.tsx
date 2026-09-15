@@ -9,6 +9,7 @@ import {
   hasInvalidEnvironmentVariableNames,
   type EnvironmentVariablesFieldData,
 } from '../EnvironmentVariablesField';
+import { getEnvironmentVariableFieldErrors } from '../../../../shared/environmentVariablesSchema';
 import { EnvironmentVariableType } from '../../../../shared/environmentVariablesUtils';
 
 const StatefulEnvironmentVariablesField: React.FC<{
@@ -257,6 +258,50 @@ describe('hasInvalidEnvironmentVariableNames', () => {
       ],
     };
     expect(hasInvalidEnvironmentVariableNames(data)).toBe(false);
+  });
+});
+
+describe('getEnvironmentVariableFieldErrors', () => {
+  it('should show required errors for empty secret fields', () => {
+    expect(
+      getEnvironmentVariableFieldErrors({
+        type: EnvironmentVariableType.Secret,
+        name: '',
+        secretName: '',
+        secretKey: '',
+      }),
+    ).toEqual({
+      nameError: 'Environment variable name is required',
+      secretNameError: 'Secret name is required',
+      secretKeyError: 'Secret key is required',
+    });
+  });
+
+  it('should show format errors for invalid names', () => {
+    expect(
+      getEnvironmentVariableFieldErrors({
+        type: EnvironmentVariableType.Value,
+        name: '1INVALID',
+        value: '',
+      }).nameError,
+    ).toBe(
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    );
+  });
+
+  it('should show secret field validation errors for invalid values', () => {
+    expect(
+      getEnvironmentVariableFieldErrors({
+        type: EnvironmentVariableType.Secret,
+        name: 'HF_TOKEN',
+        secretName: 'INVALID_NAME',
+        secretKey: '',
+      }),
+    ).toEqual({
+      nameError: '',
+      secretNameError: expect.stringMatching(/secret/i),
+      secretKeyError: 'Secret key is required',
+    });
   });
 });
 

@@ -10,6 +10,7 @@ import {
 
 export const envVarNameSchema = z
   .string()
+  .min(1, 'Environment variable name is required')
   .regex(
     /^[A-Za-z_][A-Za-z0-9_]*$/,
     'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
