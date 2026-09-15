@@ -25,7 +25,7 @@ import type { GlobalMLflowNamespacesBaseline } from '../../../utils/oc_commands/
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
-import { createCleanProject, findActiveProjectByPrefix } from '../../../utils/projectChecker';
+import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 import {
   chatbotPromptModal,
@@ -35,11 +35,16 @@ import {
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 
-const GLOBAL_PROMPT_TEMPLATE = 'You are a global template for summarization tasks.';
-const GLOBAL_PROMPT_COMMIT = 'Initial global prompt version';
+type PromptManagementTestData = {
+  globalPrompt: {
+    template: string;
+    commitMessage: string;
+  };
+};
 
 describe('Verify Global Prompt Management in Playground Settings', () => {
   let testData: GenAiTestData;
+  let promptManagementTestData: PromptManagementTestData;
   let projectName: string;
   let globalNamespace: string;
   let servingRuntimeName: string;
@@ -55,6 +60,10 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
         hardwareProfileName = testData.hardwareProfileName;
         globalNamespace = `gen-ai-global-${uuid}`;
       })
+      .then(() => cy.fixture('e2e/genAi/testGenAiSettingsSanityPromptManagement.yaml', 'utf8'))
+      .then((yamlContent: string) => {
+        promptManagementTestData = yaml.load(yamlContent) as PromptManagementTestData;
+      })
       .then(() => getVllmCpuAmd64RuntimeInfo())
       .then((info) => {
         servingRuntimeName = info.singleModelServingName;
@@ -62,33 +71,38 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       })
       .then(() => {
         const prefix = testData.projectNamePrefix;
-        return findActiveProjectByPrefix(prefix).then((existing) => {
-          if (existing) {
-            projectName = existing;
-            cy.log(`Reusing existing project: ${projectName}`);
-          } else {
-            projectName = `${prefix}-${uuid}`;
-            cy.step(`Create project ${projectName}`);
-            createCleanProject(projectName);
-            waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
-          }
+        return cy
+          .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, {
+            failOnNonZeroExit: false,
+          })
+          .then((result) => {
+            const existing = result.stdout.split(' ').find((name) => name.startsWith(prefix));
+            if (existing) {
+              projectName = existing;
+              cy.log(`Reusing existing project: ${projectName}`);
+            } else {
+              projectName = `${prefix}-${uuid}`;
+              cy.step(`Create project ${projectName}`);
+              createCleanProject(projectName);
+              waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+            }
 
-          return cy
-            .exec(
-              `oc get inferenceservices -n ${projectName} -o jsonpath='{.items[?(@.metadata.name=="${testData.modelDeploymentName}")].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null`,
-              {
-                failOnNonZeroExit: false,
-              },
-            )
-            .then((isResult) => {
-              if (isResult.stdout.trim() === 'True') {
-                cy.log('Model already deployed and ready');
-                return;
-              }
-              cy.step('Deploy Gen AI model');
-              deployGenAiModel(projectName, testData);
-            });
-        });
+            return cy
+              .exec(
+                `oc get inferenceservices -n ${projectName} -o jsonpath='{.items[?(@.metadata.name=="${testData.modelDeploymentName}")].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null`,
+                {
+                  failOnNonZeroExit: false,
+                },
+              )
+              .then((isResult) => {
+                if (isResult.stdout.trim() === 'True') {
+                  cy.log('Model already deployed and ready');
+                  return;
+                }
+                cy.step('Deploy Gen AI model');
+                deployGenAiModel(projectName, testData);
+              });
+          });
       })
       .then(() => {
         cy.step('Enable prompt management features');
@@ -136,8 +150,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
         return createGenAiPromptViaAPI(
           globalNamespace,
           globalPromptName,
-          GLOBAL_PROMPT_TEMPLATE,
-          GLOBAL_PROMPT_COMMIT,
+          promptManagementTestData.globalPrompt.template,
+          promptManagementTestData.globalPrompt.commitMessage,
         );
       })
       .then(() => {
@@ -214,7 +228,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       cy.step('Verify the loaded global prompt is not editable');
       chatbotPromptAssistant
         .findTextarea()
-        .should('have.value', GLOBAL_PROMPT_TEMPLATE)
+        .should('have.value', promptManagementTestData.globalPrompt.template)
         .and('have.attr', 'readonly');
 
       cy.step('Send a message using the global prompt');
