@@ -67,7 +67,7 @@ const getWorkspacePackages = (root: string): WorkspacePackageInfo[] => {
     if (packages.length === 0) {
       throw new Error(
         `Workspace query returned no packages (cwd: ${root}). ` +
-          'Ensure pnpm install has been run and the workspace is properly configured.',
+          'Ensure pnpm is available and the workspace is properly configured.',
       );
     }
     return packages;
