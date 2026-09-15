@@ -35,7 +35,6 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  nimWizard: false,
   nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
@@ -79,6 +78,7 @@ export const modelServingFlags = {
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
   disableLLMd: false,
+  nimWizard: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 4: Advanced AI/ML Features & Pipelines

@@ -234,6 +234,9 @@ spec:
                     connectionTest:
                       type: boolean
                       description: 'When true, enables connection test functionality to verify credentials and connectivity for S3, URI, and OCI connections.'
+                    nimWizard:
+                      type: boolean
+                      description: 'When true, replaces global NIM accounts with project NIM accounts and replaces the NIM deployment modal with the model deployment wizard.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'
