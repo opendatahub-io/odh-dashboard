@@ -247,6 +247,11 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
+      - name: Setup pnpm
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install-dependencies: 'false'
       - name: Discover Cypress packages
         id: cypress
         uses: ./.github/actions/cypress-build-restore
