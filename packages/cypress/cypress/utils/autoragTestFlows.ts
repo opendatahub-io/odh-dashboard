@@ -1,5 +1,6 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
-import { waitForAutoXDspaReady, waitForManagedPipelines } from './autoXPipelines';
+import { waitForAutoXDspaReady } from './oc_commands/autoX';
+import { waitForManagedPipelines } from './autoXPipelines';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';

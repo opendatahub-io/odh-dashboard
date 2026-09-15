@@ -2,18 +2,18 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import {
-  provisionProjectForAutoX,
-  waitForAutoXDspaReady,
-  waitForManagedPipelines,
-} from '../../../utils/autoXPipelines';
+import { provisionProjectForAutoX, waitForManagedPipelines } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
 import { automlConfigurePage } from '../../../pages/automl/configurePage';
 import { automlExperimentsPage } from '../../../pages/automl/experimentsPage';
 import { automlResultsPage } from '../../../pages/automl/resultsPage';
-import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
+import {
+  isAutomlEnabled,
+  setAutomlEnabled,
+  waitForAutoXDspaReady,
+} from '../../../utils/oc_commands/autoX';
 import {
   configureAutomlRun,
   submitAutomlRun,
