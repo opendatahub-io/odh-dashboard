@@ -304,16 +304,8 @@ type PodTemplateOwner = K8sResourceCommon & {
   };
 };
 
-const isPodTemplateOwner = (owner: K8sResourceCommon | undefined): owner is PodTemplateOwner => {
-  if (!owner) {
-    return false;
-  }
-
-  const candidate = owner as K8sResourceCommon & { spec?: unknown };
-  return (
-    typeof candidate.spec === 'object' && candidate.spec !== null && 'template' in candidate.spec
-  );
-};
+const isPodTemplateOwner = (owner: K8sResourceCommon | undefined): owner is PodTemplateOwner =>
+  owner != null && typeof owner.spec === 'object' && 'template' in owner.spec;
 
 const getPodTemplateAnnotations = (
   owner: K8sResourceCommon | undefined,
