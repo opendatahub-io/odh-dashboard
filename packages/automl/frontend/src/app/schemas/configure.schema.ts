@@ -58,6 +58,8 @@ function createConfigureSchema() {
       label_column: z.string().default('').optional(),
       target: z.string().default('').optional(),
 
+      // UI-only metadata for dataset-dependent ID validation; removed before submission.
+      training_data_column_count: z.int().nonnegative().optional(),
       id_column: z.string().default('').optional(),
       timestamp_column: z.string().default('').optional(),
       prediction_length: z.int().min(1).max(MAX_PREDICTION_LENGTH).default(1).optional(),
@@ -104,11 +106,11 @@ function createConfigureSchema() {
       (data) => {
         const issues: z.core.$ZodRawIssue[] = [];
         if (data.task_type === TASK_TYPE_TIMESERIES) {
-          if (!data.id_column || data.id_column.trim() === '') {
+          if (data.training_data_column_count !== 2 && !data.id_column?.trim()) {
             issues.push({
               code: 'custom',
               path: ['id_column'],
-              message: 'ID column is required',
+              message: 'ID column is required unless the dataset has exactly 2 columns',
               input: data.id_column,
             });
           }
@@ -200,6 +202,9 @@ function createConfigureSchema() {
       (data) => {
         if (data.task_type === TASK_TYPE_TIMESERIES) {
           data.target = data.target_column;
+          if (data.training_data_column_count === 2 || !data.id_column?.trim()) {
+            delete data.id_column;
+          }
           delete data.label_column;
         } else {
           data.label_column = data.target_column;
@@ -209,6 +214,7 @@ function createConfigureSchema() {
           delete data.prediction_length;
           delete data.known_covariates_names;
         }
+        delete data.training_data_column_count;
         delete data.target_column;
         return data;
       },

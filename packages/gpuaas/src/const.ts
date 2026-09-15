@@ -56,11 +56,12 @@ export const PROMETHEUS_CLUSTER_QUERY_PATH = '/api/prometheus/cluster/query';
 export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/queryRange';
 
 export const INFRASTRUCTURE_TABS = [
-  { id: 'utilization', title: 'Accelerator utilization' },
-  { id: 'quota-usage', title: 'Quota usage' },
+  { id: 'utilization', title: 'Accelerator utilization', layout: 'page' },
+  { id: 'quota-usage', title: 'Quota usage', layout: 'viewport' },
 ] as const;
 
 export type InfrastructureTabId = (typeof INFRASTRUCTURE_TABS)[number]['id'];
+export type InfrastructureTabLayout = (typeof INFRASTRUCTURE_TABS)[number]['layout'];
 
 export const QUOTA_USAGE_DESCRIPTION =
   'View quota usage across cluster queues, which are entry points for workloads to access defined pools of hardware resources. Cluster queues organized into cohorts can borrow accelerators from the defined pool.';
@@ -166,7 +167,7 @@ export const INFRASTRUCTURE_SECTIONS = [
     title: 'Summary',
     description: 'Cluster-wide accelerator allocation and average compute and memory consumption.',
     isPlain: true,
-    refreshBadgeTestId: undefined,
+    refreshBadgeTestId: 'infrastructure-refresh-badge',
     showKueueHelpLink: false,
   },
   {
