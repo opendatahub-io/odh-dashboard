@@ -54,7 +54,8 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
 
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
-  const isClickable = forceModal || normalized !== PhaseStatus.READY;
+  const isClickable =
+    forceModal || (normalized !== PhaseStatus.READY && normalized !== PhaseStatus.UNKNOWN);
   const statusSubtext = getStatusSubtext(normalized, resourceType);
   const subtextProps = getSubtextProps(normalized);
 

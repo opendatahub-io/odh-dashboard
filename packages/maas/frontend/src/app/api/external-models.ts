@@ -47,6 +47,9 @@ const isExternalProviderDetails = (v: unknown): v is ExternalProviderDetails =>
   typeof v.provider === 'string' &&
   (v.config === undefined || isStringRecord(v.config)) &&
   isOptionalString(v.phase) &&
+  isOptionalString(v.status) &&
+  isOptionalString(v.conditionType) &&
+  isOptionalString(v.lastTransitionTime) &&
   isOptionalString(v.statusMessage) &&
   isOptionalString(v.reason);
 
@@ -63,6 +66,9 @@ const isExternalProvider = (v: unknown): v is ExternalProvider =>
   typeof v.provider === 'string' &&
   (v.config === undefined || isStringRecord(v.config)) &&
   isOptionalString(v.phase) &&
+  isOptionalString(v.status) &&
+  isOptionalString(v.conditionType) &&
+  isOptionalString(v.lastTransitionTime) &&
   isOptionalString(v.statusMessage) &&
   isOptionalString(v.reason);
 

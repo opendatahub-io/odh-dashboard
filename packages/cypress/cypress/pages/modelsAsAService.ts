@@ -2220,6 +2220,21 @@ class ExternalModelTableRow extends TableRow {
       `expanded-table-row-weight-${providerName}`,
     );
   }
+
+  findExpandedPhase(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-phase-${providerName}`,
+    );
+  }
+
+  findExpandedKebabAction(
+    providerName: string,
+    actionName: string,
+    verify = true,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    const kebabAction = this.findExpandedProviderRow(providerName).findKebabAction(actionName);
+    return verify ? kebabAction.should('exist').and('be.visible') : kebabAction;
+  }
 }
 
 class DeleteExternalModelModal extends DeleteModal {

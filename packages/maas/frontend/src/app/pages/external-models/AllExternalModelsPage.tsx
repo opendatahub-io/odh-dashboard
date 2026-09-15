@@ -1,9 +1,10 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { ExternalModel } from '~/app/types/external-models';
+import { ExternalModel, ExternalProvider } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
+import DeleteExternalProviderModal from '~/app/pages/external-providers/DeleteExternalProviderModal';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -40,6 +41,9 @@ const AllExternalModelsPage: React.FC = () => {
   const [deleteExternalModel, setDeleteExternalModel] = React.useState<ExternalModel | undefined>(
     undefined,
   );
+  const [deleteExternalProvider, setDeleteExternalProvider] = React.useState<
+    ExternalProvider | undefined
+  >(undefined);
 
   const filteredExternalModels = React.useMemo(
     () =>
@@ -81,6 +85,7 @@ const AllExternalModelsPage: React.FC = () => {
             externalModels={filteredExternalModels}
             onClearFilters={onClearFilters}
             setDeleteExternalModel={setDeleteExternalModel}
+            setDeleteExternalProvider={setDeleteExternalProvider}
             toolbarContent={
               <ExternalModelsToolBar
                 namespace={resolvedNamespace}
@@ -100,6 +105,17 @@ const AllExternalModelsPage: React.FC = () => {
             externalModel={deleteExternalModel}
             onClose={(deleted) => {
               setDeleteExternalModel(undefined);
+              if (deleted) {
+                refreshExternalModels();
+              }
+            }}
+          />
+        )}
+        {deleteExternalProvider && (
+          <DeleteExternalProviderModal
+            externalProvider={deleteExternalProvider}
+            onClose={(deleted) => {
+              setDeleteExternalProvider(undefined);
               if (deleted) {
                 refreshExternalModels();
               }

@@ -130,6 +130,11 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 			CredentialSecretRef: "openai-api-key",
 			Provider:            "openai",
 			Phase:               "Ready",
+			Status:              "True",
+			ConditionType:       "Ready",
+			LastTransitionTime:  "2026-01-15T10:00:00Z",
+			StatusMessage:       "External provider is ready",
+			Reason:              "Reconciled",
 		},
 	}
 
@@ -156,6 +161,21 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 	}
 	if enriched[0].ProviderRefs[0].Provider.CredentialSecretRef != "openai-api-key" {
 		t.Fatalf("credentialSecretRef = %q", enriched[0].ProviderRefs[0].Provider.CredentialSecretRef)
+	}
+	if enriched[0].ProviderRefs[0].Provider.Status != "True" {
+		t.Fatalf("status = %q", enriched[0].ProviderRefs[0].Provider.Status)
+	}
+	if enriched[0].ProviderRefs[0].Provider.ConditionType != "Ready" {
+		t.Fatalf("conditionType = %q", enriched[0].ProviderRefs[0].Provider.ConditionType)
+	}
+	if enriched[0].ProviderRefs[0].Provider.LastTransitionTime != "2026-01-15T10:00:00Z" {
+		t.Fatalf("lastTransitionTime = %q", enriched[0].ProviderRefs[0].Provider.LastTransitionTime)
+	}
+	if enriched[0].ProviderRefs[0].Provider.StatusMessage != "External provider is ready" {
+		t.Fatalf("statusMessage = %q", enriched[0].ProviderRefs[0].Provider.StatusMessage)
+	}
+	if enriched[0].ProviderRefs[0].Provider.Reason != "Reconciled" {
+		t.Fatalf("reason = %q", enriched[0].ProviderRefs[0].Provider.Reason)
 	}
 	if enriched[0].MaaSModelRef == nil {
 		t.Fatal("expected maaSModelRef enrichment")

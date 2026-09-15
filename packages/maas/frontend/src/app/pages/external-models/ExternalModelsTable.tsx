@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
-import { ExternalModel } from '~/app/types/external-models';
+import { ExternalModel, ExternalProvider } from '~/app/types/external-models';
 import ExternalModelsTableRow from './ExternalModelsTableRow';
 import { externalModelsColumns } from './columns';
 
@@ -10,6 +10,7 @@ type ExternalModelsTableProps = {
   toolbarContent: React.ReactElement;
   emptyTableView: React.ReactNode;
   setDeleteExternalModel: (externalModel: ExternalModel) => void;
+  setDeleteExternalProvider: (externalProvider: ExternalProvider) => void;
 };
 
 export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
@@ -18,6 +19,7 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
   toolbarContent,
   emptyTableView,
   setDeleteExternalModel,
+  setDeleteExternalProvider,
 }): React.ReactNode => (
   <Table
     data-testid="external-models-table"
@@ -33,6 +35,7 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
         externalModel={externalModel}
         rowIndex={rowIndex}
         setDeleteExternalModel={setDeleteExternalModel}
+        setDeleteExternalProvider={setDeleteExternalProvider}
       />
     )}
     emptyTableView={emptyTableView ?? <DashboardEmptyTableView onClearFilters={onClearFilters} />}

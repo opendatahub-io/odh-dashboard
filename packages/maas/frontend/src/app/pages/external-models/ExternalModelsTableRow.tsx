@@ -5,7 +5,7 @@ import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { convertStringToPhaseStatus, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
-import { ExternalModel, ProviderRef } from '~/app/types/external-models';
+import { ExternalModel, ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import {
   ExternalModelsInfoPopoverLocation,
   ExternalModelsInfoPopoverTarget,
@@ -36,12 +36,14 @@ type ExternalModelTableRowProps = {
   externalModel: ExternalModel;
   rowIndex: number;
   setDeleteExternalModel: (externalModel: ExternalModel) => void;
+  setDeleteExternalProvider: (externalProvider: ExternalProvider) => void;
 };
 
 const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
   externalModel,
   rowIndex,
   setDeleteExternalModel,
+  setDeleteExternalProvider,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [hasOverflow, setHasOverflow] = React.useState(false);
@@ -265,6 +267,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
               externalModel={externalModel}
               setProviderURLModalRef={setProviderURLModalRef}
               setPathModalRef={setPathModalRef}
+              setDeleteExternalProvider={setDeleteExternalProvider}
             />
           </Td>
         </Tr>
