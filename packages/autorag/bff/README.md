@@ -22,6 +22,7 @@ This service exposes the following endpoints:
 - POST `/api/v1/indexing-pipeline-runs` – create a documents indexing pipeline run
 - GET `/api/v1/managed-pipelines` – list discovered managed pipelines (autorag, indexing)
 - POST `/api/v1/managed-pipelines/enable` – enable managed pipelines on a DSPA
+- POST `/api/v1/responses` – RAG query endpoint; streams an OpenAI Responses API SSE response using MaaS for embeddings and chat completion and a vector DB for retrieval
 
 ## Development
 
@@ -114,6 +115,7 @@ GET  /api/v1/maas/models              (requires namespace and secretName paramet
 GET  /api/v1/pipeline-runs          (requires namespace parameter)
 GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 POST /api/v1/pipeline-runs          (requires namespace parameter)
+POST /api/v1/responses              (requires namespace, vectorDbSecretName, maasSecretName query params)
 ```
 
 ### Authentication modes
@@ -140,6 +142,100 @@ curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-r
 curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: application/json" \
   "localhost:4000/api/v1/pipeline-runs?namespace=test-namespace" \
   -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_key":"k","maas_secret_name":"s"}'
+```
+
+### Responses endpoint (`POST /api/v1/responses`)
+
+Executes a RAG query and streams the answer back as [OpenAI Responses API](https://platform.openai.com/docs/api-reference/responses) Server-Sent Events.
+
+**Query parameters** (all required):
+
+| Parameter | Description |
+|---|---|
+| `namespace` | Kubernetes namespace where the secrets live |
+| `vectorDbSecretName` | Name of the K8s secret with vector DB credentials (auto-detected: Milvus or pgvector) |
+| `maasSecretName` | Name of the K8s secret with MaaS credentials (`MAAS_BASE_URL`, `MAAS_API_KEY`) |
+
+**Request body** — OpenAI Responses API format:
+
+```json
+{
+  "model": "granite-3-3-8b-instruct",
+  "input": [
+    { "type": "message", "role": "system", "content": [{ "type": "input_text", "text": "You are helpful." }] },
+    { "type": "message", "role": "user",   "content": [{ "type": "input_text", "text": "What is RAG?" }] }
+  ],
+  "tools": [
+    {
+      "type": "file_search",
+      "vector_store_ids": ["my-collection"],
+      "max_num_results": 5,
+      "ranking_options": { "ranker": "hybrid", "alpha": 0.5 }
+    }
+  ],
+  "metadata": {
+    "embedding_model": "nomic-embed-text",
+    "context_template_text": "Document {doc_number}:\n{document}",
+    "user_message_text": "Context:\n{reference_documents}\n\nQuestion: {question}"
+  },
+  "stream": true,
+  "max_output_tokens": 2048,
+  "temperature": 0.7
+}
+```
+
+**Key fields:**
+
+- `input` — conversation history; the last `user` message is the question; an optional `system` message is injected into the chat prompt
+- `tools[].vector_store_ids[0]` — vector DB collection name (hyphens/dots are auto-normalised)
+- `metadata.embedding_model` — required; model used for query embedding
+- `metadata.context_template_text` — optional; template for each retrieved chunk (`{document}`, `{doc_number}` placeholders)
+- `metadata.user_message_text` — optional; wraps context + question (`{reference_documents}`, `{question}` placeholders)
+- `stream: true` — must be `true`; non-streaming (`stream: false`) is also supported
+
+**SSE event sequence (streaming):**
+
+```text
+data: {"type":"response.created",       "sequence_number":0, "response":{...}}
+data: {"type":"response.content_part.added",  "sequence_number":1, "response":{...}, "output_index":1, ...}
+data: {"type":"response.output_text.delta",   "sequence_number":2, "response":{},    "output_index":1, "delta":"token..."}
+... (one event per token)
+data: {"type":"response.content_part.done",   "sequence_number":N, "response":{...}, "output_index":1, ...}
+data: {"type":"response.completed",     "sequence_number":N+1, "response":{...}}
+data: {"type":"response.metrics",       "sequence_number":N+2, "response":{...}}
+data: [DONE]
+```
+
+The `response.completed` event includes a `file_search_call` output item with the retrieved source chunks and a `message` output item with the full answer text.
+
+**Sample call (streaming):**
+
+```shell
+curl -N -X POST \
+  "http://localhost:4001/api/v1/responses?namespace=my-namespace&vectorDbSecretName=milvus-secret&maasSecretName=maas-secret" \
+  -H "Authorization: Bearer $(oc whoami -t)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "granite-3-3-8b-instruct",
+    "input": [{"type":"message","role":"user","content":[{"type":"input_text","text":"What is RAG?"}]}],
+    "tools": [{"type":"file_search","vector_store_ids":["my-collection"],"max_num_results":5}],
+    "metadata": {"embedding_model": "nomic-embed-text"},
+    "stream": true
+  }'
+```
+
+**MaaS secret format:**
+
+```yaml
+kind: Secret
+apiVersion: v1
+metadata:
+  name: my-maas-secret
+  namespace: <your-namespace>
+type: Opaque
+data:
+  MAAS_BASE_URL: <base64-encoded URL>
+  MAAS_API_KEY:  <base64-encoded API key>
 ```
 
 For detailed API documentation, see:

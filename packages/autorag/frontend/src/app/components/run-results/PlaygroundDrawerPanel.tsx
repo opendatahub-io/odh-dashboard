@@ -60,6 +60,30 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   const secretName = parameters?.maas_secret_name ?? '';
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
 
+  const vectorDbSecretName = (parameters?.vector_io_provider_id ?? '').replace(/-remote$/, '');
+  const responsesEndpointUrl = React.useMemo(() => {
+    if (!vectorDbSecretName || !secretName) {
+      return undefined;
+    }
+    const params = new URLSearchParams({
+      namespace,
+      vectorDbSecretName,
+      maasSecretName: secretName,
+    });
+    return `/autorag/api/v1/responses?${params.toString()}`;
+  }, [namespace, vectorDbSecretName, secretName]);
+
+  const additionalMetadata = React.useMemo(() => {
+    const { settings } = patterns[patternInfo.patternName];
+    return {
+      /* eslint-disable camelcase */
+      embedding_model: settings.embedding.model_id,
+      system_message_text: settings.generation.system_message_text ?? '',
+      context_template_text: settings.generation.context_template_text ?? '',
+      /* eslint-enable camelcase */
+    };
+  }, [patterns, patternInfo.patternName]);
+
   return (
     <DrawerPanelContent defaultSize="50%" minSize="400px" data-testid="playground-drawer-panel">
       <DrawerHead>
@@ -171,6 +195,8 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               responsesTemplate={responsesTemplate}
               patternName={patternInfo.patternName}
               bffBasePath="/gen-ai/api/v1"
+              responsesEndpointUrl={responsesEndpointUrl}
+              additionalMetadata={additionalMetadata}
               placeholderBotContent=""
               welcomeContent={
                 <Content

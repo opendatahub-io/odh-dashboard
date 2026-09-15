@@ -225,6 +225,28 @@ func (m *mockPipelinesRepo) EnableManagedPipelines(ctx context.Context, namespac
 	return args.Get(0).(*pipelines.EnableManagedPipelinesResult), args.Error(1)
 }
 
+// --- Mock Responses Repository ---
+
+type mockResponsesRepo struct {
+	mock.Mock
+}
+
+func (m *mockResponsesRepo) HandleResponses(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest) (*models.RAGResponse, error) {
+	args := m.Called(ctx, params, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RAGResponse), args.Error(1)
+}
+
+func (m *mockResponsesRepo) HandleResponsesStream(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest, onDelta func(string)) (*models.RAGStreamResult, error) {
+	args := m.Called(ctx, params, req, onDelta)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RAGStreamResult), args.Error(1)
+}
+
 // --- Mock MaaS Repository ---
 
 type mockMaaSRepo struct {

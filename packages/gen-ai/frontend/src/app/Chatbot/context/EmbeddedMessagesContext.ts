@@ -11,6 +11,8 @@ type EmbeddedMessagesConfig = {
   namespace: string;
   secretName: string;
   responsesTemplate: ResponsesTemplate;
+  responsesEndpointUrl?: string;
+  additionalMetadata?: Record<string, string>;
 };
 
 export const EmbeddedMessagesContext = React.createContext<EmbeddedMessagesConfig | null>(null);
