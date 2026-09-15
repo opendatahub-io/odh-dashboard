@@ -27,6 +27,16 @@ rules:
       - cluster
     verbs:
       - get
+  # Read the OpenShift ingress signing CA and copy it into the per-namespace
+  # OGX trust bundle. resourceNames limits this to the public router CA Secret.
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - router-ca
+    verbs:
+      - get
   # OTel Collector — create/manage the gen-ai-trace-collector CR for per-namespace trace routing
   - apiGroups:
       - opentelemetry.io
