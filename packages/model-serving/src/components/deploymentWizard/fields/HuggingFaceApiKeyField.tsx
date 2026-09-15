@@ -26,18 +26,20 @@ export const huggingFaceApiKeyFieldSchema = z.object({
 export const isHuggingFaceApiKeyConfigured = (data?: HuggingFaceApiKeyFieldData): boolean =>
   Boolean(data?.configuredSecretName);
 
-export const isValidHuggingFaceApiKey = (
-  data?: HuggingFaceApiKeyFieldData,
-  required = false,
-): boolean => {
-  if (!required) {
-    return true;
-  }
-  if (isHuggingFaceApiKeyConfigured(data)) {
-    return true;
-  }
-  return Boolean(data?.token.trim());
-};
+export const requiredHuggingFaceApiKeySchema = huggingFaceApiKeyFieldSchema.superRefine(
+  (data, ctx) => {
+    if (isHuggingFaceApiKeyConfigured(data)) {
+      return;
+    }
+    if (!data.token.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Hugging Face API key is required',
+        path: ['token'],
+      });
+    }
+  },
+);
 
 export type HuggingFaceApiKeyFieldHook = {
   data: HuggingFaceApiKeyFieldData | undefined;
@@ -50,6 +52,12 @@ export const useHuggingFaceApiKeyField = (
   const [data, setData] = React.useState<HuggingFaceApiKeyFieldData | undefined>(
     existingData ?? { token: '' },
   );
+
+  React.useEffect(() => {
+    if (existingData !== undefined) {
+      setData(existingData);
+    }
+  }, [existingData]);
 
   return { data, setData };
 };

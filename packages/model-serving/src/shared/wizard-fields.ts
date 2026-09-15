@@ -117,7 +117,7 @@ export {
   HuggingFaceApiKeyField,
   huggingFaceApiKeyFieldSchema,
   isHuggingFaceApiKeyConfigured,
-  isValidHuggingFaceApiKey,
+  requiredHuggingFaceApiKeySchema,
   useHuggingFaceApiKeyField,
   type HuggingFaceApiKeyFieldData,
   type HuggingFaceApiKeyFieldHook,

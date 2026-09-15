@@ -5,19 +5,22 @@ import '@testing-library/jest-dom';
 import {
   HuggingFaceApiKeyField,
   isHuggingFaceApiKeyConfigured,
-  isValidHuggingFaceApiKey,
+  requiredHuggingFaceApiKeySchema,
 } from '../HuggingFaceApiKeyField';
 
 describe('HuggingFaceApiKeyField validation helpers', () => {
   it('should require a token when required and not configured', () => {
-    expect(isValidHuggingFaceApiKey({ token: '' }, true)).toBe(false);
-    expect(isValidHuggingFaceApiKey({ token: 'hf_123' }, true)).toBe(true);
+    expect(requiredHuggingFaceApiKeySchema.safeParse({ token: '' }).success).toBe(false);
+    expect(requiredHuggingFaceApiKeySchema.safeParse({ token: 'hf_123' }).success).toBe(true);
   });
 
   it('should accept configured deployments without a new token', () => {
-    expect(isValidHuggingFaceApiKey({ token: '', configuredSecretName: 'hf-secret' }, true)).toBe(
-      true,
-    );
+    expect(
+      requiredHuggingFaceApiKeySchema.safeParse({
+        token: '',
+        configuredSecretName: 'hf-secret',
+      }).success,
+    ).toBe(true);
     expect(isHuggingFaceApiKeyConfigured({ token: '', configuredSecretName: 'hf-secret' })).toBe(
       true,
     );

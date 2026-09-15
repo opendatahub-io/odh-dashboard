@@ -11,7 +11,7 @@ import { createConnectionDataSchema } from '../fields/CreateConnectionInputField
 import {
   huggingFaceApiKeyFieldSchema,
   HuggingFaceApiKeyField,
-  isValidHuggingFaceApiKey,
+  requiredHuggingFaceApiKeySchema,
 } from '../fields/HuggingFaceApiKeyField';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
@@ -47,12 +47,18 @@ export const modelSourceStepRefinement = (
     }
   }
 
-  if (data.requiresHuggingFaceApiKey && !isValidHuggingFaceApiKey(data.huggingFaceApiKey, true)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Hugging Face API key is required',
-      path: ['huggingFaceApiKey'],
-    });
+  if (data.requiresHuggingFaceApiKey) {
+    const result = requiredHuggingFaceApiKeySchema.safeParse(
+      data.huggingFaceApiKey ?? { token: '' },
+    );
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue({
+          ...issue,
+          path: ['huggingFaceApiKey', ...issue.path],
+        });
+      });
+    }
   }
 };
 

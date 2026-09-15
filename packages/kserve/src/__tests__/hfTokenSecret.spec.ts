@@ -140,4 +140,22 @@ describe('hfTokenSecret', () => {
       configuredSecretName: 'hf-secret',
     });
   });
+
+  it('should ignore HF_TOKEN env vars with mismatched secretKeyRef key', () => {
+    const deployment = mockInferenceServiceK8sResource({
+      env: [
+        {
+          name: HF_TOKEN_ENV_NAME,
+          valueFrom: {
+            secretKeyRef: {
+              name: 'hf-secret',
+              key: 'token',
+            },
+          },
+        },
+      ],
+    });
+
+    expect(extractHuggingFaceApiKeyFromEnv(deployment)).toBeNull();
+  });
 });

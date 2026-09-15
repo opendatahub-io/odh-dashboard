@@ -54,7 +54,9 @@ export const extractHuggingFaceApiKeyFromEnv = (
 ): HuggingFaceApiKeyFieldData | null => {
   const hfEnv = deployment.spec.predictor.model?.env?.find(
     (envVar) =>
-      envVar.name === HF_TOKEN_ENV_NAME && envVar.valueFrom?.secretKeyRef?.name !== undefined,
+      envVar.name === HF_TOKEN_ENV_NAME &&
+      envVar.valueFrom?.secretKeyRef?.name !== undefined &&
+      envVar.valueFrom.secretKeyRef.key === HF_TOKEN_ENV_NAME,
   );
 
   if (!hfEnv?.valueFrom?.secretKeyRef?.name) {
