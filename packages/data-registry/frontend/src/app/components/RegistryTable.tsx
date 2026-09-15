@@ -2,9 +2,6 @@ import React from 'react';
 import {
   PageSection,
   Content,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   SearchInput,
   Button,
   Label,
@@ -24,6 +21,9 @@ import {
   Dropdown,
   DropdownList,
   DropdownItem,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
@@ -110,7 +110,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     if (searchText) {
       const lower = searchText.toLowerCase();
       result = result.filter(
-        (a) => a.name.toLowerCase().includes(lower) || a.description.toLowerCase().includes(lower),
+        (a) =>
+          a.name.toLowerCase().includes(lower) ||
+          a.description.toLowerCase().includes(lower) ||
+          a.labels.some((label) => label.toLowerCase().includes(lower)),
       );
     }
     if (selectedLabels.length > 0) {
@@ -206,6 +209,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               onClick={() => setIsValueOpen((prev) => !prev)}
               isExpanded={isValueOpen}
               data-testid="filter-value"
+              style={{ minWidth: '180px' }}
             >
               Labels{' '}
               {selectedLabels.length > 0 ? (
@@ -249,6 +253,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               onClick={() => setIsValueOpen((prev) => !prev)}
               isExpanded={isValueOpen}
               data-testid="filter-value"
+              style={{ minWidth: '180px' }}
             >
               {selectedAssetType || 'All asset types'}
             </MenuToggle>
@@ -279,6 +284,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             onClick={() => setIsValueOpen((prev) => !prev)}
             isExpanded={isValueOpen}
             data-testid="filter-value"
+            style={{ minWidth: '180px' }}
           >
             {selectedFormat
               ? FORMAT_OPTIONS.find((f) => f.key === selectedFormat)?.label || selectedFormat
@@ -345,19 +351,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        <Content>
-          <Content component="p">
-            Select a data registry to view and manage your enterprise data resources. Data
-            registries provide a structured and organized way to discover, share, version, and
-            connect schemas, datasets, and data sources across your projects.
-          </Content>
-        </Content>
-      </PageSection>
-      <PageSection hasBodyWrapper={false}>
         <Toolbar>
           <ToolbarContent>
             {/* Category selector */}
-            <ToolbarItem>
+            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
               <Select
                 isOpen={isCategoryOpen}
                 selected={filterCategory}
@@ -374,6 +371,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     onClick={() => setIsCategoryOpen((prev) => !prev)}
                     isExpanded={isCategoryOpen}
                     data-testid="filter-category"
+                    style={{ minWidth: '150px' }}
                   >
                     <FilterIcon /> {CATEGORY_LABELS[filterCategory]}
                   </MenuToggle>
@@ -387,11 +385,13 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               </Select>
             </ToolbarItem>
             {/* Value selector */}
-            <ToolbarItem>{renderValueDropdown()}</ToolbarItem>
+            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--xs)' }}>
+              {renderValueDropdown()}
+            </ToolbarItem>
             {/* Search */}
-            <ToolbarItem>
+            <ToolbarItem style={{ marginRight: 'var(--pf-t--global--spacer--md)' }}>
               <SearchInput
-                placeholder="Filter by name, descript..."
+                placeholder="Filter by name, description or keywords"
                 value={searchText}
                 onChange={(_event, value) => {
                   setSearchText(value);
@@ -402,6 +402,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                   setPage(1);
                 }}
                 data-testid="asset-search"
+                style={{ minWidth: '340px' }}
               />
             </ToolbarItem>
             {/* Register data button */}
@@ -460,7 +461,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
         {/* Active filter chips */}
         {hasActiveFilters ? (
           <>
-            <Flex spaceItems={{ default: 'spaceItemsMd' }}>
+            <Flex
+              spaceItems={{ default: 'spaceItemsMd' }}
+              style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+            >
               {selectedLabels.length > 0 ? (
                 <FlexItem>
                   <div className="pf-v6-u-display-inline-flex">
@@ -583,14 +587,16 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                           />
                         )}
                       >
-                        {asset.name}
+                        <strong>{asset.name}</strong>
                       </Button>
                       {asset.description ? (
                         <Content component="small">{asset.description}</Content>
                       ) : null}
                     </Td>
                     <Td dataLabel="Format">
-                      <Label color={badge.color}>{asset.format}</Label>{' '}
+                      <Label variant="outline" color={badge.color}>
+                        {asset.format}
+                      </Label>{' '}
                       <Content component="small">{badge.text}</Content>
                     </Td>
                     <Td dataLabel="Asset location">{asset.connectionRef || asset.location}</Td>
