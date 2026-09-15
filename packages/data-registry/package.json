@@ -26,9 +26,6 @@
   "exports": {
     "./extensions": "./extensions.ts"
   },
-  "cypress": {
-    "mocked": "frontend/src/__tests__/cypress/cypress/tests/mocked/**/*.cy.ts"
-  },
   "bffConfig": {
     "enabled": true,
     "port": 8080,
