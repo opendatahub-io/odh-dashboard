@@ -103,9 +103,9 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
       ? getConnectionDisplayValue(asset.connection_ref)
       : asset.properties?.['connection-ref'] || '',
     path: isTable ? (asset.location ?? '') : asset['storage-location'],
-    purpose: properties.purpose || '',
-    license: properties.license || '',
-    maturity: properties.maturity || '',
+    purpose: isTable ? properties.purpose || '' : properties.volume_purpose || '',
+    license: isTable ? properties.license || '' : properties.volume_license || '',
+    maturity: isTable ? properties.maturity || '' : properties.volume_maturity || '',
     piiStatus: properties.pii_status || '',
     customProperties,
     schemaFields: isTable
