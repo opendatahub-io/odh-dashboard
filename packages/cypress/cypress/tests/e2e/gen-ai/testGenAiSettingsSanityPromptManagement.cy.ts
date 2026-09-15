@@ -72,21 +72,9 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       .then(() => {
         projectName = `${testData.projectNamePrefix}-${uuid}`;
         cy.step(`Create project ${projectName}`);
-        createCleanProject(projectName);
-        waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
-
-        return cy
-          .exec(
-            `oc get inferenceservices -n ${projectName} -o jsonpath='{.items[?(@.metadata.name=="${testData.modelDeploymentName}")].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null`,
-            {
-              failOnNonZeroExit: false,
-            },
-          )
-          .then((isResult) => {
-            if (isResult.stdout.trim() === 'True') {
-              cy.log('Model already deployed and ready');
-              return;
-            }
+        return createCleanProject(projectName)
+          .then(() => waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME))
+          .then(() => {
             cy.step('Deploy Gen AI model');
             deployGenAiModel(projectName, testData);
           });
@@ -95,29 +83,6 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
         cy.step('Enable prompt management features');
         return enablePromptManagementFeatures();
       })
-      .then(() =>
-        cy
-          .exec(`oc get ogxservers -n ${projectName} --no-headers 2>/dev/null`, {
-            failOnNonZeroExit: false,
-          })
-          .then((result) => {
-            if (result.stdout.trim()) {
-              cy.log('OGXServer already exists');
-              return waitForOGXServerReady(projectName);
-            }
-
-            cy.step('Add model to playground to create OGXServer');
-            genAiPlayground.navigateToAssets(projectName);
-            genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
-            genAiPlayground.findConfigurationTable().should('be.visible');
-            genAiPlayground.ensureModelCheckboxIsChecked(testData.modelDeploymentName);
-            genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
-
-            waitForResource('configmap', testData.configMapName, projectName);
-            waitForOGXServerReady(projectName);
-            return waitForResource('service', testData.playgroundServiceName, projectName);
-          }),
-      )
       .then(() => {
         cy.step('Delete stale global namespace');
         return deleteOpenShiftProject(globalNamespace, { wait: true, ignoreNotFound: true });
@@ -177,6 +142,20 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssets(projectName);
+
+      cy.step('Add model to playground');
+      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      genAiPlayground.findConfigurationTable().should('be.visible');
+      genAiPlayground.ensureModelCheckboxIsChecked(testData.modelDeploymentName);
+      genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
+
+      cy.step('Wait for playground resources');
+      waitForResource('configmap', testData.configMapName, projectName);
+      waitForOGXServerReady(projectName);
+      waitForResource('service', testData.playgroundServiceName, projectName);
 
       cy.step('Navigate to playground');
       genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
