@@ -1,23 +1,48 @@
+import * as React from 'react';
+import { List, ListItem } from '@patternfly/react-core';
 import { SortableData } from '@odh-dashboard/ui-core';
 import { ExternalProvider } from '~/app/types/external-models';
 
+const endpointPopoverContent: React.ReactNode = (
+  <>
+    The provider&apos;s hostname - for example, <em>api.openai.com</em>. Requests are routed here.
+  </>
+);
+
+const authMechanismPopoverContent: React.ReactNode = (
+  <>
+    The method by which the system authenticates with the provider.
+    <List>
+      <ListItem>
+        <strong>API key:</strong> A secret token used to authenticate API requests.
+      </ListItem>
+      <ListItem>
+        <strong>AWS signing:</strong> Uses AWS credentials (access key and secret) to sign requests.
+      </ListItem>
+      <ListItem>
+        <strong>OAuth 2:</strong> Authenticates using an OAuth 2.0 client credentials flow.
+      </ListItem>
+    </List>
+  </>
+);
+
 export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
   {
-    label: 'External provider',
+    label: 'Name',
     field: 'name',
     width: 10,
     sortable: (a: ExternalProvider, b: ExternalProvider): number =>
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
   },
   {
-    label: 'Provider type',
+    label: 'Type',
     field: 'provider',
     width: 10,
     sortable: (a: ExternalProvider, b: ExternalProvider): number =>
       a.provider.localeCompare(b.provider),
     info: {
       popover:
-        'The cloud or API provider this resource connects to (e.g. OpenAI, Anthropic, AWS Bedrock).',
+        'An optional label to specify the service type, such as Open AI or Anthropic. This is intended for organization purposes only. ',
     },
   },
   {
@@ -26,18 +51,17 @@ export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
     width: 10,
     sortable: false,
     info: {
-      popover:
-        'The base URL for the provider API. All external models referencing this provider send requests to this endpoint.',
+      popover: endpointPopoverContent,
     },
   },
   {
-    label: 'Authentication',
+    label: 'Authentication type',
     field: 'authMechanism',
     width: 10,
     sortable: (a: ExternalProvider, b: ExternalProvider): number =>
       a.authMechanism.localeCompare(b.authMechanism),
     info: {
-      popover: 'The authentication mechanism used to connect to the provider endpoint.',
+      popover: authMechanismPopoverContent,
     },
   },
   {
@@ -46,8 +70,7 @@ export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
     width: 10,
     sortable: false,
     info: {
-      popover:
-        'The Kubernetes Secret in the same namespace that holds the API key or credentials for this provider.',
+      popover: 'The secret that stores credentials for this provider.',
     },
   },
   {

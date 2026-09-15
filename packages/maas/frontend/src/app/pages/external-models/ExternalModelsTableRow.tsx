@@ -30,6 +30,7 @@ import {
 import PathModal from './modals/ExternalModelsPathModal';
 import ProviderURLModal from './modals/ExternalModelsProviderModal';
 import ExternalModelsExpandedTableRow from './expanded/ExternalModelsExpandedTableRow';
+import { convertStringToProviderType } from '../external-providers/utils';
 
 const VISIBLE_LABEL_ROWS = 2;
 const enum ToggleLocation {
@@ -292,7 +293,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         title="Path"
         description="The request path appended to the provider URL. If path variables were configured, they're shown with resolved values."
         subContentTitle="Provider"
-        subContent={pathModalRef?.provider?.provider ?? ''}
+        subContent={convertStringToProviderType(pathModalRef?.provider?.provider ?? '')}
       />
       <ProviderURLModal
         isOpen={!!providerURLModalRef}

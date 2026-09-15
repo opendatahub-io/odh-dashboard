@@ -58,7 +58,7 @@ const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
           variant="secondary"
           component={(props) => <Link {...props} to={externalProvidersManagementPath(namespace)} />}
         >
-          Manage external providers
+          View providers
         </Button>
       </ToolbarItem>
     </ToolbarGroup>
