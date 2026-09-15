@@ -6,7 +6,7 @@ import {
   restCREATE,
   restDELETE,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
 import type {
   APIKeyListResponse,
   APIKeySearchRequest,
@@ -61,7 +61,7 @@ export const searchApiKeys =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/search`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/search`,
         assembleModArchBody(request),
         {},
         opts,
@@ -80,7 +80,7 @@ export const createApiKey =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/api-keys`,
         assembleModArchBody(request),
         {},
         opts,
@@ -99,7 +99,7 @@ export const bulkRevokeApiKeys =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/bulk-revoke`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/bulk-revoke`,
         assembleModArchBody({ username }),
         {},
         opts,
@@ -118,7 +118,7 @@ export const revokeApiKey =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/${encodeURIComponent(keyId)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/${encodeURIComponent(keyId)}`,
         {},
         {},
         opts,

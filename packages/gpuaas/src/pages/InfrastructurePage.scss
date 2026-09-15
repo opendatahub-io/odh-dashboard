@@ -1,0 +1,33 @@
+// Viewport tabs: bounded height below masthead + infra sticky header — no page scroll.
+.gpuaas-infrastructure-tab--viewport {
+  // Masthead + infra title/tabs above this panel. Tune if drawer clips or page scrolls.
+  --gpuaas-infrastructure-viewport-chrome-offset: 18rem;
+
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--gpuaas-infrastructure-viewport-chrome-offset));
+  max-height: calc(100dvh - var(--gpuaas-infrastructure-viewport-chrome-offset));
+  min-height: min(28.4375rem, calc(100dvh - var(--gpuaas-infrastructure-viewport-chrome-offset)));
+  overflow: hidden;
+
+  .gpuaas-quota-usage-tab__header {
+    flex-shrink: 0;
+    padding-block-end: var(--pf-t--global--spacer--md);
+    background-color: var(--pf-t--global--background--color--default);
+    border-block-end: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+  }
+
+  .gpuaas-quota-usage-tab__body {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+
+    > .gpuaas-quota-usage-section {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+  }
+}

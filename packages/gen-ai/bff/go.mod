@@ -14,6 +14,7 @@ require (
 	github.com/onsi/gomega v1.43.0
 	github.com/openai/openai-go/v2 v2.7.1
 	github.com/opendatahub-io/mlflow-go v0.0.0-20260814111624-b1898e60a157
+	github.com/opendatahub-io/odh-dashboard/pkg/tls v0.0.0-00010101000000-000000000000
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rs/cors v1.11.1
 	github.com/shirou/gopsutil/v4 v4.26.8
@@ -181,3 +182,5 @@ require (
 
 // Replace the upstream ogx-k8s-operator with the Open Data Hub fork
 replace github.com/ogx-ai/ogx-k8s-operator => github.com/opendatahub-io/ogx-k8s-operator v0.0.0-20260512184943-d419c039b7b9
+
+replace github.com/opendatahub-io/odh-dashboard/pkg/tls => ../../../pkg/tls

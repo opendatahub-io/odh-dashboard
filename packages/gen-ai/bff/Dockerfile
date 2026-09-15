@@ -2,7 +2,9 @@
 FROM registry.redhat.io/ubi9/go-toolset:1.26 AS builder
 WORKDIR /usr/src/app
 COPY go.mod go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 RUN go mod download
+COPY pkg/tls/ /pkg/tls/
 COPY cmd/ cmd/
 COPY internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd

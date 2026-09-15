@@ -77,6 +77,7 @@ WORKDIR /usr/src/workspace
 
 # Copy module manifests first for dependency caching
 COPY packages/autox-core/services/go.mod packages/autox-core/services/go.sum ./packages/autox-core/services/
+COPY pkg/tls/go.mod pkg/tls/go.sum ./pkg/tls/
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./${BFF_SOURCE_CODE}/
 
 # Download dependencies
@@ -85,6 +86,7 @@ RUN go mod download
 
 # Copy source files
 COPY packages/autox-core/services/ /usr/src/workspace/packages/autox-core/services/
+COPY pkg/tls/ /usr/src/workspace/pkg/tls/
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 

@@ -3,11 +3,15 @@ name: ODH Dashboard Agent
 # Preflight checks on PRs using Claude Code.
 #
 # Triggers:
-#   pull_request_target — auto-runs on PR open/reopen (forks + internal)
+#   pull_request_target — auto-runs on PR open/reopen/ready_for_review
 #   issue_comment       — @odh-dashboard-agent preflight (org members only)
 #
 # Dependabot PRs are skipped on pull_request_target (not useful for
 # dependency bumps; avoids noisy failures). Manual comment trigger still works.
+#
+# Draft PRs are skipped (e.g. Mergify merge-queue drafts). ready_for_review
+# re-triggers when a draft is marked ready. issue_comment routes check isDraft
+# via gh pr view; pull_request_target uses event payload.
 #
 # Fork PRs are gated by GitHub's "Require approval for all external
 # contributors" setting — a maintainer must approve the workflow run.
@@ -19,7 +23,7 @@ name: ODH Dashboard Agent
 
 on:
   pull_request_target:
-    types: [opened, reopened]
+    types: [opened, reopened, ready_for_review]
   issue_comment:
     types: [created]
 
@@ -34,6 +38,7 @@ jobs:
   #  Router                                                             #
   # ------------------------------------------------------------------ #
   router:
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -96,10 +101,16 @@ jobs:
 
           gh api "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content="+1" --silent || true
 
-          PR_DATA=$(gh pr view "$ISSUE_NUMBER" --repo "$REPO" --json headRefOid,headRefName,headRepository)
+          PR_DATA=$(gh pr view "$ISSUE_NUMBER" --repo "$REPO" --json headRefOid,headRefName,headRepository,isDraft)
+          if [[ "$(echo "$PR_DATA" | jq -r '.isDraft')" == "true" ]]; then
+            echo "Skipping: draft PR"
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
           REF=$(echo "$PR_DATA" | jq -r '.headRefName')
           HR=$(echo "$PR_DATA" | jq -r 'if .headRepository.owner then .headRepository.owner.login + "/" + .headRepository.name else empty end')
+
           echo "→ Preflight for PR #$ISSUE_NUMBER (comment)"
           MATRIX=$(jq -nc --arg n "$ISSUE_NUMBER" --arg s "$SHA" --arg r "$REF" --arg h "${HR:-$REPO}" \
             '[{"pr_number":$n,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
@@ -110,7 +121,7 @@ jobs:
   # ------------------------------------------------------------------ #
   preflight:
     needs: router
-    if: needs.router.outputs.matrix != '[]'
+    if: needs.router.result == 'success' && needs.router.outputs.matrix != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:

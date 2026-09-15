@@ -1,29 +1,13 @@
 /* eslint-disable camelcase */
-import {
-  createConfigureSchema,
-  SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
-} from '~/app/schemas/configure.schema';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 describe('Configure Schema', () => {
   const schema = createConfigureSchema();
 
-  describe('Supported vector store providers', () => {
-    it('should allow remote Milvus and PGVector provider types', () => {
-      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toEqual(['remote::milvus', 'remote::pgvector']);
-    });
-
-    it('should include remote::pgvector and exclude unsupported types', () => {
-      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toContain('remote::pgvector');
-      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toContain('remote::milvus');
-      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).not.toContain('inline::bm25');
-      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).not.toContain('remote::unsupported');
-    });
-  });
-
   describe('Default values', () => {
-    it('should set vector_io_provider_id to empty string by default', () => {
+    it('should set vector_db_secret_name to empty string by default', () => {
       const { defaults } = schema;
-      expect(defaults.vector_io_provider_id).toBe('');
+      expect(defaults.vector_db_secret_name).toBe('');
     });
 
     it('should default preset to speed', () => {
@@ -42,8 +26,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -63,8 +47,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -91,8 +75,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -112,8 +96,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -139,8 +123,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -160,8 +144,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -186,8 +170,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -208,8 +192,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -234,8 +218,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -256,8 +240,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -282,8 +266,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -304,8 +288,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -326,8 +310,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -342,7 +326,7 @@ describe('Configure Schema', () => {
       }
     });
 
-    it('should reject empty vector_io_provider_id', () => {
+    it('should reject blank embedding_models entries', () => {
       const data = {
         display_name: 'Test Run',
         input_data_secret_name: 'input-secret',
@@ -351,8 +335,33 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: '',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
+        generation_models: ['gpt-4'],
+        embedding_models: [' '],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('embedding_models.0');
+      }
+    });
+
+    it('should reject empty vector_db_secret_name', () => {
+      const data = {
+        display_name: 'Test Run',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: '',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -365,7 +374,7 @@ describe('Configure Schema', () => {
   });
 
   describe('Transformers', () => {
-    it('should keep vector_io_provider_id when set to a provider', () => {
+    it('should keep vector_db_secret_name when set', () => {
       const data = {
         display_name: 'Test Run',
         description: 'Test description',
@@ -375,8 +384,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -385,7 +394,7 @@ describe('Configure Schema', () => {
 
       const result = schema.full.parse(data);
 
-      expect(result.vector_io_provider_id).toBe('milvus');
+      expect(result.vector_db_secret_name).toBe('vector-db-secret');
     });
 
     it('should remove empty description', () => {
@@ -398,8 +407,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -421,8 +430,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -443,8 +452,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
@@ -468,8 +477,8 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        ogx_secret_name: 'ogx-secret',
-        vector_io_provider_id: 'milvus',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
         generation_models: ['gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,

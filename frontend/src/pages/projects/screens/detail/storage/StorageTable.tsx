@@ -11,21 +11,28 @@ import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
 import { StorageTableData } from './types';
 import ClusterStorageModal from './ClusterStorageModal';
-import { useStorageContextType } from './useStorageContextType';
+import { StorageContextType } from './useStorageContextType';
 import { useClusterStorageConnectedResources } from './useClusterStorageConnectedResources';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
   refresh: () => void;
   onAddPVC: () => void;
+  storageContextTypes?: StorageContextType[];
+  storageContextTypesLoaded?: boolean;
 };
 
-const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) => {
+const StorageTable: React.FC<StorageTableProps> = ({
+  pvcs,
+  refresh,
+  onAddPVC,
+  storageContextTypes,
+  storageContextTypesLoaded,
+}) => {
   const [deleteStorage, setDeleteStorage] = React.useState<PersistentVolumeClaimKind | undefined>();
   const [editPVC, setEditPVC] = React.useState<PersistentVolumeClaimKind | undefined>();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
-  const [storageContextTypes, storageContextTypesLoaded] = useStorageContextType();
   const [alertDismissed, setAlertDismissed] = React.useState<boolean>(false);
   const storageTableData: StorageTableData[] = pvcs.map((pvc) => ({
     pvc,
@@ -120,6 +127,8 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
             }
             setEditPVC(undefined);
           }}
+          storageContextTypes={storageContextTypes}
+          storageContextTypesLoaded={storageContextTypesLoaded}
         />
       ) : null}
       {deleteStorage ? (

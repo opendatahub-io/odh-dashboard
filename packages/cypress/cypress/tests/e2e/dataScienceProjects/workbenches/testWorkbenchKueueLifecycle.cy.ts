@@ -3,7 +3,7 @@ import {
   deleteOpenShiftProject,
   createOpenShiftProject,
 } from '../../../../utils/oc_commands/project';
-import { retryableBefore } from '../../../../utils/retryableHooks';
+import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { loadKueueWorkbenchLifecycleFixture } from '../../../../utils/dataLoader';
 import {
@@ -12,6 +12,10 @@ import {
   updateClusterQueueQuota,
   type KueueWorkbenchConfig,
 } from '../../../../utils/oc_commands/kueueWorkbench';
+import {
+  pollUntilWorkloadAdmitted,
+  pollUntilAnyWorkloadMessageMatches,
+} from '../../../../utils/oc_commands/kueueModelDeployment';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import {
   workbenchPage,
@@ -21,117 +25,207 @@ import {
 import { selectNotebookImageWithBackendFallback } from '../../../../utils/oc_commands/imageStreams';
 import type { KueueWorkbenchLifecycleTestData } from '../../../../types';
 
-describe('Workbench Kueue Lifecycle Tests', () => {
-  let testData: KueueWorkbenchConfig;
-  let fixtureData: KueueWorkbenchLifecycleTestData;
-  let projectName: string;
-  let sectionTab: string;
-  let notebookImage: string;
-  const uuid = generateTestUUID();
-  const workbenchName = `kueue-lifecycle-wb-${uuid}`;
+const QUEUE_POSITION_REGEX = /\d+(st|nd|rd|th) in/;
+const QUEUED_MESSAGE = /insufficient unused quota/i;
 
-  retryableBefore(() =>
-    loadKueueWorkbenchLifecycleFixture('e2e/kueueWorkbench/testKueueWorkbenchLifecycle.yaml').then(
-      (data) => {
-        fixtureData = data;
-        projectName = `${data.projectName}-${uuid}`;
-        sectionTab = data.sectionTab;
-        notebookImage = data.notebookImage;
-        testData = {
-          flavorName: `${data.flavorName}-${uuid}`,
-          clusterQueueName: `${data.clusterQueueName}-${uuid}`,
-          localQueueName: `${data.localQueueName}-${uuid}`,
-          hardwareProfileName: `${data.hardwareProfileName}-${uuid}`,
-          hardwareProfileDisplayName: `${data.hardwareProfileDisplayName} ${uuid}`,
-          cpuQuota: data.cpuQuota,
-          memoryQuota: data.memoryQuota,
-        };
-        return deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true })
-          .then(() => createOpenShiftProject(projectName))
-          .then(() => setupKueueWorkbenchResources(testData, projectName));
-      },
-    ),
+type WorkbenchLifecycleContext = {
+  uuid: string;
+  testData: KueueWorkbenchConfig;
+  fixtureData: KueueWorkbenchLifecycleTestData;
+  projectName: string;
+  sectionTab: string;
+  notebookImage: string;
+};
+
+const buildKueueConfig = (
+  data: KueueWorkbenchLifecycleTestData,
+  uuid: string,
+  resourceSuffix: string,
+  cpuQuota: number,
+  memoryQuota: number,
+): KueueWorkbenchConfig => ({
+  flavorName: `${data.flavorName}${resourceSuffix}-${uuid}`,
+  clusterQueueName: `${data.clusterQueueName}${resourceSuffix}-${uuid}`,
+  localQueueName: `${data.localQueueName}${resourceSuffix}-${uuid}`,
+  hardwareProfileName: `${data.hardwareProfileName}${resourceSuffix}-${uuid}`,
+  hardwareProfileDisplayName: resourceSuffix
+    ? `${data.hardwareProfileDisplayName} Queued ${uuid}`
+    : `${data.hardwareProfileDisplayName} ${uuid}`,
+  cpuQuota,
+  memoryQuota,
+});
+
+const initLifecycleProject = (
+  data: KueueWorkbenchLifecycleTestData,
+  projectSuffix: string,
+  resourceSuffix: string,
+  cpuQuota: number,
+  memoryQuota: number,
+): Cypress.Chainable<WorkbenchLifecycleContext> => {
+  const uuid = generateTestUUID();
+  const ctx: WorkbenchLifecycleContext = {
+    uuid,
+    fixtureData: data,
+    projectName: `${data.projectName}${projectSuffix}-${uuid}`,
+    sectionTab: data.sectionTab,
+    notebookImage: data.notebookImage,
+    testData: buildKueueConfig(data, uuid, resourceSuffix, cpuQuota, memoryQuota),
+  };
+
+  return deleteOpenShiftProject(ctx.projectName, { wait: true, ignoreNotFound: true })
+    .then(() => createOpenShiftProject(ctx.projectName))
+    .then(() => setupKueueWorkbenchResources(ctx.testData, ctx.projectName))
+    .then(() => ctx);
+};
+
+const setupLifecycleProject = (
+  projectSuffix: string,
+  resourceSuffix: string,
+  useQueuedQuota: boolean,
+): Cypress.Chainable<WorkbenchLifecycleContext> =>
+  loadKueueWorkbenchLifecycleFixture('e2e/kueueWorkbench/testKueueWorkbenchLifecycle.yaml').then(
+    (data) =>
+      initLifecycleProject(
+        data,
+        projectSuffix,
+        resourceSuffix,
+        useQueuedQuota ? data.queuedCpuQuota : data.cpuQuota,
+        useQueuedQuota ? data.queuedMemoryQuota : data.memoryQuota,
+      ),
   );
 
-  after(() => {
-    cleanupKueueWorkbenchResources(testData, projectName);
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+const openWorkbenchesTab = (ctx: WorkbenchLifecycleContext) => {
+  cy.visitWithLogin('/?devFeatureFlags=true', LDAP_ADMIN_USER);
+  projectListPage.navigate();
+  projectListPage.filterProjectByName(ctx.projectName);
+  projectListPage.findProjectLink(ctx.projectName).click();
+  projectDetails.findSectionTab(ctx.sectionTab).click();
+};
+
+const createWorkbench = (ctx: WorkbenchLifecycleContext, workbenchName: string) => {
+  workbenchPage.findCreateButton().click();
+  createSpawnerPage.getNameInput().fill(workbenchName);
+  selectNotebookImageWithBackendFallback(ctx.notebookImage, createSpawnerPage);
+  createSpawnerPage
+    .findHardwareProfileSelect()
+    .should('contain.text', ctx.testData.hardwareProfileDisplayName);
+  createSpawnerPage.findSubmitButton().click();
+  workbenchPage.findNotebookTable(30000).should('exist');
+};
+
+const verifyResourcesModal = (clusterQueueName: string) => {
+  workbenchStatusModal.find().should('be.visible');
+  workbenchStatusModal.findResourcesTab().click();
+  workbenchStatusModal.findClusterQueueSection().should('be.visible');
+  workbenchStatusModal.findQueueValue().should('contain.text', clusterQueueName);
+  workbenchStatusModal.findQuotasSection().should('be.visible');
+  workbenchStatusModal.getModalCloseButton().click();
+};
+
+describe('Workbench Kueue Lifecycle Tests', () => {
+  describe('Inadmissible with zero quota', () => {
+    let ctx: WorkbenchLifecycleContext | undefined;
+
+    retryableBefore(() =>
+      setupLifecycleProject('', '', false).then((projectCtx) => {
+        ctx = projectCtx;
+      }),
+    );
+
+    after(() => {
+      if (!wasSetupPerformed() || !ctx) {
+        return;
+      }
+      cleanupKueueWorkbenchResources(ctx.testData, ctx.projectName);
+      deleteOpenShiftProject(ctx.projectName, { wait: false, ignoreNotFound: true });
+    });
+
+    it(
+      'Verify workbench Kueue lifecycle: Inadmissible → Ready after quota update',
+      { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
+      () => {
+        if (!ctx) {
+          throw new Error('Test setup did not complete');
+        }
+        const projectCtx = ctx;
+
+        const workbenchName = `kueue-lifecycle-wb-${projectCtx.uuid}`;
+
+        openWorkbenchesTab(projectCtx);
+        createWorkbench(projectCtx, workbenchName);
+
+        const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+        notebookRow.expectStatusLabelToBe('Inadmissible', 120000);
+        notebookRow
+          .findNotebookStatusSubtitle()
+          .should('contain.text', projectCtx.fixtureData.exceededQuotaMessage);
+
+        notebookRow.findHaveNotebookStatusText().click();
+        verifyResourcesModal(projectCtx.testData.clusterQueueName);
+
+        updateClusterQueueQuota(
+          projectCtx.testData.clusterQueueName,
+          projectCtx.fixtureData.updatedCpuQuota,
+          projectCtx.fixtureData.updatedMemoryQuota,
+        );
+
+        notebookRow.expectStatusLabelToBe('Ready', 300000);
+        notebookRow.shouldHaveHardwareProfile(projectCtx.testData.hardwareProfileDisplayName);
+      },
+    );
   });
 
-  it(
-    'Verify workbench Kueue lifecycle: Inadmissible → Ready after quota update',
-    { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
-    () => {
-      cy.step('Log into the application');
-      cy.visitWithLogin('/?devFeatureFlags=true', LDAP_ADMIN_USER);
+  describe('Queued when ClusterQueue quota is partially consumed', () => {
+    let ctx: WorkbenchLifecycleContext | undefined;
 
-      cy.step(`Navigate to workbenches tab of project ${projectName}`);
-      projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
-      projectDetails.findSectionTab(sectionTab).click();
+    retryableBefore(() =>
+      setupLifecycleProject('-q', '-queued', true).then((projectCtx) => {
+        ctx = projectCtx;
+      }),
+    );
 
-      cy.step('Click Create workbench button');
-      workbenchPage.findCreateButton().click();
+    after(() => {
+      if (!wasSetupPerformed() || !ctx) {
+        return;
+      }
+      cleanupKueueWorkbenchResources(ctx.testData, ctx.projectName);
+      deleteOpenShiftProject(ctx.projectName, { wait: false, ignoreNotFound: true });
+    });
 
-      cy.step('Enter workbench name');
-      createSpawnerPage.getNameInput().fill(workbenchName);
+    it(
+      'Verify workbench shows Queued when ClusterQueue quota is consumed by another workbench',
+      {
+        tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged', '@NonConcurrent'],
+      },
+      () => {
+        if (!ctx) {
+          throw new Error('Test setup did not complete');
+        }
+        const projectCtx = ctx;
 
-      cy.step('Select a notebook image');
-      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage);
+        const firstWorkbenchName = `kueue-wb-q1-${projectCtx.uuid}`;
+        const secondWorkbenchName = `kueue-wb-q2-${projectCtx.uuid}`;
 
-      cy.step('Verify Kueue hardware profile is pre-selected');
-      createSpawnerPage
-        .findHardwareProfileSelect()
-        .should('contain.text', testData.hardwareProfileDisplayName);
+        openWorkbenchesTab(projectCtx);
+        createWorkbench(projectCtx, firstWorkbenchName);
+        pollUntilWorkloadAdmitted(projectCtx.projectName);
 
-      cy.step('Submit the workbench creation');
-      createSpawnerPage.findSubmitButton().click();
+        createWorkbench(projectCtx, secondWorkbenchName);
+        pollUntilAnyWorkloadMessageMatches(projectCtx.projectName, QUEUED_MESSAGE);
 
-      cy.step('Wait for notebook table to appear');
-      workbenchPage.findNotebookTable(30000).should('exist');
+        const notebookRow = workbenchPage.getNotebookRow(secondWorkbenchName);
+        notebookRow.expectStatusLabelToBe('Queued', 120000);
+        notebookRow.findNotebookStatusSubtitle().should(($el) => {
+          const text = $el.text();
+          expect(
+            text.includes(projectCtx.fixtureData.waitingForQuotaMessage) ||
+              QUEUE_POSITION_REGEX.test(text),
+          ).to.eq(true);
+        });
 
-      cy.step('Verify workbench shows Inadmissible status');
-      const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.expectStatusLabelToBe('Inadmissible', 120000);
-
-      cy.step('Verify status subtitle shows exceeded quota message');
-      notebookRow
-        .findNotebookStatusSubtitle()
-        .should('contain.text', fixtureData.exceededQuotaMessage);
-
-      cy.step('Click on the Inadmissible status label to open the status modal');
-      notebookRow.findHaveNotebookStatusText().click();
-
-      cy.step('Verify status modal is visible');
-      workbenchStatusModal.find().should('be.visible');
-
-      cy.step('Verify Resources tab is visible and click it');
-      workbenchStatusModal.findResourcesTab().should('be.visible');
-      workbenchStatusModal.findResourcesTab().click();
-
-      cy.step('Verify ClusterQueue section is visible with queue name');
-      workbenchStatusModal.findClusterQueueSection().should('be.visible');
-      workbenchStatusModal.findQueueValue().should('contain.text', testData.clusterQueueName);
-
-      cy.step('Verify quotas section is visible');
-      workbenchStatusModal.findQuotasSection().should('be.visible');
-
-      cy.step('Close the status modal');
-      workbenchStatusModal.getModalCloseButton().click();
-
-      cy.step('Update the ClusterQueue quota to allow the workbench');
-      updateClusterQueueQuota(
-        testData.clusterQueueName,
-        fixtureData.updatedCpuQuota,
-        fixtureData.updatedMemoryQuota,
-      );
-
-      cy.step('Wait for workbench to transition to Ready status');
-      notebookRow.expectStatusLabelToBe('Ready', 300000);
-
-      cy.step('Verify hardware profile is displayed after Ready');
-      notebookRow.shouldHaveHardwareProfile(testData.hardwareProfileDisplayName);
-    },
-  );
+        notebookRow.findHaveNotebookStatusText().click();
+        verifyResourcesModal(projectCtx.testData.clusterQueueName);
+      },
+    );
+  });
 });

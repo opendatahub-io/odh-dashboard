@@ -9,11 +9,11 @@ import { retryableBeforeEach } from '../../../utils/retryableHooks';
 import {
   checkModelRegistry,
   checkModelRegistryAvailable,
-  cleanupRegisteredModelsFromDatabase,
-  createAndVerifyDatabase,
-  createModelRegistryViaYAML,
+  cleanupRegisteredModelsFromPostgresDatabase,
+  createAndVerifyPostgresDatabase,
+  createPostgresModelRegistryViaYAML,
   deleteModelRegistry,
-  deleteModelRegistryDatabase,
+  deletePostgresDatabase,
   ensureOperatorMemoryLimit,
 } from '../../../utils/oc_commands/modelRegistry';
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
@@ -48,13 +48,13 @@ describe('Verify that models and versions can be archived and restored via model
         cy.step('Ensure operator has optimal memory for testing');
         ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
-        // Create and verify SQL database
-        cy.step('Create and verify SQL database for model registry');
-        createAndVerifyDatabase(databaseName).should('be.true');
+        // Create and verify PostgreSQL database
+        cy.step('Create and verify PostgreSQL database for model registry');
+        createAndVerifyPostgresDatabase(databaseName).should('be.true');
 
         // creates a model registry
-        cy.step('Create a model registry using YAML');
-        createModelRegistryViaYAML(registryName, databaseName);
+        cy.step('Create a PostgreSQL-backed model registry using YAML');
+        createPostgresModelRegistryViaYAML(registryName, databaseName);
 
         cy.step('Verify model registry is created');
         checkModelRegistry(registryName).should('be.true');
@@ -233,7 +233,7 @@ describe('Verify that models and versions can be archived and restored via model
     cy.visit('/');
 
     cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase([testData.objectStorageModelName], databaseName);
+    cleanupRegisteredModelsFromPostgresDatabase([testData.objectStorageModelName], databaseName);
 
     cy.step('Delete the model registry');
     deleteModelRegistry(registryName);
@@ -241,7 +241,7 @@ describe('Verify that models and versions can be archived and restored via model
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
 
-    cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase(databaseName).should('be.true');
+    cy.step('Delete the PostgreSQL database');
+    deletePostgresDatabase(databaseName).should('be.true');
   });
 });

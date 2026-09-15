@@ -19,10 +19,14 @@ import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useLabels } from '~/app/hooks/useLabels';
+import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
 import RegistryTable from '~/app/components/RegistryTable';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
 import ManageLabelsModal from '~/app/components/ManageLabelsModal';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
+import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
+import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
+import ConnectionError from '~/app/components/errors/ConnectionError';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
 const HIDDEN_NS_PREFIXES = ['openshift-', 'kube-'];
@@ -36,7 +40,7 @@ const DataRegistryPage: React.FC = () => {
   const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
 
-  const [namespaces, namespacesLoaded, namespacesError] = useNamespaces();
+  const [namespaces, namespacesLoaded, namespacesError, namespacesRefresh] = useNamespaces();
 
   const projects = React.useMemo(
     () =>
@@ -52,12 +56,14 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
-  const [collections, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
+  const [, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
     collectionNames,
   );
   const [labels, , , labelsRefresh] = useLabels(selectedProject);
+
+  const hasWriteAccess = !is403Error(assetsError) && !is403Error(collectionsError);
 
   const handleRefresh = React.useCallback(() => {
     assetsRefresh();
@@ -80,6 +86,27 @@ const DataRegistryPage: React.FC = () => {
   );
 
   if (namespacesError) {
+    if (is503Error(namespacesError)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <ServiceUnavailableError onRetry={namespacesRefresh} />
+        </PageSection>
+      );
+    }
+    if (is403Error(namespacesError)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <AccessDeniedError />
+        </PageSection>
+      );
+    }
+    if (isConnectionError(namespacesError)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <ConnectionError onRetry={namespacesRefresh} />
+        </PageSection>
+      );
+    }
     return (
       <PageSection hasBodyWrapper={false} isFilled>
         <EmptyState
@@ -164,7 +191,7 @@ const DataRegistryPage: React.FC = () => {
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
-            error={assetsError}
+            error={assetsError ?? collectionsError}
             labels={labels}
             project={selectedProject}
             onManageCollections={() => {
@@ -174,12 +201,13 @@ const DataRegistryPage: React.FC = () => {
             }}
             onManageLabels={() => setIsLabelsModalOpen(true)}
             onRegisterData={() => setIsRegisterModalOpen(true)}
+            onRetry={handleRefresh}
+            hasWriteAccess={hasWriteAccess}
           />
           <ManageCollectionsModal
             isOpen={isCollectionsModalOpen}
             onClose={() => setIsCollectionsModalOpen(false)}
             project={selectedProject}
-            collections={collections}
             onRefresh={handleRefresh}
           />
           <ManageLabelsModal

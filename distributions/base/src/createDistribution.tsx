@@ -16,6 +16,8 @@ export interface DistributionConfig {
   extensions: Record<string, Extension[]>;
   featureFlags?: Record<string, boolean>;
   rootElementId?: string;
+  /** Optional public base path for a distribution hosted below the gateway root. */
+  basename?: string;
   /**
    * Optional host wrapper around the shell (e.g. ProjectsContextProvider).
    * Distributions use this to mount host-only providers without forking the shell.
@@ -58,12 +60,15 @@ export function createDistribution(config: DistributionConfig): void {
     throw new Error(`Root element #${rootElementId} not found`);
   }
 
-  const router = createBrowserRouter([
-    {
-      path: '*',
-      element: <DistributionApp config={config} />,
-    },
-  ]);
+  const router = createBrowserRouter(
+    [
+      {
+        path: '*',
+        element: <DistributionApp config={config} />,
+      },
+    ],
+    { basename: config.basename },
+  );
 
   const root = createRoot(container);
   root.render(

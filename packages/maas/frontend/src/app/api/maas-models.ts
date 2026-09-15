@@ -8,7 +8,7 @@ import {
   restUPDATE,
   restDELETE,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
 import {
   CreateMaaSModelRefRequest,
   DeleteMaaSModelRefResponse,
@@ -52,7 +52,7 @@ export const getMaaSModelsList =
   (hostPath = '') =>
   (opts: APIOptions): Promise<MaaSModel[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/models`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/models`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && isMaaSModelsListPayload(response.data)) {
         return response.data.data;
@@ -78,7 +78,7 @@ export const createMaaSModelRef =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel${dryRun ? '?dryRun=true' : ''}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel${dryRun ? '?dryRun=true' : ''}`,
         assembleModArchBody(requestBody),
         {},
         opts,
@@ -105,7 +105,7 @@ export const updateMaaSModelRef =
     handleRestFailures(
       restUPDATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}${dryRun ? '?dryRun=true' : ''}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}${dryRun ? '?dryRun=true' : ''}`,
         assembleModArchBody(requestBody),
         {},
         opts,
@@ -124,7 +124,7 @@ export const deleteMaaSModelRef =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}${dryRun ? '?dryRun=true' : ''}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/maasmodel/${namespace}/${name}${dryRun ? '?dryRun=true' : ''}`,
         {},
         {},
         opts,

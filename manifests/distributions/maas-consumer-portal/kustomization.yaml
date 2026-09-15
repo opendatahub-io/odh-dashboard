@@ -8,7 +8,6 @@ resources:
   - service.yaml
   - networkpolicy.yaml
   - httproute.yaml
-  - consolelink.yaml
 configMapGenerator:
   - name: maas-consumer-portal-params
     env: params.env
@@ -47,7 +46,7 @@ replacements:
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
-      fieldPath: data.maas-consumer-portal-hostname
+      fieldPath: data.gateway-domain
     targets:
       - select:
           group: gateway.networking.k8s.io
@@ -56,30 +55,6 @@ replacements:
           name: maas-consumer-portal
         fieldPaths:
           - spec.hostnames.0
-  - source:
-      kind: ConfigMap
-      name: maas-consumer-portal-params
-      fieldPath: data.section-title
-    targets:
-      - select:
-          group: console.openshift.io
-          version: v1
-          kind: ConsoleLink
-          name: maas-consumer-portal-link
-        fieldPaths:
-          - spec.applicationMenu.section
-  - source:
-      kind: ConfigMap
-      name: maas-consumer-portal-params
-      fieldPath: data.maas-consumer-portal-url
-    targets:
-      - select:
-          group: console.openshift.io
-          version: v1
-          kind: ConsoleLink
-          name: maas-consumer-portal-link
-        fieldPaths:
-          - spec.href
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params

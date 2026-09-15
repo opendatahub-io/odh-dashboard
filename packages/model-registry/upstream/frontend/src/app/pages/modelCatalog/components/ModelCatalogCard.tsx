@@ -21,6 +21,7 @@ import {
   isModelValidated,
   isRedHatModel,
   getModelName,
+  getHfAccessLabelVariant,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import {
   MODEL_CATALOG_POPOVER_MESSAGES,
@@ -30,6 +31,7 @@ import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
 import ModelCatalogLabels from './ModelCatalogLabels';
 import ModelCatalogCardBody from './ModelCatalogCardBody';
+import ModelCatalogAccessLabel from './ModelCatalogAccessLabel';
 
 type ModelCatalogCardProps = {
   model: CatalogModel;
@@ -43,6 +45,8 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
     : [];
   const isValidated = isModelValidated(model);
   const isRedHat = isRedHatModel(model);
+  const accessLabelVariant = getHfAccessLabelVariant(model);
+  const isGatedAccessDenied = accessLabelVariant === 'gated-denied';
   const { trackSimpleEvent } = useUserInteraction();
 
   const handleValidatedLabelClicked = React.useCallback(() => {
@@ -88,7 +92,13 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
                     </Label>
                   </Popover>
                 )}
-                {!isValidated && !isRedHat && source && <Label>{source.name}</Label>}
+                {!isValidated && !isRedHat && accessLabelVariant ? (
+                  <ModelCatalogAccessLabel variant={accessLabelVariant} />
+                ) : (
+                  !isValidated &&
+                  !isRedHat &&
+                  source && <Label data-testid="model-catalog-source-label">{source.name}</Label>
+                )}
               </Flex>
             </FlexItem>
           </Flex>
@@ -108,18 +118,22 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
           </Link>
         </CardTitle>
       </CardHeader>
-      <CardBody>
-        <ModelCatalogCardBody model={model} isValidated={isValidated} source={source} />
-      </CardBody>
-      <CardFooter>
-        <ModelCatalogLabels
-          tasks={model.tasks ?? []}
-          validatedTasks={model.validatedTasks}
-          provider={model.provider}
-          labels={[...allLabels.filter((label) => label !== 'validated'), ...valueLabels]}
-          numLabels={isValidated ? 2 : 3}
-        />
-      </CardFooter>
+      {!isGatedAccessDenied && (
+        <>
+          <CardBody>
+            <ModelCatalogCardBody model={model} isValidated={isValidated} source={source} />
+          </CardBody>
+          <CardFooter>
+            <ModelCatalogLabels
+              tasks={model.tasks ?? []}
+              validatedTasks={model.validatedTasks}
+              provider={model.provider}
+              labels={[...allLabels.filter((label) => label !== 'validated'), ...valueLabels]}
+              numLabels={isValidated ? 2 : 3}
+            />
+          </CardFooter>
+        </>
+      )}
     </Card>
   );
 };

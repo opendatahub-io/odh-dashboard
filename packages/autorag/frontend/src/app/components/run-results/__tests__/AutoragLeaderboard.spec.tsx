@@ -190,7 +190,7 @@ const createMockParameters = (
   test_data_secret_name: 'test-secret',
   test_data_bucket_name: 'test-bucket',
   test_data_key: 'test.csv',
-  ogx_secret_name: 'ogx-secret',
+  maas_secret_name: 'maas-secret',
   generation_models: ['llama-3'],
   embedding_models: ['text-embedding-3'],
   optimization_metric: optimizationMetric,

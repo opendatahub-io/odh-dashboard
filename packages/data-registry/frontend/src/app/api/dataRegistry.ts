@@ -1,3 +1,4 @@
+import * as z from 'zod';
 import {
   AssetResponse,
   AssetListResponse,
@@ -25,13 +26,45 @@ class ApiError extends Error {
   }
 }
 
-const fetchJSON = async <T>(url: string): Promise<T> => {
+const schemaFieldSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  description: z.string().optional(),
+  nullable: z.boolean().optional(),
+});
+
+const assetResponseSchema = z
+  .object({
+    name: z.string(),
+    // eslint-disable-next-line camelcase
+    asset_type: z.string(),
+    columns: z.array(schemaFieldSchema).nullable().optional(),
+    labels: z.array(z.string()).nullable().optional(),
+  })
+  .passthrough();
+
+const volumeInfoSchema = z
+  .object({
+    name: z.string(),
+    'catalog-name': z.string(),
+    'schema-name': z.string(),
+    'volume-type': z.string(),
+    'storage-location': z.string(),
+    labels: z.array(z.string()).nullable().optional(),
+    properties: z.record(z.string(), z.string()).optional(),
+  })
+  .passthrough();
+
+const fetchJSON = async <T>(url: string, schema?: z.ZodType<T>): Promise<T> => {
   const response = await fetch(url);
   if (!response.ok) {
     const text = await response.text();
     throw new ApiError(response.status, `API error ${response.status}: ${text}`);
   }
-  return response.json();
+  if (!schema) {
+    return response.json();
+  }
+  return schema.parse(await response.json());
 };
 
 const fetchRequest = async (url: string, method: string, body?: unknown): Promise<Response> => {
@@ -83,8 +116,11 @@ export const fetchGenericTable = (
 ): Promise<AssetResponse> =>
   fetchJSON(
     registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/generic-tables/${encodeURIComponent(name)}`,
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/generic-tables/${encodeURIComponent(name)}`,
     ),
+    assetResponseSchema,
   );
 
 export const deleteGenericTable = (
@@ -94,7 +130,9 @@ export const deleteGenericTable = (
 ): Promise<void> =>
   fetchRequest(
     registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/generic-tables/${encodeURIComponent(name)}`,
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/generic-tables/${encodeURIComponent(name)}`,
     ),
     'DELETE',
   ).then(() => undefined);
@@ -124,14 +162,19 @@ export const fetchVolume = (
 ): Promise<VolumeInfo> =>
   fetchJSON(
     registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/volumes/${encodeURIComponent(name)}`,
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/volumes/${encodeURIComponent(name)}`,
     ),
+    volumeInfoSchema,
   );
 
 export const deleteVolume = (project: string, collection: string, name: string): Promise<void> =>
   fetchRequest(
     registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/volumes/${encodeURIComponent(name)}`,
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/volumes/${encodeURIComponent(name)}`,
     ),
     'DELETE',
   ).then(() => undefined);
@@ -151,6 +194,67 @@ export const createGenericTable = async (
   return response.json();
 };
 
+// Update assets
+
+export type UpdateGenericTableRequest = {
+  description?: string;
+  format?: string;
+  location?: string;
+  connection_ref?: { type: string; secret_name?: string; id?: string };
+  purpose?: string;
+  license?: string;
+  maturity?: string;
+  pii?: string;
+  owner?: string;
+  add_labels?: string[];
+  remove_labels?: string[];
+  schema_fields?: { name: string; type: string; description?: string; nullable?: boolean }[];
+  properties?: Record<string, string>;
+};
+
+export const updateGenericTable = async (
+  project: string,
+  collection: string,
+  name: string,
+  data: UpdateGenericTableRequest,
+): Promise<void> => {
+  await fetchRequest(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/generic-tables/${encodeURIComponent(name)}`,
+    ),
+    'PATCH',
+    data,
+  );
+};
+
+export type UpdateVolumeRequest = {
+  comment?: string;
+  storage_location?: string;
+  owner?: string;
+  add_labels?: string[];
+  remove_labels?: string[];
+  properties?: Record<string, string>;
+};
+
+export const updateVolume = async (
+  project: string,
+  collection: string,
+  name: string,
+  data: UpdateVolumeRequest,
+): Promise<void> => {
+  await fetchRequest(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/volumes/${encodeURIComponent(name)}`,
+    ),
+    'PUT',
+    data,
+  );
+};
+
 // Labels
 
 export const fetchLabels = (project: string): Promise<LabelListResponse> =>
@@ -167,3 +271,18 @@ export const createLabel = async (
 export const deleteLabel = async (project: string, label: string): Promise<void> => {
   await fetchRequest(registryUrl(`/${project}/labels/${encodeURIComponent(label)}`), 'DELETE');
 };
+
+// Error type guards
+
+export const is503Error = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 503;
+
+export const is403Error = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 403;
+
+export const isConnectionError = (error: unknown): boolean =>
+  !(error instanceof ApiError) &&
+  error instanceof Error &&
+  (error.message.includes('NetworkError') ||
+    error.message.includes('Failed to fetch') ||
+    error.message.toLowerCase().includes('network'));

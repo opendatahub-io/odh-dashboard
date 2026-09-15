@@ -330,11 +330,26 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.InputDataKey == "" {
 		missing = append(missing, "input_data_key")
 	}
-	if req.OGXSecretName == "" {
-		missing = append(missing, "ogx_secret_name")
+	if req.MaaSSecretName == "" {
+		missing = append(missing, "maas_secret_name")
+	}
+	if req.VectorDBSecretName == "" {
+		missing = append(missing, "vector_db_secret_name")
+	}
+	if len(req.EmbeddingsModels) == 0 {
+		missing = append(missing, "embedding_models")
+	}
+	if len(req.GenerationModels) == 0 {
+		missing = append(missing, "generation_models")
 	}
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
+	}
+	if containsBlankIdentifier(req.EmbeddingsModels) {
+		return NewValidationError("embedding_models must not contain empty identifiers")
+	}
+	if containsBlankIdentifier(req.GenerationModels) {
+		return NewValidationError("generation_models must not contain empty identifiers")
 	}
 
 	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
@@ -392,7 +407,10 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		"input_data_secret_name": req.InputDataSecretName,
 		"input_data_bucket_name": req.InputDataBucketName,
 		"input_data_key":         req.InputDataKey,
-		"ogx_secret_name":        req.OGXSecretName,
+		"maas_secret_name":       req.MaaSSecretName,
+		"vector_db_secret_name":  req.VectorDBSecretName,
+		"embedding_models":       req.EmbeddingsModels,
+		"generation_models":      req.GenerationModels,
 	}
 
 	preset := constants.DefaultPreset
@@ -401,22 +419,11 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 	}
 	params["preset"] = preset
 
-	if len(req.EmbeddingsModels) > 0 {
-		params["embedding_models"] = req.EmbeddingsModels
-	}
-	if len(req.GenerationModels) > 0 {
-		params["generation_models"] = req.GenerationModels
-	}
-
 	metric := req.OptimizationMetric
 	if metric == "" {
 		metric = constants.DefaultOptimizationMetric
 	}
 	params["optimization_metric"] = metric
-
-	if req.VectorIOProviderID != "" {
-		params["vector_io_provider_id"] = req.VectorIOProviderID
-	}
 
 	if req.OptimizationMaxRagPatterns != nil {
 		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns
@@ -453,4 +460,13 @@ func BuildIndexingPipelineRunInput(req models.CreateIndexingPipelineRunRequest, 
 			Parameters: params,
 		},
 	}
+}
+
+func containsBlankIdentifier(values []string) bool {
+	for _, v := range values {
+		if strings.TrimSpace(v) == "" {
+			return true
+		}
+	}
+	return false
 }
