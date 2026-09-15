@@ -142,7 +142,7 @@ describe('Verify Connection Type Creation', () => {
 
       cy.step('Submit the form to create the connection type');
       createConnectionTypePage.findSubmitButton().click();
-      cy.findByTestId('connection-type-footer-error').should('not.exist');
+      createConnectionTypePage.findFooterError().should('not.exist');
 
       cy.step('Verify we are redirected to Connection Types list page');
       connectionTypesPage.shouldHaveConnectionTypes();
@@ -225,7 +225,7 @@ describe('Verify Connection Type Creation', () => {
       connectionTypesPage.findDuplicateAction().click();
       createConnectionTypePage.findConnectionTypeName().clear().type(duplicateConnectionTypeName);
       createConnectionTypePage.findSubmitButton().should('be.enabled').click();
-      cy.findByTestId('connection-type-footer-error').should('not.exist');
+      createConnectionTypePage.findFooterError().should('not.exist');
 
       cy.step('Edit the Connection type');
       let duplicateRow = connectionTypesPage.getConnectionTypeRow(duplicateConnectionTypeName);
