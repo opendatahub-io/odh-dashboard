@@ -100,8 +100,8 @@ maas/
 
 ### Frontend
 
-- **Node.js**: >= 20.0.0
-- **npm**: >= 10.0.0
+- **Node.js**: >= 22.18.0
+- **npm**: 11.8.0
 
 ### BFF
 
@@ -326,7 +326,7 @@ DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme make dev-start
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.26+** for the BFF and **Node 20+** for the frontend
+1. Use **Go 1.26+** for the BFF and **Node 22.18+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor
    explicitly requires it

@@ -45,7 +45,7 @@ MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
 # Llama Stack test server configuration (used by mock/test mode only)
-TEST_LLAMA_STACK_VERSION ?= 1.2.0
+TEST_LLAMA_STACK_VERSION ?= 1.3.0
 TEST_LLAMA_STACK_PORT ?= 18321
 TEST_LLAMA_STACK_DIR ?= testdata/llamastack
 TEST_LLAMA_STACK_DATA ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)/.data
@@ -60,8 +60,10 @@ TEST_LLAMA_STACK_EMBEDDING_MODEL_ID ?= models/gemini-embedding-001
 TEST_LLAMA_STACK_EMBEDDING_DIMENSION ?= 128
 
 # Prefixed model refs (derived from above, used by Go tests)
-TEST_LLAMA_STACK_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_MODEL_ID)
-TEST_LLAMA_STACK_EMBEDDING_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID)
+# The response handler routes models through the BFF passthrough provider. Keep
+# replay requests qualified exactly as production OGX requests are.
+TEST_LLAMA_STACK_MODEL ?= genai-bff-proxy/$(TEST_LLAMA_STACK_MODEL_ID)
+TEST_LLAMA_STACK_EMBEDDING_MODEL ?= genai-bff-proxy/$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID)
 
 .PHONY: all
 all: build

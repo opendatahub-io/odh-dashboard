@@ -95,7 +95,7 @@ spec:
                 - domain
                 type: object
               maasConsumerPortal:
-                description: MaasConsumerPortal configures the MaaS Consumer Portal.
+                description: MaaSConsumerPortal configures the MaaS Consumer Portal.
                 properties:
                   managementState:
                     default: Removed
@@ -264,6 +264,11 @@ spec:
                     maxLength: 256
                     type: string
                 type: object
+              maasConsumerPortalUrl:
+                description: |-
+                  MaaSConsumerPortalURL is the externally-reachable MaaS Consumer Portal URL (last known good).
+                  It is cleared when the portal operand is removed.
+                type: string
               moduleStatuses:
                 additionalProperties:
                   description: ModuleStatus reports the current state of a single

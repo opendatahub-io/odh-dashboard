@@ -12,7 +12,7 @@ import type {
 } from '~/app/components/run-results/playgroundSnippets';
 
 const mockCredentials: SnippetCredentials = {
-  hostname: 'ogx.example.com',
+  hostname: 'maas.example.com',
   apiKey: 'sk-test-key-123',
 };
 
@@ -75,7 +75,7 @@ describe('generateNodeSnippet', () => {
     expect(generateNodeSnippet(mockParams)).toContain('test-model');
   });
 
-  it('should use fetch to call the OGX Responses API directly', () => {
+  it('should use fetch to call the MaaS Responses API directly', () => {
     const result = generateNodeSnippet(mockParams);
     expect(result).toContain('await fetch(');
     expect(result).toContain('/v1/responses');
@@ -88,6 +88,13 @@ describe('generateNodeSnippet', () => {
     expect(result).toContain('AbortSignal.timeout(');
     expect(result).toContain('response.ok');
     expect(result).toContain('result.output ?? result');
+  });
+
+  it('should include Authorization only when the secret has a MaaS API key', () => {
+    const result = generateNodeSnippet(mockParams);
+    expect(result).toContain('if (apiKey)');
+    expect(result).toContain('headers.Authorization');
+    expect(result).toContain('secret.data?.[key]');
   });
 
   it('should show k8s client with secretName and namespace when no credentials', () => {
@@ -128,7 +135,7 @@ describe('generatePythonSnippet', () => {
     expect(generatePythonSnippet(mockParams)).toContain('test-model');
   });
 
-  it('should use requests to call the OGX Responses API directly', () => {
+  it('should use requests to call the MaaS Responses API directly', () => {
     const result = generatePythonSnippet(mockParams);
     expect(result).toContain('requests.post');
     expect(result).toContain('/v1/responses');
@@ -141,6 +148,13 @@ describe('generatePythonSnippet', () => {
     expect(result).toContain('timeout=30');
     expect(result).toContain('raise_for_status()');
     expect(result).toContain('result.get("output", result)');
+  });
+
+  it('should include Authorization only when the secret has a MaaS API key', () => {
+    const result = generatePythonSnippet(mockParams);
+    expect(result).toContain('if api_key:');
+    expect(result).toContain('headers["Authorization"]');
+    expect(result).toContain('(secret.data or {}).get(name)');
   });
 
   it('should show k8s client with secretName and namespace when no credentials', () => {
@@ -161,17 +175,28 @@ describe('credential injection', () => {
 
   it.each(generators)('should inject credentials and remove placeholders for $name', ({ fn }) => {
     const result = fn(mockParams, mockCredentials);
-    expect(result).toContain('ogx.example.com');
+    expect(result).toContain('maas.example.com');
     expect(result).toContain('sk-test-key-123');
     expect(result).not.toContain('test-secret');
     expect(result).not.toContain('test-ns');
+  });
+
+  it.each([
+    { name: 'curl', fn: generateCurlSnippet },
+    { name: 'Node.js', fn: generateNodeSnippet },
+    { name: 'Python', fn: generatePythonSnippet },
+  ])('should omit Authorization when apiKey is empty for $name', ({ fn }) => {
+    const result = fn(mockParams, { hostname: 'maas.example.com', apiKey: '' });
+    expect(result).toContain('maas.example.com');
+    expect(result).not.toContain('Authorization');
+    expect(result).not.toContain('Bearer');
   });
 
   it.each(generators)(
     'should not contain credentials when no credentials provided for $name',
     ({ fn }) => {
       const result = fn(mockParams);
-      expect(result).not.toContain('ogx.example.com');
+      expect(result).not.toContain('maas.example.com');
       expect(result).not.toContain('sk-test-key-123');
     },
   );

@@ -13,8 +13,8 @@ The Kubeflow Workspaces Frontend is the web user interface used to monitor and m
 This project requires the following tools to be installed on your system:
 
 - [NodeJS and NPM](https://nodejs.org/)
-  - Node recommended version -> `20.17.0`
-  - NPM recommended version -> `10.8.2`
+  - Node recommended version -> `22.18.0`
+  - NPM recommended version -> `11.8.0`
 
 ## Development
 

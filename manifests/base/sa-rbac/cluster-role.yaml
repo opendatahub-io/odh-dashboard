@@ -28,6 +28,14 @@ rules:
     resources:
       - clusterversions
       - ingresses
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
   - verbs:
       - get
       - list

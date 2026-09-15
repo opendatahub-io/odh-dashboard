@@ -3,7 +3,6 @@ import type { PipelineRun } from '~/app/types';
 /* eslint-disable camelcase */
 const LEGACY_PARAM_RENAMES: Record<string, string> = {
   llama_stack_vector_io_provider_id: 'vector_io_provider_id',
-  llama_stack_secret_name: 'ogx_secret_name',
   embeddings_models: 'embedding_models',
 };
 /* eslint-enable camelcase */
@@ -11,6 +10,10 @@ const LEGACY_PARAM_RENAMES: Record<string, string> = {
 /**
  * Normalizes legacy pipeline run parameter keys so that old and new runs
  * present a consistent shape to the rest of the UI.
+ *
+ * Connection secret names are not rewritten: `llama_stack_secret_name` and
+ * `ogx_secret_name` named a different product connection than `maas_secret_name`,
+ * so historical runs keep their original key.
  */
 export const normalizePipelineRun = (run: PipelineRun): PipelineRun => {
   const params = run.runtime_config?.parameters;

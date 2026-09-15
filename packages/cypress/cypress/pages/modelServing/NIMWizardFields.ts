@@ -54,4 +54,9 @@ export class NIMWizardFields extends SubComponentBase {
   findExistingPVCInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
     return this.findExistingPVCSelect().find('input');
   }
+
+  selectExistingPVC(name: string): void {
+    this.findExistingPVCInput().click();
+    cy.findByRole('option', { name }).click();
+  }
 }

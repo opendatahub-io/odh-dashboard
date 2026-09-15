@@ -186,8 +186,8 @@ export type CheckMaaSOptions = {
   retryIntervalMs?: number;
 };
 
-/** Default poll budget for MaaS subscription/policy phase checks (6 attempts × 5s ≈ 30s). */
-export const MAAS_STATE_DEFAULT_MAX_ATTEMPTS = 6;
+/** Default poll budget for MaaS subscription/policy phase checks (24 attempts × 5s ≈ 2 min). */
+export const MAAS_STATE_DEFAULT_MAX_ATTEMPTS = 24;
 export const MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS = 5000;
 
 type MaaSOptionsCheckResult = { met: true } | { met: false; reason: string; retryable: boolean };
@@ -247,18 +247,20 @@ export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLin
 
 /**
  * Creates an LLMInferenceService with MaaS enabled by applying a YAML fixture.
- * Substitutes `{{PROJECT_NAME}}` and `{{MODEL_NAME}}` placeholders in the fixture.
+ * Substitutes `{{PROJECT_NAME}}`, `{{MODEL_NAME}}`, and optional `{{CONNECTION_NAME}}`
+ * placeholders in the fixture.
  *
  * @param projectName - The namespace/project where the LLMInferenceService will be created
  * @param modelName - The name for the LLMInferenceService and model
  * @param fixturePath - Path to the YAML fixture file (relative to cypress/fixtures)
+ * @param connectionName - Optional connection name for fixtures that use `{{CONNECTION_NAME}}`
  * @returns Cypress.Chainable with the command result
  */
 export const createLLMInferenceServiceWithMaaSEnabled = (
   projectName: string,
   modelName: string,
-  connectionName: string,
   fixturePath: string,
+  connectionName = '',
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Creating LLMInferenceService "${modelName}" in namespace "${projectName}"`);
 
@@ -587,49 +589,70 @@ const authPolicyOptionsMet = (
 const shouldPollMaaSState = (options: CheckMaaSOptions): boolean =>
   !!(options.phase || options.models || options.groups);
 
-const getMaaSPollBudget = (
-  options: CheckMaaSOptions,
-  pollForState: boolean,
-): { maxAttempts: number; retryIntervalMs: number } => ({
-  maxAttempts: pollForState ? options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS : 1,
-  retryIntervalMs: options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS,
-});
+const getMaaSWaitTimeoutSeconds = (options: CheckMaaSOptions, pollForState: boolean): number => {
+  const maxAttempts = pollForState ? options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS : 1;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
+  return Math.max(1, Math.ceil((maxAttempts * retryIntervalMs) / 1000));
+};
+
+const waitForMaaSPhase = (
+  kind: string,
+  name: string,
+  namespace: string,
+  phase: string,
+  timeoutSeconds: number,
+): Cypress.Chainable<CommandLineResult> => {
+  const resource = `${kind}/${name}`;
+  const command = `oc wait --for=jsonpath='{.status.phase}'=${phase} ${resource} -n ${namespace} --timeout=${timeoutSeconds}s`;
+  cy.log(`⏳ oc wait ${resource} phase=${phase} (timeout ${timeoutSeconds}s)`);
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: (timeoutSeconds + 15) * 1000 })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `${resource} in namespace ${namespace} did not reach phase ${phase}: ${
+            result.stderr || result.stdout
+          }`,
+        );
+      }
+      cy.log(`✅ ${resource} reached phase ${phase}`);
+      return cy.wrap(result);
+    });
+};
 
 const pollMaaSResourceState = <T>(
   resourceLabel: string,
+  kind: string,
+  name: string,
+  namespace: string,
   ocCommand: string,
   parseDoc: (stdout: string) => T,
   optionsMet: (doc: T, options: CheckMaaSOptions) => MaaSOptionsCheckResult,
   options: CheckMaaSOptions,
   pollForState: boolean,
 ): Cypress.Chainable<CommandLineResult> => {
-  const { maxAttempts, retryIntervalMs } = getMaaSPollBudget(options, pollForState);
-  let attempts = 0;
-
-  const checkState = (): Cypress.Chainable<CommandLineResult> =>
+  const getAndCheck = (): Cypress.Chainable<CommandLineResult> =>
     cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-      attempts++;
       const doc = parseDoc(result.stdout);
       const checkResult = optionsMet(doc, options);
-
-      if (checkResult.met) {
-        cy.log(`✅ ${resourceLabel} conditions met after ${attempts} attempt(s)`);
-        return cy.wrap(result);
+      if (!checkResult.met) {
+        throw new Error(`${resourceLabel} did not meet expected state. ${checkResult.reason}`);
       }
-
-      if (checkResult.retryable && attempts < maxAttempts) {
-        cy.log(
-          `⏳ ${resourceLabel}: ${checkResult.reason}, retrying in ${
-            retryIntervalMs / 1000
-          }s (attempt ${attempts}/${maxAttempts})`,
-        );
-        return cy.wait(retryIntervalMs).then(() => checkState());
-      }
-
-      throw new Error(`${resourceLabel} did not meet expected state. ${checkResult.reason}`);
+      cy.log(`✅ ${resourceLabel} conditions met`);
+      return cy.wrap(result);
     });
 
-  return checkState();
+  if (options.phase && pollForState) {
+    return waitForMaaSPhase(
+      kind,
+      name,
+      namespace,
+      options.phase,
+      getMaaSWaitTimeoutSeconds(options, pollForState),
+    ).then(() => getAndCheck());
+  }
+
+  return getAndCheck();
 };
 
 const getAuthPolicyGroupNames = (doc: MaaSAuthPolicyState): string[] => {
@@ -699,6 +722,9 @@ export const checkMaaSSubscriptionState = (
 
   return pollMaaSResourceState(
     resourceLabel,
+    'MaaSSubscription',
+    subscriptionName,
+    namespace,
     ocCommand,
     (stdout) => parseMaaSSubscriptionDoc(subscriptionName, stdout),
     subscriptionOptionsMet,
@@ -746,6 +772,9 @@ export const checkMaaSAuthPolicyState = (
 
   return pollMaaSResourceState(
     resourceLabel,
+    'MaaSAuthPolicy',
+    policyName,
+    namespace,
     ocCommand,
     (stdout) => parseMaaSAuthPolicyDoc(policyName, stdout),
     authPolicyOptionsMet,

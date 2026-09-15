@@ -32,6 +32,7 @@ var imagesMap = map[string]string{
 	"automl-pipeline-runtime-image":  "RELATED_IMAGE_ODH_AUTOML_IMAGE",
 	"autorag-pipeline-runtime-image": "RELATED_IMAGE_ODH_AUTORAG_IMAGE",
 	"core-bff-image":                 "RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
+	"pgvector-image":                 "RELATED_IMAGE_POSTGRESQL_16_IMAGE",
 }
 
 func init() {
@@ -65,33 +66,6 @@ func observabilityManifestInfo(basePath string, platform cluster.Platform) rende
 		ContextDir: "observability",
 		SourcePath: sourcePath,
 	}
-}
-
-// maasConsumerPortalHostPrefix is prepended to Gateway.Domain to derive the
-// MaaS Consumer Portal host (e.g. maas-consumer-portal.<domain>).
-const maasConsumerPortalHostPrefix = "maas-consumer-portal"
-
-// maasConsumerPortalConsoleLinkManifestInfo points at the portal ConsoleLink
-// bundle. It always uses the /rhoai source: the portal is an RHOAI feature
-// and deploys on both self-managed and managed RHOAI when enabled, so it is
-// intentionally not gated by the platformPaths /not-supported overlay.
-func maasConsumerPortalConsoleLinkManifestInfo(basePath string) render.ManifestInfo {
-	return render.ManifestInfo{
-		Path:       basePath,
-		ContextDir: "maas-consumer-portal-consolelink",
-		SourcePath: "/rhoai",
-	}
-}
-
-// maasConsumerPortalURL derives the portal URL from the gateway domain. The
-// second return value is false when the domain is empty, meaning the URL
-// cannot be derived and the ConsoleLink must not be deployed.
-func maasConsumerPortalURL(domain string) (string, bool) {
-	if domain == "" {
-		return "", false
-	}
-
-	return fmt.Sprintf("https://%s.%s/", maasConsumerPortalHostPrefix, domain), true
 }
 
 func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.Platform) map[string]string {

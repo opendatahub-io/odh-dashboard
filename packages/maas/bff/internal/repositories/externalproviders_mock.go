@@ -65,7 +65,7 @@ func (r *MockExternalProvidersRepository) CreateExternalProvider(_ context.Conte
 		Description:         request.Description,
 		EndpointUrl:         normalizeEndpointURL(request.EndpointUrl),
 		AuthMechanism:       request.AuthMechanism,
-		CredentialSecretRef: request.CredentialSecretRef,
+		CredentialSecretRef: normalizeSecretRefName(request.CredentialSecretRef),
 		Provider:            request.Provider,
 		Config:              request.Config,
 		Phase:               "Pending",
@@ -96,7 +96,7 @@ func (r *MockExternalProvidersRepository) UpdateExternalProvider(_ context.Conte
 				updated.AuthMechanism = *request.AuthMechanism
 			}
 			if request.CredentialSecretRef != "" {
-				updated.CredentialSecretRef = request.CredentialSecretRef
+				updated.CredentialSecretRef = normalizeSecretRefName(request.CredentialSecretRef)
 			}
 			if request.Config != nil {
 				updated.Config = request.Config
@@ -122,7 +122,7 @@ func (r *MockExternalProvidersRepository) UpdateExternalProvider(_ context.Conte
 				updated.AuthMechanism = *request.AuthMechanism
 			}
 			if request.CredentialSecretRef != "" {
-				updated.CredentialSecretRef = request.CredentialSecretRef
+				updated.CredentialSecretRef = normalizeSecretRefName(request.CredentialSecretRef)
 			}
 			if request.Config != nil {
 				updated.Config = request.Config

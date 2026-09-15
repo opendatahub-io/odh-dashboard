@@ -5,7 +5,10 @@ import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
-import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
+import {
+  WizardStepTitle,
+  type WizardField,
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { TemplateKind } from '@odh-dashboard/k8s-core';
 import { getNIMHardwareProfileFieldOverrides } from './nimHardwareProfileOverrides';
@@ -13,6 +16,7 @@ import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hoo
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
 import type { NIMImage } from '../../../api/images/types';
+import { NIM_IMAGE_FIELD_ID, NIM_MODEL_TYPE } from '../../../constants';
 import {
   formatImageString,
   getImageRepository,
@@ -355,7 +359,7 @@ export type NIMImageFieldType = WizardField<
 >;
 
 export const NIMImageFieldWizardField: NIMImageFieldType = {
-  id: 'nim-serving/nimImage',
+  id: NIM_IMAGE_FIELD_ID,
   step: 'modelSource',
   type: 'addition',
   isActive: (wizardFormData) =>
@@ -373,4 +377,31 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
   },
   component: NIMImageFieldComponent,
   externalDataHook: useNIMImageFieldExternalData,
+  getReviewSections: (value) => [
+    {
+      title: WizardStepTitle.MODEL_DETAILS,
+      items: [
+        {
+          key: 'nimModelType',
+          replaces: 'modelType',
+          label: 'Model type',
+          value: () => NIM_MODEL_TYPE,
+        },
+        // Use replaces with isVisible returning false to hide the existing model location row,
+        // since it is redundant with the model type for NIM models.
+        {
+          key: 'nimModelLocation',
+          replaces: 'modelLocationData-locationType',
+          label: 'Model location',
+          value: () => undefined,
+          isVisible: () => false,
+        },
+        {
+          key: 'nimImage',
+          label: 'NIM image',
+          value: () => (value.repository && value.tag ? `${value.repository}:${value.tag}` : '--'),
+        },
+      ],
+    },
+  ],
 };
