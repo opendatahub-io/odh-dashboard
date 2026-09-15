@@ -69,27 +69,21 @@ const cleanupVectorStore = (namespace: string): void => {
   });
 };
 
-const createVectorDbSecret = (namespace: string, secretName: string): void => {
-  const host = `${PGVECTOR_DEPLOYMENT}.${namespace}.svc.cluster.local`;
-  cy.exec(
-    `oc create secret generic ${secretName} -n ${namespace} ` +
-      `--from-literal=PGVECTOR_HOST='${host}' ` +
-      `--from-literal=PGVECTOR_PORT='${PGVECTOR_PORT}' ` +
-      `--from-literal=PGVECTOR_DB='${PGVECTOR_DATABASE}' ` +
-      `--from-literal=PGVECTOR_USER='${PGVECTOR_USER}' ` +
-      `--from-literal=PGVECTOR_PASSWORD='${PGVECTOR_PASSWORD}' ` +
-      `--dry-run=client -o json | oc apply -f -`,
-    { failOnNonZeroExit: true, log: false },
-  );
-  cy.exec(
-    `oc annotate secret ${secretName} -n ${namespace} ` +
-      `openshift.io/display-name=${secretName} ` +
-      `opendatahub.io/connection-type=pgvector --overwrite && ` +
-      `oc label secret ${secretName} -n ${namespace} ` +
-      `opendatahub.io/dashboard=true opendatahub.io/secret-type=pgvector --overwrite`,
-    { failOnNonZeroExit: true, log: false },
-  );
-};
+export const getVectorDatabaseConnection = (
+  namespace: string,
+): {
+  host: string;
+  port: string;
+  db: string;
+  user: string;
+  password: string;
+} => ({
+  host: `${PGVECTOR_DEPLOYMENT}.${namespace}.svc.cluster.local`,
+  port: `${PGVECTOR_PORT}`,
+  db: PGVECTOR_DATABASE,
+  user: PGVECTOR_USER,
+  password: PGVECTOR_PASSWORD,
+});
 
 // ---------------------------------------------------------------------------
 // Top-level orchestrator
@@ -98,10 +92,9 @@ const createVectorDbSecret = (namespace: string, secretName: string): void => {
 /**
  * Provision the project-scoped AutoRAG vector database.
  */
-export const provisionVectorDatabase = (namespace: string, vectorDbSecretName: string): void => {
+export const provisionVectorDatabase = (namespace: string): void => {
   deployVectorStore(namespace);
   waitForVectorStoreReady(namespace);
-  createVectorDbSecret(namespace, vectorDbSecretName);
 };
 
 // ---------------------------------------------------------------------------

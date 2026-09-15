@@ -1,6 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForDspaReady } from './oc_commands/dspa';
 import { waitForManagedPipelines } from './autoXPipelines';
+import { getVectorDatabaseConnection } from './oc_commands/autoragInfra';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
@@ -98,6 +99,7 @@ export const configureAutoragRun = (
   testData: AutoragTestData,
   projectName: string,
   uuid: string,
+  options: { createConnections?: boolean } = {},
 ): void => {
   cy.step('Login and wait for pipeline server');
   cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -113,6 +115,17 @@ export const configureAutoragRun = (
   cy.step('Fill name and description');
   autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
+
+  if (options.createConnections) {
+    cy.step('Create MaaS connection through the dashboard');
+    autoragConfigurePage.findAddMaasConnectionButton().click();
+    autoragConfigurePage.findMaasConnectionNameInput().clear().type(testData.maasSecretName);
+    autoragConfigurePage.findMaasConnectionBaseUrlInput().type(getRequiredMaaSConfig('MAAS_URL'));
+    autoragConfigurePage
+      .findMaasConnectionApiKeyInput()
+      .type(getRequiredMaaSConfig('MAAS_API_KEY'), { log: false });
+    autoragConfigurePage.findMaasConnectionSubmitButton().click();
+  }
 
   cy.step('Select MaaS secret');
   // SecretSelector renders a skeleton until type=maas secrets load.
@@ -191,24 +204,93 @@ export const configureAutoragRun = (
 
   cy.step('Select vector database secret');
   autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
+  if (options.createConnections) {
+    cy.step('Create PGVector connection through the dashboard');
+    autoragConfigurePage.findAddVectorDbDropdownToggle().click();
+    autoragConfigurePage.findAddPgvectorConnectionOption().click();
+    const connection = getVectorDatabaseConnection(projectName);
+    autoragConfigurePage
+      .findPgvectorConnectionNameInput()
+      .clear()
+      .type(testData.vectorDbSecretName);
+    autoragConfigurePage.findPgvectorInput('host').type(connection.host);
+    autoragConfigurePage.findPgvectorInput('port').type(connection.port);
+    autoragConfigurePage.findPgvectorInput('db').type(connection.db);
+    autoragConfigurePage.findPgvectorInput('user').type(connection.user);
+    autoragConfigurePage.findPgvectorInput('password').type(connection.password, { log: false });
+    autoragConfigurePage.findPgvectorConnectionSubmitButton().click();
+  }
   autoragConfigurePage.findVectorStoreSelector().click();
   autoragConfigurePage.findVectorStoreSelector().find('input').type(testData.vectorDbSecretName);
   autoragConfigurePage.findSelectOption(new RegExp(testData.vectorDbSecretName, 'i')).click();
+
+  cy.step('Select the configured hosted generation and embedding models');
+  autoragConfigurePage.findSelectModelsButton().click();
+  autoragConfigurePage.findExperimentSettingsModal().should('be.visible');
+  autoragConfigurePage.findFoundationModelsTab().click();
+  autoragConfigurePage.findModelCheckbox(getRequiredMaaSConfig('MAAS_GENERATION_MODEL_ID')).check();
+  autoragConfigurePage.findEmbeddingModelsTab().click();
+  autoragConfigurePage.findModelCheckbox(getRequiredMaaSConfig('MAAS_EMBEDDING_MODEL_ID')).check();
+  autoragConfigurePage.findExperimentSettingsSaveButton().click();
 };
 
 /**
  * Submit the AutoRAG run and verify redirect to results page.
  * Call after `configureAutoragRun()` and any custom configuration.
  */
-export const submitAutoragRun = (): void => {
+export const submitAutoragRun = (
+  testData: AutoragTestData,
+  inputDataKey: string,
+): Cypress.Chainable<string> => {
+  cy.intercept('POST', '**/autorag/api/v1/pipeline-runs*').as('autoragCreateRun');
   cy.step('Submit the form');
   autoragConfigurePage.findCreateRunButton({ timeout: 120000 }).should('be.enabled').click();
 
-  cy.step('Verify redirect to results page');
-  cy.url().should('include', '/gen-ai-studio/autorag/results/');
+  cy.wait('@autoragCreateRun').then(({ request }) => {
+    const body = request.body as Record<string, unknown>;
+    expect(body.input_data_keys).to.deep.equal([inputDataKey]);
+    expect(body.maas_secret_name).to.equal(testData.maasSecretName);
+    expect(body.vector_db_secret_name).to.equal(testData.vectorDbSecretName);
+    expect(body.generation_models).to.deep.equal([
+      getRequiredMaaSConfig('MAAS_GENERATION_MODEL_ID'),
+    ]);
+    expect(body.embedding_models).to.deep.equal([getRequiredMaaSConfig('MAAS_EMBEDDING_MODEL_ID')]);
+    expect(body.optimization_metric).to.equal(testData.optimizationMetric ?? 'overall_score');
+    expect(body.preset).to.equal('speed');
+    expect(body.optimization_max_rag_patterns).to.equal(testData.maxRagPatterns);
+  });
 
-  cy.step('Verify the run is in progress');
-  autoragResultsPage.findRunInProgressMessage().should('be.visible');
+  cy.step('Verify redirect to results page');
+  return cy
+    .url()
+    .should('include', '/gen-ai-studio/autorag/results/')
+    .then((url) => {
+      const runId = url.split('/').pop();
+      if (!runId) {
+        throw new Error('AutoRAG results URL did not include the submitted run ID.');
+      }
+      cy.step('Verify the run is in progress');
+      autoragResultsPage.findRunInProgressMessage().should('be.visible');
+      return runId;
+    });
+};
+
+export const getAutoragInputDataKey = (testData: AutoragTestData, uuid: string): string =>
+  `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
+
+export const verifyAutoragRunTerminated = (runId: string): void => {
+  cy.url().should('include', `/gen-ai-studio/autorag/results/${runId}`);
+  autoragResultsPage
+    .findRunStatusLabel(80000)
+    .invoke('text')
+    .should('match', /CANCELED|CANCELLED|FAILED/i);
+};
+
+export const verifyAutoragRunListed = (projectName: string, runName: string): void => {
+  cy.step('Verify the submitted run appears in the experiments list');
+  autoragExperimentsPage.visit(projectName);
+  autoragResultsPage.findRunsTable().should('be.visible');
+  autoragResultsPage.findRunsTable().contains(runName).should('be.visible');
 };
 
 /**
@@ -299,31 +381,4 @@ export const verifyAutoragResultsInteraction = (): void => {
   cy.window().its('print').should('have.been.calledOnce');
   autoragResultsPage.findPatternDetailsModalCloseButton().click();
   autoragResultsPage.findPatternDetailsModal().should('not.exist');
-};
-
-/**
- * Verify that the AutoRAG run was submitted by checking that the results page
- * loaded and the run appears in the experiments list.
- * AutoRAG runs are managed by the KFP pipeline server (not direct K8s PipelineRun CRs),
- * so we validate via the UI that the run was created and is in progress.
- */
-export const verifyAutoragRunSubmitted = (projectName: string, runName: string): void => {
-  cy.step('Verify run appears in experiments list');
-  autoragExperimentsPage.visit(projectName);
-  autoragResultsPage.findRunsTable().should('be.visible');
-  autoragResultsPage.findRunsTable().should('contain.text', runName);
-};
-
-/**
- * Verify that the pipeline run has been stopped by checking the DSPA
- * for any pipeline runs with a cancelling/cancelled state.
- */
-export const verifyAutoragRunStopped = (projectName: string): void => {
-  cy.step('Verify run is stopped in backend via DSPA');
-  cy.exec(
-    `oc get dspa -n ${projectName} -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}'`,
-    { failOnNonZeroExit: false },
-  )
-    .its('stdout')
-    .should('contain', 'True');
 };

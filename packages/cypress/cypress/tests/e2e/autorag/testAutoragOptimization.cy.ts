@@ -2,7 +2,6 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
-import { createMaasSecret, getMaasConnection } from '../../../utils/oc_commands/maasSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
@@ -17,7 +16,7 @@ import {
   configureAutoragRun,
   checkAutoragMaaSReadiness,
   submitAutoragRun,
-  verifyAutoragRunSubmitted,
+  getAutoragInputDataKey,
   waitForAutoragRunCompletion,
   verifyAutoragResultsInteraction,
 } from '../../../utils/autoragTestFlows';
@@ -44,10 +43,8 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       .then(() => setAutoragEnabled(true))
       .then(() => checkAutoragMaaSReadiness())
       .then(() => {
-        const connection = getMaasConnection();
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-        createMaasSecret(projectName, testData.maasSecretName, connection.url, connection.apiKey);
-        provisionVectorDatabase(projectName, testData.vectorDbSecretName);
+        provisionVectorDatabase(projectName);
       }),
   );
 
@@ -73,15 +70,14 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       ],
     },
     () => {
-      configureAutoragRun(testData, projectName, uuid);
+      configureAutoragRun(testData, projectName, uuid, { createConnections: true });
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, testData.runName);
+      submitAutoragRun(testData, getAutoragInputDataKey(testData, uuid));
     },
   );
 

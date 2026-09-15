@@ -26,6 +26,22 @@ class AutoragConfigurePage {
     return cy.findByTestId('add-maas-connection-button');
   }
 
+  findMaasConnectionNameInput() {
+    return cy.findByTestId('maas-connection-name');
+  }
+
+  findMaasConnectionBaseUrlInput() {
+    return cy.findByTestId('maas-connection-base-url');
+  }
+
+  findMaasConnectionApiKeyInput() {
+    return cy.findByTestId('maas-connection-api-key');
+  }
+
+  findMaasConnectionSubmitButton() {
+    return cy.findByTestId('modal-submit-button');
+  }
+
   findNextButton() {
     return cy.findByTestId('autorag-next-button');
   }
@@ -90,9 +106,53 @@ class AutoragConfigurePage {
     return cy.findByTestId(`model-row-${modelId}`);
   }
 
+  findSelectModelsButton() {
+    return cy.findByTestId('select-models-button');
+  }
+
+  findFoundationModelsTab() {
+    return cy.findByTestId('foundation-models-tab');
+  }
+
+  findEmbeddingModelsTab() {
+    return cy.findByTestId('embedding-models-tab');
+  }
+
+  findModelCheckbox(modelId: string) {
+    return this.findModelRow(modelId).findByRole('checkbox');
+  }
+
+  findExperimentSettingsSaveButton() {
+    return cy.findByTestId('experiment-settings-save');
+  }
+
   // Step 2 - Vector database secret
   findVectorStoreSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
     return cy.findByTestId('vector-db-secret-selector', options);
+  }
+
+  findAddVectorDbConnectionButton() {
+    return cy.findByTestId('add-vector-db-connection-button');
+  }
+
+  findAddVectorDbDropdownToggle() {
+    return cy.findByTestId('add-vector-db-dropdown-toggle');
+  }
+
+  findAddPgvectorConnectionOption() {
+    return cy.findByTestId('add-pgvector-connection-option');
+  }
+
+  findPgvectorConnectionNameInput() {
+    return cy.findByTestId('vector-db-connection-name');
+  }
+
+  findPgvectorInput(field: 'host' | 'port' | 'db' | 'user' | 'password') {
+    return cy.findByTestId(`pgvector-${field}-input`);
+  }
+
+  findPgvectorConnectionSubmitButton() {
+    return cy.findByTestId('modal-submit-button');
   }
 
   // Step 2 - Optimization

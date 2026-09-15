@@ -2,7 +2,6 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
-import { createMaasSecret, getMaasConnection } from '../../../utils/oc_commands/maasSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
@@ -16,7 +15,7 @@ import {
   configureAutoragRun,
   checkAutoragMaaSReadiness,
   submitAutoragRun,
-  verifyAutoragRunSubmitted,
+  getAutoragInputDataKey,
 } from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
@@ -44,10 +43,8 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       .then(() => setAutoragEnabled(true))
       .then(() => checkAutoragMaaSReadiness())
       .then(() => {
-        const connection = getMaasConnection();
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-        createMaasSecret(projectName, testData.maasSecretName, connection.url, connection.apiKey);
-        provisionVectorDatabase(projectName, testData.vectorDbSecretName);
+        provisionVectorDatabase(projectName);
       }),
   );
 
@@ -68,6 +65,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         { ...testData, runName: `${testData.runName}-default` },
         projectName,
         defaultUuid,
+        { createConnections: true },
       );
 
       cy.step('Set max RAG patterns without changing the default metric');
@@ -75,8 +73,10 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, `${testData.runName}-default`);
+      submitAutoragRun(
+        { ...testData, runName: `${testData.runName}-default` },
+        getAutoragInputDataKey(testData, defaultUuid),
+      );
     },
   );
 
@@ -95,8 +95,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, testData.runName);
+      submitAutoragRun(testData, getAutoragInputDataKey(testData, uuid));
     },
   );
 
@@ -119,8 +118,10 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, `${testData.runName}-faith`);
+      submitAutoragRun(
+        { ...testData, runName: `${testData.runName}-faith`, optimizationMetric: 'faithfulness' },
+        getAutoragInputDataKey(testData, faithUuid),
+      );
     },
   );
 
@@ -143,8 +144,10 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, `${testData.runName}-overall`);
+      submitAutoragRun(
+        { ...testData, runName: `${testData.runName}-overall` },
+        getAutoragInputDataKey(testData, overallUuid),
+      );
     },
   );
 });
