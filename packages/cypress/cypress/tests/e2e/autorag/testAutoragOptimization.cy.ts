@@ -2,20 +2,13 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
-import {
-  createMaasSecret,
-  isExternalMaasConnection,
-  getExternalMaasConnection,
-} from '../../../utils/oc_commands/maasSecret';
+import { createMaasSecret, getMaasConnection } from '../../../utils/oc_commands/maasSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
-import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
 import {
-  isOgxOperatorManaged,
-  provisionAutoragInfrastructure,
   cleanupAutoragInfrastructure,
   provisionVectorDatabase,
 } from '../../../utils/oc_commands/autoragInfra';
@@ -31,18 +24,10 @@ import {
 
 const uuid = generateTestUUID();
 
-/**
- * When MAAS_URL or OGX_URL is set, we use an external Llama Stack / MaaS URL
- * (regression testing). When empty/unset, we self-provision infrastructure
- * (CI mode) — requires the OGX operator to already be Managed on the cluster.
- */
-const isExternalMaas = (): boolean => isExternalMaasConnection();
-
 describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
   let projectName: string;
   let autoragWasEnabled = false;
-  let selfProvisioned = false;
 
   retryableBefore(() =>
     cy
@@ -57,46 +42,13 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
         }),
       )
       .then(() => setAutoragEnabled(true))
-      .then(() =>
-        isOgxOperatorManaged().then((isManaged) => {
-          if (isExternalMaas()) {
-            checkAutoragMaaSReadiness();
-            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-            allowOgxAccess(projectName);
-
-            const connection = getExternalMaasConnection();
-            if (!connection) {
-              throw new Error('Expected MAAS_URL or OGX_URL for external mode');
-            }
-            createMaasSecret(
-              projectName,
-              testData.maasSecretName,
-              connection.url,
-              connection.apiKey,
-            );
-            provisionVectorDatabase(projectName, testData.vectorDbSecretName);
-          } else {
-            if (!isManaged) {
-              throw new Error(
-                'OGX operator is not Managed on this cluster. ' +
-                  'Either set MAAS_URL or OGX_URL for external mode or ensure the operator is Managed.',
-              );
-            }
-
-            selfProvisioned = true;
-
-            cy.step('Provision project with DSPA');
-            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-
-            cy.step('Provision AutoRAG infrastructure (vector store, OGX)');
-            provisionAutoragInfrastructure(
-              projectName,
-              testData.maasSecretName,
-              testData.vectorDbSecretName,
-            );
-          }
-        }),
-      ),
+      .then(() => checkAutoragMaaSReadiness())
+      .then(() => {
+        const connection = getMaasConnection();
+        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        createMaasSecret(projectName, testData.maasSecretName, connection.url, connection.apiKey);
+        provisionVectorDatabase(projectName, testData.vectorDbSecretName);
+      }),
   );
 
   after(() => {
@@ -104,15 +56,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       setAutoragEnabled(false);
     }
 
-    if (selfProvisioned) {
-      cleanupAutoragInfrastructure(
-        projectName,
-        testData.maasSecretName,
-        testData.vectorDbSecretName,
-      );
-    }
-
-    removeOgxAccess(projectName);
+    cleanupAutoragInfrastructure(projectName, testData.maasSecretName, testData.vectorDbSecretName);
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
