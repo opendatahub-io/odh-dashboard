@@ -363,6 +363,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
+	// GatewayDomain is used to construct the base_url for the remote::passthrough
+	// provider in OGX configs
+	if cfg.GatewayDomain == "" {
+		logger.Warn("GATEWAY_DOMAIN is not configured — passthrough provider routing for no-restart of OGX will not be available")
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
@@ -560,14 +566,12 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
 	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
-	// Auth is handled by InjectRequestIdentity middleware (JWT forwarded by OGX via
-	// X-OGX-Provider-Data → forward_headers → x-forwarded-access-token).
-	// No AttachNamespace/RequireAccessToService: namespace is in the URL path.
-	// No AttachBFFMaaSClient: MaaS fetch is best-effort inside the handler and must not
-	// block the endpoint with a 503 when the MaaS BFF is not configured.
-	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.GenAIProxyNSModelsHandler)
-	apiRouter.POST(constants.GenAIProxyNSChatCompletionsPath, app.GenAIProxyNSChatCompletionsHandler)
-	apiRouter.POST(constants.GenAIProxyNSEmbeddingsPath, app.GenAIProxyNSEmbeddingsHandler)
+	// OGX forwards the user JWT via Authorization: Bearer (from passthrough_api_key
+	// in X-OGX-Provider-Data). InjectRequestIdentity extracts it via the Bearer fallback.
+	// All proxy endpoints require auth (SAR check via RequireAccessToService).
+	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.AttachNamespaceFromPath(app.RequireAccessToService(app.GenAIProxyNSModelsHandler)))
+	apiRouter.POST(constants.GenAIProxyNSChatCompletionsPath, app.AttachNamespaceFromPath(app.RequireAccessToService(app.GenAIProxyNSChatCompletionsHandler)))
+	apiRouter.POST(constants.GenAIProxyNSEmbeddingsPath, app.AttachNamespaceFromPath(app.RequireAccessToService(app.GenAIProxyNSEmbeddingsHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
