@@ -85,6 +85,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           setSelectedConnection={wizardState.state.modelLocationData.setSelectedConnection}
           selectedConnection={wizardState.state.modelLocationData.selectedConnection}
           pvcs={wizardState.state.modelLocationData.pvcs}
+          connectionTypes={wizardState.state.modelLocationData.connectionTypes}
         />
         {modelSourceExtensionFields.map((field) => (
           <GenericFieldRenderer
