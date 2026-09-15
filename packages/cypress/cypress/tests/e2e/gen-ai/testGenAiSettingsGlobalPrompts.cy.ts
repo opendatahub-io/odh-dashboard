@@ -30,7 +30,6 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 import {
   chatbotPromptModal,
   chatbotPromptDrawer,
-  chatbotCreatePromptModal,
   chatbotPromptAssistant,
 } from '../../../pages/chatbotPromptManagement';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
@@ -38,8 +37,6 @@ import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProf
 
 const GLOBAL_PROMPT_TEMPLATE = 'You are a global template for summarization tasks.';
 const GLOBAL_PROMPT_COMMIT = 'Initial global prompt version';
-const PROJECT_PROMPT_TEMPLATE = 'You are a project-level assistant.';
-const PROJECT_PROMPT_COMMIT = 'Initial project prompt version';
 
 describe('Verify Global Prompt Management in Playground Settings', () => {
   let testData: GenAiTestData;
@@ -50,7 +47,6 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   const globalMLflowNamespacesBaselines: GlobalMLflowNamespacesBaseline[] = [];
   const uuid = generateTestUUID();
   const globalPromptName = `global-prompt-${uuid}`;
-  const projectPromptName = `project-prompt-${uuid}`;
 
   retryableBefore(() => {
     cy.fixture('e2e/genAi/testGenAiModelDeployment.yaml', 'utf8')
@@ -145,24 +141,11 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
         );
       })
       .then(() => {
-        cy.step('Create project prompt via BFF');
-        return createGenAiPromptViaAPI(
-          projectName,
-          projectPromptName,
-          PROJECT_PROMPT_TEMPLATE,
-          PROJECT_PROMPT_COMMIT,
-        );
-      })
-      .then(() => {
         waitForGlobalPromptsInBFF(projectName, globalPromptName);
       });
   });
 
   after(() => {
-    if (projectName) {
-      deleteStalePromptByName(projectName, `copy-of-${globalPromptName}`);
-      deleteStalePromptByName(projectName, projectPromptName);
-    }
     if (globalNamespace) {
       deleteStalePromptByName(globalNamespace, globalPromptName);
       deleteOpenShiftProject(globalNamespace, { wait: false, ignoreNotFound: true });
@@ -179,7 +162,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   });
 
   it(
-    'Browse global prompts, load into playground, and save as project copy',
+    'Load a global prompt and use it in the playground',
     {
       tags: [
         '@Sanity',
@@ -206,9 +189,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       cy.step('Open prompt management modal');
       chatbotPromptAssistant.findLoadPromptButton().click();
 
-      cy.step('Verify project tab is active and project prompt is listed');
+      cy.step('Verify project tab is active');
       chatbotPromptModal.findProjectPromptsTab().should('have.attr', 'aria-selected', 'true');
-      chatbotPromptModal.findTableRow(projectPromptName).should('exist');
 
       cy.step('Switch to global prompts tab');
       chatbotPromptModal.findGlobalPromptsTab().click();
@@ -231,34 +213,16 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       chatbotPromptAssistant.findNameTitle().should('contain.text', globalPromptName);
       chatbotPromptAssistant.findScopeLabel().should('contain.text', 'Global');
 
-      cy.step('Edit the prompt content');
-      chatbotPromptAssistant.findEditButton().should('be.visible').click();
-      chatbotPromptAssistant.findTextarea().clear().type('Modified global template for testing.');
+      cy.step('Verify the loaded global prompt is not editable');
+      chatbotPromptAssistant
+        .findTextarea()
+        .should('have.value', GLOBAL_PROMPT_TEMPLATE)
+        .and('have.attr', 'readonly');
 
-      cy.step('Verify save is disabled but save-as is enabled for global prompts');
-      chatbotPromptAssistant.findUnsavedIndicator().should('exist');
-      chatbotPromptAssistant.findSaveButton().should('be.disabled');
-      chatbotPromptAssistant.findSaveAsButton().should('be.enabled');
-
-      cy.step('Click Save As to create a project copy');
-      chatbotPromptAssistant.findSaveAsButton().click();
-      chatbotCreatePromptModal.find().should('be.visible');
-      chatbotCreatePromptModal.findNameInput().should('have.value', `copy-of-${globalPromptName}`);
-      chatbotCreatePromptModal.findCommitMessageInput().type('Saved as project copy from global');
-      chatbotCreatePromptModal.findSaveButton().click();
-
-      cy.step('Verify save-as modal closes');
-      chatbotCreatePromptModal.find().should('not.exist');
-
-      cy.step('Re-open modal and verify the copy is in the project tab');
-      chatbotPromptAssistant.findLoadPromptButton().click();
-      chatbotPromptModal.findProjectPromptsTab().click();
-      chatbotPromptModal.findTableRow(`copy-of-${globalPromptName}`).should('exist');
-
-      cy.step('Verify the copy is not in the global tab');
-      chatbotPromptModal.findGlobalPromptsTab().click();
-      chatbotPromptModal.findTableRow(globalPromptName).should('exist');
-      chatbotPromptModal.findTableRow(`copy-of-${globalPromptName}`).should('not.exist');
+      cy.step('Send a message using the global prompt');
+      genAiPlayground.sendMessage(testData.testMessage);
+      genAiPlayground.findUserMessage().should('exist').and('contain', testData.testMessage);
+      genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
     },
   );
 });
