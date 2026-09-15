@@ -1061,7 +1061,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findAddVariableButton().click();
     modelServingWizard.findEnvVariableName('0').type('1invalid-name');
     cy.findByText(
-      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+      'Name: Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('be.visible');
     // Verify submit is disabled with invalid env var
     modelServingWizard.findNextButton().should('be.disabled');
@@ -1069,7 +1069,7 @@ describe('Model Serving Deploy Wizard', () => {
     // Test invalid env var name with special characters
     modelServingWizard.findEnvVariableName('0').clear().type('invalid@name');
     cy.findByText(
-      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+      'Name: Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('be.visible');
     // Verify submit is disabled with invalid env var
     modelServingWizard.findNextButton().should('be.disabled');
@@ -1077,7 +1077,7 @@ describe('Model Serving Deploy Wizard', () => {
     // Test valid env var name
     modelServingWizard.findEnvVariableName('0').clear().type('VALID_NAME');
     cy.findByText(
-      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+      'Name: Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
     ).should('not.exist');
     // Verify submit is enabled with valid env var
     modelServingWizard.findNextButton().should('be.enabled');

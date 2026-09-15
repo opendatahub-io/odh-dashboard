@@ -338,4 +338,44 @@ describe('EnvironmentVariablesField', () => {
     expect(screen.getByTestId('env-var-secret-name-0')).toHaveValue('hf-secret');
     expect(screen.getByTestId('env-var-secret-key-0')).toHaveValue('HF_TOKEN');
   });
+
+  it('should disable env var inputs when allowCreate is false', async () => {
+    const user = userEvent.setup();
+    const onChange = jest.fn();
+
+    render(
+      <EnvironmentVariablesField
+        allowCreate={false}
+        data={{
+          enabled: true,
+          variables: [{ type: EnvironmentVariableType.Value, name: 'MY_VAR', value: 'value' }],
+        }}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByTestId('env-var-name-0')).toBeDisabled();
+    expect(screen.getByTestId('env-var-value-0')).toBeDisabled();
+    expect(screen.getByTestId('add-environment-variable')).toBeDisabled();
+
+    await user.type(screen.getByTestId('env-var-name-0'), 'X');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('should show row-level name validation errors', () => {
+    render(
+      <EnvironmentVariablesField
+        data={{
+          enabled: true,
+          variables: [{ type: EnvironmentVariableType.Value, name: '1INVALID', value: '' }],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        'Name: Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+      ),
+    ).toBeInTheDocument();
+  });
 });

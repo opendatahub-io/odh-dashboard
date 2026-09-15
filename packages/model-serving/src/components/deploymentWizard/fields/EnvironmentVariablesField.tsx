@@ -47,6 +47,7 @@ type EnvVarTextInputProps = {
   value: string;
   hasError: boolean;
   isRequired?: boolean;
+  isDisabled?: boolean;
   onChange: (value: string) => void;
   inputRef?: React.Ref<HTMLInputElement>;
 };
@@ -57,6 +58,7 @@ const EnvVarTextInput: React.FC<EnvVarTextInputProps> = ({
   value,
   hasError,
   isRequired = false,
+  isDisabled = false,
   onChange,
   inputRef,
 }) => (
@@ -65,6 +67,7 @@ const EnvVarTextInput: React.FC<EnvVarTextInputProps> = ({
     aria-label={ariaLabel}
     value={value}
     required={isRequired}
+    isDisabled={isDisabled}
     onChange={(_event, nextValue) => onChange(nextValue)}
     ref={inputRef}
     validated={hasError ? ValidatedOptions.error : ValidatedOptions.default}
@@ -110,6 +113,7 @@ type EnvVarValueFieldsProps = {
   index: number;
   hasSecretNameError: boolean;
   hasSecretKeyError: boolean;
+  isDisabled?: boolean;
   onUpdate: (updates: EnvironmentVariableUpdates) => void;
 };
 
@@ -118,6 +122,7 @@ const EnvVarValueFields: React.FC<EnvVarValueFieldsProps> = ({
   index,
   hasSecretNameError,
   hasSecretKeyError,
+  isDisabled = false,
   onUpdate,
 }) => {
   if (envVar.type === EnvironmentVariableType.Value) {
@@ -126,6 +131,7 @@ const EnvVarValueFields: React.FC<EnvVarValueFieldsProps> = ({
         data-testid={`env-var-value-${index}`}
         aria-label="env var value"
         value={envVar.value}
+        isDisabled={isDisabled}
         onChange={(_event, value) => onUpdate({ value })}
       />
     );
@@ -140,6 +146,7 @@ const EnvVarValueFields: React.FC<EnvVarValueFieldsProps> = ({
           value={envVar.secretName}
           hasError={hasSecretNameError}
           isRequired
+          isDisabled={isDisabled}
           onChange={(value) => onUpdate({ secretName: value })}
         />
       </SplitItem>
@@ -150,6 +157,7 @@ const EnvVarValueFields: React.FC<EnvVarValueFieldsProps> = ({
           value={envVar.secretKey}
           hasError={hasSecretKeyError}
           isRequired
+          isDisabled={isDisabled}
           onChange={(value) => onUpdate({ secretKey: value })}
         />
       </SplitItem>
@@ -239,6 +247,10 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
   const addVarButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const addEnvVar = () => {
+    if (!allowCreate) {
+      return;
+    }
+
     if (data.enabled) {
       onChange?.({
         enabled: true,
@@ -256,6 +268,10 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
   };
 
   const removeEnvVar = (indexToRemove: number) => {
+    if (!allowCreate) {
+      return;
+    }
+
     const newVars = data.variables.filter((_, i) => i !== indexToRemove);
     if (data.enabled) {
       onChange?.({
@@ -268,7 +284,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
   };
 
   const updateEnvVar = (index: number, updates: EnvironmentVariableUpdates) => {
-    if (!data.enabled) {
+    if (!data.enabled || !allowCreate) {
       return;
     }
 
@@ -280,6 +296,10 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
   };
 
   const handleCheckboxChange = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
+    if (!allowCreate) {
+      return;
+    }
+
     if (checked) {
       onChange?.({
         enabled: true,
@@ -379,6 +399,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
                         value={normalizedEnvVar.name}
                         hasError={Boolean(nameError)}
                         isRequired
+                        isDisabled={!allowCreate}
                         onChange={(value) => updateEnvVar(index, { name: value })}
                         inputRef={
                           index === data.variables.length - 1 ? lastNameFieldRef : undefined
@@ -391,6 +412,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
                         index={index}
                         hasSecretNameError={Boolean(secretNameError)}
                         hasSecretKeyError={Boolean(secretKeyError)}
+                        isDisabled={!allowCreate}
                         onUpdate={(updates) => updateEnvVar(index, updates)}
                       />
                     </SplitItem>
