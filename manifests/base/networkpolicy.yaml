@@ -1,0 +1,90 @@
+# Operand NetworkPolicy for the main Dashboard pod (odh-dashboard / rhods-dashboard).
+# Least-privilege ingress/egress for the 3-container pod (frontend, kube-rbac-proxy,
+# core-bff). Intra-pod traffic (frontend <-> proxy <-> bff) is loopback and not subject
+# to NetworkPolicy. Satisfies HPSTRAT-104 / operand contract RHOAIENG-90747 (R3-R5).
+# rhoai overlay renames the podSelector to rhods-dashboard (see rhoai/networkpolicy.yaml).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dashboard-allow-ports
+spec:
+  podSelector:
+    matchLabels:
+      deployment: odh-dashboard
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Gateway / OpenShift router -> dashboard UI (kube-rbac-proxy) and core-bff.
+    - ports:
+        - port: 8443
+          protocol: TCP
+        - port: 8943
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+  egress:
+    # Cluster DNS resolution.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+    # Kubernetes API server. NetworkPolicy cannot select the API server endpoints
+    # (host-networked, dynamic IP/port), so this allows egress to 6443 cluster-wide.
+    # Documented reduced-posture limitation per operand contract R5.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 6443
+          protocol: TCP
+    # Dashboard backend (localhost:8080, behind kube-rbac-proxy:8443) proxies /api/*
+    # to the module BFF operands, which have no gateway HTTPRoute of their own.
+    # A podSelector cannot be used here: the odh/rhoai overlays apply the dashboard's
+    # own identity labels to every podSelector via kustomize commonLabels
+    # (includeSelectors), so a podSelector would only ever match the dashboard pod,
+    # never the modules. We therefore port-scope to the module BFF ports (the modules
+    # run in this same namespace). Documented reduced-posture limitation per contract R5.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 8043
+          protocol: TCP
+        - port: 8143
+          protocol: TCP
+        - port: 8243
+          protocol: TCP
+        - port: 8343
+          protocol: TCP
+        - port: 8543
+          protocol: TCP
+        - port: 8643
+          protocol: TCP
+        - port: 8743
+          protocol: TCP
+        - port: 8843
+          protocol: TCP
+        - port: 9043
+          protocol: TCP
+        - port: 9143
+          protocol: TCP
+        - port: 9243
+          protocol: TCP
+    # External / off-cluster HTTP(S). The dashboard reaches user-configurable and
+    # hostname-based endpoints that cannot be expressed as NetworkPolicy peers
+    # (no DNS-name selection). Documented reduced-posture limitation per contract R5.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 80
+          protocol: TCP

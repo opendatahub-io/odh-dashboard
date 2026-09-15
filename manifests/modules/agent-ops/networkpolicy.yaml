@@ -1,3 +1,5 @@
+# Operand NetworkPolicy for the Agent Ops BFF/UI. Least-privilege ingress/egress per
+# HPSTRAT-104 / operand contract RHOAIENG-90747 (R3-R5).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -27,12 +29,16 @@ spec:
           protocol: UDP
         - port: 5353
           protocol: TCP
+    # Kubernetes API server. NetworkPolicy cannot select the API server endpoints
+    # (host-networked, dynamic IP/port); documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
         - port: 6443
           protocol: TCP
+    # External / off-cluster HTTP(S) to user-configurable, hostname-based endpoints
+    # that cannot be expressed as NetworkPolicy peers; documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

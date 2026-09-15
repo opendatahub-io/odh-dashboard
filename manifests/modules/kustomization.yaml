@@ -11,3 +11,4 @@ resources:
   - agent-ops
   - notebooks
   - data-registry
+  - data-connect-hub

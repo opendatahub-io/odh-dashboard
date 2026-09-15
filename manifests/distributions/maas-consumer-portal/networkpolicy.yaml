@@ -1,3 +1,5 @@
+# Operand NetworkPolicy for the standalone MaaS Consumer Portal. Least-privilege
+# ingress/egress per HPSTRAT-104 / operand contract RHOAIENG-90747 (R3-R5).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -10,6 +12,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Gateway / router -> MaaS Consumer Portal.
     - from:
         - namespaceSelector:
             matchLabels:

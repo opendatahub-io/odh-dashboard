@@ -8,6 +8,7 @@ resources:
   - ./model-registry
   - ./rbac
   - deployment.yaml
+  - networkpolicy.yaml
   - httproute.yaml
   - kube-rbac-proxy-config.yaml
   - service.yaml
