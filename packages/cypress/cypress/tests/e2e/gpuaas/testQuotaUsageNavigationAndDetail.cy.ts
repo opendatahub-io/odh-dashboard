@@ -104,7 +104,7 @@ describeAdminOnly('Quota usage navigation and detail', () => {
 
   it(
     'displays cohort and cluster queue details and separates Kueue-managed projects',
-    { tags: ['@Kueue', '@Dashboard', '@Infrastructure', '@Featureflagged'] },
+    { tags: ['@Kueue', '@Dashboard', '@Infrastructure', '@Featureflagged', '@GpuaasCI'] },
     () => {
       if (!context) {
         throw new Error('Test setup did not complete');
