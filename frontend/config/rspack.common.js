@@ -3,11 +3,6 @@ const path = require('path');
 const { execSync } = require('child_process');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { rspack } = require('@rspack/core');
-const {
-  isVendorCss,
-  patternFlyFontIncludes,
-  pnpmWebpackResolveAliases,
-} = require('@odh-dashboard/app-config/webpack');
 
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
@@ -23,7 +18,6 @@ const SRC_DIR = process.env._ODH_SRC_DIR;
 const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
-const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../node_modules');
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
@@ -97,8 +91,7 @@ module.exports = (env) => ({
         ].filter(Boolean),
       },
       {
-        test: /\.(svg|ttf|eot|woff|woff2)$/,
-        include: patternFlyFontIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES),
+        test: /\.(ttf|eot|woff|woff2)$|[/\\]pficon[/\\].*\.svg$/i,
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
@@ -137,32 +130,6 @@ module.exports = (env) => ({
       },
       {
         test: /\.(jpg|jpeg|png|gif)$/i,
-        include: [
-          SRC_DIR,
-          COMMON_DIR,
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/dist/styles/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-        ],
         type: 'asset',
         parser: {
           dataUrlCondition: { maxSize: 5000 },
@@ -181,22 +148,11 @@ module.exports = (env) => ({
       },
       {
         test: /\.css$/i,
-        include: [SRC_DIR, COMMON_DIR],
         use: [
           env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
           'css-loader',
         ],
       },
-      ...(env === 'development'
-        ? [
-            {
-              test: /\.css$/i,
-              include: (resourcePath) =>
-                isVendorCss(resourcePath, RELATIVE_DIRNAME, ROOT_NODE_MODULES),
-              use: ['style-loader', 'css-loader'],
-            },
-          ]
-        : []),
       {
         test: /\.ya?ml$/,
         use: 'js-yaml-loader',
@@ -297,11 +253,14 @@ module.exports = (env) => ({
   ],
   resolve: {
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
-    alias: {
-      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
-    },
-    // Follow pnpm workspace symlinks so linked packages resolve under packages/ instead of
-    // scanning the full node_modules/.pnpm tree during the coverage build.
+    // Keep React canonical when compiling sources from the npm-managed Model Registry subtree.
+    alias: Object.fromEntries(
+      ['react', 'react-dom'].map((packageName) => [
+        packageName,
+        path.dirname(require.resolve(`${packageName}/package.json`, { paths: [RELATIVE_DIRNAME] })),
+      ]),
+    ),
+    // Follow workspace symlinks so other imports resolve through each package's dependency tree.
     symlinks: true,
     cacheWithContext: false,
   },
