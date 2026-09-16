@@ -1,4 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
@@ -43,6 +44,7 @@ const initBaseIntercepts = (dscStatus: ReturnType<typeof mockDscStatus> = mockDs
   );
 
   cy.interceptOdh('GET /api/dsc/status', dscStatus);
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: 'odh-model-registries' }));
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
 

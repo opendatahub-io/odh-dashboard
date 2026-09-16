@@ -49,6 +49,7 @@
     "@kubernetes/client-node": "^0.12.3",
     "@odh-dashboard/app-config": "workspace:*",
     "@odh-dashboard/foundation": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
     "dotenv": "^16.6.1",
     "ejs": "^3.1.10",
     "fastify": "^5.11.2",

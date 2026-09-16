@@ -1,4 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockConfigMapsSecrets } from '@odh-dashboard/internal/__mocks__';
@@ -27,7 +28,7 @@ const groupSubjects: RoleBindingSubject[] = [
 
 const sampleCertificatePath = './cypress/tests/mocked/modelRegistrySettings/mockCertificate.pem';
 const unSupportedFilePath = './cypress/tests/mocked/modelRegistrySettings/unSupportedFile.txt';
-const MODEL_REGISTRIES_NAMESPACE = Cypress.env('APPLICATIONS_NAMESPACE') || 'odh-model-registries';
+const MODEL_REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 const setupMocksForMRSettingAccess = ({
   hasModelRegistries = true,
@@ -58,11 +59,11 @@ const setupMocksForMRSettingAccess = ({
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
         },
       },
     }),
   );
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE }));
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptOdh('POST /api/modelRegistries', mockModelRegistry({})).as('createModelRegistry');
   cy.interceptOdh(
@@ -326,11 +327,11 @@ it('Model registry settings should not be available when model registry is disab
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
         },
       },
     }),
   );
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE }));
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   modelRegistrySettings.visit(false);
   pageNotfound.findPage().should('exist');

@@ -1,19 +1,19 @@
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { KubeFastifyInstance, ModelRegistryKind } from '../../../types';
 import { PatchUtils, V1ConfigMap, V1Secret, V1Status } from '@kubernetes/client-node';
-import { getClusterStatus } from '../../../utils/resourceUtils';
+import { getAIHub } from '../../../utils/resourceUtils';
 
 const MODEL_REGISTRY_API_GROUP = 'modelregistry.opendatahub.io';
 const MODEL_REGISTRY_API_VERSION = 'v1beta1';
 const MODEL_REGISTRY_PLURAL = 'modelregistries';
 
 export const getModelRegistryNamespace = (fastify: KubeFastifyInstance): string => {
-  const clusterStatus = getClusterStatus(fastify);
-  const registriesNamespace = clusterStatus.components?.modelregistry?.registriesNamespace;
-  if (!registriesNamespace) {
-    throw new Error('Model registry namespace not found in DSC status');
+  const aihub = getAIHub(fastify);
+  const instancesNamespace = aihub?.spec?.instancesNamespace;
+  if (!instancesNamespace) {
+    throw new Error('Model registry namespace not found in AIHub spec');
   }
-  return registriesNamespace;
+  return instancesNamespace;
 };
 
 const base64encode = (value?: string): string => {
