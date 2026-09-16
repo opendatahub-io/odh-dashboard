@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { useNamespaceSelector } from 'mod-arch-core';
-import MainPage from '~/app/pages/MainPage';
+import AppRoutes from '~/app/AppRoutes';
 
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn(),
@@ -82,6 +82,11 @@ jest.mock('~/app/pages/ConnectionsTab', () => ({
   default: (props: { namespace: string; isActive?: boolean }) => mockConnectionsTab(props),
 }));
 
+jest.mock('~/app/pages/ConnectionTypeDetails', () => ({
+  __esModule: true,
+  default: () => <div data-testid="connection-type-details" />,
+}));
+
 const mockUseNamespaceSelector = jest.mocked(useNamespaceSelector);
 const projects = [
   { name: 'project-1', displayName: 'Project 1' },
@@ -97,7 +102,7 @@ const renderPage = (initialEntry: string) =>
   render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/ai-hub/connections/*" element={<MainPage basePath="/ai-hub/connections" />} />
+        <Route path="/ai-hub/connections/*" element={<AppRoutes />} />
       </Routes>
       <LocationDisplay />
     </MemoryRouter>,
@@ -138,6 +143,12 @@ describe('MainPage', () => {
     expect(screen.getByTestId('location').textContent).toBe(
       '/ai-hub/connections/connections?project=project-1',
     );
+  });
+
+  it('should render connection type details from the detail route', () => {
+    renderPage('/ai-hub/connections/connection-types/s3?project=project-1');
+
+    expect(screen.getByTestId('connection-type-details')).toBeTruthy();
   });
 
   it('should pass the query-selected project to ConnectionsTab', async () => {

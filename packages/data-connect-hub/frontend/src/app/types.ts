@@ -1,3 +1,13 @@
+export type Identified<I> = {
+  id: I;
+};
+export type Labelled<L> = {
+  label: L;
+};
+export type Described<D> = {
+  description: D;
+};
+
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
   'openshift.io/display-name': string;
