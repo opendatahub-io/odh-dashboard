@@ -158,16 +158,32 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     initialSelectedServerIds,
     onSelectionChange,
   });
+  const { selectedServers, setSelectedServers } = selection;
+
+  const visibleSelectedServers = React.useMemo(
+    () =>
+      mcpRegistryServersEnabled
+        ? selectedServers
+        : selectedServers.filter((server) => server.source !== 'registry'),
+    [mcpRegistryServersEnabled, selectedServers],
+  );
+
+  React.useEffect(() => {
+    if (visibleSelectedServers.length !== selectedServers.length) {
+      setSelectedServers(visibleSelectedServers);
+      onSelectionChange(visibleSelectedServers.map((server) => server.id));
+    }
+  }, [onSelectionChange, selectedServers.length, setSelectedServers, visibleSelectedServers]);
 
   const selectedRegisteredCount = React.useMemo(
-    () => selection.selectedServers.filter((s) => s.source === 'registry').length,
-    [selection.selectedServers],
+    () => visibleSelectedServers.filter((s) => s.source === 'registry').length,
+    [visibleSelectedServers],
   );
 
   // Auto-unlock
   const { autoUnlockingServers } = useAutoUnlock({
     checkServerStatus,
-    selectedServers: selection.selectedServers,
+    selectedServers: visibleSelectedServers,
     isInitialLoadComplete: selection.isInitialLoadComplete,
     initialServerStatuses,
     getToken: tokenManagement.getToken,
@@ -178,7 +194,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   // Table integration (checkboxes for selecting servers)
   const { isSelected, toggleSelection } = useCheckboxTableBase(
     transformedServers,
-    selection.selectedServers,
+    visibleSelectedServers,
     selection.setSelectedServers,
     React.useCallback((server: MCPServer) => server.id, []),
   );
@@ -198,7 +214,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   // Calculate total active tools across all connected AND selected servers
   const totalActiveTools = React.useMemo(() => {
     let total = 0;
-    selection.selectedServers.forEach((server) => {
+    visibleSelectedServers.forEach((server) => {
       const tokenInfo = tokenManagement.getToken(server.connectionUrl);
       const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
 
@@ -208,13 +224,13 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       }
     });
     return total;
-  }, [selection.selectedServers, tokenManagement, getToolCounts]);
+  }, [visibleSelectedServers, tokenManagement, getToolCounts]);
 
   const showToolsWarning = totalActiveTools > 40;
 
   const showAuthRequiredBanner =
     selection.isInitialLoadComplete &&
-    selection.selectedServers.some((server) => {
+    visibleSelectedServers.some((server) => {
       const tokenInfo = tokenManagement.getToken(server.connectionUrl);
       const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
       const isServerLoading =

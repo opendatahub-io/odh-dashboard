@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import yaml from 'js-yaml';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
   mockNamespaces,
   mockNamespace,
@@ -140,6 +141,19 @@ export const setMCPRegistryServersFlag = (enabled: boolean): void => {
   });
 };
 
+export const configureMCPRegistryServersFlag = (enabled: boolean): void => {
+  cy.intercept(
+    { method: 'GET', pathname: '/api/config', times: 2 },
+    mockDashboardConfig({
+      genAiStudio: true,
+      aiAssetCustomEndpoints: true,
+      mcpRegistry: true,
+      modelAsService: false,
+      genAiMcpRegistryServers: enabled,
+    }),
+  );
+};
+
 type MCPServerStatus = 'healthy' | 'error' | 'unknown';
 
 type InitInterceptsOptions = {
@@ -196,10 +210,10 @@ export const navigateToPlayground = (
   mcpRegistryServersEnabled?: boolean,
 ): void => {
   cy.step('Navigate to Playground');
-  appChrome.visit();
   if (mcpRegistryServersEnabled !== undefined) {
-    setMCPRegistryServersFlag(mcpRegistryServersEnabled);
+    configureMCPRegistryServersFlag(mcpRegistryServersEnabled);
   }
+  appChrome.visit();
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
   playgroundPage.mcpTab.openMCPTab();
