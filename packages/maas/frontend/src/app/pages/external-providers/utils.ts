@@ -38,6 +38,21 @@ export const getMissingCredentialSecretRef = (
   return secrets.some((secret) => secret.name === trimmedRef) ? undefined : trimmedRef;
 };
 
+export type OrphanedCredentialSecretContext = 'create' | 'update';
+
+export const formatOrphanedCredentialSecretSubmitError = (
+  message: string,
+  secretName: string,
+  context: OrphanedCredentialSecretContext,
+): string => {
+  const failureReason =
+    context === 'create'
+      ? 'the external provider could not be created'
+      : 'could not be linked to this provider';
+
+  return `${message} The credential secret "${secretName}" was created but ${failureReason}. Select it from the existing secrets list and try again.`;
+};
+
 export type ExternalProviderNameDescInitialData = {
   name: string;
   description: string;
