@@ -3,10 +3,10 @@ import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import {
   loadMCPTestConfig,
+  configureMCPRegistryServersFlag,
   initAutoConnectIntercepts,
   navigateFromAIAssetsToPlayground,
   initRegistryIntercepts,
-  setMCPRegistryServersFlag,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
@@ -33,8 +33,8 @@ describe('AI Assets - MCP Servers', () => {
           { name: 'ConfigMap-Server-1', url: 'http://configmap-server-1.local/mcp' },
         ],
       });
+      configureMCPRegistryServersFlag(true);
       appChrome.visit();
-      setMCPRegistryServersFlag(true);
       aiAssetsPage.visit(namespace);
       aiAssetsPage.switchToMCPServersTab();
 
@@ -57,8 +57,8 @@ describe('AI Assets - MCP Servers', () => {
           { name: 'ConfigMap-Server-1', url: 'http://configmap-server-1.local/mcp' },
         ],
       });
+      configureMCPRegistryServersFlag(false);
       appChrome.visit();
-      setMCPRegistryServersFlag(false);
       aiAssetsPage.visit(namespace);
       aiAssetsPage.switchToMCPServersTab();
 
