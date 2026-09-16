@@ -38,10 +38,7 @@ const AUTORAG_MAAS_AUTH_POLICY = 'autorag-cypress-simulator-auth-policy';
 
 type ModelListResponse = { data?: { id?: unknown }[] };
 
-let autoragMaaSProvisioning:
-  | Cypress.Chainable<AutoragMaaSFixture & { mode: 'simulator' }>
-  | undefined;
-let autoragMaaSFixture: (AutoragMaaSFixture & { mode: 'simulator' }) | undefined;
+let autoragMaaSProvisioning: Cypress.Chainable<CommandLineResult> | undefined;
 
 const getPgvectorImage = (): string =>
   (Cypress.env('AUTORAG_PGVECTOR_IMAGE') as string) || DEFAULT_PGVECTOR_IMAGE;
@@ -192,117 +189,114 @@ const replaceAutoragMaaSPlaceholders = (yaml: string): string =>
  * Ensure the shared, lifecycle-only AutoRAG MaaS simulators exist.
  * Applying fixed names is idempotent and avoids duplicate models across specs.
  */
-export const provisionAutoragMaaSFixture = (): Cypress.Chainable<
-  AutoragMaaSFixture & { mode: 'simulator' }
-> => {
-  if (autoragMaaSFixture) {
-    return cy.wrap(autoragMaaSFixture);
-  }
-  if (autoragMaaSProvisioning) {
-    return autoragMaaSProvisioning;
-  }
-
-  ensureAdminOcSession();
-  const provision = applyAutoragMaaSResource(
-    () =>
-      createLLMInferenceServiceWithMaaSEnabled(
-        AUTORAG_MAAS_FIXTURE_NAMESPACE,
-        AUTORAG_GENERATION_MODEL,
-        'resources/maas/llmInferenceServiceAutoragGenerationSimulator.yaml',
-      ),
-    `generation LLMInferenceService ${AUTORAG_GENERATION_MODEL}`,
-  )
-    .then(() =>
-      checkLLMInferenceServiceState(AUTORAG_GENERATION_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
-        checkReady: true,
-      }),
+export const provisionAutoragMaaSFixture = (): Cypress.Chainable<AutoragMaaSFixture> => {
+  if (!autoragMaaSProvisioning) {
+    ensureAdminOcSession();
+    autoragMaaSProvisioning = applyAutoragMaaSResource(
+      () =>
+        createLLMInferenceServiceWithMaaSEnabled(
+          AUTORAG_MAAS_FIXTURE_NAMESPACE,
+          AUTORAG_GENERATION_MODEL,
+          'resources/maas/llmInferenceServiceAutoragGenerationSimulator.yaml',
+        ),
+      `generation LLMInferenceService ${AUTORAG_GENERATION_MODEL}`,
     )
-    .then(() =>
-      applyAutoragMaaSResource(
-        () =>
-          createLLMInferenceServiceWithMaaSEnabled(
-            AUTORAG_MAAS_FIXTURE_NAMESPACE,
-            AUTORAG_EMBEDDING_MODEL,
-            'resources/maas/llmInferenceServiceAutoragEmbeddingSimulator.yaml',
-          ),
-        `embedding LLMInferenceService ${AUTORAG_EMBEDDING_MODEL}`,
-      ),
-    )
-    .then(() =>
-      checkLLMInferenceServiceState(AUTORAG_EMBEDDING_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
-        checkReady: true,
-      }),
-    )
-    .then(() =>
-      applyAutoragMaaSResource(
-        () =>
-          createMaaSModelRef(
-            AUTORAG_MAAS_FIXTURE_NAMESPACE,
-            AUTORAG_GENERATION_MODEL,
-            'resources/maas/MaaSModelRefAutoragGeneration.yaml',
-          ),
-        `generation MaaSModelRef ${AUTORAG_GENERATION_MODEL}`,
-      ),
-    )
-    .then(() =>
-      applyAutoragMaaSResource(
-        () =>
-          createMaaSModelRef(
-            AUTORAG_MAAS_FIXTURE_NAMESPACE,
-            AUTORAG_EMBEDDING_MODEL,
-            'resources/maas/MaaSModelRefAutoragEmbedding.yaml',
-          ),
-        `embedding MaaSModelRef ${AUTORAG_EMBEDDING_MODEL}`,
-      ),
-    )
-    .then(() => waitForMaaSModelRefReady(AUTORAG_GENERATION_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE))
-    .then(() => waitForMaaSModelRefReady(AUTORAG_EMBEDDING_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE))
-    .then(() => applyAutoragMaaSGovernance())
-    .then(() =>
-      checkMaaSSubscriptionState(AUTORAG_MAAS_SUBSCRIPTION, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
-        models: [AUTORAG_GENERATION_MODEL, AUTORAG_EMBEDDING_MODEL],
-        phase: 'Active',
-      }),
-    )
-    .then(() =>
-      checkMaaSAuthPolicyState(AUTORAG_MAAS_AUTH_POLICY, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
-        phase: 'Active',
-      }),
-    )
-    .then(() =>
-      createEphemeralMaaSApiKey(
-        AUTORAG_MAAS_SERVICE_ACCOUNT,
-        AUTORAG_MAAS_FIXTURE_NAMESPACE,
-        AUTORAG_MAAS_SUBSCRIPTION,
-      ),
-    )
-    .then((apiKey) =>
-      getSimulatorModel(AUTORAG_GENERATION_MODEL).then((generation) =>
-        getSimulatorModel(AUTORAG_EMBEDDING_MODEL).then((embedding) => {
-          autoragMaaSFixture = {
-            mode: 'simulator',
-            maasUrl: generation.url,
-            apiKey: apiKey.key,
-            apiKeyId: apiKey.id,
-            generationModelId: generation.modelId,
-            embeddingModelId: embedding.modelId,
-            ownership: 'dashboard-provisioned',
-            supportsCompletionResults: false,
-          };
-          return autoragMaaSFixture;
+      .then(() =>
+        checkLLMInferenceServiceState(AUTORAG_GENERATION_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
+          checkReady: true,
         }),
-      ),
-    );
+      )
+      .then(() =>
+        applyAutoragMaaSResource(
+          () =>
+            createLLMInferenceServiceWithMaaSEnabled(
+              AUTORAG_MAAS_FIXTURE_NAMESPACE,
+              AUTORAG_EMBEDDING_MODEL,
+              'resources/maas/llmInferenceServiceAutoragEmbeddingSimulator.yaml',
+            ),
+          `embedding LLMInferenceService ${AUTORAG_EMBEDDING_MODEL}`,
+        ),
+      )
+      .then(() =>
+        checkLLMInferenceServiceState(AUTORAG_EMBEDDING_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
+          checkReady: true,
+        }),
+      )
+      .then(() =>
+        applyAutoragMaaSResource(
+          () =>
+            createMaaSModelRef(
+              AUTORAG_MAAS_FIXTURE_NAMESPACE,
+              AUTORAG_GENERATION_MODEL,
+              'resources/maas/MaaSModelRefAutoragGeneration.yaml',
+            ),
+          `generation MaaSModelRef ${AUTORAG_GENERATION_MODEL}`,
+        ),
+      )
+      .then(() =>
+        applyAutoragMaaSResource(
+          () =>
+            createMaaSModelRef(
+              AUTORAG_MAAS_FIXTURE_NAMESPACE,
+              AUTORAG_EMBEDDING_MODEL,
+              'resources/maas/MaaSModelRefAutoragEmbedding.yaml',
+            ),
+          `embedding MaaSModelRef ${AUTORAG_EMBEDDING_MODEL}`,
+        ),
+      )
+      .then(() =>
+        waitForMaaSModelRefReady(AUTORAG_GENERATION_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE),
+      )
+      .then(() => waitForMaaSModelRefReady(AUTORAG_EMBEDDING_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE))
+      .then(() => applyAutoragMaaSGovernance())
+      .then(() =>
+        checkMaaSSubscriptionState(AUTORAG_MAAS_SUBSCRIPTION, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
+          models: [AUTORAG_GENERATION_MODEL, AUTORAG_EMBEDDING_MODEL],
+          phase: 'Active',
+        }),
+      )
+      .then(() =>
+        checkMaaSAuthPolicyState(AUTORAG_MAAS_AUTH_POLICY, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
+          phase: 'Active',
+        }),
+      );
+  }
 
-  autoragMaaSProvisioning = provision;
-  return provision;
+  const provisioning = autoragMaaSProvisioning as Cypress.Chainable<CommandLineResult>;
+
+  return provisioning.then(() =>
+    getSimulatorModel(AUTORAG_GENERATION_MODEL).then((generation) =>
+      getSimulatorModel(AUTORAG_EMBEDDING_MODEL).then((embedding) =>
+        createEphemeralMaaSApiKey(
+          AUTORAG_MAAS_SERVICE_ACCOUNT,
+          AUTORAG_MAAS_FIXTURE_NAMESPACE,
+          AUTORAG_MAAS_SUBSCRIPTION,
+        ).then((apiKey) => ({
+          mode: 'simulator' as const,
+          maasUrl: generation.url,
+          apiKey: apiKey.key,
+          apiKeyId: apiKey.id,
+          generationModelId: generation.modelId,
+          embeddingModelId: embedding.modelId,
+          ownership: 'dashboard-provisioned' as const,
+          supportsCompletionResults: false as const,
+        })),
+      ),
+    ),
+  ) as Cypress.Chainable<AutoragMaaSFixture>;
 };
 
 /** Revoke the lifecycle key when the later AutoRAG wiring is ready to clean it up. */
 export const cleanupAutoragMaaSCredential = (
-  apiKeyId: string,
-): Cypress.Chainable<Cypress.Response<unknown>> =>
-  revokeMaaSApiKey(AUTORAG_MAAS_SERVICE_ACCOUNT, AUTORAG_MAAS_FIXTURE_NAMESPACE, apiKeyId);
+  fixture: AutoragMaaSFixture,
+): Cypress.Chainable<Cypress.Response<unknown>> | undefined =>
+  fixture.mode === 'simulator'
+    ? revokeMaaSApiKey(
+        AUTORAG_MAAS_SERVICE_ACCOUNT,
+        AUTORAG_MAAS_FIXTURE_NAMESPACE,
+        fixture.apiKeyId,
+      )
+    : undefined;
 
 // ---------------------------------------------------------------------------
 // Top-level orchestrator

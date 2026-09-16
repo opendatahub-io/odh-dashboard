@@ -49,8 +49,6 @@ const MAAS_CONFIG_KEYS = [
   'MAAS_EMBEDDING_MODEL_ID',
 ] as const;
 
-let resolvedProvisionedAutoragMaaSFixture: AutoragMaaSFixture | undefined;
-
 const readMaaSConfig = (): MaaSConfig => ({
   MAAS_URL: Cypress.env('MAAS_URL'),
   MAAS_API_KEY: Cypress.env('MAAS_API_KEY'),
@@ -75,9 +73,6 @@ export const resolveAutoragMaaSFixture = (
   });
 
   if (suppliedKeys.length === 0) {
-    if (resolvedProvisionedAutoragMaaSFixture) {
-      return resolvedProvisionedAutoragMaaSFixture;
-    }
     return {
       mode: 'simulator',
       maasUrl: '',
@@ -123,26 +118,6 @@ const hasExactVisibleOption = (document: Document, label: string): boolean => {
   );
 };
 
-const getRequiredMaaSConfig = (name: string): string => {
-  const fixture = resolveAutoragMaaSFixture();
-  if (fixture.mode === 'simulator') {
-    const provisionedValues: Record<string, string> = {
-      MAAS_URL: fixture.maasUrl,
-      MAAS_GENERATION_MODEL_ID: fixture.generationModelId,
-      MAAS_EMBEDDING_MODEL_ID: fixture.embeddingModelId,
-    };
-    const provisionedValue = provisionedValues[name];
-    if (provisionedValue) {
-      return provisionedValue;
-    }
-  }
-  const value = Cypress.env(name);
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`MaaS readiness check requires ${name} to be configured.`);
-  }
-  return value.trim();
-};
-
 const getMaaSServiceRoot = (configuredUrl: string): string => {
   let parsedUrl: URL;
   try {
@@ -172,15 +147,12 @@ const isMaaSModel = (value: unknown): value is MaaSModel =>
  * Verify the hosted MaaS models before provisioning AutoRAG resources.
  * Response details and credentials are intentionally never logged or included in failures.
  */
-export const checkAutoragMaaSReadiness = ():
-  | Cypress.Chainable<undefined>
-  | Cypress.Chainable<Cypress.Response<Record<string, unknown>>> => {
+export const checkAutoragMaaSReadiness = (): Cypress.Chainable<AutoragMaaSFixture> => {
   const fixture = resolveAutoragMaaSFixture();
   if (fixture.mode === 'simulator') {
-    return provisionAutoragMaaSFixture().then((provisionedFixture) => {
-      resolvedProvisionedAutoragMaaSFixture = provisionedFixture;
-      return cy.wrap(undefined);
-    });
+    return provisionAutoragMaaSFixture().then(
+      (provisionedFixture): AutoragMaaSFixture => provisionedFixture,
+    );
   }
 
   const serviceRoot = getMaaSServiceRoot(fixture.maasUrl);
@@ -193,7 +165,7 @@ export const checkAutoragMaaSReadiness = ():
       failOnStatusCode: false,
       log: false,
     })
-    .then((response): void => {
+    .then((response): AutoragMaaSFixture => {
       if (response.status !== 200) {
         throw new Error(`MaaS readiness check returned HTTP ${response.status}.`);
       }
@@ -210,6 +182,7 @@ export const checkAutoragMaaSReadiness = ():
           throw new Error('A configured MaaS model is missing or not ready.');
         }
       }
+      return fixture;
     });
 };
 
@@ -227,6 +200,7 @@ export const configureAutoragRun = (
   testData: AutoragTestData,
   projectName: string,
   uuid: string,
+  maasFixture: AutoragMaaSFixture,
   options: { createConnections?: boolean } = {},
 ): void => {
   cy.step('Login and wait for pipeline server');
@@ -255,12 +229,10 @@ export const configureAutoragRun = (
       if (!connectionExists) {
         autoragConfigurePage.findAddMaasConnectionButton().click();
         autoragConfigurePage.findMaasConnectionNameInput().clear().type(testData.maasSecretName);
-        autoragConfigurePage
-          .findMaasConnectionBaseUrlInput()
-          .type(getRequiredMaaSConfig('MAAS_URL'));
+        autoragConfigurePage.findMaasConnectionBaseUrlInput().type(maasFixture.maasUrl);
         autoragConfigurePage
           .findMaasConnectionApiKeyInput()
-          .type(getRequiredMaaSConfig('MAAS_API_KEY'), { log: false });
+          .type(maasFixture.apiKey, { log: false });
         autoragConfigurePage.findMaasConnectionSubmitButton().click();
       }
     });
@@ -399,9 +371,9 @@ export const configureAutoragRun = (
       });
     });
 
-  selectModel('llm', getRequiredMaaSConfig('MAAS_GENERATION_MODEL_ID')).then(() => {
+  selectModel('llm', maasFixture.generationModelId).then(() => {
     autoragConfigurePage.findEmbeddingModelsTab().click();
-    return selectModel('embedding', getRequiredMaaSConfig('MAAS_EMBEDDING_MODEL_ID'));
+    return selectModel('embedding', maasFixture.embeddingModelId);
   });
   autoragConfigurePage.findExperimentSettingsSaveButton().click();
 };
@@ -413,6 +385,7 @@ export const configureAutoragRun = (
 export const submitAutoragRun = (
   testData: AutoragTestData,
   inputDataKey: string,
+  maasFixture: AutoragMaaSFixture,
 ): Cypress.Chainable<string> => {
   cy.intercept('POST', '**/autorag/api/v1/pipeline-runs*').as('autoragCreateRun');
   cy.step('Submit the form');
@@ -423,10 +396,8 @@ export const submitAutoragRun = (
     expect(body.input_data_keys).to.deep.equal([inputDataKey]);
     expect(body.maas_secret_name).to.equal(testData.maasSecretName);
     expect(body.vector_db_secret_name).to.equal(testData.vectorDbSecretName);
-    expect(body.generation_models).to.deep.equal([
-      getRequiredMaaSConfig('MAAS_GENERATION_MODEL_ID'),
-    ]);
-    expect(body.embedding_models).to.deep.equal([getRequiredMaaSConfig('MAAS_EMBEDDING_MODEL_ID')]);
+    expect(body.generation_models).to.deep.equal([maasFixture.generationModelId]);
+    expect(body.embedding_models).to.deep.equal([maasFixture.embeddingModelId]);
     expect(body.optimization_metric).to.equal(testData.optimizationMetric ?? 'overall_score');
     expect(body.preset).to.equal('speed');
     expect(body.optimization_max_rag_patterns).to.equal(testData.maxRagPatterns);
