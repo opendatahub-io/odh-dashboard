@@ -302,6 +302,11 @@ print("CREATED_SAVED_DATASET:" + ds.name)
 };
 
 const FEAST_OPERATOR_DEPLOY = 'feast-operator-controller-manager';
+const DATA_REGISTRY_NAMESPACE_LABEL = 'opendatahub.io/data-registry=true';
+
+export type CreateFeatureStoreCROptions = {
+  dataRegistryEnabled?: boolean;
+};
 
 /**
  * Fail fast when the Feast operator cannot reconcile FeatureStore CRs.
@@ -341,57 +346,128 @@ const assertFeastOperatorReady = (): Cypress.Chainable => {
 };
 
 /**
+ * Waits for the Feast operator Deployment using status signals that are available across
+ * different OpenShift installation layouts.
+ */
+const waitForFeastOperatorReady = (): Cypress.Chainable => {
+  cy.step('Wait for Feast operator to be Ready');
+  return pollUntilSuccess(
+    `oc get deploy -A -o json | jq -e 'any(.items[]?; ` +
+      `(.metadata.name == "${FEAST_OPERATOR_DEPLOY}" or ` +
+      `.metadata.labels["app.kubernetes.io/name"] == "feast-operator") and ` +
+      `(((.status.readyReplicas // 0) > 0) or ` +
+      `((.status.availableReplicas // 0) > 0) or ` +
+      `any(.status.conditions[]?; .type == "Available" and .status == "True")))'`,
+    `Feast operator ${FEAST_OPERATOR_DEPLOY} to be ready in any namespace`,
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
+};
+
+/**
+ * Waits for the namespace designated by the platform/module operator for Data Registry.
+ * The namespace name is installation-specific, so the Data Registry label is the contract.
+ */
+export const waitForDataRegistryNamespace = (): Cypress.Chainable<string> => {
+  cy.step('Wait for the Data Registry namespace');
+  return pollUntilSuccess(
+    `oc get namespace -l ${DATA_REGISTRY_NAMESPACE_LABEL} -o json | ` +
+      `jq -er '.items[0].metadata.name // empty'`,
+    `namespace with ${DATA_REGISTRY_NAMESPACE_LABEL}`,
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  ).then((result) => {
+    const namespace = trimOcJsonpath(result.stdout);
+    if (!namespace) {
+      throw new Error(`No namespace found with ${DATA_REGISTRY_NAMESPACE_LABEL}`);
+    }
+    return cy.wrap(namespace);
+  });
+};
+
+/**
  * Creates Feature Store custom resource by applying a YAML template.
  * This function dynamically replaces placeholders in the template with actual values and applies it.
  *
  * @param {string} namespace - The namespace of the feast custom resource flavor to be created.
  */
-export const createFeatureStoreCR = (namespace: string, feastInstanceName: string): void => {
-  cy.fixture('resources/yaml/feast.yaml').then((yamlTemplate) => {
-    const buckets = (Cypress.env('AWS_PIPELINES') as typeof AWS_BUCKETS | undefined) ?? AWS_BUCKETS;
-    const {
-      AWS_ACCESS_KEY_ID: awsAccessKey,
-      AWS_SECRET_ACCESS_KEY: awsSecretKey,
-      BUCKET_1: { NAME: awsBucketName, REGION: awsDefaultRegion },
-    } = buckets;
+export const createFeatureStoreCR = (
+  namespace: string,
+  feastInstanceName: string,
+  options: CreateFeatureStoreCROptions = {},
+): Cypress.Chainable => {
+  const fixture = options.dataRegistryEnabled
+    ? 'resources/yaml/dataRegistryFeatureStore.yaml'
+    : 'resources/yaml/feast.yaml';
 
-    if (!awsBucketName) {
-      throw new Error(
-        'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml before running E2E.',
-      );
+  return cy.fixture(fixture).then((yamlTemplate) => {
+    const variables: Record<string, string> = { namespace };
+
+    if (!options.dataRegistryEnabled) {
+      const buckets =
+        (Cypress.env('AWS_PIPELINES') as typeof AWS_BUCKETS | undefined) ?? AWS_BUCKETS;
+      const {
+        AWS_ACCESS_KEY_ID: awsAccessKey,
+        AWS_SECRET_ACCESS_KEY: awsSecretKey,
+        BUCKET_1: { NAME: awsBucketName, REGION: awsDefaultRegion },
+      } = buckets;
+
+      if (!awsBucketName) {
+        throw new Error(
+          'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml before running E2E.',
+        );
+      }
+
+      Object.assign(variables, {
+        awsAccessKey,
+        awsSecretKey,
+        awsBucketName,
+        awsDefaultRegion,
+      });
     }
-
-    const variables: Record<string, string> = {
-      awsAccessKey,
-      awsSecretKey,
-      awsBucketName,
-      awsDefaultRegion,
-      namespace,
-    };
 
     // Replace placeholders in YAML with actual values
     const yamlContent = Object.entries(variables).reduce(
       (content, [key, value]) => content.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value),
       yamlTemplate,
     );
-    return assertFeastOperatorReady().then(() => {
-      // Apply the modified YAML
-      applyOpenShiftYaml(yamlContent);
-      //wait for the feature store cr to be created
-      waitForPodReady(feastInstanceName, '300s', namespace);
+    if (!options.dataRegistryEnabled) {
+      return assertFeastOperatorReady().then(() => {
+        // Apply the modified YAML
+        applyOpenShiftYaml(yamlContent);
+        // Wait for the FeatureStore pod to be created
+        waitForPodReady(feastInstanceName, '300s', namespace);
 
-      // Wait for Feast operator reconciliation so the dashboard can discover the Feature Store
-      pollUntilSuccess(
-        `oc get featurestores.feast.dev ${feastInstanceName} -n ${namespace} -o json | jq -e '.status.conditions[]? | select(.type=="Registry") | .status == "True"'`,
-        `FeatureStore/${feastInstanceName} Registry condition to be True`,
-        { maxAttempts: 30, pollIntervalMs: 5000 },
-      );
-      pollUntilSuccess(
-        `oc get namespace ${namespace} -o json | jq -e '.metadata.labels["opendatahub.io/feast"] == "true"'`,
-        `namespace ${namespace} to have opendatahub.io/feast=true label`,
-        { maxAttempts: 30, pollIntervalMs: 5000 },
-      );
-    });
+        // Wait for Feast operator reconciliation so the dashboard can discover the Feature Store
+        pollUntilSuccess(
+          `oc get featurestores.feast.dev ${feastInstanceName} -n ${namespace} -o json | jq -e '.status.conditions[]? | select(.type=="Registry") | .status == "True"'`,
+          `FeatureStore/${feastInstanceName} Registry condition to be True`,
+          { maxAttempts: 30, pollIntervalMs: 5000 },
+        );
+        pollUntilSuccess(
+          `oc get namespace ${namespace} -o json | jq -e '.metadata.labels["opendatahub.io/feast"] == "true"'`,
+          `namespace ${namespace} to have opendatahub.io/feast=true label`,
+          { maxAttempts: 30, pollIntervalMs: 5000 },
+        );
+      });
+    }
+
+    return waitForFeastOperatorReady()
+      .then(() =>
+        pollUntilSuccess(
+          `oc get namespace ${namespace} -o json | jq -e '.metadata.labels["opendatahub.io/data-registry"] == "true"'`,
+          `namespace ${namespace} to have opendatahub.io/data-registry=true label`,
+          { maxAttempts: 30, pollIntervalMs: 5000 },
+        ),
+      )
+      .then(() => applyOpenShiftYaml(yamlContent))
+      .then(() => waitForPodReady(feastInstanceName, '300s', namespace))
+      .then(() =>
+        pollUntilSuccess(
+          `oc get featurestores.feast.dev ${feastInstanceName} -n ${namespace} -o json | jq -e '.status.conditions[]? | select(.type=="DataRegistry") | .status == "True"'`,
+          `FeatureStore/${feastInstanceName} DataRegistry condition to be True`,
+          { maxAttempts: 30, pollIntervalMs: 5000 },
+        ),
+      )
+      .then(() => undefined);
   });
 };
 
@@ -426,6 +502,26 @@ export const waitForFeatureStoreDeleted = (
     { maxAttempts, pollIntervalMs },
   );
 };
+
+/**
+ * Deletes a FeatureStore CR and waits for Kubernetes to finish removing it.
+ */
+export const deleteFeatureStoreCR = (namespace: string, storeName: string): Cypress.Chainable =>
+  cy
+    .exec(
+      `oc delete featurestores.feast.dev ${storeName} -n ${namespace} --ignore-not-found=true`,
+      { failOnNonZeroExit: false, timeout: 30000 },
+    )
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to delete FeatureStore/${storeName} in ${namespace}: ${
+            result.stderr || result.stdout
+          }`,
+        );
+      }
+      return waitForFeatureStoreDeleted(namespace, storeName);
+    });
 
 /**
  * Creates a route for the Feature Store service and returns the URL.
