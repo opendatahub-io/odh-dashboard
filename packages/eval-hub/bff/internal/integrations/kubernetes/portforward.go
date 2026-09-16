@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
@@ -218,15 +219,20 @@ func (m *PortForwardManager) newForward(ctx context.Context, namespace, podName 
 
 // resolvePod finds a ready pod backing the given service.
 func (m *PortForwardManager) resolvePod(ctx context.Context, namespace, serviceName string) (string, error) {
-	endpoints, err := m.clientset.CoreV1().Endpoints(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+	endpointSlices, err := m.clientset.DiscoveryV1().EndpointSlices(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=%s", discoveryv1.LabelServiceName, serviceName),
+	})
 	if err != nil {
-		return "", fmt.Errorf("getting endpoints for %s/%s: %w", namespace, serviceName, err)
+		return "", fmt.Errorf("getting endpoint slices for %s/%s: %w", namespace, serviceName, err)
 	}
 
-	for _, subset := range endpoints.Subsets {
-		for _, addr := range subset.Addresses {
-			if addr.TargetRef != nil && addr.TargetRef.Kind == "Pod" {
-				return addr.TargetRef.Name, nil
+	for _, endpointSlice := range endpointSlices.Items {
+		for _, endpoint := range endpointSlice.Endpoints {
+			if endpoint.Conditions.Ready != nil && !*endpoint.Conditions.Ready {
+				continue
+			}
+			if endpoint.TargetRef != nil && endpoint.TargetRef.Kind == "Pod" && endpoint.TargetRef.Name != "" {
+				return endpoint.TargetRef.Name, nil
 			}
 		}
 	}

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
@@ -397,14 +398,28 @@ func TestNewPortForwardManager(t *testing.T) {
 	}
 }
 
-func testEndpointClientset(namespace, serviceName, podName string) *k8sfake.Clientset {
-	return k8sfake.NewSimpleClientset(&corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: namespace},
-		Subsets: []corev1.EndpointSubset{{
-			Addresses: []corev1.EndpointAddress{{
-				TargetRef: &corev1.ObjectReference{Kind: "Pod", Name: podName},
-			}},
-		}},
+func testEndpointSliceClientset(namespace, serviceName, podName string) *k8sfake.Clientset {
+	ready := true
+	notReady := false
+	return k8sfake.NewSimpleClientset(&discoveryv1.EndpointSlice{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName + "-slice",
+			Namespace: namespace,
+			Labels:    map[string]string{discoveryv1.LabelServiceName: serviceName},
+		},
+		AddressType: discoveryv1.AddressTypeIPv4,
+		Endpoints: []discoveryv1.Endpoint{
+			{
+				Addresses:  []string{"10.0.0.1"},
+				Conditions: discoveryv1.EndpointConditions{Ready: &notReady},
+				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Name: "not-ready-pod"},
+			},
+			{
+				Addresses:  []string{"10.0.0.2"},
+				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
+				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Name: podName},
+			},
+		},
 	})
 }
 
@@ -414,7 +429,7 @@ func TestGetOrCreateForward_ReplacesDeadForward(t *testing.T) {
 	const key = "ns/svc:8080"
 	pfm := &PortForwardManager{
 		forwards:  make(map[string]*activeForward),
-		clientset: testEndpointClientset("ns", "svc", "svc-pod"),
+		clientset: testEndpointSliceClientset("ns", "svc", "svc-pod"),
 		logger:    slog.Default(),
 	}
 
@@ -468,7 +483,7 @@ func TestGetOrCreateForward_ClosesForwardCreatedDuringShutdown(t *testing.T) {
 	}
 	pfm := &PortForwardManager{
 		forwards:  make(map[string]*activeForward),
-		clientset: testEndpointClientset("ns", "svc", "svc-pod"),
+		clientset: testEndpointSliceClientset("ns", "svc", "svc-pod"),
 		logger:    slog.Default(),
 		createForwardFn: func(context.Context, string, string, int) (*activeForward, error) {
 			close(creationStarted)
