@@ -133,19 +133,15 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
     if (hardwareProfileName) {
       cleanupHardwareProfiles(hardwareProfileName);
     }
+    if (projectName) {
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    }
   });
 
   it(
     'Load a global prompt and use it in the playground',
     {
-      tags: [
-        '@GenAI',
-        '@PromptManagement',
-        '@MLflow',
-        '@NonConcurrent',
-        '@MLflowEmbeddedCI',
-        '@GlobalPrompts',
-      ],
+      tags: ['@GenAI', '@PromptManagement', '@MLflow', '@NonConcurrent', '@GlobalPrompts'],
     },
     () => {
       cy.step('Log into the application');
