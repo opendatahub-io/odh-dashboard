@@ -5,4 +5,4 @@ metadata:
 data:
   # TODO: If a future release allows users to create the Data Registry namespace,
   # derive this Service URL dynamically instead of keeping it hard-coded here.
-  apiURL: https://feast-data-registry.redhat-ods-applications.svc:8443
+  apiURL: https://feast-data-registry.rhoai-data-registry.svc:8443
