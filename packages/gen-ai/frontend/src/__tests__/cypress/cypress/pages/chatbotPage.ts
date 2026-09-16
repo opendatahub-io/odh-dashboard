@@ -383,7 +383,11 @@ class ChatbotPage {
 
   verifyMetricsDisplayed(): void {
     this.findMetrics().should('be.visible');
-    this.findMetrics().find('.pf-v6-c-label').should('have.length.at.least', 1);
+    this.findMetrics().find('button').click();
+    cy.get('[data-testid="chatbot-message-metrics"] .pf-v6-c-label').should(
+      'have.length.at.least',
+      1,
+    );
   }
 
   // Compare Mode Methods
