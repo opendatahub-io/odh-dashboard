@@ -239,6 +239,7 @@ export const navigateToPlayground = (
   appChrome.visit();
   if (mcpRegistryServersEnabled !== undefined) {
     setMCPRegistryServersQueryFlag(mcpRegistryServersEnabled);
+    setMCPRegistryServersFlag(mcpRegistryServersEnabled);
   }
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
