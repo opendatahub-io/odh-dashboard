@@ -132,7 +132,14 @@ const QuotaUsageAcceleratorTable: React.FC<QuotaUsageAcceleratorTableProps> = ({
           </Tr>
         );
       }}
-      emptyTableView={<DashboardEmptyTableView onClearFilters={() => setFilterText('')} />}
+      emptyTableView={
+        <DashboardEmptyTableView
+          bodyText=""
+          titleText="No results"
+          showClearFilters={false}
+          onClearFilters={() => setFilterText('')}
+        />
+      }
     />
   );
 
@@ -143,8 +150,9 @@ const QuotaUsageAcceleratorTable: React.FC<QuotaUsageAcceleratorTableProps> = ({
       isExpanded={isExpanded}
       onToggle={() => setIsExpanded((expanded) => !expanded)}
       data-testid="quota-usage-accelerator-table-section"
+      contentClassName="pf-v6-u-p-0"
     >
-      <Content component="p">{QUOTA_USAGE_ACCELERATOR_TABLE.acceleratorTableSubtitle} </Content>
+      <Content component="p">{QUOTA_USAGE_ACCELERATOR_TABLE.acceleratorTableSubtitle}</Content>
       {body}
     </QuotaUsageAccordionSection>
   );

@@ -58,7 +58,7 @@ const BorrowingClusterQueueList: React.FC<{
   onSelectClusterQueue: (path: string[]) => void;
 }> = ({ cohortName, borrowingClusterQueues, onSelectClusterQueue }) => (
   <Stack hasGutter data-testid="quota-usage-borrowing-cluster-queue-list">
-    {borrowingClusterQueues.map(({ clusterQueueName, path }) => (
+    {borrowingClusterQueues.map(({ clusterQueueName, borrowedCount, path }) => (
       <StackItem key={clusterQueueName}>
         <Content component="small">
           <Button
@@ -69,7 +69,7 @@ const BorrowingClusterQueueList: React.FC<{
           >
             <strong>{clusterQueueName}</strong>
           </Button>
-          {QUOTA_USAGE_BORROWING.cohortCalloutSuffix(cohortName)}
+          {QUOTA_USAGE_BORROWING.cohortCalloutSuffix(borrowedCount, cohortName)}
         </Content>
       </StackItem>
     ))}
@@ -116,7 +116,7 @@ const BorrowingInfo: React.FC<{
       {borrowingSinceMs !== undefined && (
         <StackItem>
           <BorrowingPopoverLine
-            label={QUOTA_USAGE_BORROWING.popoverSinceLabel}
+            label={QUOTA_USAGE_BORROWING.popoverSinceLabel(borrowedCount)}
             value={formatBorrowingSinceDate(borrowingSinceMs)}
           />
         </StackItem>
