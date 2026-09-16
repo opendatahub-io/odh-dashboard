@@ -84,7 +84,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
     'Can submit a run with answer_correctness metric',
     { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
-      configureAutoragRun(testData, projectName, uuid);
+      configureAutoragRun(testData, projectName, uuid, { createConnections: true });
 
       cy.step('Select answer_correctness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
@@ -107,6 +107,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         { ...testData, runName: `${testData.runName}-faith` },
         projectName,
         faithUuid,
+        { createConnections: true },
       );
 
       cy.step('Select faithfulness optimization metric');
@@ -133,6 +134,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         { ...testData, runName: `${testData.runName}-overall` },
         projectName,
         overallUuid,
+        { createConnections: true },
       );
 
       cy.step('Select overall_score optimization metric');

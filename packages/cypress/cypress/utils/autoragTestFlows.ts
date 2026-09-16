@@ -117,14 +117,27 @@ export const configureAutoragRun = (
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
   if (options.createConnections) {
-    cy.step('Create MaaS connection through the dashboard');
-    autoragConfigurePage.findAddMaasConnectionButton().click();
-    autoragConfigurePage.findMaasConnectionNameInput().clear().type(testData.maasSecretName);
-    autoragConfigurePage.findMaasConnectionBaseUrlInput().type(getRequiredMaaSConfig('MAAS_URL'));
-    autoragConfigurePage
-      .findMaasConnectionApiKeyInput()
-      .type(getRequiredMaaSConfig('MAAS_API_KEY'), { log: false });
-    autoragConfigurePage.findMaasConnectionSubmitButton().click();
+    cy.step('Ensure MaaS connection exists through the dashboard');
+    autoragConfigurePage.findMaasSecretSelector().click();
+    autoragConfigurePage.findMaasSecretSelector().find('input').type(testData.maasSecretName);
+    cy.document().then((document) => {
+      const connectionExists = Array.from(document.querySelectorAll('[role="option"]')).some(
+        (option) => option.textContent.includes(testData.maasSecretName),
+      );
+      autoragConfigurePage.findMaasSecretSelector().find('input').type('{esc}');
+
+      if (!connectionExists) {
+        autoragConfigurePage.findAddMaasConnectionButton().click();
+        autoragConfigurePage.findMaasConnectionNameInput().clear().type(testData.maasSecretName);
+        autoragConfigurePage
+          .findMaasConnectionBaseUrlInput()
+          .type(getRequiredMaaSConfig('MAAS_URL'));
+        autoragConfigurePage
+          .findMaasConnectionApiKeyInput()
+          .type(getRequiredMaaSConfig('MAAS_API_KEY'), { log: false });
+        autoragConfigurePage.findMaasConnectionSubmitButton().click();
+      }
+    });
   }
 
   cy.step('Select MaaS secret');
@@ -205,20 +218,33 @@ export const configureAutoragRun = (
   cy.step('Select vector database secret');
   autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
   if (options.createConnections) {
-    cy.step('Create PGVector connection through the dashboard');
-    autoragConfigurePage.findAddVectorDbDropdownToggle().click();
-    autoragConfigurePage.findAddPgvectorConnectionOption().click();
-    const connection = getVectorDatabaseConnection(projectName);
-    autoragConfigurePage
-      .findPgvectorConnectionNameInput()
-      .clear()
-      .type(testData.vectorDbSecretName);
-    autoragConfigurePage.findPgvectorInput('host').type(connection.host);
-    autoragConfigurePage.findPgvectorInput('port').type(connection.port);
-    autoragConfigurePage.findPgvectorInput('db').type(connection.db);
-    autoragConfigurePage.findPgvectorInput('user').type(connection.user);
-    autoragConfigurePage.findPgvectorInput('password').type(connection.password, { log: false });
-    autoragConfigurePage.findPgvectorConnectionSubmitButton().click();
+    cy.step('Ensure PGVector connection exists through the dashboard');
+    autoragConfigurePage.findVectorStoreSelector().click();
+    autoragConfigurePage.findVectorStoreSelector().find('input').type(testData.vectorDbSecretName);
+    cy.document().then((document) => {
+      const connectionExists = Array.from(document.querySelectorAll('[role="option"]')).some(
+        (option) => option.textContent.includes(testData.vectorDbSecretName),
+      );
+      autoragConfigurePage.findVectorStoreSelector().find('input').type('{esc}');
+
+      if (!connectionExists) {
+        autoragConfigurePage.findAddVectorDbDropdownToggle().click();
+        autoragConfigurePage.findAddPgvectorConnectionOption().click();
+        const connection = getVectorDatabaseConnection(projectName);
+        autoragConfigurePage
+          .findPgvectorConnectionNameInput()
+          .clear()
+          .type(testData.vectorDbSecretName);
+        autoragConfigurePage.findPgvectorInput('host').type(connection.host);
+        autoragConfigurePage.findPgvectorInput('port').type(connection.port);
+        autoragConfigurePage.findPgvectorInput('db').type(connection.db);
+        autoragConfigurePage.findPgvectorInput('user').type(connection.user);
+        autoragConfigurePage
+          .findPgvectorInput('password')
+          .type(connection.password, { log: false });
+        autoragConfigurePage.findPgvectorConnectionSubmitButton().click();
+      }
+    });
   }
   autoragConfigurePage.findVectorStoreSelector().click();
   autoragConfigurePage.findVectorStoreSelector().find('input').type(testData.vectorDbSecretName);
@@ -228,9 +254,31 @@ export const configureAutoragRun = (
   autoragConfigurePage.findSelectModelsButton().click();
   autoragConfigurePage.findExperimentSettingsModal().should('be.visible');
   autoragConfigurePage.findFoundationModelsTab().click();
-  autoragConfigurePage.findModelCheckbox(getRequiredMaaSConfig('MAAS_GENERATION_MODEL_ID')).check();
-  autoragConfigurePage.findEmbeddingModelsTab().click();
-  autoragConfigurePage.findModelCheckbox(getRequiredMaaSConfig('MAAS_EMBEDDING_MODEL_ID')).check();
+  const selectModel = (
+    modelType: 'llm' | 'embedding',
+    modelId: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> =>
+    autoragConfigurePage.findModelRowOnCurrentPage(modelType, modelId).then(($row) => {
+      if ($row.length > 0) {
+        return autoragConfigurePage
+          .findModelCheckboxOnCurrentPage(modelType, modelId)
+          .should('not.be.disabled')
+          .check();
+      }
+
+      return autoragConfigurePage.findNextModelPageButton(modelType).then(($nextButton) => {
+        if ($nextButton.is(':disabled')) {
+          throw new Error(`Configured MaaS model ${modelId} was not found.`);
+        }
+        cy.wrap($nextButton).click();
+        return selectModel(modelType, modelId);
+      });
+    });
+
+  selectModel('llm', getRequiredMaaSConfig('MAAS_GENERATION_MODEL_ID')).then(() => {
+    autoragConfigurePage.findEmbeddingModelsTab().click();
+    return selectModel('embedding', getRequiredMaaSConfig('MAAS_EMBEDDING_MODEL_ID'));
+  });
   autoragConfigurePage.findExperimentSettingsSaveButton().click();
 };
 

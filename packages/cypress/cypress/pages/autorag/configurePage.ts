@@ -106,6 +106,22 @@ class AutoragConfigurePage {
     return cy.findByTestId(`model-row-${modelId}`);
   }
 
+  findModelRowOnCurrentPage(modelType: 'llm' | 'embedding', modelId: string) {
+    return this.findModelTable(modelType).find(`[data-testid="model-row-${modelId}"]`);
+  }
+
+  findModelCheckboxOnCurrentPage(modelType: 'llm' | 'embedding', modelId: string) {
+    return this.findModelRowOnCurrentPage(modelType, modelId).findByRole('checkbox');
+  }
+
+  findModelPagination(modelType: 'llm' | 'embedding') {
+    return cy.findByTestId(`${modelType}-pagination`);
+  }
+
+  findNextModelPageButton(modelType: 'llm' | 'embedding') {
+    return this.findModelPagination(modelType).find('button[aria-label="Go to next page"]');
+  }
+
   findSelectModelsButton() {
     return cy.findByTestId('select-models-button');
   }

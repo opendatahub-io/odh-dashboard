@@ -57,7 +57,7 @@ class AutoragResultsPage {
   }
 
   findUnrankedLeaderboardRows() {
-    return cy.get('[data-testid^="leaderboard-row-unranked-"]');
+    return this.findLeaderboardTable().find('[data-testid^="leaderboard-row-unranked-"]');
   }
 
   findFirstUnrankedLeaderboardRow() {
