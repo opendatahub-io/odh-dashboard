@@ -12,6 +12,9 @@ delete that singleton resource.
 ## Prerequisites
 
 - A cluster with dashboard-operator and the Dashboard CRD installed.
+- For platform-contract conformance, the dashboard-operator validating webhook
+  must be enabled with valid TLS, a populated CA bundle, and ready Service
+  endpoints.
 - The platform controller that normally creates `default-dashboard` scaled down
   for lifecycle scenarios, so it cannot recreate the singleton during cleanup.
 - No existing `default-dashboard` for the lifecycle scenario. The create helper
@@ -24,7 +27,7 @@ delete that singleton resource.
   delete Dashboards; get and list Deployments, Services, Pods,
   PodDisruptionBudgets, and HTTPRoutes; get Endpoints and the
   `openshift-service-ca.crt` ConfigMap in the test namespace; and create the
-  `pods/portforward` subresource.
+  `pods/portforward` subresource; and list ValidatingWebhookConfigurations.
 
 Set the required environment variables:
 
@@ -43,6 +46,13 @@ apply its resources, and shares that fixture across the package. After the test
 run, it deletes only that exact UID and reports cleanup failures. The framework
 verifies the CRD but never installs it.
 
+The contract scenario additionally requires `status.releases` to report
+semantic versions for both `dashboard` and `platform`. Build the operator image
+with a semantic `OPERATOR_VERSION` (the development default may be `unknown` or
+a Git SHA), and configure the operator's `odh-dashboard-config` ConfigMap with
+a semantic `platformVersion`. The test treats a missing webhook or version as a
+failed deployment contract; it does not skip those assertions.
+
 ## Run Locally
 
 From `dashboard-operator`:
@@ -56,6 +66,12 @@ test run:
 
 ```bash
 make test-e2e E2E_TEST_ARGS='-run TestE2E_BFFHealthchecks'
+```
+
+Run only the platform-contract conformance scenario with:
+
+```bash
+make test-e2e E2E_TEST_ARGS='-run ^TestE2E_PlatformContractConformance$'
 ```
 
 The equivalent direct command is:

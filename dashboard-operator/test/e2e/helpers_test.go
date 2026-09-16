@@ -189,7 +189,6 @@ func cleanupDashboardCR(c client.Client, expectedUID types.UID) error {
 	return nil
 }
 
-//nolint:unused // Shared E2E helper for follow-up scenario stories.
 func waitForServiceEndpoints(c client.Client, namespace, name string, timeout time.Duration) error {
 	err := wait.PollUntilContextTimeout(
 		context.Background(),
@@ -226,7 +225,6 @@ func assertJQMatch(t *testing.T, actual any, expression string) {
 	}
 }
 
-//nolint:unused // Shared E2E helper for follow-up scenario stories.
 func validateDashboardPlatformContract(t *testing.T, c client.Client, timeout time.Duration) {
 	t.Helper()
 
