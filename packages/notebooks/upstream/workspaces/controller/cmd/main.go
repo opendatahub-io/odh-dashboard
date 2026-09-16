@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"net/http"
@@ -41,10 +42,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+
+	pkgtls "github.com/kubeflow/notebooks/workspaces/controller/pkg/tls"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -89,7 +93,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&secureMetrics, "metrics-secure", false,
+	flag.BoolVar(&secureMetrics, "metrics-secure", true,
 		"If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
@@ -145,20 +149,18 @@ func main() {
 		"IstioHosts", cfg.IstioHosts,
 		"KubeRbacProxyImage", sanitizeImageReference(cfg.KubeRbacProxyImage))
 
-	// if the enable-http2 flag is false (the default), http/2 should be disabled
-	// due to its vulnerabilities. More specifically, disabling http/2 will
-	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
-	// Rapid Reset CVEs. For more information see:
-	// - https://github.com/advisories/GHSA-qppj-fm5r-hxr3
-	// - https://github.com/advisories/GHSA-4374-p667-p6c8
-	disableHTTP2 := func(c *tls.Config) {
-		setupLog.Info("disabling http/2")
-		c.NextProtos = []string{"http/1.1"}
+	restCfg := ctrl.GetConfigOrDie()
+	tlsResult, err := pkgtls.Resolve(context.Background(), restCfg)
+	if err != nil {
+		setupLog.Error(err, "unable to resolve TLS configuration")
+		os.Exit(1)
 	}
-
-	tlsOpts := []func(*tls.Config){}
+	tlsOpts := tlsResult.TLSOpts
 	if !enableHTTP2 {
-		tlsOpts = append(tlsOpts, disableHTTP2)
+		tlsOpts = append(tlsOpts, func(c *tls.Config) {
+			setupLog.Info("disabling http/2")
+			c.NextProtos = []string{"http/1.1"}
+		})
 	}
 
 	webhookServer := webhook.NewServer(webhook.Options{
@@ -168,14 +170,13 @@ func main() {
 
 	// build the REST config and a clientset for the activity probe pod-exec subresource
 	// (the controller-runtime cached client cannot perform exec, so we use a raw clientset)
-	restConfig := ctrl.GetConfigOrDie()
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	clientset, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
 		setupLog.Error(err, "unable to create Kubernetes clientset")
 		os.Exit(1)
 	}
 
-	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
+	mgr, err := ctrl.NewManager(restCfg, ctrl.Options{
 		Scheme: scheme,
 		Client: client.Options{
 			Cache: &client.CacheOptions{
@@ -189,9 +190,11 @@ func main() {
 			},
 		},
 		Metrics: metricsserver.Options{
-			BindAddress:   metricsAddr,
-			SecureServing: secureMetrics,
-			TLSOpts:       tlsOpts,
+			BindAddress:    metricsAddr,
+			SecureServing:  secureMetrics,
+			CertDir:        "/tmp/k8s-metrics-server/metrics-certs",
+			TLSOpts:        tlsOpts,
+			FilterProvider: filters.WithAuthenticationAndAuthorization,
 		},
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,
@@ -243,7 +246,7 @@ func main() {
 		Config: cfg,
 		PodExecutor: &helper.RemoteCommandExecutor{
 			Clientset:  clientset,
-			RestConfig: restConfig,
+			RestConfig: restCfg,
 		},
 		HTTPProber: &helper.DefaultHTTPProber{
 			Client: &http.Client{},
@@ -302,11 +305,31 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
+
+	if tlsResult.APIAvailable {
+		watcher := &pkgtls.ProfileWatcher{
+			Client:         mgr.GetClient(),
+			InitialProfile: tlsResult.Profile,
+			OnProfileChange: func(_ context.Context) {
+				setupLog.Info("TLS profile changed, initiating shutdown to reload")
+				cancel()
+			},
+		}
+		if err := watcher.SetupWithManager(mgr); err != nil {
+			cancel()
+			setupLog.Error(err, "unable to set up TLS profile watcher")
+			os.Exit(1)
+		}
+	}
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
+		cancel()
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+	cancel()
 }
 
 func sanitizeImageReference(image string) string {

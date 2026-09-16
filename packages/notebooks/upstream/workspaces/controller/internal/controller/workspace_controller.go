@@ -164,6 +164,8 @@ type WorkspaceReconciler struct {
 //       https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/registry/rbac/rolebinding/policybased/storage.go
 //
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:gocyclo
 	log := log.FromContext(ctx)
