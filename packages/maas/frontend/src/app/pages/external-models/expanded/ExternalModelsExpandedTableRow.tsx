@@ -9,6 +9,8 @@ import {
   mapAuthMechanismToHumanReadable,
   getProviderRefResource,
 } from '~/app/pages/external-models/utils';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import {
   ExternalModelProviderDetailType,
   ExternalModelsInfoPopoverTarget,
@@ -117,6 +119,20 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
               <span>{row.weight}</span>
               <span>({formatProviderRefWeightPercentage(externalModel.providerRefs, index)})</span>
             </Flex>
+          </Td>
+          <Td data-testid={`expanded-table-row-provider-status-${row.providerName}`}>
+            {row.provider?.phase && (
+              <PhaseLabel
+                phase={row.provider.phase}
+                resourceType={PhaseResourceType.EXTERNAL_PROVIDER}
+                resourceName={row.provider.displayName ?? row.providerName}
+                statusMessage={row.provider.statusMessage}
+                status={row.provider.phase}
+                conditionType={row.provider.conditionType}
+                lastTransitionTime={row.provider.lastTransitionTime}
+                reason={row.provider.reason}
+              />
+            )}
           </Td>
         </Tr>
       )}

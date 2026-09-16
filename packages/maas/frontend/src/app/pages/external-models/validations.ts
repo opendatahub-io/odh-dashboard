@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ExternalProvider } from '~/app/types/external-models';
-import { ConfigPair } from './CreateExternalModel/ModelConfigPairsEditor';
+import { ConfigPair } from '~/app/utilities/configPairs';
 import {
   EXTERNAL_MODEL_FIELD_MAX_LENGTH,
   PROVIDER_REFERENCE_PATH_MAX_LENGTH,

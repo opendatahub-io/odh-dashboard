@@ -261,7 +261,9 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     parsedNodeId,
     componentStageMap,
     patterns,
-    parameters?.optimization_max_rag_patterns,
+    typeof parameters?.optimization_max_rag_patterns === 'number'
+      ? parameters.optimization_max_rag_patterns
+      : undefined,
   );
   const isBestPattern =
     statusFilter === 'completed' &&

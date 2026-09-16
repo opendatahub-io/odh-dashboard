@@ -2125,6 +2125,41 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     cy.findByRole('option', { name: displayName }).click();
   }
 
+  selectCreateNewProvider(): void {
+    this.find().findByTestId('provider-source-create-new').click();
+  }
+
+  selectProviderType(value: string): void {
+    this.find().findByTestId('provider-type-toggle').click();
+    cy.findByTestId(`provider-type-option-${value}`).click();
+  }
+
+  selectAuthentication(value: string): void {
+    this.find().findByTestId('external-provider-auth-toggle').click();
+    cy.findByTestId(`external-provider-auth-option-${value}`).click();
+  }
+
+  selectCreateNewSecret(): void {
+    this.find().findByTestId('credential-secret-toggle').click();
+    cy.findByTestId('credential-secret-create-new-option').click();
+  }
+
+  fillNewProviderFields(options: {
+    displayName: string;
+    providerType: string;
+    endpoint: string;
+    newSecret: { name: string; apiKey: string };
+  }): void {
+    this.selectCreateNewProvider();
+    this.find().findByTestId('external-provider-name-desc-name').type(options.displayName);
+    this.selectProviderType(options.providerType);
+    this.find().findByTestId('external-provider-endpoint-input').type(options.endpoint);
+    this.selectCreateNewSecret();
+    this.find().findByTestId('credential-secret-name-input').type(options.newSecret.name);
+    this.find().findByTestId('credential-secret-value-input').type(options.newSecret.apiKey);
+    this.selectAuthentication('apikey');
+  }
+
   goToConfigureStep(): void {
     this.findNextButton().click();
   }
@@ -2237,6 +2272,12 @@ class ExternalModelTableRow extends TableRow {
   findExpandedCredentialSecret(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findExpandedProviderRow(providerName).findByTestId(
       `expanded-table-row-credential-secret-ref-${providerName}`,
+    );
+  }
+
+  findExpandedProviderStatus(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-provider-status-${providerName}`,
     );
   }
 
@@ -2380,6 +2421,14 @@ class ExternalProvidersPage {
     return cy.findByTestId('empty-external-providers-page');
   }
 
+  findCreateExternalProviderButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-provider-button');
+  }
+
+  findAddExternalProviderButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-external-provider-button');
+  }
+
   findNoProjectsPage(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-providers-no-projects');
   }
@@ -2493,6 +2542,106 @@ class ExternalProviderTableRow extends TableRow {
   }
 }
 
+class CreateExternalProviderModal extends Modal {
+  constructor() {
+    super('Add external provider');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-provider-submit').closest('[role="dialog"]');
+  }
+
+  shouldBeOpen(open = true): void {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      cy.findByTestId('create-external-provider-submit').should('not.exist');
+    }
+  }
+
+  findProjectInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-project-input');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-name-desc-name');
+  }
+
+  findResourceNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-name-desc-resourceName');
+  }
+
+  findEndpointInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-endpoint-input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-provider-submit');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-provider-cancel');
+  }
+
+  findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('create-external-provider-error');
+  }
+
+  selectProviderType(value: string): void {
+    this.find().findByTestId('provider-type-toggle').click();
+    cy.findByTestId(`provider-type-option-${value}`).click();
+  }
+
+  selectAuthentication(value: string): void {
+    this.find().findByTestId('external-provider-auth-toggle').click();
+    cy.findByTestId(`external-provider-auth-option-${value}`).click();
+  }
+
+  selectExistingSecret(secretName: string): void {
+    this.find().findByTestId('credential-secret-toggle').click();
+    cy.findByTestId(`credential-secret-option-${secretName}`).click();
+  }
+
+  selectCreateNewSecret(): void {
+    this.find().findByTestId('credential-secret-toggle').click();
+    cy.findByTestId('credential-secret-create-new-option').click();
+  }
+
+  findSecretNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('credential-secret-name-input');
+  }
+
+  findSecretValueInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('credential-secret-value-input');
+  }
+
+  findAdvancedSettingsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-advanced-settings');
+  }
+
+  fillRequiredFields(options: {
+    displayName: string;
+    providerType: string;
+    endpoint: string;
+    existingSecret?: string;
+    newSecret?: { name: string; apiKey: string };
+  }): void {
+    this.findDisplayNameInput().type(options.displayName);
+    this.selectProviderType(options.providerType);
+    this.findEndpointInput().type(options.endpoint);
+
+    if (options.existingSecret) {
+      this.selectExistingSecret(options.existingSecret);
+    } else if (options.newSecret) {
+      this.selectCreateNewSecret();
+      this.findSecretNameInput().type(options.newSecret.name);
+      this.findSecretValueInput().type(options.newSecret.apiKey);
+    }
+
+    this.selectAuthentication('apikey');
+  }
+}
+
 class DeleteExternalProviderModal extends DeleteModal {
   constructor() {
     super('Delete external provider?');
@@ -2541,4 +2690,5 @@ export const externalModelProviderUrlModal = new ExternalModelProviderUrlModal()
 export const modelInfoPopover = new ModelInfoPopover();
 export const phaseModal = new PhaseModal();
 export const externalProvidersPage = new ExternalProvidersPage();
+export const createExternalProviderModal = new CreateExternalProviderModal();
 export const deleteExternalProviderModal = new DeleteExternalProviderModal();

@@ -6,6 +6,7 @@ import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mo
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   getConnectedKServeResourceLabels,
+  getKServePVCDependentDeploymentsFromResources,
   useConnectedKServeResources,
 } from '../connectedResources';
 import * as watchModule from '../../api/watch';
@@ -77,6 +78,52 @@ describe('getConnectedKServeResourceLabels', () => {
     expect(
       getConnectedKServeResourceLabels(pvc, { inferenceServices, servingRuntimes }),
     ).toHaveLength(0);
+  });
+});
+
+describe('getKServePVCDependentDeploymentsFromResources', () => {
+  it('should find all dependent deployments and exclude the selected deployment', () => {
+    const servingRuntimes = [runtimeWithClaims('shared-runtime', ['shared-pvc'])];
+    const inferenceServices = [
+      mockInferenceServiceK8sResource({
+        name: 'selected-model',
+        displayName: 'Selected model',
+        runtimeName: 'shared-runtime',
+      }),
+      mockInferenceServiceK8sResource({
+        name: 'other-model',
+        displayName: 'Other model',
+        runtimeName: 'shared-runtime',
+      }),
+    ];
+
+    expect(
+      getKServePVCDependentDeploymentsFromResources(
+        inferenceServices,
+        servingRuntimes,
+        'shared-pvc',
+        'selected-model',
+      ),
+    ).toEqual([{ name: 'other-model', displayName: 'Other model' }]);
+  });
+
+  it('should ignore malformed resources and unrelated PVCs', () => {
+    const servingRuntimes = [runtimeWithClaims('other-runtime', ['other-pvc'])];
+    const inferenceServices = [
+      mockInferenceServiceK8sResource({ name: 'other-model', runtimeName: 'other-runtime' }),
+      mockInferenceServiceK8sResource({ name: 'orphan-model', runtimeName: 'missing-runtime' }),
+    ];
+
+    expect(
+      getKServePVCDependentDeploymentsFromResources(
+        inferenceServices,
+        servingRuntimes,
+        'shared-pvc',
+      ),
+    ).toEqual([]);
+    expect(
+      getKServePVCDependentDeploymentsFromResources(inferenceServices, servingRuntimes, ''),
+    ).toEqual([]);
   });
 });
 

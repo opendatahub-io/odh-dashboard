@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Alert,
-  Form,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -13,6 +12,8 @@ import TypeaheadSelect, {
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { Link } from 'react-router-dom';
 import { ExternalProvider } from '~/app/types/external-models';
+import CreateExternalProviderForm from '~/app/pages/external-providers/createProvider/CreateExternalProviderForm';
+import { UseCreateExternalProviderFormReturn } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 
 export const ProviderSource = {
@@ -29,6 +30,7 @@ type SelectProviderStepProps = {
   providerName: string;
   onProviderNameChange: (providerName: string) => void;
   externalProviders: ExternalProvider[];
+  createProviderForm: UseCreateExternalProviderFormReturn;
 };
 
 const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
@@ -38,6 +40,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
   providerName,
   onProviderNameChange,
   externalProviders,
+  createProviderForm,
 }) => {
   const providerOptions = React.useMemo<TypeaheadSelectOption[]>(
     () =>
@@ -48,22 +51,15 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
     [externalProviders],
   );
 
-  const handleProviderSourceChange = (source: ProviderSourceType) => {
-    onProviderSourceChange(source);
-    if (source === 'create-new') {
-      onProviderNameChange('');
-    }
-  };
-
   return (
-    <Form>
+    <>
       <FormGroup hasNoPaddingTop isStack>
         <Radio
           id="provider-source-existing"
           name="provider-source"
           label="Use existing provider"
           isChecked={providerSource === 'existing'}
-          onChange={() => handleProviderSourceChange('existing')}
+          onChange={() => onProviderSourceChange('existing')}
           data-testid="provider-source-existing"
           body={
             providerSource === 'existing' ? (
@@ -121,21 +117,16 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
           name="provider-source"
           label="Create new provider"
           isChecked={providerSource === 'create-new'}
-          onChange={() => handleProviderSourceChange('create-new')}
+          onChange={() => onProviderSourceChange('create-new')}
           data-testid="provider-source-create-new"
           body={
             providerSource === 'create-new' ? (
-              <Alert
-                variant="info"
-                isInline
-                isPlain
-                title="Create new provider is not available here yet"
-              />
+              <CreateExternalProviderForm form={createProviderForm} showProjectField={false} />
             ) : null
           }
         />
       </FormGroup>
-    </Form>
+    </>
   );
 };
 

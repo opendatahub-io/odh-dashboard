@@ -1,4 +1,5 @@
 import {
+  Alert,
   Bullseye,
   Button,
   Card,
@@ -41,6 +42,8 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedMetricForRAG,
+  getRankableOptimizationMetric,
+  isPatternRankable,
   isRunInProgress,
   orderPatternsByLeaderboardRank,
 } from '~/app/utilities/utils';
@@ -57,7 +60,7 @@ import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
 
 type LeaderboardEntry = {
-  rank: number;
+  rank?: number;
   pattern: string;
   patternKey: string;
   metrics: Record<string, { mean: number | string }>;
@@ -71,6 +74,27 @@ type LeaderboardEntry = {
   retrievalSearchMode: string;
   retrievalRankerStrategy: string;
   generationModelId: string;
+};
+
+type MetricColumn = {
+  id: string;
+  evaluator: string;
+  name: string;
+};
+
+const getMetricColumnId = (evaluator: string, name: string): string =>
+  `metric:${JSON.stringify([evaluator.toLowerCase(), name.toLowerCase()])}`;
+
+const getMetricColumnName = (id: string): string | undefined => {
+  if (!id.startsWith('metric:')) {
+    return undefined;
+  }
+  try {
+    const parsed: unknown = JSON.parse(id.slice('metric:'.length));
+    return Array.isArray(parsed) && typeof parsed[1] === 'string' ? parsed[1] : undefined;
+  } catch {
+    return undefined;
+  }
 };
 
 // Format a settings cell value: capitalize the first letter, with special cases
@@ -316,7 +340,7 @@ const getColumnAnalyticsName = (
     return mapOptimizationMetric(optimizedMetricKey) ?? 'otherMetric';
   }
   if (columnId.startsWith('metric:')) {
-    return mapOptimizationMetric(columnId.slice('metric:'.length)) ?? 'otherMetric';
+    return mapOptimizationMetric(getMetricColumnName(columnId) ?? '') ?? 'otherMetric';
   }
   return SETTINGS_COLUMN_ANALYTICS_NAMES[columnId] ?? 'other';
 };
@@ -383,6 +407,9 @@ type AutoragLeaderboardProps = {
   onRunIndexingPipeline?: (patternName: string) => void;
 };
 
+// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
+const OGX_ACTIONS_ENABLED = false;
+
 function AutoragLeaderboard({
   onViewDetails,
   onSaveNotebook,
@@ -412,21 +439,35 @@ function AutoragLeaderboard({
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
 
   // Extract all unique metric keys across all patterns
-  const metricKeys = React.useMemo(() => {
-    const keysSet = new Set<string>();
+  const metricKeys = React.useMemo<MetricColumn[]>(() => {
+    const columns = new Map<string, MetricColumn>();
     Object.values(patterns).forEach((pattern: AutoragPattern) => {
       pattern.evaluation.metrics.forEach((m) => {
-        keysSet.add(m.name.toLowerCase());
+        const id = getMetricColumnId(m.evaluator, m.name);
+        columns.set(id, { id, evaluator: m.evaluator, name: m.name });
       });
     });
-    return Array.from(keysSet).toSorted();
+    return Array.from(columns.values()).toSorted((a, b) =>
+      `${a.name}:${a.evaluator}`.localeCompare(`${b.name}:${b.evaluator}`),
+    );
   }, [patterns]);
 
   // Metric keys excluding the optimized metric (shown in sticky column)
-  const nonOptimizedMetricKeys = React.useMemo(
-    () => metricKeys.filter((key) => key.toLowerCase() !== optimizedMetric.toLowerCase()),
-    [metricKeys, optimizedMetric],
+  const optimizedMetricColumns = metricKeys.filter(
+    (metric) => metric.name.toLowerCase() === optimizedMetric.toLowerCase(),
   );
+  const nonOptimizedMetricKeys =
+    optimizedMetricColumns.length === 1
+      ? metricKeys.filter((metric) => metric.id !== optimizedMetricColumns[0].id)
+      : metricKeys;
+  const metricNameCounts = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    metricKeys.forEach((metric) => {
+      const normalizedName = metric.name.toLowerCase();
+      counts.set(normalizedName, (counts.get(normalizedName) ?? 0) + 1);
+    });
+    return counts;
+  }, [metricKeys]);
 
   // Column definitions — source of truth for column IDs, labels, and default order.
   // Default order: leading columns first, then remaining sorted by priority / alphabetically.
@@ -442,9 +483,12 @@ function AutoragLeaderboard({
     ];
 
     const remainingColumns = [
-      ...nonOptimizedMetricKeys.map((key) => ({
-        id: `metric:${key}`,
-        label: getColumnName(`metric:${key}`, formatMetricName(key)),
+      ...nonOptimizedMetricKeys.map((metric) => ({
+        id: metric.id,
+        label:
+          metricNameCounts.get(metric.name.toLowerCase()) === 1
+            ? getColumnName(metric.id, formatMetricName(metric.name))
+            : `${formatMetricName(metric.name)} (${metric.evaluator})`,
       })),
       ...SETTINGS_COLUMNS.map((col) => ({
         id: col.id,
@@ -460,7 +504,7 @@ function AutoragLeaderboard({
     });
 
     return [...leadingColumns, ...remainingColumns];
-  }, [nonOptimizedMetricKeys, optimizedMetric]);
+  }, [metricNameCounts, nonOptimizedMetricKeys, optimizedMetric]);
 
   // Column visibility and ordering state — whitelist approach so new columns are hidden by default
   const DEFAULT_VISIBLE_IDS = React.useMemo(
@@ -563,13 +607,12 @@ function AutoragLeaderboard({
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
-        const scoreLookup = Object.fromEntries(
-          pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
-        );
-
-        const getMetricObject = (metricName: string) => {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- key may not exist at runtime
-          const meanValue = scoreLookup[metricName.toLowerCase()]?.mean;
+        const getMetricObject = (metric: MetricColumn) => {
+          const meanValue = pattern.evaluation.metrics.find(
+            (candidate) =>
+              candidate.evaluator.toLowerCase() === metric.evaluator.toLowerCase() &&
+              candidate.name.toLowerCase() === metric.name.toLowerCase(),
+          )?.scores.mean;
           const isValidNumber = typeof meanValue === 'number' && Number.isFinite(meanValue);
           return {
             mean: isValidNumber ? meanValue : 'N/A',
@@ -578,14 +621,15 @@ function AutoragLeaderboard({
 
         // Build metrics object with all available metrics
         const metrics: Record<string, { mean: number | string }> = {};
-        metricKeys.forEach((key) => {
-          metrics[key] = getMetricObject(key);
+        metricKeys.forEach((metric) => {
+          metrics[metric.id] = getMetricObject(metric);
         });
 
-        const optimizedMetricValue = getMetricObject(optimizedMetric).mean;
+        const optimizedMetricValue =
+          getRankableOptimizationMetric(pattern, optimizedMetric)?.scores.mean ?? 'N/A';
 
         return {
-          rank: 0, // Will be assigned after sorting by optimized metric initially
+          rank: undefined, // Assigned only to patterns with a valid objective metric
           patternKey: patternName,
           pattern: pattern.name || patternName,
           metrics,
@@ -621,16 +665,33 @@ function AutoragLeaderboard({
       bestPatternKey,
     );
 
-    const rankedEntries = orderedPatternKeys.map((patternKey, index) => ({
-      ...entryByKey[patternKey],
-      rank: index + 1,
-    }));
+    let nextRank = 1;
+    const rankedEntries = orderedPatternKeys.map((patternKey) => {
+      const entry = entryByKey[patternKey];
+      return {
+        ...entry,
+        rank:
+          typeof entry.optimizedMetricValue === 'number' &&
+          Number.isFinite(entry.optimizedMetricValue)
+            ? nextRank++
+            : undefined,
+      };
+    });
 
     // Apply user-selected sorting
     if (activeSort.id === 'rank') {
-      return rankedEntries.toSorted((a, b) =>
-        activeSort.direction === 'asc' ? a.rank - b.rank : b.rank - a.rank,
-      );
+      return rankedEntries.toSorted((a, b) => {
+        if (a.rank === undefined && b.rank === undefined) {
+          return 0;
+        }
+        if (a.rank === undefined) {
+          return 1;
+        }
+        if (b.rank === undefined) {
+          return -1;
+        }
+        return activeSort.direction === 'asc' ? a.rank - b.rank : b.rank - a.rank;
+      });
     }
     if (activeSort.id === 'pattern') {
       return rankedEntries.toSorted((a, b) => {
@@ -640,8 +701,12 @@ function AutoragLeaderboard({
     }
     if (activeSort.id === 'modelNames') {
       return rankedEntries.toSorted((a, b) => {
-        const aDisplay = `${getModelIdShortName(a.generationModelId)} / ${getModelIdShortName(a.embeddingsModelId)}`;
-        const bDisplay = `${getModelIdShortName(b.generationModelId)} / ${getModelIdShortName(b.embeddingsModelId)}`;
+        const aDisplay = `${getModelIdShortName(a.generationModelId)} / ${getModelIdShortName(
+          a.embeddingsModelId,
+        )}`;
+        const bDisplay = `${getModelIdShortName(b.generationModelId)} / ${getModelIdShortName(
+          b.embeddingsModelId,
+        )}`;
         const comparison =
           aDisplay.localeCompare(bDisplay) ||
           a.generationModelId.localeCompare(b.generationModelId) ||
@@ -652,8 +717,7 @@ function AutoragLeaderboard({
 
     // Sort by metric column (optimized or non-optimized)
     if (activeSort.id === 'optimized-metric' || activeSort.id.startsWith('metric:')) {
-      const metricKey =
-        activeSort.id === 'optimized-metric' ? null : activeSort.id.slice('metric:'.length);
+      const metricKey = activeSort.id === 'optimized-metric' ? null : activeSort.id;
       return rankedEntries.toSorted((a, b) => {
         const aVal = metricKey ? a.metrics[metricKey].mean : a.optimizedMetricValue;
         const bVal = metricKey ? b.metrics[metricKey].mean : b.optimizedMetricValue;
@@ -744,7 +808,7 @@ function AutoragLeaderboard({
   // "Organize by" presets for the manage columns modal
   const columnPresets: ColumnPreset[] = React.useMemo(() => {
     const leadingKeys = ['rank', 'pattern', 'modelNames', 'optimized-metric'];
-    const metricColumnKeys = nonOptimizedMetricKeys.map((key) => `metric:${key}`);
+    const metricColumnKeys = nonOptimizedMetricKeys.map((metric) => metric.id);
     const chunkingKeys = ['chunkingMethod', 'chunkingChunkSize', 'chunkingChunkOverlap'];
     const allSettingKeys = SETTINGS_COLUMNS.map((col) => col.id);
 
@@ -764,8 +828,8 @@ function AutoragLeaderboard({
     ];
   }, [nonOptimizedMetricKeys]);
 
-  const handleViewDetails = (patternName: string) => {
-    onViewDetails?.(patternName);
+  const handleViewDetails = (patternKey: string) => {
+    onViewDetails?.(patternKey);
   };
 
   // -- Column render helpers (used in the unified column loop) --
@@ -784,30 +848,35 @@ function AutoragLeaderboard({
       return `metric-header-${optimizedMetric}`;
     }
     if (colId.startsWith('metric:')) {
-      return `metric-header-${colId.slice('metric:'.length)}`;
+      return `metric-header-${getMetricColumnName(colId)}`;
     }
     const sc = SETTINGS_COLUMNS.find((c) => c.id === colId);
     return sc ? `${sc.testId}-header` : undefined;
   };
 
-  const getCellTestId = (colId: string, rank: number): string | undefined => {
+  const getCellTestId = (
+    colId: string,
+    rank: number | undefined,
+    patternKey: string,
+  ): string | undefined => {
+    const rowId = rank ?? `unranked-${patternKey}`;
     if (colId === 'rank') {
-      return `rank-${rank}`;
+      return `rank-${rowId}`;
     }
     if (colId === 'pattern') {
-      return `pattern-name-${rank}`;
+      return `pattern-name-${rowId}`;
     }
     if (colId === 'modelNames') {
-      return `model-name-${rank}`;
+      return `model-name-${rowId}`;
     }
     if (colId === 'optimized-metric') {
-      return `metric-${optimizedMetric}-${rank}`;
+      return `metric-${optimizedMetric}-${rowId}`;
     }
     if (colId.startsWith('metric:')) {
-      return `metric-${colId.slice('metric:'.length)}-${rank}`;
+      return `metric-${getMetricColumnName(colId)}-${rowId}`;
     }
     const sc = SETTINGS_COLUMNS.find((c) => c.id === colId);
-    return sc ? `${sc.testId}-${rank}` : undefined;
+    return sc ? `${sc.testId}-${rowId}` : undefined;
   };
 
   const renderHeaderContent = (col: { id: string; label: string }): React.ReactNode => {
@@ -848,7 +917,8 @@ function AutoragLeaderboard({
           {entry.rank}
         </Label>
       ) : (
-        entry.rank
+        // eslint-disable-next-line prettier/prettier -- preserve the JSX fallback expression format
+        entry.rank ?? 'Unranked'
       );
     }
     if (col.id === 'pattern') {
@@ -856,7 +926,7 @@ function AutoragLeaderboard({
         <Button
           variant="link"
           isInline
-          onClick={() => handleViewDetails(entry.pattern)}
+          onClick={() => handleViewDetails(entry.patternKey)}
           data-testid={`pattern-link-${entry.rank}`}
         >
           {formatPatternName(entry.pattern)}
@@ -881,8 +951,7 @@ function AutoragLeaderboard({
       return <MetricCell value={entry.optimizedMetricValue} />;
     }
     if (col.id.startsWith('metric:')) {
-      const metricKey = col.id.slice('metric:'.length);
-      return <MetricCell value={entry.metrics[metricKey].mean} />;
+      return <MetricCell value={entry.metrics[col.id].mean} />;
     }
     const settingsCol = SETTINGS_COLUMNS.find((c) => c.id === col.id);
     if (settingsCol) {
@@ -1039,6 +1108,18 @@ function AutoragLeaderboard({
     <Card>
       <CardBody>
         <Content component={ContentVariants.h3}>Results</Content>
+        {Object.values(patterns).some(
+          (pattern) => !isPatternRankable(pattern, optimizedMetric),
+        ) && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Some patterns could not be ranked"
+            data-testid="invalid-objective-warning"
+          >
+            Patterns without exactly one finite objective metric are shown as unranked.
+          </Alert>
+        )}
         <Toolbar hasNoPadding>
           <ToolbarContent alignItems="center">
             <ToolbarItem>
@@ -1096,12 +1177,15 @@ function AutoragLeaderboard({
             </Thead>
             <Tbody>
               {data.map((entry) => (
-                <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+                <Tr
+                  key={entry.patternKey}
+                  data-testid={`leaderboard-row-${entry.rank ?? `unranked-${entry.patternKey}`}`}
+                >
                   {visibleColumns.map((col) => (
                     <Td
                       key={col.id}
                       dataLabel={col.label}
-                      data-testid={getCellTestId(col.id, entry.rank)}
+                      data-testid={getCellTestId(col.id, entry.rank, entry.patternKey)}
                       className={col.id === 'rank' ? 'autorag-leaderboard__rank-cell' : undefined}
                     >
                       {renderCellContent(col, entry)}
@@ -1113,12 +1197,16 @@ function AutoragLeaderboard({
                     hasLeftBorder
                     stickyMinWidth="50px"
                     stickyRightOffset="0"
-                    data-testid={`leaderboard-actions-${entry.rank}`}
+                    data-testid={`leaderboard-actions-${
+                      entry.rank ?? `unranked-${entry.patternKey}`
+                    }`}
                   >
                     <ActionsColumn
                       items={[
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        ...(patterns[entry.patternKey].inference?.responses_template && onTryPattern
+                        /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+                        ...(OGX_ACTIONS_ENABLED &&
+                        patterns[entry.patternKey].inference?.responses_template &&
+                        onTryPattern
                           ? [
                               {
                                 title: 'Try this pattern',
@@ -1126,12 +1214,15 @@ function AutoragLeaderboard({
                               },
                             ]
                           : []),
+                        /* eslint-enable @typescript-eslint/no-unnecessary-condition */
                         {
                           title: 'View details',
-                          onClick: () => handleViewDetails(entry.pattern),
+                          onClick: () => handleViewDetails(entry.patternKey),
                         },
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        ...(patterns[entry.patternKey].inference?.responses_template && onViewCode
+                        /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+                        ...(OGX_ACTIONS_ENABLED &&
+                        patterns[entry.patternKey].inference?.responses_template &&
+                        onViewCode
                           ? [
                               {
                                 title: 'View code',
@@ -1139,6 +1230,7 @@ function AutoragLeaderboard({
                               },
                             ]
                           : []),
+                        /* eslint-enable @typescript-eslint/no-unnecessary-condition */
                         ...(onRunIndexingPipeline &&
                         patternHasIndexingPipelineSpec(patterns[entry.patternKey])
                           ? [

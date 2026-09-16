@@ -1887,9 +1887,9 @@ paths:
   /api/v1/secrets:
     get:
       tags: [secrets]
-      summary: List BBR-managed Secret names
+      summary: List IPP-managed Secret names
       operationId: listSecrets
-      description: Returns Secret names labeled inference.networking.k8s.io/bbr-managed=true. Values are never returned.
+      description: Returns Secret names labeled inference.llm-d.ai/ipp-managed=true. Values are never returned.
       parameters:
         - in: query
           name: namespace

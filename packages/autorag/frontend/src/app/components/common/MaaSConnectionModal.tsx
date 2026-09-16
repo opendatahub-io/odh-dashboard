@@ -29,23 +29,30 @@ type Props = {
 const isValidUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url.trim());
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    if (parsed.protocol === 'https:') {
+      return true;
+    }
+    return (
+      parsed.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+    );
   } catch {
     return false;
   }
 };
 
-const MaasConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
+const MaaSConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
   const [baseUrl, setBaseUrl] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
   const [baseUrlTouched, setBaseUrlTouched] = React.useState(false);
+  const createdSecretRef = React.useRef<SecretKind>();
 
   const baseUrlValid = React.useMemo(() => isValidUrl(baseUrl), [baseUrl]);
   const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
-  const isFormValid = isK8sNameDescriptionDataValid(nameDescData) && baseUrlValid;
+  const isFormValid =
+    isK8sNameDescriptionDataValid(nameDescData) && baseUrlValid && apiKey.trim() !== '';
 
   const handleSubmit = async () => {
     setIsSaving(true);
@@ -70,18 +77,23 @@ const MaasConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
     };
 
     try {
-      await createSecret(secret);
-    } catch (e) {
-      setSubmitError(e instanceof Error ? e : new Error(String(e)));
-      setIsSaving(false);
-      return;
-    }
+      if (!createdSecretRef.current) {
+        await createSecret(secret);
+        createdSecretRef.current = secret;
+      }
 
-    try {
-      await onSubmit(k8sName);
+      await onSubmit(createdSecretRef.current.metadata.name);
       onClose();
     } catch (e) {
-      setSubmitError(e instanceof Error ? e : new Error(String(e)));
+      setSubmitError(
+        createdSecretRef.current
+          ? new Error(
+              'The connection was created, but AutoRAG could not select it. Retry saving it.',
+            )
+          : e instanceof Error
+            ? e
+            : new Error(String(e)),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -120,13 +132,13 @@ const MaasConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
               <HelperText>
                 <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
                   {showBaseUrlError
-                    ? 'Enter a valid URL (e.g. https://example.com).'
+                    ? 'Enter a valid HTTPS URL or a local HTTP URL (for example, https://example.com or http://localhost:8080).'
                     : 'The base URL of the MaaS connection.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
-          <FormGroup fieldId="maas-connection-api-key" label="API key">
+          <FormGroup fieldId="maas-connection-api-key" label="API key" isRequired>
             <PasswordInput
               id="maas-connection-api-key"
               data-testid="maas-connection-api-key"
@@ -154,4 +166,4 @@ const MaasConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
   );
 };
 
-export default MaasConnectionModal;
+export default MaaSConnectionModal;
