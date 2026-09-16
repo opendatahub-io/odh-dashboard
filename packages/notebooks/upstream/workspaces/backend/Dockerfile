@@ -22,7 +22,7 @@ COPY backend/internal/ internal/
 COPY backend/openapi/ openapi/
 
 # Build the Go application
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o backend ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o backend ./cmd
 
 # Use distroless as minimal base image to package the application binary
 FROM gcr.io/distroless/static:nonroot

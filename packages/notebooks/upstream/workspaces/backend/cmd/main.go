@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
@@ -67,6 +68,26 @@ func main() {
 		"client-burst",
 		getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to rest.Client",
+	)
+	flag.BoolVar(
+		&cfg.MockK8sClient,
+		"mock-k8s-client",
+		false,
+		"Use an in-process envtest Kubernetes API server (for contract tests; requires -tags mockk8s build)",
+	)
+	var contractHarnessAllowedOrigins string
+	flag.StringVar(
+		&contractHarnessAllowedOrigins,
+		"allowed-origins",
+		"",
+		"Ignored: compatibility flag for the ODH contract test harness",
+	)
+	var contractHarnessMockMRClient bool
+	flag.BoolVar(
+		&contractHarnessMockMRClient,
+		"mock-mr-client",
+		false,
+		"Ignored: compatibility flag for the ODH contract test harness",
 	)
 	flag.BoolVar(
 		// TODO: remove before GA
@@ -145,12 +166,34 @@ func main() {
 
 	// Initialize the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	if contractHarnessAllowedOrigins != "" {
+		logger.Warn("--allowed-origins is accepted for ODH harness compatibility but not enforced",
+			"value", contractHarnessAllowedOrigins)
+	}
+	if contractHarnessMockMRClient {
+		logger.Warn("--mock-mr-client is accepted for ODH harness compatibility but has no effect")
+	}
 
-	// Build the Kubernetes client configuration
-	kubeconfig, err := ctrl.GetConfig()
-	if err != nil {
-		logger.Error("failed to get Kubernetes config", "error", err)
-		os.Exit(1)
+	var kubeconfig *rest.Config
+	var err error
+	if cfg.MockK8sClient {
+		var stopMockK8s func() error
+		kubeconfig, stopMockK8s, err = startMockK8s(logger)
+		if err != nil {
+			logger.Error("failed to start envtest Kubernetes API", "error", err)
+			os.Exit(1)
+		}
+		defer func() {
+			if stopErr := stopMockK8s(); stopErr != nil {
+				logger.Error("failed to stop envtest Kubernetes API", "error", stopErr)
+			}
+		}()
+	} else {
+		kubeconfig, err = ctrl.GetConfig()
+		if err != nil {
+			logger.Error("failed to get Kubernetes config", "error", err)
+			os.Exit(1)
+		}
 	}
 	kubeconfig.QPS = float32(cfg.ClientQPS)
 	kubeconfig.Burst = cfg.ClientBurst
