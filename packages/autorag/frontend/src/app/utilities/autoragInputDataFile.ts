@@ -154,7 +154,7 @@ const SUPPORTED_FORMAT_LIST = Object.values(SUPPORTED_FORMAT);
 export const SUPPORTED_FORMAT_EXTENSIONS = SUPPORTED_FORMAT_LIST.map((f) => f.extension);
 export const SUPPORTED_FORMAT_NAMES = [...new Set(SUPPORTED_FORMAT_LIST.map((f) => f.name))];
 export const SUPPORTED_FORMAT_NAMES_STRING_SIMPLE = SUPPORTED_FORMAT_NAMES.join(', ');
-export const SUPPORTED_FORMAT_NAMES_STRING_OR = `${SUPPORTED_FORMAT_NAMES.slice(0, -1).join(', ')}, or ${SUPPORTED_FORMAT_NAMES.at(-1)}`;
+export const SUPPORTED_FORMAT_NAMES_STRING_OR = `${SUPPORTED_FORMAT_NAMES.slice(0, -1).join(', ')}, or ${SUPPORTED_FORMAT_NAMES[SUPPORTED_FORMAT_NAMES.length - 1]}`;
 export const SUPPORTED_FORMATS_MIME_TYPE_TO_EXTENSION: Record<string, string[]> =
   Object.fromEntries(
     SUPPORTED_FORMAT_LIST.reduce<Map<string, string[]>>(

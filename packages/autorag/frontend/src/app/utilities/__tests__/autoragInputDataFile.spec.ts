@@ -96,7 +96,7 @@ describe('autoragInputDataFile', () => {
     });
 
     it('SUPPORTED_FORMAT_NAMES_STRING_OR uses "or" before the last name', () => {
-      const last = SUPPORTED_FORMAT_NAMES.at(-1);
+      const last = SUPPORTED_FORMAT_NAMES[SUPPORTED_FORMAT_NAMES.length - 1];
       expect(SUPPORTED_FORMAT_NAMES_STRING_OR).toContain(`, or ${last}`);
       expect(SUPPORTED_FORMAT_NAMES_STRING_OR.endsWith(`, ${last}`)).toBe(false);
     });
