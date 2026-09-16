@@ -204,15 +204,13 @@ export const waitForInferenceServiceDeletion = (
  */
 export const waitForUserProjectAccess = (
   project: string,
-  user?: string,
+  user: string,
   attempts = 15,
   interval = 2000,
 ): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get projects${
-      user ? ` --as=${user}` : ''
-    } -o name | grep -qxF 'project.project.openshift.io/${project}'`,
-    `${user ?? 'current user'} access to ${project}`,
+    `oc get projects --as=${user} -o name | grep -qxF 'project.project.openshift.io/${project}'`,
+    `${user} access to ${project}`,
     {
       maxAttempts: attempts,
       pollIntervalMs: interval,

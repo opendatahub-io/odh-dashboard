@@ -39,7 +39,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
 
       cy.step(`Create project ${projectName}`);
       createCleanProject(projectName);
-      waitForUserProjectAccess(projectName);
+      waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
 
       cy.step('Log into the application with genAiStudio and custom endpoints enabled');
       cy.visitWithLogin(
