@@ -130,7 +130,7 @@
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.17",
     "@rsdoctor/rspack-plugin": "^1.6.1",
     "@rspack/cli": "2.1.10",
-    "@rspack/core": "2.1.10",
+    "@rspack/core": "2.2.4",
     "@rspack/dev-server": "^2.1.0",
     "@rspack/plugin-react-refresh": "^2.0.2",
     "@types/dompurify": "^2.4.0",

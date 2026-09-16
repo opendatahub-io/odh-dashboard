@@ -84,7 +84,7 @@
     "@module-federation/enhanced": "^0.24.1",
     "@odh-dashboard/eslint-config": "workspace:*",
     "@rspack/cli": "2.1.10",
-    "@rspack/core": "2.1.10",
+    "@rspack/core": "2.2.4",
     "@rspack/dev-server": "^2.1.0",
     "@types/node": "^22.19.19",
     "@types/react": "^18.3.31",
