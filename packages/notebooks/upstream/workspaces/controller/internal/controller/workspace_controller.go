@@ -514,12 +514,16 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// reconcile StatefulSet (now with sidecar if KubeGateway is enabled)
-	statefulSet, statefulSetName, stsResult, err := r.reconcileOwnedStatefulSet(ctx, log, workspace, req.Namespace, statefulSet)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if stsResult != nil {
-		return *stsResult, nil
+	var statefulSetName string
+	if !r.Config.UseKubeGateway {
+		var stsResult *ctrl.Result
+		statefulSet, statefulSetName, stsResult, err = r.reconcileOwnedStatefulSet(ctx, log, workspace, req.Namespace, statefulSet)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if stsResult != nil {
+			return *stsResult, nil
+		}
 	}
 
 	if r.Config.UseIstio {
