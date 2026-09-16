@@ -21,7 +21,7 @@ func TestE2EOperatorChaos(t *testing.T) {
 
 	target, err := discoverChaosTarget(context.Background())
 	require.NoError(t, err)
-	require.NoError(t, verifyChaosPermissions(context.Background(), target.namespace))
+	require.NoError(t, verifyChaosPermissions(context.Background(), target.namespace, testNamespace))
 	require.NoError(t, waitForDeploymentReady(
 		k8sClient, target.namespace, target.deployment.Name, chaosRecoveryTimeout,
 	))
@@ -34,6 +34,8 @@ func TestE2EOperatorChaos(t *testing.T) {
 
 		original, err := waitForReadyControllerPod(target, chaosRecoveryTimeout)
 		require.NoError(t, err)
+		baselineUIDs, err := controllerPodUIDs(context.Background(), target)
+		require.NoError(t, err)
 		identity := chaosPodIdentity{name: original.Name}
 
 		fault, events, err := startChaosFault(context.Background(), experiment, target.namespace)
@@ -41,7 +43,7 @@ func TestE2EOperatorChaos(t *testing.T) {
 		t.Cleanup(func() { require.NoError(t, fault.revert()) })
 		require.True(t, injectionTargetedPod(events, identity), "PodKill must report the controller pod it deleted")
 
-		replacement, err := waitForReplacementControllerPod(target, original.UID, experiment.ResolvedRecoveryTimeout())
+		replacement, err := waitForReplacementControllerPod(target, baselineUIDs, experiment.ResolvedRecoveryTimeout())
 		require.NoError(t, err)
 		t.Logf("controller recovered from pod kill: oldUID=%s newUID=%s", original.UID, replacement.UID)
 		require.NoError(t, fault.revert())

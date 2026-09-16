@@ -32,10 +32,12 @@ delete that singleton resource.
   the `openshift-service-ca.crt` ConfigMap; create the `pods/portforward`
   subresource in the test namespace; and list ValidatingWebhookConfigurations.
 
-The operator-chaos scenarios additionally require RBAC to delete controller
-Pods; create, get, and delete NetworkPolicies and PodDisruptionBudgets in the
-operator namespace; and create the `pods/eviction` subresource. The cluster CNI
-must enforce Kubernetes NetworkPolicy.
+The operator-chaos scenarios additionally require RBAC to get, list, and delete
+controller Pods; get the controller Deployment; create, get, and delete
+NetworkPolicies; create, get, update, and delete PodDisruptionBudgets in the
+operator namespace; create the `pods/eviction` subresource; and patch operand
+Deployments in the test namespace. The cluster CNI must enforce Kubernetes
+NetworkPolicy.
 
 Set the required environment variables:
 
