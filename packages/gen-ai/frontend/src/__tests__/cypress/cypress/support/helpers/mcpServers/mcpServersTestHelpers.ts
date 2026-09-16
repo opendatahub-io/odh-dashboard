@@ -143,16 +143,19 @@ export const setMCPRegistryServersFlag = (enabled: boolean): void => {
 };
 
 export const configureMCPRegistryServersFlag = (enabled: boolean): void => {
-  cy.intercept(
-    { method: 'GET', pathname: '/api/config' },
-    mockDashboardConfig({
-      genAiStudio: true,
-      aiAssetCustomEndpoints: true,
-      mcpRegistry: true,
-      modelAsService: false,
-      genAiMcpRegistryServers: enabled,
-    }),
-  );
+  const dashboardConfig = mockDashboardConfig({
+    genAiStudio: true,
+    aiAssetCustomEndpoints: true,
+    mcpRegistry: true,
+    modelAsService: false,
+    genAiMcpRegistryServers: enabled,
+  });
+
+  if (enabled) {
+    delete dashboardConfig.spec.dashboardConfig.genAiMcpRegistryServers;
+  }
+
+  cy.intercept({ method: 'GET', pathname: '/api/config' }, dashboardConfig);
 };
 
 export const setMCPRegistryServersQueryFlag = (enabled: boolean): void => {
