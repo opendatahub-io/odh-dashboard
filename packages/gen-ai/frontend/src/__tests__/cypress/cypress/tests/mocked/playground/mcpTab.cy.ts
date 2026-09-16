@@ -11,11 +11,16 @@ import {
   initAutoConnectIntercepts,
   initHighToolsCountIntercepts,
   initRegistryIntercepts,
+  clearMCPRegistryServersFlag,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
 describe('Playground - MCP Servers', () => {
   let config: MCPTestConfig;
+
+  afterEach(() => {
+    clearMCPRegistryServersFlag();
+  });
 
   before(() => {
     loadMCPTestConfig().then((data) => {
