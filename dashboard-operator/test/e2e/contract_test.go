@@ -5,12 +5,10 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
 	dashboardv1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
-	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/stretchr/testify/require"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -25,7 +23,6 @@ import (
 const contractTimeout = 10 * time.Minute
 
 func TestE2E_PlatformContractConformance(t *testing.T) {
-	requireNoDashboardInstances(t)
 	requireDashboardCELRule(t)
 
 	webhookTarget := requireDashboardWebhook(t)
@@ -55,19 +52,6 @@ func TestE2E_PlatformContractConformance(t *testing.T) {
 		require.NoError(t, validateCELRejection(err))
 	})
 
-	domain := os.Getenv("TEST_GATEWAY_DOMAIN")
-	require.NotEmpty(t, domain, "TEST_GATEWAY_DOMAIN must contain the cluster applications domain")
-
-	uid, err := createDashboardCR(k8sClient, dashboardv1alpha1.DashboardSpec{
-		ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
-		Gateway:        &dashboardv1alpha1.GatewaySpec{Domain: domain},
-		Modules:        disabledContractModules(),
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, cleanupDashboardCR(k8sClient, uid))
-	})
-
 	require.NoError(t, waitForCondition(
 		k8sClient,
 		dashboardv1alpha1.DashboardInstanceName,
@@ -94,25 +78,6 @@ func TestE2E_PlatformContractConformance(t *testing.T) {
 
 	require.NoError(t, waitForRequiredReleases(t.Context(), contractTimeout))
 	validateDashboardPlatformContract(t, k8sClient, contractTimeout)
-}
-
-func disabledContractModules() map[string]dashboardv1alpha1.ModuleOverride {
-	moduleNames := ctrlpkg.ModuleNames()
-	modules := make(map[string]dashboardv1alpha1.ModuleOverride, len(moduleNames))
-	for _, name := range moduleNames {
-		modules[name] = dashboardv1alpha1.ModuleOverride{State: dashboardv1alpha1.ModuleDisabled}
-	}
-
-	return modules
-}
-
-func requireNoDashboardInstances(t *testing.T) {
-	t.Helper()
-
-	dashboards := &dashboardv1alpha1.DashboardList{}
-	require.NoError(t, k8sClient.List(t.Context(), dashboards))
-	require.Empty(t, dashboards.Items,
-		"platform contract E2E requires an isolated cluster with no Dashboard instances")
 }
 
 func requireDashboardCELRule(t *testing.T) {
