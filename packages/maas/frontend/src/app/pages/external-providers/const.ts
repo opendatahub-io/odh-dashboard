@@ -44,16 +44,8 @@ export const IPP_MANAGED_SECRET_LABEL_KEY = 'inference.llm-d.ai/ipp-managed';
 
 export const IPP_MANAGED_SECRET_LABEL_VALUE = 'true';
 
-export const externalProvidersManagementPath = (
-  namespace: string,
-  searchParams?: { name?: string },
-): string => {
-  const path = `/ai-hub/models/deployments/external-providers/${namespace}`;
-  if (!searchParams?.name) {
-    return path;
-  }
-  return `${path}?name=${encodeURIComponent(searchParams.name)}`;
-};
+export const externalProvidersManagementPath = (namespace: string): string =>
+  `/ai-hub/models/deployments/external-providers/${namespace}`;
 
 export enum ExternalProvidersFilterOptions {
   status = 'status',

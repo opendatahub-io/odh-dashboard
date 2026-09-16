@@ -2221,12 +2221,6 @@ class ExternalModelTableRow extends TableRow {
     );
   }
 
-  findExpandedPhase(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findExpandedProviderRow(providerName).findByTestId(
-      `expanded-table-row-phase-${providerName}`,
-    );
-  }
-
   findExpandedKebabAction(
     providerName: string,
     actionName: string,

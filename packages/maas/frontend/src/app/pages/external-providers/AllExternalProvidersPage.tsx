@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { Breadcrumb, BreadcrumbItem, Stack, StackItem } from '@patternfly/react-core';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
@@ -23,9 +23,6 @@ import ExternalProvidersToolBar from './ExternalProvidersToolbar';
 import { filterExternalProviders, hasActiveExternalProvidersFilters } from './utils';
 
 const AllExternalProvidersPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const initialNameFilter = searchParams.get(ExternalProvidersFilterOptions.name) ?? '';
-
   const {
     externalProviders,
     externalProvidersLoaded,
@@ -38,10 +35,9 @@ const AllExternalProvidersPage: React.FC = () => {
   >(undefined);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
-  const [filterData, setFilterData] = React.useState<ExternalProvidersFilterDataType>(() => ({
-    ...initialExternalProvidersFilterData,
-    [ExternalProvidersFilterOptions.name]: initialNameFilter,
-  }));
+  const [filterData, setFilterData] = React.useState<ExternalProvidersFilterDataType>(
+    initialExternalProvidersFilterData,
+  );
 
   const onNameChange = React.useCallback(
     (value: string) =>

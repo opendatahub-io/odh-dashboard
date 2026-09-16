@@ -163,7 +163,6 @@ describe('External Models Page', () => {
       gptRow.findExpandedApiFormat('openai-prod').should('contain.text', 'openai-chat');
       gptRow.findExpandedTargetModel('openai-prod').should('contain.text', 'gpt-4o');
       gptRow.findExpandedWeight('openai-prod').should('contain.text', '100');
-      gptRow.findExpandedPhase('openai-prod').should('contain.text', 'Ready');
 
       gptRow.findExpandedViewUrlButton('openai-prod').click();
       externalModelProviderUrlModal.findInputValue().should('have.value', 'api.openai.com');
@@ -231,19 +230,12 @@ describe('External Models Page', () => {
         .should('contain.text', 'Missing MaaS model setup');
     });
 
-    it('should view and delete an external provider from the expanded row', () => {
+    it('should delete an external provider from the expanded row', () => {
       cy.interceptOdh(
         'DELETE /maas/api/v1/externalprovider/:namespace/:name',
         { path: { namespace: TEST_PROJECT, name: 'openai-prod' } },
         { data: null },
       ).as('deleteExternalProvider');
-      const gptRow = externalModelsPage.getRow('GPT-4o External');
-      gptRow.findExpandButton().click();
-      gptRow.findExpandedKebabAction('openai-prod', 'View provider').click();
-      externalProvidersPage.findPageTitle().should('exist');
-      externalProvidersPage.findRows().should('have.length', 1);
-      externalProvidersPage.getRow('OpenAI Production').findName().should('exist');
-
       externalModelsPage.visit();
       externalModelsPage.findTable().should('exist');
 

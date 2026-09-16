@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Label, Button } from '@patternfly/react-core';
 import { Table } from '@odh-dashboard/ui-core';
@@ -7,7 +6,6 @@ import TableRowTitleDescription from '@odh-dashboard/internal/components/table/T
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalModel, ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
-import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 import {
   mapAuthMechanismToHumanReadable,
   getProviderRefResource,
@@ -40,7 +38,6 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
   setPathModalRef,
   setDeleteExternalProvider,
 }) => {
-  const navigate = useNavigate();
   const { externalProviders } = useExternalModelsContext();
 
   const getProviderForRow = (row: ProviderRef): ExternalProvider => {
@@ -141,32 +138,21 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
               </Td>
               <Td data-testid={`expanded-table-row-weight-${row.providerName}`}>{row.weight}</Td>
               <Td data-testid={`expanded-table-row-provider-status-${row.providerName}`}>
-                {row.provider?.phase && (
-                  <PhaseLabel
-                    phase={row.provider.phase}
-                    resourceType={PhaseResourceType.EXTERNAL_PROVIDER}
-                    resourceName={row.provider.displayName ?? row.providerName}
-                    statusMessage={row.provider.statusMessage}
-                    status={row.provider.phase}
-                    conditionType={row.provider.conditionType}
-                    lastTransitionTime={row.provider.lastTransitionTime}
-                    reason={row.provider.reason}
-                  />
-                )}
+                <PhaseLabel
+                  phase={provider.phase}
+                  resourceType={PhaseResourceType.EXTERNAL_PROVIDER}
+                  resourceName={provider.displayName ?? provider.name}
+                  status={provider.status}
+                  conditionType={provider.conditionType}
+                  lastTransitionTime={provider.lastTransitionTime}
+                  statusMessage={provider.statusMessage}
+                  reason={provider.reason}
+                />
               </Td>
               <Td isActionCell>
                 <ActionsColumn
                   data-testid={`expanded-provider-row-actions-kebab-${row.providerName}`}
                   items={[
-                    {
-                      title: 'View provider',
-                      onClick: () =>
-                        navigate(
-                          externalProvidersManagementPath(externalModel.namespace, {
-                            name: row.provider?.displayName ?? row.providerName,
-                          }),
-                        ),
-                    },
                     {
                       title: 'Delete',
                       onClick: () => setDeleteExternalProvider(provider),
