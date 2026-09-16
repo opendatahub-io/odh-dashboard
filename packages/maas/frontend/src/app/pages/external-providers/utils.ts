@@ -23,6 +23,21 @@ export const getSecretDisplayLabel = (
   secret: Pick<SecretSummary, 'name' | 'displayName'>,
 ): string => secret.displayName?.trim() || secret.name;
 
+export const formatMissingCredentialSecretLabel = (secretName: string): string =>
+  `${secretName} (not found)`;
+
+export const getMissingCredentialSecretRef = (
+  credentialSecretRef: string,
+  secrets: SecretSummary[],
+  isNewSecret: boolean,
+): string | undefined => {
+  const trimmedRef = credentialSecretRef.trim();
+  if (isNewSecret || !trimmedRef) {
+    return undefined;
+  }
+  return secrets.some((secret) => secret.name === trimmedRef) ? undefined : trimmedRef;
+};
+
 export type ExternalProviderNameDescInitialData = {
   name: string;
   description: string;

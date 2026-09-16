@@ -1,6 +1,8 @@
 import {
   configPairsToRecord,
   externalProviderToFormState,
+  formatMissingCredentialSecretLabel,
+  getMissingCredentialSecretRef,
   getSecretDisplayLabel,
   toCreateExternalProviderRequest,
   toUpdateExternalProviderRequest,
@@ -17,6 +19,23 @@ describe('external provider form utils', () => {
 
   it('falls back to the Kubernetes resource name when displayName is absent', () => {
     expect(getSecretDisplayLabel({ name: 'openai-api-key' })).toBe('openai-api-key');
+  });
+
+  it('formats missing credential secret labels', () => {
+    expect(formatMissingCredentialSecretLabel('deleted-api-key')).toBe(
+      'deleted-api-key (not found)',
+    );
+  });
+
+  it('detects when a referenced credential secret is missing from the namespace', () => {
+    const secrets = [{ name: 'openai-api-key' }];
+
+    expect(getMissingCredentialSecretRef('deleted-api-key', secrets, false)).toBe(
+      'deleted-api-key',
+    );
+    expect(getMissingCredentialSecretRef('openai-api-key', secrets, false)).toBeUndefined();
+    expect(getMissingCredentialSecretRef('deleted-api-key', secrets, true)).toBeUndefined();
+    expect(getMissingCredentialSecretRef('  ', secrets, false)).toBeUndefined();
   });
 
   it('strips empty and incomplete config pairs', () => {

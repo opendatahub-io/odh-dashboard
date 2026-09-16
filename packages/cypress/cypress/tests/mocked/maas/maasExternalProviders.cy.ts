@@ -591,5 +591,30 @@ describe('External providers', () => {
       editExternalProviderModal.shouldBeOpen(false);
       cy.get('@updateExternalProvider.all').should('have.length', 0);
     });
+
+    it('shows a deleted credential secret in the edit modal', () => {
+      const providerWithDeletedSecret = mockExternalProvider({
+        name: 'openai-prod',
+        displayName: 'OpenAI Production',
+        description: 'Production OpenAI endpoint',
+        endpointUrl: 'api.openai.com',
+        provider: 'openai',
+        credentialSecretRef: 'deleted-api-key',
+        phase: 'Failed',
+        statusMessage: 'Credential secret not found',
+      });
+
+      setupExternalProvidersListIntercepts([providerWithDeletedSecret]);
+      externalProvidersPage.visit();
+      externalProvidersPage.findPage().should('exist');
+
+      externalProvidersPage.getRow('OpenAI Production').findKebabAction('Edit').click();
+      editExternalProviderModal.shouldBeOpen();
+      editExternalProviderModal
+        .findCredentialSecretToggle()
+        .should('contain.text', 'deleted-api-key (not found)');
+      editExternalProviderModal.findMissingCredentialSecretWarning().should('exist');
+      editExternalProviderModal.findSubmitButton().should('be.enabled');
+    });
   });
 });

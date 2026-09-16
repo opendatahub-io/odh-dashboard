@@ -2515,8 +2515,12 @@ class CreateExternalProviderModal extends Modal {
     cy.findByTestId(`external-provider-auth-option-${value}`).click();
   }
 
+  findCredentialSecretToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('credential-secret-toggle');
+  }
+
   selectExistingSecret(secretName: string): void {
-    this.find().findByTestId('credential-secret-toggle').click();
+    this.findCredentialSecretToggle().click();
     cy.findByTestId(`credential-secret-option-${secretName}`).click();
   }
 
@@ -2587,6 +2591,10 @@ class EditExternalProviderModal extends CreateExternalProviderModal {
 
   findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('edit-external-provider-error');
+  }
+
+  findMissingCredentialSecretWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('credential-secret-missing-warning');
   }
 }
 
