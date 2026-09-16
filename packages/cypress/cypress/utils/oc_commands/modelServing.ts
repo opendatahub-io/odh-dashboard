@@ -276,10 +276,31 @@ export const checkInferenceServiceState = (
       );
       cy.log(`📋 InferenceService ${serviceName} deployment mode: ${actualDeploymentMode}`);
 
-      // --- Terminal load-failure detection (KServe-specific) ---
-      // KServe signals a terminal load failure via targetModelState='FailedToLoad' OR
-      // transitionStatus='BlockedByFailedLoad'. activeModelState may remain empty or
-      // retain its previous value, so it cannot be relied on to detect this condition.
+      // Build full condition detail string — used in all error messages below.
+      const buildConditionDetails = (): string =>
+        conditions
+          .map(
+            (c) =>
+              `Type: ${safeString(c.type)}, Status: ${safeString(c.status)}, Reason: ${safeString(
+                c.reason,
+              )}, Message: ${safeString(c.message)}`,
+          )
+          .join('\n');
+
+      // --- Terminal failure detection (KServe-specific, both Standard and RawDeployment) ---
+      //
+      // KServe writes failure state in this order:
+      //   1. targetModelState  → 'FailedToLoad'         (set before activeModelState changes)
+      //   2. transitionStatus  → 'BlockedByFailedLoad'  (set in both Standard and RawDeployment)
+      //   3. activeModelState  → may remain '' or 'Loaded' from a prior successful load
+      //
+      // Checking only activeModelState === 'Failed' misses the common cases:
+      //   • Standard mode: activeModelState is never written, it stays ''
+      //   • RawDeployment first-load failure: activeModelState stays '' until KServe catches up
+      //   • Redeployment failure: activeModelState still shows 'Loaded' for the old revision
+      //
+      // The authoritative terminal-failure signal is therefore targetModelState or transitionStatus.
+      // lastFailureInfo.reason / .message carry the human-readable cause.
       const isTerminalLoadFailure =
         targetModelState === 'FailedToLoad' || transitionStatus === 'BlockedByFailedLoad';
 
@@ -292,9 +313,37 @@ export const checkInferenceServiceState = (
           `  transitionStatus: ${transitionStatus}\n` +
           `  lastFailureInfo.reason: ${lastFailureReason || '(none)'}\n` +
           `  lastFailureInfo.message: ${lastFailureMessage || '(none)'}\n` +
-          `  Detail: ${failureDetail}`;
+          `  Detail: ${failureDetail}\n` +
+          `  Full Condition Details:\n  ${buildConditionDetails()}`;
         cy.log(errorMessage);
         throw new Error(errorMessage);
+      }
+
+      // --- Legacy activeModelState === 'Failed' guard ---
+      // Catches the edge case where KServe sets activeModelState='Failed' directly
+      // without setting targetModelState='FailedToLoad' (older controller versions).
+      // Uses TERMINAL_FAILURE_REASONS to distinguish permanent failures from transient
+      // pod restarts (e.g. RuntimeUnhealthy from OOMKill — those should keep polling).
+      if (activeModelState === 'Failed') {
+        const readyCondition = conditions.find((c) => c.type === 'Ready');
+        const failReason = safeString(readyCondition?.reason);
+        const isTerminal = TERMINAL_FAILURE_REASONS.has(failReason);
+
+        cy.log(
+          `⚠️ activeModelState is "Failed" — Ready condition reason: "${failReason}" — terminal: ${isTerminal}`,
+        );
+
+        if (isTerminal) {
+          const terminalMsg =
+            `❌ InferenceService ${serviceName} has a terminal failure (reason: ${failReason}) — aborting poll immediately\n` +
+            `  Active Model State: ${activeModelState}\n` +
+            `  Ready condition message: ${safeString(readyCondition?.message)}\n` +
+            `  Full Condition Details:\n  ${buildConditionDetails()}`;
+          cy.log(terminalMsg);
+          throw new Error(terminalMsg);
+        }
+        // Non-terminal (e.g. RuntimeUnhealthy) — pod may recover, keep polling.
+        cy.log(`ℹ️ Failure reason "${failReason}" is transient — continuing to poll`);
       }
 
       // Determine overall success
@@ -308,69 +357,28 @@ export const checkInferenceServiceState = (
         return cy.wrap(result);
       }
 
-      // Build full condition detail string (used in error messages below).
-      const buildConditionDetails = (): string =>
-        conditions
-          .map(
-            (c) =>
-              `Type: ${safeString(c.type)}, Status: ${safeString(c.status)}, Reason: ${safeString(
-                c.reason,
-              )}, Message: ${safeString(c.message)}`,
-          )
-          .join('\n');
-
-      // --- Early-exit checks run BEFORE cy.wait so we don't sleep 50 s unnecessarily ---
-
-      // 1. Genuine terminal failure: activeModelState is Failed AND the Ready condition
-      //    carries a reason that will never self-heal (bad config, invalid URI, etc.).
-      //    Transient restarts (OOMKill, CrashLoopBackOff) set reason="RuntimeUnhealthy"
-      //    which is NOT in TERMINAL_FAILURE_REASONS, so they continue polling.
-      if (activeModelState === 'Failed') {
-        const readyCondition = conditions.find((c) => c.type === 'Ready');
-        const failReason = safeString(readyCondition?.reason);
-        const isTerminal = TERMINAL_FAILURE_REASONS.has(failReason);
-
-        cy.log(
-          `⚠️ activeModelState is "Failed" — Ready condition reason: "${failReason}" — terminal: ${isTerminal}`,
-        );
-
-        if (isTerminal) {
-          const terminalMsg = `❌ InferenceService ${serviceName} has a terminal failure (reason: ${failReason}) — aborting poll immediately
-          Active Model State: ${activeModelState}
-          Ready condition message: ${safeString(readyCondition?.message)}
-          Full Condition Details:
-          ${buildConditionDetails()}`;
-          cy.log(terminalMsg);
-          throw new Error(terminalMsg);
-        }
-        // Non-terminal (e.g. RuntimeUnhealthy) — pod may recover, keep polling.
-        cy.log(`ℹ️ Failure reason "${failReason}" is transient — continuing to poll`);
-      }
-
-      // 2. UI deployment status badge — only shows "Failed" when KServe has conclusively
-      //    marked the service as failed in the dashboard. Check before sleeping so a
-      //    genuine UI-level failure is caught without waiting the full 50 s interval.
+      // UI deployment status badge — only shows "Failed" when KServe has conclusively
+      // marked the service as failed in the dashboard. Check before sleeping so a
+      // genuine UI-level failure is caught without waiting the full 30 s interval.
       failOnDeploymentStatus(serviceName);
 
       if (attempts >= maxAttempts) {
-        const errorMessage = `❌ InferenceService ${serviceName} did not meet all conditions within 8 minutes
-          Active Model State: ${activeModelState}
-          Target Model State: ${targetModelState}
-          Transition Status: ${transitionStatus}
-          Last Failure Reason: ${lastFailureReason || '(none)'}
-          Last Failure Message: ${lastFailureMessage || '(none)'}
-          Condition Checks:
-          ${checkedConditions
+        const errorMessage =
+          `❌ InferenceService ${serviceName} did not meet all conditions within ~48 minutes\n` +
+          `  Active Model State: ${activeModelState}\n` +
+          `  Target Model State: ${targetModelState}\n` +
+          `  Transition Status: ${transitionStatus}\n` +
+          `  Last Failure Reason: ${lastFailureReason || '(none)'}\n` +
+          `  Last Failure Message: ${lastFailureMessage || '(none)'}\n` +
+          `  Condition Checks:\n  ${checkedConditions
             .map(
               (check) =>
                 `${check.name}: ${check.isPassed ? '✅' : '❌'} (Status: ${safeString(
                   check.foundCondition?.status,
                 )})`,
             )
-            .join('\n')}
-
-          Full Condition Details:
-          ${buildConditionDetails()}`;
+            .join('\n  ')}\n` +
+          `  Full Condition Details:\n  ${buildConditionDetails()}`;
 
         cy.log(errorMessage);
         throw new Error(errorMessage);
