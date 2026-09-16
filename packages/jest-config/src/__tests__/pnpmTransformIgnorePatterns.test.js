@@ -1,18 +1,25 @@
 const path = require('path');
 
-const { PNPM_ESM_ALLOW } = require('../pnpmTransformIgnorePatterns');
+const { pnpmTransformIgnorePatterns } = require('../pnpmTransformIgnorePatterns');
 const { pnpmJestModuleNameMapper } = require('../pnpmModuleNameMapper');
 
 describe('pnpmTransformIgnorePatterns', () => {
-  const allowPattern = new RegExp(PNPM_ESM_ALLOW);
+  const ignorePattern = new RegExp(pnpmTransformIgnorePatterns[0]);
 
-  it('allows any mod-arch package in pnpm and flat node_modules layouts', () => {
-    expect(allowPattern.test('.pnpm/mod-arch-new@1.0.0/node_modules/mod-arch-new')).toBe(true);
-    expect(allowPattern.test('mod-arch-new')).toBe(true);
+  it.each([
+    '/repo/node_modules/mod-arch-new/index.js',
+    '/repo/node_modules/.pnpm/mod-arch-new@1.0.0/node_modules/mod-arch-new/index.js',
+    '/repo/node_modules/.pnpm/@patternfly+react-core@6.0.0/node_modules/@patternfly/react-core/index.js',
+  ])('transforms allowed ESM dependency %s', (modulePath) => {
+    expect(ignorePattern.test(modulePath)).toBe(false);
   });
 
-  it('does not treat a similarly named package as mod-arch', () => {
-    expect(allowPattern.test('mod-architecture')).toBe(false);
+  it.each([
+    '/repo/node_modules/mod-architecture/index.js',
+    '/repo/node_modules/yaml-helper/index.js',
+    '/repo/node_modules/.pnpm/example@1.0.0/node_modules/example/index.js',
+  ])('ignores dependency %s', (modulePath) => {
+    expect(ignorePattern.test(modulePath)).toBe(true);
   });
 
   it('maps React to the monorepo root install', () => {
