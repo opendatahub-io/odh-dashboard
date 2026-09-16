@@ -307,7 +307,7 @@ const useChatbotMessages = ({
           : (item?.output ?? currentCall?.output);
         const argumentsText = event.type.endsWith('.delta')
           ? `${currentCall?.arguments ?? ''}${event.delta ?? ''}`
-          : (event.arguments ?? item?.arguments ?? currentCall?.arguments);
+          : (event.arguments ?? item?.arguments ?? item?.queries?.[0] ?? currentCall?.arguments);
         const nextCall: StreamingToolCall = {
           id,
           type: item?.type ?? currentCall?.type ?? 'mcp_call',

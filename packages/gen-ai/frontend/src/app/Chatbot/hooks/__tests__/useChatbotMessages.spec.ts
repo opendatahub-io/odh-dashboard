@@ -50,6 +50,7 @@ const mockCreateResponse = jest.fn<
     CreateResponseRequest,
     {
       onStreamData?: (chunk: string) => void;
+      onToolCall?: (event: import('~/app/types').ToolCallStreamEvent) => void;
       abortSignal?: AbortSignal;
       headers?: Record<string, string>;
     }?,
@@ -119,6 +120,38 @@ describe('useChatbotMessages', () => {
   });
 
   describe('handleMessageSend', () => {
+    it('should use file search queries as tool call arguments', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.added',
+          item: {
+            id: 'file-search-1',
+            type: 'file_search_call',
+            status: 'in_progress',
+            queries: ['{"query":"example"}'],
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Search for example');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: 'RAG',
+            arguments: '{"query":"example"}',
+          }),
+        ]),
+      );
+    });
+
     it('should successfully send a message and receive a bot response', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 

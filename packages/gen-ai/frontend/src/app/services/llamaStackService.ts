@@ -309,7 +309,7 @@ const extractToolCalls = (output?: OutputItem[]): StreamingToolCall[] => {
         category: item.type === 'file_search_call' ? 'RAG' : 'MCP',
         status: failed ? 'failed' : item.status === 'in_progress' ? 'in_progress' : 'completed',
         serverLabel: item.server_label,
-        arguments: item.arguments,
+        arguments: item.arguments ?? item.queries?.[0],
         output: item.results ? JSON.stringify(item.results, null, 2) : item.output,
       },
     ];

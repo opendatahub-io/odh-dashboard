@@ -303,6 +303,13 @@ describe('llamaStackService', () => {
               server_label: 'GitHub',
               error: 'Not found',
             },
+            {
+              id: 'file-search',
+              type: 'file_search_call',
+              status: 'completed',
+              queries: ['{"query":"example"}'],
+              results: [],
+            },
           ],
         };
         mockedRestCREATE.mockResolvedValueOnce({ data: responseWithToolCalls });
@@ -324,6 +331,11 @@ describe('llamaStackService', () => {
               name: 'get_latest_release',
               category: 'MCP',
               status: 'failed',
+            }),
+            expect.objectContaining({
+              id: 'file-search',
+              category: 'RAG',
+              arguments: '{"query":"example"}',
             }),
           ]),
         );
