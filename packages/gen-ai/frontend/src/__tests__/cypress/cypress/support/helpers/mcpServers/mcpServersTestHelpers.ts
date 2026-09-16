@@ -144,7 +144,7 @@ export const setMCPRegistryServersFlag = (enabled: boolean): void => {
 
 export const configureMCPRegistryServersFlag = (enabled: boolean): void => {
   cy.intercept(
-    { method: 'GET', pathname: '/api/config', times: 2 },
+    { method: 'GET', pathname: '/api/config' },
     mockDashboardConfig({
       genAiStudio: true,
       aiAssetCustomEndpoints: true,
