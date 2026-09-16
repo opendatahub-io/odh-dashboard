@@ -6,9 +6,14 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { waitForResource } from '../../../utils/oc_commands/baseCommands';
 import {
-  enablePromptManagementFeatures,
+  startPortForward,
+  stopPortForward,
+  waitForResource,
+  type PortForwardHandle,
+} from '../../../utils/oc_commands/baseCommands';
+import {
+  enableMlflowBackend,
   disablePromptManagementFeatures,
   deleteStalePromptByName,
 } from '../../../utils/oc_commands/mlflow';
@@ -49,6 +54,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   let globalNamespace: string;
   let servingRuntimeName: string;
   let hardwareProfileName: string;
+  let portForwardHandle: PortForwardHandle | null = null;
   const globalMLflowNamespacesBaselines: GlobalMLflowNamespacesBaseline[] = [];
   const uuid = generateTestUUID();
   const globalPromptName = `global-prompt-${uuid}`;
@@ -80,8 +86,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
           });
       })
       .then(() => {
-        cy.step('Enable prompt management features');
-        return enablePromptManagementFeatures();
+        cy.step('Enable MLflow backend');
+        return enableMlflowBackend();
       })
       .then(() => {
         cy.step('Delete stale global namespace');
@@ -112,6 +118,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   });
 
   after(() => {
+    stopPortForward(portForwardHandle);
+
     if (globalNamespace) {
       deleteStalePromptByName(globalNamespace, globalPromptName);
       deleteOpenShiftProject(globalNamespace, { wait: false, ignoreNotFound: true });
@@ -156,6 +164,11 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       waitForResource('configmap', testData.configMapName, projectName);
       waitForOGXServerReady(projectName);
       waitForResource('service', testData.playgroundServiceName, projectName);
+
+      cy.step('Start port-forward for LSD service');
+      startPortForward(projectName, testData.playgroundServiceName, 8321).then((handle) => {
+        portForwardHandle = handle;
+      });
 
       cy.step('Navigate to playground');
       genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
