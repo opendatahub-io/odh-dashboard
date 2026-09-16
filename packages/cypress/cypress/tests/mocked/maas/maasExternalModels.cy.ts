@@ -497,7 +497,7 @@ describe('External Models Page', () => {
       const createdModel = mockExternalModel({
         name: 'disabled-provider-model',
         displayName: 'Disabled Provider Model',
-        modelName: 'Disabled Provider Model',
+        modelName: 'disabled-provider-model',
         providerRefs: [
           {
             providerName: 'anthropic-dev',
@@ -589,7 +589,7 @@ describe('External Models Page', () => {
       const createdModel = mockExternalModel({
         name: 'gpt-4-turbo',
         displayName: 'GPT-4 Turbo',
-        modelName: 'GPT-4 Turbo',
+        modelName: 'gpt-4-turbo',
         description: 'External GPT-4 Turbo model',
         providerRefs: [
           {
@@ -620,7 +620,7 @@ describe('External Models Page', () => {
           name: 'gpt-4-turbo',
           namespace: TEST_PROJECT,
           displayName: 'GPT-4 Turbo',
-          modelName: 'GPT-4 Turbo',
+          modelName: 'gpt-4-turbo',
           description: 'External GPT-4 Turbo model',
         });
         expect(interception.request.body.data.providerRefs).to.have.length(1);
@@ -797,7 +797,7 @@ describe('Edit External Model Page', () => {
     cy.wait('@updateExternalModel').then((interception) => {
       expect(interception.request.body.data).to.deep.include({
         displayName: 'GPT-4o Updated',
-        modelName: 'GPT-4o Updated',
+        modelName: 'gpt-4o-external',
         description: 'Updated external model description',
       });
       expect(interception.request.body.data.providerRefs[0].targetModel).to.equal('gpt-4o-mini');

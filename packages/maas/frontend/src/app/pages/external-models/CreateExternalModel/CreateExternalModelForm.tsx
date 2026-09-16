@@ -67,7 +67,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
       ? {
           namespace,
           initialData: {
-            name: externalModel.displayName ?? externalModel.modelName ?? externalModel.name,
+            name: externalModel.displayName ?? externalModel.name,
             k8sName: externalModel.name,
             description: externalModel.description ?? '',
           },
@@ -131,7 +131,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
       if (externalModel) {
         const request: UpdateExternalModelRequest = {
           displayName: trimmedName,
-          modelName: trimmedName,
+          modelName: externalModel.name,
           description: nameDescData.description.trim() || undefined,
           providerRefs,
         };
@@ -141,7 +141,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           name: nameDescData.k8sName.value,
           namespace,
           displayName: trimmedName,
-          modelName: trimmedName,
+          modelName: nameDescData.k8sName.value,
           description: nameDescData.description.trim() || undefined,
           providerRefs,
         };

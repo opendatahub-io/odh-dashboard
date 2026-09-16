@@ -24,7 +24,7 @@ const EditExternalModelPage: React.FC = () => {
     externalModelsLoaded &&
     (externalProvidersLoaded || !!externalProvidersError);
   const externalModel = externalModels.find((model) => model.name === modelName);
-  const displayName = externalModel?.displayName ?? externalModel?.modelName ?? modelName;
+  const displayName = externalModel?.displayName ?? modelName;
 
   return (
     <ApplicationsPage
