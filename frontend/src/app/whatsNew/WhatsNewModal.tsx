@@ -80,7 +80,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const modelCatalogAvailable = !config.disableModelCatalog;
   const modelRegistryAvailable = !config.disableModelRegistry;
   const modelServingAvailable = !config.disableModelServing;
-  const maasAvailable = !config.modelAsService;
+  const maasAvailable = config.modelAsService ?? false;
   const aiHubAvailable =
     modelCatalogAvailable ||
     modelRegistryAvailable ||
