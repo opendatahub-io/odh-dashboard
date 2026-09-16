@@ -5,7 +5,7 @@ import { formatPatternName } from '~/app/utilities/utils';
 
 type ComparisonColumnHeaderProps = {
   patternName: string;
-  rank: number;
+  rank?: number;
   label?: string;
   onChangeClick?: () => void;
   children?: React.ReactNode;
@@ -27,7 +27,7 @@ const ComparisonColumnHeader: React.FC<ComparisonColumnHeaderProps> = ({
   >
     <FlexItem>
       <Title headingLevel="h4" size="md">
-        {formatPatternName(patternName)} (#{rank})
+        {formatPatternName(patternName)} ({rank === undefined ? 'Unranked' : `#${rank}`})
       </Title>
     </FlexItem>
     {label && (

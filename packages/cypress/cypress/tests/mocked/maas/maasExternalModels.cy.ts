@@ -20,8 +20,10 @@ import {
 import {
   mockExternalModel,
   mockExternalModels,
+  mockExternalProvider,
   mockExternalProvidersForCreateFlow,
   mockMaasNamespaces,
+  mockMaasSecrets,
 } from '../../../utils/maasUtils';
 
 const TEST_PROJECT = 'test-project';
@@ -150,6 +152,7 @@ describe('External Models Page', () => {
       gptRow.findExpandedProviderName('openai-prod').should('contain.text', 'OpenAI Production');
       gptRow.findExpandedAuthMechanism('openai-prod').should('contain.text', 'API key');
       gptRow.findExpandedCredentialSecret('openai-prod').should('contain.text', 'openai-api-key');
+      gptRow.findExpandedProviderStatus('openai-prod').should('contain.text', 'Ready');
       gptRow.findExpandedApiFormat('openai-prod').should('contain.text', 'openai-chat');
       gptRow.findExpandedTargetModel('openai-prod').should('contain.text', 'gpt-4o');
       gptRow.findExpandedWeight('openai-prod').should('contain.text', '100');
@@ -322,6 +325,78 @@ describe('External Models Page', () => {
         .should('contain.text', 'claude-sonnet-4-5-20241022');
       createExternalModelPage.findProviderRefRow(0).should('contain.text', 'OpenAI Chat');
       cy.findByTestId('provider-ref-weight-percent-0').should('contain.text', '100%');
+    });
+
+    it('should create a new provider with a new secret when completing wizard step 2', () => {
+      const createdProvider = mockExternalProvider({
+        name: 'openai-production',
+        displayName: 'OpenAI Production',
+        endpointUrl: 'api.openai.com',
+        provider: 'openai',
+        credentialSecretRef: 'openai-prod-key',
+      });
+
+      cy.interceptOdh(
+        'GET /maas/api/v1/secrets',
+        { query: { namespace: TEST_PROJECT } },
+        { data: mockMaasSecrets() },
+      );
+      cy.interceptOdh('POST /maas/api/v1/secrets', {
+        data: { name: 'openai-prod-key' },
+      }).as('createSecret');
+      cy.interceptOdh('POST /maas/api/v1/externalprovider', { data: createdProvider }).as(
+        'createExternalProvider',
+      );
+      cy.interceptOdh(
+        'GET /maas/api/v1/secrets',
+        { query: { namespace: TEST_PROJECT } },
+        { data: [...mockMaasSecrets(), { name: 'openai-prod-key' }] },
+      );
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalprovider',
+        { query: { namespace: TEST_PROJECT } },
+        { data: [...mockExternalProvidersForCreateFlow(), createdProvider] },
+      );
+
+      createExternalModelPage.visit();
+      createExternalModelPage.findAddProviderReferenceButton().click();
+      addProviderReferenceWizard.shouldBeOpen();
+      addProviderReferenceWizard.findNextButton().should('be.disabled');
+
+      addProviderReferenceWizard.fillNewProviderFields({
+        displayName: 'OpenAI Production',
+        providerType: 'openai',
+        endpoint: 'api.openai.com',
+        newSecret: { name: 'openai-prod-key', apiKey: 'sk-test-key' },
+      });
+      addProviderReferenceWizard.findNextButton().should('not.be.disabled').click();
+
+      addProviderReferenceWizard.fillTargetModel('gpt-4o');
+      addProviderReferenceWizard.findAddButton().click();
+
+      cy.wait('@createSecret').then((interception) => {
+        expect(interception.request.body?.data).to.deep.equal({
+          namespace: TEST_PROJECT,
+          name: 'openai-prod-key',
+          value: 'sk-test-key',
+        });
+      });
+      cy.wait('@createExternalProvider').then((interception) => {
+        expect(interception.request.body?.data).to.include({
+          name: 'openai-production',
+          namespace: TEST_PROJECT,
+          displayName: 'OpenAI Production',
+          endpointUrl: 'api.openai.com',
+          provider: 'openai',
+          authMechanism: 'apikey',
+          credentialSecretRef: 'openai-prod-key',
+        });
+      });
+      addProviderReferenceWizard.shouldBeOpen(false);
+
+      createExternalModelPage.findProviderReferencesTable().should('exist');
+      createExternalModelPage.findProviderRefRow(0).should('contain.text', 'OpenAI Production');
+      createExternalModelPage.findProviderRefRow(0).should('contain.text', 'gpt-4o');
     });
 
     it('should show a field error for an invalid provider reference path', () => {
