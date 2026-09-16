@@ -62,6 +62,15 @@ type InferenceServiceState = {
     modelStatus?: {
       states?: {
         activeModelState?: string;
+        targetModelState?: string;
+      };
+      transitionStatus?: string;
+      lastFailureInfo?: {
+        reason?: string;
+        message?: string;
+        location?: string;
+        modelRevisionName?: string;
+        time?: string;
       };
     };
     deploymentMode?: string;
@@ -171,6 +180,11 @@ export const checkInferenceServiceState = (
       // Check active model state
       const activeModelState =
         serviceState.status?.modelStatus?.states?.activeModelState || 'EMPTY';
+      const targetModelState =
+        serviceState.status?.modelStatus?.states?.targetModelState || 'EMPTY';
+      const transitionStatus = serviceState.status?.modelStatus?.transitionStatus || 'EMPTY';
+      const lastFailureReason = serviceState.status?.modelStatus?.lastFailureInfo?.reason || '';
+      const lastFailureMessage = serviceState.status?.modelStatus?.lastFailureInfo?.message || '';
       const conditions = serviceState.status?.conditions || [];
 
       // Check deployment mode — Standard mode does not populate activeModelState;
@@ -182,6 +196,10 @@ export const checkInferenceServiceState = (
       cy.log(`🧐 Attempt ${attempts}: Checking InferenceService state
         Service Name: ${serviceName}
         Active Model State: ${activeModelState}
+        Target Model State: ${targetModelState}
+        Transition Status: ${transitionStatus}
+        Last Failure Reason: ${lastFailureReason || '(none)'}
+        Last Failure Message: ${lastFailureMessage || '(none)'}
         Deployment Mode: ${actualDeploymentMode}
         Total Conditions: ${conditions.length}`);
 
@@ -258,6 +276,27 @@ export const checkInferenceServiceState = (
       );
       cy.log(`📋 InferenceService ${serviceName} deployment mode: ${actualDeploymentMode}`);
 
+      // --- Terminal load-failure detection (KServe-specific) ---
+      // KServe signals a terminal load failure via targetModelState='FailedToLoad' OR
+      // transitionStatus='BlockedByFailedLoad'. activeModelState may remain empty or
+      // retain its previous value, so it cannot be relied on to detect this condition.
+      const isTerminalLoadFailure =
+        targetModelState === 'FailedToLoad' || transitionStatus === 'BlockedByFailedLoad';
+
+      if (isTerminalLoadFailure) {
+        const failureDetail =
+          lastFailureReason || lastFailureMessage || 'no additional details available';
+        const errorMessage =
+          `❌ InferenceService ${serviceName} has a terminal load failure — stopping poll.\n` +
+          `  targetModelState: ${targetModelState}\n` +
+          `  transitionStatus: ${transitionStatus}\n` +
+          `  lastFailureInfo.reason: ${lastFailureReason || '(none)'}\n` +
+          `  lastFailureInfo.message: ${lastFailureMessage || '(none)'}\n` +
+          `  Detail: ${failureDetail}`;
+        cy.log(errorMessage);
+        throw new Error(errorMessage);
+      }
+
       // Determine overall success
       const allConditionsPassed =
         !shouldValidateConditions || checkedConditions.every((check) => check.isPassed);
@@ -316,6 +355,10 @@ export const checkInferenceServiceState = (
       if (attempts >= maxAttempts) {
         const errorMessage = `❌ InferenceService ${serviceName} did not meet all conditions within 8 minutes
           Active Model State: ${activeModelState}
+          Target Model State: ${targetModelState}
+          Transition Status: ${transitionStatus}
+          Last Failure Reason: ${lastFailureReason || '(none)'}
+          Last Failure Message: ${lastFailureMessage || '(none)'}
           Condition Checks:
           ${checkedConditions
             .map(
