@@ -149,8 +149,17 @@ describe('AutoRAG Optimization completion results E2E', () => {
       tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'],
       retries: { runMode: 0, openMode: 0 },
     },
-    () => {
-      configureAutoragRun(testData, projectName, completionUuid, getMaaSFixture(), {
+    function verifyCompletionResults() {
+      const fixture = getMaaSFixture();
+      if (!fixture.supportsCompletionResults) {
+        Cypress.log({
+          name: 'skip',
+          message: 'Simulator models cover lifecycle wiring only, not AutoRAG completion/quality.',
+        });
+        this.skip();
+      }
+
+      configureAutoragRun(testData, projectName, completionUuid, fixture, {
         createConnections: true,
       });
 
@@ -159,14 +168,12 @@ describe('AutoRAG Optimization completion results E2E', () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun(
-        testData,
-        getAutoragInputDataKey(testData, completionUuid),
-        getMaaSFixture(),
-      ).then(() => {
-        waitForAutoragRunCompletion();
-        verifyAutoragResultsInteraction();
-      });
+      submitAutoragRun(testData, getAutoragInputDataKey(testData, completionUuid), fixture).then(
+        () => {
+          waitForAutoragRunCompletion();
+          verifyAutoragResultsInteraction();
+        },
+      );
     },
   );
 });
