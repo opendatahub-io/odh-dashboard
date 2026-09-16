@@ -2,8 +2,6 @@ import path from 'path';
 import fs from 'fs';
 import { defineConfig } from 'cypress';
 import coverage from '@cypress/code-coverage/task';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error no types available
 import webpack from '@cypress/webpack-preprocessor';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error no types available
@@ -16,7 +14,7 @@ const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' 
 
 export default defineConfig({
   experimentalMemoryManagement: true,
-  reporter: 'mocha-junit-reporter',
+  reporter: require.resolve('mocha-junit-reporter'),
   reporterOptions: {
     mochaFile: `${resultsDir}/junit/junit-[hash].xml`,
   },

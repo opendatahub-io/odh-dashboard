@@ -37,6 +37,8 @@ import './EvaluationFileCreator.scss';
 
 const MIN_ROWS = 1;
 
+const getDocumentName = (key: string): string => key.split('/').pop() || key;
+
 const DocumentsDropdown: React.FC<{ documentIds: string[] }> = ({ documentIds }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -58,7 +60,7 @@ const DocumentsDropdown: React.FC<{ documentIds: string[] }> = ({ documentIds })
       <DropdownList>
         {documentIds.map((doc, i) => (
           <DropdownItem key={`${doc}-${i}`} isDisabled>
-            {doc}
+            {getDocumentName(doc)}
           </DropdownItem>
         ))}
       </DropdownList>
@@ -111,8 +113,8 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     : undefined;
 
   const effectiveDocumentIds = useMemo(
-    () => (inputDataFilename ? [inputDataFilename] : documentIds),
-    [inputDataFilename, documentIds],
+    () => (inputDataFilename ? [inputDataKey] : documentIds),
+    [inputDataFilename, inputDataKey, documentIds],
   );
 
   const isFormValid =
@@ -179,7 +181,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     const jsonData: EvaluationFileEntry[] = rows.map((row) => ({
       question: row.question,
       correct_answers: [row.correctAnswer], // eslint-disable-line camelcase
-      correct_answer_document_ids: row.documentIds, // eslint-disable-line camelcase
+      correct_answer_document_keys: row.documentIds, // eslint-disable-line camelcase
     }));
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '').replace(/-/g, '');
@@ -300,7 +302,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                                   className="autorag-evaluation-creator__doc-name"
                                   title={doc}
                                 >
-                                  {doc}
+                                  {getDocumentName(doc)}
                                 </FlexItem>
                                 {!inputDataIsFile && (
                                   <FlexItem>
@@ -389,7 +391,9 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                         </Td>
                         <Td dataLabel="Related documents">
                           {row.documentIds.length === 1 ? (
-                            <span title={row.documentIds[0]}>{row.documentIds[0]}</span>
+                            <span title={row.documentIds[0]}>
+                              {getDocumentName(row.documentIds[0])}
+                            </span>
                           ) : (
                             <DocumentsDropdown documentIds={row.documentIds} />
                           )}
@@ -440,7 +444,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
         onClose={() => setFileExplorerOpen(false)}
         onSelectFiles={(files) => {
           if (files.length > 0) {
-            const newNames = files.map((f) => f.name);
+            const newNames = files.map((f) => f.path.replace(/^\//, ''));
             setDocumentIds((prev) => [...prev, ...newNames.filter((name) => !prev.includes(name))]);
           }
         }}

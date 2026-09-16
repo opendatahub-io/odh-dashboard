@@ -12,6 +12,8 @@ type MockResourceConfigType = {
   gpuNominalQuota?: number;
   gpuUsed?: number;
   gpuBorrowed?: number;
+  gpuBorrowingLimit?: number;
+  gpuLendingLimit?: number;
   admittedWorkloads?: number;
   pendingWorkloads?: number;
 };
@@ -26,6 +28,8 @@ export const mockClusterQueueK8sResource = ({
   gpuNominalQuota = 8,
   gpuUsed = 0,
   gpuBorrowed = 0,
+  gpuBorrowingLimit,
+  gpuLendingLimit,
   admittedWorkloads = 0,
   pendingWorkloads = 0,
 }: MockResourceConfigType): ClusterQueueKind => ({
@@ -73,6 +77,12 @@ export const mockClusterQueueK8sResource = ({
                         {
                           name: 'nvidia.com/gpu' as ContainerResourceAttributes,
                           nominalQuota: String(gpuNominalQuota),
+                          ...(gpuBorrowingLimit !== undefined && {
+                            borrowingLimit: String(gpuBorrowingLimit),
+                          }),
+                          ...(gpuLendingLimit !== undefined && {
+                            lendingLimit: String(gpuLendingLimit),
+                          }),
                         },
                       ],
                     },

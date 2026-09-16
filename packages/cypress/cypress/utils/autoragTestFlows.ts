@@ -12,9 +12,9 @@ const RESOURCES_PATH = 'resources/autorag';
  * Full configure flow for an AutoRAG run.
  *
  * Handles: login, wait for DSPA, navigate to experiments, create run,
- * fill name/description, select OGX secret, select S3 connection,
+ * fill name/description, select MaaS secret, select S3 connection,
  * upload document, browse and select it, upload evaluation dataset,
- * and select first available vector store.
+ * and select the vector database secret.
  *
  * After this, optionally configure metric/patterns, then call `submitAutoragRun()`.
  */
@@ -38,10 +38,12 @@ export const configureAutoragRun = (
   autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
-  cy.step('Select OGX secret');
-  autoragConfigurePage.findOgxSecretSelector().click();
-  autoragConfigurePage.findOgxSecretSelector().type(testData.ogxSecretName);
-  autoragConfigurePage.findSelectOption(new RegExp(testData.ogxSecretName, 'i')).click();
+  cy.step('Select MaaS secret');
+  // SecretSelector renders a skeleton until type=maas secrets load.
+  autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.findMaasSecretSelector().click();
+  autoragConfigurePage.findMaasSecretSelector().find('input').type(testData.maasSecretName);
+  autoragConfigurePage.findSelectOption(new RegExp(testData.maasSecretName, 'i')).click();
 
   cy.step('Click Next to go to Configure step');
   autoragConfigurePage.findNextButton().click();
@@ -111,12 +113,11 @@ export const configureAutoragRun = (
   cy.step('Wait for evaluation file upload to complete');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
-  cy.step('Select first available vector store');
-  autoragConfigurePage.findVectorStoreSelector().should('not.be.disabled').click();
-  autoragConfigurePage.findFirstVectorStoreOption().should('be.visible').click();
-  autoragConfigurePage
-    .findVectorStoreSelector()
-    .should('not.contain.text', 'Select vector I/O provider');
+  cy.step('Select vector database secret');
+  autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.findVectorStoreSelector().click();
+  autoragConfigurePage.findVectorStoreSelector().find('input').type(testData.vectorDbSecretName);
+  autoragConfigurePage.findSelectOption(new RegExp(testData.vectorDbSecretName, 'i')).click();
 };
 
 /**
@@ -125,7 +126,7 @@ export const configureAutoragRun = (
  */
 export const submitAutoragRun = (): void => {
   cy.step('Submit the form');
-  autoragConfigurePage.findCreateRunButton().click();
+  autoragConfigurePage.findCreateRunButton({ timeout: 120000 }).should('be.enabled').click();
 
   cy.step('Verify redirect to results page');
   cy.url().should('include', '/gen-ai-studio/autorag/results/');
@@ -159,6 +160,11 @@ export const waitForAutoragRunCompletion = (timeoutMs = 2700000): void => {
 export const verifyAutoragResultsInteraction = (): void => {
   cy.step('Verify leaderboard has at least one pattern row');
   autoragResultsPage.findLeaderboardRow(1).should('exist');
+  autoragResultsPage.findLeaderboardRow(7).should('exist');
+
+  cy.step('Verify invalid objective patterns remain visible as unranked');
+  autoragResultsPage.findUnrankedLeaderboardRow('Pattern8').should('be.visible');
+  autoragResultsPage.findLeaderboardRankCell('Pattern8').should('contain.text', 'Unranked');
 
   cy.step('Open and close run details drawer');
   autoragResultsPage.findRunDetailsButton().click();
@@ -217,96 +223,6 @@ export const verifyAutoragResultsInteraction = (): void => {
   cy.window().its('print').should('have.been.calledOnce');
   autoragResultsPage.findPatternDetailsModalCloseButton().click();
   autoragResultsPage.findPatternDetailsModal().should('not.exist');
-};
-
-/**
- * Verify "Try this pattern" playground drawer interaction:
- * - Open from pattern details modal actions dropdown
- * - Verify playground drawer panel elements
- * - Submit a query and verify a bot response is received
- * - Close and reopen from leaderboard row actions
- */
-export const verifyTryThisPatternInteraction = (): void => {
-  cy.step('Open pattern details modal for top-ranked pattern');
-  autoragResultsPage.findPatternLink(1).click();
-  autoragResultsPage.findPatternDetailsModal().should('be.visible');
-
-  cy.step('Open Actions dropdown and click "Try this pattern"');
-  autoragResultsPage.findPatternDetailsActionsToggle().click();
-  autoragResultsPage.findTryPatternAction().should('be.visible').click();
-
-  cy.step('Verify pattern details modal closes and playground drawer opens');
-  autoragResultsPage.findPatternDetailsModal().should('not.exist');
-  autoragResultsPage.findPlaygroundDrawerPanel().should('be.visible');
-
-  cy.step('Verify playground drawer panel elements');
-  autoragResultsPage.findPlaygroundPatternSelect().should('be.visible');
-  autoragResultsPage.findPlaygroundViewCodeButton().should('be.visible');
-
-  cy.step('Type a query into the chatbot message bar');
-  autoragResultsPage
-    .findPlaygroundDrawerPanel()
-    .find('textarea')
-    .should('be.visible')
-    .type('What is this document about?');
-
-  cy.step('Send the query');
-  autoragResultsPage.findPlaygroundDrawerPanel().findByTestId('chatbot-send-button').click();
-
-  cy.step('Verify user message appears');
-  autoragResultsPage
-    .findPlaygroundDrawerPanel()
-    .findByTestId('chatbot-message-user')
-    .should('exist');
-
-  cy.step('Wait for bot response to complete');
-  autoragResultsPage
-    .findPlaygroundDrawerPanel()
-    .findByTestId('chatbot-message-bot', { timeout: 120000 })
-    .should('exist')
-    .find('.pf-chatbot__message-loading')
-    .should('not.exist');
-
-  cy.step('Switch pattern via the pattern selector dropdown (if multiple patterns exist)');
-  autoragResultsPage.findPlaygroundPatternSelect().then(($toggle) => {
-    const currentPattern = $toggle.text().trim();
-    $toggle.trigger('click');
-    cy.get('[role="option"]').then(($options) => {
-      const otherOptions = $options.filter((_i, el) => !el.textContent.includes(currentPattern));
-      if (otherOptions.length === 0) {
-        cy.log('Only one pattern available — skipping pattern switch test');
-        cy.get('body').type('{esc}');
-        return;
-      }
-      cy.wrap(otherOptions.first()).click();
-
-      cy.step('Verify chat messages are cleared after pattern switch');
-      autoragResultsPage
-        .findPlaygroundDrawerPanel()
-        .findByTestId('chatbot-message-user')
-        .should('not.exist');
-      autoragResultsPage
-        .findPlaygroundDrawerPanel()
-        .findByTestId('chatbot-message-bot')
-        .should('not.exist');
-    });
-  });
-
-  cy.step('Close playground drawer');
-  autoragResultsPage.findPlaygroundDrawerClose().click();
-  autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
-
-  cy.step('Open "Try this pattern" from leaderboard row actions');
-  autoragResultsPage.findLeaderboardActions(1).find('button').click();
-  cy.findByRole('menuitem', { name: 'Try this pattern' }).click();
-
-  cy.step('Verify playground drawer opens again from leaderboard');
-  autoragResultsPage.findPlaygroundDrawerPanel().should('be.visible');
-  autoragResultsPage.findPlaygroundPatternSelect().should('be.visible');
-
-  cy.step('Close playground drawer');
-  autoragResultsPage.findPlaygroundDrawerClose().click();
-  autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
 };
 
 /**

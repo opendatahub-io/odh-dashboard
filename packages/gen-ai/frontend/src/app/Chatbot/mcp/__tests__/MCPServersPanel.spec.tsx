@@ -150,7 +150,11 @@ const createServer = (overrides: Partial<MCPServerFromAPI> = {}): MCPServerFromA
   description: 'A test server',
   logo: null,
   status: 'healthy',
+  version: '1.0.0',
   source: 'configmap',
+  tools: [],
+  // eslint-disable-next-line camelcase
+  tool_count: 0,
   ...overrides,
 });
 

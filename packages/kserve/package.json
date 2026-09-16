@@ -17,7 +17,9 @@
   "exports": {
     "./extensions": "./extensions.ts",
     "./deploy": "./src/deploy.ts",
+    "./deployments": "./src/deployments.ts",
     "./deployUtils": "./src/deployUtils.ts",
+    "./pvcDependents": "./src/clusterStorage/connectedResources.tsx",
     "./deploymentEndpoints": "./src/deploymentEndpoints.ts",
     "./types": "./src/types.ts"
   },

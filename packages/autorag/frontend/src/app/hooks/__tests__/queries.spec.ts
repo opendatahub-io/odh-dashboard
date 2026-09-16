@@ -4,17 +4,17 @@ import React from 'react';
 import {
   fetchS3File,
   fetchS3Json,
-  useOgxModelsQuery,
+  useMaaSModelsQuery,
   useSecretCredentialsQuery,
 } from '~/app/hooks/queries';
-import { getOgxModels, getSecretByName } from '~/app/api/k8s';
+import { getMaaSModels, getSecretByName } from '~/app/api/k8s';
 
 jest.mock('~/app/api/k8s', () => ({
-  getOgxModels: jest.fn(),
+  getMaaSModels: jest.fn(),
   getSecretByName: jest.fn(),
 }));
 
-const getOgxModelsMock = jest.mocked(getOgxModels);
+const getMaaSModelsMock = jest.mocked(getMaaSModels);
 const getSecretByNameMock = jest.mocked(getSecretByName);
 
 global.fetch = jest.fn();
@@ -278,128 +278,60 @@ describe('useSecretCredentialsQuery', () => {
   });
 });
 
-describe('useOgxModelsQuery', () => {
-  const createWrapper = () => {
+describe('useMaaSModelsQuery', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should reuse the prefetched result when another observer mounts', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       React.createElement(QueryClientProvider, { client: queryClient }, children);
-    return Wrapper;
-  };
+    const models = {
+      models: [{ id: 'llama-3-8b', ready: true }],
+    };
+    getMaaSModelsMock.mockReturnValue((() => () => Promise.resolve(models)) as never);
 
-  const mockModel = (id: string, type: string) => ({
-    id,
-    type,
-    provider: 'openai',
-    resource_path: `/${id}`, // eslint-disable-line camelcase
-  });
-
-  const mockModelsResponse = (models: ReturnType<typeof mockModel>[]) => {
-    getOgxModelsMock.mockReturnValue((() => () => Promise.resolve({ models })) as never);
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should be disabled when namespace is empty', () => {
-    const { result } = renderHook(() => useOgxModelsQuery('', 'secret'), {
-      wrapper: createWrapper(),
+    const firstObserver = renderHook(() => useMaaSModelsQuery('test-ns', 'maas-secret'), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => {
+      expect(firstObserver.result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.isFetching).toBe(false);
-    expect(result.current.data).toBeUndefined();
-  });
-
-  it('should be disabled when secretName is empty', () => {
-    const { result } = renderHook(() => useOgxModelsQuery('ns', ''), {
-      wrapper: createWrapper(),
+    const secondObserver = renderHook(() => useMaaSModelsQuery('test-ns', 'maas-secret'), {
+      wrapper: Wrapper,
     });
-
-    expect(result.current.isFetching).toBe(false);
-    expect(result.current.data).toBeUndefined();
+    expect(secondObserver.result.current.data).toEqual(models);
+    expect(getMaaSModelsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should return only llm and embedding models', async () => {
-    mockModelsResponse([mockModel('model-1', 'llm'), mockModel('model-2', 'embedding')]);
+  it('should settle into usable model data when the first request fails', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: 1, retryDelay: 0 } },
+    });
+    const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+    const models = {
+      models: [{ id: 'llama-3-8b', ready: true }],
+    };
+    const request = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('temporary failure'))
+      .mockResolvedValueOnce(models);
+    getMaaSModelsMock.mockReturnValue((() => request) as never);
 
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret'), {
-      wrapper: createWrapper(),
+    const { result } = renderHook(() => useMaaSModelsQuery('test-ns', 'maas-secret'), {
+      wrapper: Wrapper,
     });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data?.models).toHaveLength(2);
-    expect(result.current.data?.models.map((m) => m.id)).toEqual(['model-1', 'model-2']);
-  });
-
-  it('should filter out unknown model types', async () => {
-    mockModelsResponse([
-      mockModel('llm-1', 'llm'),
-      mockModel('reranker-1', 'reranker'),
-      mockModel('embed-1', 'embedding'),
-      mockModel('speech-1', 'speech-to-text'),
-    ]);
-
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret'), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data?.models).toHaveLength(2);
-    expect(result.current.data?.models.map((m) => m.id)).toEqual(['llm-1', 'embed-1']);
-  });
-
-  it('should return empty models when all types are unknown', async () => {
-    mockModelsResponse([mockModel('reranker-1', 'reranker'), mockModel('tts-1', 'text-to-speech')]);
-
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret'), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data?.models).toHaveLength(0);
-  });
-
-  it('should apply modelType select filter on top of type filtering', async () => {
-    mockModelsResponse([
-      mockModel('llm-1', 'llm'),
-      mockModel('embed-1', 'embedding'),
-      mockModel('reranker-1', 'reranker'),
-    ]);
-
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret', 'llm'), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data?.models).toHaveLength(1);
-    expect(result.current.data?.models[0].id).toBe('llm-1');
-  });
-
-  it('should throw on invalid response structure', async () => {
-    getOgxModelsMock.mockReturnValue((() => () => Promise.resolve({ invalid: 'data' })) as never);
-
-    const { result } = renderHook(() => useOgxModelsQuery('ns', 'secret'), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isError).toBe(true);
-    });
-
-    expect(result.current.error?.message).toBe('Invalid Open GenAI Stack models response');
+    expect(result.current.data).toEqual(models);
+    expect(request).toHaveBeenCalledTimes(2);
   });
 });

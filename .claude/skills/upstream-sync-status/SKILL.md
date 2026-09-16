@@ -143,3 +143,25 @@ If local `main` is behind:
 ### Step 6: Offer to sync
 
 If there are unsynced commits, ask the user if they would like to run `/upstream-sync <package-name>` to sync the changes. If the local `main` branch is also behind `upstream/main`, remind the user that a `git pull upstream main` will be needed first (the sync skill handles this automatically).
+
+### Step 6b: Automated sync PR (model-registry only)
+
+When `<package-name>` is `model-registry`, also check for an open automated sync PR:
+
+```bash
+gh pr list --repo opendatahub-io/odh-dashboard --head automated/model-registry-upstream-sync --state open --json number,title,url,assignees
+```
+
+If one exists, append to the report:
+
+```markdown
+### Automated sync PR
+
+An open [automated sync PR](<url>) exists (`#<number>`: <title>).
+
+- **Assignees:** <comma-separated assignee logins, or "none">
+- **Conflict PR:** yes/no (title contains `conflicts — resolve manually`)
+- **Suggested action:** Resolve conflicts on `automated/model-registry-upstream-sync` via `/upstream-sync model-registry`, or merge if already clean.
+```
+
+Default workflow assignees: `ppadti`, `manaswinidas`, `Philip-Carneiro`.

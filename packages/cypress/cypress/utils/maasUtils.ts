@@ -4,7 +4,11 @@ import type {
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
-import type { ExternalModel, ExternalProvider } from '@odh-dashboard/maas/types/external-models';
+import type {
+  ExternalModel,
+  ExternalProvider,
+  SecretSummary,
+} from '@odh-dashboard/maas/types/external-models';
 import type {
   MaaSSubscription,
   ModelOverviewItem,
@@ -1097,6 +1101,47 @@ export const mockExternalModels = (): ExternalModel[] => [
     statusMessage: 'External model is ready',
     maaSModelRef: undefined,
   }),
+];
+
+export const mockExternalProvidersForCreateFlow = (): ExternalProvider[] => [
+  mockExternalProvider({
+    name: 'anthropic-dev',
+    displayName: 'Anthropic Provider',
+    description: 'Anthropic provider for create flow tests.',
+    provider: 'anthropic',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.anthropic.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'anthropic-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+    config: {
+      project: 'my-project',
+      location: 'us-east1',
+      region: 'us-east-1',
+    },
+  }),
+  mockExternalProvider({
+    name: 'openai-prod',
+    displayName: 'OpenAI Production',
+    description: 'OpenAI production provider for create flow tests.',
+    provider: 'openai',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.openai.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'openai-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+  }),
+];
+
+export const mockMaasSecrets = (): SecretSummary[] => [
+  { name: 'openai-api-key' },
+  { name: 'anthropic-api-key', displayName: 'Anthropic API key' },
 ];
 
 export const mockExternalProviders = (): ExternalProvider[] => [

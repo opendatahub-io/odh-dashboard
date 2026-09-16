@@ -104,6 +104,20 @@ func ogxSecret(name string) kubernetes.SecretInfo {
 	}
 }
 
+func maasSecret(name string) kubernetes.SecretInfo {
+	return kubernetes.SecretInfo{
+		UUID: "uid-" + name, Name: name,
+		Data: map[string]string{
+			"MAAS_BASE_URL": "https://maas.example.com",
+			"MAAS_API_KEY":  "key-123",
+		},
+	}
+}
+
+func vectorDBSecret(name string, data map[string]string) kubernetes.SecretInfo {
+	return kubernetes.SecretInfo{UUID: "uid-" + name, Name: name, Data: data}
+}
+
 func plainSecret(name string) kubernetes.SecretInfo {
 	return kubernetes.SecretInfo{
 		UUID: "uid-" + name, Name: name,
@@ -230,6 +244,61 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("maas type filters by key presence and redacts credentials", func(t *testing.T) {
+		mixed := maasSecret("mixed")
+		mixed.Data["MAAS_BASE_URL"] = ""
+		mixed.Data["OGX_CLIENT_API_KEY"] = "ogx-key"
+		allSecrets := []kubernetes.SecretInfo{maasSecret("maas"), mixed, ogxSecret("ogx")}
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return allSecrets, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "maas")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 2 || result[0].Name != "maas" || result[1].Name != "mixed" {
+			t.Fatalf("unexpected MaaS secrets: %+v", result)
+		}
+		if result[0].Data["MAAS_BASE_URL"] != "[REDACTED]" || result[0].Data["MAAS_API_KEY"] != "[REDACTED]" {
+			t.Errorf("MaaS credentials were not redacted: %+v", result[0].Data)
+		}
+	})
+
+	t.Run("vector-db type is a deduplicated union and redacts credentials", func(t *testing.T) {
+		mixed := vectorDBSecret("mixed-vector-db", map[string]string{
+			"MILVUS_URI":        "",
+			"PGVECTOR_HOST":     "host",
+			"PGVECTOR_PORT":     "",
+			"PGVECTOR_DB":       "db",
+			"PGVECTOR_USER":     "user",
+			"PGVECTOR_PASSWORD": "password",
+		})
+		allSecrets := []kubernetes.SecretInfo{
+			vectorDBSecret("vector-db", map[string]string{
+				"MILVUS_URI": "https://milvus.example.com",
+			}),
+			mixed,
+			maasSecret("maas"),
+		}
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return allSecrets, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "vector-db")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 2 || result[0].Name != "vector-db" || result[1].Name != "mixed-vector-db" {
+			t.Fatalf("unexpected vector-db secrets: %+v", result)
+		}
+		if result[0].Data["MILVUS_URI"] != "[REDACTED]" {
+			t.Errorf("vector-db credentials were not redacted: %+v", result[0].Data)
+		}
+	})
+
 	t.Run("invalid type returns error", func(t *testing.T) {
 		_, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "invalid")
 		if err == nil {
@@ -287,6 +356,25 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 		if len(result) != 1 || result[0].Type != "custom-s3" {
 			t.Errorf("expected annotation type custom-s3, got %v", result)
+		}
+	})
+
+	t.Run("annotation does not replace required filter keys", func(t *testing.T) {
+		k8sAnnotated := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					annotatedSecret("incomplete", "storage", map[string]string{
+						"AWS_ACCESS_KEY_ID": "a",
+					}),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sAnnotated, context.Background(), "ns", "storage")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 0 {
+			t.Fatalf("expected annotated secret without required keys to be excluded, got %v", result)
 		}
 	})
 
