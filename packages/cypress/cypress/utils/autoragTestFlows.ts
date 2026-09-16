@@ -1,7 +1,10 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForDspaReady } from './oc_commands/dspa';
 import { waitForManagedPipelines } from './autoXPipelines';
-import { getVectorDatabaseConnection } from './oc_commands/autoragInfra';
+import {
+  getVectorDatabaseConnection,
+  provisionAutoragMaaSFixture,
+} from './oc_commands/autoragInfra';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage, normalizeVisibleOptionLabel } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
@@ -30,6 +33,9 @@ export type AutoragMaaSFixture =
     }
   | {
       mode: 'simulator';
+      maasUrl: string;
+      generationModelId: string;
+      embeddingModelId: string;
       ownership: 'dashboard-provisioned';
       supportsCompletionResults: false;
     };
@@ -40,6 +46,8 @@ const MAAS_CONFIG_KEYS = [
   'MAAS_GENERATION_MODEL_ID',
   'MAAS_EMBEDDING_MODEL_ID',
 ] as const;
+
+let resolvedProvisionedAutoragMaaSFixture: AutoragMaaSFixture | undefined;
 
 const readMaaSConfig = (): MaaSConfig => ({
   MAAS_URL: Cypress.env('MAAS_URL'),
@@ -65,8 +73,14 @@ export const resolveAutoragMaaSFixture = (
   });
 
   if (suppliedKeys.length === 0) {
+    if (resolvedProvisionedAutoragMaaSFixture) {
+      return resolvedProvisionedAutoragMaaSFixture;
+    }
     return {
       mode: 'simulator',
+      maasUrl: '',
+      generationModelId: '',
+      embeddingModelId: '',
       ownership: 'dashboard-provisioned',
       supportsCompletionResults: false,
     };
@@ -106,6 +120,18 @@ const hasExactVisibleOption = (document: Document, label: string): boolean => {
 };
 
 const getRequiredMaaSConfig = (name: string): string => {
+  const fixture = resolveAutoragMaaSFixture();
+  if (fixture.mode === 'simulator') {
+    const provisionedValues: Record<string, string> = {
+      MAAS_URL: fixture.maasUrl,
+      MAAS_GENERATION_MODEL_ID: fixture.generationModelId,
+      MAAS_EMBEDDING_MODEL_ID: fixture.embeddingModelId,
+    };
+    const provisionedValue = provisionedValues[name];
+    if (provisionedValue) {
+      return provisionedValue;
+    }
+  }
   const value = Cypress.env(name);
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error(`MaaS readiness check requires ${name} to be configured.`);
@@ -147,7 +173,10 @@ export const checkAutoragMaaSReadiness = ():
   | Cypress.Chainable<Cypress.Response<Record<string, unknown>>> => {
   const fixture = resolveAutoragMaaSFixture();
   if (fixture.mode === 'simulator') {
-    return cy.wrap(undefined);
+    return provisionAutoragMaaSFixture().then((provisionedFixture) => {
+      resolvedProvisionedAutoragMaaSFixture = provisionedFixture;
+      return cy.wrap(undefined);
+    });
   }
 
   const serviceRoot = getMaaSServiceRoot(fixture.maasUrl);

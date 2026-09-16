@@ -23,7 +23,7 @@ const completionsRequestTimeoutMs = 180000;
  * )
  * so we prefer the non-`/publishers/` form when both exist.
  */
-const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
+export const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
   if (!isRecord(doc)) {
     throw new Error('Invalid LLMInferenceService JSON');
   }
@@ -499,6 +499,42 @@ export const waitForExternalModelGovernancePending = (
     });
 
   return checkState();
+};
+
+/**
+ * Poll a MaaSModelRef until the MaaS controller reports it ready.
+ * The controller has used both phase and Ready condition representations.
+ */
+export const waitForMaaSModelRefReady = (
+  resourceName: string,
+  namespace: string,
+  options: { maxAttempts?: number; retryIntervalMs?: number } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const maxAttempts = options.maxAttempts ?? 96;
+  const retryIntervalMs = options.retryIntervalMs ?? 5000;
+  const readyCommand =
+    `oc get MaaSModelRef ${resourceName} -n ${namespace} -o json | ` +
+    `jq -e '(.status.phase == "Ready") or ` +
+    `any(.status.conditions[]?; .type == "Ready" and .status == "True")'`;
+  let attempts = 0;
+
+  const check = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(readyCommand, { failOnNonZeroExit: false }).then((result) => {
+      attempts += 1;
+      if (result.exitCode === 0) {
+        cy.log(`MaaSModelRef ${resourceName} is ready`);
+        return cy.wrap(result);
+      }
+      if (attempts >= maxAttempts) {
+        throw new Error(
+          `MaaSModelRef ${resourceName} did not become ready in namespace ${namespace}`,
+        );
+      }
+      // eslint-disable-next-line cypress/no-unnecessary-waiting -- bounded readiness polling
+      return cy.wait(retryIntervalMs).then(() => check());
+    });
+
+  return check();
 };
 
 const parseMaaSSubscriptionDoc = (
