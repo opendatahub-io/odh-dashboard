@@ -1,5 +1,5 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
-import { waitForDspaReady } from './oc_commands/dspa';
+import { waitForAutoXDspaReady } from './oc_commands/autoX';
 import { waitForManagedPipelines } from './autoXPipelines';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
@@ -25,7 +25,7 @@ export const configureAutoragRun = (
 ): void => {
   cy.step('Login and wait for pipeline server');
   cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-  waitForDspaReady(projectName);
+  waitForAutoXDspaReady(projectName);
   waitForManagedPipelines(projectName);
 
   cy.step('Navigate to AutoRAG experiments page');
