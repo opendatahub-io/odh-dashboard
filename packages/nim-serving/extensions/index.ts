@@ -3,8 +3,8 @@ import legacyUiExtensions from './legacy-ui';
 import projectKeyExtensions from './project-key';
 import wizardExtensions from './wizard';
 import nimKServeExtensions from './nim-kserve';
-import nimServiceExtensions from './nim-service';
 import clusterStorageExtensions from './cluster-storage';
+import nimServiceExtensions from './nim-service';
 
 const extensions: Extension[] = [
   ...legacyUiExtensions,

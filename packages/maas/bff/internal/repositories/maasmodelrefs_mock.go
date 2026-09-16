@@ -29,7 +29,7 @@ func (r *MockMaaSModelRefsRepository) CreateMaaSModelRef(_ context.Context, requ
 
 	for _, ref := range mocks.GetMockMaaSModelRefSummaries() {
 		if ref.Name == request.Name && ref.Namespace == request.Namespace {
-			return nil, fmt.Errorf("MaaSModelRef '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: MaaSModelRef '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 	}
 
@@ -60,7 +60,7 @@ func (r *MockMaaSModelRefsRepository) UpdateMaaSModelRef(_ context.Context, name
 			}, nil
 		}
 	}
-	return nil, fmt.Errorf("MaaSModelRef '%s' not found", name)
+	return nil, fmt.Errorf("%w: MaaSModelRef '%s' not found", ErrNotFound, name)
 }
 
 func (r *MockMaaSModelRefsRepository) DeleteMaaSModelRef(_ context.Context, namespace, name string, dryRun bool) error {
@@ -71,5 +71,5 @@ func (r *MockMaaSModelRefsRepository) DeleteMaaSModelRef(_ context.Context, name
 			return nil
 		}
 	}
-	return fmt.Errorf("MaaSModelRef '%s' not found", name)
+	return fmt.Errorf("%w: MaaSModelRef '%s' not found", ErrNotFound, name)
 }

@@ -5,7 +5,13 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { waitForResource, waitForPodReady } from '../../../utils/oc_commands/baseCommands';
+import {
+  startPortForward,
+  stopPortForward,
+  waitForResource,
+  waitForPodReady,
+  type PortForwardHandle,
+} from '../../../utils/oc_commands/baseCommands';
 import {
   enableExternalProviders,
   disableExternalProviders,
@@ -15,6 +21,8 @@ import {
   removeMCPServerConfigMapEntry,
   deployMCPServer,
   teardownMCPServer,
+  registerMCPServerInRegistry,
+  removeMCPServerFromRegistry,
 } from '../../../utils/oc_commands/genAi';
 import { enableMlflowBackend, disableMlflowFeatures } from '../../../utils/oc_commands/mlflow';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -27,6 +35,10 @@ const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
 describe('Verify MCP in playground using custom endpoint', { testIsolation: false }, () => {
   let testData: CustomEndpointTestData;
+  let mcpServerUrl: string;
+  let portForwardHandle: PortForwardHandle | null = null;
+  /** Tracks whether a registry server was registered so after() can clean it up */
+  let registeredRegistryServerName: string | null = null;
   const projectName = `custom-ep-mcp-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -60,6 +72,7 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
       cy.step('Deploy MCP server and register in ConfigMap');
       const mcpCrbName = `${testData.mcp.serverKey}-view-${projectName}`;
       deployMCPServer(testData.mcp.namespace, testData.mcp.image, mcpCrbName).then((mcpUrl) => {
+        mcpServerUrl = mcpUrl;
         ensureMCPServerConfigMapEntry(testData.mcp.configMapName, testData.mcp.serverKey, {
           url: mcpUrl,
           transport: 'streamable-http',
@@ -72,6 +85,15 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
   });
 
   after(() => {
+    stopPortForward(portForwardHandle);
+
+    // Always clean up any registry server that was registered during the test run,
+    // even if the registry test failed before reaching its own inline cleanup step.
+    if (registeredRegistryServerName) {
+      cy.step('Clean up registry server (post-test)');
+      removeMCPServerFromRegistry(projectName, registeredRegistryServerName);
+    }
+
     cy.step('Clean up MLflow CR');
     disableMlflowFeatures();
 
@@ -156,11 +178,16 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
 
       cy.step('Wait for custom model to be registered in LSD');
       waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
+
+      cy.step('Start port-forward for LSD service');
+      startPortForward(projectName, testData.lsdServiceName, 8321).then((handle) => {
+        portForwardHandle = handle;
+      });
     },
   );
 
   it(
-    'Verify MCP — connect to Kubernetes MCP server and query from playground',
+    'Verify Manual Connection — connect to ConfigMap MCP server and query from playground',
     {
       tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
@@ -173,38 +200,71 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
       genAiPlayground.verifyModelIsSelected(testData.displayName);
 
       cy.step('Open settings panel and navigate to MCP tab');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findMCPTab().should('be.visible').click();
+      genAiPlayground.openMCPTab();
 
-      cy.step('Verify MCP servers table is visible');
-      genAiPlayground.findMCPServersTable({ timeout: 30000 }).should('be.visible');
+      cy.step('Verify Manual Connection section is visible');
+      genAiPlayground.findMCPManualSection().should('be.visible');
+      genAiPlayground.findMCPManualToggle().should('contain.text', 'Manual Connection');
 
-      cy.step(`Select the "${testData.mcp.serverName}" MCP server`);
-      genAiPlayground.findMCPServerRow(testData.mcp.serverName).should('be.visible');
-      genAiPlayground.selectMCPServer(testData.mcp.serverName);
+      cy.step(`Select and connect the MCP server`);
+      genAiPlayground.findMCPServerRow(mcpServerUrl).should('be.visible');
+      genAiPlayground.connectMCPServer(mcpServerUrl);
 
-      cy.step('Wait for auto-connect and verify success modal');
-      genAiPlayground.findMCPSuccessModal({ timeout: 30000 }).should('be.visible');
+      cy.step(`Send MCP question and verify response`);
+      genAiPlayground.sendAndVerifyMCPResponse(testData.mcp.testQuestion);
+    },
+  );
 
-      cy.step('Close success modal');
-      genAiPlayground.closeMCPSuccessModal();
+  it(
+    'Verify MCP Registry — register server, verify Registered section, and query from playground',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent', '@MCPRegistry'],
+    },
+    () => {
+      const registryServerName = 'io.kubernetes/mcp-server-e2e';
+      registeredRegistryServerName = registryServerName;
 
-      cy.step(`Send MCP question: "${testData.mcp.testQuestion}"`);
-      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
-      genAiPlayground.sendMessage(testData.mcp.testQuestion);
+      cy.step('Register the MCP server in the MLflow MCP Registry');
+      registerMCPServerInRegistry(
+        projectName,
+        registryServerName,
+        mcpServerUrl,
+        testData.mcp.serverDescription,
+      );
 
-      cy.step('Verify user message appears in chat');
-      genAiPlayground
-        .findAllUserMessages()
-        .last()
-        .should('exist')
-        .and('contain', testData.mcp.testQuestion);
+      // Fail fast if the BFF cannot reach the MLflow registry — the Registered section
+      // will never render and we'd just time out on the DOM assertion.
+      cy.step('Verify MLflow registry is accessible via BFF');
+      cy.request(`/gen-ai/api/v1/aaa/mcps?namespace=${projectName}`).then((resp) => {
+        cy.log(`[DEBUG] /aaa/mcps response: ${JSON.stringify(resp.body?.data)}`);
+        const data = resp.body?.data;
+        if (!data?.registry_available) {
+          throw new Error(
+            `MLflow registry is unreachable from the BFF ` +
+              `(registry_available=${data?.registry_available}, ` +
+              `error: "${data?.registry_error ?? 'unknown'}"). ` +
+              `Check the mlflow-ui service connectivity.`,
+          );
+        }
+      });
 
-      cy.step('Wait for streaming response to complete');
-      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
+      cy.step('Navigate to playground with mcpRegistry flag enabled');
+      genAiPlayground.navigateToPlaygroundWithMCPRegistry(projectName);
 
-      cy.step('Verify assistant response is received');
-      genAiPlayground.findAssistantMessage({ timeout: 30000 }).should('exist').and('not.be.empty');
+      cy.step('Open settings panel and navigate to MCP tab');
+      genAiPlayground.openMCPTab();
+
+      cy.step('Verify Registered section is visible');
+      genAiPlayground.findMCPRegisteredSection().should('be.visible');
+      genAiPlayground.findMCPRegisteredToggle().should('contain.text', 'Registered');
+      genAiPlayground.findMCPRegisteredCountBadge().should('be.visible');
+
+      cy.step('Select and connect the registry MCP server');
+      const shortName = registryServerName.split('/').pop() ?? registryServerName;
+      genAiPlayground.connectMCPServer(shortName);
+
+      cy.step('Send MCP question and verify response');
+      genAiPlayground.sendAndVerifyMCPResponse(testData.mcp.testQuestion);
     },
   );
 });

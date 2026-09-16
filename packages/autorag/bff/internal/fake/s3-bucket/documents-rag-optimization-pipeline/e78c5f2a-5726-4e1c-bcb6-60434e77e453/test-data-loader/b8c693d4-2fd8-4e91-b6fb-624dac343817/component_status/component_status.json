@@ -5,8 +5,8 @@
   "stages": [
     {
       "id": "load_benchmark",
-      "status": "completed",
-      "timestamp": "2026-07-16T19:38:28.694725Z"
+      "status": { "state": "completed" },
+      "metrics": { "records_loaded": 1 }
     }
   ],
   "metadata": {

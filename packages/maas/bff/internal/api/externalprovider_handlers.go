@@ -100,6 +100,12 @@ func UpdateExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
+	if request.Data.CredentialSecretRef != "" {
+		if err := repositories.ValidateCredentialSecretRef(request.Data.CredentialSecretRef); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+	}
 
 	result, err := app.repositories.ExternalProviders.UpdateExternalProvider(ctx, namespace, name, request.Data)
 	if err != nil {
@@ -161,8 +167,8 @@ func validateCreateExternalProviderRequest(request models.CreateExternalProvider
 	if !request.AuthMechanism.IsValid() {
 		return errors.New("authMechanism must be 'apikey', 'sigv4', or 'oauth2'")
 	}
-	if strings.TrimSpace(request.CredentialSecretRef) == "" {
-		return errors.New("credentialSecretRef is required")
+	if err := repositories.ValidateCredentialSecretRef(request.CredentialSecretRef); err != nil {
+		return err
 	}
 	if strings.TrimSpace(request.Provider) == "" {
 		return errors.New("provider is required")

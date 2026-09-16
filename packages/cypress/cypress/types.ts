@@ -138,8 +138,10 @@ export type KueueWorkbenchTestData = {
 export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   updatedCpuQuota: number;
   updatedMemoryQuota: number;
+  exceededQuotaMessage: string;
+  queuedCpuQuota: number;
+  queuedMemoryQuota: number;
   waitingForQuotaMessage: string;
-  queuePositionMarker: string;
 };
 
 export type WBControlSuiteTestData = {
@@ -275,6 +277,8 @@ export type TestConfig = {
   OCI_MODEL_URI: string;
   OGX_URL?: string;
   OGX_API_KEY?: string;
+  MAAS_URL?: string;
+  MAAS_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -694,6 +698,24 @@ export type FeatureStoreTestData = {
   hardwareProfileName: string;
 };
 
+export type FeatureStoreAdminLifecycleTestData = {
+  createPageTitle: string;
+  managePageTitle: string;
+  statusReady: string;
+  wizardSteps: {
+    details: string;
+    registry: string;
+    onlineOfflineStores: string;
+    advancedOptions: string;
+    review: string;
+  };
+  expandedDetails: {
+    feastProject: string;
+    conditions: string;
+  };
+  deleteAction: string;
+};
+
 export type GenAiTestData = {
   projectNamePrefix: string;
   projectDescription: string;
@@ -814,6 +836,7 @@ export type ModelAsAServiceTestData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
+  llmInferenceServiceFixturePath: string;
   hardwareProfileName: string;
   modelLocationURI: string;
   connectionNameSuffix: string;
@@ -971,7 +994,8 @@ export type AutoragTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;
   s3SecretName: string;
-  ogxSecretName: string;
+  maasSecretName: string;
+  vectorDbSecretName: string;
   runName: string;
   runDescription: string;
   documentFile: string;

@@ -1,6 +1,7 @@
 package models
 
 type CatalogSourcePreviewRequest struct {
+	Id              string                 `json:"id,omitempty"`
 	Type            string                 `json:"type"`
 	IncludedModels  []string               `json:"includedModels,omitempty"`
 	ExcludedModels  []string               `json:"excludedModels,omitempty"`
@@ -10,8 +11,10 @@ type CatalogSourcePreviewRequest struct {
 }
 
 type CatalogSourcePreviewModel struct {
-	Name     string `json:"name"`
-	Included bool   `json:"included"`
+	Name                 string  `json:"name"`
+	Included             bool    `json:"included"`
+	HfAccessType         *string `json:"hfAccessType,omitempty"`
+	HfGatedAccessGranted *bool   `json:"hfGatedAccessGranted,omitempty"`
 }
 
 type CatalogSourcePreviewSummary struct {

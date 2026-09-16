@@ -84,7 +84,9 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	dashboard = getDashboard(t)
 	assert.Equal(t, common.PhaseNotReady, dashboard.Status.Phase)
 	assert.Empty(t, dashboard.Status.URL)
-	assert.Nil(t, dashboard.Status.ModuleStatuses)
+	require.NotNil(t, dashboard.Status.ModuleStatuses)
+	assert.Equal(t, v1alpha1.ModulePhaseNotDeployed, dashboard.Status.ModuleStatuses["modelRegistry"].Phase)
+	assert.Equal(t, "NotRequired", dashboard.Status.ModuleStatuses["modelRegistry"].Reason)
 
 	cond := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeProvisioningSucceeded))
 	require.NotNil(t, cond, "ProvisioningSucceeded condition should be present")
@@ -131,7 +133,9 @@ func TestIntegration_ManagementStateRemoved_IdempotentRereconcile(t *testing.T) 
 
 	dashboard = getDashboard(t)
 	assert.Equal(t, common.PhaseNotReady, dashboard.Status.Phase)
-	assert.Nil(t, dashboard.Status.ModuleStatuses)
+	require.NotNil(t, dashboard.Status.ModuleStatuses)
+	assert.Equal(t, v1alpha1.ModulePhaseNotDeployed, dashboard.Status.ModuleStatuses["modelRegistry"].Phase)
+	assert.Equal(t, "NotRequired", dashboard.Status.ModuleStatuses["modelRegistry"].Reason)
 
 	// Operator-owned resources remain intact across repeated teardowns.
 	assertExists(t, &appsv1.Deployment{}, types.NamespacedName{Name: "dashboard-operator", Namespace: integrationNamespace})

@@ -57,7 +57,7 @@ func TestIntegration_DeploysResources(t *testing.T) {
 	}
 
 	// Federation ConfigMap lists both modules plus the always-present coreBff entry.
-	entries := parseFederationEntries(t, getFederationConfigMap(t))
+	entries := parseFederationEntries(t, getConfigMap(t, "federation-config"))
 	assert.NotNil(t, findFederationEntry(entries, "genAi"), "genAi should be in federation config")
 	assert.NotNil(t, findFederationEntry(entries, "maas"), "maas should be in federation config")
 	assert.NotNil(t, findFederationEntry(entries, "coreBff"), "coreBff should always be in federation config")
