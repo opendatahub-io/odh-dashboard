@@ -231,8 +231,13 @@ jobs:
           steps.outcome.outputs.status == 'synced' ||
           steps.outcome.outputs.status == 'conflict'
         run: |
-          BASE_SHA="${{ coalesce(steps.sync_range.outputs.base_sha, steps.sync_range_conflict.outputs.base_sha) }}"
-          SYNC_SHA="${{ coalesce(steps.sync_range.outputs.sync_sha, steps.sync_range_conflict.outputs.sync_sha) }}"
+          if [[ "${{ steps.outcome.outputs.status }}" == "conflict" ]]; then
+            BASE_SHA="${{ steps.sync_range_conflict.outputs.base_sha }}"
+            SYNC_SHA="${{ steps.sync_range_conflict.outputs.sync_sha }}"
+          else
+            BASE_SHA="${{ steps.sync_range.outputs.base_sha }}"
+            SYNC_SHA="${{ steps.sync_range.outputs.sync_sha }}"
+          fi
           unexpected_paths=$(git diff --name-only "$BASE_SHA..$SYNC_SHA" |
             grep -Ev '^packages/model-registry/(package\.json|upstream/)' || true)
           if [[ -n "$unexpected_paths" ]]; then
