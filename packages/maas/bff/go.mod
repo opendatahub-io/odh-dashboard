@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/maas-library/bff
 
-go 1.25.0
+go 1.25.13
 
 require (
 	github.com/google/uuid v1.6.0

@@ -63,7 +63,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "junit-report-merger": "^7.0.1",
     "mini-css-extract-plugin": "^2.9.0",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.19",
     "prettier": "^3.3.3",
     "prop-types": "^15.8.1",
     "raw-loader": "^4.0.2",
@@ -150,6 +150,9 @@
     "ts-jest": "^29.4.0"
   },
   "overrides": {
-    "axios": "^1.15.0"
+    "axios": "^1.15.0",
+    "compression": "^1.8.2",
+    "nanoid": "^3.3.12",
+    "postcss": "^8.5.19"
   }
 }
