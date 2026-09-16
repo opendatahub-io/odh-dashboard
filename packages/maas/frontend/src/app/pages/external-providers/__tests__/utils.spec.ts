@@ -71,6 +71,43 @@ describe('external provider form utils', () => {
     });
   });
 
+  it('sends an empty description to clear the annotation', () => {
+    expect(
+      toUpdateExternalProviderRequest(
+        {
+          name: 'OpenAI Production',
+          description: '',
+          k8sName: {
+            value: 'openai-prod',
+            state: {
+              immutable: true,
+              invalidLength: false,
+              invalidCharacters: false,
+              maxLength: 253,
+              routeNameTooLong: false,
+              touched: false,
+            },
+          },
+        },
+        {
+          provider: 'openai',
+          endpointUrl: 'api.openai.com',
+          authMechanism: 'apikey',
+          credentialSecretRef: 'openai-api-key',
+        },
+        [EMPTY_CONFIG_PAIR],
+      ),
+    ).toEqual({
+      displayName: 'OpenAI Production',
+      description: '',
+      endpointUrl: 'api.openai.com',
+      authMechanism: 'apikey',
+      credentialSecretRef: 'openai-api-key',
+      provider: 'openai',
+      config: {},
+    });
+  });
+
   it('sends empty config object when all config pairs are empty', () => {
     expect(
       toUpdateExternalProviderRequest(
@@ -99,6 +136,7 @@ describe('external provider form utils', () => {
       ),
     ).toEqual({
       displayName: 'OpenAI Production',
+      description: '',
       endpointUrl: 'api.openai.com',
       authMechanism: 'apikey',
       credentialSecretRef: 'openai-api-key',

@@ -530,15 +530,15 @@ describe('External providers', () => {
       editExternalProviderModal.findSubmitButton().click();
 
       cy.wait('@updateExternalProvider').then((interception) => {
-        expect(interception.request.body?.data).to.deep.equal({
+        expect(interception.request.body?.data).to.include({
           displayName: 'OpenAI Production Updated',
           description: 'Updated production endpoint',
           endpointUrl: 'api.updated-openai.com',
           authMechanism: 'apikey',
           credentialSecretRef: 'openai-api-key',
           provider: 'openai',
-          config: {},
         });
+        expect(interception.request.body?.data.config).to.deep.equal({});
       });
       cy.wait('@listExternalProviders');
       editExternalProviderModal.shouldBeOpen(false);

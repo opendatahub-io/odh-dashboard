@@ -67,8 +67,8 @@ export const toUpdateExternalProviderRequest = (
   },
   configPairs: ConfigPair[],
 ): UpdateExternalProviderRequest => ({
-  displayName: nameDescData.name.trim() || undefined,
-  description: nameDescData.description.trim() || undefined,
+  displayName: nameDescData.name.trim(),
+  description: nameDescData.description.trim(),
   endpointUrl: formData.endpointUrl.trim(),
   authMechanism: formData.authMechanism,
   credentialSecretRef: formData.credentialSecretRef.trim(),

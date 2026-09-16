@@ -59,6 +59,42 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 		Expect(actual.Data.CredentialSecretRef).To(Equal("test-api-key"))
 	})
 
+	It("rejects whitespace-only provider updates (mock)", func() {
+		_, rs, err := setupMockApiTest[Envelope[*models.ExternalProviderSummary, None]](
+			http.MethodPut,
+			"/api/v1/externalprovider/maas-models/openai-prod",
+			Envelope[models.UpdateExternalProviderRequest, None]{
+				Data: models.UpdateExternalProviderRequest{
+					Provider: "   ",
+				},
+			},
+			k8Factory,
+			identity,
+		)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+	})
+
+	It("trims provider values on update (mock)", func() {
+		actual, rs, err := setupMockApiTest[Envelope[*models.ExternalProviderSummary, None]](
+			http.MethodPut,
+			"/api/v1/externalprovider/maas-models/openai-prod",
+			Envelope[models.UpdateExternalProviderRequest, None]{
+				Data: models.UpdateExternalProviderRequest{
+					Provider: "  anthropic  ",
+				},
+			},
+			k8Factory,
+			identity,
+		)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rs.StatusCode).To(Equal(http.StatusOK))
+		Expect(actual.Data).NotTo(BeNil())
+		Expect(actual.Data.Provider).To(Equal("anthropic"))
+	})
+
 	It("updates an ExternalProvider (mock)", func() {
 		displayName := "Updated OpenAI"
 		actual, rs, err := setupMockApiTest[Envelope[*models.ExternalProviderSummary, None]](

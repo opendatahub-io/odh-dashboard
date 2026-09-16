@@ -106,11 +106,17 @@ func UpdateExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
-	if strings.TrimSpace(request.Data.Provider) != "" {
-		if err := validateProviderType(request.Data.Provider); err != nil {
+	if request.Data.Provider != "" {
+		trimmedProvider := strings.TrimSpace(request.Data.Provider)
+		if trimmedProvider == "" {
+			app.badRequestResponse(w, r, errors.New("provider must not be whitespace only"))
+			return
+		}
+		if err := validateProviderType(trimmedProvider); err != nil {
 			app.badRequestResponse(w, r, err)
 			return
 		}
+		request.Data.Provider = trimmedProvider
 	}
 
 	result, err := app.repositories.ExternalProviders.UpdateExternalProvider(ctx, namespace, name, request.Data)
@@ -182,9 +188,15 @@ func validateCreateExternalProviderRequest(request models.CreateExternalProvider
 	return nil
 }
 
+const maxProviderTypeLength = 63
+
 func validateProviderType(raw string) error {
-	if strings.TrimSpace(raw) == "" {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return errors.New("provider is required")
+	}
+	if len(trimmed) > maxProviderTypeLength {
+		return errors.New("provider must be at most 63 characters")
 	}
 	return nil
 }

@@ -96,22 +96,17 @@ export const useEditExternalProviderForm = (
 
     setSubmitError(undefined);
 
-    try {
-      const credentialSecretRef = formData.credentialSecretRef.trim();
+    const credentialSecretRef = formData.credentialSecretRef.trim();
+    let createdSecretName: string | undefined;
 
+    try {
       if (formData.isNewSecret) {
         await createSecretCallback({
           namespace: externalProvider.namespace,
           name: credentialSecretRef,
           value: formData.secretValue.trim(),
         });
-        refreshSecrets();
-        setFormData((current) => ({
-          ...current,
-          isNewSecret: false,
-          credentialSecretRef,
-          secretValue: '',
-        }));
+        createdSecretName = credentialSecretRef;
       }
 
       if (!isAuthMechanism(formData.authMechanism)) {
@@ -134,10 +129,25 @@ export const useEditExternalProviderForm = (
         externalProvider.name,
         request,
       );
+
+      if (createdSecretName) {
+        refreshSecrets();
+        setFormData((current) => ({
+          ...current,
+          isNewSecret: false,
+          credentialSecretRef: createdSecretName,
+          secretValue: '',
+        }));
+      }
+
       return externalProvider.name;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update external provider';
-      setSubmitError(message);
+      setSubmitError(
+        createdSecretName
+          ? `${message} The credential secret "${createdSecretName}" was created but could not be linked to this provider. Select it from the existing secrets list and try again.`
+          : message,
+      );
       return undefined;
     }
   }, [
