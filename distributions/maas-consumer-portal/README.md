@@ -2,6 +2,8 @@
 
 Consumer-facing portal for MaaS API key management and AI asset endpoints. Bundles the `maas` and `gen-ai` packages.
 
+In production the portal is served at `https://<gateway-domain>/maas-consumer-portal/`. Its router, static assets, and MaaS/GenAI browser API calls use that base path; the Gateway strips the prefix before forwarding to the existing Core-BFF and shared module BFF contracts. The portal can remain available when the core dashboard operand is removed. The shared gateway retains the OAuth callback and sign-out endpoints.
+
 ## Running locally
 
 ### Mode A: Mock data (no cluster needed)
@@ -30,6 +32,8 @@ OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TAR
 ```
 
 `MOCK_USER` sets the identity header the mock BFF expects (`kubeflow-userid`). Use `user@example.com` — that is the mock user’s identity with RBAC bindings in the maas mock client.
+
+When using cluster proxy mode with an internally signed dashboard certificate, set `ODH_DASHBOARD_CA_FILE` to the PEM file for the CA that issued the certificate. Cluster proxy TLS verification remains enabled.
 
 ### Mode B: Real cluster data
 
@@ -63,6 +67,7 @@ BFF targets use `https://` because on-cluster BFFs serve over TLS.
 | `distribution.yaml` | Feature flags, bundled packages, extension paths |
 | `src/bootstrap.tsx` | App entry — mounts providers via `createDistribution` |
 | `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
-| `src/PortalContextProvider.tsx` | MaaS BFF context (mod-arch standalone) |
+| `src/PortalContextProvider.tsx` | Composes the standalone MaaS BFF and portal authorization providers |
+| `src/MaaSAuthzProvider.tsx` | Publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility |
 | `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
 | `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |

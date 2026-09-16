@@ -1,4 +1,4 @@
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 
 import { parseErrorStatus } from '~/app/utilities/utils';
 

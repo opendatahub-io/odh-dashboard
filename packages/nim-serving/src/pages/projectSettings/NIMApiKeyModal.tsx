@@ -21,6 +21,8 @@ import {
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { NIMAccountStatus } from '../../api/accounts/hooks';
 import { createNIMResources, createOrReplaceSecret } from '../../api/accounts/api';
+import { NimAccountEnabledMode } from '../../tracking/nimTrackingConstants';
+import { useNimAccountEnabledTracking } from '../../tracking/useNimAccountEnabledTracking';
 
 type NIMApiKeyModalProps = {
   onClose: () => void;
@@ -42,14 +44,23 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   const [isCreating, setIsCreating] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
   const [createError, setCreateError] = React.useState<string>();
+  const [submitMode, setSubmitMode] = React.useState(NimAccountEnabledMode.ENABLE);
+  const { resetTrackingRefs, trackSubmitApiFailure } = useNimAccountEnabledTracking(
+    submitted,
+    accountStatus,
+    submitMode,
+  );
 
   const handleSubmit = React.useCallback(async () => {
     const trimmedKey = apiKey.trim();
     setIsCreating(true);
     setCreateError(undefined);
+    resetTrackingRefs();
 
     const accountExists =
       accountStatus !== NIMAccountStatus.NOT_FOUND && accountStatus !== NIMAccountStatus.LOADING;
+    const mode = accountExists ? NimAccountEnabledMode.REPLACE : NimAccountEnabledMode.ENABLE;
+    setSubmitMode(mode);
 
     try {
       if (accountExists) {
@@ -58,14 +69,33 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       } else {
         await createNIMResources(namespace, trimmedKey);
       }
-      setSubmitted(true);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Failed to create NIM resources.';
+      setCreateError(errorMessage);
+      trackSubmitApiFailure(mode);
+      setIsCreating(false);
+      return;
+    }
+
+    setSubmitted(true);
+    try {
       await refresh();
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : 'Failed to create NIM resources.');
+      setCreateError(
+        e instanceof Error ? e.message : 'Failed to refresh NVIDIA NIM account status.',
+      );
     } finally {
       setIsCreating(false);
     }
-  }, [apiKey, accountStatus, namespace, startRevalidation, refresh]);
+  }, [
+    apiKey,
+    accountStatus,
+    namespace,
+    startRevalidation,
+    refresh,
+    resetTrackingRefs,
+    trackSubmitApiFailure,
+  ]);
 
   const handleClose = React.useCallback(() => {
     onClose();

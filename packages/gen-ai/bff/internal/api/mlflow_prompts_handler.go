@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -19,9 +18,6 @@ import (
 
 // validPromptName matches alphanumerics, hyphens, underscores, and dots (MLflow naming rules).
 var validPromptName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
-
-// bffCallTimeout is the timeout for all MLflow BFF inter-BFF HTTP calls.
-const bffCallTimeout = 5 * time.Second
 
 // MLflowPromptsEnvelope is the response envelope for MLflow prompts
 type MLflowPromptsEnvelope = Envelope[models.MLflowPromptsResponse, None]

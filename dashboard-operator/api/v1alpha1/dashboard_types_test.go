@@ -8,12 +8,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	"github.com/opendatahub-io/odh-platform-utilities/api/common/validation"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
 // Compile-time assertion: Dashboard must implement PlatformObject.
 var _ common.PlatformObject = &v1alpha1.Dashboard{}
+
+func TestDashboard_PlatformObjectContract(t *testing.T) {
+	validation.ValidatePlatformObject(t, &v1alpha1.Dashboard{})
+}
 
 func TestDashboard_GetStatus(t *testing.T) {
 	d := &v1alpha1.Dashboard{}

@@ -3,11 +3,12 @@ import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/reac
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { getAuthPolicyCreateUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { getAuthPolicyCreateUrl } from '~/app/utilities/maasGovernanceNavigation';
 import {
   EventTrackingFilterAttribute,
   EventTrackingResourceType,
   MaaSEvents,
+  MaaSSettingsListFilteredProperties,
 } from '~/app/types/event-tracking';
 import {
   AuthPoliciesFilterDataType,
@@ -46,7 +47,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
               fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.KEYWORD,
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
-              });
+              } satisfies MaaSSettingsListFilteredProperties);
             },
           }}
         />

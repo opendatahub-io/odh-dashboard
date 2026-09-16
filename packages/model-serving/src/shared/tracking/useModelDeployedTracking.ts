@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import {
   fireModelDeployed as fireDeploymentFormTracking,
   type DeploymentTrackingProperties,
@@ -18,6 +19,7 @@ import {
 import { MODEL_CAPABILITIES_FIELD_ID } from '../../components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField';
 import type { WizardFormState } from '../../components/deploymentWizard/useDeploymentWizardReducer';
 import type { InitialWizardFormData } from '../types/form-data';
+import type { ExternalDataMap } from '../../components/deploymentWizard/ExternalDataLoader';
 
 export const getBaseModelDeployedTrackingProperties = (
   formState: WizardFormState,
@@ -65,6 +67,8 @@ export const useModelDeployedTracking = (
   formState: WizardFormState,
   initialWizardData?: InitialWizardFormData,
   platformId?: string,
+  isEdit?: boolean,
+  externalData?: ExternalDataMap,
 ): {
   fireModelDeployedTracking: (
     outcome: 'submit' | 'cancel',
@@ -73,11 +77,12 @@ export const useModelDeployedTracking = (
   ) => Promise<void>;
 } => {
   const location = useLocation();
+  const trackEvent = useTrackEvent();
   const { getTrackingProperties } = useWizardTrackingProperties(formState, platformId);
 
   const fireModelDeployedTracking = React.useCallback(
     async (outcome: 'submit' | 'cancel', success?: boolean, errorMessage?: string) => {
-      const platformTrackingProperties = await getTrackingProperties();
+      const platformTrackingProperties = await getTrackingProperties(externalData);
       const wizardProperties = getModelDeployedTrackingProperties({
         navState: getDeployWizardNavState(location.state),
         validatedConfigurations: initialWizardData?.validatedConfigurations,
@@ -94,9 +99,21 @@ export const useModelDeployedTracking = (
         },
       });
 
-      fireDeploymentFormTracking(toDeploymentTrackingProperties(wizardProperties, errorMessage));
+      fireDeploymentFormTracking(
+        trackEvent,
+        toDeploymentTrackingProperties(wizardProperties, errorMessage),
+        isEdit,
+      );
     },
-    [location.state, initialWizardData?.validatedConfigurations, formState, getTrackingProperties],
+    [
+      location.state,
+      initialWizardData?.validatedConfigurations,
+      formState,
+      getTrackingProperties,
+      trackEvent,
+      isEdit,
+      externalData,
+    ],
   );
 
   return { fireModelDeployedTracking };

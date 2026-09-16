@@ -83,6 +83,43 @@ func TestComputeKustomizeVariables(t *testing.T) {
 	}
 }
 
+func TestMaaSConsumerPortalManifestInfo(t *testing.T) {
+	info := maasConsumerPortalManifestInfo("/base")
+	assert.Equal(t, "/base", info.Path)
+	assert.Equal(t, "distributions", info.ContextDir)
+	assert.Equal(t, "maas-consumer-portal", info.SourcePath)
+}
+
+func TestMaaSConsumerPortalURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		domain  string
+		wantURL string
+		wantOK  bool
+	}{
+		{
+			name:    "derives path URL from gateway domain",
+			domain:  "rh-ai.apps.example.com",
+			wantURL: "https://rh-ai.apps.example.com/maas-consumer-portal/",
+			wantOK:  true,
+		},
+		{
+			name:    "empty domain cannot be derived",
+			domain:  "",
+			wantURL: "",
+			wantOK:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url, ok := maasConsumerPortalURL(tt.domain)
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Equal(t, tt.wantURL, url)
+		})
+	}
+}
+
 func TestReadExistingParams(t *testing.T) {
 	tests := []struct {
 		name    string

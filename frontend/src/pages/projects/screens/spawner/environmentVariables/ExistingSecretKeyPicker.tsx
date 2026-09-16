@@ -49,14 +49,26 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
   onRemoveRef,
   onRemoveMissingKeys,
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(isDeleted || missingKeys.length > 0);
-  const [filter, setFilter] = React.useState('');
-
   const { selectedKeys } = secretRef;
   const selectableKeys = allKeys.filter((k) => isValidEnvVarName(k) && !RESERVED_ENV_NAMES.has(k));
+  const unavailableKeys = allKeys.filter((k) => !isValidEnvVarName(k) || RESERVED_ENV_NAMES.has(k));
   const totalSelectableKeys = selectableKeys.length;
   const totalKeys = allKeys.length;
   const hasMissingKeys = missingKeys.length > 0;
+  const isEmptySecret = !isDeleted && totalKeys === 0;
+  const allKeysUnavailable = !isDeleted && totalKeys > 0 && totalSelectableKeys === 0;
+  const someKeysUnavailable = !isDeleted && totalSelectableKeys > 0 && unavailableKeys.length > 0;
+
+  const [isExpanded, setIsExpanded] = React.useState(
+    isDeleted || isEmptySecret || hasMissingKeys || allKeysUnavailable,
+  );
+  const [filter, setFilter] = React.useState('');
+
+  React.useEffect(() => {
+    if (isDeleted || isEmptySecret || hasMissingKeys || allKeysUnavailable) {
+      setIsExpanded(true);
+    }
+  }, [isDeleted, isEmptySecret, hasMissingKeys, allKeysUnavailable]);
 
   const visibleKeys = React.useMemo(
     () =>
@@ -118,7 +130,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
           </Tooltip>
         </FlexItem>
       ) : null}
-      {!isDeleted && hasMissingKeys ? (
+      {!isDeleted && hasMissingKeys && !isEmptySecret ? (
         <FlexItem>
           <Tooltip content="Missing keys detected">
             <Icon
@@ -131,7 +143,29 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
           </Tooltip>
         </FlexItem>
       ) : null}
-      {!isDeleted ? (
+      {isEmptySecret ? (
+        <FlexItem>
+          <Tooltip content="This secret has no keys.">
+            <Icon
+              isInline
+              status="warning"
+              data-testid={`empty-secret-icon-${secretRef.secretName}`}
+            >
+              <ExclamationTriangleIcon />
+            </Icon>
+          </Tooltip>
+        </FlexItem>
+      ) : null}
+      {allKeysUnavailable ? (
+        <FlexItem>
+          <Tooltip content="No usable keys in this secret">
+            <Icon isInline status="danger" data-testid={`unavailable-icon-${secretRef.secretName}`}>
+              <ExclamationCircleIcon />
+            </Icon>
+          </Tooltip>
+        </FlexItem>
+      ) : null}
+      {!isDeleted && !isEmptySecret && !allKeysUnavailable ? (
         <FlexItem>
           <Badge isRead data-testid={`key-count-badge-${secretRef.secretName}`}>
             {actualSelectedCount} of {totalSelectableKeys} keys
@@ -159,7 +193,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                 variant="danger"
                 isInline
                 isPlain
-                title="This secret was not found. This workbench cannot start until the missing secret is restored or removed."
+                title="This secret no longer exists. To continue, remove it."
                 actionLinks={
                   <Button
                     variant="link"
@@ -167,14 +201,14 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                     onClick={onRemoveRef}
                     data-testid={`remove-deleted-ref-${secretRef.secretName}`}
                   >
-                    Remove this reference
+                    Remove secret
                   </Button>
                 }
                 data-testid={`env-deleted-secret-alert-${secretRef.secretName}`}
               />
             </StackItem>
           ) : null}
-          {!isDeleted && hasMissingKeys ? (
+          {!isDeleted && hasMissingKeys && !isEmptySecret ? (
             <StackItem>
               <Alert
                 variant="warning"
@@ -196,13 +230,70 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                 data-testid={`env-missing-keys-alert-${secretRef.secretName}`}
               >
                 <p>
-                  Missing: {missingKeys.join(', ')}. These keys may have been renamed or removed.
-                  Remove missing keys to prevent the workbench from failing to start.
+                  Missing: {missingKeys.join(', ')}.
+                  {missingKeys.length === 1
+                    ? ' Key no longer exists. To continue, remove it.'
+                    : ' Keys no longer exist. To continue, remove them.'}
                 </p>
               </Alert>
             </StackItem>
           ) : null}
-          {!isDeleted ? (
+          {isEmptySecret ? (
+            <StackItem>
+              <Alert
+                variant="warning"
+                isInline
+                isPlain
+                title="This secret has no keys."
+                data-testid={`env-empty-secret-alert-${secretRef.secretName}`}
+              >
+                <p>
+                  No environment variables will be set from this secret. If this is unexpected,
+                  contact your administrator.
+                </p>
+              </Alert>
+            </StackItem>
+          ) : null}
+          {allKeysUnavailable ? (
+            <StackItem>
+              <Alert
+                variant="danger"
+                isInline
+                isPlain
+                title="None of the keys in this secret can be used as environment variables. To continue, remove it."
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={onRemoveRef}
+                    data-testid={`remove-unavailable-ref-${secretRef.secretName}`}
+                  >
+                    Remove secret
+                  </Button>
+                }
+                data-testid={`env-all-unavailable-alert-${secretRef.secretName}`}
+              />
+            </StackItem>
+          ) : null}
+          {someKeysUnavailable && !hasMissingKeys ? (
+            <StackItem>
+              <Alert
+                variant="warning"
+                isInline
+                isPlain
+                title={`${unavailableKeys.length} key${
+                  unavailableKeys.length > 1 ? 's' : ''
+                } in this secret cannot be used as environment variables`}
+                data-testid={`env-unavailable-keys-alert-${secretRef.secretName}`}
+              >
+                <p>
+                  Unavailable: <strong>{unavailableKeys.join(', ')}</strong>. These keys have
+                  invalid names or conflict with system variables.
+                </p>
+              </Alert>
+            </StackItem>
+          ) : null}
+          {!isDeleted && !allKeysUnavailable && !isEmptySecret ? (
             <>
               <StackItem>
                 <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -258,7 +349,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                           display={{ default: 'inlineFlex' }}
                         >
                           <FlexItem>{k}</FlexItem>
-                          {isColliding ? (
+                          {isColliding && !isKeyDisabled ? (
                             <FlexItem>
                               <Tooltip content="This key is defined in multiple secrets">
                                 <Icon

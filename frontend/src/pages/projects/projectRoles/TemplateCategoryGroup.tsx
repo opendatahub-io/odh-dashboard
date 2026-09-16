@@ -4,13 +4,13 @@ import {
   DataListItemRow,
   DataListItemCells,
   DataListCell,
-  DataListToggle,
   Button,
   Content,
   Flex,
   FlexItem,
   Split,
   SplitItem,
+  DataListToggle,
 } from '@patternfly/react-core';
 import type { RoleTemplate, RoleTemplateCategory } from './roleTemplateCatalog';
 
@@ -33,6 +33,8 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
         aria-labelledby={`category-${category.id}`}
         isExpanded={isExpanded}
         data-testid={`template-category-${category.id}`}
+        /* --- Remove once more than 1 group of rule templates is added --- */
+        className="pf-v6-u-display-none"
       >
         <DataListItemRow>
           <DataListToggle
@@ -60,7 +62,8 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
           <DataListItem key={template.id} data-testid={`template-item-${template.id}`}>
             <DataListItemRow>
               <DataListItemCells
-                className="pf-v6-u-pl-3xl"
+                // Change to pf-v6-u-pl-3xl once more than 1 group of templates is added
+                className="pf-v6-u-pl-sm"
                 dataListCells={[
                   <DataListCell key="info" isFilled>
                     <Split hasGutter>

@@ -163,6 +163,31 @@ export const isInternalRouteIntegrationsApp = (internalRoute?: string): internal
 export const isIntegrationApp = (app: OdhApplication): app is OdhIntegrationApplication =>
   isInternalRouteIntegrationsApp(app.spec.internalRoute);
 
+export const isValidUrl = (url?: string): boolean => {
+  if (!url) {
+    return true;
+  }
+
+  try {
+    return !!new URL(url);
+  } catch {
+    return false;
+  }
+};
+
+export const isValidHttpUrl = (url?: string): boolean => {
+  if (!url) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 /**
  * DO NOT KEEP USING this beyond a release.
  *

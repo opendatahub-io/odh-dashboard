@@ -71,6 +71,49 @@ describe('useAssets', () => {
     expect(assets[0].labels).toEqual(['production']);
   });
 
+  it('should map volume labels from API response', async () => {
+    mockFetchCollections.mockResolvedValue({ namespaces: [['col1']] });
+    mockFetchAssets.mockResolvedValue({ assets: [] });
+    mockFetchVolumes.mockResolvedValue({
+      volumes: [
+        {
+          name: 'labeled-volume',
+          'catalog-name': 'project',
+          'schema-name': 'col1',
+          'volume-type': 'documents',
+          'storage-location': '/data',
+          labels: ['production', 'ml-data'],
+          properties: { description: 'Volume with labels' },
+          config: {},
+        },
+        {
+          name: 'unlabeled-volume',
+          'catalog-name': 'project',
+          'schema-name': 'col1',
+          'volume-type': 'images',
+          'storage-location': '/images',
+          properties: {},
+          config: {},
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useAssets('test-project'));
+
+    await waitFor(() => {
+      expect(result.current[1]).toBe(true);
+    });
+
+    const assets = result.current[0];
+    expect(assets).toHaveLength(2);
+
+    const labeled = assets.find((a) => a.name === 'labeled-volume');
+    expect(labeled?.labels).toEqual(['production', 'ml-data']);
+
+    const unlabeled = assets.find((a) => a.name === 'unlabeled-volume');
+    expect(unlabeled?.labels).toEqual([]);
+  });
+
   it('should handle API errors', async () => {
     mockFetchCollections.mockRejectedValue(new Error('Network error'));
 

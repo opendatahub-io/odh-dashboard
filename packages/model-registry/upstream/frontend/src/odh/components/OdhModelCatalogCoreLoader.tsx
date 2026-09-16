@@ -3,8 +3,14 @@ import { Link } from 'react-router-dom';
 import { Bullseye } from '@patternfly/react-core';
 import { useResolvedExtensions, useExtensions } from '@odh-dashboard/plugin-core';
 import ModelCatalogCoreLoader from '~/app/pages/modelCatalog/ModelCatalogCoreLoader';
-import { isAdminCheckExtension, isCatalogSettingsUrlExtension } from '~/odh/extension-points';
+import {
+  isAdminCheckExtension,
+  isCatalogSettingsUrlExtension,
+  isRegistrySettingsUrlExtension,
+} from '~/odh/extension-points';
 import { catalogSettingsUrl } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import { REGISTRY_SETTINGS_PAGE_TITLE, REGISTRY_SETTINGS_URL } from '~/odh/const';
+import { AdminStatusProvider } from '~/odh/context/AdminStatusContext';
 
 const ADMIN_EMPTY_STATE_TITLE = 'Configure model sources';
 
@@ -18,6 +24,7 @@ const OdhModelCatalogCoreLoader: React.FC = () => {
   const [adminCheckExtensions, adminCheckExtensionsLoaded] =
     useResolvedExtensions(isAdminCheckExtension);
   const catalogSettingsUrlExtensions = useExtensions(isCatalogSettingsUrlExtension);
+  const registrySettingsUrlExtensions = useExtensions(isRegistrySettingsUrlExtension);
 
   const getCatalogSettingsUrl = (): string => {
     if (catalogSettingsUrlExtensions.length > 0) {
@@ -28,6 +35,15 @@ const OdhModelCatalogCoreLoader: React.FC = () => {
 
   const catalogSettingsTitle =
     catalogSettingsUrlExtensions.length > 0 ? catalogSettingsUrlExtensions[0].properties.title : '';
+
+  const registrySettingsUrl =
+    registrySettingsUrlExtensions.length > 0
+      ? registrySettingsUrlExtensions[0].properties.url
+      : REGISTRY_SETTINGS_URL;
+  const registrySettingsTitle =
+    registrySettingsUrlExtensions.length > 0
+      ? registrySettingsUrlExtensions[0].properties.title
+      : REGISTRY_SETTINGS_PAGE_TITLE;
 
   const adminEmptyStateDescription = (
     <>
@@ -55,16 +71,22 @@ const OdhModelCatalogCoreLoader: React.FC = () => {
           if (!loaded) {
             return <Bullseye>Loading...</Bullseye>;
           }
-          if (isAdmin) {
-            return (
+          return (
+            <AdminStatusProvider
+              isAdmin={isAdmin}
+              loaded={loaded}
+              settingsUrl={registrySettingsUrl}
+              settingsTitle={registrySettingsTitle}
+            >
               <ModelCatalogCoreLoader
-                customAction={adminAction}
-                customEmptyStateTitle={ADMIN_EMPTY_STATE_TITLE}
-                customEmptyStateDescription={adminEmptyStateDescription}
+                {...(isAdmin && {
+                  customAction: adminAction,
+                  customEmptyStateTitle: ADMIN_EMPTY_STATE_TITLE,
+                  customEmptyStateDescription: adminEmptyStateDescription,
+                })}
               />
-            );
-          }
-          return <ModelCatalogCoreLoader />;
+            </AdminStatusProvider>
+          );
         }}
       </AdminCheckComponent>
     );

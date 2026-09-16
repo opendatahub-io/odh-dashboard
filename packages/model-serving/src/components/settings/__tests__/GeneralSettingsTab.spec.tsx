@@ -2,18 +2,24 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNotification } from '@odh-dashboard/ui-core';
-import {
-  fetchClusterSettings,
-  updateClusterSettings,
-} from '@odh-dashboard/internal/services/clusterSettingsService';
-import type { ClusterSettingsType } from '@odh-dashboard/internal/types';
+import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import GeneralSettingsTab from '../GeneralSettingsTab';
+
+const mockFetchClusterSettings = jest.fn();
+const mockUpdateClusterSettings = jest.fn();
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   useNotification: jest.fn(),
 }));
-jest.mock('@odh-dashboard/internal/services/clusterSettingsService');
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
+  useHostApiCore: () => ({
+    fetchClusterSettings: mockFetchClusterSettings,
+    updateClusterSettings: mockUpdateClusterSettings,
+  }),
+  useTrackEvent: () => jest.fn(),
+}));
 jest.mock('../ModelServingPlatformSettings', () => ({
   __esModule: true,
   default: ({
@@ -73,8 +79,6 @@ jest.mock('../DeploymentStrategySettings', () => ({
   ),
 }));
 
-const mockFetchClusterSettings = jest.mocked(fetchClusterSettings);
-const mockUpdateClusterSettings = jest.mocked(updateClusterSettings);
 const mockNotification = { success: jest.fn(), error: jest.fn() };
 
 const DEFAULT_CLUSTER_SETTINGS: ClusterSettingsType = {

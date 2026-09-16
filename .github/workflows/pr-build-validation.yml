@@ -426,7 +426,7 @@ jobs:
           echo "::group::Validating Module Federation artifacts"
 
           # Check for main app bundle (always required)
-          # Webpack outputs app.[contenthash].js, not app.bundle.js
+          # Rspack outputs app.[contenthash].js, not app.bundle.js
           if ! ls /tmp/odh-dist/app.*.js >/dev/null 2>&1; then
             echo "❌ FAIL: app.*.js not found - build did not complete"
             FAILURES=$((FAILURES + 1))
@@ -446,12 +446,12 @@ jobs:
               echo "✅ PASS: remoteEntry.js present and valid ($SIZE bytes)"
             fi
 
-            # Check webpack chunks
+            # Check rspack chunks
             CHUNK_COUNT=$(find /tmp/odh-dist -name "*.js" -o -name "*.bundle.js" | wc -l | tr -d ' ')
             if [ "${CHUNK_COUNT:-0}" -lt 2 ]; then
-              echo "⚠️  WARNING: Very few webpack chunks found (${CHUNK_COUNT:-0})"
+              echo "⚠️  WARNING: Very few rspack chunks found (${CHUNK_COUNT:-0})"
             else
-              echo "✅ PASS: Found ${CHUNK_COUNT:-0} webpack chunks"
+              echo "✅ PASS: Found ${CHUNK_COUNT:-0} rspack chunks"
             fi
           else
             echo "ℹ️  INFO: No remoteEntry.js found (no federated modules configured)"
@@ -572,7 +572,7 @@ jobs:
             echo "❌ TOTAL FAILURES: $FAILURES"
             echo ""
             echo "BUILD_MODE=RHOAI did not correctly apply RHOAI branding."
-            echo "Check Dockerfile environment variable setup and webpack configuration."
+            echo "Check Dockerfile environment variable setup and rspack configuration."
             exit 1
           fi
 

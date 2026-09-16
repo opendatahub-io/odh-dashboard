@@ -1,13 +1,17 @@
 import * as React from 'react';
-import { SearchInput } from '@patternfly/react-core';
+import { Button, SearchInput, ToolbarItem, ToolbarGroup } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import { Link } from 'react-router-dom';
+import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 import {
   ExternalModelsFilterDataType,
   externalModelsFilterOptions,
   ExternalModelsFilterOptions,
+  createExternalModelPath,
 } from './const';
 
 type ExternalModelsToolBarProps = {
+  namespace: string;
   filterData: ExternalModelsFilterDataType;
   onFilterUpdate: (
     key: ExternalModelsFilterOptions,
@@ -16,6 +20,7 @@ type ExternalModelsToolBarProps = {
 };
 
 const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
+  namespace,
   filterData,
   onFilterUpdate,
 }) => (
@@ -36,7 +41,28 @@ const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
     }}
     filterData={filterData}
     onFilterUpdate={onFilterUpdate}
-  />
+  >
+    <ToolbarGroup>
+      <ToolbarItem>
+        <Button
+          data-testid="add-external-model-button"
+          variant="primary"
+          component={(props) => <Link {...props} to={createExternalModelPath(namespace)} />}
+        >
+          Add external model
+        </Button>
+      </ToolbarItem>
+      <ToolbarItem>
+        <Button
+          data-testid="manage-external-providers-button"
+          variant="secondary"
+          component={(props) => <Link {...props} to={externalProvidersManagementPath(namespace)} />}
+        >
+          Manage external providers
+        </Button>
+      </ToolbarItem>
+    </ToolbarGroup>
+  </FilterToolbar>
 );
 
 export default ExternalModelsToolBar;

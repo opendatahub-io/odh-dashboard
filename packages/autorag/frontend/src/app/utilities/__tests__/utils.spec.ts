@@ -21,6 +21,7 @@ import {
   formatDisplayValue,
   computePatternRankMap,
   getMetricByName,
+  getRankableOptimizationMetric,
   normalizePipelineRunState,
   formatDurationBetween,
   resolveBestPatternKey,
@@ -357,6 +358,84 @@ describe('getOptimizedScore', () => {
   });
 });
 
+describe('getRankableOptimizationMetric', () => {
+  const makePattern = (metrics: AutoragPattern['evaluation']['metrics']): AutoragPattern => ({
+    name: 'Pattern1',
+    iteration: 1,
+    max_combinations: 10,
+    duration_seconds: 5,
+    settings: {} as AutoragPattern['settings'],
+    evaluation: { metrics },
+  });
+
+  const objective = {
+    evaluator: 'custom',
+    name: 'overall_score',
+    scores: { mean: 0.85, ci_low: null, ci_high: null },
+    optimization_metric: true,
+  };
+
+  it('should return the uniquely matching finite objective metric', () => {
+    expect(getRankableOptimizationMetric(makePattern([objective]), 'overall_score')).toBe(
+      objective,
+    );
+  });
+
+  it('should reject a pattern without a matching objective metric', () => {
+    expect(
+      getRankableOptimizationMetric(
+        makePattern([{ ...objective, name: 'faithfulness' }]),
+        'overall_score',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('should reject duplicate matching objective metrics from different evaluators', () => {
+    expect(
+      getRankableOptimizationMetric(
+        makePattern([objective, { ...objective, evaluator: 'judge' }]),
+        'overall_score',
+      ),
+    ).toBeUndefined();
+  });
+
+  it.each([null, Number.NaN, Number.POSITIVE_INFINITY])(
+    'should reject a non-finite objective mean (%s)',
+    (mean) => {
+      expect(
+        getRankableOptimizationMetric(
+          makePattern([{ ...objective, scores: { ...objective.scores, mean } }]),
+          'overall_score',
+        ),
+      ).toBeUndefined();
+    },
+  );
+});
+
+describe('getMetricByName', () => {
+  it('should not collapse same-name metrics from different evaluators', () => {
+    const pattern = {
+      ...({} as AutoragPattern),
+      evaluation: {
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'faithfulness',
+            scores: { mean: 0.8, ci_low: null, ci_high: null },
+          },
+          {
+            evaluator: 'judge',
+            name: 'faithfulness',
+            scores: { mean: 0.9, ci_low: null, ci_high: null },
+          },
+        ],
+      },
+    };
+
+    expect(getMetricByName(pattern, 'faithfulness')).toBeUndefined();
+  });
+});
+
 describe('formatMetricValue', () => {
   it('should format normal values with 3 decimal places', () => {
     expect(formatMetricValue(0.12345)).toBe('0.123');
@@ -658,7 +737,7 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
     ],
   },
   settings: {
-    vector_store_binding: { provider_id: '', provider_type: '', vector_store_id: '' },
+    vector_store_binding: { provider_type: '', collection_name: '' },
     chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
     embedding: {
       model_id: '',
@@ -711,11 +790,11 @@ describe('formatDurationBetween', () => {
 
 describe('computePatternRankMap', () => {
   it('should rank patterns by final_score descending', () => {
-    const patterns = [
-      makeRankPattern('low', 0.3),
-      makeRankPattern('high', 0.9),
-      makeRankPattern('mid', 0.6),
-    ];
+    const patterns = {
+      low: makeRankPattern('low', 0.3),
+      high: makeRankPattern('high', 0.9),
+      mid: makeRankPattern('mid', 0.6),
+    };
     expect(computePatternRankMap(patterns)).toEqual({
       high: 1,
       mid: 2,
@@ -724,41 +803,64 @@ describe('computePatternRankMap', () => {
   });
 
   it('should return empty map for empty array', () => {
-    expect(computePatternRankMap([])).toEqual({});
+    expect(computePatternRankMap({})).toEqual({});
   });
 
   it('should handle single pattern', () => {
-    expect(computePatternRankMap([makeRankPattern('solo', 0.5)])).toEqual({ solo: 1 });
+    expect(computePatternRankMap({ solo: makeRankPattern('solo', 0.5) })).toEqual({ solo: 1 });
   });
 
   it('should assign sequential ranks for tied scores', () => {
-    const patterns = [
-      makeRankPattern('a', 0.7),
-      makeRankPattern('b', 0.7),
-      makeRankPattern('c', 0.7),
-    ];
+    const patterns = {
+      a: makeRankPattern('a', 0.7),
+      b: makeRankPattern('b', 0.7),
+      c: makeRankPattern('c', 0.7),
+    };
     const rankMap = computePatternRankMap(patterns);
     expect(Object.values(rankMap).toSorted()).toEqual([1, 2, 3]);
   });
 
+  it('should assign contiguous ranks only to valid objective patterns', () => {
+    const validHigh = makeRankPattern('high', 0.9);
+    const invalid = {
+      ...makeRankPattern('invalid', 0.99),
+      evaluation: { metrics: [] },
+    };
+    const validLow = makeRankPattern('low', 0.3);
+
+    expect(computePatternRankMap({ high: validHigh, invalid, low: validLow })).toEqual({
+      high: 1,
+      low: 2,
+    });
+  });
+
   it('should not mutate the original array', () => {
-    const patterns = [makeRankPattern('z', 0.1), makeRankPattern('a', 0.9)];
-    const originalOrder = patterns.map((p) => p.name);
+    const patterns = { z: makeRankPattern('z', 0.1), a: makeRankPattern('a', 0.9) };
+    const originalOrder = Object.keys(patterns);
     computePatternRankMap(patterns);
-    expect(patterns.map((p) => p.name)).toEqual(originalOrder);
+    expect(Object.keys(patterns)).toEqual(originalOrder);
   });
 
   it('should handle negative and zero scores', () => {
-    const patterns = [
-      makeRankPattern('neg', -0.2),
-      makeRankPattern('zero', 0),
-      makeRankPattern('pos', 0.3),
-    ];
+    const patterns = {
+      neg: makeRankPattern('neg', -0.2),
+      zero: makeRankPattern('zero', 0),
+      pos: makeRankPattern('pos', 0.3),
+    };
     expect(computePatternRankMap(patterns)).toEqual({
       pos: 1,
       zero: 2,
       neg: 3,
     });
+  });
+
+  it('should keep duplicate display names independent by record key', () => {
+    expect(
+      computePatternRankMap({
+        first: makeRankPattern('Shared name', 0.4),
+        second: makeRankPattern('Shared name', 0.9),
+      }),
+    ).toEqual({ second: 1, first: 2 });
   });
 });
 
@@ -783,6 +885,15 @@ describe('resolveBestPatternKey', () => {
       pattern_c: makeRankPattern('Shared Name', 0.7),
     };
     expect(resolveBestPatternKey(patterns)).toBe('pattern_b');
+  });
+
+  it('does not select an invalid objective pattern as the best pattern', () => {
+    const patterns = {
+      invalid: { ...makeRankPattern('invalid', 0.99), evaluation: { metrics: [] } },
+      valid: makeRankPattern('valid', 0.3),
+    };
+
+    expect(resolveBestPatternKey(patterns)).toBe('valid');
   });
 });
 

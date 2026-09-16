@@ -13,7 +13,7 @@ import type {
   ConnectionTypeConfigMapObj,
   ProjectKind,
 } from '@odh-dashboard/k8s-core';
-import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
+import type { SecretOps } from '@odh-dashboard/plugin-core';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import { DeployExtension } from './deploying/useDeployMethod';
 import { ExternalDataMap } from './ExternalDataLoader';

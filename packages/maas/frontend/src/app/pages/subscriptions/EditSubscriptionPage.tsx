@@ -2,10 +2,7 @@ import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import {
-  getBackUrl,
-  getSubscriptionViewUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+import { getBackUrl, getSubscriptionViewUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { EventTrackingEditSource } from '~/app/types/event-tracking';

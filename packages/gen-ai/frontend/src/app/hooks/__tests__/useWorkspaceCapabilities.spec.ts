@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { renderHook } from '@testing-library/react';
-import type { AIModel } from '~/app/types';
+import type { AAModelResponse, AIModel } from '~/app/types';
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 
 const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
@@ -15,6 +15,21 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   status: 'Running',
   display_name: 'Test',
   model_source_type: 'namespace',
+  ...overrides,
+});
+
+const makeMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelResponse => ({
+  model_name: 'test-maas',
+  model_id: 'test-maas',
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  usecase: 'LLM',
+  description: '',
+  endpoints: [],
+  status: 'Running',
+  display_name: 'Test MaaS',
+  model_source_type: 'maas',
   ...overrides,
 });
 
@@ -201,14 +216,10 @@ describe('useWorkspaceCapabilities', () => {
   describe('MaaS model capabilities', () => {
     it('detects vision from MaaS models', () => {
       const maasModels = [
-        {
-          id: 'gemini',
-          object: 'model',
-          created: 0,
-          owned_by: 'ns',
-          ready: true,
+        makeMaaSModel({
+          model_id: 'gemini',
           capabilities: ['vision', 'text-generation'],
-        },
+        }),
       ];
       const { result } = renderHook(() =>
         useWorkspaceCapabilities([], true, true, undefined, maasModels),
@@ -219,14 +230,10 @@ describe('useWorkspaceCapabilities', () => {
 
     it('detects ASR from MaaS models', () => {
       const maasModels = [
-        {
-          id: 'whisper',
-          object: 'model',
-          created: 0,
-          owned_by: 'ns',
-          ready: true,
+        makeMaaSModel({
+          model_id: 'whisper',
           capabilities: ['audio-transcription'],
-        },
+        }),
       ];
       const { result } = renderHook(() =>
         useWorkspaceCapabilities([], true, true, undefined, maasModels),
@@ -238,14 +245,10 @@ describe('useWorkspaceCapabilities', () => {
     it('combines namespace AI models and MaaS models', () => {
       const aiModels = [makeModel({ model_id: 'ns-vision', capabilities: ['vision'] })];
       const maasModels = [
-        {
-          id: 'whisper-maas',
-          object: 'model',
-          created: 0,
-          owned_by: 'ns',
-          ready: true,
+        makeMaaSModel({
+          model_id: 'whisper-maas',
           capabilities: ['audio-transcription'],
-        },
+        }),
       ];
       const { result } = renderHook(() =>
         useWorkspaceCapabilities(aiModels, true, true, undefined, maasModels),
@@ -255,9 +258,7 @@ describe('useWorkspaceCapabilities', () => {
     });
 
     it('handles MaaS models with no capabilities', () => {
-      const maasModels = [
-        { id: 'llama', object: 'model', created: 0, owned_by: 'ns', ready: true },
-      ];
+      const maasModels = [makeMaaSModel({ model_id: 'llama' })];
       const { result } = renderHook(() =>
         useWorkspaceCapabilities([], true, true, undefined, maasModels),
       );

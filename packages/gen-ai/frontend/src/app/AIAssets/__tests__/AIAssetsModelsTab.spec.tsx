@@ -78,8 +78,7 @@ describe('AIAssetsModelsTab', () => {
     mockUseMergedModels.mockReturnValue({
       models: [],
       loaded: false,
-      aiError: undefined,
-      maasError: undefined,
+      error: undefined,
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
@@ -92,8 +91,7 @@ describe('AIAssetsModelsTab', () => {
     mockUseMergedModels.mockReturnValue({
       models: [],
       loaded: true,
-      aiError: undefined,
-      maasError: undefined,
+      error: undefined,
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
@@ -103,12 +101,11 @@ describe('AIAssetsModelsTab', () => {
     expect(screen.getByText('To begin you must deploy a model')).toBeInTheDocument();
   });
 
-  it('should render error alert when both sources fail', () => {
+  it('should render error state when fetch fails', () => {
     mockUseMergedModels.mockReturnValue({
       models: [],
       loaded: true,
-      aiError: new Error('Failed to fetch'),
-      maasError: new Error('MaaS unavailable'),
+      error: new Error('Failed to fetch'),
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
@@ -116,54 +113,6 @@ describe('AIAssetsModelsTab', () => {
 
     expect(screen.getByText(/unable to load models/i)).toBeInTheDocument();
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
-  });
-
-  it('should render warning and surviving models when only AI models fail', () => {
-    mockUseMergedModels.mockReturnValue({
-      models: [
-        {
-          model_id: 'maas-model-1', // eslint-disable-line camelcase
-          model_name: 'maas-model', // eslint-disable-line camelcase
-          display_name: 'MaaS Model', // eslint-disable-line camelcase
-          status: 'Running',
-        },
-      ] as AIModel[],
-      loaded: true,
-      aiError: new Error('AI fetch failed'),
-      maasError: undefined,
-      refresh: jest.fn(),
-    } as ReturnType<typeof useMergedModels>);
-
-    render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
-
-    expect(screen.getByText(/some models may be unavailable/i)).toBeInTheDocument();
-    expect(screen.getByText(/locally deployed models could not be loaded/i)).toBeInTheDocument();
-    expect(screen.getByTestId('models-table')).toBeInTheDocument();
-    expect(screen.getByText('MaaS Model')).toBeInTheDocument();
-  });
-
-  it('should render warning and surviving models when only MaaS models fail', () => {
-    mockUseMergedModels.mockReturnValue({
-      models: [
-        {
-          model_id: 'ai-model-1', // eslint-disable-line camelcase
-          model_name: 'ai-model', // eslint-disable-line camelcase
-          display_name: 'AI Model', // eslint-disable-line camelcase
-          status: 'Running',
-        },
-      ] as AIModel[],
-      loaded: true,
-      aiError: undefined,
-      maasError: new Error('MaaS fetch failed'),
-      refresh: jest.fn(),
-    } as ReturnType<typeof useMergedModels>);
-
-    render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
-
-    expect(screen.getByText(/some models may be unavailable/i)).toBeInTheDocument();
-    expect(screen.getByText(/models as a service could not be loaded/i)).toBeInTheDocument();
-    expect(screen.getByTestId('models-table')).toBeInTheDocument();
-    expect(screen.getByText('AI Model')).toBeInTheDocument();
   });
 
   it('should render models table when models exist', () => {
@@ -177,8 +126,7 @@ describe('AIAssetsModelsTab', () => {
         },
       ] as AIModel[],
       loaded: true,
-      aiError: undefined,
-      maasError: undefined,
+      error: undefined,
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 

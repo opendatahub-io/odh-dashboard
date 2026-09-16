@@ -1,7 +1,7 @@
 import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { createRoleBinding } from '@odh-dashboard/k8s-core/api/roleBindings';
 import type { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
-  createRoleBinding,
   deleteRoleBinding,
   generateRoleBindingPermissions,
   patchRoleBindingSubjects,

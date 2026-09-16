@@ -102,7 +102,7 @@ func (d DeploymentMode) IsFederatedMode() bool {
 type EnvConfig struct {
 	Port                     int
 	MockK8sClient            bool
-	MockOGXClient            bool
+	MockMaaSClient           bool
 	MockPipelineServerClient bool
 	MockS3Client             bool
 	DevMode                  bool
@@ -143,10 +143,8 @@ type EnvConfig struct {
 	// Default: "documents-indexing-pipeline"
 	IndexingPipelineNamePrefix string
 
-	// PipelineVersionSuffix is the release version used as the preferred pipeline version
-	// display name during discovery. Override via PIPELINE_VERSION_SUFFIX env var when the
-	// deployed pipeline version differs from the built-in default.
-	// Default: constants.DefaultPipelineVersionSuffix
+	// PipelineVersionSuffix is an optional explicit pipeline version display name pin during
+	// discovery. Override via the PIPELINE_VERSION_SUFFIX env var.
 	PipelineVersionSuffix string
 
 	// ─── TLS ────────────────────────────────────────────────────

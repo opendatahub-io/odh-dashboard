@@ -7,8 +7,9 @@ import {
   K8sStatusError,
 } from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { NotebookKind } from '#~/k8sTypes';
-import { deleteConfigMap, deleteNotebook, deleteSecret, isGeneratedConfigMapName } from '#~/api';
+import { deleteConfigMap, deleteNotebook, isGeneratedConfigMapName } from '#~/api';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { getEnvFromList } from '#~/pages/projects/pvc/utils';
 import { ConfigMapRef, SecretRef } from '#~/pages/projects/types';

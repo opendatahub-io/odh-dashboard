@@ -417,7 +417,6 @@ const ChatbotMain: React.FunctionComponent = () => {
           aiModels={aiModels}
           lsdStatus={lsdStatus}
           existingModels={models}
-          maasModels={maasModels}
           allCollections={allCollections}
           collectionsLoaded={collectionsLoaded}
           existingCollections={existingCollections}

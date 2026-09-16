@@ -16,6 +16,9 @@ import {
   filterRecognizedVisibility,
   getClusterQueueNameFromLocalQueues,
   isHardwareProfileIdentifierValid,
+  isHardwareProfileWithAcceleratorPrefix,
+  isNvidiaHardwareProfile,
+  prioritizeHardwareProfiles,
   validateProfileWarning,
 } from '../utils';
 
@@ -540,5 +543,112 @@ describe('filterRecognizedVisibility', () => {
 
   it('should return an empty array when given an empty array', () => {
     expect(filterRecognizedVisibility([])).toEqual([]);
+  });
+});
+
+describe('isHardwareProfileWithAcceleratorPrefix', () => {
+  it('should return true when profile has a matching accelerator identifier prefix', () => {
+    const profile = mockHardwareProfile({
+      name: 'nvidia-profile',
+      identifiers: [
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 1,
+          maxCount: 4,
+          defaultCount: 1,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+        },
+      ],
+    });
+
+    expect(isHardwareProfileWithAcceleratorPrefix(profile, 'nvidia.com/')).toBe(true);
+  });
+
+  it('should return false when profile has no matching accelerator identifier prefix', () => {
+    const profile = mockHardwareProfile({
+      name: 'amd-profile',
+      identifiers: [
+        {
+          displayName: 'GPU',
+          identifier: 'amd.com/gpu',
+          minCount: 1,
+          maxCount: 4,
+          defaultCount: 1,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+        },
+      ],
+    });
+
+    expect(isHardwareProfileWithAcceleratorPrefix(profile, 'nvidia.com/')).toBe(false);
+  });
+});
+
+describe('isNvidiaHardwareProfile', () => {
+  it('should return true for profiles with an NVIDIA accelerator identifier', () => {
+    const profile = mockHardwareProfile({
+      name: 'nvidia-profile',
+      identifiers: [
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 1,
+          maxCount: 4,
+          defaultCount: 1,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+        },
+      ],
+    });
+
+    expect(isNvidiaHardwareProfile(profile)).toBe(true);
+  });
+
+  it('should return false for profiles without an NVIDIA accelerator identifier', () => {
+    const profile = mockHardwareProfile({
+      name: 'cpu-only-profile',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '2',
+          defaultCount: '1',
+          resourceType: IdentifierResourceType.CPU,
+        },
+      ],
+    });
+
+    expect(isNvidiaHardwareProfile(profile)).toBe(false);
+  });
+});
+
+describe('prioritizeHardwareProfiles', () => {
+  it('should place preferred profiles before non-preferred profiles', () => {
+    const nvidiaProfile = mockHardwareProfile({
+      name: 'nvidia-profile',
+      identifiers: [
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 1,
+          maxCount: 4,
+          defaultCount: 1,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+        },
+      ],
+    });
+    const smallProfile = mockHardwareProfile({ name: 'small-profile' });
+    const largeProfile = mockHardwareProfile({ name: 'large-profile' });
+
+    const result = prioritizeHardwareProfiles(
+      [smallProfile, largeProfile, nvidiaProfile],
+      isNvidiaHardwareProfile,
+    );
+
+    expect(result.map((profile) => profile.metadata.name)).toEqual([
+      'nvidia-profile',
+      'large-profile',
+      'small-profile',
+    ]);
   });
 });

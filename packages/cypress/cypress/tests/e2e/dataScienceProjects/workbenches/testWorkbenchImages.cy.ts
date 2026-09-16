@@ -3,14 +3,14 @@ import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { workbenchPage, createSpawnerPage } from '../../../../pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { loadPVCFixture } from '../../../../utils/dataLoader';
-import { createCleanProject } from '../../../../utils/projectChecker';
+import { cleanupTestProject } from '../../../../utils/projectChecker';
 import {
   getNotebookImageNames,
   type NotebookImageInfo,
 } from '../../../../utils/notebookImageUtils';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { recreateOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
@@ -27,16 +27,14 @@ describe('Workbenches - image/version tests', () => {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
         cy.log(`Loaded project name: ${projectName}`);
-        return createCleanProject(projectName);
+        return recreateOpenShiftProject(projectName);
       },
     ),
   );
 
   after(() => {
-    // Delete provisioned Project
     if (projectName) {
-      cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+      cleanupTestProject(projectName);
     }
   });
 
@@ -48,7 +46,6 @@ describe('Workbenches - image/version tests', () => {
     () => {
       const workbenchName = deriveWorkbenchName(projectName);
 
-      // Authentication and navigation
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 

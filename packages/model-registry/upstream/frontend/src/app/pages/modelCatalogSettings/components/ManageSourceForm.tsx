@@ -47,7 +47,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
 }) => {
   const navigate = useNavigate();
   const existingData = existingSourceConfig
-    ? catalogSourceConfigToFormData(existingSourceConfig)
+    ? { ...catalogSourceConfigToFormData(existingSourceConfig), tokenModified: false }
     : undefined;
   const [formData, setData] = useManageSourceData(existingData);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -60,13 +60,33 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
     markSourcePending,
   } = React.useContext(ModelCatalogSettingsContext);
 
-  // Use the preview hook
+  const hasExistingApiKey = React.useMemo(() => {
+    if (!isEditMode || !formData.id) {
+      return false;
+    }
+    const source = catalogSources?.items?.find((s) => s.id === formData.id);
+    return source?.hasApiKey ?? false;
+  }, [isEditMode, formData.id, catalogSources]);
+
   const preview = useSourcePreview({
     formData,
     existingSourceConfig,
     apiState,
     isEditMode,
+    hasExistingApiKey,
   });
+
+  const handleClearCredentials = React.useCallback(async () => {
+    if (!formData.id) {
+      return;
+    }
+    if (!apiState.apiAvailable) {
+      throw new Error('API is not available');
+    }
+    await apiState.api.deleteCatalogSourceCredentials({}, formData.id);
+    refreshCatalogSourceConfigs();
+    refreshCatalogSources();
+  }, [apiState, formData.id, refreshCatalogSourceConfigs, refreshCatalogSources]);
 
   const isHuggingFaceMode = formData.sourceType === CatalogSourceType.HUGGING_FACE;
   const isFormComplete = isFormValid(formData);
@@ -81,7 +101,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
 
     try {
       const sourceConfig = transformFormDataToConfig(formData, existingSourceConfig);
-      const payload = getPayloadForConfig(sourceConfig, isEditMode);
+      const payload = getPayloadForConfig(sourceConfig, isEditMode, formData.tokenModified);
 
       if (isEditMode && existingData) {
         const previousStatus =
@@ -140,6 +160,8 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                     validationError={preview.validationError}
                     isValidationSuccess={preview.isValidationSuccess}
                     onClearValidationSuccess={preview.clearValidationSuccess}
+                    hasExistingApiKey={hasExistingApiKey}
+                    onClearCredentials={handleClearCredentials}
                   />
                 </StackItem>
               )}
@@ -153,18 +175,6 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                   />
                 </StackItem>
               )}
-
-              <StackItem>
-                <ModelVisibilitySection
-                  formData={formData}
-                  setData={setData}
-                  isDefaultExpanded={
-                    existingData?.isDefault ||
-                    !!existingData?.allowedModels ||
-                    !!existingData?.excludedModels
-                  }
-                />
-              </StackItem>
 
               <StackItem>
                 <FormSection>
@@ -185,6 +195,17 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                   </FormGroup>
                 </FormSection>
               </StackItem>
+              <StackItem>
+                <ModelVisibilitySection
+                  formData={formData}
+                  setData={setData}
+                  isDefaultExpanded={
+                    existingData?.isDefault ||
+                    !!existingData?.allowedModels ||
+                    !!existingData?.excludedModels
+                  }
+                />
+              </StackItem>
             </Stack>
           </Form>
         </SidebarContent>
@@ -202,6 +223,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
         isPreviewDisabled={!preview.canPreview}
         isPreviewLoading={preview.previewState.isLoadingInitial}
         onPreview={() => preview.handlePreview()}
+        previewDisabledTooltip={preview.previewDisabledTooltip}
       />
     </>
   );

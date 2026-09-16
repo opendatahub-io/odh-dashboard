@@ -11,10 +11,12 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
+  /* eslint-disable @odh-dashboard/no-restricted-imports */
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
+  /* eslint-enable @odh-dashboard/no-restricted-imports */
   Stack,
   StackItem,
   TextArea,
@@ -138,7 +140,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
           data-testid="edit-sc-modal-info-alert"
         />
 
-        <Form id="edit-sc-form">
+        <Form id="edit-sc-form" onSubmit={(e) => e.preventDefault()}>
           {(!alert || alert.children) && (
             <DescriptionList>
               <DescriptionListGroup>

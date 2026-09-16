@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Button, FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  FormGroup,
+  HelperText,
+  HelperTextItem,
+  Radio,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { EnvironmentVariableType, EnvVariable } from '#~/pages/projects/types';
 import { UseExistingSecretsResult } from './useExistingSecrets';
@@ -14,10 +22,15 @@ type EnvTypeSelectFieldProps = {
   existingSecretsData: UseExistingSecretsResult;
 };
 
+const ENV_TYPE_LABELS: Record<EnvironmentVariableType, string> = {
+  [EnvironmentVariableType.CONFIG_MAP]: 'ConfigMap',
+  [EnvironmentVariableType.SECRET]: 'Secret',
+};
+
 const ENV_TYPE_DESCRIPTIONS: Record<EnvironmentVariableType, string> = {
   [EnvironmentVariableType.CONFIG_MAP]:
-    'Store non-confidential configuration data as key-value pairs',
-  [EnvironmentVariableType.SECRET]: 'Store sensitive data such as passwords, tokens, and keys',
+    'Non-confidential configuration data stored as key-value pairs.',
+  [EnvironmentVariableType.SECRET]: 'Sensitive data such as passwords, tokens, and keys.',
 };
 
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
@@ -45,13 +58,19 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
         />
       }
     >
+      <HelperText
+        className="pf-v6-u-mt-xs pf-v6-u-mb-sm"
+        data-testid="env-variable-type-helper-text"
+      >
+        <HelperTextItem>Select the type of environment variable to add.</HelperTextItem>
+      </HelperText>
       <Stack hasGutter data-testid="environment-variable-type-select">
         {Object.values(EnvironmentVariableType).map((type) => (
           <StackItem key={type}>
             <Radio
               id={`${uniqueId}-env-type-${type}`}
               name={`${uniqueId}-env-variable-type`}
-              label={type}
+              label={ENV_TYPE_LABELS[type]}
               description={ENV_TYPE_DESCRIPTIONS[type]}
               isChecked={envVariable.type === type}
               onChange={() => onUpdate({ type })}

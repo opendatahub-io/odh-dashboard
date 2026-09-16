@@ -9,11 +9,16 @@ import {
   mapAuthMechanismToHumanReadable,
   getProviderRefResource,
 } from '~/app/pages/external-models/utils';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import {
   ExternalModelProviderDetailType,
   ExternalModelsInfoPopoverTarget,
   ExternalModelsInfoPopoverLocation,
   MaaSEvents,
+  ExternalModelsInfoPopoverViewedProperties,
+  ExternalModelProviderDetailViewedProperties,
+  convertStringToExternalModelProviderType,
 } from '~/app/types/event-tracking';
 import { ExternalModelsExpandedRowColumns } from './columns';
 
@@ -48,7 +53,7 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
                 fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
                   infoTarget: ExternalModelsInfoPopoverTarget.PROVIDER_REFERENCE,
                   location: ExternalModelsInfoPopoverLocation.EXPANDED_ROW,
-                });
+                } satisfies ExternalModelsInfoPopoverViewedProperties);
               }}
               resource={getProviderRefResource(row)}
             />
@@ -60,9 +65,11 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
               onClick={() => {
                 setProviderURLModalRef(row);
                 fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
-                  providerType: row.provider?.provider,
+                  providerType: convertStringToExternalModelProviderType(
+                    row.provider?.provider ?? '',
+                  ),
                   detailType: ExternalModelProviderDetailType.PROVIDER_URL,
-                });
+                } satisfies ExternalModelProviderDetailViewedProperties);
               }}
               data-testid={`expanded-table-row-view-url-button-${row.providerName}`}
             >
@@ -76,9 +83,11 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
               onClick={() => {
                 setPathModalRef(row);
                 fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
-                  providerType: row.provider?.provider,
+                  providerType: convertStringToExternalModelProviderType(
+                    row.provider?.provider ?? '',
+                  ),
                   detailType: ExternalModelProviderDetailType.PATH,
-                });
+                } satisfies ExternalModelProviderDetailViewedProperties);
               }}
               data-testid={`expanded-table-row-view-path-button-${row.providerName}`}
             >
@@ -105,6 +114,20 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
             {row.targetModel}
           </Td>
           <Td data-testid={`expanded-table-row-weight-${row.providerName}`}>{row.weight}</Td>
+          <Td data-testid={`expanded-table-row-provider-status-${row.providerName}`}>
+            {row.provider?.phase && (
+              <PhaseLabel
+                phase={row.provider.phase}
+                resourceType={PhaseResourceType.EXTERNAL_PROVIDER}
+                resourceName={row.provider.displayName ?? row.providerName}
+                statusMessage={row.provider.statusMessage}
+                status={row.provider.phase}
+                conditionType={row.provider.conditionType}
+                lastTransitionTime={row.provider.lastTransitionTime}
+                reason={row.provider.reason}
+              />
+            )}
+          </Td>
         </Tr>
       )}
     />

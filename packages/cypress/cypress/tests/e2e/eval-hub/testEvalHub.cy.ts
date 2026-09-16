@@ -13,7 +13,7 @@ import {
   ensureEvalHubCrReady,
   waitForEvaluationJobComplete,
 } from '../../../utils/oc_commands/evalHubInstance';
-import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
+import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflow';
 import {
   grantEvalHubTenantAccess,
   setupTenantAndDeployModel,

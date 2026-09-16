@@ -30,7 +30,7 @@ For general ODH Dashboard contribution guidelines, refer to [ODH CONTRIBUTING.md
 
 ## Prerequisites
 
-- **[Node.js](https://nodejs.org/)**: v22.0.0 or later
+- **[Node.js](https://nodejs.org/)**: v22.18.0 or later
 - **[Go](https://go.dev/)**: v1.26 or later
 - **[Docker](https://www.docker.com/)**/**[Podman](https://podman.io/)**: For containerized deployment
 
@@ -47,7 +47,7 @@ packages/autorag/
 │   └── Makefile             # BFF build commands
 ├── frontend/                # React Frontend application
 │   ├── src/                 # Source code
-│   ├── config/              # Webpack & Module Federation
+│   ├── config/              # Rspack & Module Federation
 │   └── package.json         # Frontend dependencies
 ├── docs/                    # Documentation
 ├── Dockerfile               # Multi-stage container build
@@ -90,8 +90,8 @@ The standalone frontend will be available at **http://localhost:9000**
 # Navigate to the BFF directory
 cd bff
 
-# Start BFF with mocked Kubernetes and HTTP clients
-make run
+# Start BFF with all clients mocked, including MaaS
+make run DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_S3_CLIENT=true AUTH_METHOD=disabled
 ```
 
 **Without Mocks** (requires Kubernetes cluster access):
@@ -105,8 +105,8 @@ cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE
 **Standalone Mode (Recommended for local development):**
 
 ```bash
-# From the autorag package root, start both frontend and BFF in mocked mode
-make dev-start
+# From the autorag package root, start both frontend and BFF with all mocks
+make dev-start-mock
 ```
 
 Then access the app at **http://localhost:9000**
@@ -153,6 +153,9 @@ Key environment variables for the BFF:
 | `DEPLOYMENT_MODE`   | `standalone`, `kubeflow`, or `federated` | standalone |
 | `DEV_MODE`          | Enables development features             | false      |
 | `MOCK_K8S_CLIENT`   | Use in-memory mock for Kubernetes        | false      |
+| `MOCK_MAAS_CLIENT`  | Use fake MaaS model discovery and avoid external MaaS calls | false |
+| `MOCK_PIPELINE_SERVER_CLIENT` | Use mock Kubeflow Pipelines client | false |
+| `MOCK_S3_CLIENT`    | Use mock S3 client                      | false      |
 | `STATIC_ASSETS_DIR` | Directory for frontend assets            | ./static   |
 | `LOG_LEVEL`         | Logging level (ERROR, WARN, INFO, DEBUG) | INFO       |
 

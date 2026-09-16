@@ -3,7 +3,11 @@
 // FIXME: Upstream still open — https://github.com/patternfly/patternfly/issues/7554 (breadcrumb icon underline). Re-check after PF ships fix (e.g. patternfly/patternfly#8184).
 .fs-link-button-with-icon {
   position: relative;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
   text-decoration: none;
+  overflow: hidden;
 
   &::after {
     content: "\00A0";
@@ -15,5 +19,6 @@
     top: 3px;
     letter-spacing: 1000px;
     overflow: hidden;
+    pointer-events: none;
   }
 }

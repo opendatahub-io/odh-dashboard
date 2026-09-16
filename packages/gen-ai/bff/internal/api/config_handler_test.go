@@ -142,3 +142,67 @@ func TestBFFConfigHandler_ContentType(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "application/json", rs.Header.Get("Content-Type"))
 }
+
+func TestBFFConfigHandler_SandboxesAvailable_True(t *testing.T) {
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config:                  config.EnvConfig{Port: 4000},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+		sandboxesAvailable:      true,
+	}
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, constants.ConfigPath, nil)
+	assert.NoError(t, err)
+
+	app.BFFConfigHandler(rr, req, nil)
+
+	rs := rr.Result()
+	defer func() { _ = rs.Body.Close() }()
+
+	body, err := io.ReadAll(rs.Body)
+	assert.NoError(t, err)
+
+	var response struct {
+		Data *models.BFFConfigModel `json:"data"`
+	}
+	err = json.Unmarshal(body, &response)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.NotNil(t, response.Data)
+	assert.True(t, response.Data.SandboxesAvailable, "SandboxesAvailable should be true")
+}
+
+func TestBFFConfigHandler_SandboxesAvailable_False(t *testing.T) {
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config:                  config.EnvConfig{Port: 4000},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+		sandboxesAvailable:      false,
+	}
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, constants.ConfigPath, nil)
+	assert.NoError(t, err)
+
+	app.BFFConfigHandler(rr, req, nil)
+
+	rs := rr.Result()
+	defer func() { _ = rs.Body.Close() }()
+
+	body, err := io.ReadAll(rs.Body)
+	assert.NoError(t, err)
+
+	var response struct {
+		Data *models.BFFConfigModel `json:"data"`
+	}
+	err = json.Unmarshal(body, &response)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.NotNil(t, response.Data)
+	assert.False(t, response.Data.SandboxesAvailable, "SandboxesAvailable should be false")
+}

@@ -8,7 +8,7 @@ Cypress tests for the Gen-AI plugin running in **mocked mode** with stubbed back
 
 ### CI Mode (Recommended)
 
-Automatically starts dev server, runs tests, then cleans up:
+Builds a production bundle, serves it from the mock BFF, runs tests, then cleans up:
 
 ```bash
 npm run test:cypress-ci

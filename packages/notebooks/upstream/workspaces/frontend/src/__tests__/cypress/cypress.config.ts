@@ -51,6 +51,7 @@ export default defineConfig({
     resolution: 'high',
   },
   defaultCommandTimeout: 10000,
+  requestTimeout: 10000,
   e2e: {
     baseUrl: BASE_URL,
     retries: {

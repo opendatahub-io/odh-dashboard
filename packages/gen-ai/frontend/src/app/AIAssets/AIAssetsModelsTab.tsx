@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Alert,
-  AlertActionCloseButton,
-  Bullseye,
-  Button,
-  Content,
-  ContentVariants,
-  Spinner,
-} from '@patternfly/react-core';
+import { Bullseye, Button, Content, ContentVariants, Spinner } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
@@ -24,15 +16,13 @@ const AIAssetsModelsTab: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels } = useFetchLlamaModels(undefined, true);
 
-  const { models, loaded, aiError, maasError, refresh } = useMergedModels();
+  const { models, loaded, error, refresh } = useMergedModels();
   const { data: lsdStatus } = useFetchLSDStatus();
   const { api, apiAvailable } = useGenAiAPI();
   const isExternalModelsEnabled = useAiAssetCustomEndpointsEnabled();
 
   // Modal state
   const [isCreateEndpointModalOpen, setIsCreateEndpointModalOpen] = React.useState(false);
-  const [isWarningDismissed, setIsWarningDismissed] = React.useState(false);
-
   // Submit handler for creating external endpoint
   const handleCreateExternalEndpoint = React.useCallback(
     async (request: ExternalModelRequest) => {
@@ -86,21 +76,13 @@ const AIAssetsModelsTab: React.FC = () => {
     );
   }
 
-  if (aiError && maasError) {
+  if (error) {
     return (
       <ModelsEmptyState
         title="Unable to load models"
         description="There was a problem loading models. Try refreshing the page."
       />
     );
-  }
-
-  const warnings: string[] = [];
-  if (aiError) {
-    warnings.push('Locally deployed models could not be loaded.');
-  }
-  if (maasError) {
-    warnings.push('Models as a Service could not be loaded.');
   }
 
   const emptyState = isExternalModelsEnabled ? (
@@ -172,27 +154,8 @@ const AIAssetsModelsTab: React.FC = () => {
 
   return (
     <>
-      {warnings.length > 0 && !isWarningDismissed && (
-        <Alert
-          variant="warning"
-          isInline
-          title="Some models may be unavailable"
-          actionClose={<AlertActionCloseButton onClose={() => setIsWarningDismissed(true)} />}
-          data-testid="models-tab-warning-alert"
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-        >
-          {warnings.join(' ')} Only models from available sources are shown.
-        </Alert>
-      )}
       {models.length === 0 ? (
-        warnings.length > 0 ? (
-          <ModelsEmptyState
-            title="Some model sources could not be loaded"
-            description="Refresh the page or try again later."
-          />
-        ) : (
-          emptyState
-        )
+        emptyState
       ) : (
         <AIModelsTable
           models={models}

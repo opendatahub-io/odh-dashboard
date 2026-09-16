@@ -22,7 +22,7 @@ import {
   getBackUrl,
   getBreadcrumbLabelFromState,
   getSectionUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import {
   EventTrackingResourceType,
@@ -30,9 +30,11 @@ import {
   EventTrackingEditSource,
   MaaSEvents,
   EventTrackingContext,
+  MaaSResourceDeletedProperties,
+  MaaSGovernanceYamlViewedProperties,
 } from '~/app/types/event-tracking';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
-import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
+import MaaSGovernanceYamlTab from '~/app/pages/maas-governance/MaaSGovernanceYamlTab';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
@@ -87,7 +89,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: policy.phase ?? '',
                 outcome: TrackingOutcome.submit,
-              });
+              } satisfies MaaSResourceDeletedProperties);
               navigate(backUrl);
             } else {
               fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
@@ -95,7 +97,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: policy.phase ?? '',
                 outcome: TrackingOutcome.cancel,
-              });
+              } satisfies MaaSResourceDeletedProperties);
             }
           }}
         />
@@ -142,10 +144,10 @@ const ViewAuthPoliciesPage: React.FC = () => {
           onSelect={(_event, key) => {
             setActiveTab(key);
             if (key === 'yaml') {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
                 context: EventTrackingContext.DETAILS,
-              });
+              } satisfies MaaSGovernanceYamlViewedProperties);
             }
           }}
         >
@@ -178,7 +180,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
             aria-label="YAML tab"
             data-testid="policy-yaml-tab"
           >
-            <SubscriptionManagementYamlTab
+            <MaaSGovernanceYamlTab
               resourceName={authPolicyName}
               resourceType="authorizationpolicy"
             />

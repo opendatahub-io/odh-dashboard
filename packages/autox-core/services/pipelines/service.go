@@ -427,9 +427,8 @@ func (s *service) DiscoverPipelineByName(ctx context.Context, namespace, pipelin
 }
 
 // DiscoverNamedPipelines discovers multiple managed pipelines, one per entry in definitions.
-// For each definition, tries the exact default version display name first, then falls back
-// to the most recently created version (ListPipelineVersions is sorted by created_at desc)
-// so runs from older pipeline versions remain discoverable.
+// An empty defaultVersion selects the most recently created version. A non-empty defaultVersion
+// is an exact version pin and does not fall back when that version is unavailable.
 // Results are cached per namespace with a 5-minute TTL.
 func (s *service) DiscoverNamedPipelines(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*DiscoveredPipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
@@ -453,12 +452,6 @@ func (s *service) DiscoverNamedPipelines(ctx context.Context, namespace, default
 		discovered, err := s.DiscoverPipelineByName(ctx, namespace, name, defaultVersion)
 		if err != nil {
 			return nil, fmt.Errorf("failed to discover pipeline %q: %w", pipelineType, err)
-		}
-		if discovered == nil {
-			discovered, err = s.DiscoverPipelineByName(ctx, namespace, name, "")
-			if err != nil {
-				return nil, fmt.Errorf("failed to discover pipeline %q (fallback): %w", pipelineType, err)
-			}
 		}
 		if discovered != nil {
 			result[pipelineType] = discovered

@@ -60,8 +60,7 @@ export const getPipelineTreeLoadingContent = (
 };
 
 export type PipelineLabelAppearance =
-  | { status: NonNullable<LabelProps['status']> }
-  | { color: NonNullable<LabelProps['color']> };
+  { status: NonNullable<LabelProps['status']> } | { color: NonNullable<LabelProps['color']> };
 
 export type PipelineStatusLabel = { text: string } & PipelineLabelAppearance;
 

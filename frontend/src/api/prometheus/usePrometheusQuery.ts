@@ -4,7 +4,7 @@ import useFetch, {
   FetchStateObject,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { PrometheusQueryResponse } from '#~/types';
 
 const usePrometheusQuery = <TResponse = PrometheusQueryResponse>(

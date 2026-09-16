@@ -15,7 +15,10 @@ import {
   buildMockPipelineVersions,
 } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockCancelledGoogleRpcStatus } from '@odh-dashboard/internal/__mocks__/mockGoogleRpcStatusKF';
+import {
+  mockCancelledGoogleRpcStatus,
+  mockNotFoundGoogleRpcStatus,
+} from '@odh-dashboard/internal/__mocks__/mockGoogleRpcStatusKF';
 import { mockArtifactStorage } from '@odh-dashboard/internal/__mocks__/mockArtifactStorage';
 import { verifyRelativeURL } from '../../../../utils/url';
 import {
@@ -119,7 +122,10 @@ describe('Compare runs', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa', runId: 'invalid_run_id' },
       },
-      { statusCode: 404 },
+      {
+        statusCode: 404,
+        body: mockNotFoundGoogleRpcStatus({ message: 'Run not found' }),
+      },
     ).as('invalidRun');
 
     compareRunsGlobal.visit(projectName, ['invalid_run_id']);
@@ -133,7 +139,10 @@ describe('Compare runs', () => {
       {
         path: { namespace: projectName, serviceName: 'dspa', runId: 'invalid_run_id' },
       },
-      { statusCode: 404 },
+      {
+        statusCode: 404,
+        body: mockNotFoundGoogleRpcStatus({ message: 'Run not found' }),
+      },
     ).as('invalidRun');
     compareRunsGlobal.visit(projectName, ['invalid_run_id', mockRun.run_id]);
     cy.wait('@invalidRun');

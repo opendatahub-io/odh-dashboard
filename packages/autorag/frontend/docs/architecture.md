@@ -62,4 +62,4 @@ The AutoRAG UI is a React application that provides a user interface for configu
 
 ## Module Federation
 
-The app uses Webpack Module Federation for dynamic loading and integration with the ODH Dashboard. It can run standalone or as a federated module within the main dashboard.
+The app uses Module Federation for dynamic loading and integration with the ODH Dashboard. It can run standalone or as a federated module within the main dashboard.

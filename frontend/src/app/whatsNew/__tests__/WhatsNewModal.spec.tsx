@@ -2,9 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import type { UserState } from '#~/redux/selectors/types';
 import { useUser } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
@@ -17,6 +18,11 @@ import {
 import WhatsNewModal from '#~/app/whatsNew/WhatsNewModal';
 import { GUIDED_TOUR_EVENTS } from '#~/app/whatsNew/tracking/guidedTourTracking';
 import { openWhatsNewTour } from '#~/app/whatsNew/whatsNewEvent';
+
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(),
+}));
 
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
@@ -43,6 +49,17 @@ const useUserMock = jest.mocked(useUser);
 const mockUseBrowserStorage = jest.mocked(useBrowserStorage);
 const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
+
+const mockAreaStatus = (status: boolean): ReturnType<typeof useIsAreaAvailable> => ({
+  status,
+  devFlags: null,
+  featureFlags: null,
+  reliantAreas: null,
+  requiredComponents: null,
+  requiredCapabilities: null,
+  customCondition: () => false,
+});
 
 const mockSetSeen = jest.fn();
 
@@ -101,6 +118,7 @@ describe('WhatsNewModal', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     mockUseBrowserStorage.mockReturnValue([false, mockSetSeen]);
+    mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
   });
 
   afterEach(() => {
@@ -115,6 +133,16 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
+
+      expect(screen.queryByTestId('whats-new-modal')).not.toBeInTheDocument();
+    });
+
+    it('should not render when guided tour area is unavailable', () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(false));
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
 
       expect(screen.queryByTestId('whats-new-modal')).not.toBeInTheDocument();
     });

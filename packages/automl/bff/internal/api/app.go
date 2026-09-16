@@ -244,6 +244,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mrClient = modelregistry.NewDefaultModelRegistryClient(mrClientCfg)
 	}
 
+	s3Repo := repositories.NewS3Repository(logger, s3Service, k8sService, pipelinesService)
+
 	app := &App{
 		config:             cfg,
 		logger:             logger,
@@ -266,10 +268,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		},
 		s3: &S3Handler{
 			logger: logger,
-			repo:   repositories.NewS3Repository(logger, s3Service, k8sService, pipelinesService),
+			repo:   s3Repo,
 		},
 		pipelines: &PipelinesHandler{
-			logger: logger,
+			schemas: s3Repo,
+			logger:  logger,
 			repo: repositories.NewPipelinesRepository(logger, pipelinesService, repositories.PipelinesRepositoryConfig{
 				TimeSeriesPipelineName: cfg.AutoMLTimeSeriesPipelineNamePrefix,
 				TabularPipelineName:    cfg.AutoMLTabularPipelineNamePrefix,

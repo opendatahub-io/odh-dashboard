@@ -39,6 +39,8 @@ type CQDcgmMetricsReturn = {
   byModel: Map<string, CQDcgmResult>;
   loaded: boolean;
   dcgmAvailable: boolean;
+  error?: Error;
+  refresh: () => Promise<[unknown, unknown]>;
 };
 
 /**
@@ -49,42 +51,49 @@ type CQDcgmMetricsReturn = {
 const useCQDcgmMetrics = (refreshRate = INFRASTRUCTURE_REFRESH_INTERVAL): CQDcgmMetricsReturn => {
   const fetchOptions = React.useMemo(() => ({ refreshRate }), [refreshRate]);
 
-  const computeState = usePrometheusQuery<ByModelResponse>(
-    PROMETHEUS_API,
-    PROMQL_COMPUTE_BY_MODEL,
-    fetchOptions,
-  );
-  const memoryState = usePrometheusQuery<ByModelResponse>(
-    PROMETHEUS_API,
-    PROMQL_MEMORY_BY_MODEL,
-    fetchOptions,
-  );
+  const {
+    data: computeData,
+    loaded: computeLoaded,
+    error: computeError,
+    refresh: refreshComputeMetrics,
+  } = usePrometheusQuery<ByModelResponse>(PROMETHEUS_API, PROMQL_COMPUTE_BY_MODEL, fetchOptions);
+  const {
+    data: memoryData,
+    loaded: memoryLoaded,
+    error: memoryError,
+    refresh: refreshMemoryMetrics,
+  } = usePrometheusQuery<ByModelResponse>(PROMETHEUS_API, PROMQL_MEMORY_BY_MODEL, fetchOptions);
 
-  const loaded =
-    (computeState.loaded || !!computeState.error) && (memoryState.loaded || !!memoryState.error);
+  const loaded = (computeLoaded || !!computeError) && (memoryLoaded || !!memoryError);
 
-  const computeSettled = computeState.loaded || !!computeState.error;
-  const memorySettled = memoryState.loaded || !!memoryState.error;
+  const computeSettled = computeLoaded || !!computeError;
+  const memorySettled = memoryLoaded || !!memoryError;
 
   const byModel = React.useMemo((): Map<string, CQDcgmResult> => {
-    const computeMap = parseByModel(computeState.data);
-    const memoryMap = parseByModel(memoryState.data);
+    const computeMap = parseByModel(computeData);
+    const memoryMap = parseByModel(memoryData);
 
     const allModels = new Set([...computeMap.keys(), ...memoryMap.keys()]);
     const result = new Map<string, CQDcgmResult>();
     for (const model of allModels) {
       result.set(model, {
-        // undefined (→ "No telemetry data") once settled; null (→ spinner) while loading
+        // undefined (→ 0% empty bar) once settled; null (→ spinner) while loading
         computePercentage: computeSettled ? computeMap.get(model) : null,
         memoryPercentage: memorySettled ? memoryMap.get(model) : null,
       });
     }
     return result;
-  }, [computeState.data, memoryState.data, computeSettled, memorySettled]);
+  }, [computeData, memoryData, computeSettled, memorySettled]);
 
   const dcgmAvailable = byModel.size > 0;
+  const error = computeError ?? memoryError;
 
-  return { byModel, loaded, dcgmAvailable };
+  const refresh = React.useCallback(
+    () => Promise.all([refreshComputeMetrics(), refreshMemoryMetrics()]),
+    [refreshComputeMetrics, refreshMemoryMetrics],
+  );
+
+  return { byModel, loaded, dcgmAvailable, error, refresh };
 };
 
 export default useCQDcgmMetrics;

@@ -10,7 +10,7 @@ paths:
 
 > **Canonical docs** — read these first:
 > - [docs/onboard-modular-architecture.md](../../docs/onboard-modular-architecture.md) — quickstart using `mod-arch-installer`
-> - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy, webpack setup
+> - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy, rspack setup
 > - [docs/extensibility.md](../../docs/extensibility.md) — extension points, code refs, feature gating
 
 The quickstart in `docs/onboard-modular-architecture.md` uses `npx mod-arch-installer -n <name>` to scaffold a new module. This rule provides the full manual reference and checklist beyond what the installer covers.
@@ -108,7 +108,7 @@ packages/<name>/
 │   ├── package.json
 │   ├── config/
 │   │   ├── moduleFederation.js
-│   │   └── webpack.{common,dev,prod}.js
+│   │   └── rspack.{common,dev,prod}.js
 │   └── src/
 │       ├── odh/
 │       │   ├── extensions.ts       # Extension definitions
@@ -187,12 +187,34 @@ Add the area to `frontend/src/concepts/areas/types.ts` and configure it in `fron
 
 See [docs/onboard-modular-architecture.md § Add Feature Flag](../../docs/onboard-modular-architecture.md#4-add-feature-flag) for the feature flag setup.
 
-### 7. Webpack config (federated modules)
+### 7. Rspack config (federated modules)
 
-Copy from an existing module (e.g., `packages/gen-ai/frontend/config/`). See [docs/module-federation.md § Webpack Configuration](../../docs/module-federation.md#webpack-configuration) for the full config template. Key points:
+Copy from an existing module (e.g., `packages/gen-ai/frontend/config/`). See [docs/module-federation.md § Rspack Configuration](../../docs/module-federation.md#rspack-configuration) for the full config template.
+
+Use `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (`packages/app-config/src/rspack/OdhFederationPlugin.ts`).
+
+```javascript
+// packages/<name>/frontend/config/moduleFederation.js
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
+
+module.exports = {
+  moduleFederationPlugins: [
+    new OdhFederationPlugin({
+      name: 'myModule', // must match package.json module-federation.name
+      isHost: process.env.DEPLOYMENT_MODE === 'standalone',
+      exposes: {
+        './extensions': './src/odh/extensions',
+        './extension-points': './src/odh/extension-points',
+      },
+    }),
+  ],
+};
+```
+
+Key points:
 
 - Expose `./extensions` and optionally `./extension-points`
-- Shared singletons must match the host
+- Shared singletons are applied by `OdhFederationPlugin` — do not maintain a manual React / PatternFly / ODH `shared` map
 - Set `runtime: false` and `output.publicPath = 'auto'`
 - Dev server port must be unique
 
@@ -235,7 +257,7 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] Unique port assigned and configured in `Makefile` + `package.json`
 - [ ] `extensions.ts` with area, nav, and route extensions
 - [ ] `SupportedArea` enum entry + area config
-- [ ] Webpack config with correct shared singletons (if federated)
+- [ ] Rspack config with `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (if federated)
 - [ ] BFF with `/healthcheck` and OpenAPI spec (if applicable)
 - [ ] Unit tests in `__tests__/`
 - [ ] E2E tests in `packages/cypress/cypress/tests/e2e/<name>/`

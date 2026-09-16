@@ -20,6 +20,7 @@ import {
 } from '@odh-dashboard/ui-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookKind } from '#~/k8sTypes';
@@ -37,11 +38,11 @@ import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwarePro
 import { isWorkbenchMigrated, useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
+import useNotification from '#~/utilities/useNotification';
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { useWorkbenchFeatureStores } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -80,6 +81,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
+  const notification = useNotification();
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
     useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
@@ -142,9 +144,23 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       notebookName,
       notebookNamespace,
       getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
-    ).then(() => {
-      obj.refresh().then(() => setInProgress(false));
-    });
+    )
+      .then(
+        () => obj.refresh(),
+        (e) => {
+          notification.error(
+            `Failed to stop workbench ${notebookName}`,
+            e instanceof Error ? e.message : String(e),
+          );
+        },
+      )
+      .catch((e) => {
+        notification.error(
+          `Failed to refresh workbench ${notebookName}`,
+          e instanceof Error ? e.message : String(e),
+        );
+      })
+      .finally(() => setInProgress(false));
   }, [
     podSpecOptionsState,
     notebookName,
@@ -152,6 +168,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     obj,
     bindingStateInfo,
     kueueStatusByNotebookName,
+    notification,
   ]);
 
   const onStop = React.useCallback(() => {

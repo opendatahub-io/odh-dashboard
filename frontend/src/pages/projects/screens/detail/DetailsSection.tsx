@@ -2,7 +2,7 @@ import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- wrapper re-export that injects host-specific error handling
 import DetailsSectionBase from '@odh-dashboard/ui-core/components/detail/DetailsSection';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
-import { getGenericErrorCode } from '#~/api';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { ProjectSectionID } from './types';
 

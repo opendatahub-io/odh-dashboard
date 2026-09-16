@@ -1,10 +1,10 @@
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { getKueueStatusInfo } from '#~/concepts/kueue';
-import { getKueueAnalyticsSubState } from '#~/concepts/kueue/messageUtils';
+import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
+import { getKueueAnalyticsSubState } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
-} from '#~/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/types';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,

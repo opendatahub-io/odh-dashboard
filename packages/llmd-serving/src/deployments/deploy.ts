@@ -11,8 +11,8 @@ import {
 import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
-import { setUpTokenAuth } from './deployUtils';
 import {
   applyModelEnvVarsAndArgs,
   applyModelLocation,
@@ -335,6 +335,7 @@ export const deployLLMdDeployment = async (
       llmInferenceService.metadata.namespace,
       createTokenAuth,
       llmInferenceService,
+      'llminferenceservices',
       initialWizardData?.existingAuthTokens,
       { dryRun },
     );

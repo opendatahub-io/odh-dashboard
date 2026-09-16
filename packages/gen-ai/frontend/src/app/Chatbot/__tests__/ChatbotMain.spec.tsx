@@ -7,8 +7,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
-import type { BFFConfig, LlamaStackDistributionModel } from '~/app/types';
-import { MaaSModel } from '~/app/types';
+import type { AAModelResponse, BFFConfig, LlamaStackDistributionModel } from '~/app/types';
 
 // Mock dependencies
 jest.mock('react-router-dom', () => ({
@@ -141,7 +140,7 @@ describe('ChatbotMain - Empty State Logic', () => {
       aiModels: [],
       aiModelsLoaded: true,
       aiModelsError: undefined,
-      maasModels: [] as MaaSModel[],
+      maasModels: [] as AAModelResponse[],
       maasModelsLoaded: true,
       maasModelsError: undefined,
       models: [],

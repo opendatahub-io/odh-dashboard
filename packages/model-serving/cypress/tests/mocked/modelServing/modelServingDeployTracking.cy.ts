@@ -21,14 +21,16 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockURISecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import {
-  HardwareProfileModel,
-  InferenceServiceModel,
-  PVCModel,
-  ProjectModel,
   RoleBindingModel,
   RoleModel,
   SecretModel,
   ServiceAccountModel,
+} from '@odh-dashboard/k8s-core/api/models';
+import {
+  HardwareProfileModel,
+  InferenceServiceModel,
+  PVCModel,
+  ProjectModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';

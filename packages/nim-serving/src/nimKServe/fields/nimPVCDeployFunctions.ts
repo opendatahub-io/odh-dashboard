@@ -3,11 +3,13 @@ import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/exte
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { createPvc } from '@odh-dashboard/internal/api';
 import {
-  NIM_PVC_ANNOTATION,
-  NIM_PVC_SUBPATH_ANNOTATION,
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
 } from '../../pages/deploymentWizard/fields/NIMPVCField';
+import {
+  NIM_PVC_ANNOTATION,
+  NIM_PVC_SUBPATH_ANNOTATION,
+} from '../../pages/clusterStorage/clusterStorage';
 
 /**
  * Creates the PVC (for NEW mode) before the InferenceService + ServingRuntime
