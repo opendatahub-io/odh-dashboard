@@ -14,6 +14,7 @@ import {
   ApiErrorEnvelope,
   ApiWorkspaceActionPauseEnvelope,
   ApiWorkspaceCreateEnvelope,
+  ApiWorkspaceDetailsEnvelope,
   ApiWorkspaceEnvelope,
   ApiWorkspaceListEnvelope,
 } from './data-contracts';
@@ -124,6 +125,7 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @response `400` `ApiErrorEnvelope` Bad Request.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to update workspace.
+   * @response `404` `ApiErrorEnvelope` Workspace not found
    * @response `409` `ApiErrorEnvelope` Conflict. Current workspace revision is newer than provided.
    * @response `413` `ApiErrorEnvelope` Request Entity Too Large. The request body is too large.
    * @response `415` `ApiErrorEnvelope` Unsupported Media Type. Content-Type header is not correct.
@@ -196,6 +198,63 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       body: body,
       type: ContentType.Json,
       format: 'json',
+      ...params,
+    });
+  /**
+   * @description Returns detail-level data for the workspace details overlay (volumes, secrets, pod info).
+   *
+   * @tags workspaces
+   * @name GetWorkspacePodTemplateDetails
+   * @summary Get workspace pod template details
+   * @request GET:/workspaces/{namespace}/{name}/podtemplate/details
+   * @response `200` `ApiWorkspaceDetailsEnvelope` Successful operation.
+   * @response `401` `ApiErrorEnvelope` Unauthorized.
+   * @response `403` `ApiErrorEnvelope` Forbidden.
+   * @response `404` `ApiErrorEnvelope` Workspace not found.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspacePodTemplateDetails = (namespace: string, name: string, params: RequestParams = {}) =>
+    this.request<ApiWorkspaceDetailsEnvelope, ApiErrorEnvelope>({
+      path: `/workspaces/${namespace}/${name}/podtemplate/details`,
+      method: 'GET',
+      format: 'json',
+      ...params,
+    });
+  /**
+   * @description Returns a point-in-time snapshot of container logs for the workspace pod as a raw text/plain stream proxied directly from the Kubernetes pod logs API. Each log line is always prefixed with an RFC3339 timestamp.
+   *
+   * @tags workspaces
+   * @name GetWorkspacePodTemplateLogsBatch
+   * @summary Get workspace container logs (batch)
+   * @request GET:/workspaces/{namespace}/{name}/podtemplate/logs/batch
+   * @response `200` `string` Raw container log stream (text/plain).
+   * @response `400` `ApiErrorEnvelope` Bad Request. Container not found, pod not running, container not started, or no previous logs available.
+   * @response `401` `ApiErrorEnvelope` Unauthorized.
+   * @response `403` `ApiErrorEnvelope` Forbidden.
+   * @response `404` `ApiErrorEnvelope` Workspace not found.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspacePodTemplateLogsBatch = (
+    namespace: string,
+    name: string,
+    query?: {
+      /** Target container name. Defaults to the primary (main) container. */
+      container?: string;
+      /** Number of lines from the end of the log to return. Defaults to 1000. */
+      tailLines?: number;
+      /** Only return logs after this RFC3339 timestamp (e.g. 2026-07-15T10:30:00Z). */
+      sinceTime?: string;
+      /** If true, returns logs from the previous terminated container instance. */
+      previous?: boolean;
+    },
+    params: RequestParams = {},
+  ) =>
+    this.request<string, ApiErrorEnvelope>({
+      path: `/workspaces/${namespace}/${name}/podtemplate/logs/batch`,
+      method: 'GET',
+      query: query,
       ...params,
     });
 }

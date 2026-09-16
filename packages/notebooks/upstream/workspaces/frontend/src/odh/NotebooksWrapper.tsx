@@ -10,6 +10,19 @@ import {
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
+import * as monaco from 'monaco-editor';
+import { loader } from '@monaco-editor/react';
+
+window.MonacoEnvironment = {
+  getWorker(_moduleId: string, label: string) {
+    if (label === 'yaml') {
+      return new Worker(new URL('monaco-yaml/yaml.worker', import.meta.url));
+    }
+    return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker', import.meta.url));
+  },
+};
+
+loader.config({ monaco });
 import AppRoutes from '~/app/AppRoutes';
 import { NotebookContextProvider } from '~/app/context/NotebookContext';
 import { BFF_API_VERSION, MANDATORY_NAMESPACE, URL_PREFIX } from '~/shared/utilities/const';

@@ -1,45 +1,41 @@
 /* eslint-disable camelcase */
-import { AutoragPatternSchema, isV1RawPattern } from '~/app/hooks/patternSchema';
+import { readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+import {
+  CanonicalPatternSchema,
+  isCanonicalRawPattern,
+  parsePatternArtifact,
+} from '~/app/hooks/patternSchema';
+import { normalizePattern } from '~/app/hooks/useAutoragResults';
+import { getOptimizedScore } from '~/app/utilities/utils';
+import { LegacyPatternSchema } from '~/app/hooks/legacyPattern';
 
 const baseSettings = {
   chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
-  embedding: {
-    model_id: 'embed-model',
-    embedding_params: { embedding_dimension: 768 },
-  },
+  embedding: { model_id: 'embed-model', embedding_params: { embedding_dimension: 768 } },
   retrieval: { method: 'window', number_of_chunks: 5 },
   generation: { model_id: 'gen-model' },
 };
 
-const baseFields = {
-  name: 'pattern0',
-  iteration: 0,
-  max_combinations: 20,
-  duration_seconds: 120,
-};
+const baseFields = { name: 'pattern0', iteration: 0, max_combinations: 20, duration_seconds: 120 };
 
-const v1Pattern = {
+const legacyPattern = {
   ...baseFields,
   settings: {
     ...baseSettings,
     vector_store: { datasource_type: 'milvus', collection_name: 'col0' },
-    responses_template: { model: 'test' },
   },
-  scores: {
-    faithfulness: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
-    answer_correctness: { mean: 0.6, ci_low: 0.5, ci_high: 0.7 },
-  },
+  scores: { faithfulness: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 } },
   final_score: 0.7,
 };
 
-const v2Pattern = {
+const canonicalPattern = {
   ...baseFields,
   settings: {
     ...baseSettings,
     vector_store_binding: {
-      provider_id: 'prov-1',
       provider_type: 'milvus',
-      vector_store_id: 'col0',
+      collection_name: 'col0',
     },
   },
   evaluation: {
@@ -57,40 +53,99 @@ const v2Pattern = {
       },
     ],
   },
-  inference: {
-    responses_template: { model: 'test' },
-  },
-  indexing: {
-    pipeline_spec: {
-      pipeline_name: 'index-pipe',
-      parameters: { key: 'val' },
-      overrides_allowed: ['chunk_size'],
-    },
-  },
 };
 
-describe('AutoragPatternSchema', () => {
-  it('should parse a valid V2 pattern', () => {
-    const result = AutoragPatternSchema.safeParse(v2Pattern);
+const bundledPatternsDirectory = path.resolve(
+  __dirname,
+  '../../../../../bff/internal/fake/s3-bucket/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/rag-templates-optimization/e9920e43-b0cc-497a-ac3a-c7ee794a7787/rag_patterns',
+);
+
+describe('CanonicalPatternSchema', () => {
+  it('should parse canonical evaluator-qualified aggregate metrics', () => {
+    const result = CanonicalPatternSchema.safeParse(canonicalPattern);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.name).toBe('pattern0');
-      expect('evaluation' in result.data).toBe(true);
+      expect(result.data.evaluation.metrics[1]).toMatchObject({
+        evaluator: 'custom',
+        name: 'overall_score',
+      });
     }
   });
 
-  it('should parse a valid V1 pattern', () => {
-    const result = AutoragPatternSchema.safeParse(v1Pattern);
+  it('should parse the delivered canonical binding shape', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: { provider_type: 'milvus', collection_name: 'run-collection' },
+      },
+    });
+
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.name).toBe('pattern0');
-      expect('scores' in result.data).toBe(true);
+  });
+
+  it('should normalize a legacy vector_store_id in a canonical artifact', () => {
+    const result = parsePatternArtifact({
+      ...canonicalPattern,
+      inference: { responses_template: { model: 'test' } },
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: {
+          provider_id: 'milvus',
+          provider_type: 'milvus',
+          vector_store_id: 'legacy-collection',
+        },
+      },
+    });
+
+    expect(isCanonicalRawPattern(result)).toBe(true);
+    if (isCanonicalRawPattern(result)) {
+      expect(result.settings.vector_store_binding).toEqual({
+        provider_id: 'milvus',
+        provider_type: 'milvus',
+        vector_store_id: 'legacy-collection',
+        collection_name: 'legacy-collection',
+      });
+      expect(result.inference?.responses_template).toEqual({ model: 'test' });
     }
   });
 
-  it('should parse a V2 pattern with null metric mean', () => {
-    const patternWithNullMean = {
-      ...v2Pattern,
+  it('should prefer collection_name when both binding fields exist', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: {
+          provider_type: 'milvus',
+          collection_name: 'canonical-collection',
+          vector_store_id: 'legacy-collection',
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.settings.vector_store_binding?.collection_name).toBe(
+        'canonical-collection',
+      );
+    }
+  });
+
+  it('should reject a canonical binding with neither collection field', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: { provider_type: 'milvus' },
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('should preserve nullable canonical aggregate scores', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
       evaluation: {
         metrics: [
           {
@@ -98,100 +153,132 @@ describe('AutoragPatternSchema', () => {
             name: 'answer_relevance',
             scores: { mean: null, ci_low: null, ci_high: null },
           },
+        ],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject non-finite canonical aggregate scores', () => {
+    const nonFiniteScore = JSON.parse('{"mean":1e999}');
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      evaluation: {
+        metrics: [
           {
-            evaluator: 'unitxt',
-            name: 'faithfulness',
-            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
-          },
-          {
-            evaluator: 'custom',
-            name: 'overall_score',
-            scores: { mean: 0.8, ci_low: null, ci_high: null },
-            optimization_metric: true,
+            ...canonicalPattern.evaluation.metrics[1],
+            scores: { ...canonicalPattern.evaluation.metrics[1].scores, mean: nonFiniteScore.mean },
           },
         ],
       },
-    };
-    const result = AutoragPatternSchema.safeParse(patternWithNullMean);
-    expect(result.success).toBe(true);
-  });
-
-  it('should parse a V1 pattern with null metric mean', () => {
-    const v1WithNullMean = {
-      ...v1Pattern,
-      scores: {
-        ...v1Pattern.scores,
-        answer_relevance: { mean: null, ci_low: null, ci_high: null },
-      },
-    };
-    const result = AutoragPatternSchema.safeParse(v1WithNullMean);
-    expect(result.success).toBe(true);
-  });
-
-  it('should reject data missing required fields', () => {
-    const result = AutoragPatternSchema.safeParse({ name: 'bad' });
+    });
     expect(result.success).toBe(false);
   });
 
-  it('should preserve extra fields via passthrough', () => {
-    const extended = { ...v2Pattern, extra_field: 'hello' };
-    const result = AutoragPatternSchema.safeParse(extended);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect((result.data as Record<string, unknown>).extra_field).toBe('hello');
-    }
-  });
-
-  it('should parse V2 pattern without optional inference/indexing blocks', () => {
-    const minimal = { ...v2Pattern };
-    delete (minimal as Record<string, unknown>).inference;
-    delete (minimal as Record<string, unknown>).indexing;
-    const result = AutoragPatternSchema.safeParse(minimal);
-    expect(result.success).toBe(true);
-  });
-
-  it('should parse V1 pattern without optional vector_store', () => {
-    const settings = { ...v1Pattern.settings };
-    delete (settings as Record<string, unknown>).vector_store;
-    const result = AutoragPatternSchema.safeParse({ ...v1Pattern, settings });
-    expect(result.success).toBe(true);
-  });
-
-  it('should parse a V2 pattern with null vector_store_id', () => {
-    // Real pipeline may set vector_store_id to null when no collection is bound.
-    const withNullBinding = {
-      ...v2Pattern,
-      settings: {
-        ...v2Pattern.settings,
-        vector_store_binding: {
-          ...v2Pattern.settings.vector_store_binding,
-          vector_store_id: null,
-        },
+  it('should reject non-finite canonical row scores', () => {
+    const nonFiniteScore = JSON.parse('{"mean":1e999}');
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      evaluation: {
+        metrics: [
+          {
+            ...canonicalPattern.evaluation.metrics[0],
+            scores: { ...canonicalPattern.evaluation.metrics[0].scores, mean: nonFiniteScore.mean },
+          },
+        ],
       },
-    };
-    const result = AutoragPatternSchema.safeParse(withNullBinding);
-    expect(result.success).toBe(true);
-    if (result.success && 'settings' in result.data) {
-      expect(result.data.settings.vector_store_binding?.vector_store_id).toBeNull();
-    }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject whitespace-only model IDs', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        embedding: { ...canonicalPattern.settings.embedding, model_id: '   ' },
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject malformed canonical patterns', () => {
+    expect(CanonicalPatternSchema.safeParse({ name: 'bad', evaluation: {} }).success).toBe(false);
   });
 });
 
-describe('isV1RawPattern', () => {
-  it('should return true for a V1 pattern (has scores, no evaluation)', () => {
-    const parsed = AutoragPatternSchema.parse(v1Pattern);
-    expect(isV1RawPattern(parsed)).toBe(true);
+describe('LegacyPatternSchema', () => {
+  it('should parse persisted final_score and scores fields', () => {
+    expect(LegacyPatternSchema.safeParse(legacyPattern).success).toBe(true);
   });
 
-  it('should return false for a V2 pattern (has evaluation, no scores)', () => {
-    const parsed = AutoragPatternSchema.parse(v2Pattern);
-    expect(isV1RawPattern(parsed)).toBe(false);
+  it('should reject mixed legacy fields without canonical evaluation data', () => {
+    expect(LegacyPatternSchema.safeParse({ ...legacyPattern, final_score: 'bad' }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('parsePatternArtifact', () => {
+  it('should dispatch canonical artifacts by explicit evaluation presence', () => {
+    const parsed = parsePatternArtifact({ ...canonicalPattern, scores: {} });
+    expect(isCanonicalRawPattern(parsed)).toBe(true);
   });
 
-  it('should return false for a V2 pattern that also has a passthrough scores field', () => {
-    const hybrid = { ...v2Pattern, scores: {} };
-    const parsed = AutoragPatternSchema.parse(hybrid);
-    // V2 schema matches first due to union order, so evaluation is present
-    expect(isV1RawPattern(parsed)).toBe(false);
+  it('should dispatch legacy artifacts by explicit scores presence', () => {
+    const parsed = parsePatternArtifact(legacyPattern);
+    expect(isCanonicalRawPattern(parsed)).toBe(false);
+  });
+
+  it('should prefer the canonical path when evaluation is explicitly present', () => {
+    expect(isCanonicalRawPattern(parsePatternArtifact({ ...canonicalPattern, scores: {} }))).toBe(
+      true,
+    );
+  });
+
+  it('should reject malformed artifacts', () => {
+    expect(() => parsePatternArtifact({ name: 'bad' })).toThrow();
+  });
+
+  it('should parse every bundled canonical fixture with inference responses only', () => {
+    const patternNames = readdirSync(bundledPatternsDirectory)
+      .filter((name) => /^Pattern\d+$/.test(name))
+      .toSorted();
+
+    expect(patternNames).toHaveLength(8);
+
+    patternNames.forEach((patternName) => {
+      const fixture = JSON.parse(
+        readFileSync(path.join(bundledPatternsDirectory, patternName, 'pattern.json'), 'utf8'),
+      ) as Record<string, unknown>;
+      const parsed = parsePatternArtifact(fixture);
+
+      expect(isCanonicalRawPattern(parsed)).toBe(true);
+      if (isCanonicalRawPattern(parsed)) {
+        expect(parsed.inference?.responses_template).toBeDefined();
+        expect((parsed.settings as Record<string, unknown>).responses_template).toBeUndefined();
+      }
+    });
+  });
+
+  it('should preserve Pattern1 objective metadata for final score display', () => {
+    const fixture = JSON.parse(
+      readFileSync(path.join(bundledPatternsDirectory, 'Pattern1', 'pattern.json'), 'utf8'),
+    ) as Record<string, unknown>;
+    const parsed = parsePatternArtifact(fixture);
+
+    expect(isCanonicalRawPattern(parsed)).toBe(true);
+    if (isCanonicalRawPattern(parsed)) {
+      const optimizationMetrics = parsed.evaluation.metrics.filter(
+        (metric) => metric.optimization_metric === true,
+      );
+
+      expect(optimizationMetrics).toHaveLength(1);
+      expect(optimizationMetrics[0]).toMatchObject({
+        evaluator: 'unitxt',
+        name: 'faithfulness',
+      });
+      expect(getOptimizedScore(normalizePattern(parsed))).toBe(0.5895);
+    }
   });
 });

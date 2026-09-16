@@ -12,8 +12,10 @@ import {
   buildMockActionsWorkspaceActionPause,
   buildMockNamespace,
   buildMockWorkspace,
+  buildMockWorkspaceDetails,
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceList,
+  buildMockWorkspaceLogs,
 } from '~/shared/mock/mockBuilder';
 import { createMockPodTemplateWithImage } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
@@ -271,84 +273,6 @@ describe('Workspaces', () => {
       cy.wait('@getDefaultNsWorkspaces');
       workspaces.assertWorkspaceCount(defaultNsWorkspaces.length);
       workspaces.assertEmptyStateNotExists();
-    });
-  });
-
-  describe('Expand row', () => {
-    it('should expand and collapse table row to view workspace details', () => {
-      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
-      const mockWorkspaceKind = buildMockWorkspaceKindInfo({ name: 'jupyterlab' });
-      const mockWorkspace = buildMockWorkspace({
-        name: TEST_WORKSPACE_NAME,
-        namespace: mockNamespace.name,
-        workspaceKind: mockWorkspaceKind,
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-      });
-
-      cy.interceptApi(
-        'GET /api/:apiVersion/namespaces',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-        mockModArchResponse([mockNamespace]),
-      ).as('getNamespaces');
-      cy.interceptApi(
-        'GET /api/:apiVersion/workspaces/:namespace',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-        mockModArchResponse([mockWorkspace]),
-      ).as('getWorkspaces');
-
-      navigateToNamespace(mockNamespace.name);
-
-      // Verify row is initially collapsed
-      workspaces.assertExpandedRowNotExists(mockWorkspace.name);
-      workspaces.toggleRowExpansion(0);
-
-      // Verify expanded content
-      workspaces.assertExpandedRowExists(mockWorkspace.name);
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Home volume');
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Packages');
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'CPU');
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Memory');
-
-      // Collapse the row
-      workspaces.toggleRowExpansion(0);
-      workspaces.assertExpandedRowNotExists(mockWorkspace.name);
-    });
-
-    it('should allow multiple rows to be expanded simultaneously', () => {
-      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
-      const workspace1 = buildMockWorkspace({
-        name: 'Workspace1',
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-      });
-      const workspace2 = buildMockWorkspace({
-        name: 'Workspace2',
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-      });
-
-      cy.interceptApi(
-        'GET /api/:apiVersion/namespaces',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-        mockModArchResponse([mockNamespace]),
-      ).as('getNamespaces');
-      cy.interceptApi(
-        'GET /api/:apiVersion/workspaces/:namespace',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-        mockModArchResponse([workspace1, workspace2]),
-      ).as('getWorkspaces');
-
-      navigateToNamespace(mockNamespace.name);
-
-      // Expand first row
-      workspaces.toggleRowExpansion(0);
-      workspaces.assertExpandedRowExists(workspace1.name);
-
-      // Expand second row
-      workspaces.toggleRowExpansion(1);
-      workspaces.assertExpandedRowExists(workspace2.name);
-
-      // Both should still be expanded
-      workspaces.assertExpandedRowExists(workspace1.name);
-      workspaces.assertExpandedRowExists(workspace2.name);
     });
   });
 
@@ -760,6 +684,18 @@ describe('Workspaces', () => {
         mockModArchResponse(mockWorkspaces),
       ).as('getWorkspaces');
 
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName,
+          },
+        },
+        mockModArchResponse(buildMockWorkspaceDetails()),
+      ).as('getWorkspaceDetails');
+
       navigateToNamespace(mockNamespace.name);
 
       return { mockNamespace, mockWorkspaces };
@@ -1058,8 +994,94 @@ describe('Workspaces', () => {
         workspaceDetailsDrawer.assertActivityTabContentVisible();
         workspaceDetailsDrawer.assertActivityTabContentContainsText('Last activity');
         workspaceDetailsDrawer.assertActivityTabContentContainsText('Last update');
-        workspaceDetailsDrawer.assertActivityTabContentContainsText('Pause time');
+        workspaceDetailsDrawer.assertActivityTabContentContainsText('Pauses after');
+        workspaceDetailsDrawer.assertActivityTabContentContainsText('Paused since');
         workspaceDetailsDrawer.assertActivityTabContentContainsText('Pending restart');
+      });
+
+      it('should hide Pauses after row when pauseWorkspace rule is absent', () => {
+        const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+        const mockWorkspaces = [
+          buildMockWorkspace({
+            name: TEST_WORKSPACE_NAME,
+            state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+            activity: {
+              lastActivity: new Date(2025, 5, 1).getTime(),
+              lastUpdate: new Date(2025, 4, 1).getTime(),
+            },
+          }),
+        ];
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/namespaces',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([mockNamespace]),
+        ).as('getNamespaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockWorkspaces),
+        ).as('getWorkspaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: mockNamespace.name,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          mockModArchResponse(buildMockWorkspaceDetails()),
+        ).as('getWorkspaceDetails');
+
+        navigateToNamespace(mockNamespace.name);
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findActivityTab().click();
+
+        workspaceDetailsDrawer.assertActivityTabContentContainsText('Last activity');
+        workspaceDetailsDrawer.assertActivityTabContentContainsText('Paused since');
+        workspaceDetailsDrawer.assertActivityTabContentNotContainsText('Pauses after');
+      });
+
+      it('should show pause tooltip on last activity hover when pause rule exists', () => {
+        workspaces.hoverWorkspaceRowLastActivity(0);
+        workspaces.assertTooltipContainsText('Workspace will be paused in');
+      });
+
+      it('should not show pause tooltip when pause rule is absent', () => {
+        const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+        const mockWorkspaces = [
+          buildMockWorkspace({
+            name: TEST_WORKSPACE_NAME,
+            state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+            activity: {
+              lastActivity: new Date(2025, 5, 1).getTime(),
+              lastUpdate: new Date(2025, 4, 1).getTime(),
+            },
+          }),
+        ];
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/namespaces',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([mockNamespace]),
+        ).as('getNamespaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockWorkspaces),
+        ).as('getWorkspaces');
+
+        navigateToNamespace(mockNamespace.name);
+
+        workspaces.hoverWorkspaceRowLastActivity(0);
+        workspaces.assertTooltipNotExists();
       });
 
       it('should navigate back to Overview tab from Activity tab', () => {
@@ -1076,6 +1098,137 @@ describe('Workspaces', () => {
         workspaceDetailsDrawer.assertActivityTabAriaSelected(false);
         workspaceDetailsDrawer.assertOverviewTabContentVisible();
         workspaceDetailsDrawer.assertActivityTabContentNotVisible();
+      });
+
+      it('should display container logs in the Logs tab', () => {
+        const mockLogs = buildMockWorkspaceLogs(3);
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          mockLogs,
+        ).as('getWorkspaceLogs');
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findLogsTab().click();
+
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.container).to.equal('main');
+          expect(interception.request.query.previous).to.equal('false');
+        });
+
+        workspaceDetailsDrawer.assertLogsTabContentContainsText('jupyter server log line 1');
+      });
+
+      it('should forward the toolbar selections as query parameters', () => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          buildMockWorkspaceLogs(3),
+        ).as('getWorkspaceLogs');
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findLogsTab().click();
+
+        // Initial request defaults to the primary container.
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.container).to.equal('main');
+        });
+
+        // Switching to the init container re-requests it by its bare name.
+        workspaceDetailsDrawer.selectLogsContainer('istio-proxy (init)');
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.container).to.equal('istio-proxy');
+        });
+
+        // Changing the tail count forwards `tailLines`.
+        workspaceDetailsDrawer.selectLogsTailLines('100');
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.tailLines).to.equal('100');
+        });
+
+        // Choosing a bounded time range forwards an RFC3339 `sinceTime`.
+        workspaceDetailsDrawer.selectLogsTimeRange('15 minutes');
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.sinceTime).to.be.a('string').and.to.include('T');
+        });
+
+        // The previous-container toggle forwards `previous=true`.
+        workspaceDetailsDrawer.findLogsPreviousCheckbox().click();
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.previous).to.equal('true');
+        });
+      });
+
+      it('should refresh, wrap and enable download from the toolbar', () => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          buildMockWorkspaceLogs(3),
+        ).as('getWorkspaceLogs');
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findLogsTab().click();
+        cy.wait('@getWorkspaceLogs');
+
+        // Refresh re-issues the request without changing any filter.
+        workspaceDetailsDrawer.findLogsRefreshButton().click();
+        cy.wait('@getWorkspaceLogs');
+
+        // Wrap toggles on, download is enabled once logs are present.
+        workspaceDetailsDrawer.findLogsWrapCheckbox().click().should('be.checked');
+        workspaceDetailsDrawer.findLogsDownloadButton().should('be.enabled');
+      });
+
+      it('should display an error when the logs are unavailable', () => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          {
+            error: {
+              code: '409',
+              message: 'workspace pod is not running',
+            },
+          },
+        ).as('getWorkspaceLogsError');
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findLogsTab().click();
+
+        cy.wait('@getWorkspaceLogsError');
+
+        workspaceDetailsDrawer.assertLogsTabContentContainsText('workspace pod is not running');
       });
 
       it('should update drawer content when switching between workspaces', () => {
@@ -1102,6 +1255,30 @@ describe('Workspaces', () => {
           { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
           mockModArchResponse(mockWorkspaces),
         ).as('getWorkspaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: mockNamespace.name,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          mockModArchResponse(buildMockWorkspaceDetails()),
+        ).as('getWorkspaceDetails');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: mockNamespace.name,
+              workspaceName: workspace2Name,
+            },
+          },
+          mockModArchResponse(buildMockWorkspaceDetails()),
+        ).as('getWorkspace2Details');
 
         navigateToNamespace(mockNamespace.name);
 

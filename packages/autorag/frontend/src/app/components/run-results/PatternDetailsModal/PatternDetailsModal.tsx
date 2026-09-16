@@ -25,8 +25,9 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedScore,
-  getMetricByName,
+  getRankableOptimizationMetric,
 } from '~/app/utilities/utils';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import {
   fireAutoragPatternsCompared,
   fireAutoragPatternDetailsDownloadInitiated,
@@ -45,8 +46,9 @@ export type PatternDetailsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   patterns: AutoragPattern[];
+  patternKeys?: string[];
   selectedIndex: number;
-  rank: number;
+  rank?: number;
   optimizedMetric?: string;
   onPatternChange: (index: number) => void;
   namespace?: string;
@@ -72,6 +74,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   isOpen,
   onClose,
   patterns,
+  patternKeys = patterns.map((_, index) => String(index)),
   selectedIndex,
   rank,
   optimizedMetric,
@@ -93,7 +96,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
 
   const data = patterns[selectedIndex];
 
-  const rankMap = React.useMemo(() => computePatternRankMap(patterns), [patterns]);
+  const rankMap = React.useMemo<Partial<Record<string, number>>>(
+    () =>
+      computePatternRankMap(
+        Object.fromEntries(patterns.map((pattern, index) => [patternKeys[index], pattern])),
+        optimizedMetric ?? DEFAULT_OPTIMIZATION_METRIC,
+      ),
+    [patterns, patternKeys, optimizedMetric],
+  );
 
   // Primary pattern evaluation results
   const {
@@ -182,7 +192,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
     }
     return {
       pattern: comparisonPatternData,
-      rank: rankMap[comparisonPatternData.name] ?? 0,
+      rank: rankMap[patternKeys[comparisonPatternIndex!]],
       evaluationResults: comparisonEvaluationResults || undefined,
       isEvaluationLoading: comparisonEvaluationLoading,
       isEvaluationError: comparisonEvaluationError,
@@ -190,6 +200,8 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   }, [
     comparisonEnabled,
     comparisonPatternData,
+    comparisonPatternIndex,
+    patternKeys,
     rankMap,
     comparisonEvaluationResults,
     comparisonEvaluationLoading,
@@ -369,19 +381,38 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           setIsComparisonSelectOpen(false);
         }}
         patterns={patterns}
+        patternKeys={patternKeys}
         rankMap={rankMap}
         currentPatternIndex={comparisonPatternIndex ?? -1}
         excludePatternIndex={selectedIndex}
         optimizedMetric={optimizedMetric ?? ''}
         onSelectPattern={(index) => {
           const comparisonPattern = patterns[index];
-          const primaryRank = rankMap[data.name] ?? rank;
-          const comparisonRank = rankMap[comparisonPattern.name] ?? 0;
-          fireAutoragPatternsCompared(
-            comparisonEnabled ? 'changed' : 'initial',
-            comparisonRank - primaryRank,
-            getOptimizedScore(comparisonPattern) - getOptimizedScore(data),
-          );
+          const primaryRank = rankMap[patternKeys[selectedIndex]] ?? rank;
+          const comparisonRank = rankMap[patternKeys[index]];
+          const comparisonObjective = optimizedMetric ?? DEFAULT_OPTIMIZATION_METRIC;
+          const getComparisonScore = (pattern: AutoragPattern): number | undefined => {
+            const mean = getRankableOptimizationMetric(pattern, comparisonObjective)?.scores.mean;
+            return typeof mean === 'number' && Number.isFinite(mean) ? mean : undefined;
+          };
+          const comparisonScore = getComparisonScore(comparisonPattern);
+          const primaryScore = getComparisonScore(data);
+          const hasValidRank = (value: number | undefined): value is number =>
+            typeof value === 'number' && Number.isInteger(value) && value > 0;
+          if (
+            hasValidRank(primaryRank) &&
+            hasValidRank(comparisonRank) &&
+            typeof primaryScore === 'number' &&
+            Number.isFinite(primaryScore) &&
+            typeof comparisonScore === 'number' &&
+            Number.isFinite(comparisonScore)
+          ) {
+            fireAutoragPatternsCompared(
+              comparisonEnabled ? 'changed' : 'initial',
+              comparisonRank - primaryRank,
+              comparisonScore - primaryScore,
+            );
+          }
           setComparisonPatternIndex(index);
           setComparisonEnabled(true);
         }}
@@ -400,7 +431,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   {formatPatternName(data.name)} |{' '}
                   {optimizedMetric
                     ? `${formatMetricName(optimizedMetric)} (optimized): ${formatMetricValue(
-                        getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A',
+                        getRankableOptimizationMetric(data, optimizedMetric)?.scores.mean ?? 'N/A',
                       )}`
                     : `Final score: ${getOptimizedScore(data)}`}
                 </p>
