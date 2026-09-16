@@ -54,9 +54,8 @@ const createMockPattern = (
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
@@ -164,9 +163,8 @@ const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
     }),
     settings: {
       vector_store_binding: {
-        provider_id: 'milvus',
-        provider_type: 'remote::milvus',
-        vector_store_id: 'vs_collection0',
+        provider_type: 'milvus',
+        collection_name: 'vs_collection0',
       },
       chunking: null as unknown as AutoragPattern['settings']['chunking'],
       embedding: undefined as unknown as AutoragPattern['settings']['embedding'],
@@ -190,7 +188,7 @@ const createMockParameters = (
   test_data_secret_name: 'test-secret',
   test_data_bucket_name: 'test-bucket',
   test_data_key: 'test.csv',
-  maas_secret_name: 'maas-secret',
+  ogx_secret_name: 'ogx-secret',
   generation_models: ['llama-3'],
   embedding_models: ['text-embedding-3'],
   optimization_metric: optimizationMetric,
@@ -224,11 +222,11 @@ interface RenderWithContextOptions {
   patternsError?: boolean;
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
-  onTryPattern?: (patternName: string) => void;
-  onViewCode?: (patternName: string) => void;
   optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';
   namespace?: string;
 }
+
+type TestOptimizationMetric = 'faithfulness' | 'answer_correctness' | 'context_correctness';
 
 const renderWithContext = ({
   patterns = {},
@@ -238,16 +236,13 @@ const renderWithContext = ({
   patternsError,
   patternsLoadError,
   onRetryPatterns,
-  onTryPattern,
-  onViewCode,
   optimizationMetric,
   namespace = 'test-namespace',
 }: RenderWithContextOptions = {}) => {
-  const finalOptimizationMetric: 'faithfulness' | 'answer_correctness' | 'context_correctness' =
+  const finalOptimizationMetric: TestOptimizationMetric =
     optimizationMetric ??
     ((pipelineRun?.runtime_config?.parameters as Record<string, unknown> | undefined)
-      ?.optimization_metric as
-      'faithfulness' | 'answer_correctness' | 'context_correctness' | undefined) ??
+      ?.optimization_metric as TestOptimizationMetric | undefined) ??
     'faithfulness';
 
   const contextValue = {
@@ -268,7 +263,7 @@ const renderWithContext = ({
           path="/autorag/:namespace/results/:runId"
           element={
             <AutoragResultsContext.Provider value={contextValue}>
-              <AutoragLeaderboard onTryPattern={onTryPattern} onViewCode={onViewCode} />
+              <AutoragLeaderboard />
             </AutoragResultsContext.Provider>
           }
         />
@@ -884,6 +879,42 @@ describe('AutoragLeaderboard component', () => {
   // ========================================================================
 
   describe('metric display', () => {
+    it('should keep metrics with the same name from different evaluators independent', () => {
+      const pattern = createMockPattern('Duplicate metric names', { faithfulness: 0.8 });
+      pattern.evaluation.metrics.push({
+        evaluator: 'custom',
+        name: 'faithfulness',
+        scores: { mean: 0.2, ci_high: 0.2, ci_low: 0.2 },
+      });
+
+      renderWithContext({
+        patterns: { duplicate: pattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(
+        screen.getByRole('checkbox', { name: 'Answer faithfulness (unitxt)' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', { name: 'Answer faithfulness (custom)' }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Save'));
+
+      showAllColumns();
+
+      expect(
+        screen.getByRole('columnheader', { name: /Answer faithfulness \(unitxt\)/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('columnheader', { name: /Answer faithfulness \(custom\)/i }),
+      ).toBeInTheDocument();
+      const row = screen.getByTestId('leaderboard-row-unranked-duplicate');
+      expect(within(row).getAllByTestId('metric-faithfulness-unranked-duplicate')).toHaveLength(2);
+      expect(within(row).getByText('0.800')).toBeInTheDocument();
+      expect(within(row).getByText('0.200')).toBeInTheDocument();
+    });
+
     it('should display all metrics for each pattern', () => {
       renderWithContext({
         patterns: mockPatternsWithExtraMetrics,
@@ -914,6 +945,35 @@ describe('AutoragLeaderboard component', () => {
       // Tooltip should show full value
       const tooltip = within(metricCell).getByText('0.954').closest('span');
       expect(tooltip).toBeInTheDocument();
+    });
+
+    it('should display N/A for a null objective mean', () => {
+      const pattern = createMockPattern('Null objective', { faithfulness: 0.9 });
+      pattern.evaluation.metrics[0].scores.mean = null;
+
+      renderWithContext({
+        patterns: { pattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('metric-faithfulness-unranked-pattern')).toHaveTextContent('N/A');
+      expect(screen.getByTestId('rank-unranked-pattern')).toHaveTextContent('Unranked');
+    });
+
+    it('should keep invalid objective patterns visible and rank only valid patterns contiguously', () => {
+      const invalidPattern = createMockPattern('Invalid objective', { answer_correctness: 0.99 });
+
+      renderWithContext({
+        patterns: { invalid: invalidPattern, ...mockStandardPatterns },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('leaderboard-row-unranked-invalid')).toBeInTheDocument();
+      expect(screen.getByTestId('rank-unranked-invalid')).toHaveTextContent('Unranked');
+      expect(screen.getByTestId('leaderboard-row-1')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-row-2')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-row-3')).toBeInTheDocument();
+      expect(screen.getByTestId('invalid-objective-warning')).toBeInTheDocument();
     });
   });
 
@@ -1042,241 +1102,17 @@ describe('AutoragLeaderboard component', () => {
     });
   });
 
-  // ========================================================================
-  // Try this pattern Action
-  // ========================================================================
-
-  describe('Try this pattern action', () => {
-    const mockPatternsWithTemplate: Record<string, AutoragPattern> = {
-      'pattern-1': {
-        ...createMockPattern('Pattern With Template', {
-          faithfulness: 0.85,
-          answer_correctness: 0.82,
-          context_correctness: 0.88,
-        }),
-        inference: {
-          responses_template: {
-            model: 'vllm/llama-3',
-            stream: false,
-            store: true,
-            input: [
-              {
-                type: 'message' as const,
-                role: 'user' as const,
-                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
-              },
-            ],
-            metadata: { autorag_run_id: '123', rag_pattern_name: 'Pattern With Template' },
-            instructions: 'Answer from file_search results.',
-            tools: [
-              {
-                type: 'file_search' as const,
-                vector_store_ids: ['vs-1'],
-                max_num_results: 5,
-                ranking_options: {
-                  search_mode: 'hybrid',
-                  ranker_strategy: 'rrf',
-                  ranker_k: 60,
-                  ranker_alpha: 0.5,
-                },
-              },
-            ],
-            tool_choice: { type: 'file_search' },
-            include: ['file_search_call.results'],
-          },
-        },
-      },
-      'pattern-2': createMockPattern('Pattern Without Template', {
-        faithfulness: 0.92,
-        answer_correctness: 0.89,
-        context_correctness: 0.94,
-      }),
-    };
-
-    it('should show "Try this pattern" action when pattern has responses_template', () => {
-      const onTryPattern = jest.fn();
+  describe('OGX actions', () => {
+    it('should not expose playground or code actions in pattern menus', () => {
       renderWithContext({
-        patterns: mockPatternsWithTemplate,
+        patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryPattern,
       });
 
-      // Pattern with template should have the action (rank 2 since it has lower score)
-      // Pattern without template is rank 1 (higher score)
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      // Open kebab for pattern-1 (which has template — rank 2)
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      const playgroundAction = screen.getByText('Try this pattern');
-      expect(playgroundAction).toBeInTheDocument();
-    });
-
-    it('should call onTryPattern when "Try this pattern" is clicked', () => {
-      const onTryPattern = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryPattern,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      // Open kebab for pattern-1 (rank 2 — has template)
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      const playgroundAction = screen.getByText('Try this pattern');
-      fireEvent.click(playgroundAction);
-
-      expect(onTryPattern).toHaveBeenCalledWith('pattern-1');
-    });
-
-    it('should not show "Try this pattern" when pattern lacks responses_template', () => {
-      const onTryPattern = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryPattern,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      // Open kebab for pattern-2 (rank 1 — no template)
-      const row1 = rows[0];
-      const actionsButton = within(row1).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
 
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    });
-
-    it('should not show "Try this pattern" when onTryPattern is not provided', () => {
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    });
-  });
-
-  // ========================================================================
-  // View Code Action
-  // ========================================================================
-
-  describe('View code action', () => {
-    const mockPatternsWithTemplate: Record<string, AutoragPattern> = {
-      'pattern-1': {
-        ...createMockPattern('Pattern With Template', {
-          faithfulness: 0.85,
-          answer_correctness: 0.82,
-          context_correctness: 0.88,
-        }),
-        inference: {
-          responses_template: {
-            model: 'vllm/llama-3',
-            stream: false,
-            store: true,
-            input: [
-              {
-                type: 'message' as const,
-                role: 'user' as const,
-                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
-              },
-            ],
-            metadata: { autorag_run_id: '123', rag_pattern_name: 'Pattern With Template' },
-            instructions: 'Answer from file_search results.',
-            tools: [
-              {
-                type: 'file_search' as const,
-                vector_store_ids: ['vs-1'],
-                max_num_results: 5,
-                ranking_options: {
-                  search_mode: 'hybrid',
-                  ranker_strategy: 'rrf',
-                  ranker_k: 60,
-                  ranker_alpha: 0.5,
-                },
-              },
-            ],
-            tool_choice: { type: 'file_search' },
-            include: ['file_search_call.results'],
-          },
-        },
-      },
-      'pattern-2': createMockPattern('Pattern Without Template', {
-        faithfulness: 0.92,
-        answer_correctness: 0.89,
-        context_correctness: 0.94,
-      }),
-    };
-
-    it('should show "View code" action when pattern has responses_template', () => {
-      const onViewCode = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onViewCode,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      expect(screen.getByText('View code')).toBeInTheDocument();
-    });
-
-    it('should call onViewCode when "View code" is clicked', () => {
-      const onViewCode = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onViewCode,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      fireEvent.click(screen.getByText('View code'));
-
-      expect(onViewCode).toHaveBeenCalledWith('pattern-1');
-    });
-
-    it('should not show "View code" when pattern lacks responses_template', () => {
-      const onViewCode = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onViewCode,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row1 = rows[0];
-      const actionsButton = within(row1).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      expect(screen.queryByText('View code')).not.toBeInTheDocument();
-    });
-
-    it('should not show "View code" when onViewCode is not provided', () => {
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
   });

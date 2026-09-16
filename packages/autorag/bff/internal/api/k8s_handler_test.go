@@ -186,11 +186,22 @@ func TestGetSecretsHandler(t *testing.T) {
 			wantBodySubstr: `"name": "s3-creds"`,
 		},
 		{
+			name:      "success with ogx type filter",
+			namespace: "test-ns",
+			queryType: "ogx",
+			repoSecrets: []models.SecretListItem{
+				{UUID: "uid-3", Name: "ogx-creds", Type: "ogx", Data: map[string]string{"url": "http://example.com"}},
+			},
+			repoErr:        nil,
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"name": "ogx-creds"`,
+		},
+		{
 			name:      "success with maas type filter",
 			namespace: "test-ns",
 			queryType: "maas",
 			repoSecrets: []models.SecretListItem{
-				{UUID: "uid-3", Name: "maas-creds", Type: "maas", Data: map[string]string{"url": "http://example.com"}},
+				{UUID: "uid-4", Name: "maas-creds", Type: "maas", Data: map[string]string{}},
 			},
 			repoErr:        nil,
 			wantStatusCode: http.StatusOK,
@@ -201,11 +212,11 @@ func TestGetSecretsHandler(t *testing.T) {
 			namespace: "test-ns",
 			queryType: "vector-db",
 			repoSecrets: []models.SecretListItem{
-				{UUID: "uid-4", Name: "milvus-creds", Type: "milvus", Data: map[string]string{"uri": "http://milvus"}},
+				{UUID: "uid-5", Name: "vector-db-creds", Type: "vector-db", Data: map[string]string{}},
 			},
 			repoErr:        nil,
 			wantStatusCode: http.StatusOK,
-			wantBodySubstr: `"name": "milvus-creds"`,
+			wantBodySubstr: `"name": "vector-db-creds"`,
 		},
 		{
 			name:           "missing namespace returns 400",
@@ -290,7 +301,7 @@ func TestGetSecretsHandler(t *testing.T) {
 			}
 
 			// Only set up repo expectation if we expect the handler to reach the repo call
-			if tt.namespace != "" && (tt.queryType == "" || tt.queryType == "storage" || tt.queryType == "maas" || tt.queryType == "vector-db") {
+			if tt.namespace != "" && (tt.queryType == "" || tt.queryType == "storage" || tt.queryType == "ogx" || tt.queryType == "maas" || tt.queryType == "vector-db") {
 				repo.On("GetFilteredSecrets", svc, mock.Anything, tt.namespace, tt.queryType).
 					Return(tt.repoSecrets, tt.repoErr)
 			}
