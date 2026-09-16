@@ -529,7 +529,7 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -583,7 +583,7 @@ describe('AutomlResults', () => {
       expect(buildStageMapTopologyMock).toHaveBeenCalled();
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -616,7 +616,7 @@ describe('AutomlResults', () => {
 
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -630,7 +630,7 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -645,7 +645,7 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );

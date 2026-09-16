@@ -25,6 +25,7 @@ const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules'
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = PUBLIC_PATH;
 const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1'];
+const DEV_SERVER_ALLOWED_ORIGIN = process.env._DEV_SERVER_ALLOWED_ORIGIN || 'http://localhost:4000';
 
 const assertLoopbackHost = () => {
   if (AUTH_METHOD === 'user_token' && !LOOPBACK_HOSTS.includes(HOST)) {
@@ -106,12 +107,17 @@ module.exports = merge(
   {
     mode: 'development',
     devtool: 'eval-source-map',
+    lazyCompilation: false,
     optimization: {
       removeEmptyChunks: true,
     },
     devServer: {
       host: HOST,
       port: PORT,
+      headers: {
+        'Access-Control-Allow-Origin': DEV_SERVER_ALLOWED_ORIGIN,
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      },
       compress: true,
       historyApiFallback: true,
       hot: true,

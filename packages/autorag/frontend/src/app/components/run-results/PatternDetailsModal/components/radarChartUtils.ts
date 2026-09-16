@@ -1,4 +1,15 @@
 import type { AutoRAGEvaluationMetricResult } from '~/app/types/autoragPattern';
+import { formatMetricName } from '~/app/utilities/utils';
+
+export const metricIdentity = (metric: AutoRAGEvaluationMetricResult): string =>
+  `${metric.evaluator}:${metric.name}`;
+
+export const formatMetricIdentity = (identity: string): string => {
+  const separator = identity.indexOf(':');
+  const evaluator = identity.slice(0, separator);
+  const name = identity.slice(separator + 1);
+  return `${formatMetricName(name)} (${evaluator})`;
+};
 
 /**
  * Collect the union of all metric names across multiple Q&A evaluation results,
@@ -11,24 +22,25 @@ export function collectAllMetricNames(
   const names: string[] = [];
   for (const result of results) {
     for (const m of result.metrics) {
-      if (!seen.has(m.name)) {
-        seen.add(m.name);
-        names.push(m.name);
+      const identity = metricIdentity(m);
+      if (!seen.has(identity)) {
+        seen.add(identity);
+        names.push(identity);
       }
     }
   }
   return names;
 }
 
-// Metrics are scored on a 0–1 scale, so 0 is used for any metric
-// that is not computed for a given Q&A pair. This keeps every radar
-// chart axis visible and comparable across entries.
 export function metricValues(
   metrics: AutoRAGEvaluationMetricResult[],
   allMetricNames: string[],
-): number[] {
-  const byName = new Map(metrics.map((m) => [m.name, m.score]));
-  return allMetricNames.map((name) => byName.get(name) ?? 0);
+): (number | undefined)[] {
+  const byIdentity = new Map(metrics.map((m) => [metricIdentity(m), m.score]));
+  return allMetricNames.map((identity) => {
+    const score = byIdentity.get(identity);
+    return typeof score === 'number' && Number.isFinite(score) ? score : undefined;
+  });
 }
 
 /**

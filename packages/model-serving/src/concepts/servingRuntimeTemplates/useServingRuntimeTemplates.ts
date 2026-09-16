@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  useDashboardNamespace,
-  useHostApi,
-  useTemplates,
-} from '@odh-dashboard/plugin-core/host-api';
+import { useDashboardNamespace, useHostApi, useTemplates } from '@odh-dashboard/plugin-core';
 import type { K8sWatchResult, TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   ServingRuntimePlatform,

@@ -46,13 +46,30 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
+  // Hide the MCP servers tab in the consumer portal.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'gen-ai.ai-assets/tab',
+      targetId: 'mcpservers',
+    },
+  } satisfies SuppressExtension,
+
   // Patch package-owned nav items: clear section (flatten) and set top-level group order
   {
     type: 'app.patch',
     properties: {
       targetType: 'app.navigation/href',
+      targetId: 'ai-assets',
+      patch: { section: null, group: '1_ai_assets', label: null },
+    },
+  } satisfies PatchExtension<NavPatch>,
+  {
+    type: 'app.patch',
+    properties: {
+      targetType: 'app.navigation/href',
       targetId: 'maas-tokens-subscriptions-view',
-      patch: { section: null, group: '1_api_keys' },
+      patch: { section: null, group: '2_api_keys' },
     },
   } satisfies PatchExtension<NavPatch>,
   {
@@ -60,15 +77,15 @@ const extensions: Extension[] = [
     properties: {
       targetType: 'app.navigation/href',
       targetId: 'chat-playground',
-      patch: { section: null, group: '2_playground', label: null },
+      patch: { section: null, group: '3_playground', label: null },
     },
   } satisfies PatchExtension<NavPatch>,
   {
     type: 'app.patch',
     properties: {
       targetType: 'app.navigation/href',
-      targetId: 'ai-assets',
-      patch: { section: null, group: '3_ai_assets', label: null },
+      targetId: 'maas-governance-view',
+      patch: { section: null, group: '4_maas_governance' },
     },
   } satisfies PatchExtension<NavPatch>,
 ];

@@ -728,6 +728,15 @@ describe('buildStageMapTopology', () => {
       expect(nodes[0].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
+    it('should translate running status to InProgress', () => {
+      const stageMap = makeStageMap([
+        makeComponent('comp', [makeStage('validate_inputs', { status: 'running' })]),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap);
+      expect(nodes[0].data?.runStatus).toBe(RunStatus.InProgress);
+    });
+
     it('should translate failed status', () => {
       const stageMap = makeStageMap([
         makeComponent('comp', [makeStage('validate_inputs', { status: 'failed' })]),

@@ -34,11 +34,10 @@ import (
 const conditionMaaSConsumerPortalAvailable = "MaaSConsumerPortalAvailable"
 
 const (
-	maasConsumerPortalConsoleLinkName = "maas-consumer-portal-link"
-	maasConsumerPortalDeploymentName  = "maas-consumer-portal"
-	maasConsumerPortalPartOf          = maasConsumerPortalDeploymentName
-	maasConsumerPortalGatewayName     = "data-science-gateway"
-	maasConsumerPortalBasePath        = "/maas-consumer-portal/"
+	maasConsumerPortalDeploymentName = "maas-consumer-portal"
+	maasConsumerPortalPartOf         = maasConsumerPortalDeploymentName
+	maasConsumerPortalGatewayName    = "data-science-gateway"
+	maasConsumerPortalBasePath       = "/maas-consumer-portal/"
 )
 
 var ErrMaaSConsumerPortalUnsupportedPlatform = errors.New("maas consumer portal is supported only on RHOAI")
@@ -74,7 +73,7 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, d
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable, conditions.WithReason("MaaSConsumerPortalDomainRequired"), conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"))
 		return maasConsumerPortalRetryInterval
 	}
-	if err := r.deployMaaSConsumerPortalBundle(ctx, dashboard, url, gatewayDomain); err != nil {
+	if err := r.deployMaaSConsumerPortalBundle(ctx, dashboard, gatewayDomain); err != nil {
 		// The module and federation steps run before the bundle. Preserve their
 		// specific failure conditions instead of replacing them with a generic
 		// bundle-apply failure, while still applying the portal's desired bundle.
@@ -197,7 +196,7 @@ func portalRouteReady(route *gatewayv1.HTTPRoute) bool {
 	return false
 }
 
-func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard, url, gatewayDomain string) error {
+func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard, gatewayDomain string) error {
 	m := maasConsumerPortalManifestInfo(r.ManifestsBasePath)
 	params := readExistingParams(filepath.Join(m.String(), "params.env"))
 	maps.Copy(params, resolveImageParams())
@@ -205,8 +204,6 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalBundle(ctx context.Context
 	params["gateway-name"] = maasConsumerPortalGatewayName
 	params["maas-consumer-portal-federation-config"] = maasConsumerPortalFederationConfigMapName
 	params["gateway-domain"] = gatewayDomain
-	params["maas-consumer-portal-url"] = url
-	params["section-title"] = sectionTitle[r.Platform]
 	if err := writeParamsEnv(m.String(), params); err != nil {
 		return fmt.Errorf("writing MaaS Consumer Portal params: %w", err)
 	}
@@ -289,15 +286,6 @@ func (r *DashboardReconciler) deleteLabeledMaaSConsumerPortalCustomResources(ctx
 		}
 	} else {
 		errs = append(errs, r.deleteMaaSConsumerPortalUnstructuredItems(ctx, routes.Items))
-	}
-	consoleLinks := &unstructured.UnstructuredList{}
-	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
-	if err := r.List(ctx, consoleLinks, client.MatchingLabels{labels.PlatformPartOf: maasConsumerPortalPartOf}); err != nil {
-		if !meta.IsNoMatchError(err) {
-			errs = append(errs, err)
-		}
-	} else {
-		errs = append(errs, r.deleteMaaSConsumerPortalUnstructuredItems(ctx, consoleLinks.Items))
 	}
 	return errors.Join(errs...)
 }

@@ -5,8 +5,8 @@
   "stages": [
     {
       "id": "prepare_search_space",
-      "status": "completed",
-      "timestamp": "2026-07-16T19:40:41.837070Z"
+      "status": { "state": "completed" },
+      "metrics": { "search_space_entries": 8 }
     }
   ],
   "metadata": {
