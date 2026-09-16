@@ -1058,6 +1058,19 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-deployment-resourceName');
   }
 
+  getGeneratedResourceName(): Cypress.Chainable<string> {
+    return this.findResourceNameInput()
+      .should('be.visible')
+      .invoke('val')
+      .then((value) => {
+        const resourceName = value?.toString();
+        if (!resourceName) {
+          throw new Error('Model resource name was not generated');
+        }
+        return resourceName;
+      });
+  }
+
   findModelFormatSelect() {
     return cy.findByTestId('model-framework-select');
   }
