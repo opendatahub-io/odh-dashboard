@@ -131,11 +131,12 @@ export const useEditExternalProviderForm = (
       );
 
       if (createdSecretName) {
+        const linkedSecretName = createdSecretName;
         refreshSecrets();
         setFormData((current) => ({
           ...current,
           isNewSecret: false,
-          credentialSecretRef: createdSecretName,
+          credentialSecretRef: linkedSecretName,
           secretValue: '',
         }));
       }
