@@ -7,8 +7,31 @@ import {
   useWizardContext,
   WizardFooterWrapper,
 } from '@patternfly/react-core';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import {
+  ExternalModelProviderContext,
+  ExternalModelProviderReferenceAddedProperties,
+  ExternalModelWizardStepContinuedProperties,
+  MaaSEvents,
+  convertStringToExternalModelProviderSource,
+  convertStringToExternalModelProviderType,
+  convertStringToExternalProviderRefApiFormat,
+} from '~/app/types/event-tracking';
+import { AuthMechanism } from '~/app/types/external-models';
 
 type AddProviderReferenceWizardFooterProps = {
+  providerSource: string;
+  providerType: string;
+  apiFormat: string;
+  authMechanism: AuthMechanism;
+  hasCreatedSecret: boolean;
+  hasPathOverride: boolean;
+  countOfConfigOverrides: number;
+  context: ExternalModelProviderContext;
   isNextDisabled: boolean;
   isAddDisabled: boolean;
   isNextLoading?: boolean;
@@ -19,6 +42,14 @@ type AddProviderReferenceWizardFooterProps = {
 };
 
 const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFooterProps> = ({
+  providerSource,
+  providerType,
+  apiFormat,
+  authMechanism,
+  hasCreatedSecret,
+  hasPathOverride,
+  countOfConfigOverrides,
+  context,
   isNextDisabled,
   isAddDisabled,
   isNextLoading = false,
@@ -38,6 +69,12 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
         return;
       }
     }
+    fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_STEP_CONTINUED, {
+      providerSource: convertStringToExternalModelProviderSource(providerSource),
+      providerType: convertStringToExternalModelProviderType(providerType),
+      hasCreatedSecret,
+      context,
+    } satisfies ExternalModelWizardStepContinuedProperties);
     goToNextStep();
   };
 
@@ -45,6 +82,18 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
     if (onAdd) {
       await onAdd();
     }
+    fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      providerSource: convertStringToExternalModelProviderSource(providerSource),
+      providerType: convertStringToExternalModelProviderType(providerType),
+      apiFormat: convertStringToExternalProviderRefApiFormat(apiFormat),
+      authMechanism,
+      hasCreatedSecret,
+      hasPathOverride,
+      countOfConfigOverrides,
+      context,
+    } satisfies ExternalModelProviderReferenceAddedProperties);
   };
 
   return (
@@ -89,7 +138,25 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
         </ActionListGroup>
         <ActionListGroup>
           <ActionListItem>
-            <Button variant="link" onClick={close} data-testid="provider-ref-wizard-cancel">
+            <Button
+              variant="link"
+              onClick={close}
+              data-testid="provider-ref-wizard-cancel"
+              onMouseDown={() =>
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
+                  outcome: TrackingOutcome.cancel,
+                  success: false,
+                  providerSource: convertStringToExternalModelProviderSource(providerSource),
+                  providerType: convertStringToExternalModelProviderType(providerType),
+                  apiFormat: convertStringToExternalProviderRefApiFormat(apiFormat),
+                  authMechanism,
+                  hasCreatedSecret,
+                  hasPathOverride,
+                  countOfConfigOverrides,
+                  context,
+                } satisfies ExternalModelProviderReferenceAddedProperties)
+              }
+            >
               Cancel
             </Button>
           </ActionListItem>

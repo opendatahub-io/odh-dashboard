@@ -2,7 +2,15 @@ import * as React from 'react';
 import { Button, SearchInput, ToolbarItem, ToolbarGroup } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
+import {
+  ExternalProvidersAddClickedProperties,
+  ExternalProvidersAddSource,
+  MaaSEvents,
+  ExternalModelsManageProvidersSource,
+  ExternalModelsManageProvidersClickedProperties,
+} from '~/app/types/event-tracking';
 import {
   ExternalModelsFilterDataType,
   externalModelsFilterOptions,
@@ -48,6 +56,11 @@ const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
           data-testid="add-external-model-button"
           variant="primary"
           component={(props) => <Link {...props} to={createExternalModelPath(namespace)} />}
+          onClick={() =>
+            fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_ADD_CLICKED, {
+              source: ExternalProvidersAddSource.TOOLBAR,
+            } satisfies ExternalProvidersAddClickedProperties)
+          }
         >
           Add external model
         </Button>
@@ -57,6 +70,11 @@ const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
           data-testid="manage-external-providers-button"
           variant="secondary"
           component={(props) => <Link {...props} to={externalProvidersManagementPath(namespace)} />}
+          onClick={() =>
+            fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_MANAGE_PROVIDERS_CLICKED, {
+              source: ExternalModelsManageProvidersSource.TOOLBAR,
+            } satisfies ExternalModelsManageProvidersClickedProperties)
+          }
         >
           Manage external providers
         </Button>

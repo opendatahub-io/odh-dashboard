@@ -10,6 +10,8 @@ import {
   useZodFormValidation,
 } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { ZodIssue } from 'zod';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
 import { AuthMechanism, SecretSummary } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useCreateExternalProvider } from '~/app/hooks/useCreateExternalProvider';
@@ -25,6 +27,12 @@ import {
   isAuthMechanism,
 } from '~/app/pages/external-providers/validation';
 import { ConfigPair, countNonEmptyConfigPairs } from '~/app/utilities/configPairs';
+import {
+  convertStringToExternalModelProviderType,
+  ExternalProviderAddedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
+import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
 
 export type CreateExternalProviderFormFields = {
   provider: string;
@@ -166,6 +174,15 @@ export const useCreateExternalProviderForm = (
           secretValue: '',
         }));
       }
+      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        providerType: convertStringToExternalModelProviderType(formData.provider),
+        authMechanism: convertStringToAuthMechanism(formData.authMechanism),
+        hasCreatedSecret: formData.isNewSecret,
+        hasDescription: nameDescData.description.trim() !== '',
+        countOfConfigPairs: countNonEmptyConfigPairs(configPairs),
+      } satisfies ExternalProviderAddedProperties);
 
       return request.name;
     } catch (err) {
@@ -175,6 +192,15 @@ export const useCreateExternalProviderForm = (
           ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'create')
           : message,
       );
+      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        providerType: convertStringToExternalModelProviderType(formData.provider),
+        authMechanism: convertStringToAuthMechanism(formData.authMechanism),
+        hasCreatedSecret: formData.isNewSecret,
+        hasDescription: nameDescData.description.trim() !== '',
+        countOfConfigPairs: countNonEmptyConfigPairs(configPairs),
+      } satisfies ExternalProviderAddedProperties);
       return undefined;
     }
   }, [
