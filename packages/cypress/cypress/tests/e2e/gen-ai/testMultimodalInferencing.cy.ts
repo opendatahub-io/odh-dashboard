@@ -146,7 +146,12 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         .last()
         .invoke('text')
         .should('match', /\S/)
-        .and('not.contain', 'Sorry, I encountered an error');
+        .and('not.contain', 'Sorry, I encountered an error')
+        .and((response) => {
+          testData.inference.expectedResponseKeywords.forEach((keyword) => {
+            expect(response.toLowerCase()).to.contain(keyword.toLowerCase());
+          });
+        });
     },
   );
 });

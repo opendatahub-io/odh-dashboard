@@ -362,6 +362,7 @@ const useChatbotMessages = ({
       extraContent.beforeMainContent = React.createElement('img', {
         src: imagePreview.previewUrl,
         alt: imagePreview.fileName,
+        'data-testid': 'chatbot-inline-image',
         className: 'chatbot-inline-image',
         style: {
           maxWidth: '300px',

@@ -143,7 +143,7 @@ class GenAiPlayground {
   }
 
   findImageInUserMessage() {
-    return this.findUserMessage().find('img.chatbot-inline-image');
+    return this.findUserMessage().findByTestId('chatbot-inline-image');
   }
 
   findUserMessage() {

@@ -726,6 +726,7 @@ export type MultimodalTestData = {
   };
   inference: {
     visionTestMessage: string;
+    expectedResponseKeywords: string[];
   };
   model: {
     modelId: string;
