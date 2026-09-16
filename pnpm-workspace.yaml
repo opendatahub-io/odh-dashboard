@@ -27,6 +27,21 @@ packages:
 shamefullyHoist: true
 autoInstallPeers: true
 
+# These Perses plugins import MUI but omit it from their published peer dependencies.
+packageExtensions:
+  '@perses-dev/loki-plugin@0.6.0-rc.2':
+    peerDependencies:
+      '@mui/material': '^6.1.10'
+  '@perses-dev/prometheus-plugin@0.58.0-beta.3':
+    peerDependencies:
+      '@mui/material': '^6.1.10'
+  '@perses-dev/stat-chart-plugin@0.13.0-rc.1':
+    peerDependencies:
+      '@mui/material': '^6.1.10'
+  '@perses-dev/table-plugin@0.13.0-rc.1':
+    peerDependencies:
+      '@mui/material': '^6.1.10'
+
 allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true

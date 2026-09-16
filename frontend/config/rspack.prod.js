@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
-const path = require('path');
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
 const { rimrafSync } = require('rimraf');
-const { patternFlyCssIncludes } = require('@odh-dashboard/app-config/webpack');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 const getRsdoctorPlugin = () => {
@@ -22,11 +20,8 @@ const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
-const SRC_DIR = process.env._ODH_SRC_DIR;
-const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
-const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../node_modules');
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(`Cleaning OUTPUT DIR...\n  ${DIST_DIR}\n`);
@@ -67,14 +62,5 @@ module.exports = merge(
       // See https://rspack.rs/guide/optimization/use-rsdoctor
       ...getRsdoctorPlugin(),
     ],
-    module: {
-      rules: [
-        {
-          test: /\.css$/,
-          include: patternFlyCssIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES, SRC_DIR, COMMON_DIR),
-          use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
-        },
-      ],
-    },
   },
 );

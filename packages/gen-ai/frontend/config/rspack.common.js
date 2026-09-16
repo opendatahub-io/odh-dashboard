@@ -1,7 +1,6 @@
 const path = require('path');
 const { rspack } = require('@rspack/core');
 const Dotenv = require('dotenv-webpack');
-const { micromarkAlias, pnpmWebpackResolveAliases } = require('@odh-dashboard/app-config/webpack');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 
@@ -11,7 +10,6 @@ const { name } = require('../package.json');
 
 const SRC_DIR = process.env._SRC_DIR;
 const DIST_DIR = process.env._DIST_DIR;
-const COMMON_DIR = process.env._COMMON_DIR;
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
 
@@ -42,23 +40,10 @@ module.exports = (env) => ({
         ],
       },
       {
-        test: /\.(svg|ttf|eot|woff|woff2)$/,
+        test: /\.(ttf|eot|woff|woff2)$|[/\\]pficon[/\\].*\.svg$/i,
         type: 'asset/resource',
         // only process modules with this loader
         // if they live under a 'fonts' or 'pficon' directory
-        include: [
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly/dist/fonts'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/fonts',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/pficon',
-          ),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/fonts'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/pficon'),
-        ],
       },
       {
         test: /\.svg$/,
@@ -94,30 +79,6 @@ module.exports = (env) => ({
       },
       {
         test: /\.(jpg|jpeg|png|gif)$/i,
-        include: [
-          SRC_DIR,
-          COMMON_DIR,
-          path.resolve(RELATIVE_DIRNAME, 'src'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css/assets/images'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-        ],
         type: 'asset',
         parser: {
           dataUrlCondition: { maxSize: 5000 },
@@ -164,10 +125,8 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
-      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
-      ...micromarkAlias(RELATIVE_DIRNAME),
     },
-    symlinks: false,
+    symlinks: true,
     cacheWithContext: false,
   },
 });
