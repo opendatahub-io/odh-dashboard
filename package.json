@@ -149,6 +149,7 @@
     "@cypress/code-coverage": {
       "js-yaml": "^4.3.2"
     },
-    "fflate": "^0.4.9"
+    "fflate": "^0.4.9",
+    "compression": "^1.8.2"
   }
 }
