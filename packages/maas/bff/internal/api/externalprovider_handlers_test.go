@@ -67,6 +67,7 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 			Envelope[models.UpdateExternalProviderRequest, None]{
 				Data: models.UpdateExternalProviderRequest{
 					DisplayName: &displayName,
+					Provider:    "anthropic",
 				},
 			},
 			k8Factory,
@@ -78,6 +79,7 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 		Expect(actual.Data).NotTo(BeNil())
 		Expect(actual.Data.Name).To(Equal("openai-prod"))
 		Expect(actual.Data.DisplayName).To(Equal(displayName))
+		Expect(actual.Data.Provider).To(Equal("anthropic"))
 	})
 
 	It("deletes an ExternalProvider (mock)", func() {
@@ -128,6 +130,7 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 				Data: models.UpdateExternalProviderRequest{
 					DisplayName: &displayName,
 					EndpointUrl: "api.updated.example.com",
+					Provider:    "anthropic",
 				},
 			},
 			k8Factory,
@@ -138,6 +141,7 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 		Expect(updated.Data).NotTo(BeNil())
 		Expect(updated.Data.DisplayName).To(Equal(displayName))
 		Expect(updated.Data.EndpointUrl).To(Equal("api.updated.example.com"))
+		Expect(updated.Data.Provider).To(Equal("anthropic"))
 
 		_, rs, err = setupApiTest[Envelope[None, None]](
 			http.MethodDelete,

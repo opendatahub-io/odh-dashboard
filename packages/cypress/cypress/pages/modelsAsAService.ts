@@ -2560,6 +2560,36 @@ class CreateExternalProviderModal extends Modal {
   }
 }
 
+class EditExternalProviderModal extends CreateExternalProviderModal {
+  constructor() {
+    super();
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-external-provider-submit').closest('[role="dialog"]');
+  }
+
+  shouldBeOpen(open = true): void {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      cy.findByTestId('edit-external-provider-submit').should('not.exist');
+    }
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-external-provider-submit');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-external-provider-cancel');
+  }
+
+  findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-external-provider-error');
+  }
+}
+
 class DeleteExternalProviderModal extends DeleteModal {
   constructor() {
     super('Delete external provider?');
@@ -2608,4 +2638,5 @@ export const modelInfoPopover = new ModelInfoPopover();
 export const phaseModal = new PhaseModal();
 export const externalProvidersPage = new ExternalProvidersPage();
 export const createExternalProviderModal = new CreateExternalProviderModal();
+export const editExternalProviderModal = new EditExternalProviderModal();
 export const deleteExternalProviderModal = new DeleteExternalProviderModal();

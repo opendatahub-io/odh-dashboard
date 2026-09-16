@@ -1276,6 +1276,11 @@ declare global {
           response: OdhResponse<{ data: ExternalProvider }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'PUT /maas/api/v1/externalprovider/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<{ data: ExternalProvider }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /maas/api/v1/secrets',
           options: { query: { namespace: string } },
           response: OdhResponse<{ data: SecretSummary[] }>,

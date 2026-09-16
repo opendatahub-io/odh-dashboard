@@ -1,7 +1,9 @@
 import {
   configPairsToRecord,
+  externalProviderToFormState,
   getSecretDisplayLabel,
   toCreateExternalProviderRequest,
+  toUpdateExternalProviderRequest,
 } from '~/app/pages/external-providers/utils';
 import { createExternalProviderFormSchema } from '~/app/pages/external-providers/validation';
 import { EMPTY_CONFIG_PAIR, getConfigPairsValidationError } from '~/app/utilities/configPairs';
@@ -30,6 +32,110 @@ describe('external provider form utils', () => {
 
   it('returns undefined when all config pairs are empty', () => {
     expect(configPairsToRecord([EMPTY_CONFIG_PAIR])).toBeUndefined();
+  });
+
+  it('maps form state to update request', () => {
+    expect(
+      toUpdateExternalProviderRequest(
+        {
+          name: 'OpenAI Production',
+          description: 'Prod endpoint',
+          k8sName: {
+            value: 'openai-prod',
+            state: {
+              immutable: true,
+              invalidLength: false,
+              invalidCharacters: false,
+              maxLength: 253,
+              routeNameTooLong: false,
+              touched: false,
+            },
+          },
+        },
+        {
+          provider: 'openai',
+          endpointUrl: 'api.openai.com',
+          authMechanism: 'apikey',
+          credentialSecretRef: 'openai-api-key',
+        },
+        [{ key: 'region', value: 'us-east-1' }],
+      ),
+    ).toEqual({
+      displayName: 'OpenAI Production',
+      description: 'Prod endpoint',
+      endpointUrl: 'api.openai.com',
+      authMechanism: 'apikey',
+      credentialSecretRef: 'openai-api-key',
+      provider: 'openai',
+      config: { region: 'us-east-1' },
+    });
+  });
+
+  it('sends empty config object when all config pairs are empty', () => {
+    expect(
+      toUpdateExternalProviderRequest(
+        {
+          name: 'OpenAI Production',
+          description: '',
+          k8sName: {
+            value: 'openai-prod',
+            state: {
+              immutable: true,
+              invalidLength: false,
+              invalidCharacters: false,
+              maxLength: 253,
+              routeNameTooLong: false,
+              touched: false,
+            },
+          },
+        },
+        {
+          provider: 'openai',
+          endpointUrl: 'api.openai.com',
+          authMechanism: 'apikey',
+          credentialSecretRef: 'openai-api-key',
+        },
+        [EMPTY_CONFIG_PAIR],
+      ),
+    ).toEqual({
+      displayName: 'OpenAI Production',
+      endpointUrl: 'api.openai.com',
+      authMechanism: 'apikey',
+      credentialSecretRef: 'openai-api-key',
+      provider: 'openai',
+      config: {},
+    });
+  });
+
+  it('maps external provider to edit form state', () => {
+    expect(
+      externalProviderToFormState({
+        name: 'openai-prod',
+        namespace: 'sample-a',
+        displayName: 'OpenAI Production',
+        description: 'Prod endpoint',
+        endpointUrl: 'api.openai.com',
+        authMechanism: 'apikey',
+        credentialSecretRef: 'openai-api-key',
+        provider: 'openai',
+        config: { region: 'us-east-1' },
+      }),
+    ).toEqual({
+      formData: {
+        provider: 'openai',
+        endpointUrl: 'api.openai.com',
+        authMechanism: 'apikey',
+        credentialSecretRef: 'openai-api-key',
+        isNewSecret: false,
+        secretValue: '',
+      },
+      configPairs: [{ key: 'region', value: 'us-east-1' }],
+      nameDescInitialData: {
+        name: 'OpenAI Production',
+        description: 'Prod endpoint',
+        k8sName: 'openai-prod',
+      },
+    });
   });
 
   it('maps form state to create request', () => {

@@ -106,6 +106,12 @@ func UpdateExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
+	if strings.TrimSpace(request.Data.Provider) != "" {
+		if err := validateProviderType(request.Data.Provider); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+	}
 
 	result, err := app.repositories.ExternalProviders.UpdateExternalProvider(ctx, namespace, name, request.Data)
 	if err != nil {
@@ -170,7 +176,14 @@ func validateCreateExternalProviderRequest(request models.CreateExternalProvider
 	if err := repositories.ValidateCredentialSecretRef(request.CredentialSecretRef); err != nil {
 		return err
 	}
-	if strings.TrimSpace(request.Provider) == "" {
+	if err := validateProviderType(request.Provider); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateProviderType(raw string) error {
+	if strings.TrimSpace(raw) == "" {
 		return errors.New("provider is required")
 	}
 	return nil
