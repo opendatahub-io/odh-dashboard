@@ -13,9 +13,10 @@ import {
   ProviderReferenceFormData,
 } from '~/app/pages/external-models/validations';
 import { configPairsToRecord } from '~/app/utilities/configPairs';
+import { ProviderSource, type ProviderSourceType } from '~/app/pages/external-models/const';
 import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
 import AddProviderReferenceWizardFooter from './AddProviderReferenceWizardFooter';
-import SelectProviderStep, { ProviderSource, type ProviderSourceType } from './SelectProviderStep';
+import SelectProviderStep from './SelectProviderStep';
 
 type AddProviderReferenceWizardProps = {
   isOpen: boolean;
@@ -86,7 +87,9 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   );
 
   const isStepOneValid =
-    providerSource === ProviderSource.EXISTING ? providerName.trim() !== '' : createProviderForm.isFormValid;
+    providerSource === ProviderSource.EXISTING
+      ? providerName.trim() !== ''
+      : createProviderForm.isFormValid;
 
   const selectedProvider = React.useMemo(() => {
     if (
@@ -258,7 +261,9 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
             onTargetModelBlur={() => handleFieldTouch('targetModel')}
             onPathBlur={() => handleFieldTouch('path')}
             createProviderSubmitError={
-              providerSource === 'create-new' ? createProviderForm.submitError : undefined
+              providerSource === ProviderSource.CREATE_NEW
+                ? createProviderForm.submitError
+                : undefined
             }
           />
         </WizardStep>

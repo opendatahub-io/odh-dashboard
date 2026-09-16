@@ -54,6 +54,13 @@ export const PROVIDER_REFERENCE_API_FORMATS = {
 
 export type ProviderReferenceApiFormat = keyof typeof PROVIDER_REFERENCE_API_FORMATS;
 
+export const ProviderSource = {
+  EXISTING: 'existing',
+  CREATE_NEW: 'create-new',
+} as const;
+
+export type ProviderSourceType = (typeof ProviderSource)[keyof typeof ProviderSource];
+
 export const PROVIDER_REFERENCE_API_FORMAT_OPTIONS = Object.entries(
   PROVIDER_REFERENCE_API_FORMATS,
 ).map(([key, value]) => ({
