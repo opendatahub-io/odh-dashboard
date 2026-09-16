@@ -5,6 +5,21 @@ import { maskSensitiveInfo } from '../maskSensitiveInfo';
 /** Placeholder DB secret in `resources/eval-hub/evalhub-instance.yaml` (multi-doc); torn down with suite-created EvalHub. */
 export const EVALHUB_E2E_DB_SECRET_NAME = 'evalhub-e2e-database-credentials';
 
+type EvalHubResource = {
+  metadata?: {
+    name?: string;
+    namespace?: string;
+  };
+};
+
+type EvalHubList = {
+  items?: EvalHubResource[];
+};
+
+type EvalHubInstance = {
+  namespace: string;
+};
+
 const getApplicationsNamespace = (): string => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   if (!namespace) {
@@ -22,32 +37,56 @@ const waitEvalHubReady = (namespace: string, crName: string): Cypress.Chainable<
     { maxAttempts: 72, pollIntervalMs: 5000 },
   );
 
+const findExistingEvalHub = (crName: string): Cypress.Chainable<EvalHubInstance | null> =>
+  cy.exec('oc get evalhub -A -o json', { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(`Failed to list EvalHub instances: ${result.stderr || result.stdout}`);
+    }
+
+    let evalHubList: EvalHubList;
+    try {
+      evalHubList = JSON.parse(result.stdout) as EvalHubList;
+    } catch {
+      throw new Error('Unable to parse EvalHub instance list as JSON.');
+    }
+
+    const matchingInstances = (evalHubList.items ?? []).flatMap(({ metadata }) => {
+      const { name, namespace } = metadata ?? {};
+      return name === crName && namespace ? [{ namespace }] : [];
+    });
+    if (matchingInstances.length > 1) {
+      const locations = matchingInstances
+        .map(({ namespace }) => `${namespace}/${crName}`)
+        .join(', ');
+      throw new Error(
+        `Found multiple EvalHub instances named '${crName}' (${locations}). ` +
+          'The EvalHub E2E environment must have exactly one to avoid ambiguous tenant discovery.',
+      );
+    }
+
+    return cy.wrap(matchingInstances.length === 1 ? matchingInstances[0] : null);
+  });
+
 /**
- * Ensures an EvalHub CR exists in `APPLICATIONS_NAMESPACE` and reaches phase Ready (BFF health).
- * If the CR is already present, only waits for Ready.
+ * Ensures exactly one EvalHub CR named `crName` is available and reaches phase Ready (BFF health).
+ * Existing EvalHub instances are reused; clusters that need provisioning create it in
+ * `APPLICATIONS_NAMESPACE` only when none exists.
  *
- * @returns `true` if this run applied the manifest (teardown may delete); `false` if it already existed.
+ * @returns `true` if this run applied the manifest; `false` if it reused an existing instance.
  */
 export const ensureEvalHubCrReady = (
   crName: string,
   fixturePathRelativeToFixtures: string,
 ): Cypress.Chainable<boolean> => {
-  const ns = getApplicationsNamespace();
-  const existsCmd = `oc get evalhub ${crName} -n ${ns} -o name --ignore-not-found`;
-
-  return cy.exec(existsCmd, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `Failed to check EvalHub CR existence in ${ns}: ${result.stderr || result.stdout}`,
+  return findExistingEvalHub(crName).then((existingInstance) => {
+    if (existingInstance) {
+      cy.log(
+        `EvalHub CR ${crName} already exists in ${existingInstance.namespace}; waiting for Ready`,
       );
-    }
-    const existed = result.stdout.trim().length > 0;
-
-    if (existed) {
-      cy.log(`EvalHub CR ${crName} already exists in ${ns}; waiting for Ready`);
-      return waitEvalHubReady(ns, crName).then(() => cy.wrap(false));
+      return waitEvalHubReady(existingInstance.namespace, crName).then(() => cy.wrap(false));
     }
 
+    const ns = getApplicationsNamespace();
     cy.log(`Applying EvalHub CR ${crName} in ${ns} (operator will create service)`);
     return cy.fixture(fixturePathRelativeToFixtures, 'utf8').then((yamlContent: string) => {
       const patchedYaml = yamlContent.replace(
