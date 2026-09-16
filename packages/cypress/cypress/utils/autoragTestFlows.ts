@@ -3,13 +3,20 @@ import { waitForDspaReady } from './oc_commands/dspa';
 import { waitForManagedPipelines } from './autoXPipelines';
 import { getVectorDatabaseConnection } from './oc_commands/autoragInfra';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
-import { autoragConfigurePage } from '../pages/autorag/configurePage';
+import { autoragConfigurePage, normalizeVisibleOptionLabel } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
 import type { AutoragTestData } from '../types';
 
 const RESOURCES_PATH = 'resources/autorag';
 
 type MaaSModel = { id?: unknown; ready?: unknown };
+
+const hasExactVisibleOption = (document: Document, label: string): boolean => {
+  const normalizedLabel = normalizeVisibleOptionLabel(label);
+  return Array.from(document.querySelectorAll('[role="option"]')).some(
+    (option) => normalizeVisibleOptionLabel(option.textContent) === normalizedLabel,
+  );
+};
 
 const getRequiredMaaSConfig = (name: string): string => {
   const value = Cypress.env(name);
@@ -121,9 +128,7 @@ export const configureAutoragRun = (
     autoragConfigurePage.findMaasSecretSelector().click();
     autoragConfigurePage.findMaasSecretSelector().find('input').type(testData.maasSecretName);
     cy.document().then((document) => {
-      const connectionExists = Array.from(document.querySelectorAll('[role="option"]')).some(
-        (option) => option.textContent.includes(testData.maasSecretName),
-      );
+      const connectionExists = hasExactVisibleOption(document, testData.maasSecretName);
       autoragConfigurePage.findMaasSecretSelector().find('input').type('{esc}');
 
       if (!connectionExists) {
@@ -145,7 +150,7 @@ export const configureAutoragRun = (
   autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
   autoragConfigurePage.findMaasSecretSelector().click();
   autoragConfigurePage.findMaasSecretSelector().find('input').type(testData.maasSecretName);
-  autoragConfigurePage.findSelectOption(new RegExp(testData.maasSecretName, 'i')).click();
+  autoragConfigurePage.findSelectOption(testData.maasSecretName).click();
 
   cy.step('Click Next to go to Configure step');
   autoragConfigurePage.findNextButton().click();
@@ -156,7 +161,7 @@ export const configureAutoragRun = (
   cy.step('Select S3 connection');
   autoragConfigurePage.findSecretSelector().click();
   autoragConfigurePage.findSecretSelector().type(testData.s3SecretName);
-  autoragConfigurePage.findSelectOption(new RegExp(testData.s3SecretName, 'i')).click();
+  autoragConfigurePage.findSelectOption(testData.s3SecretName).click();
 
   cy.step('Upload document file');
   const uploadFileName = `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
@@ -222,9 +227,7 @@ export const configureAutoragRun = (
     autoragConfigurePage.findVectorStoreSelector().click();
     autoragConfigurePage.findVectorStoreSelector().find('input').type(testData.vectorDbSecretName);
     cy.document().then((document) => {
-      const connectionExists = Array.from(document.querySelectorAll('[role="option"]')).some(
-        (option) => option.textContent.includes(testData.vectorDbSecretName),
-      );
+      const connectionExists = hasExactVisibleOption(document, testData.vectorDbSecretName);
       autoragConfigurePage.findVectorStoreSelector().find('input').type('{esc}');
 
       if (!connectionExists) {
@@ -248,7 +251,7 @@ export const configureAutoragRun = (
   }
   autoragConfigurePage.findVectorStoreSelector().click();
   autoragConfigurePage.findVectorStoreSelector().find('input').type(testData.vectorDbSecretName);
-  autoragConfigurePage.findSelectOption(new RegExp(testData.vectorDbSecretName, 'i')).click();
+  autoragConfigurePage.findSelectOption(testData.vectorDbSecretName).click();
 
   cy.step('Select the configured hosted generation and embedding models');
   autoragConfigurePage.findSelectModelsButton().click();

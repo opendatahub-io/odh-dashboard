@@ -1,3 +1,12 @@
+export const normalizeVisibleOptionLabel = (label: string): string =>
+  label.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+
+export const getExactVisibleOptionRegex = (label: string): RegExp => {
+  const normalizedLabel = normalizeVisibleOptionLabel(label);
+  const escapedLabel = normalizedLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escapedLabel.replace(/ /g, '\\s+')}$`, 'i');
+};
+
 class AutoragConfigurePage {
   visit(namespace: string) {
     cy.visitWithLogin(`/gen-ai-studio/autorag/configure/${namespace}`);
@@ -107,7 +116,9 @@ class AutoragConfigurePage {
   }
 
   findModelRowOnCurrentPage(modelType: 'llm' | 'embedding', modelId: string) {
-    return this.findModelTable(modelType).find(`[data-testid="model-row-${modelId}"]`);
+    return this.findModelTable(modelType).then(($table) =>
+      $table.find(`[data-testid="model-row-${modelId}"]`),
+    );
   }
 
   findModelCheckboxOnCurrentPage(modelType: 'llm' | 'embedding', modelId: string) {
@@ -201,8 +212,8 @@ class AutoragConfigurePage {
     return cy.findByTestId('experiment-settings-cancel');
   }
 
-  findSelectOption(name: string | RegExp) {
-    return cy.findByRole('option', { name: name instanceof RegExp ? name : new RegExp(name) });
+  findSelectOption(name: string) {
+    return cy.findByRole('option', { name: getExactVisibleOptionRegex(name) });
   }
 
   // Evaluation dataset — PF FileUpload renders input with id from field.name
