@@ -34,9 +34,10 @@ test-integration: setup-envtest ## Run integration tests with envtest.
 	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN)/k8s -p path)" go test -v -race -tags=integration -count=1 ./internal/controller/...
 
 .PHONY: test-e2e
-test-e2e: ## Run real-cluster E2E tests (requires KUBECONFIG and TEST_NAMESPACE).
+test-e2e: ## Run real-cluster E2E tests (requires KUBECONFIG, TEST_NAMESPACE, and TEST_GATEWAY_DOMAIN).
 	@test -n "$$KUBECONFIG" || (echo "KUBECONFIG must point to a kubeconfig file." && exit 1)
 	@test -n "$$TEST_NAMESPACE" || (echo "TEST_NAMESPACE must name an existing namespace." && exit 1)
+	@test -n "$$TEST_GATEWAY_DOMAIN" || (echo "TEST_GATEWAY_DOMAIN must name the externally reachable Dashboard gateway host." && exit 1)
 	@test -f "$$KUBECONFIG" || (echo "KUBECONFIG must point to a regular file." && exit 1)
 	go test -v -count=1 -tags=e2e -timeout=30m $(E2E_TEST_ARGS) ./test/e2e/...
 
