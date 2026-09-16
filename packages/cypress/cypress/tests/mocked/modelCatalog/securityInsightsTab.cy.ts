@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
@@ -14,7 +15,7 @@ const API_VERSION = 'v1';
 const SOURCE_ID = 'sample-source';
 const MODEL_NAME = 'repo1/model1';
 const ENCODED_MODEL_NAME = 'repo1%2Fmodel1';
-const REGISTRIES_NAMESPACE = 'odh-model-registries';
+const REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 const catalogModel = {
   source_id: SOURCE_ID,
@@ -44,12 +45,13 @@ const setupCommonIntercepts = ({ disableLMEval = false }: { disableLMEval?: bool
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: REGISTRIES_NAMESPACE,
         },
         [DataScienceStackComponent.TRUSTY_AI]: { managementState: 'Managed' },
       },
     }),
   );
+
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: REGISTRIES_NAMESPACE }));
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
 

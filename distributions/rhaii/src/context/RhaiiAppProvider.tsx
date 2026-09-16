@@ -41,7 +41,7 @@ const areasStatus = {
   [SupportedArea.LLMD_SERVING]: availableAreaStatus,
 };
 
-const areaContextValue = { dscStatus: null, dsciStatus: null, areasStatus };
+const areaContextValue = { aiHub: null, dscStatus: null, dsciStatus: null, areasStatus };
 
 const RhaiiAppProvider: React.FC<RhaiiAppProviderProps> = ({ children }) => {
   const appContent =

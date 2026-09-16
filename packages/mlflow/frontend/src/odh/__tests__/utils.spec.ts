@@ -300,7 +300,7 @@ describe('resolveActionButtonState', () => {
 const readyRegisterButtonArgs = () => ({
   serverSettled: true,
   hasServerData: true,
-  dscSettled: true,
+  aihubSettled: true,
   registriesNamespace: 'rhoai',
   mlflowLoaded: true,
   mlflowUnreachable: false,
@@ -333,10 +333,19 @@ describe('getRegisterButtonState', () => {
   });
 
   it('should disable while catalog configuration is loading', () => {
-    expect(getRegisterButtonState({ ...readyRegisterButtonArgs(), dscSettled: false })).toEqual({
+    expect(getRegisterButtonState({ ...readyRegisterButtonArgs(), aihubSettled: false })).toEqual({
       enabled: false,
       loading: true,
       tooltip: REGISTER_BUTTON_TOOLTIP.LOADING_CATALOG,
+    });
+  });
+
+  it('should show an AIHub fetch error instead of a missing-namespace message', () => {
+    const error = new Error('Dashboard is not permitted to read the AIHub configuration.');
+    expect(getRegisterButtonState({ ...readyRegisterButtonArgs(), aihubError: error })).toEqual({
+      enabled: false,
+      loading: false,
+      tooltip: error.message,
     });
   });
 

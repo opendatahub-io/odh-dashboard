@@ -4,6 +4,7 @@
 //   packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/registerAndStoreFields.cy.ts
 
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockModelVersionList } from '@odh-dashboard/internal/__mocks__';
@@ -21,6 +22,7 @@ import { registerAndStorePage } from '../../../pages/modelRegistry/registerAndSt
 import { ProjectModel, ServiceModel } from '../../../utils/models';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
+const REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -35,11 +37,11 @@ const initIntercepts = () => {
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: 'odh-model-registries',
         },
       },
     }),
   );
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: REGISTRIES_NAMESPACE }));
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptK8sList(
     ProjectModel,
@@ -59,7 +61,7 @@ const initIntercepts = () => {
   cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/namespaces`,
     { path: { apiVersion: MODEL_REGISTRY_API_VERSION } },
-    { data: [{ metadata: { name: 'odh-model-registries' } }] },
+    { data: [{ metadata: { name: REGISTRIES_NAMESPACE } }] },
   );
 
   cy.interceptOdh(

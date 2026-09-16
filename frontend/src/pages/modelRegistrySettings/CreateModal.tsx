@@ -90,7 +90,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [isPasswordTouched, setIsPasswordTouched] = React.useState(false);
   const [isDatabaseTouched, setIsDatabaseTouched] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
-  const { dscStatus } = React.useContext(AreaContext);
+  const { aiHub, aiHubError } = React.useContext(AreaContext);
   const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
   const [configSecrets, configSecretsLoaded, configSecretsError] = useModelRegistryCertificateNames(
     !addSecureDB,
@@ -103,7 +103,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     key: '',
     isValid: true,
   });
-  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
+  const modelRegistryNamespace = aiHub?.spec.instancesNamespace;
 
   React.useEffect(() => {
     if (configSecretsLoaded && !configSecretsError && !mr) {
@@ -177,7 +177,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       <ApplicationsPage loaded empty={false}>
         <RedirectErrorState
           title="Could not load component state"
-          errorMessage="No registries namespace could be found"
+          errorMessage={aiHubError?.message || 'No registries namespace could be found'}
         />
       </ApplicationsPage>
     );

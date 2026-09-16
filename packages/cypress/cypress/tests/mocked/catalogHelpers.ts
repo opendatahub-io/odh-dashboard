@@ -1,9 +1,10 @@
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 
 export const API_VERSION = 'v1';
-const REGISTRIES_NAMESPACE = 'odh-model-registries';
+const REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 export const setupModelCatalogIntercepts = (): void => {
   cy.interceptOdh(
@@ -12,11 +13,12 @@ export const setupModelCatalogIntercepts = (): void => {
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: REGISTRIES_NAMESPACE,
         },
       },
     }),
   );
+
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: REGISTRIES_NAMESPACE }));
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
 

@@ -40,6 +40,7 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
+  AIHubKind,
   ConfigMapKind,
   ConnectionTypeConfigMap,
   DashboardConfigKind,
@@ -271,6 +272,10 @@ declare global {
         ((
           type: 'GET /api/dsc/status',
           response: OdhResponse<DataScienceClusterKindStatus>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/aihub',
+          response: OdhResponse<AIHubKind | null>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/status',

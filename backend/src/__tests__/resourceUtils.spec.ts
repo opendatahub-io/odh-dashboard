@@ -1,6 +1,6 @@
-import { isRHOAI } from '../utils/resourceUtils';
+import { getAIHub, isRHOAI } from '../utils/resourceUtils';
 import * as resourceUtils from '../utils/resourceUtils';
-import { OdhPlatformType, DataScienceClusterKindStatus } from '../types';
+import { DataScienceClusterKindStatus, KubeFastifyInstance, OdhPlatformType } from '../types';
 
 describe('resourceUtils', () => {
   describe('isRHOAI', () => {
@@ -48,6 +48,17 @@ describe('resourceUtils', () => {
       });
       expect(isRHOAI(mockFastify)).toBe(false);
       expect(mockFastify.log.error).toHaveBeenCalledWith(errorMessage);
+    });
+  });
+
+  describe('getAIHub', () => {
+    const mockFastify = { log: { error: jest.fn() } } as unknown as KubeFastifyInstance;
+
+    it('returns undefined and logs when no AIHub CR is available', () => {
+      expect(getAIHub(mockFastify)).toBeUndefined();
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        'Tried to use AIHub before ResourceWatcher could successfully fetch it',
+      );
     });
   });
 });
