@@ -6,6 +6,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { MCPServer, MCPServerFromAPI } from '~/app/types/mcp';
 import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
 import useServerSelection from '~/app/Chatbot/mcp/hooks/useServerSelection';
+import useModalState from '~/app/Chatbot/mcp/hooks/useModalState';
 
 // --- Mock dependencies ---
 
@@ -148,6 +149,7 @@ const mockGenAiContextValue = {
 
 const mockUseGenAiMcpRegistryServers = jest.mocked(useGenAiMcpRegistryServers);
 const mockUseServerSelection = jest.mocked(useServerSelection);
+const mockUseModalState = jest.mocked(useModalState);
 
 const createServer = (overrides: Partial<MCPServerFromAPI> = {}): MCPServerFromAPI => ({
   name: 'test-server',
@@ -391,6 +393,59 @@ describe('MCPServersPanel', () => {
     renderPanel({ servers: [registryServer], registryAvailable: true });
 
     expect(setSelectedServers).toHaveBeenCalledWith([]);
+  });
+
+  it('should close open registered-server modals when the flag is disabled', () => {
+    const registryServer: MCPServer = {
+      id: 'registry-server',
+      name: 'Registry Server',
+      description: 'A registry server',
+      status: 'active',
+      endpoint: 'View',
+      connectionUrl: 'http://registry:8080/sse',
+      tools: 0,
+      version: '1.0.0',
+      source: 'registry',
+      logo: null,
+    };
+    const closeConfigModal = jest.fn();
+    const closeToolsModal = jest.fn();
+    const closeSuccessModal = jest.fn();
+
+    mockUseModalState
+      .mockReturnValueOnce({
+        isOpen: true,
+        selectedItem: registryServer,
+        openModal: jest.fn(),
+        closeModal: closeConfigModal,
+      })
+      .mockReturnValueOnce({
+        isOpen: true,
+        selectedItem: registryServer,
+        openModal: jest.fn(),
+        closeModal: closeToolsModal,
+      })
+      .mockReturnValueOnce({
+        isOpen: true,
+        selectedItem: registryServer,
+        openModal: jest.fn(),
+        closeModal: closeSuccessModal,
+      });
+
+    renderPanel({
+      servers: [
+        createServer({
+          name: registryServer.name,
+          url: registryServer.connectionUrl,
+          source: 'registry',
+        }),
+      ],
+      registryAvailable: true,
+    });
+
+    expect(closeConfigModal).toHaveBeenCalled();
+    expect(closeToolsModal).toHaveBeenCalled();
+    expect(closeSuccessModal).toHaveBeenCalled();
   });
 
   describe('Section toggles', () => {
