@@ -175,6 +175,18 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     }
   }, [onSelectionChange, selectedServers.length, setSelectedServers, visibleSelectedServers]);
 
+  React.useEffect(() => {
+    if (mcpRegistryServersEnabled) {
+      return;
+    }
+
+    [configModal, toolsModal, successModal].forEach((modal) => {
+      if (modal.selectedItem?.source === 'registry') {
+        modal.closeModal();
+      }
+    });
+  }, [configModal, mcpRegistryServersEnabled, successModal, toolsModal]);
+
   const selectedRegisteredCount = React.useMemo(
     () => visibleSelectedServers.filter((s) => s.source === 'registry').length,
     [visibleSelectedServers],
