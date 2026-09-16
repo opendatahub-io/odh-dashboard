@@ -21,16 +21,7 @@ modelFormat: 'openvino_ir - opset13'
 servingRuntime: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
 servingRuntimeS390x: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
 servingRuntimeX86: 'vLLM CPU (x86) ServingRuntime for KServe'
-# Standard KServe (Knative/Serverless) deployment — status.deploymentMode='Standard'
-# activeModelState is not populated; readiness is tracked via conditions only.
-deploymentType: 'Legacy deployment'
-# deploymentType: 'Inference service'
-# KServe RawDeployment — status.deploymentMode='RawDeployment'
-# targetModelState/activeModelState and transitionStatus are fully populated by KServe.
-# A terminal load failure surfaces as:
-#   targetModelState: 'FailedToLoad'
-#   transitionStatus: 'BlockedByFailedLoad'
-#   modelStatus.lastFailureInfo.reason / .message
+deploymentType: 'Inference service'
 rawDeploymentType: 'Raw deployment'
 
 # Second model (URI)
