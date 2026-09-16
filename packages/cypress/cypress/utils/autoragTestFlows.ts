@@ -11,6 +11,93 @@ const RESOURCES_PATH = 'resources/autorag';
 
 type MaaSModel = { id?: unknown; ready?: unknown };
 
+type MaaSConfig = {
+  MAAS_URL?: unknown;
+  MAAS_API_KEY?: unknown;
+  MAAS_GENERATION_MODEL_ID?: unknown;
+  MAAS_EMBEDDING_MODEL_ID?: unknown;
+};
+
+export type AutoragMaaSFixture =
+  | {
+      mode: 'external';
+      maasUrl: string;
+      apiKey: string;
+      generationModelId: string;
+      embeddingModelId: string;
+      ownership: 'external-readonly';
+      supportsCompletionResults: true;
+    }
+  | {
+      mode: 'simulator';
+      ownership: 'dashboard-provisioned';
+      supportsCompletionResults: false;
+    };
+
+const MAAS_CONFIG_KEYS = [
+  'MAAS_URL',
+  'MAAS_API_KEY',
+  'MAAS_GENERATION_MODEL_ID',
+  'MAAS_EMBEDDING_MODEL_ID',
+] as const;
+
+const readMaaSConfig = (): MaaSConfig => ({
+  MAAS_URL: Cypress.env('MAAS_URL'),
+  MAAS_API_KEY: Cypress.env('MAAS_API_KEY'),
+  MAAS_GENERATION_MODEL_ID: Cypress.env('MAAS_GENERATION_MODEL_ID'),
+  MAAS_EMBEDDING_MODEL_ID: Cypress.env('MAAS_EMBEDDING_MODEL_ID'),
+});
+
+/**
+ * Resolve the AutoRAG MaaS dependency without creating or changing any MaaS resources.
+ * Partial external configuration is rejected so it cannot accidentally select a provisioned path.
+ */
+export const resolveAutoragMaaSFixture = (
+  config: MaaSConfig = readMaaSConfig(),
+): AutoragMaaSFixture => {
+  const values = MAAS_CONFIG_KEYS.map((key) => {
+    const value = config[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  });
+  const suppliedKeys = MAAS_CONFIG_KEYS.filter((key) => {
+    const value = config[key];
+    return value !== undefined && value !== null && (typeof value !== 'string' || value.trim());
+  });
+
+  if (suppliedKeys.length === 0) {
+    return {
+      mode: 'simulator',
+      ownership: 'dashboard-provisioned',
+      supportsCompletionResults: false,
+    };
+  }
+
+  if (
+    suppliedKeys.length !== MAAS_CONFIG_KEYS.length ||
+    values.some((value): value is undefined => value === undefined)
+  ) {
+    throw new Error(
+      'AutoRAG MaaS configuration is incomplete; provide all four MaaS configuration fields or none.',
+    );
+  }
+
+  const [maasUrl, apiKey, generationModelId, embeddingModelId] = values as [
+    string,
+    string,
+    string,
+    string,
+  ];
+  return {
+    mode: 'external',
+    maasUrl,
+    apiKey,
+    generationModelId,
+    embeddingModelId,
+    ownership: 'external-readonly',
+    supportsCompletionResults: true,
+  };
+};
+
 const hasExactVisibleOption = (document: Document, label: string): boolean => {
   const normalizedLabel = normalizeVisibleOptionLabel(label);
   return Array.from(document.querySelectorAll('[role="option"]')).some(
@@ -26,8 +113,7 @@ const getRequiredMaaSConfig = (name: string): string => {
   return value.trim();
 };
 
-const getMaaSServiceRoot = (): string => {
-  const configuredUrl = getRequiredMaaSConfig('MAAS_URL');
+const getMaaSServiceRoot = (configuredUrl: string): string => {
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(configuredUrl);
@@ -56,19 +142,21 @@ const isMaaSModel = (value: unknown): value is MaaSModel =>
  * Verify the hosted MaaS models before provisioning AutoRAG resources.
  * Response details and credentials are intentionally never logged or included in failures.
  */
-export const checkAutoragMaaSReadiness = (): Cypress.Chainable<
-  Cypress.Response<Record<string, unknown>>
-> => {
-  const serviceRoot = getMaaSServiceRoot();
-  const apiKey = getRequiredMaaSConfig('MAAS_API_KEY');
-  const generationModelId = getRequiredMaaSConfig('MAAS_GENERATION_MODEL_ID');
-  const embeddingModelId = getRequiredMaaSConfig('MAAS_EMBEDDING_MODEL_ID');
+export const checkAutoragMaaSReadiness = ():
+  | Cypress.Chainable<undefined>
+  | Cypress.Chainable<Cypress.Response<Record<string, unknown>>> => {
+  const fixture = resolveAutoragMaaSFixture();
+  if (fixture.mode === 'simulator') {
+    return cy.wrap(undefined);
+  }
+
+  const serviceRoot = getMaaSServiceRoot(fixture.maasUrl);
 
   return cy
     .request({
       method: 'GET',
       url: `${serviceRoot}/v1/models`,
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: { Authorization: `Bearer ${fixture.apiKey}` },
       failOnStatusCode: false,
       log: false,
     })
@@ -83,7 +171,7 @@ export const checkAutoragMaaSReadiness = (): Cypress.Chainable<
       }
 
       const models = Array.isArray(payload.data) ? payload.data.filter(isMaaSModel) : [];
-      for (const modelId of [generationModelId, embeddingModelId]) {
+      for (const modelId of [fixture.generationModelId, fixture.embeddingModelId]) {
         const model = models.find((candidate) => candidate.id === modelId);
         if (!model || model.ready !== true) {
           throw new Error('A configured MaaS model is missing or not ready.');
