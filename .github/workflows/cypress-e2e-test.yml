@@ -1323,12 +1323,7 @@ jobs:
             echo "Running in non-admin mode - admin setup hooks will be skipped"
           fi
 
-          if [[ "$MATRIX_TAG" == *"@EvalHubCI"* ]]; then
-            echo "Showing local server logs for EvalHub diagnostics"
-            npm run test:cypress:e2e:with-server-logs
-          else
-            npm run test:cypress:e2e
-          fi
+          npm run test:cypress:e2e
 
       - name: Upload test results
         if: always()
