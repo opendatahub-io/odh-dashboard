@@ -1278,7 +1278,10 @@ class ModelServingWizard extends Wizard {
     cy.findByRole('option', { name }).click();
   }
 
-  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
+  selectPotentiallyDisabledProfile(
+    profileDisplayName: string,
+    profileResourceName = profileDisplayName,
+  ): void {
     const dropdown = this.findHardProfileSelection();
 
     dropdown.then(($el) => {
@@ -1287,7 +1290,7 @@ class ModelServingWizard extends Wizard {
         cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
         dropdown.click();
-        cy.findByTestId(profileName || profileDisplayName).click();
+        cy.findByTestId(profileResourceName).click();
       }
     });
   }
