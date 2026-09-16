@@ -127,7 +127,7 @@ class GenAiPlayground {
   }
 
   findAttachmentButton() {
-    return cy.findByTestId('chatbot-message-bar').findByRole('button', { name: /attach/i });
+    return cy.findByRole('button', { name: /^attach$/i });
   }
 
   findImageUploadMenuItem() {
