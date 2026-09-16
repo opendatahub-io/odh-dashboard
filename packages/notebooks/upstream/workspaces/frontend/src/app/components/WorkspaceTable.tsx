@@ -193,8 +193,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     }));
 
     const createWorkspace = useCallback(() => {
-      navigate('workspaceCreate');
-    }, [navigate]);
+      if (!namespace) {
+        return;
+      }
+      navigate('workspaceCreate', { state: { namespace } });
+    }, [namespace, navigate]);
 
     const emptyState = useMemo(
       () => <CustomEmptyState onClearFilters={clearAllFilters} />,

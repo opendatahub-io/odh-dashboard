@@ -53,6 +53,13 @@ import (
 //       the header is configurable with the `--userid-header` flag.
 
 func main() {
+	os.Exit(run())
+}
+
+// run returns the process exit status. It is a named return so the deferred
+// envtest cleanup below can surface a stop failure as a non-zero exit code
+// even though the server already returned successfully.
+func run() (status int) {
 	// Define command line flags
 	cfg := &config.EnvConfig{}
 	var certFile, keyFile string
@@ -73,6 +80,8 @@ func main() {
 		getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to rest.Client",
 	)
+	// ODH Dashboard contract-test harness flags (RHOAIENG-58841); see odh_contract_harness.go.
+	odhFlags := registerODHContractHarnessFlags(cfg)
 	flag.BoolVar(
 		// TODO: remove before GA
 		&cfg.DisableAuth,
@@ -150,13 +159,14 @@ func main() {
 
 	// Initialize the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	odhFlags.warn(logger)
 
-	// Build the Kubernetes client configuration
-	kubeconfig, err := ctrl.GetConfig()
+	kubeconfig, stopMockK8s, err := resolveKubeconfig(cfg, logger)
 	if err != nil {
-		logger.Error("failed to get Kubernetes config", "error", err)
-		os.Exit(1)
+		logger.Error(err.Error())
+		return 1
 	}
+	defer deferMockK8sStop(stopMockK8s, &status, logger)
 	kubeconfig.QPS = float32(cfg.ClientQPS)
 	kubeconfig.Burst = cfg.ClientBurst
 
@@ -164,34 +174,34 @@ func main() {
 	scheme, err := helper.BuildScheme()
 	if err != nil {
 		logger.Error("failed to build Kubernetes scheme", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create the controller manager
 	mgr, err := helper.NewManager(kubeconfig, scheme)
 	if err != nil {
 		logger.Error("unable to create manager", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	clientset, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
 		logger.Error("failed to create Kubernetes clientset", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create the request authenticator
 	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
 	if err != nil {
 		logger.Error("failed to create request authenticator", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create the request authorizer
 	reqAuthZ, err := auth.NewRequestAuthorizer(mgr.GetConfig(), mgr.GetHTTPClient())
 	if err != nil {
 		logger.Error("failed to create request authorizer", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create a filtered cache client for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
@@ -199,7 +209,7 @@ func main() {
 	if err != nil {
 		logger.Error("failed to create 'notebooks.kubeflow.org/image-source=true' label "+
 			"filtered ConfigMap client", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create the application and server
@@ -215,24 +225,25 @@ func main() {
 	)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	svr, err := server.NewServer(app, logger, certFile, keyFile)
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	if err := svr.SetupWithManager(mgr); err != nil {
 		logger.Error("failed to setup server with manager", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Start the controller manager
 	logger.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		logger.Error("problem running manager", "error", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 func getEnvAsInt(name string, defaultVal int) int {
