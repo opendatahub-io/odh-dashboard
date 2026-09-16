@@ -15,6 +15,7 @@ type DashboardEmptyTableViewProps = {
   titleText?: string;
   bodyText?: string;
   variant?: EmptyStateVariant;
+  showClearFilters?: boolean;
 };
 
 const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({
@@ -23,6 +24,7 @@ const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({
   titleText = 'No results found',
   bodyText = 'Adjust your filters and try again.',
   variant,
+  showClearFilters = true,
 }) => (
   <Bullseye>
     <EmptyState
@@ -33,11 +35,13 @@ const DashboardEmptyTableView: React.FC<DashboardEmptyTableViewProps> = ({
       icon={hasIcon ? SearchIcon : undefined}
     >
       <EmptyStateBody>{bodyText}</EmptyStateBody>
-      <EmptyStateFooter>
-        <Button variant="link" onClick={onClearFilters} data-testid="clear-filters-button">
-          Clear all filters
-        </Button>
-      </EmptyStateFooter>
+      {showClearFilters && (
+        <EmptyStateFooter>
+          <Button variant="link" onClick={onClearFilters} data-testid="clear-filters-button">
+            Clear all filters
+          </Button>
+        </EmptyStateFooter>
+      )}
     </EmptyState>
   </Bullseye>
 );
