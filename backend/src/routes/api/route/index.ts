@@ -3,7 +3,7 @@ import { KubeFastifyInstance } from '../../../types';
 import { secureRoute } from '../../../utils/route-security';
 import { getRoute } from '../../../utils/notebookUtils';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/:namespace/:name',
     secureRoute(fastify)(
