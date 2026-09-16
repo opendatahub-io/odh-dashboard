@@ -14,6 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AssetResponse, ConnectionRef, VolumeInfo } from '~/app/types';
 import { ApiError, createLabel, updateGenericTable, updateVolume } from '~/app/api/dataRegistry';
 import { editAssetSchema, EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import { getRawUnstructuredFormat, normalizeUnstructuredFormat } from '~/app/utilities/formatUtils';
 import AssetDetailsSection from './register-data/AssetDetailsSection';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
@@ -42,7 +43,21 @@ type EditVolumeModalProps = {
 
 type EditAssetModalProps = EditTableModalProps | EditVolumeModalProps;
 
-const WELL_KNOWN_PROPERTIES = new Set(['purpose', 'license', 'maturity', 'pii_status']);
+const WELL_KNOWN_PROPERTIES = new Set([
+  'purpose',
+  'license',
+  'maturity',
+  'pii_status',
+  'volume_purpose', // Backend storage format for volumes
+  'volume_license',
+  'volume_maturity',
+  'description',
+  'content-type',
+  'connection-ref',
+  'location',
+  'registered_by',
+  'updated_by',
+]);
 
 const getConnectionDisplayValue = (connectionRef?: ConnectionRef | string | null): string => {
   if (!connectionRef) {
@@ -57,6 +72,11 @@ const getConnectionDisplayValue = (connectionRef?: ConnectionRef | string | null
   return connectionRef.id || 'None';
 };
 
+const getOriginalUnstructuredFormat = (props: EditAssetModalProps): string | undefined =>
+  props.assetKind === 'volume'
+    ? getRawUnstructuredFormat(props.asset.properties?.['content-type'], props.asset['volume-type'])
+    : undefined;
+
 const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAssetFormData => {
   const { asset, assetKind, collection } = props;
   const isTable = assetKind === 'table';
@@ -69,17 +89,23 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
   return {
     assetType: isTable ? 'structured' : 'unstructured',
     name: asset.name,
-    description: isTable ? (asset.description ?? '') : (asset.comment ?? ''),
-    format: isTable ? asset.format || 'other' : asset.config?.content_type || 'other',
+    description: isTable
+      ? (asset.description ?? '')
+      : asset.comment || properties.description || '',
+    format: isTable
+      ? asset.format || 'other'
+      : normalizeUnstructuredFormat(
+          getRawUnstructuredFormat(properties['content-type'], asset['volume-type']),
+        ),
     collection,
     labels: asset.labels ?? [],
     connection: isTable
       ? getConnectionDisplayValue(asset.connection_ref)
       : asset.properties?.['connection-ref'] || '',
     path: isTable ? (asset.location ?? '') : asset['storage-location'],
-    purpose: properties.purpose || '',
-    license: properties.license || '',
-    maturity: properties.maturity || '',
+    purpose: isTable ? properties.purpose || '' : properties.volume_purpose || '',
+    license: isTable ? properties.license || '' : properties.volume_license || '',
+    maturity: isTable ? properties.maturity || '' : properties.volume_maturity || '',
     piiStatus: properties.pii_status || '',
     customProperties,
     schemaFields: isTable
@@ -110,6 +136,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asset, assetKind, collection]);
   const originalLabels = React.useMemo(() => asset.labels ?? [], [asset]);
+  const originalUnstructuredFormat = getOriginalUnstructuredFormat(props);
 
   const form = useForm<EditAssetFormData>({
     resolver: zodResolver(editAssetSchema),
@@ -169,15 +196,21 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
             })),
           });
         } else {
-          const allProperties: Record<string, string> = { ...customProps };
-          if (data.purpose) {
-            allProperties.purpose = data.purpose;
-          }
+          const persistedFormat =
+            data.format === normalizeUnstructuredFormat(originalUnstructuredFormat)
+              ? originalUnstructuredFormat
+              : data.format;
+          const allProperties: Record<string, string> = {
+            ...customProps,
+            ...(persistedFormat ? { 'content-type': persistedFormat } : {}),
+          };
+          // Always set volume_purpose to allow clearing it (empty string)
+          allProperties.volume_purpose = data.purpose;
           if (data.license) {
-            allProperties.license = data.license;
+            allProperties.volume_license = data.license;
           }
           if (data.maturity) {
-            allProperties.maturity = data.maturity;
+            allProperties.volume_maturity = data.maturity;
           }
           if (data.piiStatus) {
             allProperties.pii_status = data.piiStatus;
@@ -198,7 +231,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
         setIsSubmitting(false);
       }
     },
-    [isTable, project, collection, name, originalLabels, onSaved],
+    [isTable, project, collection, name, originalLabels, originalUnstructuredFormat, onSaved],
   );
 
   return (

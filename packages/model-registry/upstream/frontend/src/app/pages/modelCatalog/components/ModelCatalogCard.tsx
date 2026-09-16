@@ -21,6 +21,7 @@ import {
   isModelValidated,
   isRedHatModel,
   getModelName,
+  getHfAccessLabelVariant,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import {
   MODEL_CATALOG_POPOVER_MESSAGES,
@@ -30,6 +31,7 @@ import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
 import ModelCatalogLabels from './ModelCatalogLabels';
 import ModelCatalogCardBody from './ModelCatalogCardBody';
+import ModelCatalogAccessLabel from './ModelCatalogAccessLabel';
 
 type ModelCatalogCardProps = {
   model: CatalogModel;
@@ -43,6 +45,8 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
     : [];
   const isValidated = isModelValidated(model);
   const isRedHat = isRedHatModel(model);
+  const accessLabelVariant = getHfAccessLabelVariant(model);
+  const isGatedAccessDenied = accessLabelVariant === 'gated-denied';
   const { trackSimpleEvent } = useUserInteraction();
 
   const handleValidatedLabelClicked = React.useCallback(() => {
@@ -51,11 +55,20 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
     });
   }, [model.name, trackSimpleEvent]);
 
+  const showHeaderLabels = isValidated || isRedHat || accessLabelVariant || source;
+
   return (
     <Card isFullHeight data-testid="model-catalog-card" key={`${model.name}/${model.source_id}`}>
       <CardHeader>
-        <CardTitle>
-          <Flex alignItems={{ default: 'alignItemsFlexStart' }} className="pf-v6-u-mb-md">
+        <Flex
+          alignItems={{ default: 'alignItemsFlexStart' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          flexWrap={{ default: 'nowrap' }}
+          fullWidth={{ default: 'fullWidth' }}
+          gap={{ default: 'gapXs' }}
+          className="pf-v6-u-mb-md"
+        >
+          <FlexItem>
             {model.logo ? (
               <img src={model.logo} alt="model logo" style={{ height: '56px', width: '56px' }} />
             ) : (
@@ -66,7 +79,9 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
                 screenreaderText="Brand image loading"
               />
             )}
-            <FlexItem align={{ default: 'alignRight' }}>
+          </FlexItem>
+          {showHeaderLabels && (
+            <FlexItem>
               <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                 {isValidated && (
                   <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
@@ -88,10 +103,18 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
                     </Label>
                   </Popover>
                 )}
-                {!isValidated && !isRedHat && source && <Label>{source.name}</Label>}
+                {!isValidated && !isRedHat && accessLabelVariant ? (
+                  <ModelCatalogAccessLabel variant={accessLabelVariant} />
+                ) : (
+                  !isValidated &&
+                  !isRedHat &&
+                  source && <Label data-testid="model-catalog-source-label">{source.name}</Label>
+                )}
               </Flex>
             </FlexItem>
-          </Flex>
+          )}
+        </Flex>
+        <CardTitle>
           <Link to={catalogModelDetailsFromModel(model.name, source?.id)}>
             <Button
               data-testid="model-catalog-detail-link"
@@ -108,18 +131,22 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
           </Link>
         </CardTitle>
       </CardHeader>
-      <CardBody>
-        <ModelCatalogCardBody model={model} isValidated={isValidated} source={source} />
-      </CardBody>
-      <CardFooter>
-        <ModelCatalogLabels
-          tasks={model.tasks ?? []}
-          validatedTasks={model.validatedTasks}
-          provider={model.provider}
-          labels={[...allLabels.filter((label) => label !== 'validated'), ...valueLabels]}
-          numLabels={isValidated ? 2 : 3}
-        />
-      </CardFooter>
+      {!isGatedAccessDenied && (
+        <>
+          <CardBody>
+            <ModelCatalogCardBody model={model} isValidated={isValidated} source={source} />
+          </CardBody>
+          <CardFooter>
+            <ModelCatalogLabels
+              tasks={model.tasks ?? []}
+              validatedTasks={model.validatedTasks}
+              provider={model.provider}
+              labels={[...allLabels.filter((label) => label !== 'validated'), ...valueLabels]}
+              numLabels={isValidated ? 2 : 3}
+            />
+          </CardFooter>
+        </>
+      )}
     </Card>
   );
 };

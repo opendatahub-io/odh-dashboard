@@ -6,6 +6,7 @@ import {
 import type { Connection } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -68,10 +69,11 @@ import { isUIError } from '~/app/components/common/UIError/util';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -87,7 +89,7 @@ import {
   METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
-import { SecretListItem } from '~/app/types';
+import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
@@ -107,6 +109,10 @@ import {
   INPUT_DATA_FILE_ACCEPT,
   INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
   isAllowedInputDataUploadFile,
+  SUPPORTED_FORMAT_EXTENSIONS,
+  SUPPORTED_FORMAT_HINT,
+  SUPPORTED_FORMAT_NAMES_STRING_SIMPLE,
+  INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
 } from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
@@ -139,14 +145,33 @@ const OPTIMIZATION_METRICS: {
 
 const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
 
-type AutoragConfigureProps = {
-  initialValues?: Partial<ConfigureSchema>;
-  initialInputDataSecret?: SecretSelection;
+const getSelectedInputDataFile = (inputDataKey: string): ExplorerFile => {
+  const lastSegment = inputDataKey.split('/').pop();
+  const fileName = lastSegment || inputDataKey;
+  const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+  return { name: fileName, path: `/${inputDataKey}`, type: ext };
 };
+
+type AutoragConfigureProps = {
+  initialValues?: Partial<ConfigureSchema> & Record<string, unknown>;
+  initialInputDataSecret?: SecretSelection;
+  initialVectorDbSecret?: SecretSelection;
+  isReconfigure?: boolean;
+  onMaaSModelsReady?: (ready: boolean) => void;
+};
+
+const MAAS_MODELS_ERROR_TITLE = 'Failed to load MaaS models';
+const MAAS_MODELS_ERROR_MESSAGE = 'Check that the selected MaaS connection is valid and try again.';
+const MODEL_RESTORE_WARNING_TITLE = 'Some previously selected models are unavailable';
+const MODEL_RESTORE_WARNING_MESSAGE =
+  'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.';
 
 function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
+  initialVectorDbSecret,
+  isReconfigure = false,
+  onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -170,7 +195,7 @@ function AutoragConfigure({
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const initialInputDataKey = initialValues?.input_data_key;
+  const initialInputDataKey = initialValues?.input_data_keys?.[0];
 
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
     initialInputDataSecret,
@@ -181,10 +206,7 @@ function AutoragConfigure({
       if (!initialInputDataKey) {
         return undefined;
       }
-      const lastSegment = initialInputDataKey.split('/').pop();
-      const fileName = lastSegment || initialInputDataKey;
-      const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
-      return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
+      return getSelectedInputDataFile(initialInputDataKey);
     },
   );
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
@@ -196,7 +218,6 @@ function AutoragConfigure({
   // as a cancel (onClose is invoked right after onSelectFiles when the user selects a file).
   const inputDataS3SelectionCommittedRef = useRef(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
-  const modelsInitialized = useRef(false);
 
   const notification = useNotification();
   const { showUIError } = useUIErrorHandler();
@@ -205,108 +226,124 @@ function AutoragConfigure({
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
   const { isSubmitting } = formState;
+  const maasSecretName = form.watch('maas_secret_name');
+  const maasModelsQuery = useMaaSModelsQuery(namespace ?? '', maasSecretName);
+  const maasModels = React.useMemo(
+    () => maasModelsQuery.data?.models ?? [],
+    [maasModelsQuery.data],
+  );
+  const hasMaaSModelsData = !!maasModelsQuery.data;
+  const maasModelsError = maasModelsQuery.isError && !hasMaaSModelsData;
+  const maasModelsLoaded = hasMaaSModelsData;
+  const maasModelsErrorRef = useRef<string>();
+  const maasModelsSecretRef = useRef(maasSecretName);
+  const reconciledMaaSResultRef = useRef<string>();
+
+  useEffect(() => {
+    if (maasModelsSecretRef.current !== maasSecretName) {
+      maasModelsSecretRef.current = maasSecretName;
+      maasModelsErrorRef.current = undefined;
+    }
+    if (!maasModelsError || !maasSecretName) {
+      return;
+    }
+
+    const errorKey = `${maasSecretName}:${maasModelsQuery.error.message}`;
+    if (maasModelsErrorRef.current === errorKey) {
+      return;
+    }
+
+    maasModelsErrorRef.current = errorKey;
+    notification.error(MAAS_MODELS_ERROR_TITLE, MAAS_MODELS_ERROR_MESSAGE);
+  }, [maasModelsError, maasModelsQuery.error, maasSecretName, notification]);
 
   const [
-    ogxSecretName,
     inputDataSecretName,
     inputDataBucketName,
     testDataSecretName,
     testDataBucketName,
-    inputDataKey,
+    inputDataKeys,
+    generationModels,
+    embeddingModels,
   ] = useWatch({
     control: form.control,
     name: [
-      'ogx_secret_name',
       'input_data_secret_name',
       'input_data_bucket_name',
       'test_data_secret_name',
       'test_data_bucket_name',
-      'input_data_key',
+      'input_data_keys',
+      'generation_models',
+      'embedding_models',
     ],
   });
 
+  useEffect(() => {
+    if (!maasModelsLoaded) {
+      onMaaSModelsReady?.(false);
+    }
+  }, [maasModelsLoaded, onMaaSModelsReady]);
+
+  useEffect(() => {
+    if (!maasModelsLoaded) {
+      return;
+    }
+
+    const availableModelIds = new Set(
+      maasModels.filter((model) => model.ready).map((model) => model.id),
+    );
+    const restoredGenerationModels = generationModels.filter((id) => availableModelIds.has(id));
+    const restoredEmbeddingModels = embeddingModels.filter((id) => availableModelIds.has(id));
+    onMaaSModelsReady?.(
+      maasModels.length > 0 &&
+        restoredGenerationModels.length > 0 &&
+        restoredEmbeddingModels.length > 0,
+    );
+
+    const resultKey = `${maasSecretName}:${maasModels
+      .map((model) => `${model.id}:${model.ready}`)
+      .toSorted()
+      .join('|')}`;
+    if (reconciledMaaSResultRef.current === resultKey) {
+      return;
+    }
+    reconciledMaaSResultRef.current = resultKey;
+
+    const modelsWereRemoved =
+      restoredGenerationModels.length !== generationModels.length ||
+      restoredEmbeddingModels.length !== embeddingModels.length;
+
+    if (modelsWereRemoved) {
+      setValue('generation_models', restoredGenerationModels, { shouldValidate: true });
+      setValue('embedding_models', restoredEmbeddingModels, { shouldValidate: true });
+      if (isReconfigure) {
+        notification.warning(MODEL_RESTORE_WARNING_TITLE, MODEL_RESTORE_WARNING_MESSAGE);
+      }
+    }
+  }, [
+    embeddingModels,
+    generationModels,
+    isReconfigure,
+    maasModels,
+    maasModelsLoaded,
+    maasSecretName,
+    notification,
+    onMaaSModelsReady,
+    setValue,
+  ]);
+
+  const inputDataKey = inputDataKeys[0] ?? '';
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
 
-  const {
-    data: allModelsData,
-    isError: isModelsError,
-    isLoading: isModelsLoading,
-  } = useOgxModelsQuery(namespace ?? '', ogxSecretName);
+  // On Back → Next, RHF retains the selected key while this component's display state remounts.
+  // Hydrate the display from RHF only when there is no local selection to preserve user edits.
+  useEffect(() => {
+    if (inputDataKey && !selectedInputDataFile) {
+      setSelectedInputDataFile(getSelectedInputDataFile(inputDataKey));
+    }
+  }, [inputDataKey, selectedInputDataFile]);
+  // Model discovery is intentionally deferred to the MaaS model-table migration.
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
-
-  useEffect(() => {
-    if (isModelsError) {
-      notification.error(
-        'Failed to load models',
-        'Check that the Open GenAI Stack secret is valid and try again.',
-      );
-    }
-  }, [isModelsError, notification]);
-
-  // When the secret changes, mark models as needing re-initialization and
-  // immediately clear stale selections so the UI reflects the transition.
-  // Uses useReconfigureSafeEffect (skips on mount) because ogxSecretName is
-  // already populated on mount during reconfigure; a plain useEffect would
-  // wipe the pre-populated model selections before they could be restored.
-  useReconfigureSafeEffect(() => {
-    modelsInitialized.current = false;
-    setValue('generation_models', []);
-    setValue('embedding_models', []);
-  }, [ogxSecretName, setValue]);
-
-  useEffect(() => {
-    // Initialize available generation and embedding models into the form data.
-    // Preserve existing selections (reconfigure flow) when they are already
-    // populated; only default to all models on a fresh create.
-    if (allModelsData?.models && !modelsInitialized.current && !isModelsError) {
-      modelsInitialized.current = true;
-
-      const currentValues = getValues();
-      const currentGenModels = currentValues.generation_models;
-      const currentEmbModels = currentValues.embedding_models;
-
-      const allLlmModels = allModelsData.models
-        .filter((model) => model.type === 'llm')
-        .map((model) => model.id)
-        .toSorted((a, b) => a.localeCompare(b));
-
-      const allEmbeddingModels = allModelsData.models
-        .filter((model) => model.type === 'embedding')
-        .map((model) => model.id)
-        .toSorted((a, b) => a.localeCompare(b));
-
-      // Restored selections (e.g. from reconfigure) may reference models that are
-      // no longer returned for this secret (removed/deprecated upstream). Drop
-      // any IDs that aren't currently available before deciding whether to keep
-      // the restored selection or fall back to "all models".
-      const retainedGenerationModels = currentGenModels.filter((modelId) =>
-        allLlmModels.includes(modelId),
-      );
-      const retainedEmbeddingModels = currentEmbModels.filter((modelId) =>
-        allEmbeddingModels.includes(modelId),
-      );
-
-      if (
-        retainedGenerationModels.length < currentGenModels.length ||
-        retainedEmbeddingModels.length < currentEmbModels.length
-      ) {
-        notification.warning(
-          'Some previously selected models are unavailable',
-          'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
-        );
-      }
-
-      reset({
-        ...currentValues,
-        // eslint-disable-next-line camelcase
-        generation_models:
-          retainedGenerationModels.length > 0 ? retainedGenerationModels : allLlmModels,
-        // eslint-disable-next-line camelcase
-        embedding_models:
-          retainedEmbeddingModels.length > 0 ? retainedEmbeddingModels : allEmbeddingModels,
-      });
-    }
-  }, [allModelsData, isModelsError, getValues, reset, notification]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -334,7 +371,7 @@ function AutoragConfigure({
   useReconfigureSafeEffect(() => {
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
-    setValue('input_data_key', '', { shouldValidate: true });
+    setValue('input_data_keys', [], { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [inputDataSourceMode, setValue]);
 
@@ -352,7 +389,7 @@ function AutoragConfigure({
   useReconfigureSafeEffect(() => {
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
-    setValue('input_data_key', '', { shouldValidate: true });
+    setValue('input_data_keys', [], { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [inputDataSecretName, inputDataBucketName, setValue]);
 
@@ -370,7 +407,7 @@ function AutoragConfigure({
   const clearInputDataUpload = useCallback(() => {
     setIsInputDataFileUploading(false);
     setIsInputDataDropdownOpen(false);
-    setValue('input_data_key', '', { shouldValidate: true });
+    setValue('input_data_keys', [], { shouldValidate: true });
   }, [setValue]);
 
   const uploadInputDataFile = useCallback(
@@ -383,14 +420,11 @@ function AutoragConfigure({
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
-        notification.error(
-          'Invalid file type',
-          'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
-        );
+        notification.error('Invalid file type', INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION);
         return;
       }
       const uploadRequestId = ++inputDataUploadSeqRef.current;
-      setValue('input_data_key', '', { shouldValidate: true });
+      setValue('input_data_keys', [], { shouldValidate: true });
       setIsInputDataDropdownOpen(false);
       setIsInputDataFileUploading(true);
       try {
@@ -404,7 +438,7 @@ function AutoragConfigure({
         if (uploadRequestId !== inputDataUploadSeqRef.current) {
           return;
         }
-        setValue('input_data_key', uploadResult.key, { shouldValidate: true });
+        setValue('input_data_keys', [uploadResult.key], { shouldValidate: true });
         fireAutoragKnowledgeSourceConfigured({
           knowledgeSourceType: 'upload',
           countOfDocuments: 1,
@@ -510,13 +544,14 @@ function AutoragConfigure({
                             <Controller
                               control={form.control}
                               name="input_data_secret_name"
-                              render={({ field: { onChange } }) => (
+                              render={({ field: { onChange, value } }) => (
                                 <SecretSelector
                                   namespace={String(namespace)}
                                   type="storage"
                                   additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
                                   isDisabled={isSubmitting}
                                   value={selectedSecret?.uuid}
+                                  valueName={value}
                                   onChange={(secret) => {
                                     if (!secret) {
                                       setSelectedSecret(undefined);
@@ -605,7 +640,9 @@ function AutoragConfigure({
                               variant="secondary"
                               data-testid="browse-bucket-button"
                               onClick={() => setFileExplorerMode('input_data')}
-                              isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
+                              isDisabled={
+                                !inputDataSecretName || selectedSecret?.invalid || isSubmitting
+                              }
                             >
                               Browse bucket
                             </Button>
@@ -638,7 +675,7 @@ function AutoragConfigure({
                                           isDisabled={isSubmitting}
                                           onClick={() => {
                                             setSelectedInputDataFile(undefined);
-                                            setValue('input_data_key', '', {
+                                            setValue('input_data_keys', [], {
                                               shouldValidate: true,
                                             });
                                           }}
@@ -699,7 +736,15 @@ function AutoragConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={`Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
+                                  infoText={
+                                    <>
+                                      <InlineTooltip
+                                        text="Accepted file types"
+                                        tooltip={SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}
+                                      />
+                                      . Maximum file size: {AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB
+                                    </>
+                                  }
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
@@ -814,10 +859,11 @@ function AutoragConfigure({
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
-                        label="Vector I/O provider"
-                        description="Specify the location for storing the vector index used to retrieve your documents."
+                        label="Vector database connection"
+                        description="Provide connection details for a vector database."
+                        isRequired
                       >
-                        <AutoragVectorStoreSelector />
+                        <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />
                       </ConfigureFormGroup>
                     </FlexItem>
 
@@ -840,6 +886,7 @@ function AutoragConfigure({
                             <span>.</span>
                           </>
                         }
+                        isRequired
                       >
                         <AutoragEvaluationSelect />
                       </ConfigureFormGroup>
@@ -1043,61 +1090,103 @@ function AutoragConfigure({
                       <ConfigureFormGroup
                         label="Model configuration"
                         description="Select models to determine how documents are retrieved and which models generate responses."
+                        isRequired
                       >
-                        <Card>
-                          <CardHeader>
-                            <Split hasGutter className="pf-v6-u-w-100">
-                              <SplitItem isFilled>
-                                <CardTitle>Selected models</CardTitle>
-                              </SplitItem>
-                              <SplitItem>
-                                <Watch
-                                  key="edit-experiment-settings"
-                                  control={form.control}
-                                  name="input_data_key"
-                                  render={(inputDataKeyValue) => (
-                                    <Button
-                                      variant="secondary"
-                                      onClick={openExperimentSettings}
-                                      isDisabled={
-                                        !inputDataBucketName ||
-                                        !inputDataKeyValue ||
-                                        form.formState.isSubmitting ||
-                                        isModelsLoading ||
-                                        isModelsError ||
-                                        !allModelsData?.models.length
-                                      }
-                                    >
-                                      Edit
-                                    </Button>
-                                  )}
-                                />
-                              </SplitItem>
-                            </Split>
-                          </CardHeader>
-                          <CardBody>
-                            <Stack hasGutter>
-                              <StackItem>
-                                {isModelsLoading ? (
-                                  <Skeleton width="150px" />
-                                ) : (
+                        {maasModelsError || (maasModelsLoaded && maasModels.length === 0) ? (
+                          <Alert
+                            variant="danger"
+                            isInline
+                            title={MAAS_MODELS_ERROR_TITLE}
+                            data-testid="maas-models-error"
+                          >
+                            <Content component="p">{MAAS_MODELS_ERROR_MESSAGE}</Content>
+                            <Button
+                              variant="primary"
+                              onClick={openExperimentSettings}
+                              isDisabled
+                              data-testid="select-models-button"
+                            >
+                              Select models
+                            </Button>
+                          </Alert>
+                        ) : !maasModelsLoaded ? (
+                          <Skeleton
+                            data-testid="maas-models-loading"
+                            width="100%"
+                            screenreaderText="Loading MaaS models"
+                          />
+                        ) : generationModels.length === 0 && embeddingModels.length === 0 ? (
+                          <Alert
+                            variant="warning"
+                            isInline
+                            title="Selected models"
+                            data-testid="selected-models-warning"
+                          >
+                            <Content component="p">
+                              No models selected. Select chat and embedding models to run the
+                              experiment.
+                            </Content>
+                            <Button
+                              variant="primary"
+                              onClick={openExperimentSettings}
+                              isDisabled={isSubmitting || !maasModelsLoaded}
+                              data-testid="select-models-button"
+                            >
+                              Select models
+                            </Button>
+                          </Alert>
+                        ) : (
+                          <Card>
+                            <CardHeader>
+                              <Split hasGutter className="pf-v6-u-w-100">
+                                <SplitItem isFilled>
+                                  <CardTitle>Selected models</CardTitle>
+                                </SplitItem>
+                                <SplitItem>
+                                  <Watch
+                                    key="edit-experiment-settings"
+                                    control={form.control}
+                                    name="input_data_keys"
+                                    render={(inputDataKeyValue) => (
+                                      <Button
+                                        variant="secondary"
+                                        onClick={openExperimentSettings}
+                                        isDisabled={
+                                          !inputDataBucketName ||
+                                          inputDataKeyValue.length === 0 ||
+                                          form.formState.isSubmitting ||
+                                          !maasModelsLoaded
+                                        }
+                                      >
+                                        Edit
+                                      </Button>
+                                    )}
+                                  />
+                                </SplitItem>
+                              </Split>
+                            </CardHeader>
+                            <CardBody>
+                              <Stack hasGutter>
+                                <StackItem>
                                   <Watch
                                     control={form.control}
                                     name="generation_models"
-                                    render={(generationModels) => (
+                                    render={(selectedGenerationModels) => (
                                       <Flex
                                         alignItems={{ default: 'alignItemsCenter' }}
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${
-                                          generationModels.length || 'No'
-                                        } foundation models`}</Content>
-                                        {!!generationModels.length && (
+                                        <Content>
+                                          {selectedGenerationModels.length
+                                            ? `${selectedGenerationModels.length} foundation models`
+                                            : 'No foundation models selected'}
+                                        </Content>
+                                        {!!selectedGenerationModels.length && (
                                           <Popover
                                             bodyContent={
                                               <List>
-                                                {generationModels.map((model) => (
+                                                {selectedGenerationModels.map((model) => (
                                                   <ListItem key={`generation-${model}`}>
                                                     {model}
                                                   </ListItem>
@@ -1114,29 +1203,27 @@ function AutoragConfigure({
                                       </Flex>
                                     )}
                                   />
-                                )}
-                              </StackItem>
-                              <StackItem>
-                                {isModelsLoading ? (
-                                  <Skeleton width="150px" />
-                                ) : (
+                                </StackItem>
+                                <StackItem>
                                   <Watch
                                     control={form.control}
                                     name="embedding_models"
-                                    render={(embeddingModels) => (
+                                    render={(selectedEmbeddingModels) => (
                                       <Flex
                                         alignItems={{ default: 'alignItemsCenter' }}
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${
-                                          embeddingModels.length || 'No'
-                                        } embedding models`}</Content>
-                                        {!!embeddingModels.length && (
+                                        <Content>
+                                          {selectedEmbeddingModels.length
+                                            ? `${selectedEmbeddingModels.length} embedding models`
+                                            : 'No embedding models selected'}
+                                        </Content>
+                                        {!!selectedEmbeddingModels.length && (
                                           <Popover
                                             bodyContent={
                                               <List>
-                                                {embeddingModels.map((model) => (
+                                                {selectedEmbeddingModels.map((model) => (
                                                   <ListItem key={`embedding-${model}`}>
                                                     {model}
                                                   </ListItem>
@@ -1153,11 +1240,11 @@ function AutoragConfigure({
                                       </Flex>
                                     )}
                                   />
-                                )}
-                              </StackItem>
-                            </Stack>
-                          </CardBody>
-                        </Card>
+                                </StackItem>
+                              </Stack>
+                            </CardBody>
+                          </Card>
+                        )}
                       </ConfigureFormGroup>
                     </FlexItem>
                   </Flex>
@@ -1199,7 +1286,7 @@ function AutoragConfigure({
         id="AutoRagConfigure-S3FileExplorer"
         apiPath="/autorag/api/v1/s3"
         namespace={namespace}
-        s3SecretName={selectedSecret?.name}
+        s3SecretName={selectedSecret?.name ?? inputDataSecretName}
         isOpen={Boolean(fileExplorerMode)}
         onClose={() => {
           if (fileExplorerMode === 'input_data' && !inputDataS3SelectionCommittedRef.current) {
@@ -1220,12 +1307,12 @@ function AutoragConfigure({
             const file = files[0];
             const filePath = file.path.replace(/^\//, '');
             if (fileExplorerMode === 'input_data') {
-              setValue('input_data_key', filePath, { shouldValidate: true });
+              setValue('input_data_keys', [filePath], { shouldValidate: true });
               setSelectedInputDataFile(file);
               inputDataS3SelectionCommittedRef.current = true;
               fireAutoragKnowledgeSourceConfigured({
                 knowledgeSourceType: 's3',
-                // Only files[0] is ever committed to input_data_key, so report 1 committed
+                // Only files[0] is ever committed to input_data_keys, so report 1 committed
                 // document regardless of how many files the picker returned (e.g. a folder).
                 countOfDocuments: 1,
                 outcome: TrackingOutcome.submit,
@@ -1238,8 +1325,8 @@ function AutoragConfigure({
             }
           }
         }}
-        selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
-        unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
+        selectableExtensions={SUPPORTED_FORMAT_EXTENSIONS}
+        unselectableReason={SUPPORTED_FORMAT_HINT}
         disabledPaths={{
           '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
           '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
@@ -1250,6 +1337,9 @@ function AutoragConfigure({
       )}
       <AutoragExperimentSettings
         isOpen={isExperimentSettingsOpen}
+        models={maasModels}
+        modelsLoaded={maasModelsLoaded && maasModels.length > 0}
+        modelsLoading={maasModelsQuery.isLoading}
         onClose={() => {
           setIsExperimentSettingsOpen(false);
         }}

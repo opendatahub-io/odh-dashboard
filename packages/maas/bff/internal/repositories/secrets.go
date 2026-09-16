@@ -9,14 +9,9 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
-)
-
-const (
-	secretDataKeyAPIKey        = "api-key"
-	secretBBRManagedLabelKey   = "inference.networking.k8s.io/bbr-managed"
-	secretBBRManagedLabelValue = "true"
 )
 
 type SecretsRepository struct {
@@ -31,7 +26,7 @@ func NewSecretsRepository(
 	return &SecretsRepository{logger: logger, k8sFactory: k8sFactory}
 }
 
-// ListSecrets returns BBR-managed Secret names in a namespace (never values).
+// ListSecrets returns IPP-managed Secret names in a namespace (never values).
 func (r *SecretsRepository) ListSecrets(ctx context.Context, namespace string) ([]models.SecretSummary, error) {
 	r.logger.Debug("Listing Secrets", slog.String("namespace", namespace))
 
@@ -41,7 +36,7 @@ func (r *SecretsRepository) ListSecrets(ctx context.Context, namespace string) (
 	}
 
 	list, err := client.GetKubeClient().CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: secretBBRManagedLabelKey + "=" + secretBBRManagedLabelValue,
+		LabelSelector: constants.IPPManagedSecretLabelKey + "=" + constants.IPPManagedSecretLabelValue,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list Secrets: %w", err)
@@ -68,12 +63,12 @@ func (r *SecretsRepository) CreateSecret(ctx context.Context, request models.Cre
 			Name:      request.Name,
 			Namespace: request.Namespace,
 			Labels: map[string]string{
-				secretBBRManagedLabelKey: secretBBRManagedLabelValue,
+				constants.IPPManagedSecretLabelKey: constants.IPPManagedSecretLabelValue,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
 		StringData: map[string]string{
-			secretDataKeyAPIKey: request.Value,
+			constants.SecretAPIKeyDataKey: request.Value,
 		},
 	}
 

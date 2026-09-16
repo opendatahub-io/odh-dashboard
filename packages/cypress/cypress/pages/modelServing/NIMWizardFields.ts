@@ -10,6 +10,7 @@ export class NIMWizardFields extends SubComponentBase {
     // Escape regex special characters to match literal text
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     this.findImageSelect().click();
+    this.findImageSelect().find('input').type(name);
     cy.findByRole('option', { name: new RegExp(escapedName) }).click();
   }
 
@@ -53,5 +54,10 @@ export class NIMWizardFields extends SubComponentBase {
 
   findExistingPVCInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
     return this.findExistingPVCSelect().find('input');
+  }
+
+  selectExistingPVC(name: string): void {
+    this.findExistingPVCInput().click();
+    cy.findByRole('option', { name }).click();
   }
 }

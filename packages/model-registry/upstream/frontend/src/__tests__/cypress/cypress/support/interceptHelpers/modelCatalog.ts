@@ -18,10 +18,15 @@ import { mockCatalogPerformanceMetricsArtifactList } from '~/__mocks__/mockCatal
 import { mockCatalogFilterOptionsList } from '~/__mocks__/mockCatalogFilterOptionsList';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import type { CatalogLabelList, CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
+import { SourceLabel } from '~/app/modelCatalogTypes';
 import type { ModelRegistryCustomProperties } from '~/app/types';
 import { ModelRegistryMetadataType } from '~/app/types';
 import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { ValidatedConfiguration } from '~/concepts/modelCatalog/const';
+import {
+  buildHfAccessCustomProperties,
+  type HfAccessModelConfig,
+} from '~/__tests__/utils/createHfAccessModel';
 
 /**
  * Options for setting up model catalog intercepts
@@ -548,4 +553,114 @@ export const setupModelDetailsIntercepts = (options: ModelCatalogInterceptOption
     includeModelRegistry: true,
     includePerformanceArtifacts: true,
   });
+};
+
+export type HfAccessCardModelConfig = HfAccessModelConfig & {
+  name: string;
+  description?: string;
+};
+
+/**
+ * Builds a catalog model mock for HF access card tests.
+ */
+export const createHfAccessCardModel = ({
+  name,
+  hfAccessType,
+  hfGatedAccessGranted,
+  description = 'Prototype HF model for card testing.',
+}: HfAccessCardModelConfig): CatalogModel => {
+  const isGated = hfAccessType.startsWith('gated');
+  const isGatedDenied = isGated && hfGatedAccessGranted !== 'true';
+
+  return mockCatalogModel({
+    name,
+    source_id: 'hugging_face_source',
+    provider: 'Meta',
+    description: isGatedDenied ? '' : description,
+    tasks: isGatedDenied ? [] : ['text-to-text'],
+    customProperties: buildHfAccessCustomProperties(hfAccessType, hfGatedAccessGranted),
+  });
+};
+
+/**
+ * Sets up intercepts for HF access label card tests in the Other models section.
+ */
+export const setupHfAccessCardIntercepts = (models: CatalogModel[]): void => {
+  const hfSource = mockCatalogSource({
+    id: 'hugging_face_source',
+    name: 'Hugging face source',
+    labels: [],
+    hfUsername: 'alice',
+    hasApiKey: true,
+    authenticated: true,
+  });
+
+  interceptSources([hfSource]);
+  interceptLabels({
+    items: [
+      {
+        name: null,
+        displayName: 'Other models',
+        description: 'Models without a specific category label.',
+      },
+    ],
+    size: 1,
+  });
+  interceptFilterOptions();
+
+  cy.interceptApi(
+    `GET /api/:apiVersion/model_catalog/models`,
+    {
+      path: { apiVersion: MODEL_CATALOG_API_VERSION },
+      query: { sourceLabel: SourceLabel.other },
+    },
+    mockCatalogModelList({ items: models }),
+  );
+};
+
+export const GATED_DENIED_DETAILS_SOURCE_ID = 'hugging_face_source';
+export const GATED_DENIED_DETAILS_MODEL_NAME = 'meta-llama/Llama-3.1-8B-Instruct-INT8';
+
+export type GatedDeniedDetailsInterceptOptions = {
+  hfUsername?: string;
+};
+
+export const createGatedDeniedDetailsModel = (): CatalogModel =>
+  mockCatalogModel({
+    name: GATED_DENIED_DETAILS_MODEL_NAME,
+    provider: 'Meta',
+    description: '',
+    readme: '',
+    source_id: GATED_DENIED_DETAILS_SOURCE_ID,
+    customProperties: buildHfAccessCustomProperties('gated_auto', 'false'),
+  });
+
+/**
+ * Sets up intercepts for gated-denied model details tests without relying on
+ * setupModelCatalogIntercepts override behavior.
+ */
+export const setupGatedDeniedDetailsIntercepts = (
+  options: GatedDeniedDetailsInterceptOptions = {},
+): void => {
+  const { hfUsername } = options;
+  const gatedDeniedModel = createGatedDeniedDetailsModel();
+
+  cy.intercept('GET', '/model-registry/api/v1/model_registry*', [
+    mockModelRegistry({ name: 'modelregistry-sample' }),
+  ]).as('getModelRegistries');
+
+  interceptSources([
+    ...defaultSources(),
+    mockCatalogSource({
+      id: GATED_DENIED_DETAILS_SOURCE_ID,
+      name: 'Hugging face source',
+      labels: [],
+      ...(hfUsername ? { hfUsername, hasApiKey: true, authenticated: true } : {}),
+    }),
+  ]);
+  interceptLabels();
+  interceptFilterOptions();
+  interceptSingleModel(GATED_DENIED_DETAILS_SOURCE_ID, gatedDeniedModel);
+  interceptSingleModelRegex(gatedDeniedModel);
+  interceptArtifactsList({ items: [], size: 0, pageSize: 10, nextPageToken: '' });
 };

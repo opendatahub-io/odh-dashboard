@@ -56,6 +56,14 @@ class AutoragResultsPage {
     return cy.findByTestId(`leaderboard-row-${rank}`);
   }
 
+  findUnrankedLeaderboardRow(patternName: string) {
+    return cy.findByTestId(`leaderboard-row-unranked-${patternName}`);
+  }
+
+  findLeaderboardRankCell(rank: number | string) {
+    return cy.findByTestId(`rank-${typeof rank === 'number' ? rank : `unranked-${rank}`}`);
+  }
+
   findPatternLink(rank: number) {
     return cy.findByTestId(`pattern-link-${rank}`);
   }
@@ -141,52 +149,9 @@ class AutoragResultsPage {
     return cy.findByTestId('ci-legend');
   }
 
-  // Pattern details modal actions
-  findPatternDetailsActionsToggle() {
-    return cy.findByTestId('pattern-details-actions-toggle');
-  }
-
-  findTryPatternAction() {
-    return cy.findByTestId('pattern-details-try-pattern');
-  }
-
   // Leaderboard row actions
   findLeaderboardActions(rank: number) {
     return cy.findByTestId(`leaderboard-actions-${rank}`);
-  }
-
-  // Playground drawer panel
-  findPlaygroundDrawerPanel() {
-    return cy.findByTestId('playground-drawer-panel');
-  }
-
-  findPlaygroundDrawerClose() {
-    return cy.findByTestId('playground-drawer-close');
-  }
-
-  findPlaygroundPatternSelect() {
-    return cy.findByTestId('playground-pattern-select');
-  }
-
-  findPlaygroundViewCodeButton() {
-    return cy.findByTestId('playground-view-code-button');
-  }
-
-  // Chatbot (embedded playground)
-  findChatbotMessageBar() {
-    return cy.findByTestId('chatbot-message-bar');
-  }
-
-  findChatbotSendButton() {
-    return cy.findByTestId('chatbot-send-button');
-  }
-
-  findChatbotUserMessage() {
-    return cy.findByTestId('chatbot-message-user');
-  }
-
-  findChatbotBotMessage(timeout?: number) {
-    return cy.findByTestId('chatbot-message-bot', timeout ? { timeout } : undefined);
   }
 }
 

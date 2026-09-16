@@ -85,6 +85,10 @@ func (c *TestLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 	return c.inner.ListModels(ctx)
 }
 
+func (c *TestLlamaStackClient) ListModelsWithProviderData(ctx context.Context, providerData map[string]interface{}) ([]openai.Model, error) {
+	return c.inner.ListModelsWithProviderData(ctx, providerData)
+}
+
 func (c *TestLlamaStackClient) ListVectorStores(ctx context.Context, params llamastack.ListVectorStoresParams) ([]openai.VectorStore, error) {
 	return c.inner.ListVectorStores(ctx, params)
 }

@@ -11,6 +11,7 @@ const extensions: ClusterStorageContextExtension[] = [
         'Appropriate for caching NIM models. Enables you to define a subpath for the NIM image.',
       isPVCUsingStorageContextType: () =>
         import('../src/pages/clusterStorage/clusterStorage').then((m) => m.isNIMPVC),
+      PVCStorageContextSettingsFields: () => import('../src/pages/clusterStorage/clusterStorage'),
     },
     flags: {
       required: [SupportedArea.NIM_MODEL],

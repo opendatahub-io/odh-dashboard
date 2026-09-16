@@ -37,6 +37,7 @@ const buildMockImageConfigValue = (
   description,
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
 });
 
 const buildMockPodConfigValue = (
@@ -49,6 +50,7 @@ const buildMockPodConfigValue = (
   description,
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
 });
 
 describe('Summary step', () => {
@@ -198,14 +200,6 @@ describe('Summary step', () => {
         workspaceKind: buildMockWorkspaceKindInfo({ name: WORKSPACE_KIND_NAME }),
         state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: {
-          podMetadata: {
-            labels: { testLabel: 'testValue' },
-            annotations: {},
-          },
-          volumes: {
-            home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false },
-            data: [],
-          },
           options: {
             imageConfig: {
               current: {

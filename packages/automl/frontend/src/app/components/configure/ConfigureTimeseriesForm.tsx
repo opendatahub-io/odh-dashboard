@@ -25,6 +25,7 @@ interface Column {
 
 interface ConfigureTimeseriesFormProps {
   columns: Column[];
+  columnCount?: number;
   isLoadingColumns: boolean;
   isFetchingColumns: boolean;
   columnsError: Error | null;
@@ -34,12 +35,14 @@ interface ConfigureTimeseriesFormProps {
 
 function ConfigureTimeseriesForm({
   columns,
+  columnCount = columns.length,
   isLoadingColumns,
   isFetchingColumns,
   columnsError,
   isFileSelected,
   formIsSubmitting,
 }: ConfigureTimeseriesFormProps): React.JSX.Element {
+  const isTwoColumnDataset = columnCount === 2;
   const { control, watch, setValue } = useFormContext();
   const [isTimestampColumnOpen, setIsTimestampColumnOpen] = useState(false);
   const [isIdColumnOpen, setIsIdColumnOpen] = useState(false);
@@ -141,64 +144,76 @@ function ConfigureTimeseriesForm({
       <StackItem className="automl-configure__form-field">
         <ConfigureFormGroup
           label="ID column"
+          isRequired={columnCount >= 3}
           labelHelp={{
             header: 'ID column',
-            body: 'Name of the column that identifies each time series (e.g. product_id, store_id).',
+            body: 'Not required for datasets with 2 columns. For datasets with 3 or more columns, select the column identifying each time series (for example, product_id or store_id).',
           }}
-          isRequired
         >
           <LoadingFormField loading={isLoadingColumns || isFetchingColumns}>
             <Controller
               control={control}
               name="id_column"
-              render={({ field }) => (
-                <Select
-                  id="id-column-select"
-                  isOpen={isIdColumnOpen}
-                  onOpenChange={setIsIdColumnOpen}
-                  onSelect={(_event, value) => {
-                    if (typeof value === 'string') {
-                      clearColumnFromOtherFields(value, 'id_column');
-                      field.onChange(value);
-                    }
-                    setIsIdColumnOpen(false);
-                  }}
-                  selected={field.value}
-                  maxMenuHeight="200px"
-                  toggle={(toggleRef) => (
-                    <MenuToggle
-                      ref={toggleRef}
-                      onClick={() => setIsIdColumnOpen((prev) => !prev)}
-                      isExpanded={isIdColumnOpen}
-                      isDisabled={
-                        !isFileSelected ||
-                        columns.length === 0 ||
-                        !!columnsError ||
-                        formIsSubmitting
+              render={({ field, fieldState }) => (
+                <>
+                  <Select
+                    id="id-column-select"
+                    isOpen={isIdColumnOpen && !isTwoColumnDataset}
+                    onOpenChange={setIsIdColumnOpen}
+                    onSelect={(_event, value) => {
+                      if (typeof value === 'string') {
+                        clearColumnFromOtherFields(value, 'id_column');
+                        field.onChange(value);
                       }
-                      isFullWidth
-                      data-testid="id_column-select"
-                      status={columnsError ? 'danger' : undefined}
-                    >
-                      {field.value || 'Select a column'}
-                    </MenuToggle>
-                  )}
-                >
-                  <SelectList>
-                    {columns.map((column) => (
-                      <SelectOption
-                        key={column.name}
-                        value={column.name}
-                        isDisabled={column.name === targetColumnValue}
+                      setIsIdColumnOpen(false);
+                    }}
+                    selected={field.value}
+                    maxMenuHeight="200px"
+                    toggle={(toggleRef) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsIdColumnOpen((prev) => !prev)}
+                        isExpanded={isIdColumnOpen}
+                        isDisabled={
+                          isTwoColumnDataset ||
+                          !isFileSelected ||
+                          columns.length === 0 ||
+                          !!columnsError ||
+                          formIsSubmitting
+                        }
+                        isFullWidth
+                        data-testid="id_column-select"
+                        status={columnsError || fieldState.error ? 'danger' : undefined}
                       >
-                        <span className="automl-configure__column-type-badge">
-                          {getTypeAcronym(column.type)}
-                        </span>
-                        {column.name}
-                      </SelectOption>
-                    ))}
-                  </SelectList>
-                </Select>
+                        {isTwoColumnDataset
+                          ? 'Auto-generated ID column'
+                          : field.value || 'Select a column'}
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      {columns.map((column) => (
+                        <SelectOption
+                          key={column.name}
+                          value={column.name}
+                          isDisabled={column.name === targetColumnValue}
+                        >
+                          <span className="automl-configure__column-type-badge">
+                            {getTypeAcronym(column.type)}
+                          </span>
+                          {column.name}
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                  </Select>
+                  {fieldState.error && (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem variant="error">{fieldState.error.message}</HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  )}
+                </>
               )}
             />
           </LoadingFormField>

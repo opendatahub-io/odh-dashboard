@@ -139,6 +139,9 @@ export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   updatedCpuQuota: number;
   updatedMemoryQuota: number;
   exceededQuotaMessage: string;
+  queuedCpuQuota: number;
+  queuedMemoryQuota: number;
+  waitingForQuotaMessage: string;
 };
 
 export type WBControlSuiteTestData = {
@@ -274,6 +277,8 @@ export type TestConfig = {
   OCI_MODEL_URI: string;
   OGX_URL?: string;
   OGX_API_KEY?: string;
+  MAAS_URL?: string;
+  MAAS_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -337,6 +342,20 @@ export type DataScienceProjectData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
+};
+
+export type NIMProjectScopedTestData = {
+  projectNamePrefix: string;
+  modelNamePrefix: string;
+  modelDescription: string;
+  nimImageNameWithGpu: string;
+  nimImageNameWithoutGpu: string;
+  nimModelId: string;
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
+  pvcNamePrefix: string;
+  pvcSizeGi: number;
+  tokenDisplayName: string;
 };
 
 export type RoutingTestData = DataScienceProjectData & {
@@ -826,6 +845,7 @@ export type ModelAsAServiceTestData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
+  llmInferenceServiceFixturePath: string;
   hardwareProfileName: string;
   modelLocationURI: string;
   connectionNameSuffix: string;
@@ -983,7 +1003,8 @@ export type AutoragTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;
   s3SecretName: string;
-  ogxSecretName: string;
+  maasSecretName: string;
+  vectorDbSecretName: string;
   runName: string;
   runDescription: string;
   documentFile: string;

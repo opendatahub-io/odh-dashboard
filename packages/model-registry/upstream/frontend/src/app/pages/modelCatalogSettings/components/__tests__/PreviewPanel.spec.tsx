@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 
 import { CatalogSourcePreviewModel, CatalogSourcePreviewSummary } from '~/app/modelCatalogTypes';
 import PreviewPanel from '~/app/pages/modelCatalogSettings/components/PreviewPanel';
+import { PREVIEW_ALERTS } from '~/app/pages/modelCatalogSettings/constants';
 import {
   UseSourcePreviewResult,
   PreviewState,
@@ -121,6 +122,24 @@ describe('PreviewPanel', () => {
     expect(screen.getByTestId('preview-button-panel-retry')).toBeInTheDocument();
   });
 
+  it('renders error state when preview failed during edit auto-preview', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        error: new Error('invalid Hugging Face API credentials'),
+        summary: undefined,
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: { items: [], hasMore: false },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} />);
+
+    expect(screen.getByText('Preview failed')).toBeInTheDocument();
+    expect(screen.getByText('invalid Hugging Face API credentials')).toBeInTheDocument();
+  });
+
   it('renders tabs for included/excluded models', () => {
     const preview = createMockPreview();
     render(<PreviewPanel preview={preview} />);
@@ -213,6 +232,64 @@ describe('PreviewPanel', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
+  it('shows gated access alert when preview includes gated models without access', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: {
+            items: [
+              {
+                name: 'org/model-a',
+                included: true,
+                hfAccessType: 'gated_auto',
+                hfGatedAccessGranted: true,
+              },
+              {
+                name: 'org/model-b',
+                included: true,
+                hfAccessType: 'gated_manual',
+                hfGatedAccessGranted: false,
+              },
+            ],
+            hasMore: false,
+          },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} />);
+
+    expect(screen.getByTestId('preview-gated-access-alert')).toBeInTheDocument();
+    expect(screen.getByText(PREVIEW_ALERTS.GATED_ACCESS_REQUIRED_TITLE)).toBeInTheDocument();
+    expect(screen.getByText(PREVIEW_ALERTS.GATED_ACCESS_REQUIRED_BODY)).toBeInTheDocument();
+  });
+
+  it('does not show gated access alert when all gated models have access', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: {
+            items: [
+              {
+                name: 'org/model-a',
+                included: true,
+                hfAccessType: 'gated_auto',
+                hfGatedAccessGranted: true,
+              },
+            ],
+            hasMore: false,
+          },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} />);
+
+    expect(screen.queryByTestId('preview-gated-access-alert')).not.toBeInTheDocument();
+  });
+
   it('shows refresh alert when hasFormChanged is true', () => {
     const preview = createMockPreview({ hasFormChanged: true });
     render(<PreviewPanel preview={preview} />);
@@ -221,6 +298,40 @@ describe('PreviewPanel', () => {
       screen.getByText('Source configuration changed. Refresh the preview.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('refresh-preview-link')).toBeInTheDocument();
+  });
+
+  it('hides refresh alert when preview is disabled', () => {
+    const preview = createMockPreview(
+      { hasFormChanged: true, canPreview: false },
+      {
+        summary: mockSummary,
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: { items: mockIncludedItems, hasMore: false },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: mockExcludedItems, hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} />);
+
+    expect(
+      screen.queryByText('Source configuration changed. Refresh the preview.'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('refresh-preview-link')).not.toBeInTheDocument();
+  });
+
+  it('shows preview disabled tooltip when token validation is required', async () => {
+    const user = userEvent.setup();
+    const preview = createMockPreview({
+      canPreview: false,
+      previewDisabledTooltip: 'Validate the access token to preview models.',
+    });
+
+    render(<PreviewPanel preview={preview} />);
+
+    await user.hover(screen.getByTestId('preview-button-header'));
+    expect(
+      await screen.findByText('Validate the access token to preview models.'),
+    ).toBeInTheDocument();
   });
 
   it('calls handlePreview when refresh link clicked', async () => {
@@ -284,6 +395,27 @@ describe('PreviewPanel', () => {
     expect(screen.getByText('model-1')).toBeInTheDocument();
     expect(screen.getByText('model-2')).toBeInTheDocument();
     expect(screen.getByText('model-3')).toBeInTheDocument();
+  });
+
+  it('does not render panel body preview button when preview results are shown', () => {
+    const preview = createMockPreview(
+      {
+        canPreview: false,
+        hasFormChanged: true,
+        previewDisabledTooltip: 'Validate the access token to preview models.',
+      },
+      {
+        summary: mockSummary,
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: { items: mockIncludedItems, hasMore: false },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: mockExcludedItems, hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} />);
+
+    expect(screen.queryByTestId('preview-button-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('preview-button-header')).toBeDisabled();
   });
 
   it('disables preview button when canPreview is false', () => {

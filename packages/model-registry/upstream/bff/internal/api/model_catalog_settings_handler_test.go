@@ -330,6 +330,20 @@ var _ = Describe("TestModelCatalogSettings", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusForbidden))
 		})
+
+		It("DELETE credentials returns 200 with empty JSON body", func() {
+			rs, body, err := serveApiTest(
+				http.MethodDelete,
+				"/api/v1/settings/model_catalog/source_configs/hugging_face_source/credentials?namespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(string(body)).To(Equal("{}\n"))
+		})
 	})
 
 })

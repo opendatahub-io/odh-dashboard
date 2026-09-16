@@ -12,6 +12,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
@@ -28,9 +29,14 @@ type pipelinesRepository interface {
 	EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error)
 }
 
+type csvSchemaRepository interface {
+	GetCSVSchema(ctx context.Context, req repositories.S3RequestContext, key string) (helper.CSVSchemaResult, error)
+}
+
 type PipelinesHandler struct {
-	logger *slog.Logger
-	repo   pipelinesRepository
+	logger  *slog.Logger
+	repo    pipelinesRepository
+	schemas csvSchemaRepository
 }
 
 const maxRequestBodyBytes = 10 << 20
@@ -138,6 +144,46 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 	if err := decoder.Decode(&extra); err != io.EOF {
 		badRequestResponse(h.logger, w, r, "request body must contain only a single JSON object")
 		return
+	}
+
+	if req.TaskType != nil && *req.TaskType == constants.PipelineTypeTimeSeries {
+		// Validate supplied fields before fetching data or creating any pipeline resources.
+		normalized, err := repositories.ValidateAndNormalizeCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		if err != nil {
+			h.mapPipelineError(w, r, err)
+			return
+		}
+		req = normalized
+		if req.IDColumn != nil && *req.IDColumn == "" {
+			badRequestResponse(h.logger, w, r, "id_column must be non-empty when supplied; omit it for a two-column dataset")
+			return
+		}
+		if req.IDColumn == nil {
+			schema, err := h.schemas.GetCSVSchema(r.Context(), repositories.S3RequestContext{
+				Namespace:  namespace,
+				SecretName: req.TrainDataSecretName,
+				Bucket:     req.TrainDataBucketName,
+			}, req.TrainDataFileKey)
+			if err != nil {
+				handleS3RepoError(h.logger, w, r, err, req.TrainDataFileKey)
+				return
+			}
+			if len(schema.Columns) >= 3 {
+				badRequestResponse(h.logger, w, r, "id_column is required for time series datasets with 3 or more columns")
+				return
+			}
+			// A single-item dataset must consist of the two requested columns. Do not
+			// enforce inferred types here: users may explicitly override recommendations.
+			hasTarget, hasTimestamp := false, false
+			for _, column := range schema.Columns {
+				hasTarget = hasTarget || column.Name == *req.Target
+				hasTimestamp = hasTimestamp || column.Name == *req.TimestampColumn
+			}
+			if len(schema.Columns) != 2 || *req.Target == *req.TimestampColumn || !hasTarget || !hasTimestamp {
+				badRequestResponse(h.logger, w, r, "omitting id_column requires exactly two CSV columns matching target and timestamp_column")
+				return
+			}
+		}
 	}
 
 	run, err := h.repo.CreateRun(r.Context(), namespace, req)

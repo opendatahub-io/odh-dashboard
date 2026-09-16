@@ -16,6 +16,10 @@ reviews:
   auto_review:
     # Review every push, not just the first; avoids stale reviews on force-pushes.
     auto_pause_after_reviewed_commits: 0
+    # Mergify merge-queue drafts are speculative CI targets, not review targets.
+    drafts: false
+    ignore_usernames:
+      - "mergify[bot]"
   # ── Path filters (additive to baseline) ─────────────────────────
   path_filters:
     # Baseline already excludes: vendor, node_modules, bin, __pycache__,
