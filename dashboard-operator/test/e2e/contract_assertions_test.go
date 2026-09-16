@@ -78,6 +78,17 @@ func TestSelectDashboardWebhook(t *testing.T) {
 		require.Equal(t, "dashboard-validating", target.configurationName)
 	})
 
+	t.Run("ignores namespaced webhook rule", func(t *testing.T) {
+		namespacedScope := admissionregistrationv1.NamespacedScope
+		namespaced := valid.DeepCopy()
+		namespaced.Name = "namespaced-dashboard-validating"
+		namespaced.Webhooks[0].Rules[0].Scope = &namespacedScope
+
+		target, err := selectDashboardWebhook([]admissionregistrationv1.ValidatingWebhookConfiguration{*namespaced, valid})
+		require.NoError(t, err)
+		require.Equal(t, "dashboard-validating", target.configurationName)
+	})
+
 	t.Run("rejects missing CA bundle", func(t *testing.T) {
 		missingCA := valid.DeepCopy()
 		missingCA.Webhooks[0].ClientConfig.CABundle = nil

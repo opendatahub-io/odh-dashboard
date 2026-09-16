@@ -103,7 +103,8 @@ func selectDashboardWebhook(
 
 func webhookHandlesDashboardCreates(webhook *admissionregistrationv1.ValidatingWebhook) bool {
 	for _, rule := range webhook.Rules {
-		if containsOperation(rule.Operations, admissionregistrationv1.Create) &&
+		if ruleHandlesClusterScopedResources(rule.Scope) &&
+			containsOperation(rule.Operations, admissionregistrationv1.Create) &&
 			containsString(rule.APIGroups, dashboardv1alpha1.GroupVersion.Group) &&
 			containsString(rule.APIVersions, dashboardv1alpha1.GroupVersion.Version) &&
 			containsString(rule.Resources, dashboardWebhookResource) {
@@ -112,6 +113,12 @@ func webhookHandlesDashboardCreates(webhook *admissionregistrationv1.ValidatingW
 	}
 
 	return false
+}
+
+func ruleHandlesClusterScopedResources(scope *admissionregistrationv1.ScopeType) bool {
+	return scope == nil ||
+		*scope == admissionregistrationv1.ClusterScope ||
+		*scope == admissionregistrationv1.AllScopes
 }
 
 func containsOperation(operations []admissionregistrationv1.OperationType, expected admissionregistrationv1.OperationType) bool {
