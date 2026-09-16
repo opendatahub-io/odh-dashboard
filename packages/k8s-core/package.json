@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./__mocks__/mockConfigMap": "./src/__mocks__/mockConfigMap.ts",
+    "./__mocks__/mockAIHub": "./src/__mocks__/mockAIHub.ts",
     "./__mocks__/mockConnectionType": "./src/__mocks__/mockConnectionType.ts",
     "./__mocks__/mockDashboardConfig": "./src/__mocks__/mockDashboardConfig.ts",
     "./__mocks__/mockK8sNameDescriptionFieldData": "./src/__mocks__/mockK8sNameDescriptionFieldData.ts",

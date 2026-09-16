@@ -28,8 +28,8 @@ import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 import ProjectsSettingsTab from './ProjectsTab/ProjectsSettingsTab';
 
 const ModelRegistriesManagePermissions: React.FC = () => {
-  const { dscStatus } = React.useContext(AreaContext);
-  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
+  const { aiHub, aiHubError } = React.useContext(AreaContext);
+  const modelRegistryNamespace = aiHub?.spec.instancesNamespace;
   const [activeTabKey, setActiveTabKey] = React.useState('users');
   const [ownerReference, setOwnerReference] = React.useState<ModelRegistryKind>();
   const [groups] = useGroups();
@@ -42,7 +42,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
   );
 
   const error = !modelRegistryNamespace
-    ? new Error('No registries namespace could be found')
+    ? aiHubError || new Error('No registries namespace could be found')
     : null;
 
   React.useEffect(() => {

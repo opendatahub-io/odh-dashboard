@@ -1023,6 +1023,18 @@ export type DataScienceClusterList = {
   items: DataScienceClusterKind[];
 };
 
+export type AIHubKind = K8sResourceCommon & {
+  spec?: {
+    /** Namespace where model registry instances, the catalog service, and the Catalog CR live. */
+    instancesNamespace?: string;
+    applicationNamespace?: string;
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    phase?: string;
+  };
+};
+
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   phase?: string;

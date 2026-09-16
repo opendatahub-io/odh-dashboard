@@ -528,6 +528,14 @@ rules:
       - list
       - watch
   - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - aihubs
+    resourceNames:
+      - default-aihub
+    verbs:
+      - get
+  - apiGroups:
       - services.platform.opendatahub.io
     resources:
       - auths
