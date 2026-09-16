@@ -80,6 +80,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const modelCatalogAvailable = !config.disableModelCatalog;
   const modelRegistryAvailable = !config.disableModelRegistry;
   const modelServingAvailable = !config.disableModelServing;
+  const maasAvailable = !config.modelAsService;
   const aiHubAvailable =
     modelCatalogAvailable ||
     modelRegistryAvailable ||
@@ -148,6 +149,12 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             description: 'Deploy agents for your projects from the OpenShift Console.',
             flagName: 'agentOps',
             available: agentOpsAvailable,
+          },
+          {
+            title: 'External models',
+            description: 'View models from external providers alongside your deployed models.',
+            flagName: 'modelAsService',
+            available: maasAvailable,
           },
           {
             title: 'Safety and security insights',
@@ -329,6 +336,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       llmdTemplatesAvailable,
       vllmDeploymentOnMaaSAvailable,
       aiHubAvailable,
+      maasAvailable,
       isAdmin,
     ],
   );
