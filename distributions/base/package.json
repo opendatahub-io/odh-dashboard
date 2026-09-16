@@ -36,7 +36,7 @@
     "@odh-dashboard/eslint-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*",
     "@rspack/cli": "2.1.10",
-    "@rspack/core": "2.1.10",
+    "@rspack/core": "2.2.4",
     "@rspack/dev-server": "^2.1.0",
     "css-loader": "^7.1.4",
     "file-loader": "^6.2.0",

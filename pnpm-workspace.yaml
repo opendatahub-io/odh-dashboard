@@ -82,7 +82,7 @@ overrides:
   axios: '^1.17.0'
   shell-quote: '>=1.8.4'
   webpack: '5.104.1'
-  '@rspack/core': '2.1.10'
+  '@rspack/core': '2.2.4'
   '@rspack/cli': '2.1.10'
   serialize-javascript: '>=7.0.5'
   # Security floors mirrored from main's npm overrides (CVE remediation).

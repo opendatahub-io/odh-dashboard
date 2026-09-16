@@ -49,7 +49,7 @@
     "@mui/types": "^7.4.7",
     "@rsdoctor/rspack-plugin": "^1.6.1",
     "@rspack/cli": "2.1.10",
-    "@rspack/core": "2.1.10",
+    "@rspack/core": "2.2.4",
     "@rspack/dev-server": "^2.1.0",
     "@rspack/plugin-react-refresh": "^2.0.2",
     "@testing-library/dom": "^10.4.0",
