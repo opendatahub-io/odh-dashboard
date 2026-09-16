@@ -1,0 +1,370 @@
+//go:build e2e
+
+package e2e
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	dashboardv1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	chaosv1alpha1 "github.com/opendatahub-io/operator-chaos/api/v1alpha1"
+	"github.com/opendatahub-io/operator-chaos/pkg/experiment"
+	"github.com/opendatahub-io/operator-chaos/pkg/injection"
+	appsv1 "k8s.io/api/apps/v1"
+	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	defaultOperatorDeployment = "dashboard-operator"
+	chaosCleanupTimeout       = 1 * time.Minute
+	chaosRecoveryTimeout      = 5 * time.Minute
+	partitionObservationTime  = 10 * time.Second
+	networkPolicySettleTime   = 5 * time.Second
+	chaosExperimentDirEnvName = "TEST_CHAOS_EXPERIMENT_DIR"
+)
+
+type chaosTarget struct {
+	namespace  string
+	deployment *appsv1.Deployment
+	selector   string
+}
+
+type activeChaosFault struct {
+	injector   injection.Injector
+	experiment *chaosv1alpha1.ChaosExperiment
+	cleanup    injection.CleanupFunc
+	namespace  string
+	active     bool
+}
+
+func discoverChaosTarget(ctx context.Context) (*chaosTarget, error) {
+	namespace := os.Getenv("TEST_OPERATOR_NAMESPACE")
+	if namespace == "" {
+		return nil, errors.New("TEST_OPERATOR_NAMESPACE must name the namespace containing dashboard-operator")
+	}
+	name := os.Getenv("TEST_OPERATOR_DEPLOYMENT")
+	if name == "" {
+		name = defaultOperatorDeployment
+	}
+	if namespace == "default" || strings.HasPrefix(namespace, "kube-") || strings.HasPrefix(namespace, "openshift-") {
+		return nil, fmt.Errorf("refuse to run chaos against protected namespace %q", namespace)
+	}
+
+	deployment := &appsv1.Deployment{}
+	if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
+		return nil, fmt.Errorf("get controller Deployment %s/%s: %w", namespace, name, err)
+	}
+	selector, err := deploymentSelectorString(deployment)
+	if err != nil {
+		return nil, err
+	}
+	return &chaosTarget{namespace: namespace, deployment: deployment, selector: selector}, nil
+}
+
+func verifyChaosPermissions(ctx context.Context, namespace string) error {
+	checks := []authorizationv1.ResourceAttributes{
+		{Namespace: namespace, Verb: "get", Group: "apps", Resource: "deployments"},
+		{Namespace: namespace, Verb: "list", Resource: "pods"},
+		{Namespace: namespace, Verb: "delete", Resource: "pods"},
+		{Namespace: namespace, Verb: "get", Group: "networking.k8s.io", Resource: "networkpolicies"},
+		{Namespace: namespace, Verb: "create", Group: "networking.k8s.io", Resource: "networkpolicies"},
+		{Namespace: namespace, Verb: "delete", Group: "networking.k8s.io", Resource: "networkpolicies"},
+		{Namespace: namespace, Verb: "get", Group: "policy", Resource: "poddisruptionbudgets"},
+		{Namespace: namespace, Verb: "create", Group: "policy", Resource: "poddisruptionbudgets"},
+		{Namespace: namespace, Verb: "update", Group: "policy", Resource: "poddisruptionbudgets"},
+		{Namespace: namespace, Verb: "delete", Group: "policy", Resource: "poddisruptionbudgets"},
+		{Namespace: namespace, Verb: "create", Resource: "pods", Subresource: "eviction"},
+	}
+	for _, attributes := range checks {
+		review := &authorizationv1.SelfSubjectAccessReview{Spec: authorizationv1.SelfSubjectAccessReviewSpec{ResourceAttributes: &attributes}}
+		if err := k8sClient.Create(ctx, review); err != nil {
+			return fmt.Errorf("check chaos permission %s %s/%s: %w", attributes.Verb, attributes.Resource, attributes.Subresource, err)
+		}
+		if !review.Status.Allowed {
+			return fmt.Errorf("chaos permission denied: %s %s/%s in namespace %s: %s",
+				attributes.Verb, attributes.Resource, attributes.Subresource, namespace, review.Status.Reason)
+		}
+	}
+	return nil
+}
+
+func loadLiveChaosExperiment(fileName string, target *chaosTarget) (*chaosv1alpha1.ChaosExperiment, error) {
+	directory := os.Getenv(chaosExperimentDirEnvName)
+	if directory == "" {
+		directory = filepath.Join("..", "..", "..", "chaos", "experiments")
+	}
+	loaded, err := experiment.Load(filepath.Join(directory, fileName))
+	if err != nil {
+		return nil, fmt.Errorf("load chaos experiment %s: %w", fileName, err)
+	}
+	configureChaosExperiment(loaded, target.namespace, target.deployment, target.selector)
+	if validationErrors := experiment.Validate(loaded); len(validationErrors) > 0 {
+		return nil, fmt.Errorf("validate chaos experiment %s: %v", fileName, validationErrors)
+	}
+	return loaded, nil
+}
+
+func injectorFor(experiment *chaosv1alpha1.ChaosExperiment) (injection.Injector, error) {
+	switch experiment.Spec.Injection.Type {
+	case chaosv1alpha1.PodKill:
+		return injection.NewPodKillInjector(k8sClient), nil
+	case chaosv1alpha1.NetworkPartition:
+		return injection.NewNetworkPartitionInjector(k8sClient), nil
+	case chaosv1alpha1.PDBBlock:
+		return injection.NewPDBBlockInjector(k8sClient), nil
+	default:
+		return nil, fmt.Errorf("unsupported live chaos injection %q", experiment.Spec.Injection.Type)
+	}
+}
+
+func startChaosFault(ctx context.Context, experiment *chaosv1alpha1.ChaosExperiment, namespace string) (*activeChaosFault, []chaosv1alpha1.InjectionEvent, error) {
+	injector, err := injectorFor(experiment)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := injector.Validate(experiment.Spec.Injection, experiment.Spec.BlastRadius); err != nil {
+		return nil, nil, fmt.Errorf("validate %s injector: %w", experiment.Spec.Injection.Type, err)
+	}
+	cleanup, events, err := injector.Inject(ctx, experiment.Spec.Injection, namespace)
+	if err != nil {
+		return nil, events, fmt.Errorf("inject %s fault: %w", experiment.Spec.Injection.Type, err)
+	}
+	return &activeChaosFault{
+		injector: injector, experiment: experiment, cleanup: cleanup, namespace: namespace, active: true,
+	}, events, nil
+}
+
+func (fault *activeChaosFault) revert() error {
+	if fault == nil || !fault.active {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), chaosCleanupTimeout)
+	defer cancel()
+	var cleanupErr error
+	if fault.cleanup != nil {
+		cleanupErr = fault.cleanup(ctx)
+	}
+	revertErr := fault.injector.Revert(ctx, fault.experiment.Spec.Injection, fault.namespace)
+	err := errors.Join(cleanupErr, revertErr)
+	if err == nil {
+		fault.active = false
+	}
+	return err
+}
+
+func readyControllerPod(ctx context.Context, target *chaosTarget) (*corev1.Pod, error) {
+	selector, err := labels.Parse(target.selector)
+	if err != nil {
+		return nil, fmt.Errorf("parse controller selector: %w", err)
+	}
+	pods := &corev1.PodList{}
+	if err := k8sClient.List(ctx, pods,
+		client.InNamespace(target.namespace),
+		client.MatchingLabelsSelector{Selector: selector},
+	); err != nil {
+		return nil, fmt.Errorf("list controller pods: %w", err)
+	}
+	for i := range pods.Items {
+		if podIsReady(&pods.Items[i]) {
+			return pods.Items[i].DeepCopy(), nil
+		}
+	}
+	return nil, fmt.Errorf("no Ready pod matches controller selector %q in namespace %q", target.selector, target.namespace)
+}
+
+func podIsReady(pod *corev1.Pod) bool {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+func waitForReplacementControllerPod(target *chaosTarget, previousUID types.UID, timeout time.Duration) (*corev1.Pod, error) {
+	var replacement *corev1.Pod
+	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		pod, err := readyControllerPod(ctx, target)
+		if err != nil {
+			return false, nil
+		}
+		if pod.UID == previousUID {
+			return false, nil
+		}
+		replacement = pod
+		return true, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("wait for replacement controller pod after UID %q: %w", previousUID, err)
+	}
+	return replacement, nil
+}
+
+func waitForReadyControllerPod(target *chaosTarget, timeout time.Duration) (*corev1.Pod, error) {
+	var readyPod *corev1.Pod
+	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		pod, err := readyControllerPod(ctx, target)
+		if err != nil {
+			return false, nil
+		}
+		readyPod = pod
+		return true, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("wait for a Ready controller pod in namespace %q: %w", target.namespace, err)
+	}
+	return readyPod, nil
+}
+
+func waitForDeploymentUnready(namespace, name string, timeout time.Duration) error {
+	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		deployment := &appsv1.Deployment{}
+		if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
+			return false, err
+		}
+		return !deploymentReady(deployment), nil
+	})
+	if err != nil {
+		return fmt.Errorf("wait for controller Deployment %s/%s to report unready: %w", namespace, name, err)
+	}
+	return nil
+}
+
+func assertDashboardAndOperandsHealthy() error {
+	for _, condition := range []struct {
+		conditionType string
+		status        metav1.ConditionStatus
+	}{
+		{string(common.ConditionTypeProvisioningSucceeded), metav1.ConditionTrue},
+		{string(common.ConditionTypeReady), metav1.ConditionTrue},
+		{string(common.ConditionTypeDegraded), metav1.ConditionFalse},
+	} {
+		if err := waitForCondition(k8sClient, dashboardv1alpha1.DashboardInstanceName, condition.conditionType, condition.status, chaosRecoveryTimeout); err != nil {
+			return err
+		}
+	}
+
+	inventory, err := waitForOperandInventory(k8sClient, testNamespace, dashboardUID, chaosRecoveryTimeout)
+	if err != nil {
+		return err
+	}
+	for i := range inventory.deployments {
+		if err := waitForDeploymentReady(k8sClient, testNamespace, inventory.deployments[i].Name, chaosRecoveryTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func removeOwnedCoreDeploymentLabel(ctx context.Context, key client.ObjectKey) error {
+	deployment := &appsv1.Deployment{}
+	if err := k8sClient.Get(ctx, key, deployment); err != nil {
+		return err
+	}
+	if deployment.Labels[platformPartOfKey] != platformPartOfValue {
+		return fmt.Errorf("Deployment %s/%s does not carry expected ownership label", key.Namespace, key.Name)
+	}
+	before := deployment.DeepCopy()
+	delete(deployment.Labels, platformPartOfKey)
+	return k8sClient.Patch(ctx, deployment, client.MergeFrom(before))
+}
+
+func assertDeploymentLabelAbsentFor(key client.ObjectKey, duration time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), duration)
+	defer cancel()
+	ticker := time.NewTicker(e2ePollInterval)
+	defer ticker.Stop()
+	for {
+		deployment := &appsv1.Deployment{}
+		if err := k8sClient.Get(ctx, key, deployment); err != nil {
+			if ctx.Err() != nil {
+				return nil
+			}
+			return err
+		}
+		if _, found := deployment.Labels[platformPartOfKey]; found {
+			return fmt.Errorf("controller reconciled Deployment %s/%s while API partition should be active", key.Namespace, key.Name)
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+		}
+	}
+}
+
+func waitForDeploymentLabel(key client.ObjectKey, timeout time.Duration) error {
+	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		deployment := &appsv1.Deployment{}
+		if err := k8sClient.Get(ctx, key, deployment); err != nil {
+			return false, err
+		}
+		return deployment.Labels[platformPartOfKey] == platformPartOfValue, nil
+	})
+	if err != nil {
+		return fmt.Errorf("wait for controller to restore %s=%s on Deployment %s/%s: %w",
+			platformPartOfKey, platformPartOfValue, key.Namespace, key.Name, err)
+	}
+	return nil
+}
+
+func waitForChaosNetworkPolicy(name, namespace string, present bool) error {
+	return waitForResourcePresence(&networkingv1.NetworkPolicy{}, client.ObjectKey{Namespace: namespace, Name: name}, present)
+}
+
+func waitForChaosPDB(name, namespace string, present bool) error {
+	return waitForResourcePresence(&policyv1.PodDisruptionBudget{}, client.ObjectKey{Namespace: namespace, Name: name}, present)
+}
+
+func waitForResourcePresence(object client.Object, key client.ObjectKey, present bool) error {
+	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, chaosCleanupTimeout, true, func(ctx context.Context) (bool, error) {
+		err := k8sClient.Get(ctx, key, object)
+		switch {
+		case err == nil:
+			return present, nil
+		case apierrors.IsNotFound(err):
+			return !present, nil
+		default:
+			return false, err
+		}
+	})
+	if err != nil {
+		return fmt.Errorf("wait for %T %s presence=%t: %w", object, key, present, err)
+	}
+	return nil
+}
+
+func waitForNetworkPolicyEnforcement() {
+	timer := time.NewTimer(networkPolicySettleTime)
+	defer timer.Stop()
+	<-timer.C
+}
+
+func evictControllerPod(ctx context.Context, pod *corev1.Pod) error {
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return fmt.Errorf("create Kubernetes clientset: %w", err)
+	}
+	uid := pod.UID
+	eviction := &policyv1.Eviction{
+		ObjectMeta:    metav1.ObjectMeta{Name: pod.Name, Namespace: pod.Namespace},
+		DeleteOptions: &metav1.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid}},
+	}
+	return clientset.PolicyV1().Evictions(pod.Namespace).Evict(ctx, eviction)
+}
