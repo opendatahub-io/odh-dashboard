@@ -144,7 +144,7 @@ export const setMCPRegistryServersFlag = (enabled: boolean): void => {
 
 export const configureMCPRegistryServersFlag = (enabled: boolean): void => {
   cy.intercept(
-    { method: 'GET', pathname: '/api/config', times: 10 },
+    { method: 'GET', pathname: '/api/config', times: 2 },
     mockDashboardConfig({
       genAiStudio: true,
       aiAssetCustomEndpoints: true,
@@ -153,6 +153,26 @@ export const configureMCPRegistryServersFlag = (enabled: boolean): void => {
       genAiMcpRegistryServers: enabled,
     }),
   );
+};
+
+export const setMCPRegistryServersQueryFlag = (enabled: boolean): void => {
+  Cypress.env('_featureFlagParams', enabled ? 'devFeatureFlags=genAiMcpRegistryServers=true' : '');
+};
+
+export const clearMCPRegistryServersFlag = (): void => {
+  cy.window().then((win) => {
+    const flags = JSON.parse(win.sessionStorage.getItem('odh-feature-flags') ?? '{}') as Record<
+      string,
+      unknown
+    >;
+    delete flags.genAiMcpRegistryServers;
+    if (Object.keys(flags).length === 0) {
+      win.sessionStorage.removeItem('odh-feature-flags');
+    } else {
+      win.sessionStorage.setItem('odh-feature-flags', JSON.stringify(flags));
+    }
+  });
+  Cypress.env('_featureFlagParams', '');
 };
 
 type MCPServerStatus = 'healthy' | 'error' | 'unknown';
@@ -221,6 +241,9 @@ export const navigateToPlayground = (
     configureMCPRegistryServersFlag(mcpRegistryServersEnabled);
   }
   appChrome.visit();
+  if (mcpRegistryServersEnabled !== undefined) {
+    setMCPRegistryServersQueryFlag(mcpRegistryServersEnabled);
+  }
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
   playgroundPage.mcpTab.openMCPTab();
