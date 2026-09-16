@@ -12,18 +12,18 @@ import {
   Split,
   SplitItem,
   Stack,
+  StackItem,
   TextInput,
-  ValidatedOptions,
 } from '@patternfly/react-core';
+import SimpleSelect, {
+  type SimpleSelectOption,
+} from '@odh-dashboard/ui-core/components/SimpleSelect';
 import {
   ExclamationCircleIcon,
   MinusCircleIcon,
   OutlinedQuestionCircleIcon,
   PlusCircleIcon,
 } from '@patternfly/react-icons';
-import SimpleSelect, {
-  type SimpleSelectOption,
-} from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { z } from 'zod';
 import {
   enabledEnvVarSchema,
@@ -41,6 +41,32 @@ import {
   type EnvironmentVariableUpdates,
 } from '../../../shared/environmentVariablesUtils';
 
+type EnvVarFieldErrorProps = {
+  error?: string;
+  errorId?: string;
+};
+
+const EnvVarFieldError: React.FC<EnvVarFieldErrorProps> = ({ error, errorId }) => {
+  if (!error) {
+    return null;
+  }
+
+  return (
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem
+          id={errorId}
+          variant="error"
+          icon={<ExclamationCircleIcon />}
+          data-testid={errorId}
+        >
+          {error}
+        </HelperTextItem>
+      </HelperText>
+    </FormHelperText>
+  );
+};
+
 type EnvVarTextInputProps = {
   'data-testid': string;
   'aria-label': string;
@@ -48,6 +74,8 @@ type EnvVarTextInputProps = {
   hasError: boolean;
   isRequired?: boolean;
   isDisabled?: boolean;
+  error?: string;
+  errorId?: string;
   onChange: (value: string) => void;
   inputRef?: React.Ref<HTMLInputElement>;
 };
@@ -59,60 +87,32 @@ const EnvVarTextInput: React.FC<EnvVarTextInputProps> = ({
   hasError,
   isRequired = false,
   isDisabled = false,
+  error,
+  errorId,
   onChange,
   inputRef,
 }) => (
-  <TextInput
-    data-testid={dataTestId}
-    aria-label={ariaLabel}
-    value={value}
-    required={isRequired}
-    isDisabled={isDisabled}
-    onChange={(_event, nextValue) => onChange(nextValue)}
-    ref={inputRef}
-    validated={hasError ? ValidatedOptions.error : ValidatedOptions.default}
-  />
+  <>
+    <TextInput
+      data-testid={dataTestId}
+      aria-label={ariaLabel}
+      value={value}
+      required={isRequired}
+      isDisabled={isDisabled}
+      aria-invalid={hasError}
+      aria-describedby={error ? errorId : undefined}
+      onChange={(_event, nextValue) => onChange(nextValue)}
+      ref={inputRef}
+    />
+    <EnvVarFieldError error={error} errorId={errorId} />
+  </>
 );
-
-type EnvVarRowErrorsProps = {
-  nameError: string;
-  secretNameError: string;
-  secretKeyError: string;
-};
-
-const EnvVarRowErrors: React.FC<EnvVarRowErrorsProps> = ({
-  nameError,
-  secretNameError,
-  secretKeyError,
-}) => {
-  const errors = [
-    nameError && { label: 'Name', message: nameError },
-    secretNameError && { label: 'Secret name', message: secretNameError },
-    secretKeyError && { label: 'Secret key', message: secretKeyError },
-  ].filter((error): error is { label: string; message: string } => Boolean(error));
-
-  if (errors.length === 0) {
-    return null;
-  }
-
-  return (
-    <FormHelperText>
-      <HelperText>
-        {errors.map(({ label, message }) => (
-          <HelperTextItem key={label} variant="error" icon={<ExclamationCircleIcon />}>
-            {`${label}: ${message}`}
-          </HelperTextItem>
-        ))}
-      </HelperText>
-    </FormHelperText>
-  );
-};
 
 type EnvVarValueFieldsProps = {
   envVar: EnvironmentVariable;
   index: number;
-  hasSecretNameError: boolean;
-  hasSecretKeyError: boolean;
+  secretNameError: string;
+  secretKeyError: string;
   isDisabled?: boolean;
   onUpdate: (updates: EnvironmentVariableUpdates) => void;
 };
@@ -120,8 +120,8 @@ type EnvVarValueFieldsProps = {
 const EnvVarValueFields: React.FC<EnvVarValueFieldsProps> = ({
   envVar,
   index,
-  hasSecretNameError,
-  hasSecretKeyError,
+  secretNameError,
+  secretKeyError,
   isDisabled = false,
   onUpdate,
 }) => {
@@ -144,9 +144,11 @@ const EnvVarValueFields: React.FC<EnvVarValueFieldsProps> = ({
           data-testid={`env-var-secret-name-${index}`}
           aria-label="env var secret name"
           value={envVar.secretName}
-          hasError={hasSecretNameError}
+          hasError={Boolean(secretNameError)}
           isRequired
           isDisabled={isDisabled}
+          error={secretNameError}
+          errorId={`env-var-secret-name-error-${index}`}
           onChange={(value) => onUpdate({ secretName: value })}
         />
       </SplitItem>
@@ -155,9 +157,11 @@ const EnvVarValueFields: React.FC<EnvVarValueFieldsProps> = ({
           data-testid={`env-var-secret-key-${index}`}
           aria-label="env var secret key"
           value={envVar.secretKey}
-          hasError={hasSecretKeyError}
+          hasError={Boolean(secretKeyError)}
           isRequired
           isDisabled={isDisabled}
+          error={secretKeyError}
+          errorId={`env-var-secret-key-error-${index}`}
           onChange={(value) => onUpdate({ secretKey: value })}
         />
       </SplitItem>
@@ -376,7 +380,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
                 getEnvironmentVariableFieldErrors(normalizedEnvVar);
 
               return (
-                <Stack hasGutter key={index}>
+                <StackItem key={index}>
                   <Split hasGutter>
                     <SplitItem>
                       <SimpleSelect
@@ -384,6 +388,8 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
                         ariaLabel="env var type"
                         options={envVarTypeOptions}
                         value={normalizedEnvVar.type}
+                        showSelectedIndicator={false}
+                        previewDescription={false}
                         onChange={(key) => {
                           if (isEnvironmentVariableType(key)) {
                             updateEnvVar(index, { type: key });
@@ -400,6 +406,8 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
                         hasError={Boolean(nameError)}
                         isRequired
                         isDisabled={!allowCreate}
+                        error={nameError}
+                        errorId={`env-var-name-error-${index}`}
                         onChange={(value) => updateEnvVar(index, { name: value })}
                         inputRef={
                           index === data.variables.length - 1 ? lastNameFieldRef : undefined
@@ -410,8 +418,8 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
                       <EnvVarValueFields
                         envVar={normalizedEnvVar}
                         index={index}
-                        hasSecretNameError={Boolean(secretNameError)}
-                        hasSecretKeyError={Boolean(secretKeyError)}
+                        secretNameError={secretNameError}
+                        secretKeyError={secretKeyError}
                         isDisabled={!allowCreate}
                         onUpdate={(updates) => updateEnvVar(index, updates)}
                       />
@@ -426,12 +434,7 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
                       />
                     </SplitItem>
                   </Split>
-                  <EnvVarRowErrors
-                    nameError={nameError}
-                    secretNameError={secretNameError}
-                    secretKeyError={secretKeyError}
-                  />
-                </Stack>
+                </StackItem>
               );
             })}
             <Button

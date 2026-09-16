@@ -362,7 +362,7 @@ describe('EnvironmentVariablesField', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('should show row-level name validation errors', () => {
+  it('should show inline name validation errors under the name field', () => {
     render(
       <EnvironmentVariablesField
         data={{
@@ -372,10 +372,38 @@ describe('EnvironmentVariablesField', () => {
       />,
     );
 
-    expect(
-      screen.getByText(
-        'Name: Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('env-var-name-error-0')).toHaveTextContent(
+      'Environment variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
+    );
+  });
+
+  it('should switch env var type with the dropdown', async () => {
+    const user = userEvent.setup();
+    const onChange = jest.fn();
+
+    render(
+      <EnvironmentVariablesField
+        data={{
+          enabled: true,
+          variables: [{ type: EnvironmentVariableType.Value, name: 'MY_VAR', value: 'value' }],
+        }}
+        onChange={onChange}
+      />,
+    );
+
+    await user.click(screen.getByTestId('env-var-type-0'));
+    await user.click(screen.getByRole('option', { name: 'Secret' }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      enabled: true,
+      variables: [
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'MY_VAR',
+          secretName: '',
+          secretKey: '',
+        },
+      ],
+    });
   });
 });
