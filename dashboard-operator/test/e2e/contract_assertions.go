@@ -104,9 +104,9 @@ func selectDashboardWebhook(
 func webhookHandlesDashboardCreates(webhook *admissionregistrationv1.ValidatingWebhook) bool {
 	for _, rule := range webhook.Rules {
 		if containsOperation(rule.Operations, admissionregistrationv1.Create) &&
-			matchesRuleValue(rule.APIGroups, dashboardv1alpha1.GroupVersion.Group) &&
-			matchesRuleValue(rule.APIVersions, dashboardv1alpha1.GroupVersion.Version) &&
-			matchesRuleValue(rule.Resources, dashboardWebhookResource) {
+			containsString(rule.APIGroups, dashboardv1alpha1.GroupVersion.Group) &&
+			containsString(rule.APIVersions, dashboardv1alpha1.GroupVersion.Version) &&
+			containsString(rule.Resources, dashboardWebhookResource) {
 			return true
 		}
 	}
@@ -124,16 +124,6 @@ func containsOperation(operations []admissionregistrationv1.OperationType, expec
 	return false
 }
 
-func matchesRuleValue(values []string, expected string) bool {
-	for _, value := range values {
-		if value == expected || value == "*" {
-			return true
-		}
-	}
-
-	return false
-}
-
 func containsString(values []string, expected string) bool {
 	for _, value := range values {
 		if value == expected {
@@ -142,6 +132,40 @@ func containsString(values []string, expected string) bool {
 	}
 
 	return false
+}
+
+func equivalentCELRule(actual, expected string) bool {
+	return stripCELFormattingWhitespace(actual) == stripCELFormattingWhitespace(expected)
+}
+
+func stripCELFormattingWhitespace(rule string) string {
+	var normalized strings.Builder
+	normalized.Grow(len(rule))
+
+	var quote rune
+	escaped := false
+	for _, character := range rule {
+		if quote != 0 {
+			normalized.WriteRune(character)
+			if escaped {
+				escaped = false
+			} else if character == '\\' {
+				escaped = true
+			} else if character == quote {
+				quote = 0
+			}
+			continue
+		}
+
+		if character == '\'' || character == '"' {
+			quote = character
+			normalized.WriteRune(character)
+		} else if !strings.ContainsRune(" \t\r\n", character) {
+			normalized.WriteRune(character)
+		}
+	}
+
+	return normalized.String()
 }
 
 func validateCELRejection(err error) error {
@@ -177,6 +201,14 @@ func validateWebhookRejection(err error) error {
 }
 
 func validateRequiredReleases(releases []common.ComponentRelease) error {
+	seen := make(map[string]struct{}, len(releases))
+	for _, release := range releases {
+		if _, duplicate := seen[release.Name]; duplicate {
+			return fmt.Errorf("status.releases contains duplicate %q entries", release.Name)
+		}
+		seen[release.Name] = struct{}{}
+	}
+
 	required := map[string]string{
 		dashboardv1alpha1.DashboardComponentName: dashboardRepositoryURL,
 		common.ReleasePlatform:                   "",

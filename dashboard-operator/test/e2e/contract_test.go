@@ -4,13 +4,13 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	dashboardv1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/stretchr/testify/require"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -23,19 +23,6 @@ import (
 )
 
 const contractTimeout = 10 * time.Minute
-
-var contractModuleNames = []string{
-	"modelRegistry",
-	"genAi",
-	"mlflow",
-	"maas",
-	"evalHub",
-	"automl",
-	"autorag",
-	"agentOps",
-	"notebooks",
-	"dataRegistry",
-}
 
 func TestE2E_PlatformContractConformance(t *testing.T) {
 	requireNoDashboardInstances(t)
@@ -110,8 +97,9 @@ func TestE2E_PlatformContractConformance(t *testing.T) {
 }
 
 func disabledContractModules() map[string]dashboardv1alpha1.ModuleOverride {
-	modules := make(map[string]dashboardv1alpha1.ModuleOverride, len(contractModuleNames))
-	for _, name := range contractModuleNames {
+	moduleNames := ctrlpkg.ModuleNames()
+	modules := make(map[string]dashboardv1alpha1.ModuleOverride, len(moduleNames))
+	for _, name := range moduleNames {
 		modules[name] = dashboardv1alpha1.ModuleOverride{State: dashboardv1alpha1.ModuleDisabled}
 	}
 
@@ -134,12 +122,12 @@ func requireDashboardCELRule(t *testing.T) {
 	require.NoError(t, k8sClient.Get(t.Context(), client.ObjectKey{Name: dashboardCRDName}, crd))
 
 	for _, servedVersion := range crd.Spec.Versions {
-		if servedVersion.Name != dashboardv1alpha1.GroupVersion.Version || servedVersion.Schema == nil ||
+		if !servedVersion.Served || servedVersion.Name != dashboardv1alpha1.GroupVersion.Version || servedVersion.Schema == nil ||
 			servedVersion.Schema.OpenAPIV3Schema == nil {
 			continue
 		}
 		for _, rule := range servedVersion.Schema.OpenAPIV3Schema.XValidations {
-			if rule.Rule == dashboardCELRule && rule.Message == dashboardCELValidationMessage {
+			if equivalentCELRule(rule.Rule, dashboardCELRule) && rule.Message == dashboardCELValidationMessage {
 				return
 			}
 		}
@@ -217,9 +205,5 @@ func waitForRequiredReleases(ctx context.Context, timeout time.Duration) error {
 
 		return fmt.Errorf("wait for required Dashboard releases: %w", err)
 	}
-	if lastValidationErr != nil {
-		return errors.New("required Dashboard releases remained invalid after polling")
-	}
-
 	return nil
 }
