@@ -63,6 +63,21 @@ func TestSelectDashboardWebhook(t *testing.T) {
 		require.ErrorContains(t, err, "expected exactly one")
 	})
 
+	t.Run("ignores cluster-wide wildcard webhook", func(t *testing.T) {
+		clusterWide := valid.DeepCopy()
+		clusterWide.Name = "cluster-wide-policy"
+		clusterWide.Webhooks[0].Name = "validate-all.example.com"
+		clusterWide.Webhooks[0].Rules[0].Rule = admissionregistrationv1.Rule{
+			APIGroups:   []string{"*"},
+			APIVersions: []string{"*"},
+			Resources:   []string{"*"},
+		}
+
+		target, err := selectDashboardWebhook([]admissionregistrationv1.ValidatingWebhookConfiguration{*clusterWide, valid})
+		require.NoError(t, err)
+		require.Equal(t, "dashboard-validating", target.configurationName)
+	})
+
 	t.Run("rejects missing CA bundle", func(t *testing.T) {
 		missingCA := valid.DeepCopy()
 		missingCA.Webhooks[0].ClientConfig.CABundle = nil
@@ -84,6 +99,12 @@ func TestSelectDashboardWebhook(t *testing.T) {
 		_, err := selectDashboardWebhook([]admissionregistrationv1.ValidatingWebhookConfiguration{*missingPath})
 		require.ErrorContains(t, err, "must use a Service")
 	})
+}
+
+func TestEquivalentCELRule(t *testing.T) {
+	require.True(t, equivalentCELRule(" self.metadata.name\n == 'default-dashboard' ", dashboardCELRule))
+	require.False(t, equivalentCELRule("self.metadata.name == 'other-dashboard'", dashboardCELRule))
+	require.False(t, equivalentCELRule("self.metadata.name == 'default- dashboard'", dashboardCELRule))
 }
 
 func TestValidateCELRejection(t *testing.T) {
@@ -145,7 +166,14 @@ func TestValidateRequiredReleases(t *testing.T) {
 			mutate: func(releases []common.ComponentRelease) []common.ComponentRelease {
 				return append(releases, releases[0])
 			},
-			wantPart: `exactly one "dashboard" entry`,
+			wantPart: `duplicate "dashboard" entries`,
+		},
+		{
+			name: "duplicate optional release",
+			mutate: func(releases []common.ComponentRelease) []common.ComponentRelease {
+				return append(releases, releases[2])
+			},
+			wantPart: `duplicate "future-component" entries`,
 		},
 		{
 			name: "unknown dashboard version",
