@@ -77,7 +77,7 @@ const EmptyExternalModelsPage: React.FC<EmptyExternalModelsPageProps> = ({ names
               } satisfies ExternalModelsManageProvidersClickedProperties)
             }
           >
-            View providers
+            Manage providers
           </Button>
         </StackItem>
       </Stack>

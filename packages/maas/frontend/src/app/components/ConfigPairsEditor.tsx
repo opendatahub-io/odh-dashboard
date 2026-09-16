@@ -39,60 +39,84 @@ const ConfigPairsEditor: React.FC<ConfigPairsEditorProps> = ({
   testIdPrefix,
   ensureEmptyRow = false,
   addButtonTestId,
-}) => (
-  <Stack hasGutter>
-    {pairs.map((pair, index) => (
-      <StackItem key={index} data-testid={`${testIdPrefix}-pair-${index}`}>
-        <FormGroup fieldId={`${testIdPrefix}-pair-${index}`} isStack>
-          <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-w-100">
-            <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
-              <TextInput
-                id={`${testIdPrefix}-key-${index}`}
-                data-testid={`${testIdPrefix}-key-${index}`}
-                aria-label={`Configuration key ${index + 1}`}
-                placeholder="Key"
-                value={pair.key}
-                className="pf-v6-u-w-100"
-                onChange={(_event, value) => onChange(updatePair(pairs, index, { key: value }))}
-              />
+}) => {
+  const showHeadersInitial = pairs.length > 0;
+  const [showHeaders, setShowHeaders] = React.useState(showHeadersInitial);
+  return (
+    <Stack hasGutter>
+      {showHeaders && (
+        <StackItem>
+          <Flex gap={{ default: 'gapSm' }}>
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <strong>Key</strong>
             </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
-              <TextInput
-                id={`${testIdPrefix}-value-${index}`}
-                data-testid={`${testIdPrefix}-value-${index}`}
-                aria-label={`Configuration value ${index + 1}`}
-                placeholder="Value"
-                value={pair.value}
-                className="pf-v6-u-w-100"
-                onChange={(_event, value) => onChange(updatePair(pairs, index, { value }))}
-              />
-            </FlexItem>
-            <FlexItem flex={{ default: 'flexNone' }}>
-              <Button
-                variant="plain"
-                aria-label={`Remove configuration pair ${index + 1}`}
-                icon={<MinusCircleIcon />}
-                onClick={() => onChange(removePair(pairs, index, ensureEmptyRow))}
-                data-testid={`${testIdPrefix}-remove-${index}`}
-              />
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <strong>Value</strong>
             </FlexItem>
           </Flex>
-        </FormGroup>
+        </StackItem>
+      )}
+      {pairs.map((pair, index) => (
+        <StackItem key={index} data-testid={`${testIdPrefix}-pair-${index}`}>
+          <FormGroup fieldId={`${testIdPrefix}-pair-${index}`} isStack>
+            <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-w-100">
+              <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
+                <TextInput
+                  id={`${testIdPrefix}-key-${index}`}
+                  data-testid={`${testIdPrefix}-key-${index}`}
+                  aria-label={`Configuration key ${index + 1}`}
+                  placeholder="Key"
+                  value={pair.key}
+                  className="pf-v6-u-w-100"
+                  onChange={(_event, value) => onChange(updatePair(pairs, index, { key: value }))}
+                />
+              </FlexItem>
+              <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
+                <TextInput
+                  id={`${testIdPrefix}-value-${index}`}
+                  data-testid={`${testIdPrefix}-value-${index}`}
+                  aria-label={`Configuration value ${index + 1}`}
+                  placeholder="Value"
+                  value={pair.value}
+                  className="pf-v6-u-w-100"
+                  onChange={(_event, value) => onChange(updatePair(pairs, index, { value }))}
+                />
+              </FlexItem>
+              <FlexItem flex={{ default: 'flexNone' }}>
+                <Button
+                  variant="plain"
+                  aria-label={`Remove configuration pair ${index + 1}`}
+                  icon={<MinusCircleIcon />}
+                  onClick={() => {
+                    onChange(removePair(pairs, index, ensureEmptyRow));
+                    if (pairs.length === 1) {
+                      setShowHeaders(false);
+                    }
+                  }}
+                  data-testid={`${testIdPrefix}-remove-${index}`}
+                />
+              </FlexItem>
+            </Flex>
+          </FormGroup>
+        </StackItem>
+      ))}
+      <StackItem>
+        <Button
+          variant="link"
+          isInline
+          icon={<PlusCircleIcon />}
+          iconPosition="start"
+          onClick={() => {
+            onChange([...pairs, EMPTY_CONFIG_PAIR]);
+            setShowHeaders(true);
+          }}
+          data-testid={addButtonTestId ?? `${testIdPrefix}-add-button`}
+        >
+          Add key-value pair
+        </Button>
       </StackItem>
-    ))}
-    <StackItem>
-      <Button
-        variant="link"
-        isInline
-        icon={<PlusCircleIcon />}
-        iconPosition="start"
-        onClick={() => onChange([...pairs, EMPTY_CONFIG_PAIR])}
-        data-testid={addButtonTestId ?? `${testIdPrefix}-add-button`}
-      >
-        Add configuration pair
-      </Button>
-    </StackItem>
-  </Stack>
-);
+    </Stack>
+  );
+};
 
 export default ConfigPairsEditor;
