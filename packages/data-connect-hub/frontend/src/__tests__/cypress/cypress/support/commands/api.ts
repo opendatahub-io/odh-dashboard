@@ -2,10 +2,9 @@
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
 import type { Namespace, UserSettings } from 'mod-arch-core';
 import { mockModArchResponse } from 'mod-arch-core';
-import type { RoleBindingKind } from '../../../shared/types';
 
-const MODEL_REGISTRY_API_VERSION = 'v1';
-export { MODEL_REGISTRY_API_VERSION };
+const CLIENT_API_VERSION = 'v1';
+export { CLIENT_API_VERSION };
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -33,11 +32,6 @@ declare global {
           type: 'GET /api/:apiVersion/namespaces',
           options: { path: { apiVersion: string } },
           response: ApiResponse<Namespace[]>,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'GET /api/:apiVersion/settings/role_bindings',
-          options: { path: { apiVersion: string } },
-          response: ApiResponse<RoleBindingKind[]>,
         ) => Cypress.Chainable<null>);
     }
   }

@@ -269,14 +269,16 @@ export const formatDisplayValue = (value: unknown): string => {
 };
 
 /**
- * Look up a metric by name from a pattern's evaluation metrics.
+ * Look up a uniquely named metric from a pattern's evaluation metrics.
+ * Metrics with the same name from different evaluators are intentionally ambiguous.
  */
 export function getMetricByName(
   pattern: AutoragPattern,
   name: string,
 ): AutoragEvaluationMetric | undefined {
   const normalized = name.toLowerCase();
-  return pattern.evaluation.metrics.find((m) => m.name.toLowerCase() === normalized);
+  const matches = pattern.evaluation.metrics.filter((m) => m.name.toLowerCase() === normalized);
+  return matches.length === 1 ? matches[0] : undefined;
 }
 
 /**
@@ -289,7 +291,36 @@ export function getMetricByName(
 export function getOptimizationMetric(
   pattern: AutoragPattern,
 ): AutoragEvaluationMetric | undefined {
-  return pattern.evaluation.metrics.find((m) => m.optimization_metric);
+  const matches = pattern.evaluation.metrics.filter((m) => m.optimization_metric === true);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+/**
+ * Returns the uniquely named aggregate metric matching the run objective and having a finite
+ * numeric mean. The evaluator and metric name together remain the metric's identity; duplicate
+ * names are therefore not collapsed into a single lookup entry.
+ */
+export function getRankableOptimizationMetric(
+  pattern: AutoragPattern,
+  objectiveName: string,
+): AutoragEvaluationMetric | undefined {
+  const normalizedObjective = objectiveName.toLowerCase();
+  const matches = pattern.evaluation.metrics.filter(
+    (metric) => metric.name.toLowerCase() === normalizedObjective,
+  );
+  if (matches.length !== 1) {
+    return undefined;
+  }
+
+  const [match] = matches;
+  const {
+    scores: { mean },
+  } = match;
+  return typeof mean === 'number' && Number.isFinite(mean) ? match : undefined;
+}
+
+export function isPatternRankable(pattern: AutoragPattern, objectiveName: string): boolean {
+  return getRankableOptimizationMetric(pattern, objectiveName) !== undefined;
 }
 
 /**
@@ -315,17 +346,25 @@ export function getOptimizedScore(pattern: AutoragPattern): number {
 }
 
 /**
- * Compute a rank map from an array of patterns, ranked by optimization metric score descending.
- * Returns a Record mapping pattern name to rank (1-based).
+ * Compute a rank map from a pattern record, ranked by optimization metric score descending.
+ * Returns a Record mapping pattern record key to rank (1-based).
  *
- * Uses the pattern-level `optimization_metric` flag, which the backend guarantees
- * matches the run's `optimization_metric` pipeline parameter.
+ * Uses the uniquely named finite metric matching the run's `optimization_metric` parameter.
  */
-export function computePatternRankMap(patterns: AutoragPattern[]): Record<string, number> {
-  const sorted = patterns.toSorted((a, b) => getOptimizedScore(b) - getOptimizedScore(a));
+export function computePatternRankMap(
+  patterns: Record<string, AutoragPattern>,
+  objectiveName = DEFAULT_OPTIMIZATION_METRIC,
+): Record<string, number> {
+  const sorted = Object.entries(patterns)
+    .filter(([, pattern]) => isPatternRankable(pattern, objectiveName))
+    .toSorted(
+      ([, a], [, b]) =>
+        getRankableOptimizationMetric(b, objectiveName)!.scores.mean! -
+        getRankableOptimizationMetric(a, objectiveName)!.scores.mean!,
+    );
   const map: Record<string, number> = {};
-  sorted.forEach((p, i) => {
-    map[p.name] = i + 1;
+  sorted.forEach(([key], i) => {
+    map[key] = i + 1;
   });
   return map;
 }
@@ -338,13 +377,18 @@ export function computePatternRankMap(patterns: AutoragPattern[]): Record<string
  */
 export function resolveBestPatternKey(
   patterns: Record<string, AutoragPattern>,
+  objectiveName = DEFAULT_OPTIMIZATION_METRIC,
 ): string | undefined {
-  const patternKeys = Object.keys(patterns);
+  const patternKeys = Object.keys(patterns).filter((key) =>
+    isPatternRankable(patterns[key], objectiveName),
+  );
   if (patternKeys.length === 0) {
     return undefined;
   }
   return patternKeys.toSorted(
-    (a, b) => getOptimizedScore(patterns[b]) - getOptimizedScore(patterns[a]),
+    (a, b) =>
+      getRankableOptimizationMetric(patterns[b], objectiveName)!.scores.mean! -
+      getRankableOptimizationMetric(patterns[a], objectiveName)!.scores.mean!,
   )[0];
 }
 

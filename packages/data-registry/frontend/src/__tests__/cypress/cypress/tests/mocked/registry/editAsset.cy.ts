@@ -371,7 +371,7 @@ describe('Edit Volume Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateVolume').then((interception) => {
-      expect(interception.request.body.properties).to.have.property('purpose', '');
+      expect(interception.request.body.properties).to.have.property('volume_purpose', '');
     });
   });
 });

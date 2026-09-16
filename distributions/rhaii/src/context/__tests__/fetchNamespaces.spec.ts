@@ -117,8 +117,11 @@ describe('fetchNamespaces', () => {
     const controller = new AbortController();
     await fetchNamespaces(controller.signal);
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/k8s/api/v1/namespaces', {
-      signal: controller.signal,
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/k8s/api/v1/namespaces?labelSelector=opendatahub.io%2Fdashboard%3Dtrue',
+      {
+        signal: controller.signal,
+      },
+    );
   });
 });

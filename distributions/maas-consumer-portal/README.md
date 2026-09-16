@@ -67,6 +67,7 @@ BFF targets use `https://` because on-cluster BFFs serve over TLS.
 | `distribution.yaml` | Feature flags, bundled packages, extension paths |
 | `src/bootstrap.tsx` | App entry — mounts providers via `createDistribution` |
 | `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
-| `src/PortalContextProvider.tsx` | MaaS BFF context (mod-arch standalone) |
+| `src/PortalContextProvider.tsx` | Composes the standalone MaaS BFF and portal authorization providers |
+| `src/MaaSAuthzProvider.tsx` | Publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility |
 | `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
 | `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |
