@@ -62,7 +62,7 @@ func discoverChaosTarget(ctx context.Context) (*chaosTarget, error) {
 	if name == "" {
 		name = defaultOperatorDeployment
 	}
-	if namespace == "default" || strings.HasPrefix(namespace, "kube-") || strings.HasPrefix(namespace, "openshift-") {
+	if namespace == "default" || namespace == "openshift" || strings.HasPrefix(namespace, "kube-") || strings.HasPrefix(namespace, "openshift-") {
 		return nil, fmt.Errorf("refuse to run chaos against protected namespace %q", namespace)
 	}
 
@@ -77,19 +77,21 @@ func discoverChaosTarget(ctx context.Context) (*chaosTarget, error) {
 	return &chaosTarget{namespace: namespace, deployment: deployment, selector: selector}, nil
 }
 
-func verifyChaosPermissions(ctx context.Context, namespace string) error {
+func verifyChaosPermissions(ctx context.Context, operatorNamespace, operandNamespace string) error {
 	checks := []authorizationv1.ResourceAttributes{
-		{Namespace: namespace, Verb: "get", Group: "apps", Resource: "deployments"},
-		{Namespace: namespace, Verb: "list", Resource: "pods"},
-		{Namespace: namespace, Verb: "delete", Resource: "pods"},
-		{Namespace: namespace, Verb: "get", Group: "networking.k8s.io", Resource: "networkpolicies"},
-		{Namespace: namespace, Verb: "create", Group: "networking.k8s.io", Resource: "networkpolicies"},
-		{Namespace: namespace, Verb: "delete", Group: "networking.k8s.io", Resource: "networkpolicies"},
-		{Namespace: namespace, Verb: "get", Group: "policy", Resource: "poddisruptionbudgets"},
-		{Namespace: namespace, Verb: "create", Group: "policy", Resource: "poddisruptionbudgets"},
-		{Namespace: namespace, Verb: "update", Group: "policy", Resource: "poddisruptionbudgets"},
-		{Namespace: namespace, Verb: "delete", Group: "policy", Resource: "poddisruptionbudgets"},
-		{Namespace: namespace, Verb: "create", Resource: "pods", Subresource: "eviction"},
+		{Namespace: operatorNamespace, Verb: "get", Group: "apps", Resource: "deployments"},
+		{Namespace: operatorNamespace, Verb: "get", Resource: "pods"},
+		{Namespace: operatorNamespace, Verb: "list", Resource: "pods"},
+		{Namespace: operatorNamespace, Verb: "delete", Resource: "pods"},
+		{Namespace: operatorNamespace, Verb: "get", Group: "networking.k8s.io", Resource: "networkpolicies"},
+		{Namespace: operatorNamespace, Verb: "create", Group: "networking.k8s.io", Resource: "networkpolicies"},
+		{Namespace: operatorNamespace, Verb: "delete", Group: "networking.k8s.io", Resource: "networkpolicies"},
+		{Namespace: operatorNamespace, Verb: "get", Group: "policy", Resource: "poddisruptionbudgets"},
+		{Namespace: operatorNamespace, Verb: "create", Group: "policy", Resource: "poddisruptionbudgets"},
+		{Namespace: operatorNamespace, Verb: "update", Group: "policy", Resource: "poddisruptionbudgets"},
+		{Namespace: operatorNamespace, Verb: "delete", Group: "policy", Resource: "poddisruptionbudgets"},
+		{Namespace: operatorNamespace, Verb: "create", Resource: "pods", Subresource: "eviction"},
+		{Namespace: operandNamespace, Verb: "patch", Group: "apps", Resource: "deployments"},
 	}
 	for _, attributes := range checks {
 		review := &authorizationv1.SelfSubjectAccessReview{Spec: authorizationv1.SelfSubjectAccessReviewSpec{ResourceAttributes: &attributes}}
@@ -98,7 +100,7 @@ func verifyChaosPermissions(ctx context.Context, namespace string) error {
 		}
 		if !review.Status.Allowed {
 			return fmt.Errorf("chaos permission denied: %s %s/%s in namespace %s: %s",
-				attributes.Verb, attributes.Resource, attributes.Subresource, namespace, review.Status.Reason)
+				attributes.Verb, attributes.Resource, attributes.Subresource, attributes.Namespace, review.Status.Reason)
 		}
 	}
 	return nil
@@ -169,6 +171,19 @@ func (fault *activeChaosFault) revert() error {
 }
 
 func readyControllerPod(ctx context.Context, target *chaosTarget) (*corev1.Pod, error) {
+	pods, err := controllerPods(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+	for i := range pods {
+		if podIsReady(&pods[i]) {
+			return pods[i].DeepCopy(), nil
+		}
+	}
+	return nil, fmt.Errorf("no Ready pod matches controller selector %q in namespace %q", target.selector, target.namespace)
+}
+
+func controllerPods(ctx context.Context, target *chaosTarget) ([]corev1.Pod, error) {
 	selector, err := labels.Parse(target.selector)
 	if err != nil {
 		return nil, fmt.Errorf("parse controller selector: %w", err)
@@ -180,12 +195,19 @@ func readyControllerPod(ctx context.Context, target *chaosTarget) (*corev1.Pod, 
 	); err != nil {
 		return nil, fmt.Errorf("list controller pods: %w", err)
 	}
-	for i := range pods.Items {
-		if podIsReady(&pods.Items[i]) {
-			return pods.Items[i].DeepCopy(), nil
-		}
+	return pods.Items, nil
+}
+
+func controllerPodUIDs(ctx context.Context, target *chaosTarget) (map[types.UID]struct{}, error) {
+	pods, err := controllerPods(ctx, target)
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("no Ready pod matches controller selector %q in namespace %q", target.selector, target.namespace)
+	uids := make(map[types.UID]struct{}, len(pods))
+	for i := range pods {
+		uids[pods[i].UID] = struct{}{}
+	}
+	return uids, nil
 }
 
 func podIsReady(pod *corev1.Pod) bool {
@@ -197,21 +219,23 @@ func podIsReady(pod *corev1.Pod) bool {
 	return false
 }
 
-func waitForReplacementControllerPod(target *chaosTarget, previousUID types.UID, timeout time.Duration) (*corev1.Pod, error) {
+func waitForReplacementControllerPod(target *chaosTarget, baselineUIDs map[types.UID]struct{}, timeout time.Duration) (*corev1.Pod, error) {
 	var replacement *corev1.Pod
 	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, timeout, true, func(ctx context.Context) (bool, error) {
-		pod, err := readyControllerPod(ctx, target)
+		pods, err := controllerPods(ctx, target)
 		if err != nil {
 			return false, nil
 		}
-		if pod.UID == previousUID {
-			return false, nil
+		for i := range pods {
+			if _, existed := baselineUIDs[pods[i].UID]; !existed && podIsReady(&pods[i]) {
+				replacement = pods[i].DeepCopy()
+				return true, nil
+			}
 		}
-		replacement = pod
-		return true, nil
+		return false, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("wait for replacement controller pod after UID %q: %w", previousUID, err)
+		return nil, fmt.Errorf("wait for a Ready controller pod absent from the pre-injection UID baseline: %w", err)
 	}
 	return replacement, nil
 }
@@ -286,26 +310,23 @@ func removeOwnedCoreDeploymentLabel(ctx context.Context, key client.ObjectKey) e
 }
 
 func assertDeploymentLabelAbsentFor(key client.ObjectKey, duration time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), duration)
-	defer cancel()
-	ticker := time.NewTicker(e2ePollInterval)
-	defer ticker.Stop()
+	deadline := time.Now().Add(duration)
 	for {
+		ctx, cancel := context.WithTimeout(context.Background(), preflightTimeout)
 		deployment := &appsv1.Deployment{}
-		if err := k8sClient.Get(ctx, key, deployment); err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
+		err := k8sClient.Get(ctx, key, deployment)
+		cancel()
+		if err != nil {
 			return err
 		}
 		if _, found := deployment.Labels[platformPartOfKey]; found {
 			return fmt.Errorf("controller reconciled Deployment %s/%s while API partition should be active", key.Namespace, key.Name)
 		}
-		select {
-		case <-ctx.Done():
+		if !time.Now().Before(deadline) {
 			return nil
-		case <-ticker.C:
 		}
+		timer := time.NewTimer(min(e2ePollInterval, time.Until(deadline)))
+		<-timer.C
 	}
 }
 
