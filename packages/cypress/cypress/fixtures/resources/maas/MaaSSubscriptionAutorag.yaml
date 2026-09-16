@@ -1,0 +1,24 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  name: '{{SUBSCRIPTION_NAME}}'
+  namespace: '{{MAAS_NAMESPACE}}'
+  annotations:
+    openshift.io/display-name: '{{SUBSCRIPTION_NAME}}'
+    openshift.io/description: 'Lifecycle-only AutoRAG MaaS simulator subscription'
+spec:
+  modelRefs:
+    - name: '{{GENERATION_MODEL_NAME}}'
+      namespace: '{{MODEL_NAMESPACE}}'
+      tokenRateLimits:
+        - limit: 1000
+          window: 1h
+    - name: '{{EMBEDDING_MODEL_NAME}}'
+      namespace: '{{MODEL_NAMESPACE}}'
+      tokenRateLimits:
+        - limit: 1000
+          window: 1h
+  owner:
+    users:
+      - name: '{{SERVICE_ACCOUNT_IDENTITY}}'
+  priority: 1

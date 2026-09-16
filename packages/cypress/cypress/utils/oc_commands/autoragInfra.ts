@@ -4,8 +4,12 @@ import { ensureAdminOcSession, pollUntilSuccess } from './baseCommands';
 import {
   createLLMInferenceServiceWithMaaSEnabled,
   createMaaSModelRef,
+  createEphemeralMaaSApiKey,
+  checkMaaSAuthPolicyState,
+  checkMaaSSubscriptionState,
   getGatewayExternalUrlFromLlmInferenceService,
   modelsAsAServiceNamespace,
+  revokeMaaSApiKey,
   waitForMaaSModelRefReady,
 } from './maas';
 import { checkLLMInferenceServiceState } from './modelServing';
@@ -27,6 +31,10 @@ const PGVECTOR_IMAGE_PLACEHOLDER = '{{PGVECTOR_IMAGE}}';
 const AUTORAG_GENERATION_MODEL = 'autorag-cypress-generation-simulator';
 const AUTORAG_EMBEDDING_MODEL = 'autorag-cypress-embedding-simulator';
 const AUTORAG_MAAS_FIXTURE_NAMESPACE = modelsAsAServiceNamespace;
+const AUTORAG_MAAS_SERVICE_ACCOUNT = 'autorag-cypress-maas';
+const AUTORAG_MAAS_SERVICE_ACCOUNT_IDENTITY = `system:serviceaccount:${AUTORAG_MAAS_FIXTURE_NAMESPACE}:${AUTORAG_MAAS_SERVICE_ACCOUNT}`;
+const AUTORAG_MAAS_SUBSCRIPTION = 'autorag-cypress-simulator-subscription';
+const AUTORAG_MAAS_AUTH_POLICY = 'autorag-cypress-simulator-auth-policy';
 
 type ModelListResponse = { data?: { id?: unknown }[] };
 
@@ -145,6 +153,41 @@ const getSimulatorModel = (
         });
     });
 
+const applyAutoragMaaSGovernance = (): Cypress.Chainable<CommandLineResult> =>
+  cy
+    .exec(
+      `oc create serviceaccount ${AUTORAG_MAAS_SERVICE_ACCOUNT} -n ${AUTORAG_MAAS_FIXTURE_NAMESPACE} ` +
+        `--dry-run=client -o yaml | oc apply -f -`,
+      { failOnNonZeroExit: true, log: false },
+    )
+    .then(() =>
+      cy.fixture('resources/maas/MaaSSubscriptionAutorag.yaml').then((subscriptionYaml: string) => {
+        const processedSubscription = replaceAutoragMaaSPlaceholders(subscriptionYaml);
+        return cy
+          .exec(`cat <<'EOF' | oc apply -f -\n${processedSubscription}\nEOF`, {
+            failOnNonZeroExit: true,
+          })
+          .then(() =>
+            cy.fixture('resources/maas/MaaSAuthPolicyAutorag.yaml').then((policyYaml: string) => {
+              const processedPolicy = replaceAutoragMaaSPlaceholders(policyYaml);
+              return cy.exec(`cat <<'EOF' | oc apply -f -\n${processedPolicy}\nEOF`, {
+                failOnNonZeroExit: true,
+              });
+            }),
+          );
+      }),
+    );
+
+const replaceAutoragMaaSPlaceholders = (yaml: string): string =>
+  yaml
+    .replaceAll('{{SUBSCRIPTION_NAME}}', AUTORAG_MAAS_SUBSCRIPTION)
+    .replaceAll('{{POLICY_NAME}}', AUTORAG_MAAS_AUTH_POLICY)
+    .replaceAll('{{MAAS_NAMESPACE}}', AUTORAG_MAAS_FIXTURE_NAMESPACE)
+    .replaceAll('{{MODEL_NAMESPACE}}', AUTORAG_MAAS_FIXTURE_NAMESPACE)
+    .replaceAll('{{GENERATION_MODEL_NAME}}', AUTORAG_GENERATION_MODEL)
+    .replaceAll('{{EMBEDDING_MODEL_NAME}}', AUTORAG_EMBEDDING_MODEL)
+    .replaceAll('{{SERVICE_ACCOUNT_IDENTITY}}', AUTORAG_MAAS_SERVICE_ACCOUNT_IDENTITY);
+
 /**
  * Ensure the shared, lifecycle-only AutoRAG MaaS simulators exist.
  * Applying fixed names is idempotent and avoids duplicate models across specs.
@@ -214,24 +257,52 @@ export const provisionAutoragMaaSFixture = (): Cypress.Chainable<
     )
     .then(() => waitForMaaSModelRefReady(AUTORAG_GENERATION_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE))
     .then(() => waitForMaaSModelRefReady(AUTORAG_EMBEDDING_MODEL, AUTORAG_MAAS_FIXTURE_NAMESPACE))
-    .then(() => getSimulatorModel(AUTORAG_GENERATION_MODEL))
-    .then((generation) =>
-      getSimulatorModel(AUTORAG_EMBEDDING_MODEL).then((embedding) => {
-        autoragMaaSFixture = {
-          mode: 'simulator',
-          maasUrl: generation.url,
-          generationModelId: generation.modelId,
-          embeddingModelId: embedding.modelId,
-          ownership: 'dashboard-provisioned',
-          supportsCompletionResults: false,
-        };
-        return autoragMaaSFixture;
+    .then(() => applyAutoragMaaSGovernance())
+    .then(() =>
+      checkMaaSSubscriptionState(AUTORAG_MAAS_SUBSCRIPTION, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
+        models: [AUTORAG_GENERATION_MODEL, AUTORAG_EMBEDDING_MODEL],
+        phase: 'Active',
       }),
+    )
+    .then(() =>
+      checkMaaSAuthPolicyState(AUTORAG_MAAS_AUTH_POLICY, AUTORAG_MAAS_FIXTURE_NAMESPACE, {
+        phase: 'Active',
+      }),
+    )
+    .then(() =>
+      createEphemeralMaaSApiKey(
+        AUTORAG_MAAS_SERVICE_ACCOUNT,
+        AUTORAG_MAAS_FIXTURE_NAMESPACE,
+        AUTORAG_MAAS_SUBSCRIPTION,
+      ),
+    )
+    .then((apiKey) =>
+      getSimulatorModel(AUTORAG_GENERATION_MODEL).then((generation) =>
+        getSimulatorModel(AUTORAG_EMBEDDING_MODEL).then((embedding) => {
+          autoragMaaSFixture = {
+            mode: 'simulator',
+            maasUrl: generation.url,
+            apiKey: apiKey.key,
+            apiKeyId: apiKey.id,
+            generationModelId: generation.modelId,
+            embeddingModelId: embedding.modelId,
+            ownership: 'dashboard-provisioned',
+            supportsCompletionResults: false,
+          };
+          return autoragMaaSFixture;
+        }),
+      ),
     );
 
   autoragMaaSProvisioning = provision;
   return provision;
 };
+
+/** Revoke the lifecycle key when the later AutoRAG wiring is ready to clean it up. */
+export const cleanupAutoragMaaSCredential = (
+  apiKeyId: string,
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  revokeMaaSApiKey(AUTORAG_MAAS_SERVICE_ACCOUNT, AUTORAG_MAAS_FIXTURE_NAMESPACE, apiKeyId);
 
 // ---------------------------------------------------------------------------
 // Top-level orchestrator

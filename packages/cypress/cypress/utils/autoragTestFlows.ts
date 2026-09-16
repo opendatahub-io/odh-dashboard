@@ -34,6 +34,8 @@ export type AutoragMaaSFixture =
   | {
       mode: 'simulator';
       maasUrl: string;
+      apiKey: string;
+      apiKeyId: string;
       generationModelId: string;
       embeddingModelId: string;
       ownership: 'dashboard-provisioned';
@@ -79,6 +81,8 @@ export const resolveAutoragMaaSFixture = (
     return {
       mode: 'simulator',
       maasUrl: '',
+      apiKey: '',
+      apiKeyId: '',
       generationModelId: '',
       embeddingModelId: '',
       ownership: 'dashboard-provisioned',
