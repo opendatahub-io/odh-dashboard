@@ -596,8 +596,6 @@ func TestLooksLikeTimestamp(t *testing.T) {
 		"01/15/2024",
 		"15/01/2024",
 		"2024/01/15",
-		"1705305600",    // Unix seconds
-		"1705305600000", // Unix milliseconds
 	}
 	for _, v := range valid {
 		if !looksLikeTimestamp(v) {
@@ -606,6 +604,8 @@ func TestLooksLikeTimestamp(t *testing.T) {
 	}
 
 	invalid := []string{
+		"1705305600",    // Unix seconds require manual override
+		"1705305600000", // Unix milliseconds require manual override
 		"abc",
 		"",
 		"12345", // too small for unix timestamp
@@ -829,5 +829,31 @@ func TestErrCSVValidation_IsWrapped(t *testing.T) {
 	// The error should wrap ErrCSVValidation so callers can use errors.Is.
 	if !strings.Contains(err.Error(), "CSV validation error") {
 		t.Errorf("expected error to contain 'CSV validation error', got: %v", err)
+	}
+}
+
+func TestInferCSVSchema_TwoColumnTemporalMetadata(t *testing.T) {
+	for _, tc := range []struct{ name, value, want string }{
+		{"ISO timezone", "2026-01-15T10:30:00+02:00", "timestamp"},
+		{"ISO fractional seconds", "2026-01-15T10:30:00.123456Z", "timestamp"},
+		{"date", "2026-01-15", "timestamp"},
+		{"pandas datetime", "2026-01-15 10:30:00", "timestamp"},
+		{"slash date", "2026/01/15", "timestamp"},
+		{"day first", "15/01/2026", "timestamp"},
+		{"epoch seconds", "1705305600", "integer"},
+		{"epoch milliseconds", "1705305600000", "integer"},
+		{"categorical", "yesterday", "string"},
+		{"invalid date", "2026-02-30", "string"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			csv := buildCSV([]string{"observed", "amount"}, repeatRow([]string{tc.value, "42.5"}, minDataRowsRequired))
+			result, err := InferCSVSchema(strings.NewReader(csv))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Columns[0].Type != tc.want || result.Columns[1].Type != "double" {
+				t.Fatalf("unexpected metadata: %+v", result.Columns)
+			}
+		})
 	}
 }

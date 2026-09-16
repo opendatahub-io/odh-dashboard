@@ -5,8 +5,8 @@
   "stages": [
     {
       "id": "extract_documents",
-      "status": "completed",
-      "timestamp": "2026-07-16T19:40:03.454906Z"
+      "status": { "state": "completed" },
+      "metrics": { "documents_extracted": 1 }
     }
   ],
   "metadata": {

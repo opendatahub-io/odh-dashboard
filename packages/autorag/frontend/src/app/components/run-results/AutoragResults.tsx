@@ -54,7 +54,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     parameters,
     bestPatternKey,
   } = useAutoragResultsContext();
-  const [selectedPatternName, setSelectedPatternName] = React.useState<string | null>(null);
+  const [selectedPatternKey, setSelectedPatternKey] = React.useState<string | null>(null);
   const [runIndexingPatternName, setRunIndexingPatternName] = React.useState<string | null>(null);
   const [runIndexingError, setRunIndexingError] = React.useState<string | null>(null);
 
@@ -98,7 +98,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             componentStageMap,
             runDetails,
             runState,
-            parameters?.optimization_max_rag_patterns,
+            typeof parameters?.optimization_max_rag_patterns === 'number'
+              ? parameters.optimization_max_rag_patterns
+              : undefined,
             leaderboardPatternNames.length > 0 ? leaderboardPatternNames : undefined,
             patterns,
           )
@@ -187,20 +189,27 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
 
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
-  const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
+  const rankMap = React.useMemo(
+    () => computePatternRankMap(patterns, optimizedMetric),
+    [patterns, optimizedMetric],
+  );
 
-  const rankMap = React.useMemo(() => computePatternRankMap(patternsArray), [patternsArray]);
+  const patternKeys = React.useMemo(() => Object.keys(patterns), [patterns]);
+  const patternsArray = React.useMemo(
+    () => patternKeys.map((key) => patterns[key]),
+    [patternKeys, patterns],
+  );
 
   const selectedIndex = React.useMemo(
-    () =>
-      selectedPatternName !== null
-        ? Math.max(
-            0,
-            patternsArray.findIndex((p) => p.name === selectedPatternName),
-          )
-        : 0,
-    [selectedPatternName, patternsArray],
+    () => (selectedPatternKey !== null ? patternKeys.indexOf(selectedPatternKey) : -1),
+    [selectedPatternKey, patternKeys],
   );
+
+  React.useEffect(() => {
+    if (selectedPatternKey !== null && selectedIndex < 0) {
+      setSelectedPatternKey(null);
+    }
+  }, [selectedIndex, selectedPatternKey]);
 
   const runIndexingPattern = runIndexingPatternName ? patterns[runIndexingPatternName] : undefined;
 
@@ -209,8 +218,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     message: string;
   } | null>(null);
 
-  const handleViewDetails = React.useCallback((patternName: string) => {
-    setSelectedPatternName(patternName);
+  const handleViewDetails = React.useCallback((patternKey: string) => {
+    setSelectedPatternKey(patternKey);
     fireAutoragPatternDetailsViewed('resultsTable');
   }, []);
 
@@ -354,16 +363,17 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
           />
         </StackItem>
       </Stack>
-      {selectedPatternName !== null && patternsArray.length > 0 && (
+      {selectedPatternKey !== null && selectedIndex >= 0 && (
         <React.Suspense fallback={null}>
           <PatternDetailsModal
             isOpen
-            onClose={() => setSelectedPatternName(null)}
+            onClose={() => setSelectedPatternKey(null)}
             patterns={patternsArray}
+            patternKeys={patternKeys}
             selectedIndex={selectedIndex}
-            rank={rankMap[patternsArray[selectedIndex]?.name] ?? 0}
+            rank={rankMap[patternKeys[selectedIndex]]}
             optimizedMetric={optimizedMetric}
-            onPatternChange={(index) => setSelectedPatternName(patternsArray[index]?.name ?? null)}
+            onPatternChange={(index) => setSelectedPatternKey(patternKeys[index] ?? null)}
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
             onSaveNotebook={handleSaveNotebook}
