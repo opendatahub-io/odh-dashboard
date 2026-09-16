@@ -1,0 +1,75 @@
+# Containerized real-cluster E2E test runner for the early-gate "shiftleft" runner.
+#
+# RHOAIENG-87692: packages the //go:build e2e test binary (see test/e2e/) into an
+# image the early-gate pipeline can run against a ROSA HCP cluster. Build context
+# is the repository root (same as dashboard-operator/Dockerfile), so all COPY
+# paths are prefixed with `dashboard-operator/`.
+#
+#   Local:   make e2e-image           (docker build -f Dockerfile.e2e .. )
+#   Run:     docker run --rm -v $KUBECONFIG:/kubeconfig:ro \
+#              -e KUBECONFIG=/kubeconfig -e TEST_NAMESPACE=dashboard-operator-e2e \
+#              <image> -test.v -test.run TestE2EDashboardLifecycle
+#
+# The binary fails fast with a clear message when KUBECONFIG / TEST_NAMESPACE are
+# missing, so an image started without cluster env exits non-zero immediately.
+
+# --- Build stage: compile the standalone E2E test binary --------------------
+FROM golang:1.26 AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /usr/src/app
+
+COPY dashboard-operator/go.mod dashboard-operator/go.sum ./
+RUN go mod download
+
+# The test/e2e package only imports the operator's api/v1alpha1 package, so the
+# build stays lean — no cmd/ or internal/ is required to compile the tests.
+COPY dashboard-operator/api/ api/
+COPY dashboard-operator/test/ test/
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go test -c -tags=e2e -o /tmp/e2e.test ./test/e2e
+
+# --- CLI stage: fetch oc + kubectl for cluster interaction ------------------
+# NOTE: this downloads from mirror.openshift.com. Konflux hermetic builds may
+# restrict external network; DevOps may need to source oc/kubectl from an
+# internal mirror or a base image (handoff, see test/e2e/README.md).
+FROM registry.access.redhat.com/ubi9/ubi:9.3 AS cli
+
+ARG TARGETARCH
+ARG OC_VERSION=stable
+
+RUN set -eux; \
+    case "${TARGETARCH:-amd64}" in \
+      amd64)   OC_ARCH=x86_64 ;; \
+      arm64)   OC_ARCH=arm64 ;; \
+      ppc64le) OC_ARCH=ppc64le ;; \
+      s390x)   OC_ARCH=s390x ;; \
+      *)       OC_ARCH=x86_64 ;; \
+    esac; \
+    curl -sSfL "https://mirror.openshift.com/pub/openshift-v4/${OC_ARCH}/clients/ocp/${OC_VERSION}/openshift-client-linux.tar.gz" \
+      -o /tmp/oc.tar.gz; \
+    tar -xzf /tmp/oc.tar.gz -C /usr/local/bin oc kubectl; \
+    chmod +x /usr/local/bin/oc /usr/local/bin/kubectl
+
+# --- Runtime stage ----------------------------------------------------------
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+
+WORKDIR /
+
+COPY --from=builder /tmp/e2e.test /usr/local/bin/e2e.test
+COPY --from=cli /usr/local/bin/oc /usr/local/bin/oc
+COPY --from=cli /usr/local/bin/kubectl /usr/local/bin/kubectl
+
+# CRD + fixtures for scenarios that verify or (later) install cluster resources.
+# The current suite verifies the CRD is present rather than installing it; these
+# are bundled for future operand/contract scenarios and manual debugging.
+COPY --chown=65532:0 dashboard-operator/config/crd/bases/ /opt/e2e/crd/
+
+USER 65532:65532
+
+# KUBECONFIG and TEST_NAMESPACE must be supplied at run time.
+ENTRYPOINT ["/usr/local/bin/e2e.test"]
+CMD ["-test.v"]
