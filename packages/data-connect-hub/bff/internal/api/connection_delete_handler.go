@@ -7,7 +7,6 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
-	httpclient "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/httpclient"
 	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
 )
 
@@ -46,7 +45,7 @@ func (app *App) DeleteConnectionHandler(w http.ResponseWriter, r *http.Request, 
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	client, err := httpclient.NewHTTPClient(app.logger, "", apiURL, headers, app.config.InsecureSkipVerify, app.rootCAs)
+	client, err := app.newDataConnectHubHTTPClient(apiURL, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create Data Connect Hub client: %w", err))
 		return

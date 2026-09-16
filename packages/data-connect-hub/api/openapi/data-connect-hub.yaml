@@ -314,6 +314,13 @@ components:
         message:
           description: Error message
           type: string
+    ErrorResponse:
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -361,49 +368,49 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: The specified resource was not found
     BadRequest:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: Bad Request parameters
     Unauthorized:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: Unauthorized
     Forbidden:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: Forbidden
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: Unexpected internal server error
     UpstreamErrorResponse:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: An error propagated from the upstream Data Connect Hub API.
     ServiceUnavailable:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: The upstream Data Connect Hub service is unavailable.
     BadGateway:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: The upstream Data Connect Hub service could not verify the connection.
     ConfigResponse:
       content:
@@ -451,7 +458,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
       description: Conflict - Role Binding with the same name already exists
 
   parameters:

@@ -4,7 +4,7 @@ metadata:
   name: odh-dashboard-data-connect-hub-ui
 rules:
   - apiGroups:
-      - ""
+      - ''
     verbs:
       - get
       - list
@@ -17,3 +17,15 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  - apiGroups:
+      - route.openshift.io
+    verbs:
+      - get
+    resources:
+      - routes
+  - apiGroups:
+      - gateway.networking.k8s.io
+    verbs:
+      - get
+    resources:
+      - gateways

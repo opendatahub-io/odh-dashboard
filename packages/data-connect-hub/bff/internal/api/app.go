@@ -12,6 +12,7 @@ import (
 
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/bffclient/bffmocks"
+	httpclient "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/httpclient"
 	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes/k8mocks"
 	"k8s.io/client-go/kubernetes"
@@ -45,10 +46,11 @@ type App struct {
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
 	// bffClientFactory creates clients for inter-BFF communication
-	bffClientFactory     bffclient.BFFClientFactory
-	wsTracker            *proxy.ConnectionTracker
-	dataConnectHubAPIURL *helper.StringHolder
-	discoveryCancel      context.CancelFunc
+	bffClientFactory            bffclient.BFFClientFactory
+	wsTracker                   *proxy.ConnectionTracker
+	dataConnectHubAPIURL        *helper.StringHolder
+	discoveryCancel             context.CancelFunc
+	dataConnectHubHTTPTransport *http.Transport
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -123,6 +125,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	dataConnectHubAPIURL := helper.NewStringHolder(cfg.DataConnectHubAPIURL)
+	dataConnectHubHTTPTransport := httpclient.NewSharedHTTPTransport(cfg.InsecureSkipVerify, rootCAs)
 	var discoveryCancel context.CancelFunc
 	if cfg.DataConnectHubAPIURL == "" && !cfg.MockK8Client {
 		resolveCtx, cancel := context.WithTimeout(context.Background(), dchDiscoveryAttemptTimeout)
@@ -162,15 +165,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	app := &App{
-		config:                  cfg,
-		logger:                  logger,
-		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(),
-		testEnv:                 testEnv,
-		rootCAs:                 rootCAs,
-		bffClientFactory:        bffFactory,
-		dataConnectHubAPIURL:    dataConnectHubAPIURL,
-		discoveryCancel:         discoveryCancel,
+		config:                      cfg,
+		logger:                      logger,
+		kubernetesClientFactory:     k8sFactory,
+		repositories:                repositories.NewRepositories(),
+		testEnv:                     testEnv,
+		rootCAs:                     rootCAs,
+		bffClientFactory:            bffFactory,
+		dataConnectHubAPIURL:        dataConnectHubAPIURL,
+		discoveryCancel:             discoveryCancel,
+		dataConnectHubHTTPTransport: dataConnectHubHTTPTransport,
 	}
 
 	app.wsTracker = proxy.NewConnectionTracker(app.logger)

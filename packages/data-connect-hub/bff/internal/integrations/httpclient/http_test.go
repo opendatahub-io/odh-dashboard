@@ -1,11 +1,23 @@
 package integrations
 
 import (
+	"log/slog"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewHTTPClientWithTransportReusesSharedTransport(t *testing.T) {
+	shared := NewSharedHTTPTransport(false, nil)
+	first, err := NewHTTPClientWithTransport(slog.Default(), "", "https://example.com", nil, false, nil, shared)
+	require.NoError(t, err)
+	second, err := NewHTTPClientWithTransport(slog.Default(), "", "https://example.com", nil, false, nil, shared)
+	require.NoError(t, err)
+
+	require.Same(t, shared, first.(*HTTPClient).client.Transport)
+	require.Same(t, shared, second.(*HTTPClient).client.Transport)
+}
 
 func TestReadResponseBodyAcceptsMaximumSize(t *testing.T) {
 	body, err := readResponseBody(strings.NewReader(strings.Repeat("a", maxResponseBodySize)))

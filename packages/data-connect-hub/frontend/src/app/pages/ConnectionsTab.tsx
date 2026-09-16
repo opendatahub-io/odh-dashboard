@@ -249,6 +249,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
       });
       setVerificationResponses((current) => new Set(current).add(id));
     } catch (verificationFailure) {
+      refresh();
       setVerifying((current) => {
         const next = new Set(current);
         next.delete(id);

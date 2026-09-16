@@ -49,22 +49,32 @@ func (e *HTTPError) Error() string {
 }
 
 func NewHTTPClient(logger *slog.Logger, RequestID string, baseURL string, headers http.Header, insecureSkipVerify bool, rootCAs *x509.CertPool) (HTTPClientInterface, error) {
+	return NewHTTPClientWithTransport(logger, RequestID, baseURL, headers, insecureSkipVerify, rootCAs, newHTTPTransport(insecureSkipVerify, rootCAs))
+}
+
+func NewHTTPClientWithTransport(logger *slog.Logger, RequestID string, baseURL string, headers http.Header, insecureSkipVerify bool, rootCAs *x509.CertPool, transport *http.Transport) (HTTPClientInterface, error) {
 	return &HTTPClient{
-		client: &http.Client{
-			Timeout: httpClientTimeout,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					MinVersion:         tls.VersionTLS12,
-					InsecureSkipVerify: insecureSkipVerify,
-					RootCAs:            rootCAs,
-				},
-			},
-		},
+		client:    &http.Client{Timeout: httpClientTimeout, Transport: transport},
 		baseURL:   baseURL,
 		RequestID: RequestID,
 		logger:    logger,
 		Headers:   headers,
 	}, nil
+}
+
+func NewSharedHTTPTransport(insecureSkipVerify bool, rootCAs *x509.CertPool) *http.Transport {
+	return newHTTPTransport(insecureSkipVerify, rootCAs)
+}
+
+func newHTTPTransport(insecureSkipVerify bool, rootCAs *x509.CertPool) *http.Transport {
+	return &http.Transport{
+		TLSClientConfig: &tls.Config{
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: insecureSkipVerify,
+			RootCAs:            rootCAs,
+		},
+		IdleConnTimeout: 90 * time.Second,
+	}
 }
 
 func (c *HTTPClient) GetRequestID() string {
@@ -101,9 +111,10 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 		if err := json.Unmarshal(body, &errorResponse); err != nil {
 			// If we can't unmarshal as JSON, create a generic error response with the raw body
 			c.logger.Warn("received non-JSON error response",
+				"request_id", requestId,
 				"status_code", response.StatusCode,
 				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(body[:min(len(body), 200)]))
+				"error_classification", "non_json_upstream_error")
 
 			errorResponse = ErrorResponse{
 				Code:    strconv.Itoa(response.StatusCode),
@@ -156,9 +167,10 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 		if err := json.Unmarshal(responseBody, &errorResponse); err != nil {
 			// If we can't unmarshal as JSON, create a generic error response with the raw body
 			c.logger.Warn("received non-JSON error response",
+				"request_id", requestId,
 				"status_code", response.StatusCode,
 				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(responseBody[:min(len(responseBody), 200)]))
+				"error_classification", "non_json_upstream_error")
 
 			errorResponse = ErrorResponse{
 				Code:    strconv.Itoa(response.StatusCode),
@@ -211,9 +223,10 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 		if err := json.Unmarshal(responseBody, &errorResponse); err != nil {
 			// If we can't unmarshal as JSON, create a generic error response with the raw body
 			c.logger.Warn("received non-JSON error response",
+				"request_id", requestId,
 				"status_code", response.StatusCode,
 				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(responseBody[:min(len(responseBody), 200)]))
+				"error_classification", "non_json_upstream_error")
 
 			errorResponse = ErrorResponse{
 				Code:    strconv.Itoa(response.StatusCode),

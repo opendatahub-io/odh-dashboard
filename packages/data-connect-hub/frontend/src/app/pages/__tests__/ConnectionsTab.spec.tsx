@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
+import { verifyConnection } from '~/app/api/dch';
 
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
@@ -18,6 +19,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 
 const mockUseConnections = jest.mocked(useConnections);
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
+const mockVerifyConnection = jest.mocked(verifyConnection);
 
 const connections = [
   {
@@ -55,6 +57,7 @@ const newConnectionType = {
 describe('ConnectionsTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockVerifyConnection.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
   });
@@ -91,6 +94,21 @@ describe('ConnectionsTab', () => {
 
     expect(screen.queryByText('warehouse')).toBeNull();
     expect(screen.getByText('object-store')).toBeTruthy();
+  });
+
+  it('refreshes the list when verification fails', async () => {
+    const user = userEvent.setup();
+    const refresh = jest.fn();
+    mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
+    mockVerifyConnection.mockImplementation(
+      () => () => Promise.reject(new Error('verification failed')),
+    );
+    render(<ConnectionsTab namespace="test-project" />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Verify connection' }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
 
   it('includes newly discovered connection types after polling', async () => {
