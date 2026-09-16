@@ -172,7 +172,14 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   const renderDataListItem = (col: ColumnState, index: number) => (
     <DataListItemRow key={col.key}>
       <DataListCheck
-        data-testid={`column-check-${col.key}`}
+        data-testid={`column-check-${
+          col.key.startsWith('metric:') && typeof col.title === 'string'
+            ? `metric:${col.title
+                .toLowerCase()
+                .replace(/\s+\(optimized\)$/, '')
+                .replace(/ /g, '_')}`
+            : col.key
+        }`}
         isChecked={col.isShown}
         onChange={() => handleCheckChange(col.key)}
         id={`column-${index}-checkbox`}

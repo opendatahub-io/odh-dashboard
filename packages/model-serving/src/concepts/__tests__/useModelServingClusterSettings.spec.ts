@@ -1,9 +1,9 @@
 import { testHook, standardUseFetchStateObject } from '@odh-dashboard/jest-config/hooks';
-import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApiCore } from '@odh-dashboard/plugin-core';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useModelServingClusterSettings } from '../useModelServingClusterSettings';
 
-jest.mock('@odh-dashboard/plugin-core/host-api');
+jest.mock('@odh-dashboard/plugin-core');
 
 const mockFetchDashboardConfig = jest.fn();
 jest.mocked(useHostApiCore).mockReturnValue({

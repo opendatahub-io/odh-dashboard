@@ -211,7 +211,7 @@ const TableDetailPage: React.FC = () => {
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>{displayName}</FlexItem>
       <FlexItem>
-        <Label isCompact data-testid="asset-type-badge">
+        <Label isCompact variant="outline" data-testid="asset-type-badge">
           Data asset
         </Label>
       </FlexItem>
@@ -257,6 +257,7 @@ const TableDetailPage: React.FC = () => {
         </EmptyState>
       }
       provideChildrenPadding
+      removeChildrenTopPadding
     >
       <Tabs defaultActiveKey={0} data-testid="detail-tabs">
         <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>

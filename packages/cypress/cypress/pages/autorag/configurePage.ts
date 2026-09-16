@@ -92,7 +92,7 @@ class AutoragConfigurePage {
 
   // Step 2 - Vector database secret
   findVectorStoreSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
-    return cy.findByTestId('vector-store-select-toggle', options);
+    return cy.findByTestId('vector-db-secret-selector', options);
   }
 
   // Step 2 - Optimization

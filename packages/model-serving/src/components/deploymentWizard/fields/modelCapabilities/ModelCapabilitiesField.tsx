@@ -21,7 +21,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/plugin-core';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import type {
   WizardField,

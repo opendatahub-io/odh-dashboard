@@ -57,7 +57,8 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   onViewCode,
 }) => {
   const { parameters, patterns } = useAutoragResultsContext();
-  const secretName = parameters?.maas_secret_name ?? '';
+  const secretName =
+    typeof parameters?.ogx_secret_name === 'string' ? parameters.ogx_secret_name : '';
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
 
   return (

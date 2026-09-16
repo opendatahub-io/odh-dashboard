@@ -18,6 +18,11 @@ class GenAiPlayground {
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
+  navigateAndWaitForModelSelector(projectName: string) {
+    this.navigate(projectName);
+    this.findModelToggleButton({ timeout: 120000 }).should('be.visible');
+  }
+
   navigateToAssets(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_DEV_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
@@ -88,8 +93,8 @@ class GenAiPlayground {
     return cy.findByTestId('modal-submit-button');
   }
 
-  findModelToggleButton() {
-    return cy.findByTestId('settings-model-selector-toggle');
+  findModelToggleButton(options?: { timeout?: number }) {
+    return cy.findByTestId('settings-model-selector-toggle', options);
   }
 
   findMessageInput() {
@@ -138,9 +143,9 @@ class GenAiPlayground {
       .should('be.checked');
   }
 
-  selectModelFromDropdown(modelName: string) {
+  selectModelFromDropdown(modelName: string, options?: { timeout?: number }) {
     this.findModelToggleButton().click();
-    cy.get('[role="menuitem"]').contains(modelName).click();
+    cy.contains('[role="menuitem"]', modelName, options).should('be.visible').click();
   }
 
   verifyModelIsSelected(modelName: string) {
