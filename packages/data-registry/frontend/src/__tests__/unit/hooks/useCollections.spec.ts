@@ -48,7 +48,7 @@ describe('useCollections', () => {
   it('should return empty array when no project', async () => {
     const { result } = renderHook(() => useCollections('', [], []));
     expect(result.current[0]).toEqual([]);
-    expect(result.current[1]).toBe(true);
+    await waitFor(() => expect(result.current[1]).toBe(true));
   });
 
   it('should fetch collection details and derive counts from assets', async () => {

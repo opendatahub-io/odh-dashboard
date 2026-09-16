@@ -17,7 +17,7 @@ describe('useAssets', () => {
   it('should return empty array when no project', async () => {
     const { result } = renderHook(() => useAssets(''));
     expect(result.current[0]).toEqual([]);
-    expect(result.current[1]).toBe(true);
+    await waitFor(() => expect(result.current[1]).toBe(true));
   });
 
   it('should fetch and combine tables and volumes', async () => {
@@ -119,11 +119,8 @@ describe('useAssets', () => {
 
     const { result } = renderHook(() => useAssets('test-project'));
 
-    await waitFor(() => {
-      expect(result.current[1]).toBe(true);
-    });
+    await waitFor(() => expect(result.current[2]).toBeDefined());
 
-    expect(result.current[2]).toBeDefined();
     expect(result.current[2]?.message).toBe('Network error');
   });
 });

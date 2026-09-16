@@ -18,6 +18,8 @@ type DashboardModalFooterProps = {
   isSubmitDisabled?: boolean;
   isSubmitLoading?: boolean;
   isCancelDisabled?: boolean;
+  submitButtonTestId?: string;
+  cancelButtonTestId?: string;
   alertTitle?: string;
   error?: Error | React.ReactNode;
   alertLinks?: React.ReactNode;
@@ -31,6 +33,8 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
   isSubmitDisabled,
   isSubmitLoading,
   isCancelDisabled,
+  submitButtonTestId = 'modal-submit-button',
+  cancelButtonTestId = 'modal-cancel-button',
   error,
   alertTitle,
   alertLinks,
@@ -60,7 +64,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
               isDisabled={isSubmitDisabled}
               onClick={onSubmit}
               isLoading={isSubmitLoading}
-              data-testid="modal-submit-button"
+              data-testid={submitButtonTestId}
             >
               {submitLabel}
             </Button>
@@ -71,7 +75,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
               variant="link"
               isDisabled={isCancelDisabled}
               onClick={onCancel}
-              data-testid="modal-cancel-button"
+              data-testid={cancelButtonTestId}
             >
               Cancel
             </Button>

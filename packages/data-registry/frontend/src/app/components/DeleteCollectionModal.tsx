@@ -1,17 +1,17 @@
 import React from 'react';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   Modal,
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
   Alert,
   TextInput,
   FormGroup,
   List,
   ListItem,
 } from '@patternfly/react-core';
-import { deleteCollection, ApiError } from '~/app/api/dataRegistry';
+import { deleteCollection, isConflictError } from '~/app/api/dataRegistry';
 import { CollectionInfo } from '~/app/hooks/useCollections';
 
 type DeleteCollectionModalProps = {
@@ -47,7 +47,7 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
       onDeleted();
       onClose();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
+      if (isConflictError(err)) {
         setError('Collection is not empty. Remove all assets before deleting.');
       } else {
         setError(err instanceof Error ? err.message : 'Failed to delete collection');
@@ -108,18 +108,15 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
         )}
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="danger"
-          onClick={handleDelete}
-          isDisabled={hasAssets || confirmText !== collection.name || isDeleting}
-          isLoading={isDeleting}
-          data-testid="confirm-delete-button"
-        >
-          Delete
-        </Button>
-        <Button variant="link" onClick={handleClose}>
-          Cancel
-        </Button>
+        <DashboardModalFooter
+          submitLabel="Delete"
+          submitButtonVariant="danger"
+          onSubmit={handleDelete}
+          onCancel={handleClose}
+          isSubmitDisabled={hasAssets || confirmText !== collection.name || isDeleting}
+          isSubmitLoading={isDeleting}
+          submitButtonTestId="confirm-delete-button"
+        />
       </ModalFooter>
     </Modal>
   );

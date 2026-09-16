@@ -1,35 +1,35 @@
-import { ApiError, is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
+import { is503Error, is403Error, isConflictError, isConnectionError } from '~/app/api/dataRegistry';
 
 describe('Error type guards', () => {
   describe('is503Error', () => {
-    it('should return true for 503 ApiError', () => {
-      const error = new ApiError(503, 'Service Unavailable');
+    it('should return true for a standardized 503 error', () => {
+      const error = new Error('status code 503: Service Unavailable');
       expect(is503Error(error)).toBe(true);
     });
 
-    it('should return false for non-503 ApiError', () => {
-      const error = new ApiError(404, 'Not Found');
+    it('should return false for a non-503 error', () => {
+      const error = new Error('status code 404: Not Found');
       expect(is503Error(error)).toBe(false);
     });
 
-    it('should return false for non-ApiError', () => {
+    it('should return false for a network error', () => {
       const error = new Error('Network error');
       expect(is503Error(error)).toBe(false);
     });
   });
 
   describe('is403Error', () => {
-    it('should return true for 403 ApiError', () => {
-      const error = new ApiError(403, 'Forbidden');
+    it('should return true for a standardized 403 error', () => {
+      const error = new Error('status code 403: Forbidden');
       expect(is403Error(error)).toBe(true);
     });
 
-    it('should return false for non-403 ApiError', () => {
-      const error = new ApiError(404, 'Not Found');
+    it('should return false for a non-403 error', () => {
+      const error = new Error('status code 404: Not Found');
       expect(is403Error(error)).toBe(false);
     });
 
-    it('should return false for non-ApiError', () => {
+    it('should return false for a network error', () => {
       const error = new Error('Network error');
       expect(is403Error(error)).toBe(false);
     });
@@ -51,9 +51,8 @@ describe('Error type guards', () => {
       expect(isConnectionError(error)).toBe(true);
     });
 
-    it('should return false for ApiError with network message', () => {
-      const error = new ApiError(500, 'network failure');
-      expect(isConnectionError(error)).toBe(false);
+    it('should return true for the generic error from handleRestFailures', () => {
+      expect(isConnectionError(new Error('Error communicating with server'))).toBe(true);
     });
 
     it('should return false for non-network error', () => {
@@ -65,6 +64,16 @@ describe('Error type guards', () => {
       expect(isConnectionError('not an error')).toBe(false);
       expect(isConnectionError(null)).toBe(false);
       expect(isConnectionError(undefined)).toBe(false);
+    });
+  });
+
+  describe('isConflictError', () => {
+    it('should return true for a standardized 409 error', () => {
+      expect(isConflictError(new Error('status code 409: Resource already exists'))).toBe(true);
+    });
+
+    it('should return false for a non-conflict error', () => {
+      expect(isConflictError(new Error('status code 500: Server error'))).toBe(false);
     });
   });
 });

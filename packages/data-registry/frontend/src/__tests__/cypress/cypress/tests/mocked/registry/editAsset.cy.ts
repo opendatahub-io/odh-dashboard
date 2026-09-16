@@ -284,7 +284,7 @@ describe('Edit Volume Asset', () => {
     properties: {
       description: 'Training document storage',
       'content-type': 'application/pdf',
-      purpose: 'training',
+      volume_purpose: 'training',
     },
   });
 

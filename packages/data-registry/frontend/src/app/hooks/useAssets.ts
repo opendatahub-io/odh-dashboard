@@ -1,6 +1,7 @@
 import React from 'react';
+import { useFetchState, type APIOptions, type FetchStateCallbackPromise } from 'mod-arch-core';
 import { fetchCollections, fetchAssets, fetchVolumes } from '~/app/api/dataRegistry';
-import { AssetResponse, VolumeInfo } from '~/app/types';
+import type { AssetResponse, VolumeInfo } from '~/app/types';
 
 export type RegistryAsset = {
   name: string;
@@ -53,70 +54,50 @@ const mapVolumeAsset = (volume: VolumeInfo, collection: string): RegistryAsset =
   };
 };
 
+type AssetsState = {
+  assets: RegistryAsset[];
+  collectionNames: string[];
+};
+
+const EMPTY_ASSETS_STATE: AssetsState = { assets: [], collectionNames: [] };
+
 export const useAssets = (
   project: string,
 ): [RegistryAsset[], boolean, Error | undefined, () => void, string[]] => {
-  const [assets, setAssets] = React.useState<RegistryAsset[]>([]);
-  const [collectionNames, setCollectionNames] = React.useState<string[]>([]);
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>();
-  const [refreshKey, setRefreshKey] = React.useState(0);
+  const callback = React.useCallback<FetchStateCallbackPromise<AssetsState>>(
+    async (opts: APIOptions) => {
+      if (!project) {
+        return EMPTY_ASSETS_STATE;
+      }
 
-  const refresh = React.useCallback(() => setRefreshKey((k) => k + 1), []);
+      const namespacesResponse = await fetchCollections(project, opts);
+      const collectionNames = namespacesResponse.namespaces.map((ns) => ns[0]);
+      const results = await Promise.all(
+        collectionNames.map(async (collection) => {
+          const [assetsResponse, volumesResponse] = await Promise.all([
+            fetchAssets(project, collection, opts),
+            fetchVolumes(project, collection, opts),
+          ]);
 
-  React.useEffect(() => {
-    if (!project) {
-      setAssets([]);
-      setCollectionNames([]);
-      setLoaded(true);
-      return;
-    }
+          const tableAssets = (assetsResponse.assets ?? []).map((a) =>
+            mapTableAsset(a, collection),
+          );
+          const volumeAssets = (volumesResponse.volumes ?? []).map((v) =>
+            mapVolumeAsset(v, collection),
+          );
 
-    let cancelled = false;
-    setAssets([]);
-    setCollectionNames([]);
-    setLoaded(false);
-    setError(undefined);
+          return [...tableAssets, ...volumeAssets];
+        }),
+      );
 
-    fetchCollections(project)
-      .then(async (namespacesResponse) => {
-        const names = namespacesResponse.namespaces.map((ns) => ns[0]);
+      return { assets: results.flat(), collectionNames };
+    },
+    [project],
+  );
 
-        const results = await Promise.all(
-          names.map(async (collection) => {
-            const [assetsResponse, volumesResponse] = await Promise.all([
-              fetchAssets(project, collection),
-              fetchVolumes(project, collection),
-            ]);
+  const [state, loaded, error, refresh] = useFetchState(callback, EMPTY_ASSETS_STATE, {
+    initialPromisePurity: true,
+  });
 
-            const tableAssets = (assetsResponse.assets ?? []).map((a) =>
-              mapTableAsset(a, collection),
-            );
-            const volumeAssets = (volumesResponse.volumes ?? []).map((v) =>
-              mapVolumeAsset(v, collection),
-            );
-
-            return [...tableAssets, ...volumeAssets];
-          }),
-        );
-
-        if (!cancelled) {
-          setCollectionNames(names);
-          setAssets(results.flat());
-          setLoaded(true);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err);
-          setLoaded(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [project, refreshKey]);
-
-  return [assets, loaded, error, refresh, collectionNames];
+  return [state.assets, loaded, error, refresh, state.collectionNames];
 };
