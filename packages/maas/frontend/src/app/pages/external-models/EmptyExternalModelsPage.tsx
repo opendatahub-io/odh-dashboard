@@ -44,7 +44,7 @@ const EmptyExternalModelsPage: React.FC<{ namespace: string }> = ({ namespace })
               <Link {...props} to={externalProvidersManagementPath(namespace)} />
             )}
           >
-            View providers
+            Manage providers
           </Button>
         </StackItem>
       </Stack>
