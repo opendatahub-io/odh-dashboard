@@ -22,6 +22,10 @@ import { StreamingToolCall } from '~/app/types';
 type ChatbotToolCallsProps = {
   toolCalls: StreamingToolCall[];
   isResponseComplete: boolean;
+  isExpanded?: boolean;
+  onExpandedChange?: (isExpanded: boolean) => void;
+  showToggle?: boolean;
+  showContent?: boolean;
 };
 
 const formatDuration = (toolCall: StreamingToolCall): string | undefined => {
@@ -145,11 +149,24 @@ const ToolCallList: React.FC<{ toolCalls: StreamingToolCall[] }> = ({ toolCalls 
   </Accordion>
 );
 
-const ChatbotToolCalls: React.FC<ChatbotToolCallsProps> = ({ toolCalls, isResponseComplete }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+const ChatbotToolCalls: React.FC<ChatbotToolCallsProps> = ({
+  toolCalls,
+  isResponseComplete,
+  isExpanded: controlledIsExpanded,
+  onExpandedChange,
+  showToggle = true,
+  showContent = true,
+}) => {
+  const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = React.useState(false);
   const toggleId = React.useId();
   const contentId = React.useId();
   const status = `${toolCalls.length} tool${toolCalls.length === 1 ? '' : 's'} called`;
+  const isExpanded = controlledIsExpanded ?? uncontrolledIsExpanded;
+  const toggleExpanded = () => {
+    const nextIsExpanded = !isExpanded;
+    setUncontrolledIsExpanded(nextIsExpanded);
+    onExpandedChange?.(nextIsExpanded);
+  };
 
   if (!isResponseComplete) {
     return (
@@ -160,24 +177,28 @@ const ChatbotToolCalls: React.FC<ChatbotToolCallsProps> = ({ toolCalls, isRespon
   }
 
   return (
-    <div className="chatbot-tool-calls pf-v6-u-w-100" data-testid="tool-calls">
-      <ExpandableSectionToggle
-        isExpanded={isExpanded}
-        onToggle={() => setIsExpanded((previous) => !previous)}
-        contentId={contentId}
-        toggleId={toggleId}
-        data-testid="tool-calls-toggle"
-      >
-        <span className="pf-v6-u-font-size-sm">{status}</span>
-      </ExpandableSectionToggle>
-      <ExpandableSection
-        isExpanded={isExpanded}
-        isDetached
-        contentId={contentId}
-        toggleId={toggleId}
-      >
-        <ToolCallList toolCalls={toolCalls} />
-      </ExpandableSection>
+    <div className="chatbot-tool-calls" data-testid="tool-calls">
+      {showToggle && (
+        <ExpandableSectionToggle
+          isExpanded={isExpanded}
+          onToggle={toggleExpanded}
+          contentId={contentId}
+          toggleId={toggleId}
+          data-testid="tool-calls-toggle"
+        >
+          <small>{status}</small>
+        </ExpandableSectionToggle>
+      )}
+      {showContent && (controlledIsExpanded === undefined || isExpanded) && (
+        <ExpandableSection
+          isExpanded={isExpanded}
+          isDetached
+          contentId={contentId}
+          toggleId={toggleId}
+        >
+          <ToolCallList toolCalls={toolCalls} />
+        </ExpandableSection>
+      )}
     </div>
   );
 };
