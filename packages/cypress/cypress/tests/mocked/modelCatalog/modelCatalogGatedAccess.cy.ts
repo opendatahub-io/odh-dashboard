@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ModelRegistryMetadataType } from '@odh-dashboard/model-registry/types/types';
@@ -10,7 +11,7 @@ import { API_VERSION, setupModelCatalogIntercepts } from '../catalogHelpers';
 const SOURCE_ID = 'hugging_face_source';
 const MODEL_NAME = 'meta-llama/Llama-3.1-8B-Instruct-INT8';
 const ENCODED_MODEL_NAME = 'meta-llama%2FLlama-3.1-8B-Instruct-INT8';
-const REGISTRIES_NAMESPACE = 'odh-model-registries';
+const REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 const gatedDeniedModel = {
   source_id: SOURCE_ID,
@@ -54,12 +55,12 @@ const setupGatedAccessIntercepts = ({ hfUsername }: GatedAccessInterceptOptions 
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: REGISTRIES_NAMESPACE,
         },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
       },
     }),
   );
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: REGISTRIES_NAMESPACE }));
 
   cy.interceptOdh(
     'GET /model-registry/api/:apiVersion/model_catalog/sources',

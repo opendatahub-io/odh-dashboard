@@ -1,4 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockConfigMapsSecrets } from '@odh-dashboard/internal/__mocks__';
@@ -27,7 +28,7 @@ const groupSubjects: RoleBindingSubject[] = [
 
 const sampleCertificatePath = './cypress/tests/mocked/modelRegistrySettings/mockCertificate.pem';
 const unSupportedFilePath = './cypress/tests/mocked/modelRegistrySettings/unSupportedFile.txt';
-const MODEL_REGISTRIES_NAMESPACE = Cypress.env('APPLICATIONS_NAMESPACE') || 'odh-model-registries';
+const MODEL_REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 const setupMocksForMRSettingAccess = ({
   hasModelRegistries = true,
@@ -36,6 +37,7 @@ const setupMocksForMRSettingAccess = ({
   secrets = [{ name: 'sampleSecret', keys: ['foo.crt', 'bar.crt'] }],
   configMaps = [{ name: 'foo-bar', keys: ['bar.crt'] }],
   failedToLoadCertificates = false,
+  aiHubExists = true,
 }: {
   hasModelRegistries?: boolean;
   hasDatabasePassword?: boolean;
@@ -43,6 +45,7 @@ const setupMocksForMRSettingAccess = ({
   secrets?: ConfigSecretItem[];
   configMaps?: ConfigSecretItem[];
   failedToLoadCertificates?: boolean;
+  aiHubExists?: boolean;
 }) => {
   asProductAdminUser();
   cy.interceptOdh(
@@ -58,11 +61,16 @@ const setupMocksForMRSettingAccess = ({
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
         },
       },
     }),
   );
+  cy.interceptOdh(
+    'GET /api/aihub',
+    aiHubExists
+      ? mockAIHub({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE })
+      : { statusCode: 200, headers: { 'content-type': 'application/json' }, body: null },
+  ).as('getAIHub');
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptOdh('POST /api/modelRegistries', mockModelRegistry({})).as('createModelRegistry');
   cy.interceptOdh(
@@ -312,6 +320,20 @@ it('Model registry settings should be available for product admins with capabili
   modelRegistrySettings.findNavItem().should('exist');
 });
 
+it('Shows an error when the AIHub resource is absent', () => {
+  setupMocksForMRSettingAccess({ aiHubExists: false });
+  modelRegistrySettings.visit(false);
+  cy.wait('@getAIHub').then(({ response }) => {
+    expect(response?.statusCode).to.equal(200);
+    expect(response?.body).to.equal(null);
+  });
+  modelRegistrySettings
+    .findErrorState()
+    .should('contain.text', 'Could not load component state')
+    .and('contain.text', 'No registries namespace could be found');
+  cy.testA11y();
+});
+
 it('Model registry settings should not be available when model registry is disabled', () => {
   asProductAdminUser();
   cy.interceptOdh(
@@ -326,11 +348,11 @@ it('Model registry settings should not be available when model registry is disab
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
         },
       },
     }),
   );
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE }));
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   modelRegistrySettings.visit(false);
   pageNotfound.findPage().should('exist');

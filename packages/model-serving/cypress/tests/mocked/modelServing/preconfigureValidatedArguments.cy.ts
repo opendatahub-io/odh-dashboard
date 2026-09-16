@@ -1,4 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import {
@@ -74,13 +75,11 @@ const initIntercepts = ({ toolCalling = true }: { toolCalling?: boolean } = {}) 
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_REGISTRY]: {
-          managementState: 'Managed',
-          registriesNamespace: REGISTRIES_NAMESPACE,
-        },
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
   );
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: REGISTRIES_NAMESPACE }));
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({

@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockModelVersionList, mockModelArtifactList } from '@odh-dashboard/internal/__mocks__';
@@ -21,6 +22,7 @@ import { modelVersionDetails } from '../../../pages/modelRegistry/modelVersionDe
 import { ServiceModel } from '../../../utils/models';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
+const REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 const mockRegisteredModelWithData = mockRegisteredModel({
   name: 'Test Model',
@@ -73,11 +75,11 @@ const initIntercepts = () => {
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: 'odh-model-registries',
         },
       },
     }),
   );
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: REGISTRIES_NAMESPACE }));
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptK8sList(
     ServiceModel,
