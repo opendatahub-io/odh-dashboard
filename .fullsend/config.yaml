@@ -9,7 +9,8 @@ roles:
     - review
 agents:
     # Dashboard overlay; the base harness still supplies Fullsend's review skills.
-    - source: harness/review.yaml
+    - name: review
+      source: harness/review.yaml
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/

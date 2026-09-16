@@ -81,8 +81,11 @@ describe('CreateCollectionModal', () => {
     await waitFor(() => {
       expect(mockCreateCollection).toHaveBeenCalledWith('test-project', {
         namespace: ['test-collection'],
-        owner: 'test-user',
-        properties: undefined,
+        properties: {
+          owner: 'test-user',
+          created_at: expect.any(String), // eslint-disable-line camelcase
+          created_by: 'test-user', // eslint-disable-line camelcase
+        },
       });
     });
 
@@ -107,8 +110,12 @@ describe('CreateCollectionModal', () => {
     await waitFor(() => {
       expect(mockCreateCollection).toHaveBeenCalledWith('test-project', {
         namespace: ['test-collection'],
-        owner: 'test-user',
-        properties: { description: 'Test description' },
+        properties: {
+          description: 'Test description',
+          owner: 'test-user',
+          created_at: expect.any(String), // eslint-disable-line camelcase
+          created_by: 'test-user', // eslint-disable-line camelcase
+        },
       });
     });
   });

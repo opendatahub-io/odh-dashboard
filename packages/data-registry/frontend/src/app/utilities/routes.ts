@@ -1,5 +1,5 @@
 export const browseUrl = (project?: string): string => {
-  const base = '..';
+  const base = '/ai-hub/data/browse';
   if (!project) {
     return base;
   }
@@ -12,4 +12,7 @@ export const assetDetailUrl = (
   name: string,
   assetType: 'table' | 'volume' = 'table',
 ): string =>
-  `assets/${assetType}/${encodeURIComponent(project)}/${encodeURIComponent(collection)}/${encodeURIComponent(name)}`;
+  `/ai-hub/data/browse/assets/${assetType}/${encodeURIComponent(project)}/${encodeURIComponent(collection)}/${encodeURIComponent(name)}`;
+
+export const collectionDetailUrl = (project: string, collection: string): string =>
+  `/ai-hub/data/browse/collections/${encodeURIComponent(project)}/${encodeURIComponent(collection)}`;

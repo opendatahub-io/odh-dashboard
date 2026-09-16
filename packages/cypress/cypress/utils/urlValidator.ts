@@ -10,6 +10,7 @@
 
 import * as http from 'http';
 import * as https from 'https';
+import { logToConsole, LogLevel } from './logger';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const HttpsProxyAgent: new (options: string | object) => https.Agent = require('https-proxy-agent');
 
@@ -113,6 +114,63 @@ const isRetryableError = (error: Error & { code?: string }): boolean => {
 const isRetryableStatusCode = (statusCode: number): boolean =>
   statusCode >= 500 && statusCode < 600;
 
+type HeaderResult = {
+  statusCode: number;
+  location?: string;
+};
+
+const headerLocation = (location: string | string[] | undefined): string | undefined =>
+  Array.isArray(location) ? location[0] : location;
+
+/**
+ * GET a URL and return only status / Location. Do not download the body.
+ * Manifests include GitHub release assets (tens of MB); waiting for `end` on
+ * those (or a stalled stream after headers) exceeds Cypress's 60s `cy.task` timeout.
+ */
+const fetchStatus = (
+  urlToTest: string,
+  options: http.RequestOptions,
+  protocol: typeof http | typeof https,
+  requestTimeout: number,
+): Promise<HeaderResult> =>
+  new Promise((resolve, reject) => {
+    let settled = false;
+    const timeoutState: { timer?: ReturnType<typeof setTimeout> } = {};
+
+    const settle = (cb: () => void): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timeoutState.timer) {
+        clearTimeout(timeoutState.timer);
+      }
+      cb();
+    };
+
+    const req = protocol.get(urlToTest, options, (res) => {
+      const statusCode = res.statusCode || 0;
+      const location = headerLocation(res.headers.location);
+      // Resolve before destroy() so a sync ECONNRESET from abort is ignored.
+      settle(() => resolve({ statusCode, location }));
+      res.resume();
+      req.destroy();
+    });
+
+    timeoutState.timer = setTimeout(() => {
+      req.destroy();
+      settle(() => reject(new Error(`Request timed out after ${requestTimeout}ms`)));
+    }, requestTimeout);
+
+    req.on('error', (err) => {
+      settle(() => reject(err));
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      settle(() => reject(new Error(`Request timed out after ${requestTimeout}ms`)));
+    });
+  });
+
 // Make HTTP/HTTPS request with retry logic, redirect handling, and proxy support
 const makeRequest = async (
   urlToTest: string,
@@ -154,24 +212,12 @@ const makeRequest = async (
   const options: http.RequestOptions = { timeout: requestTimeout, headers: commonHeaders, agent };
 
   try {
-    // Make the HTTP request with timeout handling
-    const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
-      const req = protocol.get(urlToTest, options, resolve);
-      req.on('error', reject);
-      req.on('timeout', () => {
-        req.destroy();
-        reject(new Error(`Request timed out after ${requestTimeout}ms`));
-      });
-    });
-
-    const statusCode = response.statusCode || 0;
-    const { location } = response.headers;
-
-    // Consume response data to properly close the connection
-    await new Promise<void>((resolve) => {
-      response.on('data', () => undefined);
-      response.on('end', resolve);
-    });
+    const { statusCode, location } = await fetchStatus(
+      urlToTest,
+      options,
+      protocol,
+      requestTimeout,
+    );
 
     // Handle HTTP redirects (3xx status codes)
     if (statusCode >= 300 && statusCode < 400 && location) {
@@ -248,10 +294,23 @@ export async function validateHttpsUrls(
   const uniqueUrls = [...new Set(urls)];
   const results: UrlValidationResult[] = [];
 
+  const batchCount = Math.ceil(uniqueUrls.length / CONCURRENCY_LIMIT);
+  logToConsole(
+    LogLevel.INFO,
+    `validateHttpsUrls: ${uniqueUrls.length} URLs in ${batchCount} batch(es) of ${CONCURRENCY_LIMIT}`,
+  );
+
   for (let i = 0; i < uniqueUrls.length; i += CONCURRENCY_LIMIT) {
     const batch = uniqueUrls.slice(i, i + CONCURRENCY_LIMIT);
+    const batchStart = Date.now();
     const batchResults = await Promise.all(batch.map((url) => makeRequest(url, proxyUrlFromTask)));
     results.push(...batchResults);
+    logToConsole(
+      LogLevel.INFO,
+      `validateHttpsUrls: batch ${i / CONCURRENCY_LIMIT + 1}/${batchCount} finished in ${
+        Date.now() - batchStart
+      }ms`,
+    );
   }
 
   return results;

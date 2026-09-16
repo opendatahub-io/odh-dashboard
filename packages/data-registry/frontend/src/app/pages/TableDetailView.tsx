@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom';
 import { AssetResponse } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
-import { browseUrl } from '~/app/utilities/routes';
+import { collectionDetailUrl } from '~/app/utilities/routes';
 import {
   getFormatBadge,
   getUnstructuredFormatLabel,
@@ -99,7 +99,9 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 <DescriptionListDescription data-testid="asset-collection">
                   {asset.collection ? (
                     project ? (
-                      <Link to={browseUrl(project)}>{asset.collection}</Link>
+                      <Link to={collectionDetailUrl(project, asset.collection)}>
+                        {asset.collection}
+                      </Link>
                     ) : (
                       asset.collection
                     )
@@ -192,7 +194,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 {asset.labels && asset.labels.length > 0 ? (
                   <LabelGroup data-testid="asset-labels" numLabels={5}>
                     {asset.labels.map((label) => (
-                      <Label key={label} isCompact>
+                      <Label key={label} isCompact variant="outline">
                         {label}
                       </Label>
                     ))}
@@ -211,7 +213,7 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 <CardBody>
                   <LabelGroup data-testid="asset-properties" numLabels={5}>
                     {Object.entries(asset.properties).map(([key, value]) => (
-                      <Label key={key} isCompact>
+                      <Label key={key} isCompact variant="outline">
                         {key}: {value}
                       </Label>
                     ))}

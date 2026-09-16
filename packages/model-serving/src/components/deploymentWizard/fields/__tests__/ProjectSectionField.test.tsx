@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, renderHook, fireEvent, act } from '@testing-library/react';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import ProjectSection, { isValidProjectName, useProjectSection } from '../ProjectSection';
 

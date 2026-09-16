@@ -910,12 +910,8 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
 	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
-	// part-of=dashboard and is matched here. The MaaS Consumer Portal ConsoleLink is
-	// an independent operand labeled part-of=maas-consumer-portal, so it is not
-	// selected by this teardown — it is managed solely by
-	// reconcileMaaSConsumerPortal, independent of the core dashboard's
-	// managementState. Guard against clusters where the ConsoleLink CRD is not
-	// installed (non-OpenShift).
+	// part-of=dashboard and is matched here. Guard against clusters where the
+	// ConsoleLink CRD is not installed (non-OpenShift).
 	consoleLinks := &unstructured.UnstructuredList{}
 	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
 	if err := r.List(ctx, consoleLinks, matchLabels); err != nil {

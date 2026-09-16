@@ -13,6 +13,8 @@ describe('useServerSelection', () => {
       connectionUrl: 'https://server1.com',
       tools: 0,
       version: 'Unknown',
+      source: 'configmap',
+      logo: null,
     },
     {
       id: 'server2',
@@ -23,6 +25,8 @@ describe('useServerSelection', () => {
       connectionUrl: 'https://server2.com',
       tools: 0,
       version: 'Unknown',
+      source: 'configmap',
+      logo: null,
     },
   ];
 

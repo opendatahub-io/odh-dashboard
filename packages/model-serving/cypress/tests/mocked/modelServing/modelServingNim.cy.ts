@@ -1,3 +1,4 @@
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import {
   mockNimInferenceService,
   mockNimModelPVC,
@@ -6,6 +7,7 @@ import {
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status, mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
@@ -25,12 +27,16 @@ import {
   StorageClassModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {
+  deleteModelServingModal,
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
-import { clusterStorage } from '@odh-dashboard/cypress/cypress/pages/clusterStorage';
+import {
+  clusterStorage,
+  updateClusterStorageModal,
+} from '@odh-dashboard/cypress/cypress/pages/clusterStorage';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -71,6 +77,146 @@ describe('NIM Models Deployments', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Name').findKebabAction('Edit').should('exist');
     modelServingGlobal.getModelRow('Test Name').findKebabAction('Delete').should('exist');
+  });
+
+  it('should warn before deleting a shared NIM cache PVC', () => {
+    const selectedDeployment = mockNimInferenceService();
+    const sharedDeployment = mockInferenceServiceK8sResource({
+      name: 'shared-model',
+      displayName: 'Shared model',
+      runtimeName: 'test-name',
+    });
+    const runtime = mockNimServingRuntime({ pvcName: 'nim-cache' });
+
+    initInterceptsToEnableNim({ nimWizard: true });
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([selectedDeployment]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime]));
+    cy.interceptK8s(
+      'DELETE',
+      { model: InferenceServiceModel, ns: 'test-project', name: 'test-name' },
+      mock200Status({}),
+    ).as('deleteInferenceService');
+    cy.interceptK8s(
+      'DELETE',
+      { model: ServingRuntimeModel, ns: 'test-project', name: 'test-name' },
+      mock200Status({}),
+    ).as('deleteServingRuntime');
+    cy.interceptK8s(
+      'DELETE',
+      { model: PVCModel, ns: 'test-project', name: 'nim-cache' },
+      mock200Status({}),
+    ).as('deleteNIMPVC');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getDeploymentRow('Test Name').findKebabAction('Delete').click();
+
+    deleteModelServingModal.shouldBeOpen();
+    deleteModelServingModal.findPVCCheckbox().should('not.be.checked');
+    deleteModelServingModal.findPVCDependentsAlert().should('not.exist');
+
+    cy.interceptK8sList(InferenceServiceModel, {
+      delay: 1000,
+      body: mockK8sResourceList([selectedDeployment, sharedDeployment]),
+    }).as('getPVCDependentInferenceServices');
+    cy.interceptK8sList(ServingRuntimeModel, {
+      delay: 1000,
+      body: mockK8sResourceList([runtime]),
+    }).as('getPVCDependentServingRuntimes');
+
+    deleteModelServingModal.findInput().type('Test Name');
+    deleteModelServingModal.findPVCCheckbox().click();
+    deleteModelServingModal.findPVCDependentsLoadingAlert().should('be.visible');
+    deleteModelServingModal.findSubmitButton().should('be.disabled');
+    cy.wait('@getPVCDependentInferenceServices');
+    cy.wait('@getPVCDependentServingRuntimes');
+    deleteModelServingModal
+      .findPVCDependentsAlert()
+      .should('contain.text', 'Other model deployments use this PVC')
+      .and('contain.text', 'Shared model');
+    deleteModelServingModal.findPVCDependentItems().should('have.length', 1);
+    cy.testA11y();
+
+    deleteModelServingModal.findSubmitButton().click();
+
+    cy.wait('@deleteInferenceService').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+    cy.wait('@deleteInferenceService').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+    cy.wait('@deleteServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+    cy.wait('@deleteServingRuntime').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+    cy.wait('@deleteNIMPVC').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+    });
+    cy.wait('@deleteNIMPVC').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+  });
+
+  it('should confirm deletion when the NIM cache PVC has no other dependents', () => {
+    const deployment = mockNimInferenceService();
+    const runtime = mockNimServingRuntime({ pvcName: 'nim-cache' });
+
+    initInterceptsToEnableNim({ nimWizard: true });
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([deployment]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime]));
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getDeploymentRow('Test Name').findKebabAction('Delete').click();
+
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([deployment])).as(
+      'getPVCDependentInferenceServices',
+    );
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime])).as(
+      'getPVCDependentServingRuntimes',
+    );
+
+    deleteModelServingModal.findPVCCheckbox().click();
+    cy.wait('@getPVCDependentInferenceServices');
+    cy.wait('@getPVCDependentServingRuntimes');
+    deleteModelServingModal
+      .findPVCDependentsAlert()
+      .should('contain.text', 'PVC is not shared')
+      .and('contain.text', 'No other model deployments use this PVC');
+    cy.testA11y();
+  });
+
+  it('should require deselecting PVC cleanup when dependency lookup fails', () => {
+    const deployment = mockNimInferenceService();
+    const runtime = mockNimServingRuntime({ pvcName: 'nim-cache' });
+
+    initInterceptsToEnableNim({ nimWizard: true });
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([deployment]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime]));
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getDeploymentRow('Test Name').findKebabAction('Delete').click();
+
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      { statusCode: 500, body: mock500Error({}) },
+    ).as('getPVCDependentInferenceServicesError');
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([runtime]),
+    ).as('getPVCDependentServingRuntimes');
+
+    deleteModelServingModal.findInput().type('Test Name');
+    deleteModelServingModal.findPVCCheckbox().click();
+    cy.wait('@getPVCDependentInferenceServicesError');
+    cy.wait('@getPVCDependentServingRuntimes');
+    deleteModelServingModal
+      .findPVCDependentsAlert()
+      .should('contain.text', 'PVC dependencies could not be determined');
+    deleteModelServingModal.findSubmitButton().should('be.disabled');
+
+    deleteModelServingModal.findPVCCheckbox().click();
+    deleteModelServingModal.findSubmitButton().should('not.be.disabled');
   });
 
   it('should show the NIM deployment details in the expanded row on the project Models tab', () => {
@@ -412,8 +558,25 @@ describe('NIM Models Deployments', () => {
     // The PVC must be in the fetched list for the existing-storage select to render its name
     cy.interceptK8sList(
       { model: PVCModel, ns: 'test-project' },
-      mockK8sResourceList([mockNimModelPVC({ name: 'my-nim-wizard-pvc' })]),
+      mockK8sResourceList([
+        mockNimModelPVC({ name: 'my-nim-wizard-pvc' }),
+        mockNimModelPVC({ name: 'updated-nim-wizard-pvc' }),
+      ]),
     );
+    cy.interceptK8s(
+      'PUT',
+      { model: ServingRuntimeModel, ns: 'test-project', name: 'test-name' },
+      mockNimServingRuntime({
+        image: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
+        pvcName: 'updated-nim-wizard-pvc',
+        subPath: 'updated-cache-path',
+      }),
+    ).as('updateServingRuntime');
+    cy.interceptK8s(
+      'PUT',
+      { model: InferenceServiceModel, ns: 'test-project', name: 'test-name' },
+      mockNimInferenceService(),
+    ).as('updateInferenceService');
     // Auth is enabled by default on the NIM deployment (no enable-auth=false annotation), so the
     // token auth field reads the deployment's service-account token secret ("<deployment-name>-sa")
     // and prefills the existing service account name from the secret's display name.
@@ -473,6 +636,11 @@ describe('NIM Models Deployments', () => {
       .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
     modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
+    modelServingWizardEdit.nim.selectExistingPVC('updated-nim-wizard-pvc');
+    modelServingWizardEdit.nim
+      .findSubPathInput()
+      .type('{selectall}updated-cache-path')
+      .should('have.value', 'updated-cache-path');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
@@ -489,6 +657,25 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findEnvVariableName('0').should('have.value', 'CUSTOM_VAR');
     modelServingWizardEdit.findEnvVariableValue('0').should('have.value', 'custom-value');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findDeployButton().should('be.enabled').click();
+
+    cy.wait('@updateServingRuntime').then((interception) => {
+      const pvcVolume = interception.request.body.spec.volumes.find(
+        (volume: { persistentVolumeClaim?: { claimName: string } }) =>
+          volume.persistentVolumeClaim?.claimName === 'updated-nim-wizard-pvc',
+      );
+      const cacheVolumeMount = interception.request.body.spec.containers[0].volumeMounts.find(
+        (volumeMount: { mountPath: string }) => volumeMount.mountPath === '/mnt/models/cache',
+      );
+
+      expect(pvcVolume?.persistentVolumeClaim?.claimName).to.equal('updated-nim-wizard-pvc');
+      expect(cacheVolumeMount).to.containSubset({
+        name: 'updated-nim-wizard-pvc',
+        mountPath: '/mnt/models/cache',
+        subPath: 'updated-cache-path',
+      });
+    });
+    cy.wait('@updateInferenceService');
   });
 
   it('should NOT manage NIM PVCs in cluster storage tab NIM is disabled', () => {
@@ -539,6 +726,9 @@ describe('NIM Models Deployments', () => {
         mockNimModelPVC({
           displayName: 'NIM Cache',
           name: 'nim-cache',
+          annotations: {
+            'dashboard.opendatahub.io/nim-subpath': 'arctic-embed-l',
+          },
         }),
       ]),
     );
@@ -562,6 +752,26 @@ describe('NIM Models Deployments', () => {
       .findConnectedResources()
       .should('contain.text', 'Test Name');
 
-    // TODO followup PR: can edit and update subpath
+    const storageRow = clusterStorage.getClusterStorageRow('NIM Cache');
+    storageRow.findKebabAction('Edit storage').click();
+    updateClusterStorageModal.findNimSubpathInput().should('have.value', 'arctic-embed-l');
+    updateClusterStorageModal.findNimSubpathInput().fill('new-model-path');
+
+    cy.interceptK8s('PUT', PVCModel, mockNimModelPVC({ name: 'nim-cache' })).as('updateNimStorage');
+    updateClusterStorageModal.findSubmitButton().click();
+
+    cy.wait('@updateNimStorage').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'dashboard.opendatahub.io/nim-pvc': 'true',
+            'dashboard.opendatahub.io/nim-subpath': 'new-model-path',
+          },
+          name: 'nim-cache',
+          namespace: 'test-project',
+        },
+      });
+    });
   });
 });

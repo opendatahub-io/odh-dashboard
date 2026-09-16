@@ -4,8 +4,7 @@ import {
   namespaceToProjectDisplayName,
 } from '@odh-dashboard/k8s-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { DashboardEmptyTableView, ProjectsContext } from '@odh-dashboard/ui-core';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import GlobalModelsToolbar from './GlobalModelsToolbar';
 import {

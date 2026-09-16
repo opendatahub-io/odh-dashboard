@@ -215,13 +215,32 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
 ): extension is ModelServingDeploymentsTableExtension<D> =>
   extension.type === 'model-serving.deployments-table';
 
+export type ModelServingDeleteOptions = {
+  dryRun?: boolean;
+};
+
+export type ModelServingDeleteModalComponentProps<D extends Deployment = Deployment> = {
+  deployment: D;
+  onClose: (deleted: boolean) => void;
+  /** Deletes the primary deployment resources. Optional resources must be deleted by the component. */
+  onDelete: (options?: ModelServingDeleteOptions) => Promise<void>;
+  title: string;
+  submitButtonLabel: string;
+};
+
 export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
   'model-serving.platform/delete-deployment',
   {
     platform: D['modelServingPlatformId'];
-    onDelete: CodeRef<(deployment: D) => Promise<void>>;
+    onDelete: CodeRef<(deployment: D, options?: ModelServingDeleteOptions) => Promise<void>>;
     title: string;
     submitButtonLabel: string;
+    /** Whether this extension applies to the deployment. Active extensions with the highest priority win. */
+    isActive?: CodeRef<(deployment: D) => boolean> | true;
+    /** Priority among active delete extensions for the same platform. */
+    priority?: number;
+    /** Optional platform-specific modal. It must call onClose(true) only after deletion succeeds. */
+    DeleteModalComponent?: ComponentCodeRef<ModelServingDeleteModalComponentProps<D>>;
   }
 >;
 

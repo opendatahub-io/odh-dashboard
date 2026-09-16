@@ -4,7 +4,7 @@
     "correct_answers": [
       "Red Hat OpenShift AI is a flexible, scalable MLOps platform built on Red Hat OpenShift that provides an integrated environment for building, training, deploying, and monitoring machine learning models."
     ],
-    "correct_answer_document_ids": [
+    "correct_answer_document_keys": [
       "autorag-test-document.txt"
     ]
   },
@@ -13,7 +13,7 @@
     "correct_answers": [
       "Data Science Pipelines enable users to automate multi-step ML workflows using Kubeflow Pipelines, supporting parameterized execution, artifact tracking, and experiment management."
     ],
-    "correct_answer_document_ids": [
+    "correct_answer_document_keys": [
       "autorag-test-document.txt"
     ]
   },
@@ -22,7 +22,7 @@
     "correct_answers": [
       "AutoRAG uses faithfulness, answer correctness, and context correctness as evaluation metrics to rank pipeline configurations."
     ],
-    "correct_answer_document_ids": [
+    "correct_answer_document_keys": [
       "autorag-test-document.txt"
     ]
   }

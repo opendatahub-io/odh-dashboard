@@ -29,6 +29,14 @@ import { DagreLayoutOptions, TOP_TO_BOTTOM } from '@patternfly/react-topology/di
 
 const STATUS_ICON_SIZE = 16;
 
+const getPillAccentPath = (offsetX: number, height: number, accentWidth: number): string => {
+  const radius = height / 2;
+  const rightX = offsetX + accentWidth;
+  return `M ${offsetX + radius} 0 H ${rightX} V ${height} H ${
+    offsetX + radius
+  } A ${radius} ${radius} 0 0 1 ${offsetX + radius} 0 Z`;
+};
+
 /**
  * Calculates pill dimensions based on text size and other parameters
  */
@@ -76,7 +84,7 @@ const calculatePillDimensions = (
   const iconWidth = taskIconClass || taskIcon ? height - taskIconPadding : 0;
   const iconStartX = -(iconWidth * 0.75);
 
-  const statusStartX = startX - statusIconSize / 4; // Adjust for icon padding
+  const statusStartX = statusIconSize > STATUS_ICON_SIZE ? paddingX : startX - statusIconSize / 4;
   const statusSpace = showStatusState ? (statusSize?.width || 0) + paddingX : 0;
 
   const leadIconStartX = startX + statusSpace;
@@ -107,6 +115,32 @@ const calculatePillDimensions = (
     leadIconStartX,
     pillWidth,
     offsetX,
+  };
+};
+
+/** Reserve space so label text starts after the accent strip with horizontal padding. */
+const adjustDimensionsForAccentStrip = (
+  dimensions: TaskPillDimensions,
+  accentStripWidth: number,
+  paddingX: number,
+  verticalLayout: boolean,
+  width: number,
+): TaskPillDimensions => {
+  const minTextStartX = accentStripWidth + paddingX;
+  if (dimensions.textStartX >= minTextStartX) {
+    return dimensions;
+  }
+
+  const textOffsetDelta = minTextStartX - dimensions.textStartX;
+  const pillWidth = dimensions.pillWidth + textOffsetDelta;
+  return {
+    ...dimensions,
+    textStartX: minTextStartX,
+    badgeStartX: dimensions.badgeStartX + textOffsetDelta,
+    actionStartX: dimensions.actionStartX + textOffsetDelta,
+    contextStartX: dimensions.contextStartX + textOffsetDelta,
+    pillWidth,
+    offsetX: verticalLayout ? (width - pillWidth) / 2 : dimensions.offsetX,
   };
 };
 
@@ -169,6 +203,8 @@ export interface LineageTaskPillProps {
   hideContextMenuKebab?: boolean;
   shadowCount?: number;
   shadowOffset?: number;
+  pillBackgroundColor?: string;
+  pillAccentColor?: string;
   x?: number;
   y?: number;
 }
@@ -221,6 +257,8 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
     hideContextMenuKebab,
     shadowCount = 0,
     shadowOffset = 8,
+    pillBackgroundColor,
+    pillAccentColor,
     x = 0,
     y = 0,
   }) => {
@@ -246,7 +284,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
 
     // Memoize dimension calculation to avoid recalculation when inputs haven't changed
     const dimensions = useMemo(() => {
-      return calculatePillDimensions(
+      const baseDimensions = calculatePillDimensions(
         textSize,
         textHeight,
         textWidth,
@@ -267,6 +305,19 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
         taskIcon,
         taskIconPadding,
         statusIconSize,
+      );
+
+      if (!pillAccentColor) {
+        return baseDimensions;
+      }
+
+      const accentStripWidth = baseDimensions.statusStartX + statusIconSize + paddingX;
+      return adjustDimensionsForAccentStrip(
+        baseDimensions,
+        accentStripWidth,
+        paddingX,
+        verticalLayout,
+        width,
       );
     }, [
       textSize,
@@ -289,6 +340,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       taskIcon,
       taskIconPadding,
       statusIconSize,
+      pillAccentColor,
     ]);
 
     // Store dimensions immediately after calculation (synchronous)
@@ -305,6 +357,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
         ? `translate(${centerX}, ${centerY}) scale(${nodeScale}) translate(${-centerX}, ${-centerY})`
         : '';
 
+    const statusIconXOffset = statusIconSize > STATUS_ICON_SIZE ? 0 : paddingX / 2;
     const runStatusModifier = getRunStatusModifier(status);
     const pillClasses = css(
       styles.topologyPipelinesPill,
@@ -343,6 +396,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       detailsLevel !== ScaleDetailsLevel.high
     ) {
       const statusBackgroundRadius = statusIconSize / 2 + 4;
+      const statusIconInset = (statusBackgroundRadius * 2 - statusIconSize) / 2;
       const upScale = 1 / scale;
       const { height: boundsHeight } = element.getBounds();
 
@@ -363,9 +417,10 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
             cx={statusBackgroundRadius}
             cy={statusBackgroundRadius}
             r={statusBackgroundRadius}
+            fill={pillAccentColor}
           />
           {hiddenDetailsShownStatuses.includes(status) ? (
-            <g transform="translate(4, 4)">
+            <g transform={`translate(${statusIconInset}, ${statusIconInset})`}>
               <g
                 className={css(
                   styles.topologyPipelinesStatusIcon,
@@ -439,8 +494,22 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
           height={dimensions.height}
           rx={dimensions.height / 2}
           className={css(styles.topologyPipelinesPillBackground)}
+          fill={pillBackgroundColor}
           filter={filter}
+          data-testid="lineage-pill-background"
         />
+        {pillAccentColor && (
+          <path
+            d={getPillAccentPath(
+              dimensions.offsetX,
+              dimensions.height,
+              dimensions.statusStartX + statusIconSize + paddingX,
+            )}
+            fill={pillAccentColor}
+            filter={filter}
+            data-testid="lineage-pill-accent"
+          />
+        )}
         <g transform={`translate(${dimensions.textStartX}, ${paddingY + textHeight / 2 + 1})`}>
           {element.getLabel() !== label && !disableTooltip ? (
             <Tooltip triggerRef={nameLabelTriggerRef} content={element.getLabel()}>
@@ -465,9 +534,9 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
         </g>
         {showStatusState && (
           <g
-            transform={`translate(${dimensions.offsetX + dimensions.statusStartX + paddingX / 2}, ${
-              (dimensions.height - statusIconSize) / 2
-            })`}
+            transform={`translate(${
+              dimensions.offsetX + dimensions.statusStartX + statusIconXOffset
+            }, ${(dimensions.height - statusIconSize) / 2})`}
             ref={statusRef}
           >
             <g

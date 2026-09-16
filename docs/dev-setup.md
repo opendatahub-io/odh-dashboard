@@ -41,7 +41,7 @@ This is the default context for running a local UI. Make sure you build the proj
 
 > Note: You must be logged-in with `oc` before you can start the backend. Details for that are in the the [contribution guidelines](../CONTRIBUTING.md#give-your-dev-env-access).
 
-> Note: The CLI logged-in user will need to be a `cluster-admin` level user on the cluster to mimic the Dashboard Service Account level of permissions. You could also bind the [cluster role](../manifests/core-bases/base/sa-rbac/cluster-role.yaml) to your user as we do with the service account [binding](../manifests/core-bases/base/sa-rbac/cluster-role-binding.yaml).
+> Note: The CLI logged-in user will need to be a `cluster-admin` level user on the cluster to mimic the Dashboard Service Account level of permissions. You could also bind the [cluster role](../manifests/base/sa-rbac/cluster-role.yaml) to your user as we do with the service account [binding](../manifests/base/sa-rbac/cluster-role-binding.yaml).
 
 ```bash
 npm run start
@@ -98,4 +98,4 @@ The [manifests](../manifests) folder contains a [kustomize](https://kustomize.io
 
 > Note: This flow is deprecated, deploy v2 [Operator](https://github.com/opendatahub-io/opendatahub-operator) with their custom CR.
 
-The [manifests/kfdef](../manifests/kfdef) folder contains an example kfdef to deploy ODH Dashboard with the Notebook Controller backend is located in [odh-dashboard-kfnbc-test.yaml](../manifests/kfdef/odh-dashboard-kfnbc-test.yaml).
+The kfdef manifests (`manifests/kfdef/`) are no longer maintained in this repository. Use the v2 [Operator](https://github.com/opendatahub-io/opendatahub-operator) with their custom CR instead.

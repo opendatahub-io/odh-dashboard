@@ -20,6 +20,7 @@ const CYPRESS_STRING_SECRET_KEYS = [
   'NGC_API_KEY',
   'GEMINI_API_KEY',
   'OGX_API_KEY',
+  'MAAS_API_KEY',
   'OCI_SECRET_VALUE',
 ] as const;
 
