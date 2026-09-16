@@ -11,19 +11,41 @@ import {
 type AddProviderReferenceWizardFooterProps = {
   isNextDisabled: boolean;
   isAddDisabled: boolean;
+  isNextLoading?: boolean;
+  isAddLoading?: boolean;
   submitLabel: string;
-  onAdd: () => void;
+  onAdd?: () => boolean | Promise<boolean>;
+  onNext?: () => boolean | Promise<boolean>;
 };
 
 const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFooterProps> = ({
   isNextDisabled,
   isAddDisabled,
+  isNextLoading = false,
+  isAddLoading = false,
   submitLabel,
   onAdd,
+  onNext,
 }) => {
   const { activeStep, steps, goToNextStep, goToPrevStep, close } = useWizardContext();
   const isFirstStep = activeStep.index === 1;
   const isLastStep = activeStep.index === steps.length;
+
+  const handleNext = async () => {
+    if (onNext) {
+      const canProceed = await onNext();
+      if (!canProceed) {
+        return;
+      }
+    }
+    goToNextStep();
+  };
+
+  const handleAdd = async () => {
+    if (onAdd) {
+      await onAdd();
+    }
+  };
 
   return (
     <WizardFooterWrapper>
@@ -43,8 +65,9 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
             <ActionListItem>
               <Button
                 variant="primary"
-                onClick={onAdd}
+                onClick={handleAdd}
                 isDisabled={isAddDisabled}
+                isLoading={isAddLoading}
                 data-testid="add-provider-reference-submit"
               >
                 {submitLabel}
@@ -54,8 +77,9 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
             <ActionListItem>
               <Button
                 variant="primary"
-                onClick={goToNextStep}
+                onClick={handleNext}
                 isDisabled={isNextDisabled}
+                isLoading={isNextLoading}
                 data-testid="provider-ref-wizard-next"
               >
                 Next
