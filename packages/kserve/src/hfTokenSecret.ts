@@ -6,6 +6,7 @@ import {
   HF_TOKEN_DASHBOARD_LABEL,
   HF_TOKEN_ENV_NAME,
   isDashboardManagedHfTokenEnvVar,
+  isDashboardManagedHfTokenSecret,
 } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 
@@ -53,15 +54,27 @@ export const resolveHfTokenSecretName = async (
 
   const trimmedToken = huggingFaceApiKey.token.trim();
   if (trimmedToken) {
-    const createdSecret = huggingFaceApiKey.configuredSecretName
-      ? await replaceSecret(
-          mergeHfTokenIntoExistingSecret(
-            await getSecret(namespace, huggingFaceApiKey.configuredSecretName, opts),
-            trimmedToken,
-          ),
+    if (huggingFaceApiKey.configuredSecretName) {
+      const existingSecret = await getSecret(
+        namespace,
+        huggingFaceApiKey.configuredSecretName,
+        opts,
+      );
+      if (!isDashboardManagedHfTokenSecret(existingSecret)) {
+        const createdSecret = await createSecret(
+          assembleHfTokenSecret(namespace, trimmedToken),
           opts,
-        )
-      : await createSecret(assembleHfTokenSecret(namespace, trimmedToken), opts);
+        );
+        return createdSecret.metadata.name;
+      }
+      const replacedSecret = await replaceSecret(
+        mergeHfTokenIntoExistingSecret(existingSecret, trimmedToken),
+        opts,
+      );
+      return replacedSecret.metadata.name;
+    }
+
+    const createdSecret = await createSecret(assembleHfTokenSecret(namespace, trimmedToken), opts);
     return createdSecret.metadata.name;
   }
 

@@ -1,5 +1,8 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
-import { HF_TOKEN_ENV_NAME } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
+import {
+  HF_TOKEN_DASHBOARD_LABEL,
+  HF_TOKEN_ENV_NAME,
+} from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import {
   applyHfTokenEnvVar,
@@ -94,7 +97,7 @@ describe('hfTokenSecret', () => {
     expect(mockReplaceSecret).not.toHaveBeenCalled();
   });
 
-  it('should replace an existing secret when updating a configured token', async () => {
+  it('should replace a dashboard-managed secret when updating a configured token', async () => {
     mockGetSecret.mockResolvedValue({
       apiVersion: 'v1',
       kind: 'Secret',
@@ -102,6 +105,7 @@ describe('hfTokenSecret', () => {
         name: 'existing-secret',
         namespace: 'test-project',
         resourceVersion: '123',
+        labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
       },
       data: { OTHER: 'value' },
     });
@@ -129,6 +133,34 @@ describe('hfTokenSecret', () => {
       undefined,
     );
     expect(mockCreateSecret).not.toHaveBeenCalled();
+  });
+
+  it('should create a new secret instead of overwriting a foreign configured secret', async () => {
+    mockGetSecret.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: {
+        name: 'shared-hf-secret',
+        namespace: 'test-project',
+        resourceVersion: '123',
+      },
+      data: { [HF_TOKEN_ENV_NAME]: 'existing-token' },
+    });
+    mockCreateSecret.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: { name: 'new-hf-secret', namespace: 'test-project' },
+    });
+
+    const secretName = await resolveHfTokenSecretName('test-project', {
+      token: 'hf_new',
+      configuredSecretName: 'shared-hf-secret',
+    });
+
+    expect(secretName).toBe('new-hf-secret');
+    expect(mockGetSecret).toHaveBeenCalledWith('test-project', 'shared-hf-secret', undefined);
+    expect(mockCreateSecret).toHaveBeenCalledTimes(1);
+    expect(mockReplaceSecret).not.toHaveBeenCalled();
   });
 
   it('should keep the configured secret name when no new token is provided', async () => {
