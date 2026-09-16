@@ -131,7 +131,6 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
       if (externalModel) {
         const request: UpdateExternalModelRequest = {
           displayName: trimmedName,
-          modelName: externalModel.name,
           description: nameDescData.description.trim() || undefined,
           providerRefs,
         };

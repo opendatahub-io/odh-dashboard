@@ -797,9 +797,9 @@ describe('Edit External Model Page', () => {
     cy.wait('@updateExternalModel').then((interception) => {
       expect(interception.request.body.data).to.deep.include({
         displayName: 'GPT-4o Updated',
-        modelName: 'gpt-4o-external',
         description: 'Updated external model description',
       });
+      expect(interception.request.body.data).to.not.have.property('modelName');
       expect(interception.request.body.data.providerRefs[0].targetModel).to.equal('gpt-4o-mini');
     });
 
