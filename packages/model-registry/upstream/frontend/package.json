@@ -150,6 +150,7 @@
     "ts-jest": "^29.4.0"
   },
   "overrides": {
-    "axios": "^1.15.0"
+    "axios": "^1.15.0",
+    "compression": "^1.8.2"
   }
 }

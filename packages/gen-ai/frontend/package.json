@@ -135,6 +135,7 @@
   },
   "packageManager": "npm@10.9.2",
   "overrides": {
-    "axios": "^1.15.0"
+    "axios": "^1.15.0",
+    "compression": "^1.8.2"
   }
 }
