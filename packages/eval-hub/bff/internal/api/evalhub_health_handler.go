@@ -88,6 +88,12 @@ func (app *App) EvalHubServiceHealthHandler(w http.ResponseWriter, r *http.Reque
 
 	ehClient := app.evalHubClientFactory.CreateClient(serviceURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/api/v1")
 	if _, err := ehClient.HealthCheck(ctx, tenantNS); err != nil {
+		app.logger.Warn(
+			"EvalHub service health check failed",
+			"serviceURL", serviceURL,
+			"tenantNamespace", tenantNS,
+			"error", err,
+		)
 		writeHealth(EvalHubHealthStatusServiceUnreachable, false)
 		return
 	}
