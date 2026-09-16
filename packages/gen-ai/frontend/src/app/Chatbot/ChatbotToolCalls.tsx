@@ -161,20 +161,13 @@ const ChatbotToolCalls: React.FC<ChatbotToolCallsProps> = ({
   const toggleId = React.useId();
   const contentId = React.useId();
   const status = `${toolCalls.length} tool${toolCalls.length === 1 ? '' : 's'} called`;
-  const isExpanded = controlledIsExpanded ?? uncontrolledIsExpanded;
   const toggleExpanded = () => {
     const nextIsExpanded = !isExpanded;
     setUncontrolledIsExpanded(nextIsExpanded);
     onExpandedChange?.(nextIsExpanded);
   };
 
-  if (!isResponseComplete) {
-    return (
-      <div className="chatbot-tool-calls pf-v6-u-w-100" data-testid="tool-calls">
-        <ToolCallList toolCalls={toolCalls} />
-      </div>
-    );
-  }
+  const isExpanded = controlledIsExpanded ?? (isResponseComplete ? uncontrolledIsExpanded : true);
 
   return (
     <div className="chatbot-tool-calls" data-testid="tool-calls">

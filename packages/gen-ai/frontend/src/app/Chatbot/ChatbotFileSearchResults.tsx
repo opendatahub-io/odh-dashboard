@@ -15,6 +15,7 @@ import {
   FlexItem,
   Label,
 } from '@patternfly/react-core';
+import CaretDownIcon from '@patternfly/react-icons/dist/esm/icons/rh-microns-caret-down-icon';
 import { FileSearchCallData, FileSearchResult } from '~/app/types';
 import './ChatbotFileSearchResults.scss';
 
@@ -25,6 +26,7 @@ type ChatbotFileSearchResultsProps = {
   onCitationExpanded?: () => void;
   isExpanded?: boolean;
   onExpandedChange?: (isExpanded: boolean) => void;
+  isDisabled?: boolean;
   showToggle?: boolean;
   showContent?: boolean;
 };
@@ -264,6 +266,7 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
   onCitationExpanded,
   isExpanded: controlledIsExpanded,
   onExpandedChange,
+  isDisabled = false,
   showToggle = true,
   showContent = true,
 }) => {
@@ -303,7 +306,15 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
 
   return (
     <div className="chatbot-file-search" data-testid="file-search-results">
-      {showToggle && (
+      {showToggle && isDisabled ? (
+        <Button variant="plain" icon={<CaretDownIcon />} isDisabled>
+          <small>
+            {citedSources > 0
+              ? `${citedSources} cited, ${totalSources} retrieved`
+              : `${totalSources} source${totalSources !== 1 ? 's' : ''} retrieved`}
+          </small>
+        </Button>
+      ) : showToggle ? (
         <ExpandableSectionToggle
           isExpanded={isExpanded}
           onToggle={() => {
@@ -322,7 +333,7 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
               : `${totalSources} source${totalSources !== 1 ? 's' : ''} retrieved`}
           </small>
         </ExpandableSectionToggle>
-      )}
+      ) : null}
       {showContent && (controlledIsExpanded === undefined || isExpanded) && (
         <ExpandableSection
           isExpanded={isExpanded}

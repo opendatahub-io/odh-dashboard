@@ -152,6 +152,61 @@ describe('useChatbotMessages', () => {
       );
     });
 
+    it('should retain MCP tool calls with nullable initial response fields', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.added',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            arguments: '',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: null,
+          },
+        });
+        opts?.onToolCall?.({
+          type: 'response.mcp_call.arguments.done',
+          item_id: 'mcp-call-1',
+          arguments: '{"owner":"octocat"}',
+        });
+        opts?.onToolCall?.({
+          type: 'response.output_item.done',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            arguments: '{"owner":"octocat"}',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: '[]',
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('List branches');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual([
+        expect.objectContaining({
+          id: 'mcp-call-1',
+          category: 'MCP',
+          status: 'completed',
+          name: 'list_branches',
+          serverLabel: 'GitHub-MCP-Server',
+          arguments: '{"owner":"octocat"}',
+          output: '[]',
+        }),
+      ]);
+    });
+
     it('should successfully send a message and receive a bot response', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 

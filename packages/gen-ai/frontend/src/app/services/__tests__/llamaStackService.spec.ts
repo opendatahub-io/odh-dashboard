@@ -703,6 +703,65 @@ describe('llamaStackService', () => {
         );
       });
 
+      it('should forward MCP lifecycle events with nullable response fields', async () => {
+        const mockStreamData = jest.fn();
+        const onToolCall = jest.fn();
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.added","item":{"id":"call-1","type":"mcp_call","arguments":"","name":"list_branches","server_label":"GitHub-MCP-Server","error":null,"output":null}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.mcp_call.arguments.done","item_id":"call-1","arguments":"{\\"owner\\":\\"octocat\\"}"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.done","item":{"id":"call-1","type":"mcp_call","arguments":"{\\"owner\\":\\"octocat\\"}","name":"list_branches","server_label":"GitHub-MCP-Server","error":null,"output":"[]"}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
+          onStreamData: mockStreamData,
+          onToolCall,
+        });
+
+        expect(onToolCall).toHaveBeenCalledTimes(3);
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            type: 'response.output_item.added',
+            item: expect.objectContaining({ id: 'call-1', type: 'mcp_call', output: null }),
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: 'response.mcp_call.arguments.done',
+            item_id: 'call-1',
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({
+            type: 'response.output_item.done',
+            item: expect.objectContaining({ id: 'call-1', type: 'mcp_call', output: '[]' }),
+          }),
+        );
+      });
+
       it('should not forward malformed tool call lifecycle events', async () => {
         const mockStreamData = jest.fn();
         const onToolCall = jest.fn();

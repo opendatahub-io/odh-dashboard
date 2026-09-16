@@ -26,8 +26,9 @@ jest.mock('../components/ChatbotErrorAlert', () => ({
 }));
 
 jest.mock('../ChatbotMessagesMetrics', () => ({
-  ChatbotMessagesMetrics: jest.fn(({ metrics }) => (
+  ChatbotMessagesMetrics: jest.fn(({ metrics, isDisabled }) => (
     <div data-testid="metrics">
+      <button disabled={isDisabled}>Response metrics</button>
       <span>{metrics.usage?.input_tokens}</span>
     </div>
   )),
@@ -45,7 +46,15 @@ jest.mock('../ChatbotFileSearchResults', () => ({
 
 jest.mock('../ChatbotToolCalls', () => ({
   __esModule: true,
-  default: jest.fn(({ toolCalls }) => <div data-testid="tool-calls">{toolCalls.length} tools</div>),
+  default: jest.fn(({ toolCalls, isExpanded, showToggle = true }) =>
+    showToggle ? (
+      <div data-testid="tool-calls" data-expanded={isExpanded}>
+        {toolCalls.length} tools
+      </div>
+    ) : (
+      <div data-testid="tool-calls-content">{toolCalls.length} tools</div>
+    ),
+  ),
 }));
 
 jest.mock('@patternfly/chatbot', () => ({
@@ -113,16 +122,27 @@ describe('ChatbotMessages', () => {
     it('should display tool calls before answer text starts streaming', () => {
       render(
         <ChatbotMessages
-          messageList={[{ id: 'msg-1', role: 'bot', content: '', toolCalls }]}
+          messageList={[
+            {
+              id: 'msg-1',
+              role: 'bot',
+              content: '',
+              toolCalls,
+              // eslint-disable-next-line camelcase
+              metrics: { latency_ms: 0 },
+            },
+          ]}
           scrollRef={scrollRef}
           isLoading
         />,
       );
 
       expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
+      expect(screen.getByTestId('tool-calls')).toHaveAttribute('data-expanded', 'true');
+      expect(screen.getByRole('button', { name: 'Response metrics' })).toBeDisabled();
     });
 
-    it('should hide tool calls while answer text is streaming', () => {
+    it('should collapse tool calls while answer text is streaming', () => {
       render(
         <ChatbotMessages
           messageList={[
@@ -133,7 +153,8 @@ describe('ChatbotMessages', () => {
         />,
       );
 
-      expect(screen.queryByTestId('tool-calls')).not.toBeInTheDocument();
+      expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
+      expect(screen.getByTestId('tool-calls')).toHaveAttribute('data-expanded', 'false');
     });
 
     it('should display tool calls after answer text finishes streaming', () => {

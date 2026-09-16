@@ -83,10 +83,12 @@ const isResponseMetrics = (value: unknown): value is ResponseMetrics => {
 };
 
 const isOptionalString = (value: unknown): boolean =>
-  value === undefined || typeof value === 'string';
+  value === undefined || value === null || typeof value === 'string';
 
 const isOptionalStringArray = (value: unknown): boolean =>
-  value === undefined || (Array.isArray(value) && value.every((item) => typeof item === 'string'));
+  value === undefined ||
+  value === null ||
+  (Array.isArray(value) && value.every((item) => typeof item === 'string'));
 
 type ToolCallOutputItem = OutputItem & {
   id: string;
@@ -110,7 +112,7 @@ const isToolCallOutputItem = (value: unknown): value is ToolCallOutputItem => {
     isOptionalString(value.output) &&
     isOptionalString(value.error) &&
     isOptionalStringArray(value.queries) &&
-    (value.results === undefined || Array.isArray(value.results))
+    (value.results === undefined || value.results === null || Array.isArray(value.results))
   );
 };
 
@@ -349,7 +351,7 @@ const extractToolCalls = (output?: OutputItem[]): StreamingToolCall[] => {
         status: failed ? 'failed' : item.status === 'in_progress' ? 'in_progress' : 'completed',
         serverLabel: item.server_label,
         arguments: item.arguments ?? item.queries?.[0],
-        output: item.results ? JSON.stringify(item.results, null, 2) : item.output,
+        output: item.results ? JSON.stringify(item.results, null, 2) : (item.output ?? undefined),
       },
     ];
   });

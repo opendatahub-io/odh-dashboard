@@ -32,6 +32,10 @@ describe('ChatbotToolCalls', () => {
   it('should display formatted arguments and results when a tool call is expanded', () => {
     render(<ChatbotToolCalls toolCalls={toolCalls} isResponseComplete={false} />);
 
+    expect(screen.getByRole('button', { name: '1 tool called' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     fireEvent.click(screen.getByTestId('tool-call-github-search-toggle'));
 
     expect(screen.getByText('ARGUMENTS')).toBeInTheDocument();

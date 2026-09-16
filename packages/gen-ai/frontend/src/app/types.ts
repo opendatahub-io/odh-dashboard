@@ -203,13 +203,13 @@ export type OutputItem = {
   role?: string;
   status?: string;
   content?: ContentItem[];
-  output?: string;
+  output?: string | null;
   queries?: string[];
   results?: FileSearchResult[];
   name?: string;
   server_label?: string;
   arguments?: string;
-  error?: string;
+  error?: string | null;
 };
 
 export type BackendResponseData = {
