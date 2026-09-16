@@ -2,12 +2,19 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
 // === ForwardURL ===
@@ -231,34 +238,37 @@ func TestPortForwardTransport_NonClusterRequest(t *testing.T) {
 	}
 }
 
-// TestPortForwardTransport_ClusterRequestRewrite verifies that cluster-internal
-// URLs are rewritten to localhost when a cached forward exists.
-func TestPortForwardTransport_ClusterRequestRewrite(t *testing.T) {
-	// Set up a test HTTP server on a known port to receive the forwarded request
-	var receivedHost string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedHost = r.URL.Host
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
+type recordingRoundTripper struct {
+	request *http.Request
+}
 
-	// Extract the port from the test server URL
+func (r *recordingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	r.request = req.Clone(req.Context())
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader("")),
+		Request:    req,
+	}, nil
+}
+
+// TestPortForwardTransport_ClusterRequestRewrite verifies that cluster-internal
+// URLs are rewritten to localhost before they reach the base transport.
+func TestPortForwardTransport_ClusterRequestRewrite(t *testing.T) {
 	pfm := &PortForwardManager{
 		forwards: make(map[string]*activeForward),
 		logger:   slog.Default(),
 	}
 
-	// We can't easily match the test server port with a cached forward,
-	// so instead verify the URL rewrite logic by checking that ForwardURL
-	// changes the host when a cached forward exists.
 	pfm.forwards["my-ns/my-svc:8080"] = &activeForward{
 		localPort: 54322,
 		stopChan:  make(chan struct{}),
 		errChan:   make(chan error, 1),
 	}
+	base := &recordingRoundTripper{}
 
 	transport := &portForwardRoundTripper{
-		base:    http.DefaultTransport,
+		base:    base,
 		manager: pfm,
 		logger:  slog.Default(),
 	}
@@ -268,22 +278,17 @@ func TestPortForwardTransport_ClusterRequestRewrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The RoundTrip will rewrite the URL to localhost:54322, which won't have
-	// a server listening — that's expected. We just verify the rewrite happened.
-	_, err = transport.RoundTrip(req)
-	// Connection will be refused since nothing listens on 54322, but the URL
-	// rewrite should have happened. We can't easily verify the rewritten URL
-	// from the outside, so we verify by checking ForwardURL directly.
-	_ = err
-	_ = receivedHost
-
-	// Verify the URL rewrite directly
-	rewritten, fwdErr := pfm.ForwardURL(context.Background(), "http://my-svc.my-ns.svc.cluster.local:8080/api/v1/test")
-	if fwdErr != nil {
-		t.Fatalf("ForwardURL error: %v", fwdErr)
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip error: %v", err)
 	}
-	if rewritten != "http://localhost:54322/api/v1/test" {
-		t.Errorf("ForwardURL rewrite = %q, want %q", rewritten, "http://localhost:54322/api/v1/test")
+	defer resp.Body.Close()
+
+	if base.request == nil {
+		t.Fatal("base transport did not receive a request")
+	}
+	if got, want := base.request.URL.String(), "http://localhost:54322/api/v1/test"; got != want {
+		t.Errorf("base transport URL = %q, want %q", got, want)
 	}
 }
 
@@ -392,41 +397,117 @@ func TestNewPortForwardManager(t *testing.T) {
 	}
 }
 
-// TestForwardURL_DeadForwardDetection verifies that when a cached forward
-// has died (error on errChan), it is detected and removed from the cache.
-// We can only test detection — re-establishment requires a real k8s clientset.
-func TestForwardURL_DeadForwardDetection(t *testing.T) {
+func testEndpointClientset(namespace, serviceName, podName string) *k8sfake.Clientset {
+	return k8sfake.NewSimpleClientset(&corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: namespace},
+		Subsets: []corev1.EndpointSubset{{
+			Addresses: []corev1.EndpointAddress{{
+				TargetRef: &corev1.ObjectReference{Kind: "Pod", Name: podName},
+			}},
+		}},
+	})
+}
+
+// TestGetOrCreateForward_ReplacesDeadForward verifies that a dead cached forward
+// is replaced and the replacement is cached.
+func TestGetOrCreateForward_ReplacesDeadForward(t *testing.T) {
+	const key = "ns/svc:8080"
 	pfm := &PortForwardManager{
-		forwards: make(map[string]*activeForward),
-		logger:   slog.Default(),
+		forwards:  make(map[string]*activeForward),
+		clientset: testEndpointClientset("ns", "svc", "svc-pod"),
+		logger:    slog.Default(),
 	}
 
 	errChan := make(chan error, 1)
-	errChan <- fmt.Errorf("connection lost")
+	errChan <- errors.New("connection lost")
 
-	pfm.forwards["ns/svc:8080"] = &activeForward{
+	pfm.forwards[key] = &activeForward{
 		localPort: 33333,
 		stopChan:  make(chan struct{}),
 		errChan:   errChan,
 	}
 
-	// Verify the dead forward is detected via the getOrCreateForward fast path.
-	// We lock the mutex, check the cache (which will detect the error), and
-	// verify the entry is removed.
-	pfm.mu.Lock()
-	if fwd, ok := pfm.forwards["ns/svc:8080"]; ok {
-		select {
-		case <-fwd.errChan:
-			// Dead forward detected — remove it from cache
-			delete(pfm.forwards, "ns/svc:8080")
-		default:
-			t.Error("expected dead forward to have error on errChan")
-		}
+	replacement := &activeForward{
+		localPort: 44444,
+		stopChan:  make(chan struct{}),
+		errChan:   make(chan error, 1),
 	}
-	_, exists := pfm.forwards["ns/svc:8080"]
-	pfm.mu.Unlock()
+	createCalls := 0
+	pfm.createForwardFn = func(ctx context.Context, namespace, podName string, remotePort int) (*activeForward, error) {
+		createCalls++
+		if namespace != "ns" || podName != "svc-pod" || remotePort != 8080 {
+			t.Errorf("unexpected forward target %s/%s:%d", namespace, podName, remotePort)
+		}
+		return replacement, nil
+	}
 
-	if exists {
-		t.Error("dead forward was not removed from cache")
+	localPort, err := pfm.getOrCreateForward(context.Background(), "ns", "svc", 8080)
+	if err != nil {
+		t.Fatalf("getOrCreateForward error: %v", err)
+	}
+	if localPort != replacement.localPort {
+		t.Errorf("local port = %d, want %d", localPort, replacement.localPort)
+	}
+	if createCalls != 1 {
+		t.Errorf("forward creation calls = %d, want 1", createCalls)
+	}
+	if pfm.forwards[key] != replacement {
+		t.Error("replacement forward was not cached")
+	}
+}
+
+// TestGetOrCreateForward_ClosesForwardCreatedDuringShutdown verifies that a
+// forward created concurrently with shutdown is not left running.
+func TestGetOrCreateForward_ClosesForwardCreatedDuringShutdown(t *testing.T) {
+	creationStarted := make(chan struct{})
+	allowCreation := make(chan struct{})
+	replacement := &activeForward{
+		localPort: 44444,
+		stopChan:  make(chan struct{}),
+		errChan:   make(chan error, 1),
+	}
+	pfm := &PortForwardManager{
+		forwards:  make(map[string]*activeForward),
+		clientset: testEndpointClientset("ns", "svc", "svc-pod"),
+		logger:    slog.Default(),
+		createForwardFn: func(context.Context, string, string, int) (*activeForward, error) {
+			close(creationStarted)
+			<-allowCreation
+			return replacement, nil
+		},
+	}
+
+	result := make(chan error, 1)
+	go func() {
+		_, err := pfm.getOrCreateForward(context.Background(), "ns", "svc", 8080)
+		result <- err
+	}()
+
+	select {
+	case <-creationStarted:
+	case <-time.After(time.Second):
+		t.Fatal("forward creation did not start")
+	}
+
+	pfm.Close()
+	close(allowCreation)
+
+	select {
+	case err := <-result:
+		if !errors.Is(err, errPortForwardManagerClosed) {
+			t.Fatalf("getOrCreateForward error = %v, want manager closing error", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("getOrCreateForward did not return after shutdown")
+	}
+
+	select {
+	case <-replacement.stopChan:
+		// Expected: the forward created after shutdown was stopped immediately.
+	default:
+		t.Error("forward created during shutdown was not stopped")
+	}
+	if len(pfm.forwards) != 0 {
+		t.Errorf("forwards map has %d entries, want 0", len(pfm.forwards))
 	}
 }

@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,15 +10,21 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/singleflight"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
+
+const portForwardStartupTimeout = 30 * time.Second
+
+var errPortForwardManagerClosed = errors.New("port-forward manager is closing")
 
 // PortForwardManager manages on-demand port-forwards to in-cluster services.
 //
@@ -30,18 +37,45 @@ import (
 // If a forward dies (pod restart, network blip), the next call to ForwardURL
 // detects the failure and re-establishes the forward transparently.
 type PortForwardManager struct {
-	mu         sync.Mutex
-	forwards   map[string]*activeForward
-	sfGroup    singleflight.Group
-	restConfig *rest.Config
-	clientset  kubernetes.Interface
-	logger     *slog.Logger
+	mu              sync.Mutex
+	forwards        map[string]*activeForward
+	closing         bool
+	sfGroup         singleflight.Group
+	restConfig      *rest.Config
+	clientset       kubernetes.Interface
+	logger          *slog.Logger
+	createForwardFn func(context.Context, string, string, int) (*activeForward, error)
 }
 
 type activeForward struct {
 	localPort uint16
 	stopChan  chan struct{}
 	errChan   chan error
+	stopOnce  sync.Once
+}
+
+func (f *activeForward) stop() {
+	f.stopOnce.Do(func() {
+		close(f.stopChan)
+	})
+}
+
+// contextDialer preserves cancellation and startup deadlines while the Kubernetes
+// SPDY dialer upgrades the port-forward connection.
+type contextDialer struct {
+	ctx      context.Context
+	upgrader spdy.Upgrader
+	client   *http.Client
+	method   string
+	url      *url.URL
+}
+
+func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
+	req, err := http.NewRequestWithContext(d.ctx, d.method, d.url.String(), nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating port-forward request: %w", err)
+	}
+	return spdy.Negotiate(d.upgrader, d.client, req, protocols...)
 }
 
 // NewPortForwardManager creates a manager using the provided rest.Config and clientset.
@@ -109,6 +143,10 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 
 	// Fast path: check cache under lock.
 	m.mu.Lock()
+	if m.closing {
+		m.mu.Unlock()
+		return 0, errPortForwardManagerClosed
+	}
 	if fwd, ok := m.forwards[key]; ok {
 		select {
 		case err := <-fwd.errChan:
@@ -127,6 +165,10 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 		// Re-check cache — another caller in the singleflight group may have
 		// populated it between our cache miss and winning the Do race.
 		m.mu.Lock()
+		if m.closing {
+			m.mu.Unlock()
+			return nil, errPortForwardManagerClosed
+		}
 		if fwd, ok := m.forwards[key]; ok {
 			m.mu.Unlock()
 			return fwd.localPort, nil
@@ -135,17 +177,25 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 
 		m.logger.Info("establishing port-forward", "key", key)
 
-		podName, err := m.resolvePod(ctx, namespace, serviceName)
+		startupCtx, cancel := context.WithTimeout(ctx, portForwardStartupTimeout)
+		defer cancel()
+
+		podName, err := m.resolvePod(startupCtx, namespace, serviceName)
 		if err != nil {
 			return nil, fmt.Errorf("resolving pod for %s/%s: %w", namespace, serviceName, err)
 		}
 
-		fwd, err := m.createForward(namespace, podName, remotePort)
+		fwd, err := m.newForward(startupCtx, namespace, podName, remotePort)
 		if err != nil {
 			return nil, fmt.Errorf("creating port-forward %s: %w", key, err)
 		}
 
 		m.mu.Lock()
+		if m.closing {
+			m.mu.Unlock()
+			fwd.stop()
+			return nil, errPortForwardManagerClosed
+		}
 		m.forwards[key] = fwd
 		m.mu.Unlock()
 
@@ -157,6 +207,13 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 		return 0, err
 	}
 	return val.(uint16), nil
+}
+
+func (m *PortForwardManager) newForward(ctx context.Context, namespace, podName string, remotePort int) (*activeForward, error) {
+	if m.createForwardFn != nil {
+		return m.createForwardFn(ctx, namespace, podName, remotePort)
+	}
+	return m.createForward(ctx, namespace, podName, remotePort)
 }
 
 // resolvePod finds a ready pod backing the given service.
@@ -178,7 +235,7 @@ func (m *PortForwardManager) resolvePod(ctx context.Context, namespace, serviceN
 }
 
 // createForward establishes a port-forward to a pod and waits for it to be ready.
-func (m *PortForwardManager) createForward(namespace, podName string, remotePort int) (*activeForward, error) {
+func (m *PortForwardManager) createForward(ctx context.Context, namespace, podName string, remotePort int) (*activeForward, error) {
 	reqURL := m.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(namespace).
@@ -191,11 +248,18 @@ func (m *PortForwardManager) createForward(namespace, podName string, remotePort
 		return nil, fmt.Errorf("creating SPDY round tripper: %w", err)
 	}
 
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, reqURL)
+	dialer := &contextDialer{
+		ctx:      ctx,
+		upgrader: upgrader,
+		client:   &http.Client{Transport: transport},
+		method:   http.MethodPost,
+		url:      reqURL,
+	}
 
 	stopChan := make(chan struct{})
 	readyChan := make(chan struct{})
 	errChan := make(chan error, 1)
+	active := &activeForward{stopChan: stopChan, errChan: errChan}
 
 	ports := []string{fmt.Sprintf("0:%d", remotePort)}
 
@@ -209,20 +273,29 @@ func (m *PortForwardManager) createForward(namespace, podName string, remotePort
 	}()
 
 	select {
+	case <-ctx.Done():
+		active.stop()
+		return nil, fmt.Errorf("waiting for port-forward startup: %w", ctx.Err())
+
 	case <-readyChan:
+		if err := ctx.Err(); err != nil {
+			active.stop()
+			return nil, fmt.Errorf("waiting for port-forward startup: %w", err)
+		}
 		forwardedPorts, err := fw.GetPorts()
 		if err != nil || len(forwardedPorts) == 0 {
-			close(stopChan)
+			active.stop()
 			return nil, fmt.Errorf("getting forwarded ports: %w", err)
 		}
 
-		return &activeForward{
-			localPort: forwardedPorts[0].Local,
-			stopChan:  stopChan,
-			errChan:   errChan,
-		}, nil
+		active.localPort = forwardedPorts[0].Local
+		return active, nil
 
 	case err := <-errChan:
+		active.stop()
+		if err == nil {
+			return nil, errors.New("port-forward stopped before becoming ready")
+		}
 		return nil, fmt.Errorf("port-forward failed to start: %w", err)
 	}
 }
@@ -231,9 +304,13 @@ func (m *PortForwardManager) createForward(namespace, podName string, remotePort
 func (m *PortForwardManager) Close() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.closing {
+		return
+	}
+	m.closing = true
 
 	for key, fwd := range m.forwards {
-		close(fwd.stopChan)
+		fwd.stop()
 		m.logger.Debug("closed port-forward", "key", key)
 	}
 	m.forwards = make(map[string]*activeForward)
