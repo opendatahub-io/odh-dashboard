@@ -481,7 +481,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		serviceName = service.Name
 		log.V(2).Info("Service created", "service", serviceName)
 	default:
-		foundService := &ownedServices.Items[0]
+		foundService := &workspaceServices[0]
 		serviceName = foundService.Name
 		if helper.CopyServiceFields(service, foundService) {
 			if err := r.Update(ctx, foundService); err != nil {
