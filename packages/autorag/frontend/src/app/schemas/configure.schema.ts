@@ -86,6 +86,21 @@ function createConfigureSchema() {
     }),
     /* eslint-enable camelcase */
     validators: [
+      (data) => {
+        const generationModelIds = new Set(data.generation_models);
+        return data.embedding_models.flatMap((modelId, index) =>
+          generationModelIds.has(modelId)
+            ? [
+                {
+                  code: 'custom' as const,
+                  input: modelId,
+                  message: `Model "${modelId}" cannot be selected as both a foundation and embedding model`,
+                  path: ['embedding_models', index],
+                },
+              ]
+            : [],
+        );
+      },
       (data) =>
         data.optimization_max_rag_patterns > MAX_RAG_PATTERNS
           ? [
@@ -107,23 +122,6 @@ function createConfigureSchema() {
         delete data.detected_language;
         delete data.detected_language_confidence;
         return data;
-      },
-    ],
-    validators: [
-      (data) => {
-        const generationModelIds = new Set(data.generation_models);
-        return data.embedding_models.flatMap((modelId, index) =>
-          generationModelIds.has(modelId)
-            ? [
-                {
-                  code: 'custom' as const,
-                  input: modelId,
-                  message: `Model "${modelId}" cannot be selected as both a foundation and embedding model`,
-                  path: ['embedding_models', index],
-                },
-              ]
-            : [],
-        );
       },
     ],
     /* eslint-enable no-param-reassign */
