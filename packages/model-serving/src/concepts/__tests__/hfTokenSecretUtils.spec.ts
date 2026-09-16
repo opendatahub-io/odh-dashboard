@@ -126,6 +126,75 @@ describe('hfTokenSecretUtils', () => {
     expect(ops.patchSecretWithOwnerReference).not.toHaveBeenCalled();
   });
 
+  it('should extract HF token secret name from LLMInferenceService main container env', () => {
+    const deployment = {
+      apiVersion: 'serving.kserve.io/v1alpha2',
+      kind: 'LLMInferenceService',
+      metadata: { name: 'test-llm', namespace: 'test-project' },
+      spec: {
+        model: { uri: 'hf://test/model', name: 'test/model' },
+        template: {
+          containers: [
+            {
+              name: 'main',
+              env: [
+                {
+                  name: HF_TOKEN_ENV_NAME,
+                  valueFrom: {
+                    secretKeyRef: {
+                      name: 'hf-secret',
+                      key: HF_TOKEN_ENV_NAME,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+    expect(getHfTokenSecretNameFromDeployment(deployment)).toBe('hf-secret');
+  });
+
+  it('should patch HF token secret owner reference for LLMInferenceService deployments', async () => {
+    const deployment = {
+      apiVersion: 'serving.kserve.io/v1alpha2',
+      kind: 'LLMInferenceService',
+      metadata: { name: 'test-llm', namespace: 'test-project', uid: 'deployment-uid' },
+      spec: {
+        model: { uri: 'hf://test/model', name: 'test/model' },
+        template: {
+          containers: [
+            {
+              name: 'main',
+              env: [
+                {
+                  name: HF_TOKEN_ENV_NAME,
+                  valueFrom: {
+                    secretKeyRef: {
+                      name: 'hf-secret',
+                      key: HF_TOKEN_ENV_NAME,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    await patchHfTokenSecretOwnerReference(ops, deployment, 'deployment-uid');
+
+    expect(ops.patchSecretWithOwnerReference).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ name: 'hf-secret' }),
+      }),
+      deployment,
+      'deployment-uid',
+    );
+  });
+
   it('should skip owner reference patch when deployment has no HF token env', async () => {
     const deployment = mockInferenceServiceK8sResource({});
 

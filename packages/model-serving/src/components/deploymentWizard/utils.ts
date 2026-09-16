@@ -31,7 +31,6 @@ import {
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
 import { patchHfTokenSecretOwnerReference } from '../../concepts/hfTokenSecretUtils';
-import { isInferenceServiceKind } from '../../shared';
 import type {
   Deployment,
   DeploymentEndpoint,
@@ -228,14 +227,12 @@ export const deployModel = async (
       false,
     );
   }
-  if (isInferenceServiceKind(deploymentResult.model)) {
-    await patchHfTokenSecretOwnerReference(
-      secretOps,
-      deploymentResult.model,
-      deploymentResult.model.metadata.uid ?? '',
-      false,
-    );
-  }
+  await patchHfTokenSecretOwnerReference(
+    secretOps,
+    deploymentResult.model,
+    deploymentResult.model.metadata.uid ?? '',
+    false,
+  );
   if (runPostDeploy) {
     await runPostDeploy(deploymentResult, existingDeployment);
   }
