@@ -2519,7 +2519,7 @@ class CreateExternalProviderModal extends Modal {
     return this.find().findByTestId('credential-secret-toggle');
   }
 
-  findCredentialSecretInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findCredentialSecretInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
     return this.findCredentialSecretToggle().find('input');
   }
 
