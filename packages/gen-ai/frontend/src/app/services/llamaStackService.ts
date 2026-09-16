@@ -82,19 +82,58 @@ const isResponseMetrics = (value: unknown): value is ResponseMetrics => {
   return typeof value.latency_ms === 'number';
 };
 
+const isOptionalString = (value: unknown): boolean =>
+  value === undefined || typeof value === 'string';
+
+const isOptionalStringArray = (value: unknown): boolean =>
+  value === undefined || (Array.isArray(value) && value.every((item) => typeof item === 'string'));
+
+type ToolCallOutputItem = OutputItem & {
+  id: string;
+  type: 'file_search_call' | 'mcp_call';
+};
+
+const isToolCallOutputItem = (value: unknown): value is ToolCallOutputItem => {
+  if (!isRecord(value) || typeof value.id !== 'string') {
+    return false;
+  }
+
+  if (value.type !== 'file_search_call' && value.type !== 'mcp_call') {
+    return false;
+  }
+
+  return (
+    isOptionalString(value.status) &&
+    isOptionalString(value.name) &&
+    isOptionalString(value.server_label) &&
+    isOptionalString(value.arguments) &&
+    isOptionalString(value.output) &&
+    isOptionalString(value.error) &&
+    isOptionalStringArray(value.queries) &&
+    (value.results === undefined || Array.isArray(value.results))
+  );
+};
+
 const isToolCallStreamEvent = (value: unknown): value is ToolCallStreamEvent => {
   if (!isRecord(value) || typeof value.type !== 'string') {
     return false;
   }
 
-  return (
-    value.type === 'response.output_item.added' ||
-    value.type === 'response.output_item.done' ||
-    value.type.startsWith('response.file_search_call.') ||
-    value.type.startsWith('response.mcp_call.') ||
-    value.type === 'response.function_call_arguments.delta' ||
-    value.type === 'response.function_call_arguments.done'
-  );
+  switch (value.type) {
+    case 'response.output_item.added':
+    case 'response.output_item.done':
+      return isToolCallOutputItem(value.item);
+    case 'response.function_call_arguments.delta':
+      return typeof value.item_id === 'string' && typeof value.delta === 'string';
+    case 'response.function_call_arguments.done':
+      return typeof value.item_id === 'string' && typeof value.arguments === 'string';
+    default:
+      return (
+        (value.type.startsWith('response.file_search_call.') ||
+          value.type.startsWith('response.mcp_call.')) &&
+        typeof value.item_id === 'string'
+      );
+  }
 };
 
 const getStatusCodeFromError = (error: unknown): number | undefined => {
@@ -295,15 +334,15 @@ const extractToolCalls = (output?: OutputItem[]): StreamingToolCall[] => {
     return [];
   }
 
-  return output.flatMap((item, index) => {
-    if (item.type !== 'file_search_call' && item.type !== 'mcp_call') {
+  return output.flatMap((item) => {
+    if (!isToolCallOutputItem(item)) {
       return [];
     }
 
     const failed = Boolean(item.error) || item.status === 'failed';
     return [
       {
-        id: item.id ?? `${item.type}-${index}`,
+        id: item.id,
         type: item.type,
         name: item.name ?? (item.type === 'file_search_call' ? 'file_search' : 'MCP tool'),
         category: item.type === 'file_search_call' ? 'RAG' : 'MCP',

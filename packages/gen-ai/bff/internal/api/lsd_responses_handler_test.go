@@ -2282,6 +2282,39 @@ func TestConvertToStreamingEvent(t *testing.T) {
 	})
 }
 
+func TestSyncProcessedResponse(t *testing.T) {
+	t.Run("should preserve large integer values in the raw completed event", func(t *testing.T) {
+		event := StreamingEvent{
+			raw: []byte(`{"response":{"output":[{"type":"message","content":[{"type":"output_text","text":"original"}]}],"large_integer":9007199254740993}}`),
+			Response: &ResponseData{
+				Output: []OutputItem{{
+					Type: "message",
+					Content: []ContentItem{{
+						Type: "output_text",
+						Text: "processed",
+					}},
+				}},
+			},
+		}
+
+		event.syncProcessedResponse()
+
+		assert.Contains(t, string(event.raw), `"large_integer":9007199254740993`)
+		assert.Contains(t, string(event.raw), `"text":"processed"`)
+	})
+
+	t.Run("should reject raw events with trailing JSON", func(t *testing.T) {
+		event := StreamingEvent{
+			raw:      []byte(`{"response":{"output":[]}} {"trailing":true}`),
+			Response: &ResponseData{},
+		}
+
+		event.syncProcessedResponse()
+
+		assert.Nil(t, event.raw)
+	})
+}
+
 // reasoningFirstClient is an inline mock that emits reasoning_text.delta events before
 // output_text.delta, used to verify TTFT fires only on the output delta.
 type reasoningFirstClient struct {

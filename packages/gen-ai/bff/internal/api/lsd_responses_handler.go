@@ -1,10 +1,12 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -68,8 +70,14 @@ func (event *StreamingEvent) syncProcessedResponse() {
 		return
 	}
 
+	decoder := json.NewDecoder(bytes.NewReader(event.raw))
+	decoder.UseNumber()
 	var rawEvent map[string]interface{}
-	if json.Unmarshal(event.raw, &rawEvent) != nil {
+	if decoder.Decode(&rawEvent) != nil {
+		event.raw = nil
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		event.raw = nil
 		return
 	}
