@@ -293,18 +293,21 @@ func TestE2EModuleOperands(t *testing.T) {
 
 func createManagedDashboard(t *testing.T) types.UID {
 	t.Helper()
-	domain := os.Getenv("TEST_GATEWAY_DOMAIN")
-	if domain == "" {
-		t.Fatal("TEST_GATEWAY_DOMAIN must contain the cluster applications domain")
-	}
-	uid, err := createDashboardCR(k8sClient, dashboardv1alpha1.DashboardSpec{
-		ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
-		Gateway:        &dashboardv1alpha1.GatewaySpec{Domain: domain},
+	dashboard := &dashboardv1alpha1.Dashboard{}
+	require.NoError(t, k8sClient.Get(
+		context.Background(),
+		client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName},
+		dashboard,
+	))
+	require.Equal(t, dashboardUID, dashboard.UID, "module lifecycle tests must use the E2E-owned Dashboard fixture")
+	originalSpec := dashboard.Spec.DeepCopy()
+	t.Cleanup(func() {
+		patchDashboardSpec(t, func(spec *dashboardv1alpha1.DashboardSpec) {
+			*spec = *originalSpec.DeepCopy()
+		})
 	})
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, cleanupDashboardCR(k8sClient, uid)) })
 	waitForAllModuleStatuses(t)
-	return uid
+	return dashboard.UID
 }
 
 func waitForAllModuleStatuses(t *testing.T) {
@@ -326,6 +329,7 @@ func waitForAllModuleStatuses(t *testing.T) {
 
 func patchDashboardSpec(t *testing.T, mutate func(*dashboardv1alpha1.DashboardSpec)) {
 	t.Helper()
+	var targetGeneration int64
 	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, time.Minute, true, func(ctx context.Context) (bool, error) {
 		dashboard := &dashboardv1alpha1.Dashboard{}
 		if err := k8sClient.Get(ctx, client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard); err != nil {
@@ -338,9 +342,18 @@ func patchDashboardSpec(t *testing.T, mutate func(*dashboardv1alpha1.DashboardSp
 		} else if err != nil {
 			return false, err
 		}
+		targetGeneration = dashboard.Generation
 		return true, nil
 	})
 	require.NoError(t, err)
+	err = wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, moduleLifecycleTimeout, true, func(ctx context.Context) (bool, error) {
+		dashboard := &dashboardv1alpha1.Dashboard{}
+		if err := k8sClient.Get(ctx, client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard); err != nil {
+			return false, client.IgnoreNotFound(err)
+		}
+		return dashboard.Status.ObservedGeneration >= targetGeneration, nil
+	})
+	require.NoError(t, err, "wait for Dashboard controller to observe generation %d", targetGeneration)
 }
 
 func triggerDashboardReconcile(t *testing.T) {
