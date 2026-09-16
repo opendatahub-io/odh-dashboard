@@ -86,6 +86,10 @@ describe('AutoRAG Optimization E2E', () => {
         createConnections: true,
       });
 
+      cy.step('Select faithfulness optimization metric');
+      autoragConfigurePage.findOptimizationMetricSelect().click();
+      autoragConfigurePage.findMetricOption('faithfulness').click();
+
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage
         .findMaxRagPatternsInputField()
@@ -162,6 +166,10 @@ describe('AutoRAG Optimization completion results E2E', () => {
       configureAutoragRun(testData, projectName, completionUuid, fixture, {
         createConnections: true,
       });
+
+      cy.step('Select faithfulness optimization metric');
+      autoragConfigurePage.findOptimizationMetricSelect().click();
+      autoragConfigurePage.findMetricOption('faithfulness').click();
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage

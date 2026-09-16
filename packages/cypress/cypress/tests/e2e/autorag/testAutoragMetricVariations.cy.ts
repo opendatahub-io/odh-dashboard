@@ -112,7 +112,11 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun(testData, getAutoragInputDataKey(testData, uuid), getMaaSFixture());
+      submitAutoragRun(
+        { ...testData, optimizationMetric: 'answer_correctness' },
+        getAutoragInputDataKey(testData, uuid),
+        getMaaSFixture(),
+      );
     },
   );
 
