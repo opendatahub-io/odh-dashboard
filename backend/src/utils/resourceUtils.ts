@@ -18,6 +18,7 @@ import {
   DataScienceClusterKindStatus,
   KnownLabels,
   AuthKind,
+  AIHubKind,
   OdhPlatformType,
 } from '../types';
 import {
@@ -32,6 +33,7 @@ import { getLink, getRouteForClusterId, getServiceLink } from './componentUtils'
 import { isHttpError } from '../utils';
 import { FastifyRequest } from 'fastify';
 import { fetchClusterStatus } from './dsc';
+import { fetchAIHub } from './aihub';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -48,6 +50,7 @@ const quickStartsPlural = 'odhquickstarts';
 
 let dashboardConfigWatcher: ResourceWatcher<DashboardConfig>;
 let authWatcher: ResourceWatcher<AuthKind>;
+let aihubWatcher: ResourceWatcher<AIHubKind>;
 let clusterStatusWatcher: ResourceWatcher<DataScienceClusterKindStatus>;
 let subscriptionWatcher: ResourceWatcher<SubscriptionStatusData>;
 let appWatcher: ResourceWatcher<OdhApplication>;
@@ -72,6 +75,9 @@ const fetchWatchedClusterStatus = async (
 ): Promise<DataScienceClusterKindStatus[]> => {
   return fetchClusterStatus(fastify).then((clusterStatus) => [clusterStatus]);
 };
+
+const fetchWatchedAIHub = async (fastify: KubeFastifyInstance): Promise<AIHubKind[]> =>
+  fetchAIHub(fastify).then((aihub) => [aihub]);
 
 const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
@@ -501,6 +507,7 @@ const fetchAuthKind = (fastify: KubeFastifyInstance): Promise<AuthKind[]> => {
 export const initializeWatchedResources = (fastify: KubeFastifyInstance): void => {
   dashboardConfigWatcher = new ResourceWatcher<DashboardConfig>(fastify, fetchDashboardCR);
   authWatcher = new ResourceWatcher<AuthKind>(fastify, fetchAuthKind);
+  aihubWatcher = new ResourceWatcher<AIHubKind>(fastify, fetchWatchedAIHub);
   clusterStatusWatcher = new ResourceWatcher<DataScienceClusterKindStatus>(
     fastify,
     fetchWatchedClusterStatus,
@@ -578,6 +585,16 @@ export const getClusterStatus = (
   }
   return clusterStatus;
 };
+
+export const getAIHub = (fastify: KubeFastifyInstance): AIHubKind | undefined => {
+  const aihub = aihubWatcher?.getResources()?.[0];
+  if (!aihub) {
+    fastify.log.error('Tried to use AIHub before ResourceWatcher could successfully fetch it');
+  }
+  return aihub;
+};
+
+export const getAIHubFetchError = (): unknown => aihubWatcher?.getLastError();
 
 export const updateDashboardConfig = (): Promise<void> => {
   return dashboardConfigWatcher.updateResults();
