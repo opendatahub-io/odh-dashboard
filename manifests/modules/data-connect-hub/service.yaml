@@ -11,5 +11,5 @@ spec:
   ports:
     - name: data-connect-hub-ui
       protocol: TCP
-      port: 9143
-      targetPort: 9143
+      port: 9243
+      targetPort: 9243
