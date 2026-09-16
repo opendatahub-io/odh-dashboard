@@ -38,14 +38,6 @@ class PromptManagementModal {
   findPagination(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByLabelText('top pagination');
   }
-
-  findProjectPromptsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('project-prompts-tab');
-  }
-
-  findGlobalPromptsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('global-prompts-tab');
-  }
 }
 
 class PromptDrawer {
@@ -163,18 +155,6 @@ class PromptAssistant {
 
   findConfirmationModalConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('confirmation-modal-confirm');
-  }
-
-  findScopeLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-scope-label');
-  }
-
-  findVersionToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-version-toggle');
-  }
-
-  findVersionItem(version: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`prompt-version-item-${version}`);
   }
 }
 
