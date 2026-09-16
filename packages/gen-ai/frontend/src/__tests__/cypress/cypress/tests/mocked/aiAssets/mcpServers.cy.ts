@@ -4,6 +4,7 @@ import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import {
   loadMCPTestConfig,
   configureMCPRegistryServersFlag,
+  setMCPRegistryServersFlag,
   clearMCPRegistryServersFlag,
   initAutoConnectIntercepts,
   initRegistryIntercepts,
@@ -39,6 +40,7 @@ describe('AI Assets - MCP Servers', () => {
       });
       configureMCPRegistryServersFlag(true);
       appChrome.visit();
+      setMCPRegistryServersFlag(true);
       aiAssetsPage.visit(namespace, { devFeatureFlags: 'genAiMcpRegistryServers=true' });
       aiAssetsPage.switchToMCPServersTab();
 
