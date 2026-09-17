@@ -10,16 +10,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-type chaosPodIdentity struct {
-	name string
-}
-
 func deploymentSelectorString(deployment *appsv1.Deployment) (string, error) {
 	if deployment.Spec.Selector == nil || len(deployment.Spec.Selector.MatchLabels) == 0 {
 		return "", fmt.Errorf("deployment %s/%s has no matchLabels selector", deployment.Namespace, deployment.Name)
 	}
 	if len(deployment.Spec.Selector.MatchExpressions) > 0 {
-		return "", fmt.Errorf("deployment %s/%s uses matchExpressions, which PDBBlock cannot represent", deployment.Namespace, deployment.Name)
+		return "", fmt.Errorf("deployment %s/%s uses matchExpressions, which NetworkPartition and PDBBlock cannot represent", deployment.Namespace, deployment.Name)
 	}
 
 	keys := make([]string, 0, len(deployment.Spec.Selector.MatchLabels))
@@ -42,6 +38,9 @@ func configureChaosExperiment(
 ) {
 	experiment.Namespace = namespace
 	experiment.Spec.Target.Resource = "Deployment/" + deployment.Name
+	if experiment.Spec.Injection.Parameters == nil {
+		experiment.Spec.Injection.Parameters = map[string]string{}
+	}
 	experiment.Spec.Injection.Parameters["labelSelector"] = selector
 	experiment.Spec.BlastRadius.AllowedNamespaces = []string{namespace}
 	desiredReplicas := int32(1)
@@ -59,9 +58,10 @@ func configureChaosExperiment(
 	}
 }
 
-func injectionTargetedPod(events []chaosv1alpha1.InjectionEvent, pod chaosPodIdentity) bool {
+func injectionTargetedBaselinePod(events []chaosv1alpha1.InjectionEvent, baselineNames map[string]struct{}) bool {
 	for _, event := range events {
-		if event.Type == chaosv1alpha1.PodKill && event.Target == pod.name && event.Action == "deleted" {
+		_, existed := baselineNames[event.Target]
+		if event.Type == chaosv1alpha1.PodKill && event.Action == "deleted" && existed {
 			return true
 		}
 	}

@@ -51,12 +51,20 @@ func TestConfigureChaosExperiment(t *testing.T) {
 	require.Equal(t, "test-ns", experiment.Spec.SteadyState.Checks[0].Namespace)
 }
 
-func TestInjectionTargetedPod(t *testing.T) {
-	pod := chaosPodIdentity{name: "dashboard-operator-abc"}
-	events := []chaosv1alpha1.InjectionEvent{{Type: chaosv1alpha1.PodKill, Target: pod.name, Action: "deleted"}}
-	require.True(t, injectionTargetedPod(events, pod))
+func TestConfigureChaosExperimentInitializesParameters(t *testing.T) {
+	experiment := &chaosv1alpha1.ChaosExperiment{}
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator"}}
+
+	configureChaosExperiment(experiment, "test-ns", deployment, "app=dashboard-operator")
+	require.Equal(t, "app=dashboard-operator", experiment.Spec.Injection.Parameters["labelSelector"])
+}
+
+func TestInjectionTargetedBaselinePod(t *testing.T) {
+	baselineNames := map[string]struct{}{"dashboard-operator-abc": {}, "dashboard-operator-def": {}}
+	events := []chaosv1alpha1.InjectionEvent{{Type: chaosv1alpha1.PodKill, Target: "dashboard-operator-def", Action: "deleted"}}
+	require.True(t, injectionTargetedBaselinePod(events, baselineNames))
 	events[0].Target = "another-pod"
-	require.False(t, injectionTargetedPod(events, pod))
+	require.False(t, injectionTargetedBaselinePod(events, baselineNames))
 }
 
 func TestEvictionBlocked(t *testing.T) {

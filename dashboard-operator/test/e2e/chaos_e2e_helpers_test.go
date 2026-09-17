@@ -53,6 +53,11 @@ type activeChaosFault struct {
 	active     bool
 }
 
+type controllerPodBaseline struct {
+	uids  map[types.UID]struct{}
+	names map[string]struct{}
+}
+
 func discoverChaosTarget(ctx context.Context) (*chaosTarget, error) {
 	namespace := os.Getenv("TEST_OPERATOR_NAMESPACE")
 	if namespace == "" {
@@ -198,16 +203,20 @@ func controllerPods(ctx context.Context, target *chaosTarget) ([]corev1.Pod, err
 	return pods.Items, nil
 }
 
-func controllerPodUIDs(ctx context.Context, target *chaosTarget) (map[types.UID]struct{}, error) {
+func captureControllerPodBaseline(ctx context.Context, target *chaosTarget) (*controllerPodBaseline, error) {
 	pods, err := controllerPods(ctx, target)
 	if err != nil {
 		return nil, err
 	}
-	uids := make(map[types.UID]struct{}, len(pods))
-	for i := range pods {
-		uids[pods[i].UID] = struct{}{}
+	baseline := &controllerPodBaseline{
+		uids:  make(map[types.UID]struct{}, len(pods)),
+		names: make(map[string]struct{}, len(pods)),
 	}
-	return uids, nil
+	for i := range pods {
+		baseline.uids[pods[i].UID] = struct{}{}
+		baseline.names[pods[i].Name] = struct{}{}
+	}
+	return baseline, nil
 }
 
 func podIsReady(pod *corev1.Pod) bool {
@@ -377,11 +386,7 @@ func waitForNetworkPolicyEnforcement() {
 	<-timer.C
 }
 
-func evictControllerPod(ctx context.Context, pod *corev1.Pod) error {
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return fmt.Errorf("create Kubernetes clientset: %w", err)
-	}
+func evictControllerPod(ctx context.Context, clientset kubernetes.Interface, pod *corev1.Pod) error {
 	uid := pod.UID
 	eviction := &policyv1.Eviction{
 		ObjectMeta:    metav1.ObjectMeta{Name: pod.Name, Namespace: pod.Namespace},
