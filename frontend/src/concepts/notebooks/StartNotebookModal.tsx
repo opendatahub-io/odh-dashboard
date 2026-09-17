@@ -656,7 +656,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         data-testid="notebook-status-modal-header"
         description={
           workbenchDescription ? (
-            <span data-testid="notebook-status-modal-description">{workbenchDescription}</span>
+            <Content component="p" data-testid="notebook-status-modal-description">
+              {workbenchDescription}
+            </Content>
           ) : undefined
         }
         title={
