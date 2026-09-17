@@ -18,10 +18,9 @@ FROM ${NODE_BASE_IMAGE} AS ui-builder
 
 ARG UI_SOURCE_CODE
 ARG MODULE_NAME
-ARG DEPLOYMENT_MODE=federated
-# Promote the build arg to an env var so the frontend build compiles in federated
-# Module Federation mode by default (host provides shared @odh-dashboard/* + framework packages).
-ENV DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
+# notebooks' Module Federation config has no isHost/DEPLOYMENT_MODE lever, so forcing
+# DEPLOYMENT_MODE here has no effect on its federated sharing. Keep the plain ARG.
+ARG DEPLOYMENT_MODE
 ARG PLATFORM_MODE
 
 WORKDIR /usr/src/workspace
