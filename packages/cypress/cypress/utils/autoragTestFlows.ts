@@ -68,7 +68,7 @@ const readMaaSConfig = (): MaaSConfig => ({
 
 /**
  * Resolve the AutoRAG MaaS dependency without creating or changing any MaaS resources.
- * Partial external configuration is rejected so it cannot accidentally select a provisioned path.
+ * External mode is selected only when all four MaaS configuration values are non-empty.
  */
 export const resolveAutoragMaaSFixture = (
   config: MaaSConfig = readMaaSConfig(),
@@ -77,25 +77,12 @@ export const resolveAutoragMaaSFixture = (
     const value = config[key];
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
   });
-  const suppliedKeys = MAAS_CONFIG_KEYS.filter((key) => {
-    const value = config[key];
-    return value !== undefined && value !== null && (typeof value !== 'string' || value.trim());
-  });
 
-  if (suppliedKeys.length === 0) {
+  if (values.some((value): value is undefined => value === undefined)) {
     return {
       mode: 'simulator',
       ...SIMULATOR_MAAS_FIXTURE,
     };
-  }
-
-  if (
-    suppliedKeys.length !== MAAS_CONFIG_KEYS.length ||
-    values.some((value): value is undefined => value === undefined)
-  ) {
-    throw new Error(
-      'AutoRAG MaaS configuration is incomplete; provide all four MaaS configuration fields or none.',
-    );
   }
 
   const [maasUrl, apiKey, generationModelId, embeddingModelId] = values as [
