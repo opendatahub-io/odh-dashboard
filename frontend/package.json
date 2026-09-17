@@ -274,6 +274,7 @@
       "js-yaml": "^4.3.2"
     },
     "fflate": "^0.4.9",
-    "baseline-browser-mapping": "^2.11.0"
+    "baseline-browser-mapping": "^2.11.0",
+    "compression": "^1.8.2"
   }
 }
