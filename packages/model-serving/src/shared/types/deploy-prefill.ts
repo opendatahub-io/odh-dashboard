@@ -7,7 +7,8 @@ export type DeployPrefillData = {
   wizardStartIndex?: number;
   modelType?: 'predictive' | 'generative';
   prefillAlertText?: string;
-  isPrivateHuggingFace?: boolean;
+  requiresHuggingFaceApiKey?: boolean;
+  huggingFaceApiKeyAlertText?: string;
   validatedConfigurations?: {
     forField: string;
     title: string;
