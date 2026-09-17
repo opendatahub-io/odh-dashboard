@@ -38,6 +38,7 @@ var (
 const (
 	dataScienceGatewayNamespace   = "openshift-ingress"
 	rayDataScienceGatewayRBACName = "fetch-ray-data-science-gateway"
+	rhoaiDashboardRouteName       = "rhods-dashboard"
 )
 
 const (
@@ -103,6 +104,37 @@ func remapRayDashboardGatewayRBAC(resources []unstructured.Unstructured) {
 			}
 		}
 	}
+}
+
+// setRHOAIDashboardRouteHostname gives the core dashboard route the same
+// hostname specificity as other routes attached to the shared RHOAI Gateway.
+// When no gateway domain is configured, the route remains hostname-less.
+func setRHOAIDashboardRouteHostname(
+	resources []unstructured.Unstructured,
+	dashboard *v1alpha1.Dashboard,
+	platform cluster.Platform,
+) error {
+	if platform != cluster.SelfManagedRhoai || dashboard.Spec.Gateway == nil || dashboard.Spec.Gateway.Domain == "" {
+		return nil
+	}
+
+	for i := range resources {
+		resource := &resources[i]
+		if resource.GetKind() != "HTTPRoute" || resource.GetName() != rhoaiDashboardRouteName {
+			continue
+		}
+
+		if err := unstructured.SetNestedStringSlice(
+			resource.Object,
+			[]string{dashboard.Spec.Gateway.Domain},
+			"spec",
+			"hostnames",
+		); err != nil {
+			return fmt.Errorf("setting hostname on HTTPRoute %s: %w", rhoaiDashboardRouteName, err)
+		}
+	}
+
+	return nil
 }
 
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {

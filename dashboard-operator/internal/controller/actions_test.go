@@ -42,6 +42,57 @@ func TestManifestSets(t *testing.T) {
 	}
 }
 
+func TestSetRHOAIDashboardRouteHostname(t *testing.T) {
+	tests := []struct {
+		name        string
+		platform    cluster.Platform
+		gateway     *v1alpha1.GatewaySpec
+		want        []string
+		wantPresent bool
+	}{
+		{
+			name:        "RHOAI with gateway domain",
+			platform:    cluster.SelfManagedRhoai,
+			gateway:     &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+			want:        []string{"rh-ai.apps.example.com"},
+			wantPresent: true,
+		},
+		{
+			name:     "RHOAI without gateway",
+			platform: cluster.SelfManagedRhoai,
+		},
+		{
+			name:     "RHOAI with empty gateway domain",
+			platform: cluster.SelfManagedRhoai,
+			gateway:  &v1alpha1.GatewaySpec{},
+		},
+		{
+			name:     "ODH with gateway domain",
+			platform: cluster.OpenDataHub,
+			gateway:  &v1alpha1.GatewaySpec{Domain: "odh.apps.example.com"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resources := []unstructured.Unstructured{{Object: map[string]interface{}{
+				"apiVersion": "gateway.networking.k8s.io/v1",
+				"kind":       "HTTPRoute",
+				"metadata":   map[string]interface{}{"name": rhoaiDashboardRouteName},
+				"spec":       map[string]interface{}{},
+			}}}
+			dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Gateway: tt.gateway}}
+
+			require.NoError(t, setRHOAIDashboardRouteHostname(resources, dashboard, tt.platform))
+
+			hostnames, present, err := unstructured.NestedStringSlice(resources[0].Object, "spec", "hostnames")
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantPresent, present)
+			assert.Equal(t, tt.want, hostnames)
+		})
+	}
+}
+
 func TestApplyKustomizeParams(t *testing.T) {
 	dir := t.TempDir()
 	overlay := filepath.Join(dir, "rhoai")
