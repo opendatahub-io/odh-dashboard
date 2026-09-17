@@ -149,7 +149,13 @@ const ClusterQueueWorkloadsTable: React.FC<ClusterQueueWorkloadsTableProps> = ({
                 hardwareProfileFilterOptions={hardwareProfileFilterOptions}
               />
             }
-            emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+            emptyTableView={
+              <DashboardEmptyTableView
+                titleText="No results"
+                clearFiltersText="Reset filters"
+                onClearFilters={onClearFilters}
+              />
+            }
             onClearFilters={onClearFilters}
             rowRenderer={(workload) => (
               <ClusterQueueWorkloadTableRow
