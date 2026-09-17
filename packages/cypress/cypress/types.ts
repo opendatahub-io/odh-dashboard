@@ -144,6 +144,22 @@ export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   waitingForQuotaMessage: string;
 };
 
+export type KueueQuotaUsageNavigationTestData = {
+  managedProjectName: string;
+  nonKueueManagedProjectName: string;
+  resourceFlavorName: string;
+  parentCohortName: string;
+  cohortName: string;
+  emptyCohortName: string;
+  cohortClusterQueueName: string;
+  standaloneClusterQueueName: string;
+  localQueueName: string;
+  acceleratorResourceName: string;
+  acceleratorQuota: number;
+  cohortTypeLabel: string;
+  clusterQueueTypeLabel: string;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
@@ -342,6 +358,20 @@ export type DataScienceProjectData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
+};
+
+export type NIMProjectScopedTestData = {
+  projectNamePrefix: string;
+  modelNamePrefix: string;
+  modelDescription: string;
+  nimImageNameWithGpu: string;
+  nimImageNameWithoutGpu: string;
+  nimModelId: string;
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
+  pvcNamePrefix: string;
+  pvcSizeGi: number;
+  tokenDisplayName: string;
 };
 
 export type RoutingTestData = DataScienceProjectData & {

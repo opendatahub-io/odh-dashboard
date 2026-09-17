@@ -55,11 +55,20 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
     });
   }, [model.name, trackSimpleEvent]);
 
+  const showHeaderLabels = isValidated || isRedHat || accessLabelVariant || source;
+
   return (
     <Card isFullHeight data-testid="model-catalog-card" key={`${model.name}/${model.source_id}`}>
       <CardHeader>
-        <CardTitle>
-          <Flex alignItems={{ default: 'alignItemsFlexStart' }} className="pf-v6-u-mb-md">
+        <Flex
+          alignItems={{ default: 'alignItemsFlexStart' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          flexWrap={{ default: 'nowrap' }}
+          fullWidth={{ default: 'fullWidth' }}
+          gap={{ default: 'gapXs' }}
+          className="pf-v6-u-mb-md"
+        >
+          <FlexItem>
             {model.logo ? (
               <img src={model.logo} alt="model logo" style={{ height: '56px', width: '56px' }} />
             ) : (
@@ -70,7 +79,9 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
                 screenreaderText="Brand image loading"
               />
             )}
-            <FlexItem align={{ default: 'alignRight' }}>
+          </FlexItem>
+          {showHeaderLabels && (
+            <FlexItem>
               <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                 {isValidated && (
                   <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
@@ -101,7 +112,9 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
                 )}
               </Flex>
             </FlexItem>
-          </Flex>
+          )}
+        </Flex>
+        <CardTitle>
           <Link to={catalogModelDetailsFromModel(model.name, source?.id)}>
             <Button
               data-testid="model-catalog-detail-link"
