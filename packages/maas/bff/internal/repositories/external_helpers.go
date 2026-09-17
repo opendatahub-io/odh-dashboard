@@ -169,6 +169,9 @@ func externalProviderDetailsFromSummary(summary models.ExternalProviderSummary) 
 		Provider:            summary.Provider,
 		Config:              summary.Config,
 		Phase:               summary.Phase,
+		Status:              summary.Status,
+		ConditionType:       summary.ConditionType,
+		LastTransitionTime:  summary.LastTransitionTime,
 		StatusMessage:       summary.StatusMessage,
 		Reason:              summary.Reason,
 	}

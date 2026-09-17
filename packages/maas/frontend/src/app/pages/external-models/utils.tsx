@@ -1,6 +1,11 @@
 import { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import * as React from 'react';
-import { AuthMechanism, ExternalModel, ProviderRef } from '~/app/types/external-models';
+import {
+  AuthMechanism,
+  ExternalModel,
+  ExternalProvider,
+  ProviderRef,
+} from '~/app/types/external-models';
 import { PhaseStatus } from '~/app/utilities/phaseLabelUtils';
 
 /** Ready-condition message on the companion MaaSModelRef when sub+auth pairing is missing. */
@@ -83,6 +88,37 @@ export const getExternalModelResource = (model: ExternalModel): K8sResourceCommo
     name: model.name,
     namespace: model.namespace,
   },
+});
+
+export const findExternalProvider = (
+  externalProviders: ExternalProvider[],
+  providerName: string,
+  namespace: string,
+): ExternalProvider | undefined =>
+  externalProviders.find(
+    (provider) => provider.name === providerName && provider.namespace === namespace,
+  );
+
+export const getExternalProviderFromProviderRef = (
+  providerRef: ProviderRef,
+  namespace: string,
+): ExternalProvider => ({
+  name: providerRef.providerName,
+  namespace,
+  displayName: providerRef.provider?.displayName,
+  description: providerRef.provider?.description,
+  endpointUrl: providerRef.provider?.endpointUrl ?? '',
+  authMechanism: providerRef.provider?.authMechanism ?? providerRef.authMechanism ?? 'apikey',
+  credentialSecretRef:
+    providerRef.provider?.credentialSecretRef ?? providerRef.credentialSecretRef ?? '',
+  provider: providerRef.provider?.provider ?? '',
+  config: providerRef.provider?.config,
+  phase: providerRef.provider?.phase,
+  statusMessage: providerRef.provider?.statusMessage,
+  reason: providerRef.provider?.reason,
+  status: providerRef.provider?.status,
+  conditionType: providerRef.provider?.conditionType,
+  lastTransitionTime: providerRef.provider?.lastTransitionTime,
 });
 
 export const getProviderRefResource = (providerRef: ProviderRef): K8sResourceCommon => ({

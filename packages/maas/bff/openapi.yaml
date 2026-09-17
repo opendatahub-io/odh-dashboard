@@ -2975,6 +2975,16 @@ components:
             type: string
         phase:
           type: string
+        status:
+          type: string
+          description: Status from the Ready condition in status.conditions (e.g. True, False)
+        conditionType:
+          type: string
+          description: Condition type from status.conditions (typically Ready)
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: Last transition time from the Ready condition in status.conditions
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions

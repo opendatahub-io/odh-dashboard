@@ -134,7 +134,7 @@ describe('External providers', () => {
         externalProvidersPage.findDescription().should('exist');
         externalProvidersPage.findProjectSelector().should('exist');
         externalProvidersPage.findTable().should('exist');
-        externalProvidersPage.findRows().should('have.length', 5);
+        externalProvidersPage.findRows().should('have.length', 6);
       });
 
       it('displays provider table content with status details', () => {
@@ -202,34 +202,34 @@ describe('External providers', () => {
           .findRows()
           .eq(0)
           .should('contain.text', 'Pending Anthropic Development');
-        externalProvidersPage.findRows().eq(4).should('contain.text', 'Anthropic Provider');
+        externalProvidersPage.findRows().eq(5).should('contain.text', 'Anthropic Provider');
         externalProvidersPage.findColumnSortButton('External provider').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic Provider');
         externalProvidersPage
           .findRows()
-          .eq(4)
+          .eq(5)
           .should('contain.text', 'Pending Anthropic Development');
 
         externalProvidersPage.findColumnSortButton('Provider type').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic');
-        externalProvidersPage.findRows().eq(4).should('contain.text', 'AWS Bedrock');
+        externalProvidersPage.findRows().eq(5).should('contain.text', 'OpenAI');
         externalProvidersPage.findColumnSortButton('Provider type').click();
-        externalProvidersPage.findRows().eq(0).should('contain.text', 'AWS Bedrock');
-        externalProvidersPage.findRows().eq(4).should('contain.text', 'Anthropic');
+        externalProvidersPage.findRows().eq(0).should('contain.text', 'OpenAI');
+        externalProvidersPage.findRows().eq(5).should('contain.text', 'Anthropic');
 
         externalProvidersPage.findColumnSortButton('Authentication').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'API key');
         externalProvidersPage.findRows().eq(4).should('contain.text', 'Signature Version 4');
         externalProvidersPage.findColumnSortButton('Authentication').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Signature Version 4');
-        externalProvidersPage.findRows().eq(4).should('contain.text', 'API key');
+        externalProvidersPage.findRows().eq(5).should('contain.text', 'API key');
 
         externalProvidersPage.findColumnSortButton('Status').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Failed');
-        externalProvidersPage.findRows().eq(4).should('contain.text', 'Ready');
+        externalProvidersPage.findRows().eq(5).should('contain.text', 'Ready');
         externalProvidersPage.findColumnSortButton('Status').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Ready');
-        externalProvidersPage.findRows().eq(4).should('contain.text', 'Failed');
+        externalProvidersPage.findRows().eq(5).should('contain.text', 'Failed');
 
         externalProvidersPage.findFilterInput().should('have.value', '');
         externalProvidersPage.findFilterDropdownButton().click();
@@ -250,7 +250,7 @@ describe('External providers', () => {
         externalProvidersPage.findFilterDropdownButton().click();
         externalProvidersPage.findFilterDropdownItem('status').click();
         externalProvidersPage.selectStatusFilter('ready');
-        externalProvidersPage.findRows().should('have.length', 2);
+        externalProvidersPage.findRows().should('have.length', 3);
         externalProvidersPage.findRows().should('contain.text', 'AWS Bedrock US East');
         externalProvidersPage.findRows().should('contain.text', 'Anthropic Provider');
         externalProvidersPage.findFilterResetButton().click();
@@ -302,7 +302,7 @@ describe('External providers', () => {
         deleteExternalProviderModal.findSubmitButton().click();
         cy.wait('@deleteExternalProvider');
         cy.wait('@listExternalProviders');
-        externalProvidersPage.findRows().should('have.length', 4);
+        externalProvidersPage.findRows().should('have.length', 5);
         externalProvidersPage.findTable().should('not.contain', 'AWS Bedrock US East');
       });
     });

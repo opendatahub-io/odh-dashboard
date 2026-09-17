@@ -16,14 +16,16 @@ import {
   externalProvidersPage,
   pathModal,
   phaseModal,
+  deleteExternalProviderModal,
 } from '../../../pages/modelsAsAService';
 import {
-  mockExternalModel,
   mockExternalModels,
   mockExternalProvider,
   mockExternalProvidersForCreateFlow,
   mockMaasNamespaces,
   mockMaasSecrets,
+  mockExternalProviders,
+  mockExternalModel,
 } from '../../../utils/maasUtils';
 
 const TEST_PROJECT = 'test-project';
@@ -133,6 +135,11 @@ describe('External Models Page', () => {
         { query: { namespace: TEST_PROJECT } },
         { data: mockExternalModels() },
       );
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalprovider',
+        { query: { namespace: TEST_PROJECT } },
+        { data: mockExternalProviders() },
+      );
       externalModelsPage.visit();
       externalModelsPage.findTable().should('exist');
     });
@@ -221,6 +228,34 @@ describe('External Models Page', () => {
         .findMissingMaaSModelRefWarningPopover()
         .should('exist')
         .should('contain.text', 'Missing MaaS model setup');
+    });
+
+    it('should delete an external provider from the expanded row', () => {
+      cy.interceptOdh(
+        'DELETE /maas/api/v1/externalprovider/:namespace/:name',
+        { path: { namespace: TEST_PROJECT, name: 'openai-prod' } },
+        { data: null },
+      ).as('deleteExternalProvider');
+      externalModelsPage.visit();
+      externalModelsPage.findTable().should('exist');
+
+      const gptRowAfterVisit = externalModelsPage.getRow('GPT-4o External');
+      gptRowAfterVisit.findExpandButton().click();
+      gptRowAfterVisit.findExpandedKebabAction('openai-prod', 'Delete').click();
+      deleteExternalProviderModal.shouldShowResourceName('OpenAI Production');
+      deleteExternalProviderModal.findInput().type('OpenAI Production');
+      deleteExternalProviderModal.findSubmitButton().should('be.enabled');
+      deleteExternalProviderModal.findSubmitButton().click();
+
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalprovider',
+        { query: { namespace: TEST_PROJECT } },
+        { data: mockExternalProviders().filter((provider) => provider.name !== 'openai-prod') },
+      ).as('listExternalProviders');
+      cy.wait('@deleteExternalProvider');
+      externalProvidersPage.visit();
+      cy.wait('@listExternalProviders');
+      externalProvidersPage.findTable().should('not.contain', 'OpenAI Production');
     });
 
     it('should filter external models by keyword across name, display name, and description', () => {
