@@ -20,7 +20,10 @@ import {
   waitForAutoragRunCompletion,
   verifyAutoragResultsInteraction,
 } from '../../../utils/autoragTestFlows';
-import type { AutoragMaaSFixture } from '../../../utils/autoragTestFlows';
+import type {
+  AutoragConnectionOwnership,
+  AutoragMaaSFixture,
+} from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
 
@@ -28,6 +31,10 @@ describe('AutoRAG Optimization E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
   let maasFixture: AutoragMaaSFixture | undefined;
+  const connectionOwnership: AutoragConnectionOwnership = {
+    maasSecretCreated: false,
+    vectorDbSecretCreated: false,
+  };
   let autoragWasEnabled = false;
   const getMaaSFixture = (): AutoragMaaSFixture => {
     if (!maasFixture) {
@@ -62,7 +69,12 @@ describe('AutoRAG Optimization E2E', () => {
       setAutoragEnabled(false);
     }
 
-    cleanupAutoragInfrastructure(projectName, testData.maasSecretName, testData.vectorDbSecretName);
+    cleanupAutoragInfrastructure(
+      projectName,
+      testData.maasSecretName,
+      testData.vectorDbSecretName,
+      connectionOwnership,
+    );
     if (maasFixture) {
       cleanupAutoragMaaSCredential(maasFixture);
     }
@@ -84,6 +96,7 @@ describe('AutoRAG Optimization E2E', () => {
     () => {
       configureAutoragRun(testData, projectName, uuid, getMaaSFixture(), {
         createConnections: true,
+        connectionOwnership,
       });
 
       cy.step('Select faithfulness optimization metric');
@@ -95,7 +108,12 @@ describe('AutoRAG Optimization E2E', () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun(testData, getAutoragInputDataKey(testData, uuid), getMaaSFixture());
+      submitAutoragRun(
+        testData,
+        projectName,
+        getAutoragInputDataKey(testData, uuid),
+        getMaaSFixture(),
+      );
     },
   );
 });
@@ -105,6 +123,10 @@ describe('AutoRAG Optimization completion results E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
   let maasFixture: AutoragMaaSFixture | undefined;
+  const connectionOwnership: AutoragConnectionOwnership = {
+    maasSecretCreated: false,
+    vectorDbSecretCreated: false,
+  };
   let autoragWasEnabled = false;
   const getMaaSFixture = (): AutoragMaaSFixture => {
     if (!maasFixture) {
@@ -139,7 +161,12 @@ describe('AutoRAG Optimization completion results E2E', () => {
       setAutoragEnabled(false);
     }
 
-    cleanupAutoragInfrastructure(projectName, testData.maasSecretName, testData.vectorDbSecretName);
+    cleanupAutoragInfrastructure(
+      projectName,
+      testData.maasSecretName,
+      testData.vectorDbSecretName,
+      connectionOwnership,
+    );
     if (maasFixture) {
       cleanupAutoragMaaSCredential(maasFixture);
     }
@@ -165,6 +192,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
 
       configureAutoragRun(testData, projectName, completionUuid, fixture, {
         createConnections: true,
+        connectionOwnership,
       });
 
       cy.step('Select faithfulness optimization metric');
@@ -176,12 +204,15 @@ describe('AutoRAG Optimization completion results E2E', () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun(testData, getAutoragInputDataKey(testData, completionUuid), fixture).then(
-        () => {
-          waitForAutoragRunCompletion();
-          verifyAutoragResultsInteraction();
-        },
-      );
+      submitAutoragRun(
+        testData,
+        projectName,
+        getAutoragInputDataKey(testData, completionUuid),
+        fixture,
+      ).then(() => {
+        waitForAutoragRunCompletion();
+        verifyAutoragResultsInteraction();
+      });
     },
   );
 });

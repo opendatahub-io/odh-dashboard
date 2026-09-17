@@ -331,8 +331,13 @@ export const cleanupAutoragInfrastructure = (
   namespace: string,
   maasSecretName: string,
   vectorDbSecretName: string,
+  ownership: { maasSecretCreated: boolean; vectorDbSecretCreated: boolean },
 ): void => {
   cleanupVectorStore(namespace);
-  cleanupAutoragSecret(namespace, maasSecretName);
-  cleanupAutoragSecret(namespace, vectorDbSecretName);
+  if (ownership.maasSecretCreated) {
+    cleanupAutoragSecret(namespace, maasSecretName);
+  }
+  if (ownership.vectorDbSecretCreated) {
+    cleanupAutoragSecret(namespace, vectorDbSecretName);
+  }
 };

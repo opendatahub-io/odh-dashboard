@@ -21,7 +21,10 @@ import {
   verifyAutoragRunTerminated,
   verifyAutoragRunListed,
 } from '../../../utils/autoragTestFlows';
-import type { AutoragMaaSFixture } from '../../../utils/autoragTestFlows';
+import type {
+  AutoragConnectionOwnership,
+  AutoragMaaSFixture,
+} from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
 
@@ -29,6 +32,10 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
   let maasFixture: AutoragMaaSFixture | undefined;
+  const connectionOwnership: AutoragConnectionOwnership = {
+    maasSecretCreated: false,
+    vectorDbSecretCreated: false,
+  };
   let autoragWasEnabled = false;
   const getMaaSFixture = (): AutoragMaaSFixture => {
     if (!maasFixture) {
@@ -62,7 +69,12 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
     if (!autoragWasEnabled) {
       setAutoragEnabled(false);
     }
-    cleanupAutoragInfrastructure(projectName, testData.maasSecretName, testData.vectorDbSecretName);
+    cleanupAutoragInfrastructure(
+      projectName,
+      testData.maasSecretName,
+      testData.vectorDbSecretName,
+      connectionOwnership,
+    );
     if (maasFixture) {
       cleanupAutoragMaaSCredential(maasFixture);
     }
@@ -76,6 +88,7 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
     () => {
       configureAutoragRun(testData, projectName, uuid, getMaaSFixture(), {
         createConnections: true,
+        connectionOwnership,
       });
 
       cy.step('Set max RAG patterns to minimize run time');
@@ -83,18 +96,21 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun(testData, getAutoragInputDataKey(testData, uuid), getMaaSFixture()).then(
-        (runId) => {
-          cy.step('Terminate the submitted run and confirm');
-          autoragResultsPage.findStopRunButton().click();
-          autoragResultsPage.findStopRunModal().should('be.visible');
-          autoragResultsPage.findConfirmStopRunButton().click();
+      submitAutoragRun(
+        testData,
+        projectName,
+        getAutoragInputDataKey(testData, uuid),
+        getMaaSFixture(),
+      ).then((runId) => {
+        cy.step('Terminate the submitted run and confirm');
+        autoragResultsPage.findStopRunButton().click();
+        autoragResultsPage.findStopRunModal().should('be.visible');
+        autoragResultsPage.findConfirmStopRunButton().click();
 
-          cy.step('Verify the submitted run reaches a terminal state');
-          verifyAutoragRunTerminated(runId);
-          verifyAutoragRunListed(projectName, testData.runName);
-        },
-      );
+        cy.step('Verify the submitted run reaches a terminal state');
+        verifyAutoragRunTerminated(projectName, runId);
+        verifyAutoragRunListed(projectName, testData.runName);
+      });
     },
   );
 });
