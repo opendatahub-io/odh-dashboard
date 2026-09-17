@@ -32,8 +32,5 @@ export function usePatternEvaluationResults(
     },
     enabled: enabled && Boolean(namespace && key),
     retry: false,
-    // The Sample Q&A tab renders the query error inline; do not let malformed
-    // evaluation artifacts escape to the host error boundary.
-    throwOnError: false,
   });
 }
