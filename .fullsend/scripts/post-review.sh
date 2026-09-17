@@ -44,6 +44,8 @@
 set -euo pipefail
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
+_FULLSEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FULLSEND_CONFIG_DIR="${FULLSEND_DIR:-${_FULLSEND_DIR}}"
 
 # $1 = path to agent-result.json. Writes transformed JSON to stdout.
 transform_review_result() {
@@ -551,8 +553,9 @@ def producer_rows(result):
 
     rows = []
     if ledger is None:
+        unverified_note = "run state is unverified because no dispatch ledger exists"
         for name in (result.get("inspected") or {}).get("producers") or []:
-            rows.append((clean(name), "✅", count_cell(name), "—"))
+            rows.append((clean(name), "❔", count_cell(name), unverified_note))
         return rows, False
     for key in ("dispatched", "adapters"):
         for name in ledger.get(key) or []:
@@ -1212,6 +1215,7 @@ if [ -z "${RESULT_FILE}" ] || [ ! -f "${RESULT_FILE}" ]; then
       --repo "${REPO_FULL_NAME}" \
       --pr "${PR_NUMBER}" \
       --token "${REVIEW_TOKEN}" \
+      --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
       --result -
   exit 1
 fi
@@ -1255,6 +1259,7 @@ case "${REVIEW_FINDING_SEVERITY_THRESHOLD}" in
          --repo "${REPO_FULL_NAME}" \
          --pr "${PR_NUMBER}" \
          --token "${REVIEW_TOKEN}" \
+         --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
          --result -
      exit 1 ;;
 esac
@@ -1558,6 +1563,7 @@ fullsend post-review \
   --repo "${REPO_FULL_NAME}" \
   --pr "${PR_NUMBER}" \
   --token "${REVIEW_TOKEN}" \
+  --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
   --result "${POST_RESULT_FILE}" || POST_REVIEW_EXIT=$?
 
 if [ "${POST_REVIEW_EXIT}" -eq 10 ]; then

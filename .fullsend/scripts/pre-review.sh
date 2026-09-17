@@ -17,7 +17,26 @@
 #   GITHUB_PR_URL  — must be a valid GitHub pull request URL
 set -euo pipefail
 
+REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FULLSEND_CONFIG_DIR="${FULLSEND_DIR:-${_SCRIPT_DIR}/..}"
+
+# Post or update the review sticky via fullsend (bot + marker, keep_history from config).
+post_review_sticky_comment() {
+  local repo="$1"
+  local pr="$2"
+  local token="$3"
+  local body_file="$4"
+
+  fullsend post-comment \
+    --repo "${repo}" \
+    --number "${pr}" \
+    --token "${token}" \
+    --marker "${REVIEW_STICKY_MARKER}" \
+    --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
+    --result "${body_file}"
+}
 
 normalize_dispatch_context() {
   local work_item_url
@@ -264,6 +283,10 @@ if [[ "${1:-}" == "--validate-adapters" ]]; then
   exit 0
 fi
 
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+  return 0 2>/dev/null || exit 0
+fi
+
 normalize_dispatch_context
 
 # Fail before sandbox packaging when a repository-relative skill link cannot
@@ -377,6 +400,10 @@ PR_VIEW="$(GH_TOKEN="${_TOKEN}" gh pr view "${PR_NUMBER}" \
 PR_TITLE="$(printf '%s' "${PR_VIEW}" | jq -r '.title // empty')"
 PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
 PR_HEAD_SHA="$(printf '%s' "${PR_VIEW}" | jq -r '.headRefOid // empty')"
+if [[ ! "${PR_HEAD_SHA}" =~ ^[0-9a-fA-F]{40}$ ]]; then
+  echo "::error::PR head SHA is missing or invalid (expected 40 hexadecimal characters), got: '${PR_HEAD_SHA:-}'"
+  exit 1
+fi
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
@@ -396,8 +423,10 @@ def section_deficient(name):
     text = (rest[: nxt.start()] if nxt else rest).strip()
     if not text:
         return name
-    first_line = text.splitlines()[0].strip() if text.splitlines() else ""
-    if PLACEHOLDER.match(first_line):
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        return name
+    if all(PLACEHOLDER.match(ln) for ln in lines):
         return name
     return ""
 
@@ -411,8 +440,7 @@ if [[ -n "${MISSING_HEADINGS}" ]]; then
   SHORT_SHA="${PR_HEAD_SHA:0:7}"
   [[ -z "${SHORT_SHA}" ]] && SHORT_SHA="unknown"
   AGENTIC_TEMPLATE="https://github.com/opendatahub-io/odh-dashboard/blob/main/.github/PULL_REQUEST_TEMPLATE/agentic.md"
-  COMMENT_BODY="<!-- fullsend:review-agent -->
-<!-- **Head SHA:** ${PR_HEAD_SHA} -->
+  COMMENT_BODY="<!-- **Head SHA:** ${PR_HEAD_SHA} -->
 
 Finished Review · \`skipped\` · Commit: \`${SHORT_SHA}\`
 
@@ -422,8 +450,10 @@ See [agentic.md](${AGENTIC_TEMPLATE}).
 
 <sub>Posted by <a href=\"https://github.com/fullsend-ai/fullsend\">fullsend</a> pre-review check</sub>"
 
-  printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
-    --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
+  _sticky_body="$(mktemp)"
+  printf '%s' "${COMMENT_BODY}" > "${_sticky_body}"
+  post_review_sticky_comment "${REPO_FULL_NAME}" "${PR_NUMBER}" "${_TOKEN}" "${_sticky_body}"
+  rm -f "${_sticky_body}"
 
   exit 0
 fi
