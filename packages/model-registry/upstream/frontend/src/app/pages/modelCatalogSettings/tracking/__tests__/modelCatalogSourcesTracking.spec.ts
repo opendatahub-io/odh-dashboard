@@ -11,9 +11,11 @@ describe('buildAccessTokenValidatedTrackingProperties', () => {
       sourceType: MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,
       hasOrganization: true,
     });
-    expect(buildAccessTokenValidatedTrackingProperties(false, false, 'validation_failed')).toEqual({
+    expect(
+      buildAccessTokenValidatedTrackingProperties(false, false, 'Invalid credentials'),
+    ).toEqual({
       success: false,
-      error: 'validation_failed',
+      error: 'Invalid credentials',
       sourceType: MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,
       hasOrganization: false,
     });

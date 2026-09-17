@@ -199,11 +199,12 @@ export const useSourcePreview = ({
     const hasOrganization = formData.organization.trim().length > 0;
 
     if (!apiState.apiAvailable) {
-      setValidationError(new Error('API is not available'));
+      const apiError = new Error('API is not available');
+      setValidationError(apiError);
       setCredentialsValidationStatus('invalid');
       trackSimpleEvent(
         MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
-        buildAccessTokenValidatedTrackingProperties(false, hasOrganization, 'api_unavailable'),
+        buildAccessTokenValidatedTrackingProperties(false, hasOrganization, apiError.message),
       );
       return;
     }
@@ -228,7 +229,7 @@ export const useSourcePreview = ({
       setCredentialsValidationStatus('invalid');
       trackSimpleEvent(
         MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
-        buildAccessTokenValidatedTrackingProperties(false, hasOrganization, 'validation_failed'),
+        buildAccessTokenValidatedTrackingProperties(false, hasOrganization, err.message),
       );
     } finally {
       setIsValidating(false);

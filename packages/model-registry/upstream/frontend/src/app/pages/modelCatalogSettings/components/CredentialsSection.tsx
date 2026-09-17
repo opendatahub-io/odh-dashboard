@@ -87,6 +87,15 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
     }
   }, [setData, onClearValidationSuccess, onClearCredentials, onAccessTokenClearOutcome]);
 
+  const handleClearModalDismiss = React.useCallback(() => {
+    if (isClearing) {
+      return;
+    }
+    onAccessTokenClearOutcome?.('cancelled');
+    setIsClearModalOpen(false);
+    setClearError(undefined);
+  }, [isClearing, onAccessTokenClearOutcome]);
+
   const organizationInput = (
     <TextInput
       isRequired
@@ -238,12 +247,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
       <Modal
         variant={ModalVariant.small}
         isOpen={isClearModalOpen}
-        onClose={() => {
-          if (!isClearing) {
-            setIsClearModalOpen(false);
-            setClearError(undefined);
-          }
-        }}
+        onClose={handleClearModalDismiss}
         data-testid="clear-access-token-modal"
       >
         <ModalHeader title={CLEAR_ACCESS_TOKEN_MODAL.MODAL_TITLE} />
@@ -272,15 +276,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
           >
             {CLEAR_ACCESS_TOKEN_MODAL.CONFIRM_BTN}
           </Button>
-          <Button
-            variant="link"
-            isDisabled={isClearing}
-            onClick={() => {
-              onAccessTokenClearOutcome?.('cancelled');
-              setIsClearModalOpen(false);
-              setClearError(undefined);
-            }}
-          >
+          <Button variant="link" isDisabled={isClearing} onClick={handleClearModalDismiss}>
             {CLEAR_ACCESS_TOKEN_MODAL.CANCEL_BTN}
           </Button>
         </ModalFooter>
