@@ -2,13 +2,9 @@ import * as React from 'react';
 import { Controller, FormProvider } from 'react-hook-form';
 import {
   Button,
-  Checkbox,
   Content,
   Divider,
   ExpandableSection,
-  FileUpload,
-  Flex,
-  FlexItem,
   Form,
   FormGroup,
   FormHelperText,
@@ -33,7 +29,6 @@ import {
 } from '@odh-dashboard/internal/concepts/mlflow';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
-import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
@@ -564,52 +559,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                     fieldId="benchmark-threshold"
                     isDisabled={isCloning}
                   />
-                ) : null}
-
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                  <FlexItem>
-                    <Checkbox
-                      id="show-additional-args"
-                      data-testid="show-additional-args"
-                      label="Benchmark parameters"
-                      isChecked={form.showAdditionalArgs}
-                      onChange={(_e, checked) => form.setShowAdditionalArgs(checked)}
-                    />
-                  </FlexItem>
-                  <FlexItem>
-                    <LabelHelpPopover
-                      ariaLabel="More info for benchmark parameters"
-                      content="Enter the benchmark parameters for this evaluation run, or upload a JSON file containing them."
-                    />
-                  </FlexItem>
-                </Flex>
-                {form.showAdditionalArgs ? (
-                  <FormGroup fieldId="additional-args">
-                    <FileUpload
-                      id="additional-args"
-                      data-testid="additional-args-upload"
-                      type="text"
-                      isDisabled={isCloning}
-                      value={form.additionalArgs}
-                      filename={form.additionalArgsFilename}
-                      filenamePlaceholder="Drag and drop a file or upload"
-                      onFileInputChange={form.handleAdditionalArgsFileChange}
-                      onTextChange={form.handleAdditionalArgsTextChange}
-                      onClearClick={form.handleAdditionalArgsClear}
-                      browseButtonText="Upload"
-                      allowEditingUploadedText
-                      textAreaPlaceholder={'{\n  "num_examples": 10\n}'}
-                      dropzoneProps={{
-                        accept: { 'application/json': ['.json'] },
-                        disabled: isCloning,
-                      }}
-                    />
-                    <FormHelperText>
-                      <HelperText>
-                        <HelperTextItem>Upload a JSON file</HelperTextItem>
-                      </HelperText>
-                    </FormHelperText>
-                  </FormGroup>
                 ) : null}
               </ExpandableSection>
             </fieldset>

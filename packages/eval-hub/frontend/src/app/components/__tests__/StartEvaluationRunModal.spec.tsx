@@ -180,6 +180,18 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.queryByTestId('model-picker-toggle')).not.toBeInTheDocument();
   });
 
+  it('should not render benchmark parameters in any modal view', () => {
+    renderModal();
+
+    expect(screen.queryByTestId('show-additional-args')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('additional-args-upload')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('start-evaluation-run-advanced-toggle'));
+
+    expect(screen.queryByTestId('show-additional-args')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('additional-args-upload')).not.toBeInTheDocument();
+  });
+
   it('should show evaluating when a collection has one unknown AI entity', () => {
     renderModal(undefined, undefined, {
       collection: { ...collection, ai_entities: ['unknown'] },
@@ -214,8 +226,6 @@ describe('StartEvaluationRunModal', () => {
 
     await selectClusterModel();
     fireEvent.click(screen.getByTestId('start-evaluation-run-advanced-toggle'));
-    fireEvent.click(screen.getByTestId('show-additional-args'));
-    const fileUpload = screen.getByTestId('additional-args-upload');
 
     fireEvent.click(screen.getByTestId('start-evaluation-submit'));
     await waitFor(() => expect(resolveCollection).toHaveBeenCalledTimes(1));
@@ -224,8 +234,6 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.getByTestId('start-evaluation-submit')).toBeDisabled();
     expect(screen.getByTestId('start-evaluation-cancel')).toBeEnabled();
     expect(screen.queryByTestId('benchmark-threshold')).not.toBeInTheDocument();
-    expect(fileUpload.querySelector<HTMLInputElement>('input[type="file"]')).toBeDisabled();
-    expect(fileUpload.querySelector('textarea')).toBeDisabled();
     expect(onClonePendingChange).toHaveBeenCalledWith(true);
 
     fireEvent.click(screen.getByTestId('start-evaluation-cancel'));
