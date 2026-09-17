@@ -144,8 +144,16 @@ class InfrastructurePage {
     return cy.findByTestId('quota-usage-detail-title');
   }
 
+  findQuotaUsageDetailNoData() {
+    return cy.findByTestId('quota-usage-detail-no-data');
+  }
+
   findQuotaUsageUnassignedDescription() {
     return cy.findByTestId('quota-usage-unassigned-description');
+  }
+
+  findQuotaUsageDetailTypeLabel() {
+    return cy.findByTestId('quota-usage-detail-type-label');
   }
 
   findQuotaUsageNavSearch() {
@@ -293,12 +301,44 @@ class InfrastructurePage {
     return cy.findByTestId('quota-usage-view-kueue-projects');
   }
 
+  findInfrastructureKueueHelpLink() {
+    return cy.findByTestId('infrastructure-kueue-help-link');
+  }
+
+  findViewNonKueueManagedProjectsLink() {
+    return cy.findByTestId('view-non-kueue-managed-projects-link');
+  }
+
+  findNonKueueManagedProjectsModal() {
+    return cy.findByTestId('non-kueue-managed-projects-modal');
+  }
+
+  findNonKueueManagedProjectsTable() {
+    return cy.findByTestId('non-kueue-managed-projects-table');
+  }
+
+  findNonKueueManagedProjectsRow(projectName: string) {
+    return cy.findByTestId(`non-kueue-managed-projects-row-${projectName}`);
+  }
+
+  findNonKueueManagedProjectsSearch() {
+    return cy.findByTestId('non-kueue-managed-projects-search').find('input');
+  }
+
+  findNonKueueManagedProjectsCloseButton() {
+    return cy.findByTestId('non-kueue-managed-projects-close-button');
+  }
+
   findKueueProjectsModal() {
     return cy.findByTestId('kueue-projects-modal');
   }
 
   findKueueProjectsRow(projectName: string) {
     return cy.findByTestId(`kueue-projects-row-${projectName}`);
+  }
+
+  findKueueProjectsRowStatusLabel(projectName: string) {
+    return this.findKueueProjectsRow(projectName).findByTestId('kueue-managed-status-label');
   }
 
   findKueueProjectsCloseButton() {
