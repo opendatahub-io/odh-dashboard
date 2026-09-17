@@ -21,6 +21,7 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 describe('Verify multimodal inferencing in playground', { testIsolation: false }, () => {
   let testData: MultimodalTestData;
+  let originalExternalProviders: boolean | undefined;
   const projectName = `multimodal-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -32,6 +33,16 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         throw new Error(
           'OPENAI_API_KEY is not set in test-variables.yml — cannot run multimodal tests',
         );
+      }
+
+      if (originalExternalProviders === undefined) {
+        cy.exec(
+          `oc get OdhDashboardConfig odh-dashboard-config -n ${Cypress.env(
+            'APPLICATIONS_NAMESPACE',
+          )} -o json | jq -r '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders // false'`,
+        ).then((result) => {
+          originalExternalProviders = result.stdout.trim() === 'true';
+        });
       }
 
       cy.step('Enable externalProviders in OdhDashboardConfig');
@@ -80,16 +91,22 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       waitForResource('service', testData.model.lsdServiceName, projectName);
 
       cy.step('Wait for LSD pod to be fully ready');
-      waitForPodReady(testData.model.lsdPodPrefix, testData.model.lsdPodReadyTimeout, projectName);
-
-      cy.step('Wait for vision model to be registered in LSD');
-      waitForModelInLSD(testData.model.lsdServiceName, testData.model.modelId, projectName);
+      waitForPodReady(
+        testData.model.lsdPodPrefix,
+        testData.model.lsdPodReadyTimeout,
+        projectName,
+      ).then(() => {
+        cy.step('Wait for vision model to be registered in LSD');
+        waitForModelInLSD(testData.model.lsdServiceName, testData.model.modelId, projectName);
+      });
     });
   });
 
   after(() => {
     cy.step('Revert externalProviders in OdhDashboardConfig');
-    disableExternalProviders();
+    if (originalExternalProviders !== undefined) {
+      disableExternalProviders(originalExternalProviders);
+    }
 
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });

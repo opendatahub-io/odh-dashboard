@@ -98,19 +98,19 @@ export const forceDashboardConfigRefresh = (): void => {
 };
 
 /**
- * Disable externalProviders in OdhDashboardConfig (revert to default).
+ * Restore externalProviders in OdhDashboardConfig.
  * Polls until the change is confirmed so later specs don't race on the stale flag.
  */
-export const disableExternalProviders = (): void => {
+export const disableExternalProviders = (externalProviders = false): void => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const patchContent = JSON.stringify({
-    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: false } } },
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders } } },
   });
   patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
 
   pollUntilSuccess(
-    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == false'`,
-    'externalProviders to be false',
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == ${externalProviders}'`,
+    `externalProviders to be ${externalProviders}`,
     { maxAttempts: 15, pollIntervalMs: 2000 },
   );
 };
