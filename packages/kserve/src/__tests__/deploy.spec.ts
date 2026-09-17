@@ -179,4 +179,21 @@ describe('deployKServeDeployment', () => {
       mockDeployInferenceService.mock.calls[0][0].spec.predictor.deploymentStrategy,
     ).toBeUndefined();
   });
+
+  it('should apply a visible deployment strategy to the inference service', async () => {
+    const wizardData = {
+      ...WIZARD_DATA,
+      deploymentStrategy: {
+        data: deploymentStrategyRecreate,
+        setData: jest.fn(),
+        isVisible: true,
+      },
+    } as unknown as WizardFormData['state'];
+
+    await deployKServeDeployment(wizardData, {}, 'test-project');
+
+    expect(mockDeployInferenceService.mock.calls[0][0].spec.predictor.deploymentStrategy).toEqual({
+      type: 'Recreate',
+    });
+  });
 });
