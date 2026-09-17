@@ -38,10 +38,10 @@ Run contract tests with one command:
 pnpm run test:contract
 
 # With HTML reports (opens browser automatically)
-pnpm run test:contract -- --open
+pnpm run test:contract --open
 
 # Combine options
-pnpm run test:contract -- --open
+pnpm run test:contract --open
 
 ```
 
@@ -59,7 +59,7 @@ cd packages/your-package
 pnpm run test:contract
 
 # Or run with custom BFF URL and report opening
-CONTRACT_MOCK_BFF_URL=http://localhost:8080 pnpm run test:contract -- --open
+CONTRACT_MOCK_BFF_URL=http://localhost:8080 pnpm run test:contract --open
 ```
 
 ### Option 3: Turbo Orchestration (CI Optimized)

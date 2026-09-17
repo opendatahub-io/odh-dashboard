@@ -168,7 +168,7 @@ pnpm run test:contract
 cd frontend && pnpm run test:cypress-ci
 
 # Run specific Cypress test
-cd frontend && pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+cd frontend && pnpm run test:cypress-ci --spec "**/testfile.cy.ts"
 ```
 
 ---

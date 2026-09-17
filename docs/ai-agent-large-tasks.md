@@ -125,7 +125,7 @@ The condition can be up to 4,000 characters.
 ### Fixing lint across a package
 
 ```text
-/goal all ESLint errors in packages/gen-ai/frontend/src are resolved and pnpm run lint -- --filter=@odh-dashboard/gen-ai exits 0
+/goal all ESLint errors in packages/gen-ai/frontend/src are resolved and pnpm run lint --filter=@odh-dashboard/gen-ai exits 0
 ```
 
 ### Implementing a feature with tests
@@ -143,7 +143,7 @@ The condition can be up to 4,000 characters.
 ### Multi-file refactor
 
 ```text
-/goal all model-serving API hooks use React Query instead of useFetchState, pnpm run type-check exits 0, and pnpm run test -- --filter=@odh-dashboard/model-serving passes
+/goal all model-serving API hooks use React Query instead of useFetchState, pnpm run type-check exits 0, and pnpm exec turbo run test-unit --filter=@odh-dashboard/model-serving passes
 ```
 
 ### Type-check cleanup

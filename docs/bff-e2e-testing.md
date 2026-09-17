@@ -91,10 +91,10 @@ pnpm run test:cypress:e2e
 
 ```bash
 # Filter by tags
-pnpm run test:cypress:e2e -- --env grepTags="@Pipelines",grepFilterSpecs=true
+pnpm run test:cypress:e2e --env grepTags="@Pipelines",grepFilterSpecs=true
 
 # Run specific spec
-pnpm run test:cypress:e2e -- --spec "**/pipelines/*.cy.ts"
+pnpm run test:cypress:e2e --spec "**/pipelines/*.cy.ts"
 ```
 
 Or step-by-step:
@@ -108,7 +108,7 @@ turbo run cypress:server:e2e:wait
 
 # Run Cypress (E2E_PROXY implies baseUrl=http://localhost:4040 and /e2e-login auth)
 cd frontend
-CYPRESS_E2E_PROXY=true pnpm run cypress:run:chrome -- \
+CYPRESS_E2E_PROXY=true pnpm run cypress:run:chrome \
   --env grepTags="@ci-dashboard-regression-tags",grepFilterSpecs=true
 
 # Or interactive mode

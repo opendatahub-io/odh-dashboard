@@ -247,7 +247,7 @@ const renderRow = (notebook = mockNotebookK8sResource({})) => {
 pnpm run test -- NotebookTableRow.spec.tsx
 
 # Run updated Cypress mock tests (verify remaining tests still pass)
-pnpm run test:cypress-ci -- --spec "**/workbench.cy.ts"
+pnpm run test:cypress-ci --spec "**/workbench.cy.ts"
 
 # Lint everything
 pnpm run lint:fix

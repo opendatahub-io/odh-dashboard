@@ -614,7 +614,7 @@ pnpm run test:contract
 **Run with HTML reports** (auto-opens browser):
 
 ```bash
-pnpm run test:contract -- --open
+pnpm run test:contract --open
 ```
 
 ### Using Turbo (Recommended for CI)

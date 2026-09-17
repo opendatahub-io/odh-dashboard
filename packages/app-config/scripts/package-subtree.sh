@@ -385,7 +385,7 @@ _get_commit_url() {
 }
 
 _get_continue_cmd() {
-  echo "pnpm --filter $WORKSPACE_LOCATION run update-subtree -- --continue"
+  echo "pnpm --filter $WORKSPACE_LOCATION run update-subtree --continue"
 }
 
 _pre_apply_hook() {

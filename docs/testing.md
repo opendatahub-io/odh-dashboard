@@ -151,7 +151,7 @@ To run all Cypress e2e tests, a specific test, or open the Cypress GUI:
 ```bash
 pnpm run cypress:run
 
-pnpm run cypress:run -- --spec "**/testfile.cy.ts"
+pnpm run cypress:run --spec "**/testfile.cy.ts"
 
 pnpm run cypress:open
 ```
@@ -167,7 +167,7 @@ Single command to run all Cypress mock tests or a specific test (build frontend,
 ```bash
 pnpm run test:cypress-ci
 
-pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+pnpm run test:cypress-ci --spec "**/testfile.cy.ts"
 ```
 
 Cypress tests require a frontend server to be running.
@@ -199,13 +199,13 @@ Once you have Cypress server running in a terminal, there are two commands to ru
   ```bash
   pnpm run cypress:run:mock
 
-  pnpm run cypress:run:mock -- --spec "**/testfile.cy.ts"
+  pnpm run cypress:run:mock --spec "**/testfile.cy.ts"
   ```
 
 Running out of memory using the GUI? Cypress keeps track of a lot of data while testing. If you experience memory issues or crashes, use the following command to adjust the number of tests kept in memory:
 
 ```bash
-pnpm run cypress:open:mock -- --config numTestsKeptInMemory=0
+pnpm run cypress:open:mock --config numTestsKeptInMemory=0
 ```
 
 ### Structure

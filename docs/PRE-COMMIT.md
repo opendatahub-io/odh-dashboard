@@ -65,7 +65,7 @@ git commit -m "My changes"
 # →    git commit -m "Your commit message"
 # →
 # → ⚠️  To bypass this check:
-# →    One-time: pnpm run commit:skip-lint-hook -- -m "Your message"
+# →    One-time: pnpm run commit:skip-lint-hook -m "Your message"
 # →    One-time: SKIP_LINT_HOOK=true git commit -m "Your message"
 # →    One-time: git commit --no-verify -m "Your message"
 # →
@@ -97,7 +97,7 @@ git commit -m "Fix lint issues and add feature"
 
 ```bash
 # Method 1: Using the repository script (recommended)
-pnpm run commit:skip-lint-hook -- -m "Your commit message"
+pnpm run commit:skip-lint-hook -m "Your commit message"
 
 # Method 2: Using environment variable
 SKIP_LINT_HOOK=true git commit -m "Your commit message"
@@ -134,7 +134,7 @@ export SKIP_LINT_HOOK=true
 git commit -m "WIP commit"  # Skipped
 
 # Force linting anyway (overrides SKIP_LINT_HOOK)
-pnpm run commit:force-lint-hook -- -m "Ready for review"  # Runs lint!
+pnpm run commit:force-lint-hook -m "Ready for review"  # Runs lint!
 FORCE_LINT_HOOK=true git commit -m "Final commit"        # Runs lint!
 ```
 
@@ -229,7 +229,7 @@ This configuration:
    git commit -m "Your commit message"
 
 ⚠️  To bypass this check:
-   One-time: pnpm run commit:skip-lint-hook -- -m "Your message"
+   One-time: pnpm run commit:skip-lint-hook -m "Your message"
    One-time: SKIP_LINT_HOOK=true git commit -m "Your message"
    One-time: git commit --no-verify -m "Your message"
 
@@ -261,8 +261,6 @@ pnpm run prepare
 
 # Method 2: Install husky manually (if prepare script fails)
 pnpm exec husky install
-# or for yarn users:
-# yarn husky install
 
 # Method 3: Manual setup (if above methods fail)
 git config core.hooksPath .husky/_
@@ -301,7 +299,7 @@ cd backend && pnpm exec eslint --fix src/specific-file.ts
 
 ```bash
 # Method 1: Repository script (recommended)
-pnpm run commit:skip-lint-hook -- -m "Emergency fix"
+pnpm run commit:skip-lint-hook -m "Emergency fix"
 
 # Method 2: Environment variable
 SKIP_LINT_HOOK=true git commit -m "Emergency fix"
@@ -320,7 +318,7 @@ unset SKIP_LINT_HOOK  # Re-enable when done
 
 ```bash
 # Method 1: Repository script (recommended)
-pnpm run commit:force-lint-hook -- -m "Ready for review"
+pnpm run commit:force-lint-hook -m "Ready for review"
 
 # Method 2: Environment variable override
 FORCE_LINT_HOOK=true git commit -m "Final commit"

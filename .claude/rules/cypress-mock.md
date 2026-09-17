@@ -804,7 +804,7 @@ it('should display error message on API failure', () => {
 > **Linting/fixing commands (must run from packages/cypress directory):**
 > ```bash
 > cd packages/cypress
-> pnpm run lint -- --fix
+> pnpm run lint --fix
 > ```
 
 **All linting errors must be fixed**:
@@ -923,7 +923,7 @@ cy.testA11y();
 pnpm run test:cypress-ci
 
 # Run specific test file
-pnpm run test:cypress-ci -- --spec "**/featureName.cy.ts"
+pnpm run test:cypress-ci --spec "**/featureName.cy.ts"
 ```
 
 **Development workflow** (requires separate terminals):
@@ -941,7 +941,7 @@ pnpm run cypress:open:mock
 pnpm run cypress:run:mock
 
 # Run specific test
-pnpm run cypress:run:mock -- --spec "**/featureName.cy.ts"
+pnpm run cypress:run:mock --spec "**/featureName.cy.ts"
 ```
 
 **Production-like testing**:
@@ -985,7 +985,7 @@ pnpm run cypress:run:mock
 
 ```bash
 # Open Cypress GUI with memory optimization
-pnpm run cypress:open:mock -- --config numTestsKeptInMemory=0
+pnpm run cypress:open:mock --config numTestsKeptInMemory=0
 
 # Run with verbose output
 DEBUG=cypress:* pnpm run cypress:run:mock
@@ -1019,9 +1019,9 @@ DEBUG=cypress:* pnpm run cypress:run:mock
 
 ### After implementation:
 
-- [ ] Run linting: `cd packages/cypress && pnpm run lint -- --fix`
+- [ ] Run linting: `cd packages/cypress && pnpm run lint --fix`
 - [ ] Fix ALL linting errors
-- [ ] Run test locally: `pnpm run test:cypress-ci -- --spec "**/yourTest.cy.ts"`
+- [ ] Run test locally: `pnpm run test:cypress-ci --spec "**/yourTest.cy.ts"`
 - [ ] Verify test passes consistently (run 2-3 times)
 - [ ] Test in Cypress GUI for visual verification
 - [ ] Review test coverage - did you test all scenarios?

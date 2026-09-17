@@ -458,7 +458,7 @@ strategy:
   matrix:
     testTags: ['@SmokeSet1', '@SmokeSet2']
 steps:
-  - run: pnpm run cypress:run -- --env grepTags="${{ matrix.testTags }}"
+  - run: pnpm run cypress:run --env grepTags="${{ matrix.testTags }}"
 ```
 
 **Jenkins (Parallel Stages):**
@@ -467,7 +467,7 @@ steps:
 def testTags = ['@SmokeSet1','@SmokeSet2']
 def parallelStages = testTags.collectEntries { tag ->
     ["${tag}": {
-        sh "pnpm run cypress:run -- --env grepTags='${tag}'"
+        sh "pnpm run cypress:run --env grepTags='${tag}'"
     }]
 }
 parallel parallelStages
@@ -616,13 +616,13 @@ Run from `packages/cypress` directory. Requires production build on port 9001.
 cd packages/cypress
 
 # Quick: build and run in one command
-pnpm run test:cypress-ci -- --spec '**/storageClasses.cy.ts'
+pnpm run test:cypress-ci --spec '**/storageClasses.cy.ts'
 
 # Or interactive mode
 pnpm run open:mock
 
 # Or headless with filters
-pnpm run run:mock -- --spec 'cypress/tests/mocked/storageClasses/storageClasses.cy.ts' --env grepTags="@Smoke"
+pnpm run run:mock --spec 'cypress/tests/mocked/storageClasses/storageClasses.cy.ts' --env grepTags="@Smoke"
 ```
 
 > **Tip:** If switching from E2E tests, unset the config first: `unset CY_TEST_CONFIG`
@@ -638,10 +638,10 @@ cd frontend
 pnpm run cypress:open
 
 # Headless with tag filters
-pnpm run cypress:run -- --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
+pnpm run cypress:run --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
 
 # Run specific spec
-pnpm run cypress:run -- --spec "cypress/tests/e2e/testProjectCreation.cy.ts" --browser chrome
+pnpm run cypress:run --spec "cypress/tests/e2e/testProjectCreation.cy.ts" --browser chrome
 ```
 
 **If using localhost with rspack** (dev workflow), start the dev server first:
@@ -698,7 +698,7 @@ export CY_RETRY=0       # No retries (see failures immediately)
 **Run with browser visible (headed mode):**
 
 ```bash
-pnpm run cypress:run -- --headed --spec '**/testName.cy.ts'
+pnpm run cypress:run --headed --spec '**/testName.cy.ts'
 ```
 
 ### Two-Terminal Workflow
