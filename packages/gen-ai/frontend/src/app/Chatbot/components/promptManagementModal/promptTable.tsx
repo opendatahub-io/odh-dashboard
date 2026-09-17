@@ -33,12 +33,45 @@ import {
   Tab,
   TabTitleText,
   Truncate,
+  ToolbarFilter,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon, FilterIcon } from '@patternfly/react-icons';
-import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
+import {
+  Table,
+  Thead,
+  Tr,
+  Th,
+  ThProps,
+  Tbody,
+  Td,
+  InnerScrollContainer,
+} from '@patternfly/react-table';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
 import PromptDrawer from './promptDrawer';
+
+type FilterType = 'name' | 'model';
+
+const filterTypeLabels: Record<FilterType, string> = {
+  name: 'Name',
+  model: 'Model',
+};
+
+const filterTypes: FilterType[] = ['name', 'model'];
+
+type SortDirection = 'asc' | 'desc';
+
+const compareModelNames = (a: MLflowPrompt, b: MLflowPrompt, direction: SortDirection): number => {
+  const aName = a.model_config?.model_name;
+  const bName = b.model_config?.model_name;
+  // Prompts without a model always sort last, regardless of direction
+  if (!aName || !bName) {
+    return (aName ? 0 : 1) - (bName ? 0 : 1);
+  }
+  const result = aName.localeCompare(bName);
+  return direction === 'asc' ? result : -result;
+};
 
 type PromptTableProps = {
   onClickLoad: (prompt: MLflowPromptVersion) => void;
@@ -59,6 +92,9 @@ export default function PromptTable({
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
   const [activeTabKey, setActiveTabKey] = useState<number>(0);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [filterType, setFilterType] = useState<FilterType>('name');
+  const [filterModel, setFilterModel] = useState<string | null>(null);
+  const [modelSortDirection, setModelSortDirection] = useState<SortDirection | undefined>();
 
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -88,7 +124,32 @@ export default function PromptTable({
   const projectPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'project'), [rows]);
   const globalPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'global'), [rows]);
 
-  const filteredRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
+  const tabRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
+
+  const modelOptions = useMemo<SimpleSelectOption[]>(
+    () =>
+      Array.from(
+        new Set(
+          tabRows.map((r) => r.model_config?.model_name).filter((name): name is string => !!name),
+        ),
+      )
+        .toSorted((a, b) => a.localeCompare(b))
+        .map((model) => ({
+          key: model,
+          label: model,
+          dataTestId: `prompt-model-filter-option-${model}`,
+        })),
+    [tabRows],
+  );
+
+  const filteredRows = useMemo(() => {
+    const rowsForModel = filterModel
+      ? tabRows.filter((r) => r.model_config?.model_name === filterModel)
+      : tabRows;
+    return modelSortDirection
+      ? rowsForModel.toSorted((a, b) => compareModelNames(a, b, modelSortDirection))
+      : rowsForModel;
+  }, [tabRows, filterModel, modelSortDirection]);
   const filteredRowsCount = filteredRows.length;
   const thisPage = filteredRows.slice((activePage - 1) * perPage, activePage * perPage);
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
@@ -121,6 +182,40 @@ export default function PromptTable({
 
   function handlePerPageSelect(newPerPage: number) {
     setPerPage(newPerPage);
+  }
+
+  function handleModelFilterChange(model: string | null) {
+    setFilterModel(model);
+    setSelectedRow(null);
+    setActivePage(1);
+  }
+
+  function clearNameFilter() {
+    clearTimeout(debounceTimeoutRef.current);
+    setFilterName('');
+    setDebouncedFilterName('');
+    setSelectedRow(null);
+    setActivePage(1);
+  }
+
+  function clearAllFilters() {
+    clearNameFilter();
+    handleModelFilterChange(null);
+  }
+
+  function getSortParams(columnIndex: number): ThProps['sort'] {
+    return {
+      sortBy: {
+        index: modelSortDirection ? columnIndex : undefined,
+        direction: modelSortDirection,
+        defaultDirection: 'asc',
+      },
+      onSort: (_event, _index, direction) => {
+        setModelSortDirection(direction);
+        setActivePage(1);
+      },
+      columnIndex,
+    };
   }
 
   function buildFooter() {
@@ -189,7 +284,12 @@ export default function PromptTable({
   function renderModelCell(row: MLflowPrompt) {
     const modelName = row.model_config?.model_name;
     if (!modelName) {
-      return 'Not specified';
+      return (
+        <>
+          <span aria-hidden="true">--</span>
+          <span className="pf-v6-screen-reader">No model</span>
+        </>
+      );
     }
     return <Truncate content={modelName} />;
   }
@@ -202,7 +302,7 @@ export default function PromptTable({
   }
 
   const tableToolbar = (
-    <Toolbar id="pagination-toolbar">
+    <Toolbar id="pagination-toolbar" clearAllFilters={clearAllFilters}>
       <ToolbarContent>
         <ToolbarGroup variant="filter-group">
           <ToolbarItem>
@@ -212,25 +312,43 @@ export default function PromptTable({
               toggle={(toggleRef) => (
                 <MenuToggle
                   ref={toggleRef}
-                  aria-label="Filter by Name"
+                  data-testid="prompt-filter-type-toggle"
+                  aria-label={`Filter by ${filterTypeLabels[filterType]}`}
                   onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
                   isExpanded={isFilterDropdownOpen}
                   icon={<FilterIcon />}
                 >
-                  Name
+                  {filterTypeLabels[filterType]}
                 </MenuToggle>
               )}
               isOpen={isFilterDropdownOpen}
               popperProps={{ appendTo: 'inline' }}
             >
               <DropdownList>
-                <DropdownItem key="name" id="name" onClick={() => setIsFilterDropdownOpen(false)}>
-                  Name
-                </DropdownItem>
+                {filterTypes.map((type) => (
+                  <DropdownItem
+                    key={type}
+                    id={type}
+                    data-testid={`prompt-filter-type-${type}`}
+                    onClick={() => {
+                      setFilterType(type);
+                      setIsFilterDropdownOpen(false);
+                    }}
+                  >
+                    {filterTypeLabels[type]}
+                  </DropdownItem>
+                ))}
               </DropdownList>
             </Dropdown>
           </ToolbarItem>
-          <ToolbarItem style={{ minWidth: '300px' }}>
+          <ToolbarFilter
+            labels={debouncedFilterName ? [debouncedFilterName] : []}
+            deleteLabel={clearNameFilter}
+            deleteLabelGroup={clearNameFilter}
+            categoryName={filterTypeLabels.name}
+            showToolbarItem={filterType === 'name'}
+            style={{ width: '300px' }}
+          >
             <SearchInput
               data-testid="prompt-search-input"
               aria-label="Search prompts"
@@ -240,13 +358,29 @@ export default function PromptTable({
                 setFilterName(value);
                 debouncedSetFilterName(value);
               }}
-              onClear={() => {
-                clearTimeout(debounceTimeoutRef.current);
-                setFilterName('');
-                setDebouncedFilterName('');
-              }}
+              onClear={clearNameFilter}
             />
-          </ToolbarItem>
+          </ToolbarFilter>
+          <ToolbarFilter
+            labels={filterModel ? [filterModel] : []}
+            deleteLabel={() => handleModelFilterChange(null)}
+            deleteLabelGroup={() => handleModelFilterChange(null)}
+            categoryName={filterTypeLabels.model}
+            showToolbarItem={filterType === 'model'}
+            style={{ width: '300px' }}
+          >
+            <SimpleSelect
+              dataTestId="prompt-model-filter-select"
+              ariaLabel="Filter by model"
+              placeholder={modelOptions.length === 0 ? 'No models available' : 'Filter by model'}
+              options={modelOptions}
+              value={filterModel ?? undefined}
+              onChange={(key) => handleModelFilterChange(key)}
+              autoSelectOnlyOption={false}
+              isFullWidth
+              isScrollable
+            />
+          </ToolbarFilter>
         </ToolbarGroup>
         <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
           {renderPagination('top', true)}
@@ -308,7 +442,13 @@ export default function PromptTable({
             <Thead>
               <Tr>
                 {columns.map((column, columnIndex) => (
-                  <Th key={columnIndex}>{column}</Th>
+                  <Th
+                    key={columnIndex}
+                    sort={column === 'Model' ? getSortParams(columnIndex) : undefined}
+                    data-testid={column === 'Model' ? 'prompt-model-column-header' : undefined}
+                  >
+                    {column}
+                  </Th>
                 ))}
               </Tr>
             </Thead>
@@ -323,7 +463,10 @@ export default function PromptTable({
                 >
                   <Td dataLabel={columns[0]}>
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                      <div className="pf-v6-u-truncate pf-v6-u-text-color-link gen-ai-prompt-table__name-link">
+                      <div
+                        data-testid="prompt-table-row-name"
+                        className="pf-v6-u-truncate pf-v6-u-text-color-link gen-ai-prompt-table__name-link"
+                      >
                         {row.name}
                       </div>
                       {row.scope?.read_only && (
@@ -401,6 +544,9 @@ export default function PromptTable({
               setSelectedRow(null);
               setFilterName('');
               setDebouncedFilterName('');
+              setFilterModel(null);
+              setFilterType('name');
+              setModelSortDirection(undefined);
               if (newKey === 1) {
                 fireMiscTrackingEvent('Playground Global Prompts Tab Viewed', {});
               }
