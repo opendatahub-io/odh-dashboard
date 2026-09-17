@@ -5,9 +5,9 @@ import {
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import {
-  DeploymentStrategyFieldData,
   type ModelLocationData,
   ModelLocationType,
+  WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type {
   ModelAvailabilityFieldsData,
@@ -59,7 +59,7 @@ export type CreatingInferenceServiceObject = {
   environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
-  deploymentStrategy?: DeploymentStrategyFieldData;
+  deploymentStrategy?: WizardFormData['state']['deploymentStrategy'];
   hfTokenSecretName?: string;
 };
 
@@ -157,7 +157,9 @@ export const assembleInferenceService = (
     environmentVariables ?? { variables: [], enabled: false },
   );
 
-  inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
+  if (deploymentStrategy?.isVisible) {
+    inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy.data);
+  }
 
   inferenceService = applyHfTokenEnvVar(inferenceService, hfTokenSecretName);
 
