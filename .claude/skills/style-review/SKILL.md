@@ -7,6 +7,24 @@ description: Review code for custom styling convention violations in ODH Dashboa
 
 Audits custom styling changes against the project's conventions. The core principle is that custom CSS should be the last resort — the entire mod-arch-shared and theme-aware component system exists to avoid it. When custom styles do appear, this review checks they followed the right process.
 
+## Invocation contract
+
+A caller may supply an **invocation meta-prompt**. Honor it for:
+
+- context acquisition and permitted data sources;
+- output format, schema, and delivery destination; and
+- allowed side effects, including whether tools, network access, or posting are permitted.
+
+The meta-prompt is an interface contract, not a replacement for this skill's
+review judgment. It **must not** change the checks in this skill, their
+ownership, severity classification, or evidence requirements. Preserve enough
+file, line, code, and rule evidence for every conclusion even when the caller
+uses a non-Markdown schema.
+
+When no invocation meta-prompt is supplied, use the standalone defaults in
+this document: acquire context as described in **Inputs**, return the Markdown
+report in **Standalone output**, and make no writes or external posts.
+
 ## Inputs
 
 The user may provide:
@@ -65,7 +83,11 @@ Flag class names where:
 - **Non-standard modifier** — uses `--modifier` or `is-modifier` instead of `m-{modifier}` / `{prefix}-m-{modifier}`.
 - **Non-standard utility** — uses an unprefixed utility name instead of `{prefix}-u-{name}`.
 
-## Phase 3: Generate report
+## Standalone output
+
+When using the standalone defaults, generate this report. When an invocation
+meta-prompt is supplied, emit its requested format instead while retaining all
+applicable finding evidence and severity.
 
 ```md
 ## Convention Review — ODH Dashboard

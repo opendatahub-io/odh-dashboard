@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -32,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -42,6 +45,16 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 )
+
+// shebangRegex matches the valid Linux script shebang interpreter syntax (according to execve(2)).
+// Syntax: `#! interpreter [optional-arg]`
+//   - `^#!`: Literal shebang prefix.
+//   - `[ \t]*`: Optional space/tabs before the interpreter path.
+//   - `([^ \t]+)`: Matches the interpreter path (one or more characters, excluding spaces/tabs).
+//   - `(?:[ \t]+.+)?`: Optional argument(s). If present, must be separated from the interpreter
+//     by at least one space/tab, followed by the argument string.
+//   - `$`: Matches the end of the line.
+var shebangRegex = regexp.MustCompile(`^#![ \t]*([^ \t]+)(?:[ \t]+.+)?$`)
 
 // WorkspaceKindValidator validates a Workspace object
 type WorkspaceKindValidator struct {
@@ -72,6 +85,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	}
 
 	var allErrs field.ErrorList
+	var warnings admission.Warnings
 
 	// validate the pod metadata
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspaceKind)...)
@@ -81,6 +95,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 
 	// validate the request headers templates
 	allErrs = append(allErrs, validateRequestHeaders(workspaceKind)...)
+
+	// validate the filter rules
+	allErrs = append(allErrs, validateFilterRules(workspaceKind)...)
 
 	// generate helper maps for imageConfig values
 	imageConfigIdMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
@@ -108,6 +125,10 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 		podTemplatePortsIdMap[port.Id] = port
 	}
 
+	// validate the activity probe
+	activityProbePath := field.NewPath("spec", "podTemplate", "activityProbe")
+	allErrs = append(allErrs, validateActivityProbe(workspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath, podTemplatePortsIdMap)...)
+
 	// validate default options
 	allErrs = append(allErrs, validateDefaultImageConfig(workspaceKind, imageConfigIdMap)...)
 	allErrs = append(allErrs, validateDefaultPodConfig(workspaceKind, podConfigIdMap)...)
@@ -123,11 +144,16 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	allErrs = append(allErrs, validateImageConfigRedirects(imageConfigIdMap, imageConfigRedirectMap)...)
 	allErrs = append(allErrs, validatePodConfigRedirects(podConfigIdMap, podConfigRedirectMap)...)
 
+	// validate activity rules
+	rulesErrs, rulesWarnings := validateActivityRules(workspaceKind)
+	allErrs = append(allErrs, rulesErrs...)
+	warnings = rulesWarnings
+
 	if len(allErrs) == 0 {
-		return nil, nil
+		return warnings, nil
 	}
 
-	return nil, apierrors.NewInvalid(
+	return warnings, apierrors.NewInvalid(
 		schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "WorkspaceKind"},
 		workspaceKind.Name,
 		allErrs,
@@ -151,6 +177,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	}
 
 	var allErrs field.ErrorList
+	var warnings admission.Warnings
 
 	// get functions to lazily fetch usage counts for imageConfig and podConfig values
 	// NOTE: the cluster is only queried when either function is called for the first time
@@ -171,6 +198,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		allErrs = append(allErrs, validateRequestHeaders(newWorkspaceKind)...)
 	}
 
+	// validate the filter rules
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.FilterRules, oldWorkspaceKind.Spec.FilterRules) {
+		allErrs = append(allErrs, validateFilterRules(newWorkspaceKind)...)
+	}
+
 	// if the ports config changed, we need to validate all image config values again
 	shouldValidateAllImageConfigValues := !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.Ports, oldWorkspaceKind.Spec.PodTemplate.Ports)
 
@@ -178,6 +210,20 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	podTemplatePortsIdMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
 	for _, port := range newWorkspaceKind.Spec.PodTemplate.Ports {
 		podTemplatePortsIdMap[port.Id] = port
+	}
+
+	// validate activity probe if probe or ports changed
+	if shouldValidateAllImageConfigValues || !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
+		activityProbePath := field.NewPath("spec", "podTemplate", "activityProbe")
+		allErrs = append(allErrs, validateActivityProbe(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath, podTemplatePortsIdMap)...)
+	}
+
+	// validate activity rules if rules or probe changed
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.ActivityRules, oldWorkspaceKind.Spec.ActivityRules) ||
+		!equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
+		rulesErrs, rulesWarnings := validateActivityRules(newWorkspaceKind)
+		allErrs = append(allErrs, rulesErrs...)
+		warnings = append(warnings, rulesWarnings...)
 	}
 
 	// calculate changes to imageConfig values
@@ -376,10 +422,10 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	}
 
 	if len(allErrs) == 0 {
-		return nil, nil
+		return warnings, nil
 	}
 
-	return nil, apierrors.NewInvalid(
+	return warnings, apierrors.NewInvalid(
 		schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "WorkspaceKind"},
 		newWorkspaceKind.Name,
 		allErrs,
@@ -540,7 +586,7 @@ func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, work
 
 // validatePodTemplatePodMetadata validates the podMetadata of a WorkspaceKind's PodTemplate
 func (v *WorkspaceKindValidator) validatePodTemplatePodMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	podMetadata := workspaceKind.Spec.PodTemplate.PodMetadata
 	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
@@ -618,6 +664,55 @@ func validateRequestHeaders(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*
 				if err != nil {
 					errs = append(errs, field.Invalid(headersPath.Child("add").Key(k), v, err.Error()))
 				}
+			}
+		}
+	}
+
+	return errs
+}
+
+// validateFilterRules validates the filter rules that the CRD structural schema cannot express:
+//   - each rule specifies at least one effect (one of ui.hide, api.hide, or api.deny is true)
+//   - matchImageConfig/matchPodConfig are only valid when scope is POD_CONFIG or IMAGE_CONFIG
+//     (they are meaningless for WORKSPACE_KIND scope, where only matchNamespace applies)
+//   - each label selector is itself well-formed
+//
+// The remaining structural constraints (scope enum, exactly-one match condition, etc.) are
+// enforced declaratively by the CRD schema.
+func validateFilterRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	selectorOpts := v1validation.LabelSelectorValidationOptions{}
+	filterRulesPath := field.NewPath("spec", "filterRules")
+	for i, rule := range workspaceKind.Spec.FilterRules {
+		rulePath := filterRulesPath.Index(i)
+
+		// each rule must specify at least one effect (one of ui.hide, api.hide, or api.deny is true)
+		effect := rule.Effect
+		hasUIEffect := effect.UI != nil && effect.UI.Hide
+		hasAPIEffect := effect.API != nil && (ptr.Deref(effect.API.Hide, false) || ptr.Deref(effect.API.Deny, false))
+		hasEffect := hasUIEffect || hasAPIEffect
+		if !hasEffect {
+			errs = append(errs, field.Invalid(rulePath.Child("effect"), "", "must specify at least one effect: one of 'ui.hide', 'api.hide', or 'api.deny' must be true"))
+		}
+
+		matchPath := rulePath.Child("match")
+		for j, match := range rule.Match {
+			conditionPath := matchPath.Index(j)
+			if match.MatchNamespace != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchNamespace.Selector, selectorOpts, conditionPath.Child("matchNamespace", "selector"))...)
+			}
+			if match.MatchImageConfig != nil {
+				if rule.Scope == kubefloworgv1beta1.FilterRuleScopeWorkspaceKind {
+					errs = append(errs, field.Invalid(conditionPath.Child("matchImageConfig"), match.MatchImageConfig, "'matchImageConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
+				}
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchImageConfig.Selector, selectorOpts, conditionPath.Child("matchImageConfig", "selector"))...)
+			}
+			if match.MatchPodConfig != nil {
+				if rule.Scope == kubefloworgv1beta1.FilterRuleScopeWorkspaceKind {
+					errs = append(errs, field.Invalid(conditionPath.Child("matchPodConfig"), match.MatchPodConfig, "'matchPodConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
+				}
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchPodConfig.Selector, selectorOpts, conditionPath.Child("matchPodConfig", "selector"))...)
 			}
 		}
 	}
@@ -732,4 +827,128 @@ func validatePodConfigRedirects(podConfigIdMap map[string]kubefloworgv1beta1.Pod
 	}
 
 	return errs
+}
+
+// validateActivityProbe validates the activityProbe in a WorkspaceKind
+func validateActivityProbe(activityProbe *kubefloworgv1beta1.ActivityProbe, path *field.Path, podTemplatePortsIdMap map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort) []*field.Error {
+	var errs []*field.Error
+
+	if activityProbe == nil {
+		return errs
+	}
+
+	// validate podExec if specified
+	if activityProbe.PodExec != nil {
+		script := activityProbe.PodExec.Script
+		// Extract the first line to validate the shebang.
+		// We use strings.IndexAny with "\r\n" instead of just "\n" to handle Windows-style line endings.
+		shebangLine := script
+		if idx := strings.IndexAny(script, "\r\n"); idx != -1 {
+			shebangLine = script[:idx]
+		}
+		if !shebangRegex.MatchString(shebangLine) {
+			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "script shebang is invalid (e.g., '#!/bin/bash')"))
+		} else if len(shebangLine) > 255 {
+			// According to `execve(2)` man page (https://man7.org/linux/man-pages/man2/execve.2.html):
+			// "The kernel imposes a maximum length on the text following the "#!" characters...
+			// On Linux, the limit is 127 characters before Linux 5.1, and 255 characters since Linux 5.1."
+			// This is defined by `BINPRM_BUF_SIZE` (256 bytes, including null terminator) in the Linux kernel `<linux/binfmts.h>`.
+			// However the "#!" counts towards the overall limit, contrary to what the wording in the manpage seems to imply.
+			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "shebang line exceeds the 255 character limit"))
+		}
+	}
+
+	// validate jupyter if specified
+	if activityProbe.Jupyter != nil {
+		portId := activityProbe.Jupyter.PortId
+		if _, exists := podTemplatePortsIdMap[portId]; !exists {
+			errs = append(errs, field.Invalid(path.Child("jupyter", "portId"), portId, "must reference a valid port defined in spec.podTemplate.ports"))
+		}
+	}
+
+	return errs
+}
+
+// validateActivityRules validates the activityRules in a WorkspaceKind
+func validateActivityRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) ([]*field.Error, admission.Warnings) {
+	var errs []*field.Error
+	var warnings admission.Warnings
+
+	rules := workspaceKind.Spec.ActivityRules
+	if len(rules) == 0 {
+		return nil, nil
+	}
+
+	hasPauseWorkspaceRule := false
+	hasCatchAllPauseWorkspace := false
+	numRules := len(rules)
+
+	probeIntervalSeconds := kubefloworgv1beta1.DefaultProbeIntervalSeconds
+	if workspaceKind.Spec.PodTemplate.ActivityProbe != nil && workspaceKind.Spec.PodTemplate.ActivityProbe.ProbeIntervalSeconds != nil {
+		probeIntervalSeconds = *workspaceKind.Spec.PodTemplate.ActivityProbe.ProbeIntervalSeconds
+	}
+
+	activityRulesPath := field.NewPath("spec", "activityRules")
+
+	for i, rule := range rules {
+		rulePath := activityRulesPath.Index(i)
+
+		// selectors validation
+		if rule.Match != nil {
+			matchPath := rulePath.Child("match")
+			if rule.Match.MatchNamespace != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchNamespace.Selector, v1validation.LabelSelectorValidationOptions{}, matchPath.Child("matchNamespace", "selector"))...)
+			}
+			if rule.Match.MatchPodConfig != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchPodConfig.Selector, v1validation.LabelSelectorValidationOptions{}, matchPath.Child("matchPodConfig", "selector"))...)
+			}
+		}
+
+		// check empty match / catch-all
+		isEmpty := isMatchEmpty(rule.Match)
+
+		// check pauseWorkspace effect
+		isPauseWorkspaceEffect := rule.Effect.PauseWorkspace != nil
+		if isPauseWorkspaceEffect {
+			if *rule.Effect.PauseWorkspace {
+				hasPauseWorkspaceRule = true
+			}
+			if isEmpty {
+				if hasCatchAllPauseWorkspace {
+					errs = append(errs, field.Invalid(rulePath.Child("match"), rule.Match, "at most one catch-all (empty match) rule is allowed for pauseWorkspace effect"))
+				}
+				hasCatchAllPauseWorkspace = true
+				hasSubsequentPauseWorkspaceRule := false
+				for j := i + 1; j < numRules; j++ {
+					if rules[j].Effect.PauseWorkspace != nil {
+						hasSubsequentPauseWorkspaceRule = true
+						break
+					}
+				}
+				if hasSubsequentPauseWorkspaceRule {
+					errs = append(errs, field.Invalid(rulePath.Child("match"), rule.Match, "catch-all (empty match) rule must be the last rule configuring the pauseWorkspace effect"))
+				}
+			}
+		}
+
+		// Warning check: secondsSinceActive < 2 * probeIntervalSeconds
+		if rule.Effect.PauseWorkspace != nil && *rule.Effect.PauseWorkspace &&
+			int64(rule.Config.SecondsSinceActive) < 2*int64(probeIntervalSeconds) {
+			warnings = append(warnings, fmt.Sprintf("spec.activityRules[%d].config.secondsSinceActive (%d) is less than twice the probeIntervalSeconds (%d). This may cause Workspaces to be paused too quickly or prematurely.", i, rule.Config.SecondsSinceActive, probeIntervalSeconds))
+		}
+	}
+
+	// Cross-field validation: If activityRules with pauseWorkspace exist, activityProbe must be configured
+	if hasPauseWorkspaceRule && workspaceKind.Spec.PodTemplate.ActivityProbe == nil {
+		errs = append(errs, field.Required(field.NewPath("spec", "podTemplate", "activityProbe"), "activityProbe must be configured when activityRules with pauseWorkspace effect exist"))
+	}
+
+	return errs, warnings
+}
+
+func isMatchEmpty(match *kubefloworgv1beta1.ActivityRuleMatch) bool {
+	if match == nil {
+		return true
+	}
+	return match.MatchNamespace == nil && match.MatchPodConfig == nil
 }

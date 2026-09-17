@@ -193,6 +193,17 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.externalEndpoint).toBe('https://maas.example.com/model');
   });
 
+  it('should ignore whitespace-only prefixed endpoints', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: ['external:   ', 'internal:\t'],
+    });
+
+    const result = convertMaaSModelToAIModel(aaModel);
+
+    expect(result.externalEndpoint).toBeUndefined();
+    expect(result.internalEndpoint).toBeUndefined();
+  });
+
   it('should parse non-prefixed endpoint to internalEndpoint', () => {
     const aaModel = makeAAModelResponse({
       endpoints: ['http://service.namespace.svc.cluster.local:8080'],
@@ -254,6 +265,14 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.display_name).toBe('Llama 2 7B');
     expect(result.model_source_type).toBe('maas');
     expect(result.status).toBe('Running');
+  });
+
+  it('should fall back to model_name when display_name is empty', () => {
+    const result = convertMaaSModelToAIModel(
+      makeAAModelResponse({ model_name: 'openai-gpt-4o-mini', display_name: '' }),
+    );
+
+    expect(result.display_name).toBe('openai-gpt-4o-mini');
   });
 
   it('should pass through model_type field', () => {
@@ -399,16 +418,13 @@ describe('isPlaygroundModelMatchForAIModel', () => {
     expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
   });
 
-  it('does not match namespace playground model to maas AIModel with same model_id', () => {
-    const playground = makeLlamaModel({ id: 'vllm-inference/gpt-4', modelId: 'gpt-4' });
-    const aiModel = makeModel({ model_id: 'gpt-4', model_source_type: 'maas' });
-    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
-  });
-
-  it('does not match maas playground model to namespace AIModel with same model_id', () => {
-    const playground = makeLlamaModel({ id: 'maas-openai/llama-7b', modelId: 'llama-7b' });
-    const aiModel = makeModel({ model_id: 'llama-7b', model_source_type: 'namespace' });
-    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(false);
+  it('matches a MaaS AIModel registered through the passthrough provider without a maas- prefix', () => {
+    const playground = makeLlamaModel({
+      id: 'genai-bff-proxy/openai-gpt-4o-mini',
+      modelId: 'openai-gpt-4o-mini',
+    });
+    const aiModel = makeModel({ model_id: 'openai-gpt-4o-mini', model_source_type: 'maas' });
+    expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(true);
   });
 
   it('matches custom_endpoint playground model to custom_endpoint AIModel', () => {
