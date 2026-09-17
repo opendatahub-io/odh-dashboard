@@ -47,11 +47,19 @@ func TestSingletonHandler_AllowFirstCreate(t *testing.T) {
 
 func TestSingletonHandler_WithExistingInstance(t *testing.T) {
 	tests := []struct {
-		name      string
-		operation admissionv1.Operation
-		wantAllow bool
+		name            string
+		operation       admissionv1.Operation
+		wantAllow       bool
+		wantCode        int32
+		wantMessagePart string
 	}{
-		{name: "deny second create", operation: admissionv1.Create, wantAllow: false},
+		{
+			name:            "deny second create",
+			operation:       admissionv1.Create,
+			wantAllow:       false,
+			wantCode:        403,
+			wantMessagePart: "only one instance of Dashboard is allowed; an instance already exists",
+		},
 		{name: "allow update", operation: admissionv1.Update, wantAllow: true},
 		{name: "allow delete", operation: admissionv1.Delete, wantAllow: true},
 	}
@@ -74,6 +82,11 @@ func TestSingletonHandler_WithExistingInstance(t *testing.T) {
 			})
 
 			assert.Equal(t, tt.wantAllow, resp.Allowed)
+			if tt.wantMessagePart != "" {
+				require.NotNil(t, resp.Result)
+				assert.Equal(t, tt.wantCode, resp.Result.Code)
+				assert.Contains(t, resp.Result.Message, tt.wantMessagePart)
+			}
 		})
 	}
 }
