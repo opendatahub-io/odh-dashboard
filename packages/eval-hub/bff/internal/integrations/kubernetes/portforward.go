@@ -94,7 +94,7 @@ func NewPortForwardManager(restConfig *rest.Config, clientset kubernetes.Interfa
 }
 
 // ForwardURL rewrites an in-cluster service URL to a localhost port-forward.
-// If the URL is not a *.svc.cluster.local address, it is returned unchanged.
+// If the URL is not a *.svc or *.svc.cluster.local address, it is returned unchanged.
 // On the first call for a given service, a port-forward is established.
 // Subsequent calls return the cached local port.
 func (m *PortForwardManager) ForwardURL(ctx context.Context, rawURL string) (string, error) {
@@ -105,10 +105,13 @@ func (m *PortForwardManager) ForwardURL(ctx context.Context, rawURL string) (str
 
 	hostname := parsed.Hostname()
 
-	// Require exact Kubernetes service FQDN: <service>.<namespace>.svc.cluster.local
+	// Require an exact Kubernetes service DNS name in either supported form:
+	// <service>.<namespace>.svc or <service>.<namespace>.svc.cluster.local.
 	labels := strings.Split(hostname, ".")
-	if len(labels) != 5 || labels[0] == "" || labels[1] == "" ||
-		labels[2] != "svc" || labels[3] != "cluster" || labels[4] != "local" {
+	isShortServiceName := len(labels) == 3 && labels[2] == "svc"
+	isServiceFQDN := len(labels) == 5 && labels[2] == "svc" &&
+		labels[3] == "cluster" && labels[4] == "local"
+	if (!isShortServiceName && !isServiceFQDN) || labels[0] == "" || labels[1] == "" {
 		return rawURL, nil
 	}
 	serviceName := labels[0]

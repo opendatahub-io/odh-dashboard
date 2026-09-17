@@ -20,6 +20,7 @@ import {
 import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflow';
 import {
   grantEvalHubTenantAccess,
+  removeEvalHubTenantLabel,
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
 import {
@@ -103,10 +104,7 @@ describe('Eval Hub E2E', () => {
 
     if (evaluationTenantProject) {
       cy.step(`Delete tenant project: ${evaluationTenantProject}`);
-      cy.exec(
-        `oc label namespace ${evaluationTenantProject} evalhub.trustyai.opendatahub.io/tenant- --ignore-not-found`,
-        { failOnNonZeroExit: false },
-      );
+      removeEvalHubTenantLabel(evaluationTenantProject);
       deleteOpenShiftProject(evaluationTenantProject, { wait: true, ignoreNotFound: true });
     }
 

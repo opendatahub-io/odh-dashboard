@@ -7,7 +7,7 @@ import (
 )
 
 // PortForwardWrapTransport returns a WrapTransport function that rewrites
-// cluster-internal URLs (*.svc.cluster.local) to localhost via SPDY tunnels.
+// cluster-internal URLs (*.svc or *.svc.cluster.local) to localhost via SPDY tunnels.
 // Used in dev mode only — production passes nil.
 func PortForwardWrapTransport(pfm *PortForwardManager, logger *slog.Logger) func(http.RoundTripper) http.RoundTripper {
 	return func(base http.RoundTripper) http.RoundTripper {

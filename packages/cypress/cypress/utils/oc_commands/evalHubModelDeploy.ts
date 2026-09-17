@@ -287,6 +287,39 @@ rules:
   );
 }
 
+/** Removes the EvalHub tenant label before deleting an E2E tenant namespace. */
+export function removeEvalHubTenantLabel(ns: string): Cypress.Chainable<Cypress.Exec> {
+  return cy
+    .exec(`oc get namespace ${ns} --ignore-not-found -o name`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to check EvalHub tenant namespace ${ns}: ${result.stderr || result.stdout}`,
+        );
+      }
+      if (!result.stdout.trim()) {
+        return cy.wrap(result);
+      }
+
+      return cy
+        .exec(`oc label namespace ${ns} evalhub.trustyai.opendatahub.io/tenant-`, {
+          failOnNonZeroExit: false,
+        })
+        .then((labelResult) => {
+          if (labelResult.exitCode !== 0) {
+            throw new Error(
+              `Failed to remove EvalHub tenant label from ${ns}: ${
+                labelResult.stderr || labelResult.stdout
+              }`,
+            );
+          }
+          return labelResult;
+        });
+    });
+}
+
 export function getVllmEndpointUrl(
   td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
   ns: string,

@@ -159,6 +159,7 @@ export const verifyEvaluationProgressModal = (evaluationRunName: string): void =
 export const verifyEvaluationCompletedAndViewResults = (
   evaluationRunName: string,
   evaluationTenantProject: string,
+  expectedBenchmarkIds: string[] = [],
 ): void => {
   cy.step('Re-open status modal after completion — View Results shown, Stop absent');
   cy.reload();
@@ -174,16 +175,30 @@ export const verifyEvaluationCompletedAndViewResults = (
   evaluationResultsPage.findMetadata().should('be.visible');
   evaluationResultsPage.findBenchmarkDetailsInfo().should('be.visible');
 
+  if (expectedBenchmarkIds.length > 0) {
+    cy.step(`Verify all ${expectedBenchmarkIds.length} benchmark results are displayed`);
+    evaluationResultsPage.findBenchmarksGrid().should('be.visible');
+    evaluationResultsPage
+      .findBenchmarkResultCards()
+      .should('have.length', expectedBenchmarkIds.length);
+    expectedBenchmarkIds.forEach((benchmarkId) => {
+      evaluationResultsPage
+        .findBenchmarkResultCardById(benchmarkId)
+        .should('have.length', 1)
+        .and('be.visible');
+    });
+  }
+
   cy.step('Verify About this result popover opens');
   evaluationResultsPage.findFirstAboutResultButton().click();
   evaluationResultsPage.findAboutResultDialog().should('be.visible');
-  evaluationResultsPage.closeAboutResultDialog();
+  evaluationResultsPage.findAboutResultCloseButton().click();
 
   cy.step('Open event log modal and verify it renders');
   evaluationResultsPage.findViewLogButton().click();
   evaluationResultsPage.findEventLogModal().should('be.visible');
   evaluationResultsPage.findLogContent().should('be.visible');
-  evaluationResultsPage.closeEventLogModal();
+  evaluationResultsPage.findEventLogModalCloseButton().click();
 
   cy.step('Return to evaluations list and verify Complete status');
   cy.visitWithLogin(
@@ -199,6 +214,11 @@ export const stopAndReconfigureEvaluation = (
   evaluationRunName: string,
   reconfiguredRunName: string,
 ): void => {
+  cy.step('Wait for evaluation to reach Running status');
+  evaluationsPage
+    .findEvaluationStatusButtonInRow(evaluationRunName, { timeout: 120000 })
+    .should('contain.text', 'Running');
+
   cy.step('Open status modal and stop the running evaluation');
   evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName, { timeout: 120000 }).click();
   evaluationsPage.findStatusModal().should('be.visible');

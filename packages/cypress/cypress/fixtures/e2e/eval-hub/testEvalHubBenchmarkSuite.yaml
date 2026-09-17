@@ -9,9 +9,13 @@ modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-inst
 inferenceServiceName: evalhub-suite-llm
 servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
 hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
-# Benchmark suite config — "Toxicity and Ethical Principles" (toxigen, truthfulqa_mc1, bigbench_hhh)
+# Benchmark suite config — "Toxicity and Ethical Principles"
 collectionId: toxicity-and-ethical-principles
 collectionName: Toxicity and Ethical Principles
+expectedBenchmarkIds:
+  - toxigen
+  - truthfulqa_mc1
+  - bigbench_hhh_alignment_multiple_choice
 inferenceModelName: evalhub-suite-llm
 mlflowExperimentName: Cy-Evalhub
 additionalBenchmarkParams: |

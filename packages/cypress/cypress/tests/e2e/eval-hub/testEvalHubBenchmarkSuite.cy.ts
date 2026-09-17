@@ -20,6 +20,7 @@ import {
 import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflow';
 import {
   grantEvalHubTenantAccess,
+  removeEvalHubTenantLabel,
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
 import {
@@ -47,6 +48,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
   let mlflowInstanceYamlPath = '';
   let collectionId = '';
   let collectionName = '';
+  let expectedBenchmarkIds: string[] = [];
   let mlflowExperimentName = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
@@ -62,6 +64,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
         mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
         collectionId = testData.collectionId;
         collectionName = testData.collectionName;
+        expectedBenchmarkIds = testData.expectedBenchmarkIds;
         mlflowExperimentName = testData.mlflowExperimentName;
         additionalBenchmarkParams = testData.additionalBenchmarkParams;
         projectNamePrefix = testData.projectNamePrefix;
@@ -104,10 +107,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
 
     if (evaluationTenantProject) {
       cy.step(`Delete tenant project: ${evaluationTenantProject}`);
-      cy.exec(
-        `oc label namespace ${evaluationTenantProject} evalhub.trustyai.opendatahub.io/tenant- --ignore-not-found`,
-        { failOnNonZeroExit: false },
-      );
+      removeEvalHubTenantLabel(evaluationTenantProject);
       deleteOpenShiftProject(evaluationTenantProject, { wait: true, ignoreNotFound: true });
     }
 
@@ -140,7 +140,11 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
       });
       verifyEvaluationProgressModal(evaluationRunName);
       waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
-      verifyEvaluationCompletedAndViewResults(evaluationRunName, evaluationTenantProject);
+      verifyEvaluationCompletedAndViewResults(
+        evaluationRunName,
+        evaluationTenantProject,
+        expectedBenchmarkIds,
+      );
     },
   );
 });

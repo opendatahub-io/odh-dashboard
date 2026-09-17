@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 // === ForwardURL ===
 
 // TestForwardURL_NonClusterURLs verifies that non-cluster URLs are returned unchanged.
-// ForwardURL should only rewrite *.svc.cluster.local addresses.
+// ForwardURL should only rewrite exact *.svc or *.svc.cluster.local addresses.
 func TestForwardURL_NonClusterURLs(t *testing.T) {
 	pfm := &PortForwardManager{
 		forwards: make(map[string]*activeForward),
@@ -106,8 +107,8 @@ func TestForwardURL_DefaultPorts(t *testing.T) {
 	})
 }
 
-// TestForwardURL_CachedForward verifies that a cached forward is returned
-// without attempting to create a new one.
+// TestForwardURL_CachedForward verifies that full and short Kubernetes service
+// names both return a cached forward without attempting to create a new one.
 func TestForwardURL_CachedForward(t *testing.T) {
 	pfm := &PortForwardManager{
 		forwards: make(map[string]*activeForward),
@@ -121,14 +122,24 @@ func TestForwardURL_CachedForward(t *testing.T) {
 		errChan:   make(chan error, 1),
 	}
 
-	result, err := pfm.ForwardURL(context.Background(), "http://test-svc.test-ns.svc.cluster.local:8080/v1/models")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	for _, tt := range []struct {
+		name string
+		url  string
+	}{
+		{name: "service FQDN", url: "http://test-svc.test-ns.svc.cluster.local:8080/v1/models"},
+		{name: "short service name", url: "http://test-svc.test-ns.svc:8080/v1/models"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := pfm.ForwardURL(context.Background(), tt.url)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 
-	expected := "http://localhost:54321/v1/models"
-	if result != expected {
-		t.Errorf("got %q, want %q", result, expected)
+			expected := "http://localhost:54321/v1/models"
+			if result != expected {
+				t.Errorf("got %q, want %q", result, expected)
+			}
+		})
 	}
 }
 
@@ -376,6 +387,75 @@ func TestForwardURL_ConcurrentAccess(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+// TestGetOrCreateForward_ConcurrentColdCache verifies that simultaneous cache
+// misses are coalesced and establish exactly one port-forward.
+func TestGetOrCreateForward_ConcurrentColdCache(t *testing.T) {
+	const goroutines = 50
+	pfm := &PortForwardManager{
+		forwards:  make(map[string]*activeForward),
+		clientset: testEndpointSliceClientset("ns", "svc", "svc-pod"),
+		logger:    slog.Default(),
+	}
+
+	var createCalls atomic.Int32
+	creationStarted := make(chan struct{})
+	releaseCreation := make(chan struct{})
+	pfm.createForwardFn = func(_ context.Context, namespace, podName string, podPort int) (*activeForward, error) {
+		if createCalls.Add(1) == 1 {
+			close(creationStarted)
+		}
+		if namespace != "ns" || podName != "svc-pod" || podPort != 8080 {
+			t.Errorf("unexpected forward target %s/%s:%d", namespace, podName, podPort)
+		}
+		<-releaseCreation
+		return &activeForward{
+			localPort: 22222,
+			stopChan:  make(chan struct{}),
+			errChan:   make(chan error, 1),
+		}, nil
+	}
+
+	start := make(chan struct{})
+	results := make(chan struct {
+		port uint16
+		err  error
+	}, goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			<-start
+			port, err := pfm.getOrCreateForward(context.Background(), "ns", "svc", 8080)
+			results <- struct {
+				port uint16
+				err  error
+			}{port: port, err: err}
+		}()
+	}
+
+	close(start)
+	select {
+	case <-creationStarted:
+	case <-time.After(time.Second):
+		t.Fatal("forward creation did not start")
+	}
+	// Keep the first creation blocked so the other callers exercise the
+	// singleflight path instead of observing an already-populated cache.
+	time.Sleep(100 * time.Millisecond)
+	close(releaseCreation)
+
+	for i := 0; i < goroutines; i++ {
+		result := <-results
+		if result.err != nil {
+			t.Errorf("getOrCreateForward error: %v", result.err)
+		}
+		if result.port != 22222 {
+			t.Errorf("local port = %d, want 22222", result.port)
+		}
+	}
+	if got := createCalls.Load(); got != 1 {
+		t.Errorf("forward creation calls = %d, want 1", got)
+	}
 }
 
 // === NewPortForwardManager ===

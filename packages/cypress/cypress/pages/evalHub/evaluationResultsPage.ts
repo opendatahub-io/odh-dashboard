@@ -35,6 +35,14 @@ class EvaluationResultsPage {
     return cy.findByTestId(`benchmark-result-card-${benchmarkId}-${index}`);
   }
 
+  findBenchmarkResultCards() {
+    return this.findBenchmarksGrid().find('[data-testid^="benchmark-result-card-"]');
+  }
+
+  findBenchmarkResultCardById(benchmarkId: string) {
+    return this.findBenchmarksGrid().find(`[data-testid^="benchmark-result-card-${benchmarkId}-"]`);
+  }
+
   findBenchmarkScore(benchmarkId: string, index: number) {
     return cy.findByTestId(`benchmark-score-${benchmarkId}-${index}`);
   }
@@ -67,16 +75,16 @@ class EvaluationResultsPage {
     return cy.findByRole('dialog');
   }
 
-  closeAboutResultDialog(): void {
-    this.findAboutResultDialog().findByRole('button', { name: 'Close' }).click();
+  findAboutResultCloseButton() {
+    return this.findAboutResultDialog().findByRole('button', { name: 'Close' });
   }
 
   findEventLogModal() {
     return cy.findByTestId('evaluation-event-log-modal');
   }
 
-  closeEventLogModal(): void {
-    this.findEventLogModal().findByRole('button', { name: 'Close' }).click();
+  findEventLogModalCloseButton() {
+    return this.findEventLogModal().findByRole('button', { name: 'Close' });
   }
 
   findLogContent() {

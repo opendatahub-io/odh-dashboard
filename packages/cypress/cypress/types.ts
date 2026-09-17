@@ -815,7 +815,7 @@ export type CustomEndpointTestData = {
   };
 };
 
-/** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
+/** Shared fixture fields used by the Eval Hub E2E tests. */
 export type EvalHubTestData = {
   projectNamePrefix: string;
   evalHubCrName: string;
@@ -844,6 +844,8 @@ export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCard
   collectionId: string;
   /** Display name of the collection shown in the start-evaluation form after selection. */
   collectionName: string;
+  /** Benchmark result IDs expected from the selected collection. */
+  expectedBenchmarkIds: string[];
 };
 
 export type ModelCatalogSourceTestData = {
