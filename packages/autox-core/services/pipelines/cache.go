@@ -95,6 +95,28 @@ func newPipelineCache() *pipelineCache {
 	return &pipelineCache{newTTLCache[map[string]*DiscoveredPipeline]()}
 }
 
+// pipelineInputParametersCache caches the declared root input parameters for a pipeline version.
+// The cache key includes the namespace because Pipeline Server instances are namespace-scoped.
+type pipelineInputParametersCache struct {
+	*ttlCache[[]string]
+}
+
+func newPipelineInputParametersCache() *pipelineInputParametersCache {
+	return &pipelineInputParametersCache{newTTLCache[[]string]()}
+}
+
+func (c *pipelineInputParametersCache) get(key string) ([]string, bool) {
+	value, ok := c.ttlCache.get(key)
+	if !ok {
+		return nil, false
+	}
+	return append([]string(nil), value...), true
+}
+
+func (c *pipelineInputParametersCache) set(key string, value []string) {
+	c.ttlCache.set(key, append([]string(nil), value...))
+}
+
 // getCachedVersionIDs searches all cached namespaces for a pipeline by ID and returns
 // its version IDs, avoiding an API call when discovery already fetched the versions.
 func (c *pipelineCache) getCachedVersionIDs(pipelineID string) []string {

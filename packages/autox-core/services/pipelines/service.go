@@ -28,6 +28,7 @@ type Service interface {
 	// Pipeline CRUD
 	ListPipelines(ctx context.Context, namespace, filter string) (*PipelinesResponse, error)
 	GetPipelineVersion(ctx context.Context, namespace, pipelineID, versionID string) (*PipelineVersion, error)
+	GetPipelineInputParameters(ctx context.Context, namespace, pipelineID, versionID string) ([]string, error)
 	ListPipelineVersions(ctx context.Context, namespace, pipelineID string) (*PipelineVersionsResponse, error)
 	CreatePipeline(ctx context.Context, namespace, name string) (*Pipeline, error)
 	UploadPipelineVersion(ctx context.Context, namespace, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error)
@@ -74,13 +75,14 @@ type ServiceConfig struct {
 }
 
 type service struct {
-	Client        Client
-	K8sService    k8s.Service
-	Logger        *slog.Logger
-	pipelineCache *pipelineCache
-	dspaCache     *dspaCache
-	inFlight      map[string]chan struct{}
-	inFlightMu    sync.Mutex
+	Client                       Client
+	K8sService                   k8s.Service
+	Logger                       *slog.Logger
+	pipelineCache                *pipelineCache
+	pipelineInputParametersCache *pipelineInputParametersCache
+	dspaCache                    *dspaCache
+	inFlight                     map[string]chan struct{}
+	inFlightMu                   sync.Mutex
 }
 
 // Compile-time interface check.
@@ -88,12 +90,13 @@ var _ Service = (*service)(nil)
 
 func NewService(cfg ServiceConfig, client Client, k8sService k8s.Service) Service {
 	return &service{
-		Client:        client,
-		K8sService:    k8sService,
-		Logger:        cfg.Logger,
-		pipelineCache: newPipelineCache(),
-		dspaCache:     newDSPACache(),
-		inFlight:      make(map[string]chan struct{}),
+		Client:                       client,
+		K8sService:                   k8sService,
+		Logger:                       cfg.Logger,
+		pipelineCache:                newPipelineCache(),
+		pipelineInputParametersCache: newPipelineInputParametersCache(),
+		dspaCache:                    newDSPACache(),
+		inFlight:                     make(map[string]chan struct{}),
 	}
 }
 
@@ -279,6 +282,42 @@ func (s *service) GetPipelineVersion(ctx context.Context, namespace, pipelineID,
 	}
 
 	return version, nil
+}
+
+// GetPipelineInputParameters returns the declared root input parameters for a pipeline version.
+// Results are cached by namespace, pipeline ID, and version ID using the same TTL as discovery.
+func (s *service) GetPipelineInputParameters(ctx context.Context, namespace, pipelineID, versionID string) ([]string, error) {
+	if namespace == "" || pipelineID == "" || versionID == "" {
+		return nil, fmt.Errorf("%w: namespace, pipeline ID, and version ID are required", ErrInvalidInput)
+	}
+
+	cacheKey := strings.Join([]string{namespace, pipelineID, versionID}, "\x00")
+	if parameters, ok := s.pipelineInputParametersCache.get(cacheKey); ok {
+		return parameters, nil
+	}
+
+	version, err := s.GetPipelineVersion(ctx, namespace, pipelineID, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve pipeline input schema: %w", err)
+	}
+	if version == nil {
+		return nil, fmt.Errorf("%w: pipeline version response is empty", ErrPipelineInputSchema)
+	}
+
+	parameters, err := extractPipelineInputParameters(version.PipelineSpec)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrPipelineInputSchema, err)
+	}
+
+	s.pipelineInputParametersCache.set(cacheKey, parameters)
+	s.loggerWithIdentity(ctx).Debug(
+		"cached pipeline input schema",
+		"namespace", namespace,
+		"pipeline_id", pipelineID,
+		"pipeline_version_id", versionID,
+		"parameter_count", len(parameters),
+	)
+	return append([]string(nil), parameters...), nil
 }
 
 func (s *service) ListPipelineVersions(ctx context.Context, namespace, pipelineID string) (*PipelineVersionsResponse, error) {

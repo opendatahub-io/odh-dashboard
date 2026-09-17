@@ -61,11 +61,12 @@ func (m *mockPipelineClient) UploadPipelineVersion(ctx context.Context, baseURL 
 
 func newTestServiceWithMock(client *mockPipelineClient) *service {
 	svc := &service{
-		Client:        client,
-		Logger:        slog.Default(),
-		pipelineCache: newPipelineCache(),
-		dspaCache:     newDSPACache(),
-		inFlight:      make(map[string]chan struct{}),
+		Client:                       client,
+		Logger:                       slog.Default(),
+		pipelineCache:                newPipelineCache(),
+		pipelineInputParametersCache: newPipelineInputParametersCache(),
+		dspaCache:                    newDSPACache(),
+		inFlight:                     make(map[string]chan struct{}),
 	}
 	svc.dspaCache.set("test-ns", &DiscoveredDSPA{
 		Name:         "dspa1",

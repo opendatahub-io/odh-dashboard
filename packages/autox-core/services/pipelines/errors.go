@@ -11,6 +11,7 @@ var (
 	ErrInvalidRunState     = errors.New("invalid run state for operation")
 	ErrNoDSPAFound         = errors.New("no pipeline server found in namespace")
 	ErrDSPANotReady        = errors.New("pipeline server exists but is not ready")
+	ErrPipelineInputSchema = errors.New("pipeline input schema is unavailable")
 
 	// ErrPipelineServerBadRequest indicates the pipeline server itself rejected a request
 	// as malformed (HTTP 400) — distinct from ErrInvalidInput, which is raised for local
