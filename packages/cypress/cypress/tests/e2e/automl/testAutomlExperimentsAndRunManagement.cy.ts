@@ -3,14 +3,17 @@ import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { provisionProjectForAutoX, waitForManagedPipelines } from '../../../utils/autoXPipelines';
-import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
 import { automlConfigurePage } from '../../../pages/automl/configurePage';
 import { automlExperimentsPage } from '../../../pages/automl/experimentsPage';
 import { automlResultsPage } from '../../../pages/automl/resultsPage';
-import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
+import {
+  isAutomlEnabled,
+  setAutomlEnabled,
+  waitForAutoXDspaReady,
+} from '../../../utils/oc_commands/autoX';
 import {
   configureAutomlRun,
   submitAutomlRun,
@@ -56,7 +59,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
     () => {
       cy.step('Login and wait for pipeline server');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      waitForDspaReady(projectName);
+      waitForAutoXDspaReady(projectName);
       waitForManagedPipelines(projectName);
 
       cy.step('Navigate to AutoML experiments page');
