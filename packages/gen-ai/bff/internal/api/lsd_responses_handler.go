@@ -921,36 +921,47 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 }
 
 // getCustomEndpointBaseURLAndKey retrieves both the base URL and API key for a
-// provider-qualified custom endpoint model ID (e.g. "endpoint-1/meta-llama/Llama-3.1-8B").
-// Returns ("", "") when the information cannot be resolved so the caller can skip injection.
+// custom endpoint model ID. The ID can be provider-qualified (for example,
+// "endpoint-1/meta-llama/Llama-3.1-8B") or provider-native (for example,
+// "meta-llama/Llama-3.1-8B"). Returns ("", "") when the information cannot be
+// resolved so the caller can skip injection.
 func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID string) (baseURL, apiKey string) {
+	baseURL, apiKey, _ = app.getCustomEndpointBaseURLKeyAndModelID(ctx, modelID)
+	return baseURL, apiKey
+}
+
+// getCustomEndpointBaseURLKeyAndModelID retrieves custom endpoint routing data and
+// returns the provider-native model ID that should be sent to the upstream endpoint.
+func (app *App) getCustomEndpointBaseURLKeyAndModelID(ctx context.Context, modelID string) (baseURL, apiKey, resolvedModelID string) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
-		return "", ""
+		return "", "", ""
 	}
 
 	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	if !ok || namespace == "" {
-		return "", ""
+		return "", "", ""
 	}
 
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
-		return "", ""
+		return "", "", ""
 	}
 
 	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
 	if err != nil {
 		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
-		return "", ""
+		return "", "", ""
 	}
 
 	var foundModel *models.RegisteredModel
 	lookupModelID := stripPassthroughProviderPrefix(modelID)
 
 	if strings.Contains(lookupModelID, "/") && !strings.HasPrefix(modelID, constants.PassthroughProviderID+"/") {
-		// Provider-qualified form: "endpoint-1/gpt-4o"
+		// Provider-qualified form: "endpoint-1/gpt-4o". Try this first for
+		// backwards compatibility, but if it does not match, treat the full value as a
+		// provider-native slash-delimited model ID.
 		parts := strings.SplitN(lookupModelID, "/", 2)
 		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
 			for i := range externalModelsConfig.RegisteredResources.Models {
@@ -961,7 +972,9 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 				}
 			}
 		}
-	} else {
+	}
+
+	if foundModel == nil {
 		// Bare/native model ID (e.g. "gpt-4o" or "meta-llama/Llama-3.1-8B") —
 		// search all registered models by ModelID. OGX strips the provider prefix before
 		// forwarding to the passthrough handler.
@@ -989,7 +1002,7 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 	}
 
 	if foundModel == nil {
-		return "", ""
+		return "", "", ""
 	}
 
 	var foundProvider *models.InferenceProvider
@@ -1001,12 +1014,12 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 	}
 	if foundProvider == nil {
 		app.logger.Warn("Provider not found for custom endpoint model", "model", foundModel.ModelID, "providerID", foundModel.ProviderID)
-		return "", ""
+		return "", "", ""
 	}
 
 	baseURL = foundProvider.Config.BaseURL
 	apiKey = app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, foundModel.ModelID)
-	return baseURL, apiKey
+	return baseURL, apiKey, foundModel.ModelID
 }
 
 func stripPassthroughProviderPrefix(modelID string) string {
