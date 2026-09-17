@@ -275,8 +275,6 @@ export type TestConfig = {
   GEMINI_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
-  OGX_URL?: string;
-  OGX_API_KEY?: string;
   MAAS_URL?: string;
   MAAS_API_KEY?: string;
   MAAS_GENERATION_MODEL_ID?: string;
