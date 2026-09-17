@@ -26,7 +26,7 @@ export type AutoragMaaSFixture =
       generationModelId: string;
       embeddingModelId: string;
       ownership: 'external-readonly';
-      supportsCompletionResults: true;
+      supportsCompletionResults: boolean;
     }
   | {
       mode: 'simulator';
@@ -98,7 +98,7 @@ export const resolveAutoragMaaSFixture = (
     generationModelId,
     embeddingModelId,
     ownership: 'external-readonly',
-    supportsCompletionResults: true,
+    supportsCompletionResults: false,
   };
 };
 

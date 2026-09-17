@@ -150,7 +150,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
       if (!fixture.supportsCompletionResults) {
         Cypress.log({
           name: 'skip',
-          message: 'Simulator models cover lifecycle wiring only, not AutoRAG completion/quality.',
+          message: 'Results/leaderboard validation requires a real vector database.',
         });
         this.skip();
       }
