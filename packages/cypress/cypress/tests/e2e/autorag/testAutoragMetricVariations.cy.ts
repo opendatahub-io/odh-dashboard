@@ -9,7 +9,6 @@ import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import {
   cleanupAutoragInfrastructure,
-  cleanupAutoragMaaSCredential,
   provisionVectorDatabase,
 } from '../../../utils/oc_commands/autoragInfra';
 import {
@@ -77,9 +76,6 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       testData.vectorDbSecretName,
       connectionOwnership,
     );
-    if (maasFixture) {
-      cleanupAutoragMaaSCredential(maasFixture);
-    }
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });

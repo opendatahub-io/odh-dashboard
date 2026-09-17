@@ -1,10 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForDspaReady } from './oc_commands/dspa';
 import { waitForManagedPipelines } from './autoXPipelines';
-import {
-  getVectorDatabaseConnection,
-  provisionAutoragMaaSFixture,
-} from './oc_commands/autoragInfra';
+import { getVectorDatabaseConnection } from './oc_commands/autoragInfra';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
@@ -35,10 +32,9 @@ export type AutoragMaaSFixture =
       mode: 'simulator';
       maasUrl: string;
       apiKey: string;
-      apiKeyId: string;
       generationModelId: string;
       embeddingModelId: string;
-      ownership: 'dashboard-provisioned';
+      ownership: 'dummy-lifecycle-only';
       supportsCompletionResults: false;
     };
 
@@ -53,6 +49,15 @@ const MAAS_CONFIG_KEYS = [
   'MAAS_GENERATION_MODEL_ID',
   'MAAS_EMBEDDING_MODEL_ID',
 ] as const;
+
+const SIMULATOR_MAAS_FIXTURE: Omit<Extract<AutoragMaaSFixture, { mode: 'simulator' }>, 'mode'> = {
+  maasUrl: 'https://autorag-maas.invalid',
+  apiKey: 'autorag-cypress-dummy-api-key',
+  generationModelId: 'autorag-cypress-generation-dummy',
+  embeddingModelId: 'autorag-cypress-embedding-dummy',
+  ownership: 'dummy-lifecycle-only',
+  supportsCompletionResults: false,
+};
 
 const readMaaSConfig = (): MaaSConfig => ({
   MAAS_URL: Cypress.env('MAAS_URL'),
@@ -80,13 +85,7 @@ export const resolveAutoragMaaSFixture = (
   if (suppliedKeys.length === 0) {
     return {
       mode: 'simulator',
-      maasUrl: '',
-      apiKey: '',
-      apiKeyId: '',
-      generationModelId: '',
-      embeddingModelId: '',
-      ownership: 'dashboard-provisioned',
-      supportsCompletionResults: false,
+      ...SIMULATOR_MAAS_FIXTURE,
     };
   }
 
@@ -148,9 +147,7 @@ const isMaaSModel = (value: unknown): value is MaaSModel =>
 export const checkAutoragMaaSReadiness = (): Cypress.Chainable<AutoragMaaSFixture> => {
   const fixture = resolveAutoragMaaSFixture();
   if (fixture.mode === 'simulator') {
-    return provisionAutoragMaaSFixture().then(
-      (provisionedFixture): AutoragMaaSFixture => provisionedFixture,
-    );
+    return cy.wrap<AutoragMaaSFixture>(fixture);
   }
 
   const serviceRoot = getMaaSServiceRoot(fixture.maasUrl);
@@ -184,6 +181,35 @@ export const checkAutoragMaaSReadiness = (): Cypress.Chainable<AutoragMaaSFixtur
     });
 };
 
+const interceptSimulatorMaaSModels = (
+  projectName: string,
+  testData: AutoragTestData,
+  maasFixture: AutoragMaaSFixture,
+): void => {
+  if (maasFixture.mode !== 'simulator') {
+    return;
+  }
+
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: '/autorag/api/v1/maas/models',
+      query: { namespace: projectName, secretName: testData.maasSecretName },
+    },
+    {
+      statusCode: 200,
+      body: {
+        data: {
+          models: [
+            { id: maasFixture.generationModelId, ready: true },
+            { id: maasFixture.embeddingModelId, ready: true },
+          ],
+        },
+      },
+    },
+  );
+};
+
 const createMaaSConnection = (testData: AutoragTestData, maasFixture: AutoragMaaSFixture): void => {
   autoragConfigurePage.findAddMaasConnectionButton().click();
   autoragConfigurePage.findMaasConnectionNameInput().clear().type(testData.maasSecretName);
@@ -214,6 +240,7 @@ export const createAutoragConnections = (
 ): void => {
   const connectionOwnership = ownership;
   cy.step('Open AutoRAG run configuration');
+  interceptSimulatorMaaSModels(projectName, testData, maasFixture);
   cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
   waitForDspaReady(projectName);
   waitForManagedPipelines(projectName);
@@ -268,6 +295,7 @@ export const configureAutoragRun = (
 ): void => {
   const { connectionOwnership } = options;
   cy.step('Login and wait for pipeline server');
+  interceptSimulatorMaaSModels(projectName, testData, maasFixture);
   cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
   waitForDspaReady(projectName);
   waitForManagedPipelines(projectName);
