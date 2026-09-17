@@ -15,7 +15,16 @@ const initIntercepts = () => {
 const enableUnitxtAnswerCorrectnessColumn = (): void => {
   cy.findByTestId('manage-columns-button').click();
   cy.findByTestId('manage-columns-modal').should('be.visible');
-  cy.findByTestId('column-check-metric:answer_correctness_(unitxt)').click();
+  cy.findByTestId('column-check-metric:answer_correctness_(unitxt)').then(($control) => {
+    const $checkbox = $control.is('input') ? $control : $control.find('input[type="checkbox"]');
+    const isChecked =
+      $checkbox.prop('checked') === true ||
+      $checkbox.attr('aria-checked') === 'true' ||
+      $control.attr('aria-checked') === 'true';
+    if (!isChecked) {
+      cy.wrap($control).click();
+    }
+  });
   cy.findByTestId('manage-columns-modal').findByRole('button', { name: 'Save' }).click();
   cy.findByTestId('manage-columns-modal').should('not.exist');
 };
