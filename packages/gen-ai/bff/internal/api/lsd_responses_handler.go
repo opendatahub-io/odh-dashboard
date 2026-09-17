@@ -14,6 +14,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -527,6 +528,21 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	var guardrailOpts nemo.GuardrailsOptions
 	var inputMessages []nemo.Message
 	if createRequest.GuardrailConfig != nil && createRequest.GuardrailConfig.GuardrailModel != "" {
+		if _, err := helper.GetContextNemoClient(ctx); err != nil {
+			nemoClient, resolveErr := app.resolveNemoClient(r)
+			if resolveErr != nil || nemoClient == nil {
+				if resolveErr != nil {
+					app.logger.Error("Failed to resolve NeMo Guardrails client", "error", resolveErr)
+				} else {
+					app.logger.Info("NeMo Guardrails unavailable for guardrailed request")
+				}
+				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				return
+			}
+			ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
+			r = r.WithContext(ctx)
+		}
+
 		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(ctx, createRequest.GuardrailConfig.GuardrailModel, createRequest.GuardrailConfig.GuardrailModelSourceType, createRequest.GuardrailConfig.ResolveSubscription(createRequest.Subscription))
 		if err != nil {
 			app.logger.Error("Failed to resolve guardrail model endpoint", "model", createRequest.GuardrailConfig.GuardrailModel, "error", err)

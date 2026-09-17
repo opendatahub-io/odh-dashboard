@@ -63,6 +63,8 @@ const extensions: (
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [GUARDRAILS],
       requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some((c) => c.type === 'TrustyAIReady' && c.status === 'True'),
     },
   },
   {
