@@ -7,12 +7,15 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import {
   createFeatureStoreCR,
   deleteFeatureStoreCR,
+  waitForDataRegistryFeatureStoreReady,
   waitForDataRegistryNamespace,
 } from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import {
+  deleteDataRegistryAsset,
   deleteDataRegistryBrowseAsset,
+  deleteDataRegistryCollection,
   seedDataRegistryBrowseAsset,
 } from '../../../utils/api/dataRegistry';
 
@@ -27,8 +30,10 @@ describe('Data Registry browse flow', () => {
   let testData: Record<string, string>;
   let dataRegistryNamespace: string;
   let projectCreated = false;
-  let featureStoreSetupAttempted = false;
+  let featureStoreCreated = false;
   let browseAssetCreated = false;
+  let crudCollectionCreated = false;
+  let crudAssetCreated = false;
 
   retryableBefore(() => {
     return ensureAdminOcSession()
@@ -50,9 +55,17 @@ describe('Data Registry browse flow', () => {
       })
       .then(() => {
         cy.step('Create FeatureStore/data-registry for Data Registry');
-        featureStoreSetupAttempted = true;
         return createFeatureStoreCR(dataRegistryNamespace, 'data-registry', {
           dataRegistryEnabled: true,
+        }).then((created) => {
+          featureStoreCreated = created === true;
+          if (!featureStoreCreated) {
+            cy.log(
+              `Preserving existing FeatureStore/data-registry in ${dataRegistryNamespace}; ` +
+                'this test does not own it',
+            );
+          }
+          return waitForDataRegistryFeatureStoreReady(dataRegistryNamespace, 'data-registry');
         });
       })
       .then(() => {
@@ -62,13 +75,19 @@ describe('Data Registry browse flow', () => {
           testData.collection,
           testData.asset,
         ).then((created) => {
-          browseAssetCreated = created;
+          browseAssetCreated ||= created;
         });
       });
   });
 
   after(() => {
-    if (!projectCreated && !featureStoreSetupAttempted) {
+    if (
+      !projectCreated &&
+      !featureStoreCreated &&
+      !browseAssetCreated &&
+      !crudCollectionCreated &&
+      !crudAssetCreated
+    ) {
       cy.log('Skipping Data Registry cleanup');
       return;
     }
@@ -82,7 +101,21 @@ describe('Data Registry browse flow', () => {
         return deleteDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset);
       })
       .then(() => {
-        if (!featureStoreSetupAttempted) {
+        if (!crudAssetCreated) {
+          return;
+        }
+        cy.step(`Delete Data Registry asset/${crudAssetName}`);
+        return deleteDataRegistryAsset(testData.project, crudCollectionName, crudAssetName);
+      })
+      .then(() => {
+        if (!crudCollectionCreated) {
+          return;
+        }
+        cy.step(`Delete Data Registry collection/${crudCollectionName}`);
+        return deleteDataRegistryCollection(testData.project, crudCollectionName);
+      })
+      .then(() => {
+        if (!featureStoreCreated) {
           return;
         }
         cy.step('Delete FeatureStore/data-registry');
@@ -144,7 +177,12 @@ describe('Data Registry browse flow', () => {
       dataRegistryPage.findCollectionNameInput().type(crudCollectionName);
       dataRegistryPage.findCollectionDescriptionInput().type('Data Registry CRUD collection');
       dataRegistryPage.findCreateCollectionSubmit().should('not.be.disabled').click();
-      dataRegistryPage.findCreateCollectionModal().should('not.be.visible');
+      dataRegistryPage
+        .findCreateCollectionModal()
+        .should('not.be.visible')
+        .then(() => {
+          crudCollectionCreated = true;
+        });
       dataRegistryPage.findCollectionLink(crudCollectionName).should('be.visible');
       dataRegistryPage.closeManageCollections();
 
@@ -155,7 +193,12 @@ describe('Data Registry browse flow', () => {
       dataRegistryPage.findDataDescriptionInput().type(crudAssetDescription);
       dataRegistryPage.selectDataCollection(crudCollectionName);
       dataRegistryPage.findRegisterDataSubmit().click();
-      dataRegistryPage.findRegisterDataModal().should('not.be.visible');
+      dataRegistryPage
+        .findRegisterDataModal()
+        .should('not.be.visible')
+        .then(() => {
+          crudAssetCreated = true;
+        });
       dataRegistryPage.findAssetLink(crudAssetName).should('be.visible');
 
       cy.step(`Update the ${crudAssetName} asset description`);

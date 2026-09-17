@@ -1,4 +1,9 @@
-import { applyOpenShiftYaml, pollUntilSuccess, waitForPodReady } from '../oc_commands/baseCommands';
+import {
+  applyOpenShiftYaml,
+  execWithOutput,
+  pollUntilSuccess,
+  waitForPodReady,
+} from '../oc_commands/baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
@@ -303,6 +308,33 @@ print("CREATED_SAVED_DATASET:" + ds.name)
 
 const FEAST_OPERATOR_DEPLOY = 'feast-operator-controller-manager';
 const DATA_REGISTRY_NAMESPACE_LABEL = 'opendatahub.io/data-registry=true';
+const K8S_NAME_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
+const assertSafeK8sName = (value: string, label: string): string => {
+  if (!value || value.length > 63 || !K8S_NAME_RE.test(value)) {
+    throw new Error(
+      `Invalid ${label} "${value}": must be a lowercase RFC-1123 DNS label (a-z, 0-9, -)`,
+    );
+  }
+  return value;
+};
+
+/**
+ * Creates a resource from YAML without updating an existing resource.
+ * The caller handles the non-zero exit status so AlreadyExists can be treated as not owned.
+ */
+const createOpenShiftYaml = (yamlContent: string): Cypress.Chainable => {
+  const tempFileName = `/tmp/cypress-yaml-${Date.now()}-${Math.random()
+    .toString(36)
+    .substr(2, 9)}.yaml`;
+
+  return cy.writeFile(tempFileName, yamlContent, { log: false }).then(() => {
+    const ocCommand =
+      `oc create -f ${tempFileName}; return_code=$?; ` +
+      `rm -f -- ${tempFileName}; exit $return_code`;
+    return execWithOutput(ocCommand);
+  });
+};
 
 export type CreateFeatureStoreCROptions = {
   dataRegistryEnabled?: boolean;
@@ -384,8 +416,46 @@ export const waitForDataRegistryNamespace = (): Cypress.Chainable<string> => {
 };
 
 /**
- * Creates Feature Store custom resource by applying a YAML template.
- * This function dynamically replaces placeholders in the template with actual values and applies it.
+ * Waits for a Data Registry FeatureStore pod to exist and report Ready.
+ * Polling the pod condition makes missing pods and failed readiness observable to callers.
+ */
+const waitForDataRegistryPodReady = (namespace: string, storeName: string): Cypress.Chainable => {
+  const safeNamespace = assertSafeK8sName(namespace, 'namespace');
+  const safeStoreName = assertSafeK8sName(storeName, 'FeatureStore name');
+
+  return pollUntilSuccess(
+    `oc get pods -n ${safeNamespace} -l feast.dev/name=${safeStoreName} -o json | ` +
+      `jq -e '(.items // []) as $pods | ` +
+      `($pods | length > 0) and ` +
+      `any($pods[]; any(.status.conditions[]?; .type == "Ready" and .status == "True"))'`,
+    `Data Registry FeatureStore pod with feast.dev/name=${safeStoreName} to be Ready`,
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
+};
+
+/**
+ * Waits for a Data Registry FeatureStore CR and its deployment to become ready.
+ */
+export const waitForDataRegistryFeatureStoreReady = (
+  namespace: string,
+  storeName: string,
+): Cypress.Chainable => {
+  const safeNamespace = assertSafeK8sName(namespace, 'namespace');
+  const safeStoreName = assertSafeK8sName(storeName, 'FeatureStore name');
+
+  return waitForDataRegistryPodReady(safeNamespace, safeStoreName).then(() =>
+    pollUntilSuccess(
+      `oc get featurestores.feast.dev ${safeStoreName} -n ${safeNamespace} -o json | ` +
+        `jq -e '.status.conditions[]? | select(.type=="DataRegistry") | .status == "True"'`,
+      `FeatureStore/${safeStoreName} DataRegistry condition to be True`,
+      { maxAttempts: 30, pollIntervalMs: 5000 },
+    ),
+  );
+};
+
+/**
+ * Creates a FeatureStore custom resource from a YAML template.
+ * Data Registry FeatureStores use create-only semantics so existing resources are never adopted.
  *
  * @param {string} namespace - The namespace of the feast custom resource flavor to be created.
  */
@@ -426,7 +496,7 @@ export const createFeatureStoreCR = (
 
     // Replace placeholders in YAML with actual values
     const yamlContent = Object.entries(variables).reduce(
-      (content, [key, value]) => content.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value),
+      (content, [key, value]) => content.split(`\${${key}}`).join(value),
       yamlTemplate,
     );
     if (!options.dataRegistryEnabled) {
@@ -458,16 +528,22 @@ export const createFeatureStoreCR = (
           { maxAttempts: 30, pollIntervalMs: 5000 },
         ),
       )
-      .then(() => applyOpenShiftYaml(yamlContent))
-      .then(() => waitForPodReady(feastInstanceName, '300s', namespace))
-      .then(() =>
-        pollUntilSuccess(
-          `oc get featurestores.feast.dev ${feastInstanceName} -n ${namespace} -o json | jq -e '.status.conditions[]? | select(.type=="DataRegistry") | .status == "True"'`,
-          `FeatureStore/${feastInstanceName} DataRegistry condition to be True`,
-          { maxAttempts: 30, pollIntervalMs: 5000 },
-        ),
-      )
-      .then(() => undefined);
+      .then(() => {
+        return createOpenShiftYaml(yamlContent).then((result) => {
+          if (result.exitCode === 0) {
+            return true;
+          }
+
+          const output = `${result.stderr}\n${result.stdout}`;
+          if (/already exists/i.test(output)) {
+            return false;
+          }
+
+          throw new Error(
+            `Failed to create FeatureStore/${feastInstanceName} in ${namespace}: ${output}`,
+          );
+        });
+      });
   });
 };
 
