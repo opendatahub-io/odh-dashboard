@@ -23,6 +23,20 @@ import (
 
 // Important: Run "make" to regenerate code after modifying this file
 
+// Default values for ActivityProbe fields. These MUST stay in sync with the
+// corresponding +kubebuilder:default markers on the ActivityProbe types, so that
+// the controller and the API server agree on the effective value when a field is unset.
+const (
+	// DefaultProbeIntervalSeconds is the fallback for ActivityProbe.ProbeIntervalSeconds.
+	DefaultProbeIntervalSeconds int32 = 3600
+
+	// DefaultMinProbeIntervalSeconds is the fallback for ActivityProbe.MinProbeIntervalSeconds.
+	DefaultMinProbeIntervalSeconds int32 = 300
+
+	// DefaultPodExecTimeoutSeconds is the fallback for ActivityProbePodExec.TimeoutSeconds.
+	DefaultPodExecTimeoutSeconds int32 = 60
+)
+
 /*
 ===============================================================================
                              WorkspaceKind - Spec
@@ -44,6 +58,94 @@ type WorkspaceKindSpec struct {
 
 	// podTemplate is the PodTemplate used to spawn Pods to run Workspaces of this WorkspaceKind
 	PodTemplate WorkspaceKindPodTemplate `json:"podTemplate"`
+
+	// activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
+	// Rules are evaluated sequentially from top to bottom (first-match-wins semantics) independently for each
+	// configured effect type (e.g., pauseWorkspace). A rule with a nil or empty 'match' is treated as a catch-all
+	// rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
+	// +kubebuilder:validation:Optional
+	// +listType:="atomic"
+	ActivityRules []ActivityRule `json:"activityRules,omitempty"`
+
+	// filterRules are admin-defined rules used by downstream consumers (the backend API server)
+	// to dynamically filter which WorkspaceKinds, imageConfig values, and podConfig values are
+	// visible or allowed in a given context. (MUTABLE)
+	// The controller does NOT evaluate or act on these rules, it only persists and validates them.
+	// +kubebuilder:validation:Optional
+	// +listType:="atomic"
+	FilterRules []FilterRule `json:"filterRules,omitempty"`
+}
+
+// ActivityRule defines a policy for handling inactivity in a Workspace
+type ActivityRule struct {
+	// the configuration for this rule
+	Config ActivityRuleConfig `json:"config"`
+
+	// the conditions under which this rule applies
+	// +kubebuilder:validation:Optional
+	Match *ActivityRuleMatch `json:"match,omitempty"`
+
+	// the action to take when the rule matches and its conditions are met
+	Effect ActivityRuleEffect `json:"effect"`
+}
+
+// ActivityRuleConfig defines the timing parameters for an ActivityRule
+type ActivityRuleConfig struct {
+	// the number of seconds of inactivity before a Workspace is eligible for this rule's effect
+	//  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and pausing
+	//    workspaces prematurely during startup or transient connection drops
+	// +kubebuilder:validation:Minimum:=16
+	SecondsSinceActive int32 `json:"secondsSinceActive"`
+
+	// the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:default:=0
+	// +kubebuilder:validation:Optional
+	MinRunningSeconds *int32 `json:"minRunningSeconds,omitempty"`
+}
+
+// ActivityRuleMatch defines the conditions under which an ActivityRule applies.
+// If both matchNamespace and matchPodConfig are specified, they are combined with AND semantics (both must match).
+// If both are unspecified (or the Match block is omitted entirely), it acts as a catch-all rule that matches all Workspaces.
+type ActivityRuleMatch struct {
+	// filters Workspaces by namespace labels
+	// +kubebuilder:validation:Optional
+	MatchNamespace *NamespaceMatch `json:"matchNamespace,omitempty"`
+
+	// filters Workspaces by the PodConfig option they are using
+	// +kubebuilder:validation:Optional
+	MatchPodConfig *PodConfigMatch `json:"matchPodConfig,omitempty"`
+}
+
+// NamespaceMatch filters Workspaces by namespace labels
+type NamespaceMatch struct {
+	// the standard Kubernetes label selector to match namespace labels
+	Selector metav1.LabelSelector `json:"selector"`
+}
+
+// PodConfigMatch filters Workspaces by the PodConfig option they are using
+type PodConfigMatch struct {
+	// the standard Kubernetes label selector to match podConfig labels
+	Selector metav1.LabelSelector `json:"selector"`
+}
+
+// ActivityRuleEffect defines the action to take when a rule matches.
+//
+// Each field is a tri-state (`*bool`) controlling one effect type:
+//   - `true`: apply the effect (e.g., pause the Workspace)
+//   - `false`: do not apply the effect (e.g., exempt matching Workspaces from being paused)
+//   - `nil`: skip this effect type entirely; evaluation continues to subsequent rules
+//
+// Both `true` and `false` terminate evaluation for that effect type.
+// Only `nil` causes fallthrough to the next rule.
+//
+// +kubebuilder:validation:XValidation:message="must specify at least one effect",rule="has(self.pauseWorkspace)"
+type ActivityRuleEffect struct {
+	// determines if the Workspace should be paused
+	//  - the webhook rejects rules with `pauseWorkspace: true`
+	//    when no `activityProbe` is configured
+	// +kubebuilder:validation:Optional
+	PauseWorkspace *bool `json:"pauseWorkspace,omitempty"`
 }
 
 type WorkspaceKindSpawner struct {
@@ -137,11 +239,15 @@ type WorkspaceKindPodTemplate struct {
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
 	// service account configs for Workspace Pods
-	ServiceAccount WorkspaceKindServiceAccount `json:"serviceAccount"`
-
-	// culling configs for pausing inactive Workspaces (MUTABLE)
+	//  - each Workspace runs as its own ServiceAccount, which is created and owned by
+	//    the controller and named "ws-{WORKSPACE_NAME}"
+	//  - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`
 	// +kubebuilder:validation:Optional
-	Culling *WorkspaceKindCullingConfig `json:"culling,omitempty"`
+	ServiceAccount *WorkspaceKindServiceAccount `json:"serviceAccount,omitempty"`
+
+	// activityProbe configs to determine Workspace activity (MUTABLE)
+	// +kubebuilder:validation:Optional
+	ActivityProbe *ActivityProbe `json:"activityProbe,omitempty"`
 
 	// standard probes to determine Container health (MUTABLE)
 	// +kubebuilder:validation:Optional
@@ -225,64 +331,120 @@ type WorkspaceKindPodMetadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
+// WorkspaceKindServiceAccount configures the ServiceAccount which the controller
+// creates and owns for each Workspace of this WorkspaceKind.
 type WorkspaceKindServiceAccount struct {
-	// the name of the ServiceAccount (NOT MUTABLE)
-	//  - this Service Account MUST already exist in the Namespace
-	//    of the Workspace, the controller will NOT create it
-	//  - we will not show this WorkspaceKind in the Spawner UI
-	//    if the SA does not exist in the Namespace
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ServiceAccount 'name' is immutable"
-	// +kubebuilder:example="default-editor"
+	// the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
+	//  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the
+	//    permissions only apply inside the Namespace of the Workspace
+	//  - removing an entry deletes the corresponding RoleBinding
+	//  - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing
+	//    ClusterRole simply grants nothing until that ClusterRole is created
+	//  - changes take effect immediately, Workspaces do NOT need to be restarted
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="name"
+	// +kubebuilder:example={{name: "kubeflow-edit"}}
+	ClusterRoles []WorkspaceKindClusterRole `json:"clusterRoles,omitempty"`
+}
+
+// WorkspaceKindClusterRole identifies a ClusterRole to bind to a Workspace's ServiceAccount
+// via a namespaced RoleBinding.
+type WorkspaceKindClusterRole struct {
+	// the name of the ClusterRole to bind to the Workspace ServiceAccount
+	//  - note, ClusterRole names are path segment names, so unlike most Kubernetes
+	//    resource names they may contain uppercase letters and ":" (for example,
+	//    the aggregated "system:aggregate-to-view" ClusterRole)
+	//  - the pattern is the regex form of Kubernetes `IsValidPathSegmentName`:
+	//    the name must not be "." or "..", and must not contain "/" or "%"
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	// +kubebuilder:validation:Pattern:=^([^./%][^/%]*|\.[^./%][^/%]*|\.[^/%][^/%]+)$
+	// +kubebuilder:example:="kubeflow-edit"
 	Name string `json:"name"`
 }
 
-type WorkspaceKindCullingConfig struct {
-	// if the culling feature is enabled
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// the maximum number of seconds a Workspace can be inactive
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum:=60
-	// +kubebuilder:default=86400
-	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
-
-	// the probe used to determine if the Workspace is active
-	ActivityProbe ActivityProbe `json:"activityProbe"`
-}
-
-// +kubebuilder:validation:XValidation:message="must specify exactly one of 'exec' or 'jupyter'",rule="!(has(self.exec) && has(self.jupyter)) && (has(self.exec) || has(self.jupyter))"
+// ActivityProbe defines how to detect recent user activity in a Workspace
+//
+// +kubebuilder:validation:XValidation:message="must specify exactly one of 'podExec' or 'jupyter'",rule="!(has(self.podExec) && has(self.jupyter)) && (has(self.podExec) || has(self.jupyter))"
+// +kubebuilder:validation:XValidation:message="minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds",rule="self.minProbeIntervalSeconds <= self.probeIntervalSeconds"
 type ActivityProbe struct {
-	// a shell command probe
-	//  - if the Workspace had activity in the last 60 seconds this command
-	//    should return status 0, otherwise it should return status 1
+	// the minimum duration in seconds that must elapse between two consecutive probes.
+	// - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
+	// - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=31536000
+	// +kubebuilder:default:=300
 	// +kubebuilder:validation:Optional
-	Exec *ActivityProbeExec `json:"exec,omitempty"`
+	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
-	// a Jupyter-specific probe
-	//  - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
-	//  - note, users need to be careful that their other probes don't trigger a "last_activity" update
-	//    e.g. they should only check the health of Jupyter using the `/api/status` endpoint
+	// the desired interval in seconds between successful probes.
+	//  - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
+	//  - Determines the freshness of workspace activity status used by activity rules.
+	//  - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still
+	//    inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose
+	//    user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,
+	//    so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible
+	//    (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,
+	//    at the cost of more frequent probing.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=31536000
+	// +kubebuilder:default:=3600
+	// +kubebuilder:validation:Optional
+	ProbeIntervalSeconds *int32 `json:"probeIntervalSeconds,omitempty"`
+
+	// a script-based probe executed in the Pod
+	// +kubebuilder:validation:Optional
+	PodExec *ActivityProbePodExec `json:"podExec,omitempty"`
+
+	// a Jupyter-specific API probe
 	// +kubebuilder:validation:Optional
 	Jupyter *ActivityProbeJupyter `json:"jupyter,omitempty"`
 }
 
-type ActivityProbeExec struct {
-	// the command to run
-	// +kubebuilder:validation:MinItems:=1
-	// +kubebuilder:example={"bash", "-c", "exit 0"}
-	Command []string `json:"command"`
+// ActivityProbePodExec defines a script-based activity probe executed via the Kubernetes exec API
+type ActivityProbePodExec struct {
+	// the maximum number of seconds the probe is allowed to run
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:default:=60
+	// +kubebuilder:validation:Optional
+	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
+
+	// script is the script to run inside the Pod to determine if the Workspace is active.
+	// The script must meet the following requirements:
+	//  - The Pod's main container MUST provide a POSIX shell at "/bin/sh" and the "cat", "chmod",
+	//    and "rm" utilities, which the controller uses to stage and execute the script. Minimal
+	//    or distroless images without these will cause the probe to fail (and never pause).
+	//  - It must start with a shebang (e.g., "#!/usr/bin/env bash" or "#!/usr/bin/env python").
+	//  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).
+	//  - It should be idempotent and without side effects since it can be run multiple times.
+	//  - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path
+	//    supplied in the OUTPUT_JSON_PATH environment variable.
+	//  - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:
+	//    a successful probe unconditionally overwrites `status.activity.lastActivity` with the reported
+	//    timestamp (the controller does not validate monotonicity or clamp to wall-clock time).
+	//  - The JSON fields `has_activity` (boolean) and `last_activity` (ISO 8601 string) are mutually exclusive;
+	//    users should specify one or the other, not both. If both fields are present, `has_activity` takes
+	//    precedence and `last_activity` is totally ignored (the probe does not fail).
+	//    The fields are evaluated to update the Workspace status field `status.activity.lastActivity` as follows:
+	//      - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
+	//      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`).
+	//      - If `last_activity` (ISO 8601 string) is provided (and `has_activity` is omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=2048
+	Script string `json:"script"`
 }
 
+// ActivityProbeJupyter defines a Jupyter-specific probe that polls the /api/status endpoint
+//
 // +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
 type ActivityProbeJupyter struct {
 	// if the Jupyter-specific probe is enabled
 	// +kubebuilder:example=true
 	LastActivity bool `json:"lastActivity"`
+
+	// the port to probe, referencing a port defined in spec.podTemplate.ports
+	PortId PortId `json:"portId"`
 }
 
 type WorkspaceKindProbes struct {
@@ -556,6 +718,111 @@ const (
 	RedirectMessageLevelWarning RedirectMessageLevel = "Warning"
 	RedirectMessageLevelDanger  RedirectMessageLevel = "Danger"
 )
+
+/*
+===============================================================================
+                          WorkspaceKind - Filter Rules
+===============================================================================
+*/
+
+// FilterRule is a single admin-defined rule which applies an effect to matched
+// items (WorkspaceKinds, imageConfig values, or podConfig values) when all of
+// its match conditions are satisfied.
+type FilterRule struct {
+	// the type of resource whose visibility this rule controls
+	Scope FilterRuleScope `json:"scope"`
+
+	// the effect to apply to matched items when all `match` conditions are satisfied
+	Effect FilterRuleEffect `json:"effect"`
+
+	// the conditions which must ALL be satisfied for the rule to apply
+	// +kubebuilder:validation:MinItems:=1
+	// +listType:="atomic"
+	Match []FilterRuleMatch `json:"match"`
+}
+
+// FilterRuleScope defines the type of resource whose visibility a filter rule controls
+//
+// +kubebuilder:validation:Enum:={"WORKSPACE_KIND","POD_CONFIG","IMAGE_CONFIG"}
+type FilterRuleScope string
+
+const (
+	// FilterRuleScopeWorkspaceKind rules control the visibility of the WorkspaceKind itself
+	FilterRuleScopeWorkspaceKind FilterRuleScope = "WORKSPACE_KIND"
+
+	// FilterRuleScopePodConfig rules control the visibility of individual podConfig values
+	FilterRuleScopePodConfig FilterRuleScope = "POD_CONFIG"
+
+	// FilterRuleScopeImageConfig rules control the visibility of individual imageConfig values
+	FilterRuleScopeImageConfig FilterRuleScope = "IMAGE_CONFIG"
+)
+
+// FilterRuleEffect defines the effect to apply when a filter rule matches
+//
+// +kubebuilder:validation:XValidation:message="must specify at least one of 'ui' or 'api'",rule="has(self.ui) || has(self.api)"
+type FilterRuleEffect struct {
+	// rendering hints for the frontend (the item is still returned by the API)
+	// +kubebuilder:validation:Optional
+	UI *FilterRuleEffectUI `json:"ui,omitempty"`
+
+	// server-enforced behavior evaluated by the backend API server
+	// +kubebuilder:validation:Optional
+	API *FilterRuleEffectAPI `json:"api,omitempty"`
+}
+
+// FilterRuleEffectUI defines frontend rendering hints for a matched filter rule item
+type FilterRuleEffectUI struct {
+	// suggest the UI hide the matched item
+	Hide bool `json:"hide"`
+}
+
+// FilterRuleEffectAPI defines server-enforced behavior for a matched filter rule item
+//
+// +kubebuilder:validation:XValidation:message="'denyMessage' may only be set when 'deny' is true",rule="!has(self.denyMessage) || (has(self.deny) && self.deny)"
+type FilterRuleEffectAPI struct {
+	// omit the matched item from the API response entirely
+	// +kubebuilder:validation:Optional
+	Hide *bool `json:"hide,omitempty"`
+
+	// return the matched item but reject any workspace create/update which selects it
+	// +kubebuilder:validation:Optional
+	Deny *bool `json:"deny,omitempty"`
+
+	// a message explaining why the matched item is denied
+	// +kubebuilder:validation:Optional
+	DenyMessage *FilterRuleDenyMessage `json:"denyMessage,omitempty"`
+}
+
+// FilterRuleDenyMessage defines the message shown when a filter rule denies a matched item
+type FilterRuleDenyMessage struct {
+	// the text of the message to show when the item is denied
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=1024
+	Text string `json:"text"`
+}
+
+// FilterRuleMatch defines a single match condition for a filter rule
+//
+// +kubebuilder:validation:XValidation:message="must specify exactly one of 'matchNamespace', 'matchImageConfig', or 'matchPodConfig'",rule="(has(self.matchNamespace) ? 1 : 0) + (has(self.matchImageConfig) ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1"
+type FilterRuleMatch struct {
+	// match against the labels of the namespace the workspace would be created in
+	// +kubebuilder:validation:Optional
+	MatchNamespace *FilterRuleSelector `json:"matchNamespace,omitempty"`
+
+	// match against the `spawner.labels` of an imageConfig value
+	// +kubebuilder:validation:Optional
+	MatchImageConfig *FilterRuleSelector `json:"matchImageConfig,omitempty"`
+
+	// match against the `spawner.labels` of a podConfig value
+	// +kubebuilder:validation:Optional
+	MatchPodConfig *FilterRuleSelector `json:"matchPodConfig,omitempty"`
+}
+
+// FilterRuleSelector wraps a standard Kubernetes label selector for use in filter rule match conditions
+type FilterRuleSelector struct {
+	// a standard Kubernetes label selector
+	Selector metav1.LabelSelector `json:"selector"`
+}
 
 /*
 ===============================================================================

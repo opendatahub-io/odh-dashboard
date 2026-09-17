@@ -11,7 +11,7 @@ import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplore
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
-import { useMaasModelsQuery } from '~/app/hooks/queries';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -34,6 +34,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const mockNotificationError = jest.fn();
+const mockNotificationWarning = jest.fn();
 
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
 
@@ -107,18 +108,24 @@ jest.mock('~/app/hooks/useNotification', () => ({
     success: jest.fn(),
     error: mockNotificationError,
     info: jest.fn(),
-    warning: jest.fn(),
+    warning: mockNotificationWarning,
     remove: jest.fn(),
   })),
 }));
 
-// Mock queries hooks used by AutoragConfigure (model pickers)
+// Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useMaasModelsQuery: jest.fn().mockReturnValue({
-    data: { models: [] },
+  useMaaSModelsQuery: jest.fn().mockReturnValue({
+    data: {
+      models: [
+        { id: 'llama-3-8b', ready: true },
+        { id: 'text-embedding-ada-002', ready: true },
+      ],
+    },
     isLoading: false,
     isError: false,
+    isSuccess: true,
   }),
   useSecretsQuery: jest.fn().mockReturnValue({
     data: [],
@@ -253,9 +260,10 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
-const mockUseMaasModelsQuery = jest.mocked(useMaasModelsQuery);
+const mockUseMaaSModelsQuery = jest.mocked(useMaaSModelsQuery);
 
 const configureSchema = createConfigureSchema();
+type TestConfigureValues = Partial<typeof configureSchema.defaults> & Record<string, unknown>;
 
 // Captures the live react-hook-form instance so tests can assert on exact
 // form state (e.g. which model IDs are selected) instead of only on rendered
@@ -271,7 +279,7 @@ const getLatestFormValues = (): ConfigureSchema => {
 
 const FormWrapper: React.FC<{
   children: React.ReactNode;
-  defaultValues?: Partial<typeof configureSchema.defaults>;
+  defaultValues?: TestConfigureValues;
 }> = ({ children, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
@@ -295,8 +303,10 @@ const createTestQueryClient = () =>
 // Wrapper component that provides QueryClient and Form context
 const renderWithQueryClient = (
   component: React.ReactElement,
-  defaultValues?: Partial<typeof configureSchema.defaults>,
-  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
+  defaultValues?: TestConfigureValues,
+  options?: {
+    onKnowledgeSourceConfigured?: (sourceType: string) => void;
+  },
 ) => {
   const queryClient = createTestQueryClient();
   const tree = (
@@ -326,21 +336,33 @@ const renderWithQueryClient = (
 };
 
 const renderComponent = (
-  defaultValues?: Partial<typeof configureSchema.defaults>,
-  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
-) => renderWithQueryClient(<AutoragConfigure />, defaultValues, options);
+  defaultValues?: TestConfigureValues,
+  options?: {
+    onKnowledgeSourceConfigured?: (sourceType: string) => void;
+    onMaaSModelsReady?: (ready: boolean) => void;
+  },
+) =>
+  renderWithQueryClient(
+    <AutoragConfigure onMaaSModelsReady={options?.onMaaSModelsReady} />,
+    defaultValues,
+    options,
+  );
 
 const renderWithInitialValues = (
   initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
     initialInputDataSecret?: Parameters<typeof AutoragConfigure>[0]['initialInputDataSecret'];
   },
-  defaultValues?: Partial<typeof configureSchema.defaults>,
+  defaultValues?: TestConfigureValues,
+  isReconfigure = false,
+  options?: { onMaaSModelsReady?: (ready: boolean) => void },
 ) => {
   const { initialInputDataSecret, ...schemaValues } = initialValues;
   return renderWithQueryClient(
     <AutoragConfigure
       initialValues={schemaValues}
       initialInputDataSecret={initialInputDataSecret}
+      isReconfigure={isReconfigure}
+      onMaaSModelsReady={options?.onMaaSModelsReady}
     />,
     {
       ...defaultValues,
@@ -394,10 +416,208 @@ describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNotificationError.mockClear();
+    mockNotificationWarning.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    mockUseMaaSModelsQuery.mockReturnValue({
+      data: {
+        models: [
+          { id: 'llama-3-8b', ready: true },
+          { id: 'text-embedding-ada-002', ready: true },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+    } as unknown as ReturnType<typeof useMaaSModelsQuery>);
     // Reset the S3 upload mock to default resolved value
     mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
+  });
+
+  describe('restored MaaS model reconciliation', () => {
+    const restoredValues = {
+      maas_secret_name: 'maas-secret',
+      generation_models: ['available-generation', 'removed-generation'],
+      embedding_models: ['available-embedding', 'removed-embedding'],
+    };
+
+    beforeEach(() => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            { id: 'available-generation', ready: true },
+            { id: 'available-embedding', ready: true },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+    });
+
+    it('should remove unavailable IDs while preserving each category membership', async () => {
+      renderWithInitialValues(restoredValues, undefined, true);
+
+      await waitFor(() => {
+        expect(getLatestFormValues()).toEqual(
+          expect.objectContaining({
+            generation_models: ['available-generation'],
+            embedding_models: ['available-embedding'],
+          }),
+        );
+      });
+      expect(mockNotificationWarning).toHaveBeenCalledWith(
+        'Some previously selected models are unavailable',
+        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
+      );
+    });
+
+    it('should remove unready restored IDs and show the restore warning', async () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            { id: 'unready-generation', ready: false },
+            { id: 'available-embedding', ready: true },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          ...restoredValues,
+          generation_models: ['unready-generation'],
+          embedding_models: ['available-embedding'],
+        },
+        undefined,
+        true,
+      );
+
+      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
+      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
+      expect(mockNotificationWarning).toHaveBeenCalledWith(
+        'Some previously selected models are unavailable',
+        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
+      );
+    });
+
+    it('should report the model configuration as not ready when only unready models exist', async () => {
+      const onMaaSModelsReady = jest.fn();
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            { id: 'unready-generation', ready: false },
+            { id: 'unready-embedding', ready: false },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          ...restoredValues,
+          generation_models: ['unready-generation'],
+          embedding_models: ['unready-embedding'],
+        },
+        undefined,
+        false,
+        { onMaaSModelsReady },
+      );
+
+      await waitFor(() => expect(onMaaSModelsReady).toHaveBeenLastCalledWith(false));
+    });
+
+    it('should leave an empty category invalid when all its restored IDs are unavailable', async () => {
+      renderWithInitialValues(
+        {
+          ...restoredValues,
+          generation_models: ['removed-generation'],
+        },
+        undefined,
+        true,
+      );
+
+      await waitFor(() => {
+        expect(getLatestFormValues().generation_models).toEqual([]);
+      });
+      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
+    });
+
+    it('should remove unavailable selections for a new run without a restore warning', async () => {
+      renderComponent({
+        maas_secret_name: 'maas-secret',
+        generation_models: ['removed-generation'],
+        embedding_models: ['removed-embedding'],
+      });
+
+      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
+      expect(getLatestFormValues().embedding_models).toEqual([]);
+      expect(mockNotificationWarning).not.toHaveBeenCalled();
+    });
+
+    it('should preserve fully available restored selections without warning', async () => {
+      renderWithInitialValues(
+        {
+          maas_secret_name: 'maas-secret',
+          generation_models: ['available-generation'],
+          embedding_models: ['available-embedding'],
+        },
+        undefined,
+        true,
+      );
+
+      await waitFor(() =>
+        expect(getLatestFormValues().generation_models).toEqual(['available-generation']),
+      );
+      expect(getLatestFormValues().embedding_models).toEqual(['available-embedding']);
+      expect(mockNotificationWarning).not.toHaveBeenCalled();
+    });
+
+    it('should warn only once when reconciliation causes rerenders for the same MaaS result', async () => {
+      renderWithInitialValues(restoredValues, undefined, true);
+
+      await waitFor(() =>
+        expect(getLatestFormValues().generation_models).toEqual(['available-generation']),
+      );
+      expect(mockNotificationWarning).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not emit the unavailable-model warning for an initial query failure', async () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        isSuccess: false,
+        error: new Error('MaaS models unavailable'),
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+      renderWithInitialValues(restoredValues, undefined, true);
+
+      await waitFor(() =>
+        expect(getLatestFormValues().generation_models).toEqual(restoredValues.generation_models),
+      );
+      expect(mockNotificationWarning).not.toHaveBeenCalled();
+    });
+
+    it('should not emit the unavailable-model warning for an empty response', async () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: { models: [] },
+        isLoading: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+      renderWithInitialValues(restoredValues, undefined, true);
+
+      await waitFor(() => expect(getLatestFormValues().generation_models).toEqual([]));
+      expect(getLatestFormValues().embedding_models).toEqual([]);
+      expect(mockNotificationWarning).toHaveBeenCalledWith(
+        'Some previously selected models are unavailable',
+        'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
+      );
+    });
   });
 
   describe('initial state - no secret selected', () => {
@@ -543,7 +763,7 @@ describe('AutoragConfigure', () => {
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
         'Invalid file type',
-        'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+        INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
       );
     });
 
@@ -561,7 +781,7 @@ describe('AutoragConfigure', () => {
         await waitFor(() => {
           expect(mockNotificationError).toHaveBeenCalledWith(
             'Invalid file type',
-            'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+            INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
           );
         });
       });
@@ -760,10 +980,40 @@ describe('AutoragConfigure', () => {
 
       // Configure details fields should be visible
       expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+      expect(
+        screen.getByText('Provide connection details for a vector database.'),
+      ).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
       expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+      for (const label of [
+        'vector-database-connection',
+        'evaluation-dataset',
+        'model-configuration',
+      ]) {
+        expect(
+          screen
+            .getByTestId(`configure-form-group-label-${label}`)
+            .querySelector('.pf-v6-c-form__label-required'),
+        ).toBeInTheDocument();
+      }
+      expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
+      expect(screen.getByTestId('selected-models-warning')).toHaveClass('pf-v6-c-alert');
+      expect(screen.queryByRole('heading', { name: 'Selected models' })).not.toBeInTheDocument();
+      expect(screen.getByText('Selected models')).toHaveClass('pf-v6-c-alert__title');
+      expect(
+        screen.getByText(
+          'No models selected. Select chat and embedding models to run the experiment.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('No foundation models selected')).not.toBeInTheDocument();
+      expect(screen.queryByText('No embedding models selected')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('select-models-button'));
+      expect(screen.getByTestId('experiment-settings-modal')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('experiment-settings-cancel'));
+      expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
     });
   });
 
@@ -1105,21 +1355,28 @@ describe('AutoragConfigure', () => {
 
   describe('Model initialization from query data', () => {
     it('should populate generation and embedding models when query returns data', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'llm-model-1',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-1',
+              ready: true,
+            },
             {
               id: 'embed-model-1',
               type: 'embedding',
               provider: 'ollama',
               resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+              ready: true,
             },
           ],
         },
         isLoading: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderComponent();
 
@@ -1128,26 +1385,142 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-      // The "Selected models" card should show model counts
-      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
-      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+      // Model selection is shown after entering Edit mode.
+      expect(screen.queryByTestId('llm-selected-count')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('embedding-selected-count')).not.toBeInTheDocument();
     });
   });
 
   describe('Model error handling', () => {
-    it('should show error notification when model loading fails', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+    it('should show error notification when model loading fails', async () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+        error: new Error('MaaS request failed'),
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
-      renderComponent();
+      renderWithInitialValues({
+        initialInputDataSecret: {
+          uuid: 'secret-1',
+          name: 'Test Secret 1',
+          data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+          type: 's3',
+          invalid: false,
+        },
+        maas_secret_name: 'maas-secret',
+        input_data_secret_name: 'Test Secret 1',
+        input_data_bucket_name: 'test-bucket-1',
+        input_data_keys: ['input.txt'],
+        test_data_secret_name: 'Test Secret 1',
+        test_data_bucket_name: 'test-bucket-1',
+        test_data_key: 'eval.json',
+      });
 
+      await waitFor(() => {
+        expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
+          'Failed to load MaaS models',
+        );
+      });
       expect(mockNotificationError).toHaveBeenCalledWith(
-        'Failed to load models',
-        'Check that the MaaS secret is valid and try again.',
+        'Failed to load MaaS models',
+        'Check that the selected MaaS connection is valid and try again.',
       );
+      expect(mockNotificationError).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep retained model data usable during a background refetch error', async () => {
+      const onMaaSModelsReady = jest.fn();
+      const models = {
+        models: [
+          { id: 'generation-model', ready: true },
+          { id: 'embedding-model', ready: true },
+        ],
+      };
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: models,
+        isLoading: false,
+        isFetching: false,
+        isError: false,
+        isSuccess: true,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          maas_secret_name: 'maas-secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_keys: ['input.txt'],
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['generation-model'],
+          embedding_models: ['embedding-model'],
+        },
+        undefined,
+        false,
+        { onMaaSModelsReady },
+      );
+
+      expect(screen.getByText('1 foundation models')).toBeInTheDocument();
+      expect(screen.getByText('1 embedding models')).toBeInTheDocument();
+
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: models,
+        isLoading: false,
+        isFetching: true,
+        isError: true,
+        isSuccess: false,
+        error: new Error('background refetch failed'),
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+      fireEvent.click(screen.getByTestId('preset-radio-balanced'));
+
+      await waitFor(() => {
+        expect(screen.getByText('1 foundation models')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('maas-models-error')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('selected-models-warning')).not.toBeInTheDocument();
+      expect(mockNotificationError).not.toHaveBeenCalled();
+      expect(onMaaSModelsReady).toHaveBeenLastCalledWith(true);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+      const generationRows = screen.getAllByTestId('model-row-generation-model');
+      expect(generationRows).toHaveLength(2);
+      expect(generationRows[0].querySelector('input')).toBeEnabled();
+    });
+
+    it('should show the page-level error and disable model selection when no models are returned', () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
+        data: { models: [] },
+        isLoading: false,
+        isSuccess: true,
+        isError: false,
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
+
+      renderWithInitialValues({
+        maas_secret_name: 'maas-secret',
+        input_data_secret_name: 'Test Secret 1',
+        input_data_bucket_name: 'test-bucket-1',
+        input_data_keys: ['input.txt'],
+        test_data_secret_name: 'Test Secret 1',
+        test_data_bucket_name: 'test-bucket-1',
+        test_data_key: 'eval.json',
+      });
+
+      expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
+        'Failed to load MaaS models',
+      );
+      expect(screen.getByTestId('maas-models-error')).toHaveTextContent(
+        'Check that the selected MaaS connection is valid and try again.',
+      );
+      expect(screen.getByTestId('select-models-button')).toBeDisabled();
     });
   });
 
@@ -1241,6 +1614,48 @@ describe('AutoragConfigure', () => {
   });
 
   describe('reconfigure with initialValues', () => {
+    it('should render the first canonical input_data_keys location', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_keys: ['my-data/input.pdf', 'my-data/second.pdf'],
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          maas_secret_name: 'maas-secret',
+          vector_db_secret_name: 'vector-db-secret',
+          generation_models: ['model-a'],
+          embedding_models: ['model-b'],
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_keys: ['my-data/input.pdf', 'my-data/second.pdf'],
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          maas_secret_name: 'maas-secret',
+          vector_db_secret_name: 'vector-db-secret',
+          generation_models: ['model-a'],
+          embedding_models: ['model-b'],
+        },
+      );
+
+      expect(screen.getByRole('grid', { name: 'Selected input data file' })).toBeInTheDocument();
+      expect(screen.getByText('input.pdf')).toBeInTheDocument();
+      expect(screen.queryByText('second.pdf')).not.toBeInTheDocument();
+    });
+
     it('should show the selected secret value when initialInputDataSecret is provided', () => {
       renderWithInitialValues(
         {
@@ -1253,7 +1668,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'input.pdf',
+          input_data_keys: ['input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1263,7 +1678,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'input.pdf',
+          input_data_keys: ['input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1287,7 +1702,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'my-data/input.pdf',
+          input_data_keys: ['my-data/input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1297,7 +1712,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'my-data/input.pdf',
+          input_data_keys: ['my-data/input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1324,7 +1739,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1334,7 +1749,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1360,7 +1775,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1370,7 +1785,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1386,30 +1801,44 @@ describe('AutoragConfigure', () => {
     it('should retain the previously selected foundation/embedding models instead of resetting to all models', () => {
       // Query returns more models than were previously selected, so a reset-to-all
       // regression is distinguishable from correctly retaining the prior selection.
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'llm-model-1',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-1',
+              ready: true,
+            },
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'llm-model-2',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-2',
+              ready: true,
+            },
             {
               id: 'embed-model-1',
               type: 'embedding',
               provider: 'ollama',
               resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+              ready: true,
             },
             {
               id: 'embed-model-2',
               type: 'embedding',
               provider: 'ollama',
               resource_path: 'ollama://embed-2', // eslint-disable-line camelcase
+              ready: true,
             },
           ],
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1420,10 +1849,10 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1431,10 +1860,10 @@ describe('AutoragConfigure', () => {
           embedding_models: ['embed-model-1'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1446,8 +1875,9 @@ describe('AutoragConfigure', () => {
       // Assert the exact retained model IDs (not just counts) so a regression that
       // swaps the selection for a same-sized set of different models (e.g.
       // llm-model-1 -> llm-model-2) is caught rather than passing on count alone.
-      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
-      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+      expect(screen.getByText(/1 foundation models/)).toBeInTheDocument();
+      expect(screen.getByText(/1 embedding models/)).toBeInTheDocument();
+      expect(screen.queryByTestId('selected-models-warning')).not.toBeInTheDocument();
       expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
       expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
     });
@@ -1455,24 +1885,37 @@ describe('AutoragConfigure', () => {
     it('should drop restored model selections that are no longer available and fall back to all models', () => {
       // The restored selection references a model that is no longer returned by
       // the current secret/provider (e.g. removed/deprecated upstream).
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'llm-model-1',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-1',
+              ready: true,
+            },
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'llm-model-2',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-2',
+              ready: true,
+            },
             {
               id: 'embed-model-1',
               type: 'embedding',
               provider: 'ollama',
               resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+              ready: true,
             },
           ],
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1483,10 +1926,10 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1495,10 +1938,10 @@ describe('AutoragConfigure', () => {
           embedding_models: ['removed-embed-model'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1507,27 +1950,36 @@ describe('AutoragConfigure', () => {
         },
       );
 
-      // Falls back to all currently available models rather than keeping the
-      // now-nonexistent restored IDs.
-      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1', 'llm-model-2']);
-      expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
-      expect(getLatestFormValues().generation_models).not.toContain('removed-llm-model');
-      expect(getLatestFormValues().embedding_models).not.toContain('removed-embed-model');
+      // Removed restored IDs are cleared rather than silently replaced.
+      expect(getLatestFormValues().generation_models).toEqual([]);
+      expect(getLatestFormValues().embedding_models).toEqual([]);
     });
 
     it('should keep only the still-available restored models when some restored selections are stale', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            {
+              id: 'llm-model-1',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-1',
+              ready: true,
+            },
             // eslint-disable-next-line camelcase
-            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'llm-model-2',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm-2',
+              ready: true,
+            },
           ],
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderWithInitialValues(
         {
@@ -1538,10 +1990,10 @@ describe('AutoragConfigure', () => {
             type: 's3',
             invalid: false,
           },
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1550,10 +2002,10 @@ describe('AutoragConfigure', () => {
           embedding_models: ['embed-model-1'],
         },
         {
-          maas_secret_name: 'Test MaaS Secret',
+          maas_secret_name: 'maas-secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1609,38 +2061,54 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
-    it('should disable "Edit" button when model loading fails', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+    it('should disable the model selection action when model loading fails', async () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+        error: new Error('MaaS request failed'),
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
-      renderComponent();
+      renderWithInitialValues({
+        initialInputDataSecret: {
+          uuid: 'secret-1',
+          name: 'Test Secret 1',
+          data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+          type: 's3',
+          invalid: false,
+        },
+        maas_secret_name: 'maas-secret',
+        input_data_secret_name: 'Test Secret 1',
+        input_data_bucket_name: 'test-bucket-1',
+        input_data_keys: ['input.txt'],
+        test_data_secret_name: 'Test Secret 1',
+        test_data_bucket_name: 'test-bucket-1',
+        test_data_key: 'eval.json',
+      });
 
-      // Select a valid secret
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-
-      // Browse and select a file
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-
-      // Edit button should be disabled due to model error
-      const editButton = screen.getByRole('button', { name: 'Edit' });
-      expect(editButton).toBeDisabled();
+      await waitFor(() => {
+        expect(screen.getByTestId('maas-models-error')).toBeInTheDocument();
+        expect(screen.getByTestId('select-models-button')).toBeDisabled();
+      });
     });
 
-    it('should enable "Edit" button when a file/folder is selected', () => {
-      mockUseMaasModelsQuery.mockReturnValue({
+    it('should keep the model selection CTA visible when a file/folder is selected', () => {
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
-            { id: 'llm-model', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm' },
+            {
+              id: 'llm-model',
+              type: 'llm',
+              provider: 'ollama',
+              resource_path: 'ollama://llm',
+              ready: true,
+            },
           ],
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useMaasModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderComponent();
 
@@ -1652,7 +2120,7 @@ describe('AutoragConfigure', () => {
       expect(
         screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('select-models-button')).not.toBeInTheDocument();
 
       // Click "Browse bucket" button to open FileExplorer
       const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
@@ -1665,9 +2133,8 @@ describe('AutoragConfigure', () => {
       const fileSelectButton = screen.getByTestId('file-explorer-select-file');
       fireEvent.click(fileSelectButton);
 
-      // Now Edit button should be visible and enabled after files are selected
-      const editButton = screen.getByRole('button', { name: 'Edit' });
-      expect(editButton).toBeEnabled();
+      // Model selection remains empty until the user chooses models.
+      expect(screen.getByTestId('select-models-button')).toBeEnabled();
     });
   });
 });

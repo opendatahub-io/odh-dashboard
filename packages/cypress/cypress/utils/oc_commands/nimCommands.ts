@@ -2,6 +2,8 @@ import type { PollOptions } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
+const quoteForShell = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
+
 /**
  * Checks if the NIM OdhApplication exists on the cluster.
  * @param namespace The namespace to check for the NIM application.
@@ -139,4 +141,167 @@ export const waitForNIMAccountValidation = (
 
   cy.step(`Polling for NIM account AccountStatus condition (max ${totalTimeout / 1000}s)`);
   return check();
+};
+
+/**
+ * Verifies that a legacy NIM deployment created its InferenceService, ServingRuntime, cache PVC,
+ * and token-authentication resources. The ServingRuntime check also confirms the PVC is mounted
+ * at NIM's cache path.
+ */
+export const verifyNIMDeploymentResources = (
+  inferenceServiceName: string,
+  namespace: string,
+  pvcName: string,
+  tokenDisplayName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const serviceAccountName = `${inferenceServiceName}-sa`;
+  const tokenSecretName = `${tokenDisplayName}-${serviceAccountName}`;
+
+  return cy
+    .exec(
+      `oc get inferenceservice ${inferenceServiceName} -n ${namespace} -o jsonpath='{.spec.predictor.model.runtime}'`,
+    )
+    .then((runtimeResult) => {
+      const servingRuntimeName = runtimeResult.stdout.trim();
+      const runtimeValidationCommand =
+        `oc get servingruntime ${servingRuntimeName} -n ${namespace} -o json | ` +
+        `jq -e --arg pvc ${quoteForShell(pvcName)} ` +
+        `'any(.spec.volumes[]?; .persistentVolumeClaim.claimName? == $pvc) and ` +
+        'any(.spec.containers[]?; .name == "kserve-container" and ' +
+        'any(.volumeMounts[]?; .name == $pvc and .mountPath == "/mnt/models/cache")) and ' +
+        'any(.spec.containers[]?; .name == "kserve-container" and ' +
+        'any(.env[]?; .name == "NIM_CACHE_PATH" and .value == "/mnt/models/cache"))\'';
+
+      return cy
+        .exec(runtimeValidationCommand)
+        .then(() =>
+          cy.exec(
+            `oc get pvc ${pvcName} -n ${namespace} -o json | ` +
+              `jq -e '.metadata.annotations["dashboard.opendatahub.io/nim-pvc"] == "true" and ` +
+              `.metadata.labels["opendatahub.io/managed"] == "true"'`,
+          ),
+        )
+        .then(() => cy.exec(`oc get serviceaccount ${serviceAccountName} -n ${namespace}`))
+        .then(() => cy.exec(`oc get role ${inferenceServiceName}-view-role -n ${namespace}`))
+        .then(() => cy.exec(`oc get rolebinding ${inferenceServiceName}-view -n ${namespace}`))
+        .then(() => cy.exec(`oc get secret ${tokenSecretName} -n ${namespace} -o name`));
+    });
+};
+
+/**
+ * Waits for the NIM resources removed by the model-deployment delete action.
+ */
+export const waitForNIMDeploymentResourceDeletion = (
+  inferenceServiceName: string,
+  servingRuntimeName: string,
+  pvcName: string,
+  namespace: string,
+  timeout = 300000,
+): Cypress.Chainable<CommandLineResult> =>
+  cy
+    .exec(
+      `oc wait --for=delete inferenceservice/${inferenceServiceName} servingruntime/${servingRuntimeName} pvc/${pvcName} -n ${namespace} --timeout=${Math.floor(
+        timeout / 1000,
+      )}s`,
+      { timeout },
+    )
+    .then((result: CommandLineResult) => cy.wrap(result));
+
+/**
+ * Uses the NIM OpenAI-compatible chat-completions endpoint through the deployment's external route.
+ * When authentication is enabled, the service-account token is kept in a shell variable and never
+ * written to Cypress output.
+ */
+export const curlNIMChatCompletions = (
+  inferenceServiceName: string,
+  namespace: string,
+  tokenDisplayName: string,
+  modelId: string,
+  options: {
+    authenticate?: boolean;
+  } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const { authenticate = true } = options;
+  // The unauthenticated path proves the external route rejects requests without a token.
+  const expectedStatus = authenticate ? 200 : 401;
+  const tokenSecretName = `${tokenDisplayName}-${inferenceServiceName}-sa`;
+
+  return cy
+    .exec(
+      `oc get inferenceservice ${inferenceServiceName} -n ${namespace} -o jsonpath='{.status.url}'`,
+      {
+        log: false,
+      },
+    )
+    .then((endpointResult: CommandLineResult) => {
+      let endpoint: URL;
+
+      try {
+        endpoint = new URL(endpointResult.stdout.trim());
+      } catch {
+        throw new Error('NIM external endpoint is not a valid URL');
+      }
+
+      // InferenceService exposes the route root; NIM serves chat completions at this fixed path.
+      endpoint.pathname = `${endpoint.pathname.replace(/\/$/, '')}/v1/chat/completions`;
+      endpoint.search = '';
+      endpoint.hash = '';
+
+      const requestBody = JSON.stringify({
+        messages: [{ role: 'user', content: 'What is NVIDIA NIM?' }],
+        model: modelId,
+        // NVIDIA's API defines this request field with snake case.
+        // eslint-disable-next-line camelcase
+        max_tokens: 16,
+      });
+      const responseValidation = [
+        '(.choices | type == "array")',
+        '((.choices | length) > 0)',
+        '(.choices[0].message.content | type == "string")',
+        '(.choices[0].message.content | length > 0)',
+      ].join(' and ');
+      // A 200 response is only successful when it contains a usable assistant message.
+      const responseLogFilter =
+        '{model: .model, choices: [.choices[] | {finish_reason, content: .message.content}]}';
+      const responseFilter = `select(${responseValidation}) | ${responseLogFilter}`;
+      // Build one shell command: curl stores the raw body in a temporary file, checks the exact
+      // status, and emits only the validated summary. The token never enters Cypress output.
+      // Each `|| exit 1` propagates a failed shell stage to Cypress, which fails on nonzero exits.
+      const curlCommand = [
+        authenticate &&
+          `token=$(oc get secret ${tokenSecretName} -n ${namespace} -o jsonpath='{.data.token}' | base64 -d) || exit 1`,
+        authenticate && '[ -n "$token" ] || exit 1',
+        'response_file=$(mktemp) || exit 1',
+        `trap 'rm -f "$response_file"' 0`,
+        `http_status=$(curl --silent --show-error --insecure --connect-timeout 20 --max-time 120 ` +
+          `--output "$response_file" --write-out '%{http_code}' --request POST ${quoteForShell(
+            endpoint.toString(),
+          )} ` +
+          `--header 'accept: application/json' --header 'content-type: application/json' ` +
+          `${
+            authenticate ? '--header "Authorization: Bearer $token" ' : ''
+          }--data-raw ${quoteForShell(requestBody)}) || exit 1`,
+        `[ "$http_status" = "${expectedStatus}" ] || exit 1`,
+        authenticate && `jq -ce ${quoteForShell(responseFilter)} "$response_file"`,
+      ]
+        .filter(Boolean)
+        .join('; ');
+
+      cy.log(
+        `Send ${
+          authenticate ? 'authenticated' : 'unauthenticated'
+        } NIM chat-completions request to ${endpoint.toString()}`,
+      );
+      return cy
+        .exec(curlCommand, { log: false, timeout: 120000 })
+        .then((curlResult: CommandLineResult) => {
+          if (authenticate) {
+            cy.task(
+              'log',
+              `NIM chat-completions response: ${curlResult.stdout.trim() || 'no response body'}`,
+            );
+          }
+          return cy.wrap(curlResult);
+        });
+    });
 };

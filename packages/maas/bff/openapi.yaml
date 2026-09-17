@@ -1887,9 +1887,9 @@ paths:
   /api/v1/secrets:
     get:
       tags: [secrets]
-      summary: List BBR-managed Secret names
+      summary: List IPP-managed Secret names
       operationId: listSecrets
-      description: Returns Secret names labeled inference.networking.k8s.io/bbr-managed=true. Values are never returned.
+      description: Returns Secret names labeled inference.llm-d.ai/ipp-managed=true. Values are never returned.
       parameters:
         - in: query
           name: namespace
@@ -3112,6 +3112,11 @@ components:
           description: Description (from openshift.io/description annotation)
         modelName:
           type: string
+          description: ModelName is the client-facing model name used in inference request bodies.
+                       Clients send this value in the "model" field of chat completion requests.
+                       Defaults to metadata.name if not set. Use this field when the desired
+                       model name contains characters not allowed in Kubernetes resource names
+                       (dots, colons, slashes, uppercase).
         providerRefs:
           type: array
           items:
@@ -3144,6 +3149,11 @@ components:
           description: Optional description (openshift.io/description annotation)
         modelName:
           type: string
+          description: ModelName is the client-facing model name used in inference request bodies.
+                       Clients send this value in the "model" field of chat completion requests.
+                       Defaults to metadata.name if not set. Use this field when the desired
+                       model name contains characters not allowed in Kubernetes resource names
+                       (dots, colons, slashes, uppercase).
         providerRefs:
           type: array
           items:

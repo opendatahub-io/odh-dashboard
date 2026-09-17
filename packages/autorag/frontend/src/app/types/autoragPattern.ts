@@ -26,7 +26,7 @@ export type AutoragPatternSettingsV1 = {
     datasource_type: string;
     collection_name: string;
   };
-  vector_store_binding?: AutoragVectorStoreBinding;
+  vector_store_binding?: AutoragLegacyVectorStoreBinding;
   chunking: {
     method: string;
     chunk_size: number;
@@ -75,11 +75,16 @@ export type AutoragPatternV1 = {
 // V2 (current) schema — inference-oriented structure
 // ---------------------------------------------------------------------------
 
-export type AutoragVectorStoreBinding = {
+export type AutoragLegacyVectorStoreBinding = {
   provider_id: string;
   provider_type: string;
   /** Possibly null when the pipeline did not bind a collection */
   vector_store_id: string | null;
+};
+
+export type AutoragVectorStoreBinding = {
+  provider_type: string;
+  collection_name: string;
 };
 
 export type AutoragEvaluationMetric = {
@@ -161,13 +166,13 @@ export type AutoragPattern = {
 
 export type AutoRAGEvaluationAnswerContext = {
   text: string;
-  document_id: string;
+  document_key: string;
 };
 
 export type AutoRAGEvaluationMetricResult = {
   name: string;
   evaluator: string;
-  score: number;
+  score: number | null;
 };
 
 export type AutoRAGEvaluationResult = {
@@ -184,7 +189,7 @@ export type AutoRAGEvaluationResult = {
  */
 export type PatternDataBundle = {
   pattern: AutoragPattern;
-  rank: number;
+  rank?: number;
   evaluationResults?: AutoRAGEvaluationResult[];
   isEvaluationLoading: boolean;
   isEvaluationError: boolean;
