@@ -205,10 +205,10 @@ const createMaaSConnection = (testData: AutoragTestData, maasFixture: AutoragMaa
   autoragConfigurePage.findMaasConnectionSubmitButton().click();
 };
 
-const createVectorDbConnection = (testData: AutoragTestData, projectName: string): void => {
+const createVectorDbConnection = (testData: AutoragTestData): void => {
   autoragConfigurePage.findAddVectorDbDropdownToggle().click();
   autoragConfigurePage.findAddPgvectorConnectionOption().click();
-  const connection = getVectorDatabaseConnection(projectName);
+  const connection = getVectorDatabaseConnection();
   autoragConfigurePage.findPgvectorConnectionNameInput().clear().type(testData.vectorDbSecretName);
   autoragConfigurePage.findPgvectorInput('host').type(connection.host);
   autoragConfigurePage.findPgvectorInput('port').type(connection.port);
@@ -249,7 +249,7 @@ export const createAutoragConnections = (
   cy.step('Create PGVector connection through the dashboard');
   autoragConfigurePage.findNextButton().click();
   autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
-  createVectorDbConnection(testData, projectName);
+  createVectorDbConnection(testData);
   connectionOwnership.vectorDbSecretCreated = true;
   autoragConfigurePage
     .findVectorStoreSelector()
@@ -391,7 +391,7 @@ export const configureAutoragRun = (
   cy.step('Select vector database secret');
   if (options.createConnections) {
     cy.step('Create PGVector connection through the dashboard');
-    createVectorDbConnection(testData, projectName);
+    createVectorDbConnection(testData);
     if (connectionOwnership) {
       connectionOwnership.vectorDbSecretCreated = true;
     }

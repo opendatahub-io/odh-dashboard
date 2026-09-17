@@ -5,10 +5,7 @@ import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import {
-  cleanupAutoragInfrastructure,
-  provisionVectorDatabase,
-} from '../../../utils/oc_commands/autoragInfra';
+import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
 import type { AutoragTestData } from '../../../types';
 import {
   configureAutoragRun,
@@ -51,7 +48,6 @@ describe('AutoRAG Optimization E2E', () => {
       .then((fixture) => {
         maasFixture = fixture;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-        provisionVectorDatabase(projectName);
       }),
   );
 
@@ -129,7 +125,6 @@ describe('AutoRAG Optimization completion results E2E', () => {
       .then((fixture) => {
         maasFixture = fixture;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-        provisionVectorDatabase(projectName);
       }),
   );
 
