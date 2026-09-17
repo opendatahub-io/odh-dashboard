@@ -7,15 +7,24 @@ spec:
     metadata:
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
+        prometheus.io/port: "8443"
     spec:
       containers:
       - name: manager
         ports:
-        - containerPort: 8080
+        - containerPort: 8443
           name: metrics
           protocol: TCP
         args:
         - "--leader-elect"
         - "--health-probe-bind-address=:8081"
-        - "--metrics-bind-address=:8080"
+        - "--metrics-bind-address=:8443"
+        volumeMounts:
+        - name: metrics-certs
+          mountPath: /tmp/k8s-metrics-server/metrics-certs
+          readOnly: true
+      volumes:
+      - name: metrics-certs
+        secret:
+          secretName: workspaces-controller-metrics-tls
+          optional: false
