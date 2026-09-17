@@ -114,7 +114,8 @@ func setRHOAIDashboardRouteHostname(
 	dashboard *v1alpha1.Dashboard,
 	platform cluster.Platform,
 ) error {
-	if platform != cluster.SelfManagedRhoai || dashboard.Spec.Gateway == nil || dashboard.Spec.Gateway.Domain == "" {
+	gatewayDomain := normalizedGatewayDomain(dashboard)
+	if !maasConsumerPortalSupportedPlatform(platform) || gatewayDomain == "" {
 		return nil
 	}
 
@@ -124,17 +125,25 @@ func setRHOAIDashboardRouteHostname(
 			continue
 		}
 
+		if _, found, err := unstructured.NestedStringSlice(resource.Object, "spec", "hostnames"); err != nil {
+			return fmt.Errorf("reading hostnames from HTTPRoute %s: %w", rhoaiDashboardRouteName, err)
+		} else if found {
+			return fmt.Errorf("HTTPRoute %s already defines spec.hostnames", rhoaiDashboardRouteName)
+		}
+
 		if err := unstructured.SetNestedStringSlice(
 			resource.Object,
-			[]string{strings.ToLower(dashboard.Spec.Gateway.Domain)},
+			[]string{gatewayDomain},
 			"spec",
 			"hostnames",
 		); err != nil {
 			return fmt.Errorf("setting hostname on HTTPRoute %s: %w", rhoaiDashboardRouteName, err)
 		}
+
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("expected HTTPRoute %s was not found in rendered resources", rhoaiDashboardRouteName)
 }
 
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
@@ -164,8 +173,8 @@ func extractDashboardURL(ctx context.Context, cli client.Client, dashboard *v1al
 		return "", nil
 	}
 
-	if dashboard.Spec.Gateway != nil && dashboard.Spec.Gateway.Domain != "" {
-		return "https://" + dashboard.Spec.Gateway.Domain + "/", nil
+	if gatewayDomain := normalizedGatewayDomain(dashboard); gatewayDomain != "" {
+		return "https://" + gatewayDomain + "/", nil
 	}
 
 	rl := &routev1.RouteList{}

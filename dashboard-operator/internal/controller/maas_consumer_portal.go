@@ -67,7 +67,7 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, d
 	if !maasConsumerPortalSupportedPlatform(r.Platform) {
 		return r.reconcileUnsupportedMaaSConsumerPortal(ctx, dashboard, cm)
 	}
-	gatewayDomain := portalGatewayDomain(dashboard)
+	gatewayDomain := normalizedGatewayDomain(dashboard)
 	url, ok := maasConsumerPortalURL(gatewayDomain)
 	if !ok {
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable, conditions.WithReason("MaaSConsumerPortalDomainRequired"), conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"))
@@ -158,13 +158,6 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortalAvailability(ctx contex
 
 func maasConsumerPortalSupportedPlatform(platform cluster.Platform) bool {
 	return platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai
-}
-
-func portalGatewayDomain(d *v1alpha1.Dashboard) string {
-	if d.Spec.Gateway != nil {
-		return d.Spec.Gateway.Domain
-	}
-	return ""
 }
 
 func deploymentAvailable(dep *appsv1.Deployment) bool {

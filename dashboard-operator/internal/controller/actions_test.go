@@ -58,6 +58,13 @@ func TestSetRHOAIDashboardRouteHostname(t *testing.T) {
 			wantPresent: true,
 		},
 		{
+			name:        "Managed RHOAI with gateway domain",
+			platform:    cluster.ManagedRhoai,
+			gateway:     &v1alpha1.GatewaySpec{Domain: "RH-AI.Apps.Example.Com"},
+			want:        []string{"rh-ai.apps.example.com"},
+			wantPresent: true,
+		},
+		{
 			name:     "RHOAI without gateway",
 			platform: cluster.SelfManagedRhoai,
 		},
@@ -91,6 +98,69 @@ func TestSetRHOAIDashboardRouteHostname(t *testing.T) {
 			assert.Equal(t, tt.want, hostnames)
 		})
 	}
+}
+
+func TestSetRHOAIDashboardRouteHostnameRequiresRenderedRoute(t *testing.T) {
+	resources := []unstructured.Unstructured{{Object: map[string]interface{}{
+		"apiVersion": "gateway.networking.k8s.io/v1",
+		"kind":       "HTTPRoute",
+		"metadata":   map[string]interface{}{"name": "other-route"},
+		"spec":       map[string]interface{}{},
+	}}}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+	}}
+	original := resources[0].DeepCopy()
+
+	err := setRHOAIDashboardRouteHostname(resources, dashboard, cluster.SelfManagedRhoai)
+	require.EqualError(t, err, "expected HTTPRoute rhods-dashboard was not found in rendered resources")
+	assert.Equal(t, *original, resources[0])
+}
+
+func TestSetRHOAIDashboardRouteHostnameOnlyMutatesTargetRoute(t *testing.T) {
+	nonTargetHostnames := []interface{}{"other.apps.example.com"}
+	resources := []unstructured.Unstructured{
+		{Object: map[string]interface{}{
+			"apiVersion": "gateway.networking.k8s.io/v1",
+			"kind":       "HTTPRoute",
+			"metadata":   map[string]interface{}{"name": "other-route"},
+			"spec":       map[string]interface{}{"hostnames": nonTargetHostnames},
+		}},
+		{Object: map[string]interface{}{
+			"apiVersion": "gateway.networking.k8s.io/v1",
+			"kind":       "HTTPRoute",
+			"metadata":   map[string]interface{}{"name": rhoaiDashboardRouteName},
+			"spec":       map[string]interface{}{},
+		}},
+	}
+	nonTargetOriginal := resources[0].DeepCopy()
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+	}}
+
+	require.NoError(t, setRHOAIDashboardRouteHostname(resources, dashboard, cluster.SelfManagedRhoai))
+	assert.Equal(t, *nonTargetOriginal, resources[0])
+	hostnames, found, err := unstructured.NestedStringSlice(resources[1].Object, "spec", "hostnames")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, []string{"rh-ai.apps.example.com"}, hostnames)
+}
+
+func TestSetRHOAIDashboardRouteHostnamePreservesExistingHostnames(t *testing.T) {
+	existingHostnames := []interface{}{"existing.apps.example.com", "other.apps.example.com"}
+	resources := []unstructured.Unstructured{{Object: map[string]interface{}{
+		"apiVersion": "gateway.networking.k8s.io/v1",
+		"kind":       "HTTPRoute",
+		"metadata":   map[string]interface{}{"name": rhoaiDashboardRouteName},
+		"spec":       map[string]interface{}{"hostnames": existingHostnames},
+	}}}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+	}}
+
+	err := setRHOAIDashboardRouteHostname(resources, dashboard, cluster.SelfManagedRhoai)
+	require.EqualError(t, err, "HTTPRoute rhods-dashboard already defines spec.hostnames")
+	assert.Equal(t, existingHostnames, resources[0].Object["spec"].(map[string]interface{})["hostnames"])
 }
 
 func TestApplyKustomizeParams(t *testing.T) {
@@ -170,7 +240,7 @@ func TestExtractDashboardURL(t *testing.T) {
 			name: "gateway domain takes priority over routes",
 			dashboard: &v1alpha1.Dashboard{
 				Spec: v1alpha1.DashboardSpec{
-					Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+					Gateway: &v1alpha1.GatewaySpec{Domain: "RH-AI.Apps.Example.Com"},
 				},
 			},
 			platform: cluster.OpenDataHub,

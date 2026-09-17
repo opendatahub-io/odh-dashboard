@@ -4,8 +4,6 @@ package controller_test
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,43 +16,13 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-func writeCoreHTTPRouteFixture(t *testing.T, base string) {
-	t.Helper()
-
-	overlay := filepath.Join(base, "rhoai")
-	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - configmap.yaml
-  - httproute.yaml
-`), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(overlay, "httproute.yaml"), []byte(`apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: rhods-dashboard
-spec:
-  parentRefs:
-    - name: data-science-gateway
-      namespace: openshift-ingress
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: rhods-dashboard
-          port: 8443
-`), 0644))
-}
-
 func TestIntegration_RHOAIDashboardRouteHostnameUpdatesInPlace(t *testing.T) {
 	manifests := createIntegrationManifests(t, nil)
-	writeCoreHTTPRouteFixture(t, manifests)
 	r := newManifestReconciler(manifests)
 	r.Platform = cluster.SelfManagedRhoai
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+		Gateway: &v1alpha1.GatewaySpec{Domain: "RH-AI.Apps.Example.Com"},
 	})
 	ctx := context.Background()
 	require.NoError(t, k8sClient.Create(ctx, dashboard))
@@ -85,4 +53,14 @@ func TestIntegration_RHOAIDashboardRouteHostnameUpdatesInPlace(t *testing.T) {
 	require.NoError(t, k8sClient.Get(ctx, key, route))
 	assert.Equal(t, uid, route.UID, "gateway domain changes must update the existing HTTPRoute")
 	assert.Equal(t, []gatewayv1.Hostname{"updated.apps.example.com"}, route.Spec.Hostnames)
+
+	dashboard = getDashboard(t)
+	dashboard.Spec.Gateway = nil
+	require.NoError(t, k8sClient.Update(ctx, dashboard))
+	reconcile(t, r)
+
+	route = &gatewayv1.HTTPRoute{}
+	require.NoError(t, k8sClient.Get(ctx, key, route))
+	assert.Equal(t, uid, route.UID, "clearing the gateway domain must update the existing HTTPRoute")
+	assert.Empty(t, route.Spec.Hostnames, "clearing the gateway domain must remove the operator-owned hostname")
 }
