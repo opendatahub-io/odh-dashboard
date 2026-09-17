@@ -1181,6 +1181,11 @@ declare global {
           response: OdhResponse<{ data: ExternalModel }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'PUT /maas/api/v1/externalmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<{ data: ExternalModel }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'DELETE /maas/api/v1/externalmodel/:namespace/:name',
           options: { path: { namespace: string; name: string } },
           response: OdhResponse<{ data: null }>,
