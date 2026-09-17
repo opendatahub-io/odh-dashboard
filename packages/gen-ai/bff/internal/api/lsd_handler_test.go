@@ -437,6 +437,12 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 
 	It("should accept and ignore legacy max_tokens properties", func() {
 		t := GinkgoT()
+		namespace := "mock-test-namespace-1"
+		ctx := context.Background()
+
+		cleanupTestNamespace(ctx, namespace)
+		DeferCleanup(cleanupTestNamespace, ctx, namespace)
+
 		requestBody := map[string]interface{}{
 			"models": []map[string]interface{}{
 				{"model_name": "llama-3-2-3b-instruct", "model_source_type": "namespace", "max_tokens": 128001},
@@ -449,8 +455,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "FAKE_BEARER_TOKEN",
 		})
@@ -460,7 +465,7 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 		rr := httptest.NewRecorder()
 		app.LlamaStackDistributionInstallHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 	})
 })
 
