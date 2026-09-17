@@ -110,6 +110,34 @@ func (s *service) CreatePipelineRun(ctx context.Context, namespace string, input
 
 	run, err := s.Client.CreatePipelineRun(ctx, baseURL, input)
 	if err != nil {
+		if errors.Is(err, ErrPipelineVersionNotFound) && input != nil && input.PipelineVersionReference != nil {
+			cacheKey, cached, ok := s.pipelineCache.getCachedPipeline(
+				namespace,
+				input.PipelineVersionReference.PipelineID,
+				input.PipelineVersionReference.PipelineVersionID,
+			)
+			if ok {
+				s.pipelineCache.invalidate(namespace)
+				refreshed, discoverErr := s.DiscoverPipelineByName(
+					ctx,
+					namespace,
+					cached.PipelineName,
+					cached.PipelineVersionName,
+				)
+				if discoverErr != nil {
+					return nil, discoverErr
+				}
+				if refreshed != nil {
+					s.pipelineCache.set(namespace, map[string]*DiscoveredPipeline{cacheKey: refreshed})
+					retryInput := *input
+					retryReference := *input.PipelineVersionReference
+					retryReference.PipelineID = refreshed.PipelineID
+					retryReference.PipelineVersionID = refreshed.PipelineVersionID
+					retryInput.PipelineVersionReference = &retryReference
+					return s.Client.CreatePipelineRun(ctx, baseURL, &retryInput)
+				}
+			}
+		}
 		s.Logger.Error("failed to create pipeline run", "error", err)
 		return nil, err
 	}
@@ -417,12 +445,13 @@ func (s *service) DiscoverPipelineByName(ctx context.Context, namespace, pipelin
 	}
 
 	return &DiscoveredPipeline{
-		PipelineID:        matchedPipeline.PipelineID,
-		PipelineVersionID: matchedVersion.PipelineVersionID,
-		PipelineName:      matchedPipeline.DisplayName,
-		Namespace:         namespace,
-		AllVersionIDs:     allIDs,
-		DiscoveredAt:      time.Now(),
+		PipelineID:          matchedPipeline.PipelineID,
+		PipelineVersionID:   matchedVersion.PipelineVersionID,
+		PipelineVersionName: matchedVersion.DisplayName,
+		PipelineName:        matchedPipeline.DisplayName,
+		Namespace:           namespace,
+		AllVersionIDs:       allIDs,
+		DiscoveredAt:        time.Now(),
 	}, nil
 }
 
@@ -815,6 +844,7 @@ func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) 
 
 		logger.Info("managed pipelines already enabled, triggered rollout restart", "dspa", dspa.Name, "deployment", deploymentName)
 		s.dspaCache.invalidate(namespace)
+		s.pipelineCache.invalidate(namespace)
 		return &EnableManagedPipelinesResult{DSPAName: dspa.Name, Action: "restarted"}, nil
 	}
 
@@ -825,6 +855,7 @@ func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) 
 
 	logger.Info("managed pipelines enabled", "dspa", dspa.Name)
 	s.dspaCache.invalidate(namespace)
+	s.pipelineCache.invalidate(namespace)
 	return &EnableManagedPipelinesResult{DSPAName: dspa.Name, Action: "enabled"}, nil
 }
 

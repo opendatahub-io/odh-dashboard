@@ -17,6 +17,10 @@ var (
 	// parameter validation before a request is ever sent.
 	ErrPipelineServerBadRequest = errors.New("pipeline server rejected request")
 
+	// ErrPipelineVersionNotFound indicates that KFP rejected a run because the
+	// referenced pipeline version ID no longer exists.
+	ErrPipelineVersionNotFound = errors.New("pipeline version not found")
+
 	// ErrPipelineServerCharsetRejected indicates the pipeline server rejected a request
 	// because it contains characters its underlying storage doesn't support. KFP
 	// deployments backed by MySQL without utf8mb4 reject non-ASCII bytes in

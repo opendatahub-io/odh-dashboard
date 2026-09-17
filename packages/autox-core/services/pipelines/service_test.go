@@ -1094,6 +1094,122 @@ func TestService_CreatePipelineRun_Error(t *testing.T) {
 	}
 }
 
+func TestService_CreatePipelineRun_RefreshesStalePipelineVersion(t *testing.T) {
+	createCalls := 0
+	listPipelinesCalls := 0
+	listVersionsCalls := 0
+	client := &mockPipelineClient{
+		createPipelineRunFn: func(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+			createCalls++
+			if createCalls == 1 {
+				return nil, fmt.Errorf("%w: PipelineVersion stale-version not found", ErrPipelineVersionNotFound)
+			}
+			if input.PipelineVersionReference.PipelineVersionID != "fresh-version" {
+				t.Errorf("retry used version %q, want fresh-version", input.PipelineVersionReference.PipelineVersionID)
+			}
+			return &PipelineRun{RunID: "run-1"}, nil
+		},
+		listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+			listPipelinesCalls++
+			return &PipelinesResponse{Pipelines: []Pipeline{{PipelineID: "pipeline-1", DisplayName: "managed-pipeline"}}}, nil
+		},
+		listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+			listVersionsCalls++
+			return &PipelineVersionsResponse{PipelineVersions: []PipelineVersion{{
+				PipelineVersionID: "fresh-version",
+				DisplayName:       "1.0",
+			}}}, nil
+		},
+	}
+	svc := newTestServiceWithMock(client)
+	svc.pipelineCache.set("test-ns", map[string]*DiscoveredPipeline{
+		"managed": {
+			PipelineID:          "pipeline-1",
+			PipelineVersionID:   "stale-version",
+			PipelineVersionName: "1.0",
+			PipelineName:        "managed-pipeline",
+		},
+	})
+
+	run, err := svc.CreatePipelineRun(testCtx(), "test-ns", &CreatePipelineRunInput{
+		PipelineVersionReference: &PipelineVersionReference{PipelineID: "pipeline-1", PipelineVersionID: "stale-version"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.RunID != "run-1" {
+		t.Errorf("RunID = %q, want run-1", run.RunID)
+	}
+	if createCalls != 2 || listPipelinesCalls != 1 || listVersionsCalls != 1 {
+		t.Errorf("calls = create:%d listPipelines:%d listVersions:%d, want 2/1/1", createCalls, listPipelinesCalls, listVersionsCalls)
+	}
+	if _, refreshed, ok := svc.pipelineCache.getCachedPipeline("test-ns", "pipeline-1", "fresh-version"); !ok || refreshed.PipelineVersionName != "1.0" {
+		t.Error("expected refreshed pipeline version to replace the stale cache entry")
+	}
+}
+
+func TestService_CreatePipelineRun_StalePipelineVersionReturnsSecondError(t *testing.T) {
+	createCalls := 0
+	secondErr := errors.New("second create failed")
+	client := &mockPipelineClient{
+		createPipelineRunFn: func(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+			createCalls++
+			if createCalls == 1 {
+				return nil, fmt.Errorf("%w: PipelineVersion stale-version not found", ErrPipelineVersionNotFound)
+			}
+			return nil, secondErr
+		},
+		listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+			return &PipelinesResponse{Pipelines: []Pipeline{{PipelineID: "pipeline-1", DisplayName: "managed-pipeline"}}}, nil
+		},
+		listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+			return &PipelineVersionsResponse{PipelineVersions: []PipelineVersion{{PipelineVersionID: "fresh-version", DisplayName: "1.0"}}}, nil
+		},
+	}
+	svc := newTestServiceWithMock(client)
+	svc.pipelineCache.set("test-ns", map[string]*DiscoveredPipeline{
+		"managed": {PipelineID: "pipeline-1", PipelineVersionID: "stale-version", PipelineVersionName: "1.0", PipelineName: "managed-pipeline"},
+	})
+
+	_, err := svc.CreatePipelineRun(testCtx(), "test-ns", &CreatePipelineRunInput{
+		PipelineVersionReference: &PipelineVersionReference{PipelineID: "pipeline-1", PipelineVersionID: "stale-version"},
+	})
+	if err != secondErr {
+		t.Errorf("error = %v, want second create error", err)
+	}
+	if createCalls != 2 {
+		t.Errorf("create calls = %d, want 2", createCalls)
+	}
+}
+
+func TestService_CreatePipelineRun_UnrelatedErrorDoesNotRetry(t *testing.T) {
+	createCalls := 0
+	originalErr := errors.New("pipeline server unavailable")
+	client := &mockPipelineClient{
+		createPipelineRunFn: func(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+			createCalls++
+			return nil, originalErr
+		},
+	}
+	svc := newTestServiceWithMock(client)
+	svc.pipelineCache.set("test-ns", map[string]*DiscoveredPipeline{
+		"managed": {PipelineID: "pipeline-1", PipelineVersionID: "stale-version", PipelineVersionName: "1.0", PipelineName: "managed-pipeline"},
+	})
+
+	_, err := svc.CreatePipelineRun(testCtx(), "test-ns", &CreatePipelineRunInput{
+		PipelineVersionReference: &PipelineVersionReference{PipelineID: "pipeline-1", PipelineVersionID: "stale-version"},
+	})
+	if !errors.Is(err, originalErr) {
+		t.Errorf("error = %v, want original error", err)
+	}
+	if createCalls != 1 {
+		t.Errorf("create calls = %d, want 1", createCalls)
+	}
+	if _, _, ok := svc.pipelineCache.getCachedPipeline("test-ns", "pipeline-1", "stale-version"); !ok {
+		t.Error("unrelated error should not invalidate the pipeline cache")
+	}
+}
+
 func TestService_GetPipelineRun_Error(t *testing.T) {
 	client := &mockPipelineClient{
 		getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
