@@ -39,10 +39,9 @@ describe('Volumes Management - Attach and Create', () => {
   });
 
   // Override to have empty volumes
-  mockWorkspaceListItem.podTemplate.volumes.data = [];
-
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { data: [] },
   });
 
   // Create mock PVCs for attach modal
@@ -166,8 +165,8 @@ describe('Volumes Management - Attach and Create', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // Skip workspace kind step
-    editWorkspace.clickNext(); // Skip image step
-    editWorkspace.clickNext(); // Skip pod config step, now on properties
+    editWorkspace.advancePastRedirectModal(); // Skip image step
+    editWorkspace.advancePastRedirectModal(); // Skip pod config step, now on properties
 
     // Expand the Data Volumes section
     cy.contains('button', 'Data Volumes').click();
@@ -261,7 +260,7 @@ describe('Volumes Management - Attach and Create', () => {
       volumesManagement.clickCreateVolume();
       volumesCreateModal.assertModalVisible();
 
-      volumesCreateModal.assertAccessModeChecked('ReadWriteOnce');
+      volumesCreateModal.assertAccessModeSelected('ReadWriteOnce (RWO)');
     });
 
     it('should create a volume and display it in the table', () => {
@@ -328,7 +327,7 @@ describe('Volumes Management - Attach and Create', () => {
       volumesCreateModal.assertModalVisible();
 
       volumesCreateModal.selectAccessMode('ReadWriteMany');
-      volumesCreateModal.assertAccessModeChecked('ReadWriteMany');
+      volumesCreateModal.assertAccessModeSelected('ReadWriteMany (RWX)');
     });
 
     it('should allow selecting a different storage class', () => {
@@ -419,6 +418,24 @@ describe('Volumes Management - Attach and Create', () => {
 
       volumesCreateModal.assertModalNotExists();
       volumesManagement.assertVolumeReadOnly('data-pvc', false);
+    });
+  });
+
+  describe('Read-only toggle visibility', () => {
+    it('should show read-only toggle when creating a data volume', () => {
+      volumesManagement.clickCreateVolume();
+      volumesCreateModal.assertModalVisible();
+
+      volumesCreateModal.assertReadOnlySwitchExists();
+      volumesCreateModal.clickCancel();
+    });
+
+    it('should hide read-only toggle when editing a home volume', () => {
+      volumesManagement.clickHomeVolumeEditAction('/home');
+      volumesCreateModal.assertModalVisible();
+
+      volumesCreateModal.assertReadOnlySwitchNotExists();
+      volumesCreateModal.clickCancel();
     });
   });
 });

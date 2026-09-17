@@ -30,7 +30,7 @@ import useClusterQueueWorkloads from '../../hooks/useClusterQueueWorkloads';
 import KueueProjectsModal from '../KueueProjectsModal';
 import {
   QUOTA_UNASSIGNED_LABEL,
-  QUOTA_UNASSIGNED_TOOLTIP,
+  QUOTA_UNASSIGNED_DESCRIPTION,
   QUOTA_USAGE_BORROWING,
 } from '../../const';
 import { QuotaUsageDetailData } from '../../hooks/useQuotaUsageDetail';
@@ -178,9 +178,7 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
         return (
           <StackItem>
             <Content component="p" data-testid="quota-usage-detail-no-data">
-              {selection.type === QUOTA_NODE_TYPE.unassigned
-                ? QUOTA_UNASSIGNED_TOOLTIP
-                : 'No accelerator usage data available.'}
+              No accelerator usage data available.
             </Content>
           </StackItem>
         );
@@ -280,10 +278,15 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
               </FlexItem>
             )}
           </Flex>
+          {selection.type === QUOTA_NODE_TYPE.unassigned && (
+            <Content component="p" data-testid="quota-usage-unassigned-description">
+              {QUOTA_UNASSIGNED_DESCRIPTION}
+            </Content>
+          )}
         </Stack>
       </DrawerHead>
       <DrawerPanelBody className={`${scrollableBodyClassName} pf-v6-u-pt-lg`}>
-        <Stack hasGutter className="pf-v6-u-p-md">
+        <Stack hasGutter>
           {renderDetailContent()}
           {showWorkloadsSection && (
             <StackItem>
