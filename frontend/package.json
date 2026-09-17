@@ -272,6 +272,7 @@
     },
     "@istanbuljs/load-nyc-config": {
       "js-yaml": "^4.3.2"
-    }
+    },
+    "fflate": "^0.4.9"
   }
 }
