@@ -250,6 +250,7 @@
     "dompurify": "^3.4.12",
     "redux": "^4.2.0",
     "form-data": "^4.0.4",
-    "fflate": "^0.4.9"
+    "fflate": "^0.4.9",
+    "baseline-browser-mapping": "^2.11.0"
   }
 }
