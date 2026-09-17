@@ -1,9 +1,6 @@
 import { createHfAccessCatalogModel } from '~/__tests__/utils/createHfAccessModel';
 import { HfAccessType } from '~/concepts/modelCatalog/const';
 import {
-  getModelCatalogAccessLabelIsAccessGranted,
-  getModelCatalogAccessLabelSelectedProperties,
-  getModelCatalogAccessLabelType,
   getModelCatalogIsAccessGranted,
   getModelCatalogTrackingHfAccessType,
 } from '~/app/pages/modelCatalog/tracking/modelCatalogEngagementTracking';
@@ -39,33 +36,5 @@ describe('getModelCatalogIsAccessGranted', () => {
     });
     expect(getModelCatalogIsAccessGranted(denied)).toBe(false);
     expect(getModelCatalogIsAccessGranted(granted)).toBe(true);
-  });
-});
-
-describe('getModelCatalogAccessLabelType', () => {
-  it('should map label variants for tracking', () => {
-    expect(getModelCatalogAccessLabelType('private')).toBe('private');
-    expect(getModelCatalogAccessLabelType('gated')).toBe('gated');
-    expect(getModelCatalogAccessLabelType('gated-denied')).toBe('gated');
-  });
-});
-
-describe('getModelCatalogAccessLabelIsAccessGranted', () => {
-  it('should be false for gated-denied labels', () => {
-    const model = createHfAccessCatalogModel({
-      hfAccessType: HfAccessType.GATED_AUTO,
-      hfGatedAccessGranted: 'false',
-    });
-    expect(getModelCatalogAccessLabelIsAccessGranted(model, 'gated-denied')).toBe(false);
-  });
-});
-
-describe('getModelCatalogAccessLabelSelectedProperties', () => {
-  it('should combine label type and access grant for tracking', () => {
-    const model = createHfAccessCatalogModel({ hfAccessType: HfAccessType.PRIVATE });
-    expect(getModelCatalogAccessLabelSelectedProperties(model, 'private')).toEqual({
-      accessLabelType: 'private',
-      isAccessGranted: true,
-    });
   });
 });

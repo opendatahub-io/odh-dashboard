@@ -6,17 +6,13 @@ import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
 
 type ModelCatalogAccessLabelProps = {
   variant: HfAccessLabelVariant;
-  onLabelClick?: () => void;
 };
 
-const ModelCatalogAccessLabel: React.FC<ModelCatalogAccessLabelProps> = ({
-  variant,
-  onLabelClick,
-}) => {
+const ModelCatalogAccessLabel: React.FC<ModelCatalogAccessLabelProps> = ({ variant }) => {
   if (variant === 'private') {
     return (
       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.HF_PRIVATE}>
-        <Label isClickable data-testid="model-catalog-access-label-private" onClick={onLabelClick}>
+        <Label isClickable data-testid="model-catalog-access-label-private">
           Private
         </Label>
       </Popover>
@@ -32,7 +28,6 @@ const ModelCatalogAccessLabel: React.FC<ModelCatalogAccessLabelProps> = ({
           status="warning"
           icon={<ExclamationTriangleIcon />}
           data-testid="model-catalog-access-label-gated-denied"
-          onClick={onLabelClick}
         >
           Gated
         </Label>
@@ -42,7 +37,7 @@ const ModelCatalogAccessLabel: React.FC<ModelCatalogAccessLabelProps> = ({
 
   return (
     <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.HF_GATED}>
-      <Label isClickable data-testid="model-catalog-access-label-gated" onClick={onLabelClick}>
+      <Label isClickable data-testid="model-catalog-access-label-gated">
         Gated
       </Label>
     </Popover>
