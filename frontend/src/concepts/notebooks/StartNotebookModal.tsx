@@ -39,6 +39,7 @@ import {
   t_global_color_status_warning_300 as WarningColor,
   t_global_color_nonstatus_purple_400 as PurpleColor,
   t_global_font_weight_body_bold as BoldWeight,
+  t_color_gray_60 as Gray60,
 } from '@patternfly/react-tokens';
 import {
   CheckCircleIcon,
@@ -656,7 +657,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         data-testid="notebook-status-modal-header"
         description={
           workbenchDescription ? (
-            <Content component="p" data-testid="notebook-status-modal-description">
+            <Content
+              component="p"
+              data-testid="notebook-status-modal-description"
+              style={{ color: Gray60.value }}
+            >
               {workbenchDescription}
             </Content>
           ) : undefined
