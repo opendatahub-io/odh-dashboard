@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,7 +79,15 @@ func gatewayURLFromResource(gateway *unstructured.Unstructured, namespace, name 
 			continue
 		}
 		logger.Info("resolved Data Connect Hub API URL from Gateway status", "gateway", namespace+"/"+name)
-		return "https://" + value, nil
+		return httpsURLForAddress(value), nil
 	}
 	return "", fmt.Errorf("Gateway %s/%s has no usable status address", namespace, name)
+}
+
+func httpsURLForAddress(address string) string {
+	parsedIP := net.ParseIP(address)
+	if strings.HasPrefix(address, "[") || parsedIP == nil || parsedIP.To4() != nil {
+		return "https://" + address
+	}
+	return "https://[" + address + "]"
 }

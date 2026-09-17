@@ -103,6 +103,9 @@ func (app *App) GetConnectionTypesHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 		types = response.Items
+		if types == nil {
+			types = []ConnectionType{}
+		}
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, ConnectionTypesEnvelope{Data: types}, nil); err != nil {

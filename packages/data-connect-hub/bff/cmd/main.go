@@ -85,6 +85,10 @@ func main() {
 		logger.Error("invalid auth method: (must be internal or user_token)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
 	}
+	if cfg.InsecureSkipVerify && (!cfg.DevMode || certFile != "") {
+		logger.Error("insecure TLS verification is only allowed in dev mode without a server certificate")
+		os.Exit(1)
+	}
 
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)

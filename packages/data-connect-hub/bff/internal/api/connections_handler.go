@@ -94,6 +94,9 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, _ 
 			return
 		}
 		connections = response.Items
+		if connections == nil {
+			connections = []Connection{}
+		}
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, ConnectionsEnvelope{Data: connections}, nil); err != nil {

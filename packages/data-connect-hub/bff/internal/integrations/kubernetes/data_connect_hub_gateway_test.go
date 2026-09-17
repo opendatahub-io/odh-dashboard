@@ -36,3 +36,10 @@ func TestGatewayURLFromResourceFallsBackToStatusAddress(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "https://internal.example.com", url)
 }
+
+func TestHTTPSURLForAddressBracketsIPv6(t *testing.T) {
+	require.Equal(t, "https://[2001:db8::1]", httpsURLForAddress("2001:db8::1"))
+	require.Equal(t, "https://[2001:db8::1]:443", httpsURLForAddress("[2001:db8::1]:443"))
+	require.Equal(t, "https://10.0.0.5", httpsURLForAddress("10.0.0.5"))
+	require.Equal(t, "https://gateway.example.com", httpsURLForAddress("gateway.example.com"))
+}
