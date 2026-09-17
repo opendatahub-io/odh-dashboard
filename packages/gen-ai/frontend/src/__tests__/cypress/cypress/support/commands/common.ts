@@ -1,10 +1,9 @@
 /**
  * Common utility commands for Chatbot tests
  */
-import { clearGenAiNamespacePersistence } from '~/__tests__/cypress/cypress/support/helpers/namespacePersistence';
 
 export const visitApp = (): void => {
-  cy.visit('/', { onBeforeLoad: clearGenAiNamespacePersistence });
+  cy.visit('/');
 };
 
 export const checkAppLoaded = (): void => {

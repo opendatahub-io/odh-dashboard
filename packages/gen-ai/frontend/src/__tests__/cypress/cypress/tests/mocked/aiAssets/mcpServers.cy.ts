@@ -4,7 +4,6 @@ import {
   initAutoConnectIntercepts,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
-import { clearGenAiNamespacePersistence } from '~/__tests__/cypress/cypress/support/helpers/namespacePersistence';
 
 describe('AI Assets - MCP Servers', () => {
   let config: MCPTestConfig;
@@ -34,7 +33,6 @@ describe('AI Assets - MCP Servers', () => {
       cy.step('Navigate to Playground with route state');
       cy.visit(`/gen-ai-studio/playground/${namespace}`, {
         onBeforeLoad(win) {
-          clearGenAiNamespacePersistence(win);
           // React Router v6 wraps custom state in { idx, key, usr: {...} } structure
           win.history.pushState(
             {

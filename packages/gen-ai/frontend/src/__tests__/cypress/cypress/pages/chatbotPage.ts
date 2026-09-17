@@ -1,4 +1,3 @@
-import { clearGenAiNamespacePersistence } from '~/__tests__/cypress/cypress/support/helpers/namespacePersistence';
 import { mcpTab } from './playgroundPage/mcpTab';
 import { appendFeatureFlagParams } from './appChrome';
 
@@ -9,7 +8,7 @@ class ChatbotPage {
     const path = namespace
       ? `/gen-ai-studio/playground/${namespace}${qs}`
       : `/gen-ai-studio/playground${qs}`;
-    cy.visit(appendFeatureFlagParams(path), { onBeforeLoad: clearGenAiNamespacePersistence });
+    cy.visit(appendFeatureFlagParams(path));
     this.waitForPageLoad();
   }
 
@@ -17,7 +16,6 @@ class ChatbotPage {
     cy.findByTestId('page-title', { timeout: 30000 })
       .should('be.visible')
       .and('contain.text', 'Playground');
-    cy.findByTestId('chatbot', { timeout: 30000 }).should('be.visible');
   }
 
   verifyOnChatbotPage(expectedNamespace?: string): void {

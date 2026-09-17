@@ -77,15 +77,10 @@ export const isServingRuntimeKind = (
   if (obj.kind !== 'ServingRuntime') {
     throw createServingRuntimeCustomError('Invalid parameter', 'kind: must be ServingRuntime.');
   }
-  if (
-    !('spec' in obj) ||
-    typeof obj.spec !== 'object' ||
-    !('containers' in obj.spec) ||
-    !Array.isArray(obj.spec.containers)
-  ) {
+  if (!obj.spec?.containers) {
     throw createServingRuntimeCustomError('Missing parameter', 'spec.containers: is required.');
   }
-  if (!('supportedModelFormats' in obj.spec) || !obj.spec.supportedModelFormats) {
+  if (!obj.spec.supportedModelFormats) {
     throw createServingRuntimeCustomError(
       'Missing parameter',
       'spec.supportedModelFormats: is required.',
