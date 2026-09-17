@@ -13,7 +13,6 @@ import {
 } from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
-  createAutoragConnections,
   checkAutoragMaaSReadiness,
   submitAutoragRun,
   getAutoragInputDataKey,
@@ -62,7 +61,10 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         maasFixture = fixture;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
         provisionVectorDatabase(projectName);
-        createAutoragConnections(testData, projectName, fixture, connectionOwnership);
+        configureAutoragRun(testData, projectName, uuid, fixture, {
+          createConnections: true,
+          connectionOwnership,
+        });
       }),
   );
 
