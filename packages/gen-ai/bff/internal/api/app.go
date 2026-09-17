@@ -463,8 +463,9 @@ func (app *App) Routes() http.Handler {
 	// Models (LlamaStack)
 	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackModelsHandler))))
 
-	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
+	// Responses (LlamaStack). NeMo is resolved lazily by the handler only when
+	// the request explicitly includes a guardrail configuration.
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler)))))
 
 	// Responses passthrough — forwards pre-built OGX API request bodies as-is.
 	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).

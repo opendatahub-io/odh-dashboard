@@ -782,73 +782,50 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 	}
 }
 
-// AttachNemoClient middleware creates a NeMo Guardrails client and attaches it to context.
-// Mirrors AttachOGXClient: uses the user's forwarded token and discovers the service URL
-// from the NemoGuardrails CR (trustyai.opendatahub.io/v1alpha1) when NEMO_GUARDRAILS_URL is not set.
-func (app *App) AttachNemoClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := r.Context()
-		logger := helper.GetContextLoggerFromReq(r)
+// resolveNemoClient creates a NeMo Guardrails client for a request. It uses the user's
+// forwarded token and discovers the service URL from the NemoGuardrails CR
+// (trustyai.opendatahub.io/v1alpha1) when NEMO_GUARDRAILS_URL is not set.
+// A nil client with no error means that NeMo Guardrails is unavailable in the namespace.
+func (app *App) resolveNemoClient(r *http.Request) (nemopkg.NemoClientInterface, error) {
+	ctx := r.Context()
+	logger := helper.GetContextLoggerFromReq(r)
 
-		var nemoClient nemopkg.NemoClientInterface
+	if app.config.MockNemoClient {
+		logger.Debug("MOCK MODE: creating mock NeMo Guardrails client")
+		return app.nemoClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs), nil
+	}
 
-		if app.config.MockNemoClient {
-			logger.Debug("MOCK MODE: creating mock NeMo Guardrails client")
-			nemoClient = app.nemoClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
-		} else {
-			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-			if !ok || identity == nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-				return
-			}
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return nil, fmt.Errorf("missing RequestIdentity in context")
+	}
 
-			var serviceURL string
-
-			if app.config.NemoGuardrailsURL != "" {
-				// Developer override — same pattern as LLAMA_STACK_URL
-				serviceURL = app.config.NemoGuardrailsURL
-				logger.Debug("Using NEMO_GUARDRAILS_URL environment variable (developer override)",
-					"serviceURL", serviceURL)
-			} else {
-				// Auto-discover from NemoGuardrails CR in the request namespace
-				namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-				if err != nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-					return
-				}
-
-				discoveredURL, err := k8sClient.GetNemoGuardrailsServiceURL(ctx, identity, namespace)
-				if err != nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("failed to discover NemoGuardrails service: %w", err))
-					return
-				}
-
-				if discoveredURL == "" {
-					logger.Debug("NeMo Guardrails unavailable: no NemoGuardrails CR found in namespace", "namespace", namespace)
-					ctx = context.WithValue(ctx, constants.NemoClientKey, nil)
-					next(w, r.WithContext(ctx), ps)
-					return
-				}
-
-				serviceURL = discoveredURL
-				logger.Debug("Discovered NemoGuardrails service URL from CR",
-					"namespace", namespace,
-					"serviceURL", serviceURL)
-			}
-
-			logger.Debug("Creating NeMo Guardrails client",
-				"serviceURL", serviceURL,
-				"hasAuthToken", identity.Token != "")
-
-			nemoClient = app.nemoClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
+	var serviceURL string
+	if app.config.NemoGuardrailsURL != "" {
+		serviceURL = app.config.NemoGuardrailsURL
+		logger.Debug("Using NEMO_GUARDRAILS_URL environment variable (developer override)", "serviceURL", serviceURL)
+	} else {
+		namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Kubernetes client: %w", err)
 		}
 
-		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
-		r = r.WithContext(ctx)
+		discoveredURL, err := k8sClient.GetNemoGuardrailsServiceURL(ctx, identity, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to discover NemoGuardrails service: %w", err)
+		}
+		if discoveredURL == "" {
+			logger.Debug("NeMo Guardrails unavailable: no NemoGuardrails CR found in namespace", "namespace", namespace)
+			return nil, nil
+		}
 
-		next(w, r, ps)
+		serviceURL = discoveredURL
+		logger.Debug("Discovered NemoGuardrails service URL from CR", "namespace", namespace, "serviceURL", serviceURL)
 	}
+
+	logger.Debug("Creating NeMo Guardrails client", "serviceURL", serviceURL, "hasAuthToken", identity.Token != "")
+	return app.nemoClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs), nil
 }
 
 // MaxBodySize wraps all API routes with a global body size safety net.
