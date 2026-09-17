@@ -186,7 +186,7 @@ export const useExtractFormDataFromDeployment = (
             : undefined;
         return {
           huggingFaceApiKey,
-          isPrivateHuggingFace: Boolean(huggingFaceApiKey),
+          requiresHuggingFaceApiKey: Boolean(huggingFaceApiKey),
         };
       })(),
 

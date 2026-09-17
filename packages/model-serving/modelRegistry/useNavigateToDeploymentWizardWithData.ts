@@ -73,12 +73,8 @@ export const useNavigateToDeploymentWizardWithData = (
       },
       validatedConfigurations: deployPrefillData.validatedConfigurations,
       selectedValidatedConfigurations: deployPrefillData.selectedValidatedConfigurations,
-      isPrivateHuggingFace: deployPrefillData.isPrivateHuggingFace,
-      isGatedHuggingFace: deployPrefillData.isGatedHuggingFace,
-      huggingFaceApiKey:
-        deployPrefillData.isPrivateHuggingFace || deployPrefillData.isGatedHuggingFace
-          ? { token: '' }
-          : undefined,
+      requiresHuggingFaceApiKey: deployPrefillData.requiresHuggingFaceApiKey,
+      huggingFaceApiKeyAlertText: deployPrefillData.huggingFaceApiKeyAlertText,
     }),
     [deployPrefillData, connectionTypeObject, resourceName, maxLength],
   );

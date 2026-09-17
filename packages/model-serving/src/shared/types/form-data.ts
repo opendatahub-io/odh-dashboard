@@ -162,8 +162,8 @@ export type InitialWizardFormData = {
   navSourceMetadata?: K8sResourceCommon['metadata'];
   validatedConfigurations?: ValidatedConfiguration[];
   selectedValidatedConfigurations?: Record<string, string[]>;
-  isPrivateHuggingFace?: boolean;
-  isGatedHuggingFace?: boolean;
+  requiresHuggingFaceApiKey?: boolean;
+  huggingFaceApiKeyAlertText?: string;
   huggingFaceApiKey?: HuggingFaceApiKeyFieldData;
 } & Record<string, unknown>;
 

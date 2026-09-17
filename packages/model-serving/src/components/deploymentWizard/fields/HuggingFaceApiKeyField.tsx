@@ -53,22 +53,15 @@ export const useHuggingFaceApiKeyField = (
     existingData ?? { token: '' },
   );
 
-  React.useEffect(() => {
-    if (existingData !== undefined) {
-      setData(existingData);
-    }
-  }, [existingData]);
-
   return { data, setData };
 };
 
-const GATED_ACCESS_HELPER_TEXT =
-  'This model requires gated access on Hugging Face. Ensure your account has been granted access before deploying.';
+const CONFIGURED_TOKEN_PLACEHOLDER = '*******';
 
 type HuggingFaceApiKeyFieldProps = {
   data?: HuggingFaceApiKeyFieldData;
   onChange: (data: HuggingFaceApiKeyFieldData) => void;
-  isGated?: boolean;
+  alertText?: string;
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
 };
@@ -76,23 +69,29 @@ type HuggingFaceApiKeyFieldProps = {
 export const HuggingFaceApiKeyField: React.FC<HuggingFaceApiKeyFieldProps> = ({
   data = { token: '' },
   onChange,
-  isGated = false,
+  alertText,
   validationProps,
   validationIssues = [],
 }) => {
   const hasConfiguredToken = isHuggingFaceApiKeyConfigured(data);
   const hasError = validationIssues.length > 0;
+  const [isEditingToken, setIsEditingToken] = React.useState(false);
+  const showConfiguredPlaceholder = hasConfiguredToken && !data.token && !isEditingToken;
 
   return (
-    <FormGroup label="Hugging Face API key" isRequired data-testid="hf-api-key-field">
-      {isGated ? (
+    <FormGroup
+      label="Hugging Face API key"
+      isRequired={!hasConfiguredToken}
+      data-testid="hf-api-key-field"
+    >
+      {alertText ? (
         <Alert
           variant="info"
           isInline
           title="Gated model access"
           data-testid="hf-gated-access-alert"
         >
-          {GATED_ACCESS_HELPER_TEXT}
+          {alertText}
         </Alert>
       ) : null}
       {hasConfiguredToken ? (
@@ -109,8 +108,8 @@ export const HuggingFaceApiKeyField: React.FC<HuggingFaceApiKeyFieldProps> = ({
         data-testid="hf-api-key-input"
         aria-label="Hugging Face API key"
         type="password"
-        value={data.token}
-        required={!hasConfiguredToken}
+        value={showConfiguredPlaceholder ? CONFIGURED_TOKEN_PLACEHOLDER : data.token}
+        onFocus={() => setIsEditingToken(true)}
         onChange={(_event, value) => onChange({ ...data, token: value })}
         validated={hasError ? ValidatedOptions.error : ValidatedOptions.default}
         {...validationProps}

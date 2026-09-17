@@ -6,7 +6,7 @@ import {
 import type { LLMInferenceServiceKind } from './types';
 import { structuredCloneWithMainContainer } from './deployments/model';
 
-export { resolveHfTokenSecretName } from '@odh-dashboard/kserve/hfTokenSecret';
+export { resolveHfTokenSecretName } from '@odh-dashboard/model-serving/shared/hfTokenSecret';
 
 export const extractHuggingFaceApiKeyFromEnv = (
   deployment: LLMInferenceServiceKind,

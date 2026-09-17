@@ -31,6 +31,7 @@ import {
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
 import { patchHfTokenSecretOwnerReference } from '../../concepts/hfTokenSecretUtils';
+import type { HuggingFaceApiKeyFieldData } from '../../shared/wizard-fields';
 import type {
   Deployment,
   DeploymentEndpoint,
@@ -98,6 +99,7 @@ export const deployModel = async (
   applyAllFieldDataFn?: DeploymentAssemblyFn,
   runPreDeploy?: RunPreDeployFns,
   runPostDeploy?: RunPostDeployFns,
+  extractHuggingFaceApiKey?: (deployment: Deployment) => HuggingFaceApiKeyFieldData | null,
 ): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
@@ -227,9 +229,12 @@ export const deployModel = async (
       false,
     );
   }
+  const hfSecretName = extractHuggingFaceApiKey?.(deploymentResult)?.configuredSecretName;
   await patchHfTokenSecretOwnerReference(
     secretOps,
+    projectName,
     deploymentResult.model,
+    hfSecretName,
     deploymentResult.model.metadata.uid ?? '',
     false,
   );

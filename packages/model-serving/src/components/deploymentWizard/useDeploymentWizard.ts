@@ -169,15 +169,10 @@ export const useModelDeploymentWizard = (
   const requiresHuggingFaceApiKey = React.useMemo(
     () =>
       Boolean(
-        initialData?.isPrivateHuggingFace ||
-          initialData?.isGatedHuggingFace ||
+        initialData?.requiresHuggingFaceApiKey ||
           initialData?.huggingFaceApiKey?.configuredSecretName,
       ),
-    [
-      initialData?.isPrivateHuggingFace,
-      initialData?.isGatedHuggingFace,
-      initialData?.huggingFaceApiKey?.configuredSecretName,
-    ],
+    [initialData?.requiresHuggingFaceApiKey, initialData?.huggingFaceApiKey?.configuredSecretName],
   );
 
   // Step 4: Summary

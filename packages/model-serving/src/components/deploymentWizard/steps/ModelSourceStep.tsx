@@ -114,7 +114,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           <HuggingFaceApiKeyField
             data={wizardState.state.huggingFaceApiKey.data}
             onChange={wizardState.state.huggingFaceApiKey.setData}
-            isGated={wizardState.initialData?.isGatedHuggingFace}
+            alertText={wizardState.initialData?.huggingFaceApiKeyAlertText}
             validationProps={validation.getFieldValidationProps(['huggingFaceApiKey'])}
             validationIssues={validation.getFieldValidation(['huggingFaceApiKey'])}
           />

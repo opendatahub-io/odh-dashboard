@@ -187,8 +187,10 @@ describe('useCatalogDeployPrefillData', () => {
       model.name,
     );
 
-    expect(renderResult.result.current.deployPrefill.isPrivateHuggingFace).toBe(true);
-    expect(renderResult.result.current.deployPrefill.isGatedHuggingFace).toBe(true);
+    expect(renderResult.result.current.deployPrefill.requiresHuggingFaceApiKey).toBe(true);
+    expect(renderResult.result.current.deployPrefill.huggingFaceApiKeyAlertText).toMatch(
+      /gated access on Hugging Face/i,
+    );
   });
 
   it('should rebuild deployPrefill when sourceId changes', () => {

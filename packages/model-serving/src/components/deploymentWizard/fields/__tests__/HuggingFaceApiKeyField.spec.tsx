@@ -28,14 +28,20 @@ describe('HuggingFaceApiKeyField validation helpers', () => {
 });
 
 describe('HuggingFaceApiKeyField', () => {
-  it('should render gated helper text when requested', () => {
-    render(<HuggingFaceApiKeyField data={{ token: '' }} onChange={jest.fn()} isGated />);
+  it('should render alert text when provided', () => {
+    render(
+      <HuggingFaceApiKeyField
+        data={{ token: '' }}
+        onChange={jest.fn()}
+        alertText="This model requires gated access on Hugging Face."
+      />,
+    );
 
     expect(screen.getByTestId('hf-gated-access-alert')).toBeInTheDocument();
     expect(screen.getByText(/gated access on Hugging Face/i)).toBeInTheDocument();
   });
 
-  it('should show configured helper text without exposing the token', () => {
+  it('should show configured placeholder without exposing the token', () => {
     render(
       <HuggingFaceApiKeyField
         data={{ token: '', configuredSecretName: 'hf-secret' }}
@@ -44,7 +50,7 @@ describe('HuggingFaceApiKeyField', () => {
     );
 
     expect(screen.getByTestId('hf-api-key-configured-helper')).toBeInTheDocument();
-    expect(screen.getByTestId('hf-api-key-input')).toHaveValue('');
+    expect(screen.getByTestId('hf-api-key-input')).toHaveValue('*******');
   });
 
   it('should update token value on input', async () => {
