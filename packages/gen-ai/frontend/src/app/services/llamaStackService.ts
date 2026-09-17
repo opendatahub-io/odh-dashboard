@@ -352,6 +352,7 @@ const extractToolCalls = (output?: OutputItem[]): StreamingToolCall[] => {
         serverLabel: item.server_label,
         arguments: item.arguments ?? item.queries?.[0],
         output: item.results ? JSON.stringify(item.results, null, 2) : (item.output ?? undefined),
+        error: item.error ?? undefined,
       },
     ];
   });

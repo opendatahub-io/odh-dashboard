@@ -79,4 +79,25 @@ describe('ChatbotToolCalls', () => {
     expect(screen.getByText('1.2s')).toHaveClass('pf-v6-c-label__text');
     expect(screen.getByText('1.2s').closest('.pf-v6-c-label')).toHaveClass('pf-m-red');
   });
+
+  it('should display a tool error when a failed call has no output', () => {
+    render(
+      <ChatbotToolCalls
+        isResponseComplete={false}
+        toolCalls={[
+          {
+            ...toolCalls[0],
+            status: 'failed',
+            output: undefined,
+            error: 'GitHub returned 404 Not Found.',
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('tool-call-github-search-toggle'));
+
+    expect(screen.getByText('GitHub returned 404 Not Found.')).toBeInTheDocument();
+    expect(screen.queryByText('No response was received from the tool.')).not.toBeInTheDocument();
+  });
 });

@@ -174,6 +174,7 @@ export type StreamingToolCall = {
   serverLabel?: string;
   arguments?: string;
   output?: string;
+  error?: string;
   // These timestamps are available only while processing a stream. The completed
   // response payload does not include per-tool timing data.
   startedAt?: number;

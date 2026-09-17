@@ -174,7 +174,7 @@ const ToolCallRow: React.FC<{ toolCall: StreamingToolCall }> = ({ toolCall }) =>
             <ToolCallCodeBlock
               heading="Results"
               value={toolCall.output}
-              fallback="No response was received from the tool."
+              fallback={toolCall.error ?? 'No response was received from the tool.'}
               copyButtonId={`copy-${toolCall.id}-results`}
             />
           </Stack>

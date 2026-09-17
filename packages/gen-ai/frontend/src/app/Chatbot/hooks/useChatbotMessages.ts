@@ -321,6 +321,7 @@ const useChatbotMessages = ({
           serverLabel: item?.server_label ?? currentCall?.serverLabel,
           arguments: argumentsText,
           output,
+          error: item?.error ?? currentCall?.error,
           startedAt: currentCall?.startedAt ?? Date.now(),
           ...(completed || failed
             ? { completedAt: Date.now() }
