@@ -247,6 +247,94 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
     );
   });
 
+  describe('Prompt Table - Model Filter and Sort', () => {
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+      setupPromptMocks(namespace);
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+    });
+
+    it(
+      'should filter project prompts by model and clear the filter',
+      { tags: ['@GenAI', '@PromptManagement'] },
+      () => {
+        cy.step('Open the prompt table');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTable().should('be.visible');
+
+        cy.step('Switch the filter type to Model');
+        promptManagementModal.selectFilterType('model');
+        promptManagementModal.findSearchInput().should('not.exist');
+        promptManagementModal.findModelFilterSelect().should('contain.text', 'Filter by model');
+
+        cy.step('Select a model');
+        promptManagementModal.findModelFilterSelect().click();
+        promptManagementModal.findModelFilterOption('granite-3-8b-instruct').should('exist');
+        promptManagementModal.findModelFilterOption('llama-3-8b-instruct').click();
+
+        cy.step('Verify only prompts using that model are shown');
+        promptManagementModal.findModelFilterSelect().should('contain.text', 'llama-3-8b-instruct');
+        promptManagementModal.findTableRow('summarization-prompt').should('exist');
+        promptManagementModal.findTableRow('code-review-prompt').should('not.exist');
+        promptManagementModal.findTableRow('translation-prompt').should('not.exist');
+
+        cy.step('Clear all filters');
+        promptManagementModal.findClearAllFiltersButton().click();
+        promptManagementModal.findTableRow('code-review-prompt').should('exist');
+        promptManagementModal.findTableRow('translation-prompt').should('exist');
+      },
+    );
+
+    it(
+      'should sort project prompts by the Model column',
+      { tags: ['@GenAI', '@PromptManagement'] },
+      () => {
+        cy.step('Open the prompt table');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTable().should('be.visible');
+
+        cy.step('Sort ascending; prompts without a model are last');
+        promptManagementModal.findModelColumnSortButton().click();
+        promptManagementModal.shouldHaveRowNames([
+          'code-review-prompt',
+          'summarization-prompt',
+          'translation-prompt',
+          'data-extraction-prompt',
+        ]);
+
+        cy.step('Sort descending; prompts without a model stay last');
+        promptManagementModal.findModelColumnSortButton().click();
+        promptManagementModal.shouldHaveRowNames([
+          'summarization-prompt',
+          'code-review-prompt',
+          'translation-prompt',
+          'data-extraction-prompt',
+        ]);
+      },
+    );
+  });
+
   describe('Create and Save Prompts', () => {
     beforeEach(() => {
       const namespace = config.defaultNamespace;

@@ -46,6 +46,43 @@ class PromptManagementModal {
   findGlobalPromptsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('global-prompts-tab');
   }
+
+  findFilterTypeToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('prompt-filter-type-toggle');
+  }
+
+  findFilterTypeOption(type: 'name' | 'model'): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`prompt-filter-type-${type}`).findByRole('menuitem');
+  }
+
+  selectFilterType(type: 'name' | 'model'): void {
+    this.findFilterTypeToggle().click();
+    this.findFilterTypeOption(type).click();
+  }
+
+  findModelFilterSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('prompt-model-filter-select');
+  }
+
+  findModelFilterOption(model: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`prompt-model-filter-option-${model}`);
+  }
+
+  findClearAllFiltersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Clear all filters' });
+  }
+
+  findModelColumnSortButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('prompt-model-column-header').findByRole('button');
+  }
+
+  shouldHaveRowNames(names: string[]): void {
+    this.findTable()
+      .findAllByTestId('prompt-table-row-name')
+      .should(($names) =>
+        expect($names.toArray().map((name) => name.textContent.trim())).to.deep.equal(names),
+      );
+  }
 }
 
 class PromptDrawer {
