@@ -535,10 +535,9 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 
 		// NeMo needs the provider-native model name, not the LlamaStack routing ID.
-		// For MaaS, preserve the slash-delimited catalog ID after removing only the
-		// LlamaStack passthrough provider prefix (for example,
-		// "genai-bff-proxy/publishers/test/models/gemini-proxy" becomes
-		// "publishers/test/models/gemini-proxy").
+		// Preserve slash-delimited model IDs by removing only the Gen AI passthrough
+		// provider prefix. For example, "genai-bff-proxy/publishers/test/models/gemini-proxy"
+		// becomes "publishers/test/models/gemini-proxy".
 		guardrailModelName := normalizeGuardrailModelName(
 			createRequest.GuardrailConfig.GuardrailModel,
 			createRequest.GuardrailConfig.GuardrailModelSourceType,
