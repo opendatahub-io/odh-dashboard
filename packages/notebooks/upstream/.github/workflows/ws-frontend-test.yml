@@ -23,25 +23,15 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: workspaces/frontend/package.json
           cache-dependency-path: workspaces/frontend/package-lock.json
-
-      # TODO: Remove this once it is possible to specify a npm version for
-      # `actions/setup-node` or the node version that we're using is new enough
-      # to ship with npm >= 11
-      #
-      # https://github.com/actions/setup-node/issues/529#issuecomment-4179457319
-      - name: Upgrade npm
-        working-directory: workspaces/frontend
-        # npm pkg get engines.npm -> "^11.10.0"
-        run: npm install --global npm@$(npm pkg get engines.npm | tr --delete '"')
 
       - name: Install dependencies
         working-directory: workspaces/frontend

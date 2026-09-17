@@ -123,7 +123,10 @@ const NonKueueManagedProjectsModal: React.FC<NonKueueManagedProjectsModalProps> 
             emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
             onClearFilters={onClearFilters}
             rowRenderer={(project) => (
-              <Tr key={project.metadata.uid ?? project.metadata.name}>
+              <Tr
+                key={project.metadata.uid ?? project.metadata.name}
+                data-testid={`non-kueue-managed-projects-row-${project.metadata.name}`}
+              >
                 <Td dataLabel="Name">{getDisplayNameFromK8sResource(project)}</Td>
                 <Td dataLabel="Status">
                   <Label color="grey">{NON_KUEUE_PROJECT_STATUS_LABEL}</Label>
