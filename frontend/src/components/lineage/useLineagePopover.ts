@@ -406,9 +406,8 @@ export const useLineagePopover = ({
       // Check if click is inside popover - comprehensive selectors for PatternFly Popover
       if (
         target.closest('[role="dialog"]') ||
-        target.closest('.pf-c-popover') ||
         target.closest('[data-testid*="popover"]') ||
-        target.closest('.pf-v5-c-popover') ||
+        target.closest('.pf-v6-c-popover') ||
         target.closest('[class*="popover"]') ||
         target.closest('[class*="Popover"]') ||
         target.closest('[aria-describedby]') ||
