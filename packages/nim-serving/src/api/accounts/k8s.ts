@@ -120,6 +120,10 @@ export const assembleUpdatedSecret = (existingSecret: SecretKind, apiKey: string
   data: undefined,
   metadata: {
     ...existingSecret.metadata,
+    labels: {
+      ...existingSecret.metadata.labels,
+      'opendatahub.io/managed': 'true',
+    },
     annotations: {
       ...existingSecret.metadata.annotations,
       [NIM_FORCE_VALIDATION_ANNOTATION]: new Date().toISOString(),
