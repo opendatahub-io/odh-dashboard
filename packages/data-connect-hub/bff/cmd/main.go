@@ -55,9 +55,9 @@ func main() {
 	flag.StringVar(&cfg.DataConnectHubAPIURL, "data-connect-hub-api-url", getEnvAsString("DATA_CONNECT_HUB_API_URL", ""),
 		"Base URL of the upstream Data Connect Hub API. Overrides gateway Route discovery when set (primarily for local dev/tests)")
 	flag.StringVar(&cfg.GatewayNamespace, "gateway-namespace", getEnvAsString("GATEWAY_NAMESPACE", "openshift-ingress"),
-		"Namespace containing the OpenShift gateway Route")
+		"DCH gateway namespace (supported pairs: openshift-ingress/data-science-gateway or opendatahub/odh-gateway)")
 	flag.StringVar(&cfg.GatewayName, "gateway-name", getEnvAsString("GATEWAY_NAME", "data-science-gateway"),
-		"Name of the OpenShift gateway Route")
+		"DCH gateway name (supported pairs: openshift-ingress/data-science-gateway or opendatahub/odh-gateway)")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")

@@ -22,6 +22,9 @@ const (
 )
 
 func discoverDataConnectHubURL(ctx context.Context, cfg config.EnvConfig, logger *slog.Logger) (string, error) {
+	if cfg.GatewayNamespace != "" && cfg.GatewayName != "" && !isSupportedGateway(cfg.GatewayNamespace, cfg.GatewayName) {
+		return "", fmt.Errorf("unsupported DCH gateway %s/%s", cfg.GatewayNamespace, cfg.GatewayName)
+	}
 	candidates := [][2]string{
 		{cfg.GatewayNamespace, cfg.GatewayName},
 		{dchRHOAIGatewayNamespace, dchRHOAIGatewayName},
@@ -47,6 +50,11 @@ func discoverDataConnectHubURL(ctx context.Context, cfg config.EnvConfig, logger
 		return "", fmt.Errorf("DCH gateway discovery failed for all configured gateways: %w", lastErr)
 	}
 	return "", fmt.Errorf("gateway namespace and name are not configured")
+}
+
+func isSupportedGateway(namespace, name string) bool {
+	return (namespace == dchRHOAIGatewayNamespace && name == dchRHOAIGatewayName) ||
+		(namespace == dchODHGatewayNamespace && name == dchODHGatewayName)
 }
 
 func startDataConnectHubDiscovery(ctx context.Context, cfg config.EnvConfig, logger *slog.Logger, holder *helper.StringHolder) {

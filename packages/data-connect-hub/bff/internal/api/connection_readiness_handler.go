@@ -17,8 +17,8 @@ const ConnectionReadinessPath = ApiPathPrefix + "/connections/:id/readiness"
 
 func (app *App) CheckConnectionReadinessHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
-	if namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
+	if err := validateNamespace(namespace); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)

@@ -5,7 +5,18 @@ import (
 	"net/http"
 
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
+
+func validateNamespace(namespace string) error {
+	if namespace == "" {
+		return fmt.Errorf("missing required query parameter: namespace")
+	}
+	if errors := validation.IsDNS1123Label(namespace); len(errors) > 0 {
+		return fmt.Errorf("invalid namespace %q: must be a valid RFC 1123 DNS label", namespace)
+	}
+	return nil
+}
 
 func (app *App) authorizeNamespace(w http.ResponseWriter, r *http.Request, namespace string, identity *kubernetes.RequestIdentity, verb, resource string) bool {
 	if app.config.MockK8Client {

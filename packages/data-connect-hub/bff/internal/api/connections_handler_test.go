@@ -21,16 +21,22 @@ import (
 )
 
 type authorizationTestClient struct {
-	allowed bool
-	err     error
-	token   string
+	allowed  bool
+	err      error
+	token    string
+	verb     string
+	group    string
+	resource string
 }
 
 func (c *authorizationTestClient) GetNamespaces(context.Context, *k8s.RequestIdentity) ([]corev1.Namespace, error) {
 	return nil, nil
 }
 
-func (c *authorizationTestClient) CanAccessResource(context.Context, *k8s.RequestIdentity, string, string, string, string) (bool, error) {
+func (c *authorizationTestClient) CanAccessResource(_ context.Context, _ *k8s.RequestIdentity, _ string, verb, group, resource string) (bool, error) {
+	c.verb = verb
+	c.group = group
+	c.resource = resource
 	return c.allowed, c.err
 }
 
@@ -129,6 +135,89 @@ func TestGetConnectionsHandlerAuthorization(t *testing.T) {
 			app.GetConnectionsHandler(response, request, httprouter.Params{})
 
 			assert.Equal(t, tt.expectedStatus, response.Code)
+		})
+	}
+}
+
+func TestConnectionEndpointAuthorization(t *testing.T) {
+	tests := []struct {
+		name             string
+		method           string
+		path             string
+		params           httprouter.Params
+		expectedVerb     string
+		expectedResource string
+		expectedStatus   int
+		invoke           func(*App, *httptest.ResponseRecorder, *http.Request, httprouter.Params)
+	}{
+		{
+			name:             "connection types",
+			method:           http.MethodGet,
+			path:             "/api/v1/connection-types?namespace=test-project",
+			expectedVerb:     "get",
+			expectedResource: "data-connection-types",
+			expectedStatus:   http.StatusOK,
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.GetConnectionTypesHandler(w, r, p)
+			},
+		},
+		{
+			name:             "readiness",
+			method:           http.MethodPost,
+			path:             "/api/v1/connections/id/readiness?namespace=test-project",
+			params:           httprouter.Params{{Key: "id", Value: "id"}},
+			expectedVerb:     "create",
+			expectedResource: "data-connections",
+			expectedStatus:   http.StatusNoContent,
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.CheckConnectionReadinessHandler(w, r, p)
+			},
+		},
+		{
+			name:             "delete",
+			method:           http.MethodDelete,
+			path:             "/api/v1/connections/id?namespace=test-project",
+			params:           httprouter.Params{{Key: "id", Value: "id"}},
+			expectedVerb:     "delete",
+			expectedResource: "data-connections",
+			expectedStatus:   http.StatusNoContent,
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.DeleteConnectionHandler(w, r, p)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			outcomes := []struct {
+				name           string
+				allowed        bool
+				clientErr      error
+				expectedStatus int
+			}{
+				{name: "allowed", allowed: true, expectedStatus: tt.expectedStatus},
+				{name: "denied", expectedStatus: http.StatusForbidden},
+				{name: "SSAR error", clientErr: fmt.Errorf("SSAR unavailable"), expectedStatus: http.StatusInternalServerError},
+			}
+			for _, outcome := range outcomes {
+				t.Run(outcome.name, func(t *testing.T) {
+					client := &authorizationTestClient{allowed: outcome.allowed, err: outcome.clientErr}
+					app := &App{
+						config:                  config.EnvConfig{MockHTTPClient: true},
+						logger:                  slog.Default(),
+						kubernetesClientFactory: &authorizationTestFactory{client: client},
+						repositories:            repositories.NewRepositories(),
+					}
+					response, request := requestWithIdentity(t, tt.method, tt.path)
+
+					tt.invoke(app, response, request, tt.params)
+
+					assert.Equal(t, outcome.expectedStatus, response.Code)
+					require.Equal(t, tt.expectedVerb, client.verb)
+					require.Equal(t, "dataconnecthub.opendatahub.io", client.group)
+					require.Equal(t, tt.expectedResource, client.resource)
+				})
+			}
 		})
 	}
 }

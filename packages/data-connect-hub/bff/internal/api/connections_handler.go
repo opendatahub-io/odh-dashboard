@@ -41,8 +41,8 @@ const ConnectionsPath = ApiPathPrefix + "/connections"
 
 func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
-	if namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
+	if err := validateNamespace(namespace); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 

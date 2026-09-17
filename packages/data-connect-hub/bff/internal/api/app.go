@@ -119,9 +119,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 	if cfg.DataConnectHubAPIURL != "" && !cfg.MockHTTPClient {
-		if err := helper.ValidateHTTPSUpstreamURL(cfg.DataConnectHubAPIURL); err != nil {
+		normalizedURL, err := helper.NormalizeHTTPSUpstreamURL(cfg.DataConnectHubAPIURL)
+		if err != nil {
 			return nil, fmt.Errorf("invalid Data Connect Hub API URL: %w", err)
 		}
+		cfg.DataConnectHubAPIURL = normalizedURL
 	}
 
 	dataConnectHubAPIURL := helper.NewStringHolder(cfg.DataConnectHubAPIURL)

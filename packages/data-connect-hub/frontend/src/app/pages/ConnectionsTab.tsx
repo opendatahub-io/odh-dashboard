@@ -59,6 +59,9 @@ const statusVariant = {
   not_ready: 'danger',
 } as const;
 
+const isValidTimestamp = (timestamp?: string): timestamp is string =>
+  Boolean(timestamp && !Number.isNaN(new Date(timestamp).getTime()));
+
 const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
   const [connections, loaded, error, refresh] = useConnections(namespace);
   const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace);
@@ -425,7 +428,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
                     >
                       Verifying
                     </Label>
-                  ) : connection.status.updated_at ? (
+                  ) : isValidTimestamp(connection.status.updated_at) ? (
                     <>
                       <Label variant="outline" status={statusVariant[connection.status.state]}>
                         {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
