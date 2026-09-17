@@ -383,7 +383,14 @@ class ChatbotPage {
 
   verifyMetricsDisplayed(): void {
     this.findMetrics().should('be.visible');
-    this.findMetrics().find('button').click();
+    this.findMetrics()
+      .find('button[aria-expanded]')
+      .should('be.visible')
+      .then(($toggle) => {
+        if ($toggle.attr('aria-expanded') === 'false') {
+          cy.wrap($toggle).click();
+        }
+      });
     cy.get('[data-testid="chatbot-message-metrics"] .pf-v6-c-label').should(
       'have.length.at.least',
       1,

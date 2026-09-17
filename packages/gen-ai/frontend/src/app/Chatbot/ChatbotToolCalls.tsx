@@ -28,6 +28,8 @@ type ChatbotToolCallsProps = {
   onExpandedChange?: (isExpanded: boolean) => void;
   showToggle?: boolean;
   showContent?: boolean;
+  toggleId?: string;
+  contentId?: string;
 };
 
 const formatDuration = (toolCall: StreamingToolCall): string | undefined => {
@@ -205,10 +207,14 @@ const ChatbotToolCalls: React.FC<ChatbotToolCallsProps> = ({
   onExpandedChange,
   showToggle = true,
   showContent = true,
+  toggleId: providedToggleId,
+  contentId: providedContentId,
 }) => {
   const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = React.useState(false);
-  const toggleId = React.useId();
-  const contentId = React.useId();
+  const generatedToggleId = React.useId();
+  const generatedContentId = React.useId();
+  const toggleId = providedToggleId ?? generatedToggleId;
+  const contentId = providedContentId ?? generatedContentId;
   const status = `${toolCalls.length} tool${toolCalls.length === 1 ? '' : 's'} called`;
   const toggleExpanded = () => {
     const nextIsExpanded = !isExpanded;

@@ -17,6 +17,8 @@ interface ChatbotMessagesMetricsProps {
   isDisabled?: boolean;
   showToggle?: boolean;
   showContent?: boolean;
+  toggleId?: string;
+  contentId?: string;
 }
 
 /**
@@ -70,11 +72,15 @@ export const ChatbotMessagesMetrics: React.FC<ChatbotMessagesMetricsProps> = ({
   isDisabled = false,
   showToggle = true,
   showContent = true,
+  toggleId: providedToggleId,
+  contentId: providedContentId,
 }) => {
   const tokensPerSec = calculateTokensPerSec(metrics.usage?.total_tokens, metrics.latency_ms);
   const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = React.useState(false);
-  const toggleId = React.useId();
-  const contentId = React.useId();
+  const generatedToggleId = React.useId();
+  const generatedContentId = React.useId();
+  const toggleId = providedToggleId ?? generatedToggleId;
+  const contentId = providedContentId ?? generatedContentId;
   const isExpanded = controlledIsExpanded ?? uncontrolledIsExpanded;
   const toggleExpanded = () => {
     const nextIsExpanded = !isExpanded;

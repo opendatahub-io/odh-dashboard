@@ -29,6 +29,8 @@ type ChatbotFileSearchResultsProps = {
   isDisabled?: boolean;
   showToggle?: boolean;
   showContent?: boolean;
+  toggleId?: string;
+  contentId?: string;
 };
 
 type FileGroup = {
@@ -269,12 +271,16 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({
   isDisabled = false,
   showToggle = true,
   showContent = true,
+  toggleId: providedToggleId,
+  contentId: providedContentId,
 }) => {
   const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = React.useState(false);
   const [collapseKey, setCollapseKey] = React.useState(0);
   const [highlightedCitation, setHighlightedCitation] = React.useState<number | undefined>();
-  const toggleId = React.useId();
-  const contentId = React.useId();
+  const generatedToggleId = React.useId();
+  const generatedContentId = React.useId();
+  const toggleId = providedToggleId ?? generatedToggleId;
+  const contentId = providedContentId ?? generatedContentId;
 
   const { queries, results } = fileSearchData;
 

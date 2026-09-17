@@ -301,7 +301,8 @@ const useChatbotMessages = ({
 
         const completed =
           event.type === 'response.output_item.done' || event.type.endsWith('.completed');
-        const failed = event.type.endsWith('.failed') || Boolean(item?.error);
+        const failed =
+          event.type.endsWith('.failed') || item?.status === 'failed' || Boolean(item?.error);
         const output = item?.results
           ? JSON.stringify(item.results, null, 2)
           : (item?.output ?? currentCall?.output);

@@ -207,6 +207,37 @@ describe('useChatbotMessages', () => {
       ]);
     });
 
+    it('should retain a failed tool call status when no error is provided', async () => {
+      mockCreateResponse.mockImplementation((_request, opts) => {
+        opts?.onToolCall?.({
+          type: 'response.output_item.done',
+          item: {
+            id: 'mcp-call-1',
+            type: 'mcp_call',
+            status: 'failed',
+            arguments: '{"owner":"octocat"}',
+            name: 'list_branches',
+            server_label: 'GitHub-MCP-Server',
+            error: null,
+            output: null,
+          },
+        });
+        return Promise.resolve(mockSuccessResponse);
+      });
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('List branches');
+      });
+
+      expect(result.current.messages[1].toolCalls).toEqual([
+        expect.objectContaining({ id: 'mcp-call-1', status: 'failed', error: undefined }),
+      ]);
+    });
+
     it('should successfully send a message and receive a bot response', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
