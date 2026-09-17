@@ -85,8 +85,6 @@ interface ComparePaneWrapperProps {
   displayLabel: string;
   onClose: () => void;
   children: React.ReactNode;
-  /** Whether a response is currently being generated */
-  isLoading?: boolean;
   isSettingsOpen?: boolean;
   isActiveConfig?: boolean;
 }
@@ -96,7 +94,6 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   displayLabel,
   onClose,
   children,
-  isLoading,
   isSettingsOpen,
   isActiveConfig,
 }) => (
@@ -104,7 +101,6 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
     configId={configId}
     displayLabel={displayLabel}
     onClose={onClose}
-    isLoading={isLoading}
     isSettingsOpen={isSettingsOpen}
     isActiveConfig={isActiveConfig}
   >
@@ -1136,7 +1132,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 {/* Single mode header */}
                 {!isCompareMode && !isEmbedded && (
                   <ChatbotPaneHeader
-                    isLoading={loadingStates.get(primaryConfigId)}
                     hasDivider
                     isDarkMode={isDarkMode}
                     agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
@@ -1169,7 +1164,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                             configId={configId}
                             displayLabel={getConfigDisplayLabel(index)}
                             onClose={() => setPendingCloseConfigId(configId)}
-                            isLoading={loadingStates.get(configId)}
                             isSettingsOpen={isDrawerExpanded}
                             isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
                           >

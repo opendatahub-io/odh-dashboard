@@ -10,8 +10,6 @@ interface ChatbotPaneProps {
   displayLabel: string;
   onClose: () => void;
   children: React.ReactNode;
-  /** Whether a response is currently being generated */
-  isLoading?: boolean;
   isSettingsOpen?: boolean;
   isActiveConfig?: boolean;
 }
@@ -25,7 +23,6 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   displayLabel,
   onClose,
   children,
-  isLoading,
   isSettingsOpen,
   isActiveConfig,
 }) => {
@@ -42,7 +39,6 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
       <ChatbotPaneHeader
         label={displayLabel}
         onCloseClick={onClose}
-        isLoading={isLoading}
         isSettingsOpen={isSettingsOpen}
         isActiveConfig={isActiveConfig}
         hasDivider

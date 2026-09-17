@@ -1,15 +1,5 @@
 import * as React from 'react';
-import {
-  Button,
-  Content,
-  Divider,
-  Flex,
-  FlexItem,
-  Label,
-  Popover,
-  Spinner,
-  Title,
-} from '@patternfly/react-core';
+import { Button, Content, Divider, Flex, FlexItem, Popover, Title } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import { ChatbotHeaderMain } from '@patternfly/chatbot';
 import AiChatbotIcon from '~/app/images/icons/AiChatbotIcon';
@@ -19,8 +9,6 @@ interface ChatbotPaneHeaderProps {
   label?: string;
   /** Optional close button handler (compare mode) */
   onCloseClick?: () => void;
-  /** Whether a response is currently being generated */
-  isLoading?: boolean;
   /** Whether to show a divider below the header */
   hasDivider?: boolean;
   /** Test ID prefix for the header elements */
@@ -41,7 +29,6 @@ interface ChatbotPaneHeaderProps {
 const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   label,
   onCloseClick,
-  isLoading,
   hasDivider,
   testIdPrefix = 'chatbot',
   isDarkMode,
@@ -52,7 +39,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   isActiveConfig,
 }) => {
   // Nothing to show: response metrics are available from each message's details section.
-  if (!label && !agentName && !isLoading) {
+  if (!label && !agentName) {
     return null;
   }
 
@@ -182,16 +169,6 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
           </FlexItem>
         </Flex>
       </ChatbotHeaderMain>
-
-      {isLoading && (
-        <Flex gap={{ default: 'gapSm' }} style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          <FlexItem>
-            <Label variant="outline" isCompact data-testid={`${testIdPrefix}-loading`}>
-              <Spinner size="sm" aria-label="Loading" />
-            </Label>
-          </FlexItem>
-        </Flex>
-      )}
 
       {hasDivider && <Divider style={{ marginTop: 'var(--pf-t--global--spacer--md)' }} />}
     </div>
