@@ -69,4 +69,27 @@ describe('groupMetricsByEvaluator', () => {
 
     expect(grouped.map((group) => group.evaluator)).toEqual(['custom', 'deepeval']);
   });
+
+  it('should merge evaluators that differ only by case and keep the first original name', () => {
+    const grouped = groupMetricsByEvaluator([
+      metric('faithfulness', 'Unitxt'),
+      metric('answer_correctness', 'unitxt'),
+    ]);
+
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].evaluator).toBe('Unitxt');
+    expect(grouped[0].label).toBe('Unitxt');
+    expect(grouped[0].metrics).toEqual([
+      metric('faithfulness', 'Unitxt'),
+      metric('answer_correctness', 'unitxt'),
+    ]);
+  });
+
+  it('should group missing evaluators under other', () => {
+    const grouped = groupMetricsByEvaluator([metric('overall_score', '')]);
+
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].evaluator).toBe('other');
+    expect(grouped[0].label).toBe('Other');
+  });
 });
