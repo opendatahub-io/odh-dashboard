@@ -84,6 +84,9 @@ func (r *ExternalProvidersRepository) UpdateExternalProvider(ctx context.Context
 	if request.EndpointUrl != "" {
 		existingSpec["endpoint"] = normalizeEndpointURL(request.EndpointUrl)
 	}
+	if request.Provider != "" {
+		existingSpec["provider"] = request.Provider
+	}
 	if request.AuthMechanism != nil || request.CredentialSecretRef != "" {
 		auth, _, _ := unstructured.NestedMap(existingSpec, "auth")
 		if auth == nil {

@@ -1,23 +1,15 @@
 import * as React from 'react';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import {
-  isK8sNameDescriptionDataValid,
-  K8sNameDescriptionFieldData,
-  K8sNameDescriptionFieldUpdateFunction,
-} from '@odh-dashboard/k8s-core';
-import {
-  FieldValidationProps,
-  useZodFormValidation,
-} from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
-import { ZodIssue } from 'zod';
-import { AuthMechanism, SecretSummary } from '~/app/types/external-models';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { ExternalProvider } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
-import { useCreateExternalProvider } from '~/app/hooks/useCreateExternalProvider';
 import { useCreateSecret } from '~/app/hooks/useCreateSecret';
-import { EMPTY_CONFIG_PAIR } from '~/app/pages/external-providers/const';
+import { useUpdateExternalProvider } from '~/app/hooks/useUpdateExternalProvider';
 import {
+  externalProviderToFormState,
   formatOrphanedCredentialSecretSubmitError,
-  toCreateExternalProviderRequest,
+  toUpdateExternalProviderRequest,
 } from '~/app/pages/external-providers/utils';
 import {
   createExternalProviderFormSchema,
@@ -25,70 +17,48 @@ import {
   isAuthMechanism,
 } from '~/app/pages/external-providers/validation';
 import { ConfigPair, countNonEmptyConfigPairs } from '~/app/utilities/configPairs';
+import {
+  CreateExternalProviderFormFields,
+  UseCreateExternalProviderFormReturn,
+} from './useCreateExternalProviderForm';
 
-export type CreateExternalProviderFormFields = {
-  provider: string;
-  endpointUrl: string;
-  authMechanism: AuthMechanism | '';
-  credentialSecretRef: string;
-  isNewSecret: boolean;
-  secretValue: string;
-};
-
-const emptyFormFields = (): CreateExternalProviderFormFields => ({
-  provider: '',
-  endpointUrl: '',
-  authMechanism: '',
-  credentialSecretRef: '',
-  isNewSecret: false,
-  secretValue: '',
-});
-
-export type UseCreateExternalProviderFormReturn = {
-  namespace: string;
-  secrets: SecretSummary[];
-  secretsLoaded: boolean;
-  nameDescData: K8sNameDescriptionFieldData;
-  onNameDescChange: K8sNameDescriptionFieldUpdateFunction;
-  formData: CreateExternalProviderFormFields;
-  setFormData: React.Dispatch<React.SetStateAction<CreateExternalProviderFormFields>>;
-  configPairs: ConfigPair[];
-  setConfigPairs: React.Dispatch<React.SetStateAction<ConfigPair[]>>;
-  isAdvancedExpanded: boolean;
-  setIsAdvancedExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  isAuthOpen: boolean;
-  setIsAuthOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  submitError: string | undefined;
-  getFieldValidation: (
-    fieldPath?: (string | number)[],
-    ignoreTouchedFields?: boolean,
-  ) => ZodIssue[];
-  getFieldValidationProps: (fieldPath?: (string | number)[]) => FieldValidationProps;
-  markFieldTouched: (fieldPath?: (string | number)[]) => void;
-  configPairsError: string | undefined;
-  isFormValid: boolean;
-  isSubmitting: boolean;
-  configPairCount: number;
-  handleProviderChange: (providerType: string) => void;
-  submit: () => Promise<string | undefined>;
-  reset: () => void;
-};
-
-export const useCreateExternalProviderForm = (
-  namespace: string,
+export const useEditExternalProviderForm = (
+  externalProvider: ExternalProvider,
 ): UseCreateExternalProviderFormReturn => {
   const { secrets, secretsLoaded, refreshSecrets } = useExternalModelsContext();
-  const { isCreating: isCreatingProvider, createExternalProviderCallback } =
-    useCreateExternalProvider();
+  const { isUpdating, updateExternalProviderCallback } = useUpdateExternalProvider();
   const { isCreating: isCreatingSecret, createSecretCallback } = useCreateSecret();
 
-  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData({});
+  const initialState = React.useMemo(
+    () => externalProviderToFormState(externalProvider),
+    [externalProvider],
+  );
 
-  const [formData, setFormData] = React.useState<CreateExternalProviderFormFields>(emptyFormFields);
-  const [configPairs, setConfigPairs] = React.useState<ConfigPair[]>([EMPTY_CONFIG_PAIR]);
-  const [isAdvancedExpanded, setIsAdvancedExpanded] = React.useState(false);
+  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData({
+    initialData: initialState.nameDescInitialData,
+  });
+
+  const [formData, setFormData] = React.useState<CreateExternalProviderFormFields>(
+    initialState.formData,
+  );
+  const [configPairs, setConfigPairs] = React.useState<ConfigPair[]>(initialState.configPairs);
+  const [isAdvancedExpanded, setIsAdvancedExpanded] = React.useState(
+    countNonEmptyConfigPairs(initialState.configPairs) > 0,
+  );
   const [isAuthOpen, setIsAuthOpen] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | undefined>();
+
+  React.useEffect(() => {
+    const nextState = externalProviderToFormState(externalProvider);
+    onNameDescChange('name', nextState.nameDescInitialData.name);
+    onNameDescChange('description', nextState.nameDescInitialData.description);
+    onNameDescChange('k8sName', nextState.nameDescInitialData.k8sName);
+    setFormData(nextState.formData);
+    setConfigPairs(nextState.configPairs);
+    setIsAdvancedExpanded(countNonEmptyConfigPairs(nextState.configPairs) > 0);
+    setIsAuthOpen(false);
+    setSubmitError(undefined);
+  }, [externalProvider, onNameDescChange]);
 
   const { getFieldValidation, getFieldValidationProps, markFieldTouched } = useZodFormValidation(
     formData,
@@ -101,18 +71,20 @@ export const useCreateExternalProviderForm = (
     isValidK8sNameDescription &&
     !configPairsError &&
     getFieldValidation(undefined, true).length === 0;
-  const isSubmitting = isCreatingProvider || isCreatingSecret;
+  const isSubmitting = isUpdating || isCreatingSecret;
   const configPairCount = countNonEmptyConfigPairs(configPairs);
 
   const reset = React.useCallback(() => {
-    onNameDescChange('name', '');
-    onNameDescChange('description', '');
-    setFormData(emptyFormFields());
-    setConfigPairs([EMPTY_CONFIG_PAIR]);
-    setIsAdvancedExpanded(false);
+    const nextState = externalProviderToFormState(externalProvider);
+    onNameDescChange('name', nextState.nameDescInitialData.name);
+    onNameDescChange('description', nextState.nameDescInitialData.description);
+    onNameDescChange('k8sName', nextState.nameDescInitialData.k8sName);
+    setFormData(nextState.formData);
+    setConfigPairs(nextState.configPairs);
+    setIsAdvancedExpanded(countNonEmptyConfigPairs(nextState.configPairs) > 0);
     setIsAuthOpen(false);
     setSubmitError(undefined);
-  }, [onNameDescChange]);
+  }, [externalProvider, onNameDescChange]);
 
   const handleProviderChange = React.useCallback((providerType: string) => {
     setFormData((current) => ({ ...current, provider: providerType }));
@@ -131,7 +103,7 @@ export const useCreateExternalProviderForm = (
     try {
       if (formData.isNewSecret) {
         await createSecretCallback({
-          namespace,
+          namespace: externalProvider.namespace,
           name: credentialSecretRef,
           value: formData.secretValue.trim(),
         });
@@ -142,8 +114,7 @@ export const useCreateExternalProviderForm = (
         return undefined;
       }
 
-      const request = toCreateExternalProviderRequest(
-        namespace,
+      const request = toUpdateExternalProviderRequest(
         nameDescData,
         {
           provider: formData.provider,
@@ -154,7 +125,11 @@ export const useCreateExternalProviderForm = (
         configPairs,
       );
 
-      await createExternalProviderCallback(request);
+      await updateExternalProviderCallback(
+        externalProvider.namespace,
+        externalProvider.name,
+        request,
+      );
 
       if (createdSecretName) {
         const linkedSecretName = createdSecretName;
@@ -167,29 +142,30 @@ export const useCreateExternalProviderForm = (
         }));
       }
 
-      return request.name;
+      return externalProvider.name;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create external provider';
+      const message = err instanceof Error ? err.message : 'Failed to update external provider';
       setSubmitError(
         createdSecretName
-          ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'create')
+          ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'update')
           : message,
       );
       return undefined;
     }
   }, [
     configPairs,
-    createExternalProviderCallback,
     createSecretCallback,
+    externalProvider.name,
+    externalProvider.namespace,
     formData,
     isFormValid,
     nameDescData,
-    namespace,
     refreshSecrets,
+    updateExternalProviderCallback,
   ]);
 
   return {
-    namespace,
+    namespace: externalProvider.namespace,
     secrets,
     secretsLoaded,
     nameDescData,

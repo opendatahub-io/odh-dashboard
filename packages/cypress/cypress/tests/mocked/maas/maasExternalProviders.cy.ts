@@ -9,6 +9,7 @@ import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   createExternalProviderModal,
   deleteExternalProviderModal,
+  editExternalProviderModal,
   externalProvidersPage,
   pathModal,
   phaseModal,
@@ -458,6 +459,162 @@ describe('External providers', () => {
       createExternalProviderModal.shouldBeOpen();
       createExternalProviderModal.findCancelButton().click();
       createExternalProviderModal.shouldBeOpen(false);
+    });
+  });
+
+  describe('edit', () => {
+    const existingProvider = mockExternalProvider({
+      name: 'openai-prod',
+      displayName: 'OpenAI Production',
+      description: 'Production OpenAI endpoint',
+      endpointUrl: 'api.openai.com',
+      provider: 'openai',
+      credentialSecretRef: 'openai-api-key',
+    });
+
+    beforeEach(() => {
+      setupExternalProvidersListIntercepts([existingProvider]);
+      externalProvidersPage.visit();
+      externalProvidersPage.findPage().should('exist');
+    });
+
+    it('opens the edit modal with prefilled fields', () => {
+      externalProvidersPage.getRow('OpenAI Production').findKebabAction('Edit').click();
+
+      editExternalProviderModal.shouldBeOpen();
+      editExternalProviderModal.findProjectInput().should('have.value', TEST_PROJECT);
+      editExternalProviderModal.findDisplayNameInput().should('have.value', 'OpenAI Production');
+      editExternalProviderModal
+        .find()
+        .findByTestId('external-provider-name-desc-description')
+        .should('have.value', 'Production OpenAI endpoint');
+      editExternalProviderModal.find().contains('openai-prod').should('exist');
+      editExternalProviderModal
+        .find()
+        .findByTestId('provider-type-toggle')
+        .should('contain.text', 'OpenAI');
+      editExternalProviderModal.findEndpointInput().should('have.value', 'api.openai.com');
+      editExternalProviderModal.findSubmitButton().should('be.enabled');
+    });
+
+    it('updates an external provider', () => {
+      const updatedProvider = mockExternalProvider({
+        name: 'openai-prod',
+        displayName: 'OpenAI Production Updated',
+        description: 'Updated production endpoint',
+        endpointUrl: 'api.updated-openai.com',
+        provider: 'openai',
+        credentialSecretRef: 'openai-api-key',
+      });
+
+      cy.interceptOdh(
+        'PUT /maas/api/v1/externalprovider/:namespace/:name',
+        { path: { namespace: TEST_PROJECT, name: 'openai-prod' } },
+        { data: updatedProvider },
+      ).as('updateExternalProvider');
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalprovider',
+        { query: { namespace: TEST_PROJECT } },
+        { data: [updatedProvider] },
+      ).as('listExternalProviders');
+
+      externalProvidersPage.getRow('OpenAI Production').findKebabAction('Edit').click();
+      editExternalProviderModal.shouldBeOpen();
+      editExternalProviderModal.findDisplayNameInput().clear().type('OpenAI Production Updated');
+      editExternalProviderModal
+        .find()
+        .findByTestId('external-provider-name-desc-description')
+        .clear()
+        .type('Updated production endpoint');
+      editExternalProviderModal.findEndpointInput().clear().type('api.updated-openai.com');
+      editExternalProviderModal.findSubmitButton().click();
+
+      cy.wait('@updateExternalProvider').then((interception) => {
+        expect(interception.request.body?.data).to.include({
+          displayName: 'OpenAI Production Updated',
+          description: 'Updated production endpoint',
+          endpointUrl: 'api.updated-openai.com',
+          authMechanism: 'apikey',
+          credentialSecretRef: 'openai-api-key',
+          provider: 'openai',
+        });
+        expect(interception.request.body?.data.config).to.deep.equal({});
+      });
+      cy.wait('@listExternalProviders');
+      editExternalProviderModal.shouldBeOpen(false);
+      externalProvidersPage.getRow('OpenAI Production Updated').findName().should('exist');
+    });
+
+    it('can switch to a different existing credential secret', () => {
+      const updatedProvider = mockExternalProvider({
+        name: 'openai-prod',
+        displayName: 'OpenAI Production',
+        description: 'Production OpenAI endpoint',
+        endpointUrl: 'api.openai.com',
+        provider: 'openai',
+        credentialSecretRef: 'anthropic-api-key',
+      });
+
+      cy.interceptOdh(
+        'PUT /maas/api/v1/externalprovider/:namespace/:name',
+        { path: { namespace: TEST_PROJECT, name: 'openai-prod' } },
+        { data: updatedProvider },
+      ).as('updateExternalProvider');
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalprovider',
+        { query: { namespace: TEST_PROJECT } },
+        { data: [updatedProvider] },
+      ).as('listExternalProviders');
+
+      externalProvidersPage.getRow('OpenAI Production').findKebabAction('Edit').click();
+      editExternalProviderModal.selectExistingSecret('anthropic-api-key');
+      editExternalProviderModal.findSubmitButton().click();
+
+      cy.wait('@updateExternalProvider').then((interception) => {
+        expect(interception.request.body?.data.credentialSecretRef).to.equal('anthropic-api-key');
+      });
+      cy.wait('@listExternalProviders');
+      editExternalProviderModal.shouldBeOpen(false);
+    });
+
+    it('closes the modal without updating when cancel is clicked', () => {
+      cy.interceptOdh(
+        'PUT /maas/api/v1/externalprovider/:namespace/:name',
+        { path: { namespace: TEST_PROJECT, name: 'openai-prod' } },
+        { data: existingProvider },
+      ).as('updateExternalProvider');
+
+      externalProvidersPage.getRow('OpenAI Production').findKebabAction('Edit').click();
+      editExternalProviderModal.shouldBeOpen();
+      editExternalProviderModal.findEndpointInput().clear().type('api.changed.com');
+      editExternalProviderModal.findCancelButton().click();
+      editExternalProviderModal.shouldBeOpen(false);
+      cy.get('@updateExternalProvider.all').should('have.length', 0);
+    });
+
+    it('shows a deleted credential secret in the edit modal', () => {
+      const providerWithDeletedSecret = mockExternalProvider({
+        name: 'openai-prod',
+        displayName: 'OpenAI Production',
+        description: 'Production OpenAI endpoint',
+        endpointUrl: 'api.openai.com',
+        provider: 'openai',
+        credentialSecretRef: 'deleted-api-key',
+        phase: 'Failed',
+        statusMessage: 'Credential secret not found',
+      });
+
+      setupExternalProvidersListIntercepts([providerWithDeletedSecret]);
+      externalProvidersPage.visit();
+      externalProvidersPage.findPage().should('exist');
+
+      externalProvidersPage.getRow('OpenAI Production').findKebabAction('Edit').click();
+      editExternalProviderModal.shouldBeOpen();
+      editExternalProviderModal
+        .findCredentialSecretInput()
+        .should('have.value', 'deleted-api-key (not found)');
+      editExternalProviderModal.findMissingCredentialSecretWarning().should('exist');
+      editExternalProviderModal.findSubmitButton().should('be.enabled');
     });
   });
 });

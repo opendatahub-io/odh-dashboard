@@ -4,10 +4,17 @@ import {
   ExternalProvider,
   ProviderTypes,
   SecretSummary,
+  UpdateExternalProviderRequest,
 } from '~/app/types/external-models';
 import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
 import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
-import { ConfigPair, configPairsToRecord } from '~/app/utilities/configPairs';
+import {
+  ConfigPair,
+  configPairsToRecord,
+  EMPTY_CONFIG_PAIR,
+  recordToConfigPairs,
+} from '~/app/utilities/configPairs';
+import { CreateExternalProviderFormFields } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
 import { ExternalProvidersFilterDataType, ExternalProvidersFilterOptions } from './const';
 
 export { configPairsToRecord };
@@ -15,6 +22,89 @@ export { configPairsToRecord };
 export const getSecretDisplayLabel = (
   secret: Pick<SecretSummary, 'name' | 'displayName'>,
 ): string => secret.displayName?.trim() || secret.name;
+
+export const formatMissingCredentialSecretLabel = (secretName: string): string =>
+  `${secretName} (not found)`;
+
+export const getMissingCredentialSecretRef = (
+  credentialSecretRef: string,
+  secrets: SecretSummary[],
+  isNewSecret: boolean,
+): string | undefined => {
+  const trimmedRef = credentialSecretRef.trim();
+  if (isNewSecret || !trimmedRef) {
+    return undefined;
+  }
+  return secrets.some((secret) => secret.name === trimmedRef) ? undefined : trimmedRef;
+};
+
+export type OrphanedCredentialSecretContext = 'create' | 'update';
+
+export const formatOrphanedCredentialSecretSubmitError = (
+  message: string,
+  secretName: string,
+  context: OrphanedCredentialSecretContext,
+): string => {
+  const failureReason =
+    context === 'create'
+      ? 'the external provider could not be created'
+      : 'could not be linked to this provider';
+
+  return `${message} The credential secret "${secretName}" was created but ${failureReason}. Select it from the existing secrets list and try again.`;
+};
+
+export type ExternalProviderNameDescInitialData = {
+  name: string;
+  description: string;
+  k8sName: string;
+};
+
+export type ExternalProviderFormState = {
+  formData: CreateExternalProviderFormFields;
+  configPairs: ConfigPair[];
+  nameDescInitialData: ExternalProviderNameDescInitialData;
+};
+
+export const externalProviderToFormState = (
+  provider: ExternalProvider,
+): ExternalProviderFormState => {
+  const configPairs = recordToConfigPairs(provider.config);
+  return {
+    formData: {
+      provider: provider.provider,
+      endpointUrl: provider.endpointUrl,
+      authMechanism: provider.authMechanism,
+      credentialSecretRef: provider.credentialSecretRef,
+      isNewSecret: false,
+      secretValue: '',
+    },
+    configPairs: configPairs.length > 0 ? configPairs : [EMPTY_CONFIG_PAIR],
+    nameDescInitialData: {
+      name: provider.displayName ?? provider.name,
+      description: provider.description ?? '',
+      k8sName: provider.name,
+    },
+  };
+};
+
+export const toUpdateExternalProviderRequest = (
+  nameDescData: K8sNameDescriptionFieldData,
+  formData: {
+    provider: string;
+    endpointUrl: string;
+    authMechanism: UpdateExternalProviderRequest['authMechanism'];
+    credentialSecretRef: string;
+  },
+  configPairs: ConfigPair[],
+): UpdateExternalProviderRequest => ({
+  displayName: nameDescData.name.trim(),
+  description: nameDescData.description.trim(),
+  endpointUrl: formData.endpointUrl.trim(),
+  authMechanism: formData.authMechanism,
+  credentialSecretRef: formData.credentialSecretRef.trim(),
+  provider: formData.provider.trim(),
+  config: configPairsToRecord(configPairs) ?? {},
+});
 
 export const toCreateExternalProviderRequest = (
   namespace: string,
