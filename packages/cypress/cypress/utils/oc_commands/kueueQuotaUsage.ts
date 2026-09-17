@@ -58,7 +58,7 @@ export const setupKueueQuotaUsageNavigationResources = (
 export const cleanupKueueQuotaUsageNavigationResources = (
   config: KueueQuotaUsageNavigationConfig,
 ): Cypress.Chainable<CommandLineResult> => {
-  const command = [
+  const commands = [
     `oc delete LocalQueue ${config.localQueueName} -n ${config.managedProjectName} --wait=false --ignore-not-found`,
     `oc delete ClusterQueue ${config.cohortClusterQueueName} --wait=false --ignore-not-found`,
     `oc delete ClusterQueue ${config.standaloneClusterQueueName} --wait=false --ignore-not-found`,
@@ -66,18 +66,19 @@ export const cleanupKueueQuotaUsageNavigationResources = (
     `oc delete Cohort ${config.emptyCohortName} --wait=false --ignore-not-found`,
     `oc delete Cohort ${config.parentCohortName} --wait=false --ignore-not-found`,
     `oc delete ResourceFlavor ${config.resourceFlavorName} --wait=false --ignore-not-found`,
+  ];
+  const command = [
+    'cleanup_failed=0',
+    ...commands.map((value) => `${value} || cleanup_failed=1`),
+    'exit $cleanup_failed',
   ].join('\n');
 
-  return cy
-    .exec(`set -e\n${command}`, { failOnNonZeroExit: false, timeout: 120000 })
-    .then((result) => {
-      if (result.exitCode !== 0) {
-        throw new Error(
-          `Kueue quota usage resource cleanup returned exit ${result.exitCode}: ${maskSensitiveInfo(
-            result.stderr,
-          )}`,
-        );
-      }
-      return cy.wrap(result);
-    });
+  return cy.exec(command, { failOnNonZeroExit: false, timeout: 120000 }).then((result) => {
+    if (result.exitCode !== 0) {
+      cy.log(
+        `Some Kueue quota usage resources failed cleanup: ${maskSensitiveInfo(result.stderr)}`,
+      );
+    }
+    return cy.wrap(result);
+  });
 };
