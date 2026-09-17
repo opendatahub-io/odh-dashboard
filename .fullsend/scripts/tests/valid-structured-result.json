@@ -20,14 +20,6 @@
       "summary": "Tests cover the changed behavior."
     }
   ],
-  "classifications": [
-    {
-      "id": "example-classifier",
-      "status": "completed",
-      "summary": "No failed checks required classification.",
-      "classifications": []
-    }
-  ],
   "risk": { "level": "low", "why": "The change is narrowly scoped." },
   "confidence": { "level": "high", "why": "All configured producers returned evidence." },
   "verification": [

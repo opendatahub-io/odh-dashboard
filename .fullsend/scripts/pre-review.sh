@@ -61,7 +61,7 @@ validate_adapter_registry() {
     all(
       .dimensions[] | select(.kind == "cli-adapter");
       (.id | type == "string" and test("^[a-z0-9][a-z0-9-]*$")) and
-      (.output | type == "string" and test("^(context|findings|check:[a-z0-9-]+|classifier:[a-z0-9-]+)$")) and
+      (.output | type == "string" and test("^(context|findings|check:[a-z0-9-]+)$")) and
       (.runner | type == "string" and test("^scripts/[A-Za-z0-9._/-]+\\.sh$")) and
       (.producer_file | type == "string" and test("^\\.run/[A-Za-z0-9._-]+\\.json$")) and
       (.host.execution == "workflow" or .host.execution == "pre_review") and
@@ -373,11 +373,60 @@ fi
 # Fetch title/body for trusted Jira-key parsing.
 # ---------------------------------------------------------------------------
 PR_VIEW="$(GH_TOKEN="${_TOKEN}" gh pr view "${PR_NUMBER}" \
-  --repo "${REPO_FULL_NAME}" --json title,body 2>/dev/null || true)"
+  --repo "${REPO_FULL_NAME}" --json title,body,headRefOid 2>/dev/null || true)"
 PR_TITLE="$(printf '%s' "${PR_VIEW}" | jq -r '.title // empty')"
 PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
+PR_HEAD_SHA="$(printf '%s' "${PR_VIEW}" | jq -r '.headRefOid // empty')"
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
+
+MISSING_HEADINGS="$(REVIEW_PR_BODY="${PR_BODY}" python3 <<'PY'
+import os, re
+
+body = os.environ.get("REVIEW_PR_BODY") or ""
+PLACEHOLDER = re.compile(r"^(n/a|na|tbd|todo|none|\.|-|—|\s*)$", re.I)
+
+def section_deficient(name):
+    pat = re.compile(rf"(?im)^#{{2,3}}\s*{re.escape(name)}\s*$")
+    match = pat.search(body)
+    if not match:
+        return name
+    rest = body[match.end():]
+    nxt = re.search(r"(?im)^#{{2,3}}\s+\S", rest)
+    text = (rest[: nxt.start()] if nxt else rest).strip()
+    if not text:
+        return name
+    first_line = text.splitlines()[0].strip() if text.splitlines() else ""
+    if PLACEHOLDER.match(first_line):
+        return name
+    return ""
+
+missing = [section_deficient(h) for h in ("Problem", "Solution", "Evidence")]
+print(", ".join([m for m in missing if m]))
+PY
+)"
+
+if [[ -n "${MISSING_HEADINGS}" ]]; then
+  echo "::notice::PR #${PR_NUMBER} missing or placeholder headings (${MISSING_HEADINGS}) — skipping review"
+  SHORT_SHA="${PR_HEAD_SHA:0:7}"
+  [[ -z "${SHORT_SHA}" ]] && SHORT_SHA="unknown"
+  AGENTIC_TEMPLATE="https://github.com/opendatahub-io/odh-dashboard/blob/main/.github/PULL_REQUEST_TEMPLATE/agentic.md"
+  COMMENT_BODY="<!-- fullsend:review-agent -->
+<!-- **Head SHA:** ${PR_HEAD_SHA} -->
+
+Finished Review · \`skipped\` · Commit: \`${SHORT_SHA}\`
+
+Review did not run. Fill required sections with real content (not N/A / TBD): ${MISSING_HEADINGS}.
+
+See [agentic.md](${AGENTIC_TEMPLATE}).
+
+<sub>Posted by <a href=\"https://github.com/fullsend-ai/fullsend\">fullsend</a> pre-review check</sub>"
+
+  printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
+    --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
+
+  exit 0
+fi
 
 # Run registered pre-review adapters, hydrate outputs from isolated workflow
 # adapter jobs, and collect every resulting envelope generically. Adapter
