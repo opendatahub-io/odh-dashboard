@@ -13,6 +13,7 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
+  cleanupEvalHubMlflowExperiment,
   ensureEvalHubCrReady,
   waitForEvaluationJobComplete,
 } from '../../../utils/oc_commands/evalHubInstance';
@@ -94,6 +95,11 @@ describe('Eval Hub E2E', () => {
 
   after(() => {
     ensureAdminOcSession();
+
+    if (evaluationTenantProject && mlflowExperimentName) {
+      cy.step(`Delete MLflow experiment: ${mlflowExperimentName}`);
+      cleanupEvalHubMlflowExperiment(evaluationTenantProject, mlflowExperimentName);
+    }
 
     if (evaluationTenantProject) {
       cy.step(`Delete tenant project: ${evaluationTenantProject}`);

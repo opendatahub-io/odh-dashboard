@@ -11,7 +11,10 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
-import { ensureEvalHubCrReady } from '../../../utils/oc_commands/evalHubInstance';
+import {
+  cleanupEvalHubMlflowExperiment,
+  ensureEvalHubCrReady,
+} from '../../../utils/oc_commands/evalHubInstance';
 import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflow';
 import {
   grantEvalHubTenantAccess,
@@ -89,6 +92,11 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
 
   after(() => {
     ensureAdminOcSession();
+
+    if (evaluationTenantProject && mlflowExperimentName) {
+      cy.step(`Delete MLflow experiment: ${mlflowExperimentName}`);
+      cleanupEvalHubMlflowExperiment(evaluationTenantProject, mlflowExperimentName);
+    }
 
     if (evaluationTenantProject) {
       cy.step(`Delete tenant project: ${evaluationTenantProject}`);

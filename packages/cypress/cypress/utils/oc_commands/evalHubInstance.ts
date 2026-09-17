@@ -1,4 +1,5 @@
 import { pollUntilSuccess } from './baseCommands';
+import { deleteMlflowExperimentViaAPI, getMlflowExperimentIdByName } from './mlflow';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
@@ -122,6 +123,19 @@ export const deleteEvalHubE2eDatabaseSecret = (): Cypress.Chainable<CommandLineR
   const cmd = `oc delete secret ${EVALHUB_E2E_DB_SECRET_NAME} -n ${ns} --ignore-not-found`;
   cy.log(`Deleting Eval Hub E2E database placeholder secret: ${cmd}`);
   return cy.exec(cmd, { failOnNonZeroExit: false });
+};
+
+/** Soft-deletes an EvalHub test experiment from its MLflow workspace when it exists. */
+export const cleanupEvalHubMlflowExperiment = (workspace: string, experimentName: string): void => {
+  getMlflowExperimentIdByName(workspace, experimentName).then((experimentId) => {
+    if (!experimentId) {
+      cy.log(`MLflow experiment ${experimentName} not found in workspace ${workspace}`);
+      return;
+    }
+
+    cy.log(`Deleting MLflow experiment ${experimentName} from workspace ${workspace}`);
+    deleteMlflowExperimentViaAPI(workspace, experimentId);
+  });
 };
 
 const waitForEvaluationJobsCreated = (
