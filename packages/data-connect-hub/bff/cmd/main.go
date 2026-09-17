@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"os/signal"
@@ -81,9 +82,12 @@ func main() {
 		logger.Error("invalid auth method: (must be internal or user_token)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
 	}
-	if cfg.InsecureSkipVerify && (!cfg.DevMode || certFile != "") {
-		logger.Error("insecure TLS verification is only allowed in dev mode without a server certificate")
+	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, cfg.DevMode, certFile); err != nil {
+		logger.Error(err.Error())
 		os.Exit(1)
+	}
+	if cfg.InsecureSkipVerify {
+		logger.Warn("SECURITY WARNING: TLS certificate verification is disabled for local development")
 	}
 
 	// Only use for logging errors about logging configuration.
@@ -147,4 +151,17 @@ func main() {
 
 	logger.Info("server stopped")
 	os.Exit(0)
+}
+
+func validateInsecureSkipVerify(insecureSkipVerify, devMode bool, certFile string) error {
+	if !insecureSkipVerify {
+		return nil
+	}
+	if !devMode {
+		return errors.New("insecure TLS verification is only allowed in dev mode")
+	}
+	if certFile != "" {
+		return errors.New("insecure TLS verification is not allowed when a server certificate is configured")
+	}
+	return nil
 }

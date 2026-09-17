@@ -239,3 +239,17 @@ func TestDataConnectHubHeadersUsesServiceAccountTokenForInternalAuth(t *testing.
 	require.Equal(t, "Bearer service-account-token", headers.Get("Authorization"))
 	require.Equal(t, "test-project", headers.Get("X-Tenant-ID"))
 }
+
+func TestDataConnectHubHeadersAllowsTokenInLocalInsecureTLSMode(t *testing.T) {
+	app := &App{config: config.EnvConfig{DevMode: true, InsecureSkipVerify: true}, logger: slog.Default()}
+
+	headers, err := app.dataConnectHubHeaders(
+		context.Background(),
+		&k8s.RequestIdentity{UserID: "test-user", Token: "user-token"},
+		"test-project",
+	)
+
+	require.NoError(t, err)
+	require.Equal(t, "Bearer user-token", headers.Get("Authorization"))
+	require.Equal(t, "test-project", headers.Get("X-Tenant-ID"))
+}
