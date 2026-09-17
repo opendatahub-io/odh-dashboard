@@ -6,6 +6,12 @@ metadata:
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: Cohort
 metadata:
+  name: ${emptyCohortName}
+spec: {}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: Cohort
+metadata:
   name: ${parentCohortName}
 spec: {}
 ---

@@ -7,6 +7,7 @@ export type KueueQuotaUsageNavigationConfig = {
   resourceFlavorName: string;
   parentCohortName: string;
   cohortName: string;
+  emptyCohortName: string;
   cohortClusterQueueName: string;
   standaloneClusterQueueName: string;
   localQueueName: string;
@@ -62,6 +63,7 @@ export const cleanupKueueQuotaUsageNavigationResources = (
     `oc delete ClusterQueue ${config.cohortClusterQueueName} --wait=false --ignore-not-found`,
     `oc delete ClusterQueue ${config.standaloneClusterQueueName} --wait=false --ignore-not-found`,
     `oc delete Cohort ${config.cohortName} --wait=false --ignore-not-found`,
+    `oc delete Cohort ${config.emptyCohortName} --wait=false --ignore-not-found`,
     `oc delete Cohort ${config.parentCohortName} --wait=false --ignore-not-found`,
     `oc delete ResourceFlavor ${config.resourceFlavorName} --wait=false --ignore-not-found`,
   ].join('\n');

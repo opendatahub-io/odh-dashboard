@@ -144,6 +144,10 @@ class InfrastructurePage {
     return cy.findByTestId('quota-usage-detail-title');
   }
 
+  findQuotaUsageDetailNoData() {
+    return cy.findByTestId('quota-usage-detail-no-data');
+  }
+
   findQuotaUsageUnassignedDescription() {
     return cy.findByTestId('quota-usage-unassigned-description');
   }

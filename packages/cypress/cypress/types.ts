@@ -150,6 +150,7 @@ export type KueueQuotaUsageNavigationTestData = {
   resourceFlavorName: string;
   parentCohortName: string;
   cohortName: string;
+  emptyCohortName: string;
   cohortClusterQueueName: string;
   standaloneClusterQueueName: string;
   localQueueName: string;

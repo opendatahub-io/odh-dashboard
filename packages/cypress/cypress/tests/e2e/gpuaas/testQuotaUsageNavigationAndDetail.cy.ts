@@ -51,6 +51,7 @@ const buildTestContext = (
       resourceFlavorName: withUuid(testData.resourceFlavorName),
       parentCohortName: withUuid(testData.parentCohortName),
       cohortName: withUuid(testData.cohortName),
+      emptyCohortName: withUuid(testData.emptyCohortName),
       cohortClusterQueueName: withUuid(testData.cohortClusterQueueName),
       standaloneClusterQueueName: withUuid(testData.standaloneClusterQueueName),
       localQueueName: withUuid(testData.localQueueName),
@@ -118,6 +119,7 @@ describeAdminOnly('Quota usage navigation and detail', () => {
       const {
         parentCohortName,
         cohortName,
+        emptyCohortName,
         cohortClusterQueueName,
         standaloneClusterQueueName,
         resourceFlavorName,
@@ -133,6 +135,7 @@ describeAdminOnly('Quota usage navigation and detail', () => {
       cy.step('Verify parent cohort, child cohort, member queue, and standalone queue appear');
       infrastructurePage.findQuotaUsageTreeNode(parentCohortName).should('be.visible');
       infrastructurePage.findQuotaUsageTreeNode(cohortName).should('be.visible');
+      infrastructurePage.findQuotaUsageTreeNode(emptyCohortName).should('be.visible');
       infrastructurePage.findQuotaUsageTreeNode(cohortClusterQueueName).should('be.visible');
       infrastructurePage.findQuotaUsageTreeNode(standaloneClusterQueueName).should('be.visible');
 
@@ -161,6 +164,15 @@ describeAdminOnly('Quota usage navigation and detail', () => {
       infrastructurePage.findQuotaUsageMeterCapacity(resourceFlavorName).should('be.visible');
       infrastructurePage.findQuotaUsageMeterCompute(resourceFlavorName).should('be.visible');
       infrastructurePage.findQuotaUsageMeterMemory(resourceFlavorName).should('be.visible');
+      infrastructurePage.findQuotaUsageWorkloadsSection().should('not.exist');
+
+      cy.step('Verify an empty cohort displays no accelerator usage data');
+      infrastructurePage.findQuotaUsageTreeNode(emptyCohortName).click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', emptyCohortName);
+      infrastructurePage
+        .findQuotaUsageDetailTypeLabel()
+        .should('contain.text', testContext.testData.cohortTypeLabel);
+      infrastructurePage.findQuotaUsageDetailNoData().should('be.visible');
       infrastructurePage.findQuotaUsageWorkloadsSection().should('not.exist');
 
       cy.step('Verify the standalone queue displays its cluster queue detail');
@@ -194,6 +206,8 @@ describeAdminOnly('Quota usage navigation and detail', () => {
         .findQuotaUsageSummaryCapacity()
         .should('contain.text', `0/${testContext.testData.acceleratorQuota} accelerators`);
       infrastructurePage.findQuotaUsageAcceleratorRow(resourceFlavorName).should('be.visible');
+      infrastructurePage.findQuotaUsageWorkloadsSection().should('be.visible');
+      infrastructurePage.findClusterQueueWorkloadsEmptyState().should('be.visible');
 
       cy.step('Verify the selected queue Kueue projects modal includes only the managed project');
       infrastructurePage.findQuotaUsageViewKueueProjectsLink().click();
