@@ -81,6 +81,15 @@ describe('extractEnvironmentVariables', () => {
               env: [
                 { name: 'MY_VAR', value: 'hello' },
                 {
+                  name: 'API_KEY',
+                  valueFrom: {
+                    secretKeyRef: {
+                      name: 'api-secret',
+                      key: 'API_KEY',
+                    },
+                  },
+                },
+                {
                   name: 'HF_TOKEN',
                   valueFrom: {
                     secretKeyRef: {
@@ -102,9 +111,9 @@ describe('extractEnvironmentVariables', () => {
         { type: EnvironmentVariableType.Value, name: 'MY_VAR', value: 'hello' },
         {
           type: EnvironmentVariableType.Secret,
-          name: 'HF_TOKEN',
-          secretName: 'hf-secret',
-          secretKey: 'HF_TOKEN',
+          name: 'API_KEY',
+          secretName: 'api-secret',
+          secretKey: 'API_KEY',
         },
       ],
     });
