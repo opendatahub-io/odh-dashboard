@@ -499,11 +499,11 @@ class ManageSourcePage {
   }
 
   findValidationSuccessAlert() {
-    return cy.contains('Credentials validated');
+    return cy.contains('Access token validated');
   }
 
   findValidationFailedAlert() {
-    return cy.contains('Credentials validation failed');
+    return cy.contains('Validation failed');
   }
 
   findPreviewModelsIncludedSummary(count: number, total: number) {

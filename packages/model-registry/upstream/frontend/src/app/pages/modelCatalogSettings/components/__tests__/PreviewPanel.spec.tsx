@@ -323,14 +323,14 @@ describe('PreviewPanel', () => {
     const user = userEvent.setup();
     const preview = createMockPreview({
       canPreview: false,
-      previewDisabledTooltip: 'Validate the access token to preview models.',
+      previewDisabledTooltip: 'To preview models, validate the access token.',
     });
 
     render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     await user.hover(screen.getByTestId('preview-button-header'));
     expect(
-      await screen.findByText('Validate the access token to preview models.'),
+      await screen.findByText('To preview models, validate the access token.'),
     ).toBeInTheDocument();
   });
 
@@ -402,7 +402,7 @@ describe('PreviewPanel', () => {
       {
         canPreview: false,
         hasFormChanged: true,
-        previewDisabledTooltip: 'Validate the access token to preview models.',
+        previewDisabledTooltip: 'To preview models, validate the access token.',
       },
       {
         summary: mockSummary,
