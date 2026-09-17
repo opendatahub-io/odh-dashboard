@@ -3,6 +3,7 @@ import type { Namespace } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import {
+  mockEvaluationJob,
   mockSingleEvaluationJob,
   mockCollectionEvaluationJob,
 } from '~/__mocks__/mockEvaluationJob';
@@ -189,5 +190,30 @@ describe('Evaluation Results Page - Collection', () => {
     evaluationResultsPage.findDownloadLogsButton().click();
     cy.wait('@benchmarkLogs').its('request.query.tail_lines').should('eq', '-1');
     cy.findByText('Log download truncated').should('be.visible');
+  });
+});
+
+describe('Evaluation Results Page - Non-percentage primary metric', () => {
+  const guidellmJob = mockEvaluationJob({
+    id: 'guidellm-constant-job',
+    name: 'GuideLLM constant',
+    benchmarkIds: ['constant'],
+    providerId: 'guidellm',
+    score: 41.377,
+    threshold: 0.5,
+  });
+  guidellmJob.benchmarks![0].primary_score = {
+    metric: 'output_tokens_per_second',
+    lower_is_better: false,
+  };
+
+  beforeEach(() => {
+    initIntercepts({ job: guidellmJob });
+  });
+
+  it('should display a non-percentage primary metric with its unit', () => {
+    evaluationResultsPage.visit(NAMESPACE, guidellmJob.resource.id);
+    evaluationResultsPage.findScoreValue().should('contain.text', '41.38 output tokens/s');
+    evaluationResultsPage.findBenchmarkDetailsInfo().should('contain.text', '0.5 output tokens/s');
   });
 });

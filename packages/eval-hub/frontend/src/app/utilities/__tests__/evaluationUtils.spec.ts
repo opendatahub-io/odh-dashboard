@@ -10,6 +10,8 @@ import {
   getResultScore,
   formatAsPercentage,
   formatBenchmarkScore,
+  formatMetricValue,
+  formatThresholdValue,
   formatDate,
   formatDurationCompact,
   isTerminalState,
@@ -291,12 +293,50 @@ describe('formatAsPercentage', () => {
   });
 });
 
+describe('formatMetricValue', () => {
+  it('should format percentage metrics as percentages', () => {
+    expect(formatMetricValue(0.85, 'acc')).toBe('85%');
+  });
+
+  it('should format throughput metrics with their units', () => {
+    expect(formatMetricValue(41.377, 'output_tokens_per_second')).toBe('41.38 output tokens/s');
+  });
+
+  it('should preserve percentage formatting for unknown metrics', () => {
+    expect(formatMetricValue(0.42, 'custom_metric')).toBe('42%');
+  });
+
+  it('should return dash for non-finite metric values', () => {
+    expect(formatMetricValue(Infinity, 'output_tokens_per_second')).toBe('-');
+  });
+});
+
+describe('formatThresholdValue', () => {
+  it('should format percentage thresholds using percentage semantics', () => {
+    expect(formatThresholdValue(0.5, 'acc')).toBe('50%');
+    expect(formatThresholdValue(90, 'acc')).toBe('90%');
+  });
+
+  it('should format non-percentage thresholds according to the metric', () => {
+    expect(formatThresholdValue(0.5, 'output_tokens_per_second')).toBe('0.5 output tokens/s');
+  });
+});
+
 describe('formatBenchmarkScore', () => {
   /* eslint-disable camelcase */
   it('should prefer test.primary_score over metrics', () => {
     expect(
       formatBenchmarkScore({ id: 'b1', test: { primary_score: 0.8 }, metrics: { acc: 0.5 } }),
     ).toBe('80%');
+  });
+
+  it('should format test primary scores according to the configured metric', () => {
+    expect(
+      formatBenchmarkScore(
+        { id: 'b1', test: { primary_score: 41.377 } },
+        'output_tokens_per_second',
+      ),
+    ).toBe('41.38 output tokens/s');
   });
 
   it('should use primaryMetric parameter when test is absent', () => {
@@ -339,6 +379,20 @@ describe('getResultScore', () => {
   it('should return percentage from top-level test score', () => {
     const job = mockEvaluationJob({ score: 0.85 });
     expect(getResultScore(job)).toBe('85%');
+  });
+
+  it('should format a top-level score according to the job primary metric', () => {
+    const job = mockEvaluationJob({ score: 41.377, benchmarkId: 'constant' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+    expect(getResultScore(job)).toBe('41.38 output tokens/s');
   });
 
   it('should round fractional percentages to nearest integer', () => {

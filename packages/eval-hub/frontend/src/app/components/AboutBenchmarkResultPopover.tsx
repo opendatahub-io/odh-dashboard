@@ -4,9 +4,9 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob, Provider } from '~/app/types';
 import {
   formatBenchmarkScore,
+  formatThresholdValue,
   getBenchmarkDisplayName,
   getJobBenchmarks,
-  normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
 
 type AboutBenchmarkResultPopoverProps = {
@@ -15,8 +15,6 @@ type AboutBenchmarkResultPopoverProps = {
   job: EvaluationJob;
   provider?: Provider;
 };
-
-const formatThreshold = (threshold: number): string => `${normalizeThreshold(threshold)}%`;
 
 const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = ({
   benchmarkId,
@@ -62,7 +60,7 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
     bodyText = `${getBenchmarkDisplayName(primaryMetricName)}; ${lowerIsBetter ? 'lower' : 'higher'} is better.`;
   }
 
-  const score = result ? formatBenchmarkScore(result) : undefined;
+  const score = result ? formatBenchmarkScore(result, primaryMetricName) : undefined;
   const threshold =
     benchmarkConfig?.pass_criteria?.threshold ??
     job.pass_criteria?.threshold ??
@@ -85,7 +83,8 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
           </Content>
           {score != null && threshold != null && (
             <Content component="p" className="pf-v6-u-mt-sm">
-              This benchmark scored {score} against a threshold of {formatThreshold(threshold)}.
+              This benchmark scored {score} against a threshold of{' '}
+              {formatThresholdValue(threshold, primaryMetricName)}.
             </Content>
           )}
         </>
