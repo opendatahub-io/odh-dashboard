@@ -114,11 +114,11 @@ E2E_IMG ?= quay.io/opendatahub/odh-dashboard-operator-e2e:latest
 
 .PHONY: e2e-image
 e2e-image: ## Build the containerized E2E test image for the early-gate shiftleft runner.
-	docker build -t $(E2E_IMG) -f Dockerfile.e2e ..
+	docker build -t "$(E2E_IMG)" -f Dockerfile.e2e ..
 
 .PHONY: e2e-image-push
 e2e-image-push: ## Push the containerized E2E test image.
-	docker push $(E2E_IMG)
+	docker push "$(E2E_IMG)"
 
 ##@ Chaos
 

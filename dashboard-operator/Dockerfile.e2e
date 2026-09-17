@@ -36,21 +36,32 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
 # NOTE: this downloads from mirror.openshift.com. Konflux hermetic builds may
 # restrict external network; DevOps may need to source oc/kubectl from an
 # internal mirror or a base image (handoff, see test/e2e/README.md).
+#
+# The client version is pinned to an immutable release (not "stable") and every
+# architecture's archive is verified against a repo-controlled SHA-256 checksum
+# before extraction, so a mutated upstream artifact fails the build. Bump
+# OC_VERSION and the OC_SHA256_* checksums together; refresh from
+# https://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp/<version>/sha256sum.txt
 FROM registry.access.redhat.com/ubi9/ubi:9.3 AS cli
 
 ARG TARGETARCH
-ARG OC_VERSION=stable
+ARG OC_VERSION=4.17.10
+ARG OC_SHA256_x86_64=d826c272dff763ffe9f3162f149cc9cb09b8a486c55e6c59cb987b0501218974
+ARG OC_SHA256_arm64=7817ea59a2dbb1a3e701f67d5556859152accab8ec21b8b64f4e11e101d35607
+ARG OC_SHA256_ppc64le=8f4ea71376af9748079c6505bae2845fde0badead379f2a6080097d1ca18913d
+ARG OC_SHA256_s390x=b1c8a32c4d760d3f830cb169416377c2bc194c69fccefaf08f9756bba6f5309d
 
 RUN set -eux; \
     case "${TARGETARCH:-amd64}" in \
-      amd64)   OC_ARCH=x86_64 ;; \
-      arm64)   OC_ARCH=arm64 ;; \
-      ppc64le) OC_ARCH=ppc64le ;; \
-      s390x)   OC_ARCH=s390x ;; \
-      *)       OC_ARCH=x86_64 ;; \
+      amd64)   OC_ARCH=x86_64;  OC_SHA256="${OC_SHA256_x86_64}" ;; \
+      arm64)   OC_ARCH=arm64;   OC_SHA256="${OC_SHA256_arm64}" ;; \
+      ppc64le) OC_ARCH=ppc64le; OC_SHA256="${OC_SHA256_ppc64le}" ;; \
+      s390x)   OC_ARCH=s390x;   OC_SHA256="${OC_SHA256_s390x}" ;; \
+      *)       echo "unsupported TARGETARCH: ${TARGETARCH:-amd64}" >&2; exit 1 ;; \
     esac; \
-    curl -sSfL "https://mirror.openshift.com/pub/openshift-v4/${OC_ARCH}/clients/ocp/${OC_VERSION}/openshift-client-linux.tar.gz" \
+    curl -sSfL "https://mirror.openshift.com/pub/openshift-v4/${OC_ARCH}/clients/ocp/${OC_VERSION}/openshift-client-linux-${OC_VERSION}.tar.gz" \
       -o /tmp/oc.tar.gz; \
+    echo "${OC_SHA256}  /tmp/oc.tar.gz" | sha256sum -c -; \
     tar -xzf /tmp/oc.tar.gz -C /usr/local/bin oc kubectl; \
     chmod +x /usr/local/bin/oc /usr/local/bin/kubectl
 
