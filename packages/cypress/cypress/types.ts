@@ -793,6 +793,7 @@ export type MultimodalTestData = {
     modelId: string;
     displayName: string;
     endpointUrl: string;
+    configMapName: string;
     lsdServiceName: string;
     lsdPodPrefix: string;
     lsdPodReadyTimeout: string;

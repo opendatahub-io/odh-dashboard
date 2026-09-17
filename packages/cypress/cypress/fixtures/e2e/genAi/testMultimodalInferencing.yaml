@@ -27,6 +27,7 @@ model:
   modelId: 'gpt-4o'
   displayName: 'E2E Multimodal Vision Model'
   endpointUrl: 'https://api.openai.com/v1'
+  configMapName: 'llama-stack-config'
   lsdServiceName: 'lsd-genai-playground-service'
   lsdPodPrefix: 'lsd-genai-playground'
   lsdPodReadyTimeout: '120s'

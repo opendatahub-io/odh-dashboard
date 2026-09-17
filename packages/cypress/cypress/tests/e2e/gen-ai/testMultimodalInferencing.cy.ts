@@ -84,6 +84,9 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.ensureModelCheckboxIsChecked(testData.model.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
+      cy.step('Wait for llama-stack-config ConfigMap to be created');
+      waitForResource('configmap', testData.model.configMapName, projectName);
+
       cy.step('Wait for OGX Server to be ready');
       waitForOGXServerReady(projectName);
 
