@@ -42,9 +42,9 @@ runs:
           distributions/*/node_modules
           distributions/*/*/node_modules
           .cache/Cypress
-        key: ${{ runner.os }}-${{ inputs.node-version }}-root-modules-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'backend/**/package.json', 'frontend/**/package.json', 'packages/*/package.json', 'packages/*/frontend/package.json', 'packages/*/ui/package.json', 'packages/*/cypress/package.json', 'packages/model-registry/upstream/frontend/package.json', 'packages/model-registry/upstream/frontend/package-lock.json', 'distributions/*/package.json', 'distributions/*/frontend/package.json') }}
+        key: ${{ runner.os }}-${{ inputs.node-version }}-pnpm-root-modules-${{ hashFiles('.npmrc', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'backend/**/package.json', 'frontend/**/package.json', 'packages/*/package.json', 'packages/*/frontend/package.json', 'packages/*/ui/package.json', 'packages/*/cypress/package.json', 'packages/model-registry/upstream/frontend/package.json', 'packages/model-registry/upstream/frontend/package-lock.json', 'distributions/*/package.json', 'distributions/*/frontend/package.json') }}
         restore-keys: |
-          ${{ runner.os }}-${{ inputs.node-version }}-root-modules-
+          ${{ runner.os }}-${{ inputs.node-version }}-pnpm-root-modules-
     - name: Export module cache status
       shell: bash
       run: echo "MODULE_CACHE_HIT=${{ steps.root-cache.outputs.cache-hit }}" >> "$GITHUB_ENV"

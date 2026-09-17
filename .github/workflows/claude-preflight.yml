@@ -217,6 +217,8 @@ jobs:
             --permission-mode acceptEdits
             --allowedTools "Bash(gh *)"
             --allowedTools "Bash(git *)"
+            --allowedTools "Bash(npm *)"
+            --allowedTools "Bash(npx *)"
             --allowedTools "Bash(pnpm *)"
             --allowedTools "Bash(bash *)"
             --allowedTools "mcp__jira__*"

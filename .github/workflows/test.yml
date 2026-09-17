@@ -183,10 +183,6 @@ jobs:
           # Contract tests only need the uv binary on PATH; disable dependency cache
           # scanning (default **/*requirements*.txt glob traverses pnpm node_modules).
           enable-cache: false
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
       - name: Abort if quality gate already failed
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
