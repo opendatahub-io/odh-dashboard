@@ -29,7 +29,7 @@ const EmptyExternalModelsPage: React.FC<{ namespace: string }> = ({ namespace })
         </StackItem>
         <StackItem>
           <Button
-            data-testid="add-external-model-button"
+            data-testid="add-external-model-button-empty-state"
             variant="primary"
             component={(props) => <Link {...props} to={createExternalModelPath(namespace)} />}
           >
@@ -38,7 +38,7 @@ const EmptyExternalModelsPage: React.FC<{ namespace: string }> = ({ namespace })
         </StackItem>
         <StackItem>
           <Button
-            data-testid="manage-external-providers-button"
+            data-testid="manage-external-providers-button-empty-state"
             variant="secondary"
             component={(props) => (
               <Link {...props} to={externalProvidersManagementPath(namespace)} />

@@ -2030,6 +2030,11 @@ class ProviderReferenceModalBase extends Modal {
     this.findTargetModelInput().type(targetModel);
   }
 
+  selectApiFormat(key: string): void {
+    this.findApiFormatSelect().should('be.visible').click();
+    cy.findByTestId(key).click();
+  }
+
   findApiFormatSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('provider-ref-api-format');
   }
@@ -2164,10 +2169,11 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     this.findNextButton().click();
   }
 
-  addProviderReference(providerDisplayName: string, targetModel: string): void {
+  addProviderReference(providerDisplayName: string, targetModel: string, apiFormat: string): void {
     this.selectProvider(providerDisplayName);
     this.goToConfigureStep();
     this.fillTargetModel(targetModel);
+    this.selectApiFormat(apiFormat);
     this.findAddButton().click();
     this.shouldBeOpen(false);
   }
