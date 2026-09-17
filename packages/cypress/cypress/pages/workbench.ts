@@ -461,7 +461,10 @@ class AttachExistingStorageModal extends Modal {
   }
 
   findPersistentStorageOption(name: string) {
-    return cy.findByTestId('persistent-storage-typeahead').contains(name);
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return cy.findByTestId('persistent-storage-typeahead').findByRole('option', {
+      name: new RegExp(`^${escapedName}(?:\\s|$)`),
+    });
   }
 
   findPersistentStorageInput() {
