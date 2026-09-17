@@ -1,7 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForAutoXDspaReady } from './oc_commands/autoX';
 import { waitForManagedPipelines } from './autoXPipelines';
-import { getVectorDatabaseConnection } from './oc_commands/autoragInfra';
+import { getVectorDatabaseConnection, resetAutoragConnections } from './oc_commands/autoragInfra';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
@@ -237,6 +237,7 @@ export const createAutoragConnections = (
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
   cy.step('Create MaaS connection through the dashboard');
+  resetAutoragConnections(projectName, testData.maasSecretName, testData.vectorDbSecretName);
   createMaaSConnection(testData, maasFixture);
   connectionOwnership.maasSecretCreated = true;
   autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
@@ -294,6 +295,7 @@ export const configureAutoragRun = (
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
   if (options.createConnections) {
+    resetAutoragConnections(projectName, testData.maasSecretName, testData.vectorDbSecretName);
     cy.step('Create MaaS connection through the dashboard');
     createMaaSConnection(testData, maasFixture);
     if (connectionOwnership) {

@@ -106,9 +106,25 @@ export const provisionVectorDatabase = (namespace: string): void => {
  */
 export const cleanupAutoragSecret = (namespace: string, secretName: string): void => {
   cy.log(`Cleaning up AutoRAG secret ${secretName}`);
-  cy.exec(`oc delete secret ${secretName} -n ${namespace}`, {
+  cy.exec(`oc delete secret ${secretName} -n ${namespace} --ignore-not-found --wait=true`, {
     failOnNonZeroExit: false,
   });
+};
+
+/**
+ * Remove owned connections before recreating them after a test retry.
+ *
+ * AutoRAG connection names are intentionally stable so the selectors can find them. Since
+ * retryableBefore reruns setup before suite cleanup, clear stale secrets from the test project
+ * first to keep connection creation idempotent.
+ */
+export const resetAutoragConnections = (
+  namespace: string,
+  maasSecretName: string,
+  vectorDbSecretName: string,
+): void => {
+  cleanupAutoragSecret(namespace, maasSecretName);
+  cleanupAutoragSecret(namespace, vectorDbSecretName);
 };
 
 /**
