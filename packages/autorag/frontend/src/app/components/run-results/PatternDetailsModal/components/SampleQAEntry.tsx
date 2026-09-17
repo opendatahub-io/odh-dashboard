@@ -9,6 +9,8 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
+  Grid,
+  GridItem,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -16,9 +18,12 @@ import type { AutoRAGEvaluationResult, MetricReference } from '~/app/types/autor
 import {
   formatMetricValue,
   groupMetricsByKey,
+  metricDomSuffix,
   metricKey,
   metricLabel,
 } from '~/app/utilities/metricUtils';
+import { getMetricDescription, groupMetricsByEvaluator } from '~/app/utilities/metricDisplay';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import ScoreRadarChart from './ScoreRadarChart';
 
 export const RetrievedContextSection: React.FC<{
@@ -66,26 +71,59 @@ export const RetrievedContextSection: React.FC<{
 export const MetricScores: React.FC<{
   metrics: AutoRAGEvaluationResult['metrics'];
   testId?: string;
-}> = ({ metrics, testId }) => (
-  <Stack hasGutter data-testid={testId}>
-    {Array.from(groupMetricsByKey(metrics).values()).map((group) => {
-      const metric = group[0];
-      const score = group.length === 1 ? metric.score : undefined;
-      return (
-        <StackItem key={metricKey(metric)}>
+}> = ({ metrics, testId }) => {
+  const groups = groupMetricsByEvaluator(metrics);
+  const columnSpan: 4 | 6 | 12 = groups.length >= 3 ? 4 : groups.length === 2 ? 6 : 12;
+
+  return (
+    <Grid hasGutter data-testid={testId}>
+      {groups.map((group) => (
+        <GridItem
+          key={group.evaluator}
+          span={12}
+          md={columnSpan}
+          data-testid={`qa-metric-group-${group.evaluator}`}
+          className="autorag-qa-metric-group"
+        >
           <Content component={ContentVariants.small}>
-            <strong>
-              {metricLabel(metric)}:{' '}
-              {typeof score === 'number' && Number.isFinite(score)
-                ? formatMetricValue(score)
-                : 'N/A'}
-            </strong>
+            <strong>{group.label}</strong>
           </Content>
-        </StackItem>
-      );
-    })}
-  </Stack>
-);
+          <Stack>
+            {Array.from(groupMetricsByKey(group.metrics).values()).map((metricGroup) => {
+              const metric = metricGroup[0];
+              const description = getMetricDescription(metric.name);
+              const label = metricLabel({ name: metric.name });
+              const rawScore = metricGroup.length === 1 ? metric.score : undefined;
+              const score =
+                typeof rawScore === 'number' && Number.isFinite(rawScore)
+                  ? formatMetricValue(rawScore)
+                  : 'N/A';
+              return (
+                <StackItem key={metricKey(metric)}>
+                  <Content component={ContentVariants.small}>
+                    <strong>
+                      {description ? (
+                        <InlineTooltip
+                          text={label}
+                          tooltip={description}
+                          data-testid={`qa-metric-help-${metricDomSuffix(metric)}`}
+                        />
+                      ) : (
+                        label
+                      )}
+                      {': '}
+                      {score}
+                    </strong>
+                  </Content>
+                </StackItem>
+              );
+            })}
+          </Stack>
+        </GridItem>
+      ))}
+    </Grid>
+  );
+};
 
 const SampleQAEntry: React.FC<{
   result: AutoRAGEvaluationResult;
@@ -100,50 +138,56 @@ const SampleQAEntry: React.FC<{
         <CardTitle>Sample question {questionNumber}</CardTitle>
       </CardHeader>
       <CardBody>
-        <Flex>
-          <FlexItem flex={{ default: 'flex_1' }}>
-            <Content component={ContentVariants.small}>
-              <strong>Question</strong>
-            </Content>
-            <Content component={ContentVariants.p} className="autorag-pre-wrap">
-              {result.question}
-            </Content>
-            <ScoreRadarChart metrics={result.metrics} allMetricNames={allMetricNames} />
+        <Stack hasGutter>
+          <StackItem>
+            <Flex>
+              <FlexItem flex={{ default: 'flex_1' }}>
+                <Content component={ContentVariants.small}>
+                  <strong>Question</strong>
+                </Content>
+                <Content component={ContentVariants.p} className="autorag-pre-wrap">
+                  {result.question}
+                </Content>
+                <ScoreRadarChart metrics={result.metrics} allMetricNames={allMetricNames} />
+              </FlexItem>
+              <FlexItem flex={{ default: 'flex_1' }}>
+                <Content component={ContentVariants.small}>
+                  <strong>Answer</strong>
+                </Content>
+                <Content component={ContentVariants.p} className="autorag-pre-wrap">
+                  {result.answer}
+                </Content>
+                <ExpandableSection
+                  toggleText={`View expected answer (${result.correct_answers.length})`}
+                  isExpanded={isExpanded}
+                  onToggle={(_e, expanded) => setIsExpanded(expanded)}
+                  isIndented
+                  data-testid={`qa-expected-answers-${result.question_id}`}
+                >
+                  <Stack hasGutter>
+                    {result.correct_answers.map((answer, i) => (
+                      <StackItem key={`answer-${result.question_id}-${i}`}>
+                        <Content component={ContentVariants.small}>
+                          <strong>Expected answer {i + 1}</strong>
+                        </Content>
+                        <Content component={ContentVariants.p} className="autorag-pre-wrap">
+                          {answer}
+                        </Content>
+                      </StackItem>
+                    ))}
+                  </Stack>
+                </ExpandableSection>
+                <RetrievedContextSection result={result} />
+              </FlexItem>
+            </Flex>
+          </StackItem>
+          <StackItem>
             <MetricScores
               metrics={result.metrics}
               testId={`qa-metric-scores-${result.question_id}`}
             />
-          </FlexItem>
-          <FlexItem flex={{ default: 'flex_1' }}>
-            <Content component={ContentVariants.small}>
-              <strong>Answer</strong>
-            </Content>
-            <Content component={ContentVariants.p} className="autorag-pre-wrap">
-              {result.answer}
-            </Content>
-            <ExpandableSection
-              toggleText={`View expected answer (${result.correct_answers.length})`}
-              isExpanded={isExpanded}
-              onToggle={(_e, expanded) => setIsExpanded(expanded)}
-              isIndented
-              data-testid={`qa-expected-answers-${result.question_id}`}
-            >
-              <Stack hasGutter>
-                {result.correct_answers.map((answer, i) => (
-                  <StackItem key={`answer-${result.question_id}-${i}`}>
-                    <Content component={ContentVariants.small}>
-                      <strong>Expected answer {i + 1}</strong>
-                    </Content>
-                    <Content component={ContentVariants.p} className="autorag-pre-wrap">
-                      {answer}
-                    </Content>
-                  </StackItem>
-                ))}
-              </Stack>
-            </ExpandableSection>
-            <RetrievedContextSection result={result} />
-          </FlexItem>
-        </Flex>
+          </StackItem>
+        </Stack>
       </CardBody>
     </Card>
   );
