@@ -80,10 +80,16 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const [deleting, setDeleting] = React.useState(false);
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const currentNamespace = React.useRef(namespace);
+  currentNamespace.current = namespace;
 
   React.useEffect(() => {
     setDeleteTarget(undefined);
     setDeleteError(undefined);
+    setVerifying(new Set());
+    setVerificationBaselines(new Map());
+    setVerificationErrors(new Map());
+    setVerificationResponses(new Set());
   }, [namespace]);
 
   const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
@@ -228,6 +234,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     });
 
   const handleVerify = async (id: string) => {
+    const requestNamespace = namespace;
     const connection = connections.find((item) => item.metadata.id === id);
     setVerificationBaselines((current) => new Map(current).set(id, connection?.status.updated_at));
     setVerificationErrors((current) => {
@@ -243,7 +250,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     setVerifying((current) => new Set(current).add(id));
     setActionsFor(undefined);
     try {
-      await verifyConnection('')({}, namespace, id);
+      await verifyConnection('')({}, requestNamespace, id);
+      if (currentNamespace.current !== requestNamespace) {
+        return;
+      }
       refresh();
       setVerificationErrors((current) => {
         const next = new Map(current);
@@ -252,6 +262,9 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       });
       setVerificationResponses((current) => new Set(current).add(id));
     } catch (verificationFailure) {
+      if (currentNamespace.current !== requestNamespace) {
+        return;
+      }
       refresh();
       setVerifying((current) => {
         const next = new Set(current);
