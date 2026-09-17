@@ -1202,6 +1202,19 @@ func TestModelSourceTypeConstants(t *testing.T) {
 }
 
 func TestInstallModelUnmarshalJSON(t *testing.T) {
+	t.Run("ignores a legacy max_tokens property", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o", "model_source_type": "custom_endpoint",
+			"max_tokens": 4096.5
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4o", model.ModelName)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
+	})
 
 	t.Run("should handle custom_endpoint ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
@@ -1239,64 +1252,6 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "model_source_type is required")
-	})
-
-	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.NotNil(t, model.MaxTokens)
-		assert.Equal(t, 4096, *model.MaxTokens)
-	})
-
-	t.Run("should handle max_tokens as float64", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096.0
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.NotNil(t, model.MaxTokens)
-		assert.Equal(t, 4096, *model.MaxTokens)
-	})
-
-	t.Run("should reject fractional max_tokens", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096.5
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "max_tokens must be an integer")
-	})
-
-	t.Run("should handle nil max_tokens", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": null
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.Nil(t, model.MaxTokens)
 	})
 
 	t.Run("should handle maas ModelSourceType", func(t *testing.T) {

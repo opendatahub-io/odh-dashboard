@@ -14,7 +14,6 @@ providers:
       provider_type: remote::vllm
       config:
         base_url: http://llama-32-3b-instruct-predictor.crimson-show.svc.cluster.local/v1
-        max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}
         tls_verify: ${env.VLLM_TLS_VERIFY:=true}
     - provider_id: sentence-transformers
       provider_type: inline::sentence-transformers
@@ -29,7 +28,6 @@ providers:
       provider_type: remote::vllm
       config:
         base_url: http://maas.apps.rosa.crimson-demo.g9ax.p3.openshiftapps.com/llm/facebook-opt-125m-simulated/v1
-        max_tokens: ${env.VLLM_MAX_TOKENS_2:=4096}
         tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   vector_io:
   - provider_id: faiss

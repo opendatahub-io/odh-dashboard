@@ -60,17 +60,10 @@ beforeEach(() => {
 
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
   __esModule: true,
-  default: ({
-    selectedModels,
-    maxTokensMap,
-  }: {
-    selectedModels: AIModel[];
-    maxTokensMap: Map<string, number | undefined>;
-  }) => (
+  default: ({ selectedModels }: { selectedModels: AIModel[] }) => (
     <div data-testid="selected-models">
       {JSON.stringify({
         models: selectedModels.map((m) => m.model_name),
-        maxTokens: Array.from(maxTokensMap.entries()),
       })}
     </div>
   ),
@@ -190,7 +183,6 @@ const getSelectedModelNames = (): string[] => {
   const json = screen.getByTestId('selected-models').textContent || '{}';
   const parsed = JSON.parse(json) as {
     models: string[];
-    maxTokens: [string, number | undefined][];
   };
   return parsed.models;
 };
@@ -374,17 +366,6 @@ describe('ChatbotConfigurationModal ASR model exclusion', () => {
   });
 });
 
-// ─── max_tokens ───────────────────────────────────────────────────────────────
-
-describe('ChatbotConfigurationModal max_tokens support', () => {
-  it('initialises an empty maxTokensMap', () => {
-    renderModal({ allModels: [createAIModel({ model_name: 'test-model' })] });
-    const json = screen.getByTestId('selected-models').textContent || '{}';
-    const parsed = JSON.parse(json) as { maxTokens: [string, number | undefined][] };
-    expect(parsed.maxTokens).toEqual([]);
-  });
-});
-
 // ─── Guardrails ───────────────────────────────────────────────────────────────
 
 describe('ChatbotConfigurationModal guardrails configuration', () => {
@@ -411,6 +392,18 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
         }),
       );
     });
+  });
+
+  it('does not send installation-time max_tokens for an inference model', async () => {
+    const user = userEvent.setup();
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledTimes(1);
+    });
+    expect(mockInstallLSD.mock.calls[0][0].models[0]).not.toHaveProperty('max_tokens');
   });
 
   it('includes enable_guardrails: true when feature flag is enabled', async () => {
@@ -858,6 +851,28 @@ describe('ChatbotConfigurationModal form tracking', () => {
           countPreviousModelsSelected: 1,
         });
       });
+    });
+
+    it('recreates an existing playground without installation-time max_tokens', async () => {
+      const user = userEvent.setup();
+      const mockDeleteLSD = jest.fn().mockResolvedValue({ data: null });
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: true,
+        api: { installLSD: mockInstallLSD, deleteLSD: mockDeleteLSD },
+      });
+
+      renderModalWithContext({ allModels, lsdStatus });
+
+      await user.click(screen.getByRole('button', { name: /configure/i }));
+
+      await waitFor(() => {
+        expect(mockDeleteLSD).toHaveBeenCalledWith({
+          name: 'lsd-playground',
+          preserve_vector_store: true,
+        });
+        expect(mockInstallLSD).toHaveBeenCalledTimes(1);
+      });
+      expect(mockInstallLSD.mock.calls[0][0].models[0]).not.toHaveProperty('max_tokens');
     });
 
     it('fires Playground Config Update cancel event in update mode', async () => {

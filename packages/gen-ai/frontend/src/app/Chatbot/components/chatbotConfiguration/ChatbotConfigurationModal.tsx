@@ -104,9 +104,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     [aiModels],
   );
 
-  const [maxTokensMap, setMaxTokensMap] = React.useState<Map<string, number | undefined>>(
-    new Map(),
-  );
   const [embeddingDimensionMap, setEmbeddingDimensionMap] = React.useState<
     Map<string, number | undefined>
   >(new Map());
@@ -259,13 +256,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     () => lsdStatus?.tracingEnabled ?? false,
   );
 
-  /**
-   * Handles changes to the max_tokens value for a specific model.
-   * Updates the maxTokensMap state with the new value, or removes the entry if undefined.
-   *
-   * @param modelName - The name of the model whose max_tokens value is being changed
-   * @param value - The new max_tokens value, or undefined to remove the limit
-   */
   const handleModelTypeChange = React.useCallback((modelName: string, value: string) => {
     setModelTypeMap((prev) => new Map(prev).set(modelName, value));
   }, []);
@@ -273,21 +263,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const handleEmbeddingDimensionChange = React.useCallback(
     (modelName: string, value: number | undefined) => {
       setEmbeddingDimensionMap((prev) => {
-        const newMap = new Map(prev);
-        if (value === undefined) {
-          newMap.delete(modelName);
-        } else {
-          newMap.set(modelName, value);
-        }
-        return newMap;
-      });
-    },
-    [],
-  );
-
-  const handleMaxTokensChange = React.useCallback(
-    (modelName: string, value: number | undefined) => {
-      setMaxTokensMap((prev) => {
         const newMap = new Map(prev);
         if (value === undefined) {
           newMap.delete(modelName);
@@ -312,8 +287,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             setSelectedModels={setSelectedModels}
             modelTypeMap={modelTypeMap}
             onModelTypeChange={handleModelTypeChange}
-            maxTokensMap={maxTokensMap}
-            onMaxTokensChange={handleMaxTokensChange}
             embeddingDimensionMap={embeddingDimensionMap}
             onEmbeddingDimensionChange={handleEmbeddingDimensionChange}
             lockedModelNames={lockedModelNames}
@@ -341,8 +314,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       selectedModels,
       modelTypeMap,
       handleModelTypeChange,
-      maxTokensMap,
-      handleMaxTokensChange,
       embeddingDimensionMap,
       handleEmbeddingDimensionChange,
       vectorStoresEnabled,
@@ -440,13 +411,11 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               : resolvedType === 'Transcription'
                 ? 'transcription'
                 : 'llm';
-          const maxTokens = maxTokensMap.get(model.model_name);
           const embeddingDimension = embeddingDimensionMap.get(model.model_name);
           return {
             model_name: isMaaS ? model.model_id : model.model_name,
             model_source_type: model.model_source_type,
             model_type: apiModelType,
-            ...(apiModelType === 'llm' && maxTokens !== undefined && { max_tokens: maxTokens }),
             ...(apiModelType === 'embedding' &&
               embeddingDimension !== undefined && { embedding_dimension: embeddingDimension }),
           };
@@ -532,7 +501,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setError(undefined);
     setAlertTitle(undefined);
     setModelTypeMap(new Map());
-    setMaxTokensMap(new Map());
     setEmbeddingDimensionMap(new Map());
     fireFormTrackingEvent(isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,

@@ -70,18 +70,8 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Validate max_tokens and embedding_dimension for each model
+	// Validate embedding_dimension for each model.
 	for i, model := range installRequest.Models {
-		if model.MaxTokens != nil {
-			if *model.MaxTokens < 128 {
-				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): max_tokens must be at least 128, got %d", i, model.ModelName, *model.MaxTokens))
-				return
-			}
-			if *model.MaxTokens > 128000 {
-				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): max_tokens must not exceed 128000, got %d", i, model.ModelName, *model.MaxTokens))
-				return
-			}
-		}
 		if model.EmbeddingDimension != nil {
 			if *model.EmbeddingDimension < 128 {
 				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): embedding_dimension must be at least 128, got %d", i, model.ModelName, *model.EmbeddingDimension))

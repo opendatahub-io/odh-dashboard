@@ -21,10 +21,6 @@ import {
 import { AIModel } from '~/app/types';
 import { convertAIModelToK8sResource } from '~/app/utilities/utils';
 
-export const MaxTokensPopoverContent = (
-  <p>The maximum number of tokens the model can generate per request.</p>
-);
-
 export const EmbeddingDimensionPopoverContent = (
   <>
     <p>Configure the embedding dimension for this embedding model.</p>
@@ -44,8 +40,6 @@ type ChatbotConfigurationTableRowProps = {
   isLocked?: boolean;
   modelType: string;
   onModelTypeChange: (value: string) => void;
-  maxTokens?: number;
-  onMaxTokensChange: (value: number | undefined) => void;
   embeddingDimension?: number;
   onEmbeddingDimensionChange: (value: number | undefined) => void;
 };
@@ -57,8 +51,6 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
   isLocked = false,
   modelType,
   onModelTypeChange,
-  maxTokens,
-  onMaxTokensChange,
   embeddingDimension,
   onEmbeddingDimensionChange,
 }) => {
@@ -66,13 +58,6 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
   const sanitizedModelName = model.model_name.replace(/[^a-zA-Z0-9-]/g, '');
 
   const [isTypeSelectOpen, setIsTypeSelectOpen] = React.useState(false);
-
-  // Validation state for max_tokens
-  const [maxTokensValue, setMaxTokensValue] = React.useState<string>(maxTokens?.toString() || '');
-  const [maxTokensValidated, setMaxTokensValidated] = React.useState<
-    'default' | 'success' | 'warning' | 'error'
-  >('default');
-  const [maxTokensHelperText, setMaxTokensHelperText] = React.useState<string>('');
 
   // Validation state for embedding_dimension (local string for input display)
   const [embeddingDimensionValue, setEmbeddingDimensionValue] = React.useState<string>(
@@ -87,61 +72,6 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
   React.useEffect(() => {
     setEmbeddingDimensionValue(embeddingDimension?.toString() || '');
   }, [embeddingDimension]);
-
-  // Sync with prop changes
-  React.useEffect(() => {
-    setMaxTokensValue(maxTokens?.toString() || '');
-  }, [maxTokens]);
-
-  /**
-   * Handles changes to the max_tokens input field with validation.
-   * Validates that the input is a valid integer within the range [128, 128000].
-   * Updates validation state and calls onMaxTokensChange with the parsed value if valid.
-   *
-   * @param _event - The form event (unused)
-   * @param value - The new input value as a string
-   */
-  const handleMaxTokensChange = React.useCallback(
-    (_event: React.FormEvent<HTMLInputElement>, value: string) => {
-      setMaxTokensValue(value);
-
-      // If empty, clear the value
-      if (value === '') {
-        setMaxTokensValidated('default');
-        setMaxTokensHelperText('');
-        onMaxTokensChange(undefined);
-        return;
-      }
-
-      // Require a whole-number string to avoid parseInt quirks
-      if (!/^\d+$/.test(value)) {
-        setMaxTokensValidated('error');
-        setMaxTokensHelperText('Must be a valid number');
-        return;
-      }
-
-      const numValue = Number(value);
-
-      // Validate range
-      if (numValue < 128) {
-        setMaxTokensValidated('error');
-        setMaxTokensHelperText('Minimum: 128');
-        return;
-      }
-
-      if (numValue > 128000) {
-        setMaxTokensValidated('error');
-        setMaxTokensHelperText('Maximum: 128,000');
-        return;
-      }
-
-      // Valid value
-      setMaxTokensValidated('success');
-      setMaxTokensHelperText('');
-      onMaxTokensChange(numValue);
-    },
-    [onMaxTokensChange],
-  );
 
   const handleEmbeddingDimensionChange = React.useCallback(
     (_event: React.FormEvent<HTMLInputElement>, value: string) => {
@@ -253,41 +183,6 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
               <SelectOption value="Transcription">Transcription</SelectOption>
             </SelectList>
           </Select>
-        ) : (
-          <span style={{ color: 'var(--pf-v6-global--Color--200)' }}>—</span>
-        )}
-      </Td>
-      <Td dataLabel="Max tokens">
-        {isChecked && modelType === 'Inference' ? (
-          <FormGroup fieldId={`max-tokens-${sanitizedModelName}`} style={{ marginBottom: 0 }}>
-            <TextInput
-              id={`max-tokens-${sanitizedModelName}`}
-              type="text"
-              value={maxTokensValue}
-              onChange={handleMaxTokensChange}
-              placeholder=""
-              aria-label={`Max tokens for ${model.display_name}`}
-              data-testid={`${sanitizedModelName}-max-tokens-input`}
-              validated={maxTokensValidated}
-              style={{ width: '110px' }}
-            />
-            {maxTokensValidated === 'error' && maxTokensHelperText && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-                    {maxTokensHelperText}
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-            {maxTokensValidated === 'success' && maxTokensHelperText && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant="success">{maxTokensHelperText}</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-          </FormGroup>
         ) : (
           <span style={{ color: 'var(--pf-v6-global--Color--200)' }}>—</span>
         )}
