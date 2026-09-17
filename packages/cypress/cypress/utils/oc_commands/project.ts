@@ -207,26 +207,15 @@ export const waitForUserProjectAccess = (
   user: string,
   attempts = 15,
   interval = 2000,
-): Cypress.Chainable<Cypress.Exec> => {
-  const permissionCommand = `oc auth can-i list projects --as=${user}`;
-
-  return cy.exec(permissionCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.exitCode !== 0 || result.stdout.trim() !== 'yes') {
-      throw new Error(
-        `${user} cannot list projects; verify the configured cluster-admin permissions`,
-      );
-    }
-
-    return pollUntilSuccess(
-      `oc get projects --as=${user} -o name | grep -qxF 'project.project.openshift.io/${project}'`,
-      `${user} access to ${project}`,
-      {
-        maxAttempts: attempts,
-        pollIntervalMs: interval,
-      },
-    );
-  });
-};
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get projects --as=${user} -o name | grep -qxF 'project.project.openshift.io/${project}'`,
+    `${user} access to ${project}`,
+    {
+      maxAttempts: attempts,
+      pollIntervalMs: interval,
+    },
+  );
 
 export const patchInferenceServiceFinalizers = (
   projectName: string,
