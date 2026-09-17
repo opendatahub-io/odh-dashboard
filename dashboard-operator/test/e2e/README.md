@@ -107,6 +107,15 @@ The suite validates:
 Every reversible fault registers cleanup immediately. Cleanup uses a fresh
 timeout context, calls both the injector cleanup and stateless revert paths, and
 verifies that the injected NetworkPolicy or PDB is absent before proceeding.
+The NetworkPolicy injector also stamps its resource with the experiment TTL.
+If the test process is forcibly terminated, remove any NetworkPolicy or PDB
+leftovers before retrying:
+
+```bash
+oc delete networkpolicy,poddisruptionbudget \
+  -n "$TEST_OPERATOR_NAMESPACE" \
+  -l app.kubernetes.io/managed-by=operator-chaos
+```
 
 ## Compile and Run in a Container
 

@@ -6,11 +6,11 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	chaosv1alpha1 "github.com/opendatahub-io/operator-chaos/api/v1alpha1"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -26,26 +26,27 @@ func TestE2EOperatorChaos(t *testing.T) {
 		k8sClient, target.namespace, target.deployment.Name, chaosRecoveryTimeout,
 	))
 	require.NoError(t, assertDashboardAndOperandsHealthy())
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	require.NoError(t, err)
 
 	t.Run("PodKill", func(t *testing.T) {
 		experiment, err := loadLiveChaosExperiment("pod-kill.yaml", target)
 		require.NoError(t, err)
 		require.Equal(t, chaosv1alpha1.PodKill, experiment.Spec.Injection.Type)
 
-		original, err := waitForReadyControllerPod(target, chaosRecoveryTimeout)
+		_, err = waitForReadyControllerPod(target, chaosRecoveryTimeout)
 		require.NoError(t, err)
-		baselineUIDs, err := controllerPodUIDs(context.Background(), target)
+		baseline, err := captureControllerPodBaseline(context.Background(), target)
 		require.NoError(t, err)
-		identity := chaosPodIdentity{name: original.Name}
 
 		fault, events, err := startChaosFault(context.Background(), experiment, target.namespace)
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, fault.revert()) })
-		require.True(t, injectionTargetedPod(events, identity), "PodKill must report the controller pod it deleted")
+		require.True(t, injectionTargetedBaselinePod(events, baseline.names), "PodKill must report a pre-injection controller pod it deleted")
 
-		replacement, err := waitForReplacementControllerPod(target, baselineUIDs, experiment.ResolvedRecoveryTimeout())
+		replacement, err := waitForReplacementControllerPod(target, baseline.uids, experiment.ResolvedRecoveryTimeout())
 		require.NoError(t, err)
-		t.Logf("controller recovered from pod kill: oldUID=%s newUID=%s", original.UID, replacement.UID)
+		t.Logf("controller recovered from pod kill: baselineUIDs=%d newUID=%s", len(baseline.uids), replacement.UID)
 		require.NoError(t, fault.revert())
 		require.NoError(t, waitForDeploymentReady(k8sClient, target.namespace, target.deployment.Name, chaosRecoveryTimeout))
 		require.NoError(t, assertDashboardAndOperandsHealthy())
@@ -71,7 +72,7 @@ func TestE2EOperatorChaos(t *testing.T) {
 		require.NoError(t, waitForChaosNetworkPolicy(events[0].Target, target.namespace, true))
 		waitForNetworkPolicyEnforcement()
 
-		require.NoError(t, waitForDeploymentUnready(target.namespace, target.deployment.Name, time.Minute),
+		require.NoError(t, waitForDeploymentUnready(target.namespace, target.deployment.Name, experiment.ResolvedRecoveryTimeout()),
 			"API-aware controller readiness must report the active partition")
 		require.NoError(t, removeOwnedCoreDeploymentLabel(context.Background(), coreKey))
 		require.NoError(t, assertDeploymentLabelAbsentFor(coreKey, partitionObservationTime),
@@ -101,7 +102,7 @@ func TestE2EOperatorChaos(t *testing.T) {
 		require.NotEmpty(t, pdbName)
 		require.NoError(t, waitForChaosPDB(pdbName, target.namespace, true))
 
-		err = evictControllerPod(context.Background(), original)
+		err = evictControllerPod(context.Background(), clientset, original)
 		require.Error(t, err, "controller eviction must be blocked while the chaos PDB is active")
 		require.True(t, evictionBlocked(err), "expected PDB denial/HTTP 429, got %v", err)
 		unchanged := &corev1.Pod{}
