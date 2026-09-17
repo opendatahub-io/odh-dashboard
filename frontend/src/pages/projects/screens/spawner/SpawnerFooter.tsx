@@ -134,9 +134,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       hardwareProfileFormData.selectedProfile?.spec.scheduling?.kueue?.localQueueName ||
       editNotebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
     const tep: FormTrackingEventProperties = {
-      containerResources: Object.entries(podSpecOptions.resources || {})
-        .map(([key, value]) =>
-          Object.entries(value).map(([k, v]) => `${key}.${k}: ${v?.toString() || ''}`),
+      // Only requests and limits; claims are objects and do not stringify.
+      containerResources: (['requests', 'limits'] as const)
+        .filter((key) => podSpecOptions.resources?.[key])
+        .map((key) =>
+          Object.entries(podSpecOptions.resources?.[key] || {}).map(
+            ([k, v]) => `${key}.${k}: ${v?.toString() || ''}`,
+          ),
         )
         .join(', '),
       lastSelectedImage: image.imageVersion?.from
