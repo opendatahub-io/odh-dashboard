@@ -2,7 +2,6 @@ import React from 'react';
 import { Alert, Button, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import type { DocumentAttachment } from '~/app/types';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
@@ -71,7 +70,6 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           // eslint-disable-next-line jsx-a11y/aria-role
           role="bot"
           name={modelDisplayName}
-          avatar={botAvatar}
           content={placeholderContent}
           data-testid="chatbot-placeholder-message"
           style={{ cursor: 'default', pointerEvents: 'none' }}
