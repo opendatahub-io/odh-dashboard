@@ -1,5 +1,5 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
-import { waitForDspaReady } from './oc_commands/dspa';
+import { waitForAutoXDspaReady } from './oc_commands/autoX';
 import { waitForManagedPipelines } from './autoXPipelines';
 import { getVectorDatabaseConnection } from './oc_commands/autoragInfra';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
@@ -241,8 +241,8 @@ export const createAutoragConnections = (
   const connectionOwnership = ownership;
   cy.step('Open AutoRAG run configuration');
   interceptSimulatorMaaSModels(projectName, testData, maasFixture);
-  cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-  waitForDspaReady(projectName);
+  cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
+  waitForAutoXDspaReady(projectName);
   waitForManagedPipelines(projectName);
   autoragExperimentsPage.visit(projectName);
   autoragExperimentsPage.findAnyCreateRunButton({ timeout: 120000 }).click();
@@ -296,8 +296,8 @@ export const configureAutoragRun = (
   const { connectionOwnership } = options;
   cy.step('Login and wait for pipeline server');
   interceptSimulatorMaaSModels(projectName, testData, maasFixture);
-  cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-  waitForDspaReady(projectName);
+  cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
+  waitForAutoXDspaReady(projectName);
   waitForManagedPipelines(projectName);
 
   cy.step('Navigate to AutoRAG experiments page');

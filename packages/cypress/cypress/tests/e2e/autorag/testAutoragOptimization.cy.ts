@@ -5,7 +5,6 @@ import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import {
   cleanupAutoragInfrastructure,
   provisionVectorDatabase,
@@ -34,7 +33,6 @@ describe('AutoRAG Optimization E2E', () => {
     maasSecretCreated: false,
     vectorDbSecretCreated: false,
   };
-  let autoragWasEnabled = false;
   const getMaaSFixture = (): AutoragMaaSFixture => {
     if (!maasFixture) {
       throw new Error('AutoRAG MaaS fixture was not resolved.');
@@ -49,12 +47,6 @@ describe('AutoRAG Optimization E2E', () => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
-      .then(() =>
-        isAutoragEnabled().then((wasEnabled) => {
-          autoragWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutoragEnabled(true))
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
         maasFixture = fixture;
@@ -64,10 +56,6 @@ describe('AutoRAG Optimization E2E', () => {
   );
 
   after(() => {
-    if (!autoragWasEnabled) {
-      setAutoragEnabled(false);
-    }
-
     cleanupAutoragInfrastructure(
       projectName,
       testData.maasSecretName,
@@ -123,7 +111,6 @@ describe('AutoRAG Optimization completion results E2E', () => {
     maasSecretCreated: false,
     vectorDbSecretCreated: false,
   };
-  let autoragWasEnabled = false;
   const getMaaSFixture = (): AutoragMaaSFixture => {
     if (!maasFixture) {
       throw new Error('AutoRAG MaaS fixture was not resolved.');
@@ -138,12 +125,6 @@ describe('AutoRAG Optimization completion results E2E', () => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${completionUuid}`;
       })
-      .then(() =>
-        isAutoragEnabled().then((wasEnabled) => {
-          autoragWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutoragEnabled(true))
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
         maasFixture = fixture;
@@ -153,10 +134,6 @@ describe('AutoRAG Optimization completion results E2E', () => {
   );
 
   after(() => {
-    if (!autoragWasEnabled) {
-      setAutoragEnabled(false);
-    }
-
     cleanupAutoragInfrastructure(
       projectName,
       testData.maasSecretName,

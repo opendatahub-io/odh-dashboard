@@ -6,7 +6,6 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import {
   cleanupAutoragInfrastructure,
   provisionVectorDatabase,
@@ -35,7 +34,6 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
     maasSecretCreated: false,
     vectorDbSecretCreated: false,
   };
-  let autoragWasEnabled = false;
   const getMaaSFixture = (): AutoragMaaSFixture => {
     if (!maasFixture) {
       throw new Error('AutoRAG MaaS fixture was not resolved.');
@@ -50,12 +48,6 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
-      .then(() =>
-        isAutoragEnabled().then((wasEnabled) => {
-          autoragWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutoragEnabled(true))
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
         maasFixture = fixture;
@@ -69,9 +61,6 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   );
 
   after(() => {
-    if (!autoragWasEnabled) {
-      setAutoragEnabled(false);
-    }
     cleanupAutoragInfrastructure(
       projectName,
       testData.maasSecretName,

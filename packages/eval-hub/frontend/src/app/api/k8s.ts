@@ -426,6 +426,14 @@ export const isLogApiUnavailable = (error: Error): boolean =>
 export const isLogServerError = (error: Error): boolean =>
   error instanceof LogFetchError && error.statusCode >= 500;
 
+export type EvaluationJobLogsResponse = {
+  logs: string;
+  truncated: boolean;
+};
+
+const wasLogResponseTruncated = (response: Response): boolean =>
+  response.headers.get('X-Log-Truncated')?.trim().toLowerCase() === 'true';
+
 export const getEvaluationJobLogs =
   (
     hostPath: string,
@@ -433,7 +441,7 @@ export const getEvaluationJobLogs =
     jobId: string,
     params?: { tail_lines?: number; timestamps?: boolean; since_seconds?: number },
   ) =>
-  async (signal?: AbortSignal): Promise<string> => {
+  async (signal?: AbortSignal): Promise<EvaluationJobLogsResponse> => {
     const queryParams = new URLSearchParams({ namespace });
     if (params?.tail_lines != null) {
       queryParams.set('tail_lines', String(params.tail_lines));
@@ -459,7 +467,10 @@ export const getEvaluationJobLogs =
         `Unexpected Content-Type: ${contentType ?? 'missing'}`,
       );
     }
-    return response.text();
+    return {
+      logs: await response.text(),
+      truncated: wasLogResponseTruncated(response),
+    };
   };
 
 export const getEvaluationJobBenchmarkLogs =
@@ -470,7 +481,7 @@ export const getEvaluationJobBenchmarkLogs =
     benchmarkIndex: number,
     params?: { tail_lines?: number; timestamps?: boolean; since_seconds?: number },
   ) =>
-  async (signal?: AbortSignal): Promise<string> => {
+  async (signal?: AbortSignal): Promise<EvaluationJobLogsResponse> => {
     const queryParams = new URLSearchParams({ namespace });
     if (params?.tail_lines != null) {
       queryParams.set('tail_lines', String(params.tail_lines));
@@ -496,7 +507,10 @@ export const getEvaluationJobBenchmarkLogs =
         `Unexpected Content-Type: ${contentType ?? 'missing'}`,
       );
     }
-    return response.text();
+    return {
+      logs: await response.text(),
+      truncated: wasLogResponseTruncated(response),
+    };
   };
 
 export const verifyConnection =

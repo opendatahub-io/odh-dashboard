@@ -94,12 +94,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Allow full log retrieval to complete within the EvalHub client's
+	// two-minute timeout, with headroom to write the response.
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		WriteTimeout: 3 * time.Minute,
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 

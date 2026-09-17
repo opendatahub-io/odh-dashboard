@@ -133,6 +133,16 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
+      required: [MODEL_AS_SERVICE_ID],
+    },
+    properties: {
+      path: '/ai-hub/models/deployments/external/:namespace/:modelName/edit',
+      component: () => import('./ExternalModelsEditWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
       required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
     properties: {
