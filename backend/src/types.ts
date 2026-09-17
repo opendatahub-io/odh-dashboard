@@ -966,6 +966,9 @@ export type HardwareProfileKind = K8sResourceCommon & {
       resourceType?: string;
     }[];
     nodeSelector?: NodeSelector;
+    dra?: {
+      resourceClaimTemplateName: string;
+    };
   };
 };
 

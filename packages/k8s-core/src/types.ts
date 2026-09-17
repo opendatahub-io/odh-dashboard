@@ -16,6 +16,7 @@ export type ContainerResources = {
     cpu?: string | number;
     memory?: string;
   };
+  claims?: { name: string; request?: string }[];
 };
 
 export type EnvironmentVariable = EitherNotBoth<

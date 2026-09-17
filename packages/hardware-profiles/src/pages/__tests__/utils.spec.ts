@@ -14,7 +14,10 @@ import { mockHardwareProfile } from '../../__mocks__/mockHardwareProfile';
 import {
   determineIdentifierUnit,
   filterRecognizedVisibility,
+  generateWarningForHardwareProfiles,
   getClusterQueueNameFromLocalQueues,
+  HardwareProfileBannerWarningTitles,
+  isDRAHardwareProfile,
   isHardwareProfileIdentifierValid,
   isHardwareProfileWithAcceleratorPrefix,
   isNvidiaHardwareProfile,
@@ -650,5 +653,36 @@ describe('prioritizeHardwareProfiles', () => {
       'large-profile',
       'small-profile',
     ]);
+  });
+});
+
+describe('isDRAHardwareProfile', () => {
+  it('should return true when the profile references a ResourceClaimTemplate', () => {
+    expect(
+      isDRAHardwareProfile(
+        mockHardwareProfile({ dra: { resourceClaimTemplateName: 'single-gpu' } }),
+      ),
+    ).toBe(true);
+  });
+
+  it('should return false when the profile has no dra field', () => {
+    expect(isDRAHardwareProfile(mockHardwareProfile({}))).toBe(false);
+  });
+});
+
+describe('generateWarningForHardwareProfiles', () => {
+  it('should not count enabled DRA profiles as usable profiles', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const disabledProfile = mockHardwareProfile({
+      name: 'disabled-profile',
+      annotations: { 'opendatahub.io/disabled': 'true' },
+    });
+
+    expect(generateWarningForHardwareProfiles([draProfile, disabledProfile])?.title).toBe(
+      HardwareProfileBannerWarningTitles.ALL_DISABLED,
+    );
   });
 });

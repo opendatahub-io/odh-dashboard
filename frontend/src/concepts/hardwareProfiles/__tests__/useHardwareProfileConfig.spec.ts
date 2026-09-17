@@ -152,6 +152,155 @@ describe('useHardwareProfileConfig', () => {
     expect(state.initialHardwareProfile).toBe(hardwareProfile);
   });
 
+  it.each([
+    ['empty resources', {}],
+    ['no resources', undefined],
+  ])(
+    'should keep an assigned DRA hardware profile with the existing settings, with %s',
+    (_, resources) => {
+      const draProfile = mockHardwareProfile({
+        name: 'dra-profile',
+        identifiers: [],
+        dra: { resourceClaimTemplateName: 'single-gpu' },
+      });
+      const regularProfile = mockHardwareProfile({ name: 'regular-profile' });
+      const { filterHardwareProfileByFeatureVisibility } = jest.requireActual<
+        typeof useHardwareProfilesModule
+      >('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
+      mockUseHardwareProfiles.mockImplementation((visibility, _namespace, options) => ({
+        projectProfiles: [[], true, undefined],
+        globalProfiles: [
+          filterHardwareProfileByFeatureVisibility(
+            [regularProfile, draProfile],
+            visibility,
+            options?.includeDRA,
+          ),
+          true,
+          undefined,
+        ],
+      }));
+
+      const renderResult = testHook(useHardwareProfileConfig)(
+        'dra-profile',
+        resources,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        draProfile.metadata.namespace,
+      );
+      const state = renderResult.result.current;
+
+      expect(state.formData).toEqual({
+        selectedProfile: draProfile,
+        useExistingSettings: true,
+        resources: { requests: {}, limits: {} },
+      });
+      expect(state.initialHardwareProfile).toBe(draProfile);
+      expect(state.isFormDataValid).toBe(true);
+    },
+  );
+
+  it('should not match a workload that has resource claims to a hardware profile', () => {
+    const regularProfile = mockHardwareProfile({
+      name: 'regular-profile',
+      identifiers: [
+        {
+          identifier: 'cpu',
+          minCount: '100m',
+          maxCount: '4',
+          displayName: 'CPU',
+          defaultCount: '1',
+        },
+        {
+          identifier: 'memory',
+          minCount: '100Mi',
+          maxCount: '4Gi',
+          displayName: 'Memory',
+          defaultCount: '1Gi',
+        },
+      ],
+      tolerations: [{ key: 'key1', value: 'value1' }],
+      nodeSelector: { node: 'value1' },
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[regularProfile], true, undefined],
+    });
+
+    const resources = {
+      requests: { cpu: '1', memory: '1Gi' },
+      limits: { cpu: '2', memory: '2Gi' },
+    };
+    const tolerations = [{ key: 'key1', value: 'value1' }];
+    const nodeSelector = { node: 'value1' };
+
+    const matched = testHook(useHardwareProfileConfig)(
+      undefined,
+      resources,
+      tolerations,
+      nodeSelector,
+    );
+    expect(matched.result.current.formData.selectedProfile).toBe(regularProfile);
+
+    const withClaims = testHook(useHardwareProfileConfig)(
+      undefined,
+      { ...resources, claims: [{ name: 'gpu' }] },
+      tolerations,
+      nodeSelector,
+    );
+    expect(withClaims.result.current.formData.selectedProfile).toBeUndefined();
+    expect(withClaims.result.current.formData.useExistingSettings).toBe(true);
+    expect(withClaims.result.current.formData.resources).toEqual({
+      ...resources,
+      claims: [{ name: 'gpu' }],
+    });
+  });
+
+  it('should not auto-select or match a DRA hardware profile', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      identifiers: [
+        {
+          identifier: 'cpu',
+          minCount: '100m',
+          maxCount: '4',
+          displayName: 'CPU',
+          defaultCount: '1',
+        },
+        {
+          identifier: 'memory',
+          minCount: '100Mi',
+          maxCount: '4Gi',
+          displayName: 'Memory',
+          defaultCount: '1Gi',
+        },
+      ],
+      tolerations: [{ key: 'key1', value: 'value1' }],
+      nodeSelector: { node: 'value1' },
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[draProfile], true, undefined],
+    });
+
+    const newWorkload = testHook(useHardwareProfileConfig)();
+    expect(newWorkload.result.current.formData.selectedProfile).toBeUndefined();
+
+    const unassignedWorkload = testHook(useHardwareProfileConfig)(
+      undefined,
+      {
+        requests: { cpu: '1', memory: '1Gi' },
+        limits: { cpu: '2', memory: '2Gi' },
+      },
+      [{ key: 'key1', value: 'value1' }],
+      { node: 'value1' },
+    );
+    expect(unassignedWorkload.result.current.formData.selectedProfile).toBeUndefined();
+    expect(unassignedWorkload.result.current.formData.useExistingSettings).toBe(true);
+  });
+
   it('should handle hardware profiles not being available', () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,

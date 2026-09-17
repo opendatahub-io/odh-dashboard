@@ -31,6 +31,7 @@ import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/search
 import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
+  isDRAHardwareProfile,
   isHardwareProfileEnabled,
   orderHardwareProfiles,
   prioritizeHardwareProfiles,
@@ -177,6 +178,14 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     [availableLocalQueueNames],
   );
 
+  const keepInitialProfileInOptions =
+    !!initialHardwareProfile &&
+    (!isDRAHardwareProfile(initialHardwareProfile) ||
+      (hardwareProfileConfig.selectedProfile?.metadata.name ===
+        initialHardwareProfile.metadata.name &&
+        hardwareProfileConfig.selectedProfile.metadata.namespace ===
+          initialHardwareProfile.metadata.namespace));
+
   const options = React.useMemo(() => {
     const enabledProfiles = orderProfiles(
       filterProfilesByKueue(
@@ -186,7 +195,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       ),
     );
 
-    if (initialHardwareProfile && !enabledProfiles.includes(initialHardwareProfile)) {
+    if (
+      initialHardwareProfile &&
+      keepInitialProfileInOptions &&
+      !enabledProfiles.includes(initialHardwareProfile)
+    ) {
       enabledProfiles.push(initialHardwareProfile);
     }
 
@@ -260,6 +273,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   }, [
     hardwareProfiles,
     initialHardwareProfile,
+    keepInitialProfileInOptions,
     allowExistingSettings,
     isHardwareProfileSupported,
     isQueueMissing,
@@ -328,16 +342,24 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     );
   };
 
-  const processHardwareProfilesForSelection = (profiles: HardwareProfileKind[]) => {
+  const processHardwareProfilesForSelection = (
+    profiles: HardwareProfileKind[],
+    isProjectGroup: boolean,
+  ) => {
     const filteredProfiles = filterProfilesByKueue(
       profiles.filter(isHardwareProfileEnabled),
       kueueFilteringState,
       availableLocalQueueNames,
     );
-    // Rescue only in the group the profile came from, to avoid showing it in both sections.
+    // Rescue only in the group the profile belongs to, to avoid showing it in both sections. The
+    // namespace decides the group, as a profile hidden from selection is in neither list.
+    const initialBelongsToGroup = initialHardwareProfile
+      ? (initialHardwareProfile.metadata.namespace === project) === isProjectGroup
+      : false;
     if (
       initialHardwareProfile &&
-      profiles.includes(initialHardwareProfile) &&
+      initialBelongsToGroup &&
+      keepInitialProfileInOptions &&
       !filteredProfiles.includes(initialHardwareProfile)
     ) {
       filteredProfiles.push(initialHardwareProfile);
@@ -351,9 +373,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const projectHardwareProfiles = processHardwareProfilesForSelection(
     currentProjectHardwareProfiles,
+    true,
   );
 
-  const globalHardwareProfiles = processHardwareProfilesForSelection(hardwareProfiles);
+  const globalHardwareProfiles = processHardwareProfilesForSelection(hardwareProfiles, false);
 
   if (isProjectScoped && !currentProjectHardwareProfilesLoaded && !hardwareProfilesLoaded) {
     return <Skeleton />;
@@ -382,7 +405,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     <>
       <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
         <FlexItem grow={{ default: 'grow' }}>
-          {isProjectScoped && currentProjectHardwareProfiles.length > 0 ? (
+          {isProjectScoped &&
+          (currentProjectHardwareProfiles.length > 0 ||
+            (!!project &&
+              hardwareProfileConfig.selectedProfile?.metadata.namespace === project)) ? (
             <>
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
@@ -508,7 +534,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                       if (key === EXISTING_SETTINGS_KEY) {
                         onChange(undefined);
                       } else {
-                        const profile = hardwareProfiles.find((hp) => hp.metadata.name === key);
+                        const profile =
+                          hardwareProfiles.find((hp) => hp.metadata.name === key) ??
+                          (initialHardwareProfile?.metadata.name === key
+                            ? initialHardwareProfile
+                            : undefined);
                         if (profile) {
                           onChange(profile);
                         }
