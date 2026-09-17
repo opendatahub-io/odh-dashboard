@@ -526,6 +526,10 @@ class ManageSourcePage {
   findPreviewGatedAccessWarningIcon(modelName: string) {
     return this.findPreviewModelRow(modelName).findByLabelText('Gated access warning');
   }
+
+  findSourceDisabledWarning() {
+    return cy.findByTestId('source-disabled-warning');
+  }
 }
 
 export const modelCatalogSettings = new ModelCatalogSettings();
