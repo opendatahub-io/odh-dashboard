@@ -209,6 +209,23 @@ describe('ChatbotMessages', () => {
       expect(screen.getByTestId('tool-calls')).toHaveAttribute('data-expanded', 'false');
     });
 
+    it('should only apply loading state to the latest message', () => {
+      render(
+        <ChatbotMessages
+          messageList={[
+            { id: 'msg-1', role: 'bot', content: 'First answer', toolCalls },
+            { id: 'msg-2', role: 'bot', content: '', toolCalls },
+          ]}
+          scrollRef={scrollRef}
+          isLoading
+        />,
+      );
+
+      const toolCallToggles = screen.getAllByTestId('tool-calls');
+      expect(toolCallToggles[0]).toHaveAttribute('data-expanded', 'false');
+      expect(toolCallToggles[1]).toHaveAttribute('data-expanded', 'true');
+    });
+
     it('should display tool calls after answer text finishes streaming', () => {
       render(
         <ChatbotMessages

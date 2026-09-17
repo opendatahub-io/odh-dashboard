@@ -110,7 +110,8 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
 
         // Add file search results, metrics, and trace link to endContent (if present and no error)
         const traceId = metrics?.trace_id || errorClassification?.traceId;
-        const isResponseComplete = message.isToolCallStreamComplete ?? !isLoading;
+        const isResponseComplete =
+          message.isToolCallStreamComplete ?? (index < messageList.length - 1 || !isLoading);
         const isToolCallPhase = !isResponseComplete && !isTextStreaming;
         const responseDetailIdPrefix = `response-detail-${message.id ?? String(index)}`;
         const toolsDetailIds = {
