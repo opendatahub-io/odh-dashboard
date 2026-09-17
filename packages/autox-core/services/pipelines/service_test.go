@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"testing"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
@@ -1143,8 +1144,60 @@ func TestService_CreatePipelineRun_RefreshesStalePipelineVersion(t *testing.T) {
 	if createCalls != 2 || listPipelinesCalls != 1 || listVersionsCalls != 1 {
 		t.Errorf("calls = create:%d listPipelines:%d listVersions:%d, want 2/1/1", createCalls, listPipelinesCalls, listVersionsCalls)
 	}
-	if _, refreshed, ok := svc.pipelineCache.getCachedPipeline("test-ns", "pipeline-1", "fresh-version"); !ok || refreshed.PipelineVersionName != "1.0" {
-		t.Error("expected refreshed pipeline version to replace the stale cache entry")
+	if _, ok := svc.pipelineCache.get("test-ns"); ok {
+		t.Error("expected stale-version recovery to leave the namespace cache empty")
+	}
+}
+
+func TestService_CreatePipelineRun_StaleRecoveryLeavesFullDiscoveryToNextCall(t *testing.T) {
+	createCalls := 0
+	listPipelinesCalls := 0
+	client := &mockPipelineClient{
+		createPipelineRunFn: func(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+			createCalls++
+			if createCalls == 1 {
+				return nil, fmt.Errorf("%w: PipelineVersion stale-version not found", ErrPipelineVersionNotFound)
+			}
+			return &PipelineRun{RunID: "run-1"}, nil
+		},
+		listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+			listPipelinesCalls++
+			if strings.Contains(filter, "pipeline-b") {
+				return &PipelinesResponse{Pipelines: []Pipeline{{PipelineID: "pipeline-b", DisplayName: "pipeline-b"}}}, nil
+			}
+			return &PipelinesResponse{Pipelines: []Pipeline{{PipelineID: "pipeline-a", DisplayName: "pipeline-a"}}}, nil
+		},
+		listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+			return &PipelineVersionsResponse{PipelineVersions: []PipelineVersion{{
+				PipelineVersionID: "fresh-" + pipelineID,
+				DisplayName:       "1.0",
+			}}}, nil
+		},
+	}
+	svc := newTestServiceWithMock(client)
+	svc.pipelineCache.set("test-ns", map[string]*DiscoveredPipeline{
+		"type-a": {PipelineID: "pipeline-a", PipelineVersionID: "stale-version", PipelineVersionName: "1.0", PipelineName: "pipeline-a"},
+	})
+
+	_, err := svc.CreatePipelineRun(testCtx(), "test-ns", &CreatePipelineRunInput{
+		PipelineVersionReference: &PipelineVersionReference{PipelineID: "pipeline-a", PipelineVersionID: "stale-version"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := svc.DiscoverNamedPipelines(testCtx(), "test-ns", "1.0", map[string]string{
+		"type-a": "pipeline-a",
+		"type-b": "pipeline-b",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result) != 2 || result["type-a"] == nil || result["type-b"] == nil {
+		t.Errorf("expected both named pipelines after recovery, got %+v", result)
+	}
+	if listPipelinesCalls != 3 {
+		t.Errorf("list pipelines calls = %d, want recovery plus both next-discovery calls", listPipelinesCalls)
 	}
 }
 

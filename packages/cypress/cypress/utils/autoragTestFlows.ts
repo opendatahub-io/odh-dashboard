@@ -238,26 +238,22 @@ export const createAutoragConnections = (
 
   cy.step('Create MaaS connection through the dashboard');
   createMaaSConnection(testData, maasFixture);
+  connectionOwnership.maasSecretCreated = true;
   autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
   autoragConfigurePage
     .findMaasSecretSelector()
     .find('input')
     .should('have.value', testData.maasSecretName);
-  cy.then(() => {
-    connectionOwnership.maasSecretCreated = true;
-  });
 
   cy.step('Create PGVector connection through the dashboard');
   autoragConfigurePage.findNextButton().click();
   autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
   createVectorDbConnection(testData, projectName);
+  connectionOwnership.vectorDbSecretCreated = true;
   autoragConfigurePage
     .findVectorStoreSelector()
     .find('input')
     .should('have.value', testData.vectorDbSecretName);
-  cy.then(() => {
-    connectionOwnership.vectorDbSecretCreated = true;
-  });
 };
 
 /**
@@ -300,6 +296,9 @@ export const configureAutoragRun = (
   if (options.createConnections) {
     cy.step('Create MaaS connection through the dashboard');
     createMaaSConnection(testData, maasFixture);
+    if (connectionOwnership) {
+      connectionOwnership.maasSecretCreated = true;
+    }
   }
 
   cy.step('Select MaaS secret');
@@ -319,12 +318,6 @@ export const configureAutoragRun = (
       .type(testData.maasSecretName);
     autoragConfigurePage.findSelectOption(testData.maasSecretName).click();
   }
-  if (options.createConnections && connectionOwnership) {
-    cy.then(() => {
-      connectionOwnership.maasSecretCreated = true;
-    });
-  }
-
   cy.step('Click Next to go to Configure step');
   autoragConfigurePage.findNextButton().click();
 
@@ -397,6 +390,9 @@ export const configureAutoragRun = (
   if (options.createConnections) {
     cy.step('Create PGVector connection through the dashboard');
     createVectorDbConnection(testData, projectName);
+    if (connectionOwnership) {
+      connectionOwnership.vectorDbSecretCreated = true;
+    }
   }
   autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
   if (options.createConnections) {
@@ -413,12 +409,6 @@ export const configureAutoragRun = (
       .type(testData.vectorDbSecretName);
     autoragConfigurePage.findSelectOption(testData.vectorDbSecretName).click();
   }
-  if (options.createConnections && connectionOwnership) {
-    cy.then(() => {
-      connectionOwnership.vectorDbSecretCreated = true;
-    });
-  }
-
   cy.step('Select the configured hosted generation and embedding models');
   autoragConfigurePage.findSelectModelsButton().click();
   autoragConfigurePage.findExperimentSettingsModal().should('be.visible');

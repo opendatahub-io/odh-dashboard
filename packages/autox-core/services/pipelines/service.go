@@ -111,7 +111,7 @@ func (s *service) CreatePipelineRun(ctx context.Context, namespace string, input
 	run, err := s.Client.CreatePipelineRun(ctx, baseURL, input)
 	if err != nil {
 		if errors.Is(err, ErrPipelineVersionNotFound) && input != nil && input.PipelineVersionReference != nil {
-			cacheKey, cached, ok := s.pipelineCache.getCachedPipeline(
+			_, cached, ok := s.pipelineCache.getCachedPipeline(
 				namespace,
 				input.PipelineVersionReference.PipelineID,
 				input.PipelineVersionReference.PipelineVersionID,
@@ -128,7 +128,6 @@ func (s *service) CreatePipelineRun(ctx context.Context, namespace string, input
 					return nil, discoverErr
 				}
 				if refreshed != nil {
-					s.pipelineCache.set(namespace, map[string]*DiscoveredPipeline{cacheKey: refreshed})
 					retryInput := *input
 					retryReference := *input.PipelineVersionReference
 					retryReference.PipelineID = refreshed.PipelineID
