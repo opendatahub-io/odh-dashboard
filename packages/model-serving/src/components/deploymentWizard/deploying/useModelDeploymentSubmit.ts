@@ -39,6 +39,7 @@ export const useModelDeploymentSubmit = (
   onSave: (overwrite?: boolean) => Promise<void>;
   onOverwrite?: () => Promise<void>;
   isLoading: boolean;
+  formDataExtensionLoaded: boolean;
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
@@ -69,7 +70,7 @@ export const useModelDeploymentSubmit = (
         : undefined),
     [existingDeployment, deployMethod, resources.model, resources.server],
   );
-  const [formDataExtension] = useResolvedDeploymentExtension(
+  const [formDataExtension, formDataExtensionLoaded] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
     deploymentForExtension,
   );
@@ -114,7 +115,8 @@ export const useModelDeploymentSubmit = (
           !deployMethod ||
           !applyExtensionsLoaded ||
           !preDeployExtensionsLoaded ||
-          !postDeployExtensionsLoaded
+          !postDeployExtensionsLoaded ||
+          !formDataExtensionLoaded
         ) {
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
@@ -177,6 +179,7 @@ export const useModelDeploymentSubmit = (
       applyExtensionsLoaded,
       preDeployExtensionsLoaded,
       postDeployExtensionsLoaded,
+      formDataExtensionLoaded,
       formState,
       secretOps,
       resources,
@@ -198,9 +201,16 @@ export const useModelDeploymentSubmit = (
       onSave,
       onOverwrite: deployMethod?.properties.supportsOverwrite ? () => onSave(true) : undefined,
       isLoading,
+      formDataExtensionLoaded,
       submitError,
       clearSubmitError: () => setSubmitError(null),
     }),
-    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError],
+    [
+      onSave,
+      deployMethod?.properties.supportsOverwrite,
+      isLoading,
+      formDataExtensionLoaded,
+      submitError,
+    ],
   );
 };
