@@ -3,8 +3,8 @@
 
 // Modules -------------------------------------------------------------------->
 
-import React, { useState, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLinkClickHandler, useLocation } from 'react-router-dom';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes.ts';
 import emptyStateImage from '~/images/RH-API-Illustration-Gray_20-2024_07-RGB.svg';
 import {
@@ -130,6 +130,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType 
         selectableActions={{
           to: detailsPath,
           selectableActionAriaLabelledby: `${rootId}-card-title`,
+          selectableActionProps: { onClick: useLinkClickHandler.bind(null, detailsPath) },
         }}
       >
         <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
@@ -155,8 +156,8 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
   const [selectedFilters, setSelectedFilters] =
     React.useState<SelectedFilters>(initialSelectedFilters);
   const [searchTerm, setSearchTerm] = React.useState<string>('');
-  const [showOnlyInstalledToggle, setShowOnlyInstalledToggle] = React.useState<boolean>(false);
-  const [selectedConnectionGroup, setSelectedConnectionGroup] = React.useState<string>(
+  const [showOnlyInstalledToggle, setShowOnlyInstalledToggle] = useState<boolean>(false);
+  const [selectedConnectionGroup, setSelectedConnectionGroup] = useState<string>(
     defaults.toolbar.groups.all.id,
   );
 
