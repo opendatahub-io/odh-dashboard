@@ -15,7 +15,10 @@ import {
   cleanupEvalHubMlflowExperiment,
   ensureEvalHubCrReady,
 } from '../../../utils/oc_commands/evalHubInstance';
-import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflow';
+import {
+  ensureMlflowCrReady,
+  findAvailableExperimentSuffix,
+} from '../../../utils/oc_commands/mlflow';
 import {
   grantEvalHubTenantAccess,
   removeEvalHubTenantLabel,
@@ -59,7 +62,6 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
         evalHubInstanceYamlPath = testData.evalHubInstanceResourceYamlPath;
         mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
         benchmarkCardTitle = testData.benchmarkCardTitle;
-        mlflowExperimentName = testData.mlflowExperimentName;
         additionalBenchmarkParams = testData.additionalBenchmarkParams;
         projectNamePrefix = testData.projectNamePrefix;
         evaluationTenantProject = `${testData.projectNamePrefix}-reconfig-${uuid}`;
@@ -88,6 +90,18 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
       grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
       inferenceServiceName = testData.inferenceServiceName;
       cy.log(`InferenceService: ${inferenceServiceName}`);
+    });
+
+    cy.then(() => {
+      cy.step('[Setup] Select an available MLflow experiment name');
+      return findAvailableExperimentSuffix(
+        evaluationTenantProject,
+        [testData.mlflowExperimentName],
+        uuid,
+      ).then((suffix) => {
+        mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
+        cy.log(`MLflow experiment: ${mlflowExperimentName}`);
+      });
     });
   });
 

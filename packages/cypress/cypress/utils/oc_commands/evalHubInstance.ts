@@ -24,6 +24,7 @@ type EvalHubInstance = {
 type MlflowExperimentLookupResponse = {
   experiment?: {
     experiment_id?: string;
+    lifecycle_stage?: string;
   };
   error_code?: string;
   message?: string;
@@ -31,6 +32,11 @@ type MlflowExperimentLookupResponse = {
     code?: string;
     message?: string;
   };
+};
+
+type EvalHubMlflowExperiment = {
+  experimentId: string;
+  lifecycleStage: string;
 };
 
 const getApplicationsNamespace = (): string => {
@@ -137,10 +143,10 @@ export const deleteEvalHubE2eDatabaseSecret = (): Cypress.Chainable<CommandLineR
   return cy.exec(cmd, { failOnNonZeroExit: false });
 };
 
-const getEvalHubMlflowExperimentId = (
+const getEvalHubMlflowExperiment = (
   workspace: string,
   experimentName: string,
-): Cypress.Chainable<string> => {
+): Cypress.Chainable<EvalHubMlflowExperiment> => {
   const applicationsNamespace = assertNamespace(getApplicationsNamespace());
   const safeWorkspace = assertNamespace(workspace);
   const encodedExperimentName = encodeURIComponent(experimentName);
@@ -180,7 +186,7 @@ const getEvalHubMlflowExperimentId = (
 
         const errorCode = response.error_code ?? response.error?.code;
         if (errorCode === 'RESOURCE_DOES_NOT_EXIST') {
-          return '';
+          return { experimentId: '', lifecycleStage: 'missing' };
         }
         if (errorCode) {
           throw new Error(
@@ -191,10 +197,13 @@ const getEvalHubMlflowExperimentId = (
         }
 
         const experimentId = response.experiment?.experiment_id;
-        if (!experimentId) {
-          throw new Error(`MLflow lookup did not return an experiment ID for ${experimentName}`);
+        const lifecycleStage = response.experiment?.lifecycle_stage;
+        if (!experimentId || !lifecycleStage) {
+          throw new Error(
+            `MLflow lookup did not return complete experiment details for ${experimentName}`,
+          );
         }
-        return experimentId;
+        return { experimentId, lifecycleStage };
       });
     });
 };
@@ -226,19 +235,24 @@ export const cleanupEvalHubMlflowExperiment = (
   workspace: string,
   experimentName: string,
 ): Cypress.Chainable<boolean> =>
-  getEvalHubMlflowExperimentId(workspace, experimentName).then((experimentId) => {
+  getEvalHubMlflowExperiment(workspace, experimentName).then(({ experimentId, lifecycleStage }) => {
     if (!experimentId) {
       cy.log(`MLflow experiment ${experimentName} not found in workspace ${workspace}`);
+      return cy.wrap(false);
+    }
+    if (lifecycleStage === 'deleted') {
+      cy.log(`MLflow experiment ${experimentName} is already deleted in workspace ${workspace}`);
       return cy.wrap(false);
     }
 
     cy.log(`Deleting MLflow experiment ${experimentName} from workspace ${workspace}`);
     return deleteMlflowExperimentViaAPI(workspace, experimentId).then((response) => {
       assertMlflowDeleteSucceeded(experimentName, response);
-      return getEvalHubMlflowExperimentId(workspace, experimentName).then((remainingId) => {
-        if (remainingId) {
+      return getEvalHubMlflowExperiment(workspace, experimentName).then((deletedExperiment) => {
+        if (deletedExperiment.experimentId && deletedExperiment.lifecycleStage !== 'deleted') {
           throw new Error(
-            `MLflow experiment ${experimentName} is still active after deletion (ID ${remainingId})`,
+            `MLflow experiment ${experimentName} is still ${deletedExperiment.lifecycleStage} ` +
+              `after deletion (ID ${deletedExperiment.experimentId})`,
           );
         }
         return true;
