@@ -1,25 +1,13 @@
-# Compatibility Dockerfile for root-context builds.
-# Keep this aligned with Dockerfile.workspace; new deployment definitions should
-# reference Dockerfile.workspace directly.
+# Compatibility Dockerfile for repository-root builds.
+# Active monorepo and CI builds use packages/gen-ai/Dockerfile.workspace.
 # Build from repository root: docker build -f packages/gen-ai/Dockerfile .
 
-# Multi-stage workspace-aware Dockerfile for Module Federation packages
-ARG MODULE_NAME=gen-ai
-ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
-ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
-
-ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest
-ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.26
-ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal:latest
-
-FROM ${NODE_BASE_IMAGE} AS ui-builder
-
-ARG UI_SOURCE_CODE
-ARG MODULE_NAME
-ARG DEPLOYMENT_MODE=standalone
-ARG PLATFORM_MODE
+# Frontend build stage
+FROM registry.access.redhat.com/ubi9/nodejs-22 AS ui-builder
 
 WORKDIR /usr/src/workspace
+
+# Copy pnpm workspace metadata and the packages required by the Gen AI frontend.
 COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
@@ -37,40 +25,41 @@ COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profil
 COPY --chown=default:root packages/connection-types/ ./packages/connection-types/
 COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root scripts/ ./scripts/
-COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
+COPY --chown=default:root packages/gen-ai/frontend/ ./packages/gen-ai/frontend/
+
 USER default
-
 RUN npm install -g pnpm@11.22.0
-RUN pnpm install --frozen-lockfile
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
-WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
+WORKDIR /usr/src/workspace/packages/gen-ai/frontend
+ENV DEPLOYMENT_MODE=standalone
 RUN pnpm run build:prod
 
-FROM ${GOLANG_BASE_IMAGE} AS bff-builder
-
-ARG BFF_SOURCE_CODE
-ARG TARGETOS
-ARG TARGETARCH
-
+# Backend build stage
+FROM registry.redhat.io/ubi9/go-toolset:1.26 AS bff-builder
 WORKDIR /usr/src/app
-
-COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY packages/gen-ai/bff/go.mod packages/gen-ai/bff/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 RUN go mod download
-COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
-COPY ${BFF_SOURCE_CODE}/internal/ internal/
-COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
-RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
+COPY pkg/tls/ /pkg/tls/
+COPY packages/gen-ai/bff/cmd/ cmd/
+COPY packages/gen-ai/bff/internal/ internal/
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd
 
-FROM ${DISTROLESS_BASE_IMAGE}
-
-ARG UI_SOURCE_CODE
-
+# Final minimal image
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
 WORKDIR /
-COPY --from=bff-builder /usr/src/app/bff ./
-COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
-COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
-USER 65532:65532
+COPY --from=bff-builder /tmp/bff ./
+COPY --from=ui-builder /usr/src/workspace/packages/gen-ai/frontend/dist/ ./static/
+COPY packages/gen-ai/bff/openapi/ ./openapi/
 
+# OAuth environment variables
+ENV OAUTH_ENABLED=false \
+    OAUTH_CLIENT_ID="" \
+    OAUTH_CLIENT_SECRET="" \
+    OAUTH_REDIRECT_URI="" \
+    OAUTH_SERVER_URL=""
+
+USER 1001
 EXPOSE 8080
-
-ENTRYPOINT ["/bff"]
+CMD ["/bff"]

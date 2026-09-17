@@ -46,7 +46,7 @@ COPY distributions/rhaii/ ./distributions/rhaii/
 
 # Install pnpm and workspace dependencies
 RUN npm install -g pnpm@11.22.0
-RUN pnpm install --frozen-lockfile
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 # Build the RHAII frontend
 WORKDIR /usr/src/workspace/distributions/rhaii
