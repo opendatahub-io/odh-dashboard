@@ -4,6 +4,7 @@ on:
     paths:
       - 'packages/model-registry/**'
       - '.github/workflows/model-registry-frontend-tests.yml'
+      - '.github/actions/pnpm-setup/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -13,6 +14,7 @@ on:
     paths:
       - 'packages/model-registry/**'
       - '.github/workflows/model-registry-frontend-tests.yml'
+      - '.github/actions/pnpm-setup/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'

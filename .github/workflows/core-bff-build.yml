@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'distributions/core-bff/**'
+      - '.github/actions/pnpm-setup/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -12,6 +13,7 @@ on:
     paths:
       - 'distributions/core-bff/**'
       - '.github/workflows/core-bff-build.yml'
+      - '.github/actions/pnpm-setup/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'

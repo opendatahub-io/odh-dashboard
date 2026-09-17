@@ -62,6 +62,31 @@ echo "$OUT" | jq -e '.findings[0].bucket == "actionable"' >/dev/null || fail "ex
 echo "$OUT" | jq -e '.findings[0].isDirect == true' >/dev/null || fail "expected direct dependency"
 pass "pnpm actionable finding"
 
+# --- pnpm major-only fix ---
+cat > "$TMP/pnpm-major.json" <<'EOF'
+{
+  "advisories": {
+    "1096728": {
+      "findings": [
+        {
+          "version": "3.8.4",
+          "paths": [".>immutable"],
+          "dev": false
+        }
+      ],
+      "module_name": "immutable",
+      "severity": "high",
+      "patched_versions": ">=4.3.9",
+      "github_advisory_id": "GHSA-major-only"
+    }
+  }
+}
+EOF
+OUT=$("$SCRIPTS/summarize-pnpm-audit.sh" . prod "$TMP/pnpm-major.json")
+echo "$OUT" | jq -e '.findings[0].bucket == "major"' >/dev/null || fail "expected major bucket"
+echo "$OUT" | jq -e '.findings[0].isSemVerMajor == true' >/dev/null || fail "expected major flag"
+pass "pnpm major-only finding"
+
 # --- pnpm workspace direct dependency paths ---
 cat > "$TMP/pnpm-workspace-paths.json" <<'EOF'
 {
