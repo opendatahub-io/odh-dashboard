@@ -228,6 +228,9 @@ export type HardwareProfileKind = K8sResourceCommon & {
   spec: {
     identifiers?: Identifier[];
     scheduling?: HardwareProfileScheduling;
+    dra?: {
+      resourceClaimTemplateName: string;
+    };
   };
 };
 

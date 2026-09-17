@@ -26,6 +26,7 @@ type MockResourceConfigType = {
   annotations?: Record<string, string>;
   labels?: Record<string, string>;
   resourceVersion?: string;
+  dra?: HardwareProfileKind['spec']['dra'];
 };
 
 /*
@@ -69,6 +70,7 @@ export const mockHardwareProfile = ({
   annotations,
   labels,
   resourceVersion = '1309350',
+  dra,
 }: MockResourceConfigType): HardwareProfileKind => ({
   apiVersion: 'infrastructure.opendatahub.io/v1',
   kind: 'HardwareProfile',
@@ -105,6 +107,7 @@ export const mockHardwareProfile = ({
         }),
       },
     }),
+    ...(dra && { dra }),
   },
 });
 
