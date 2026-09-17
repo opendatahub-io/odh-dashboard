@@ -12,10 +12,7 @@ import { hasSourceFilters, getOrganizationDisplay } from '~/concepts/modelCatalo
 import DeleteModal from '~/app/shared/components/DeleteModal';
 import CatalogSourceStatus from '~/app/pages/modelCatalogSettings/components/CatalogSourceStatus';
 import { useUserInteraction } from '~/concepts/userInteraction';
-import {
-  MODEL_CATALOG_SOURCE_EVENTS,
-  getModelCatalogTrackingSourceType,
-} from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
+import { MODEL_CATALOG_SOURCE_EVENTS } from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
 
 type CatalogSourceConfigsTableRowProps = {
   catalogSourceConfig: CatalogSourceConfig;
@@ -31,7 +28,7 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   onToggleUpdate,
 }) => {
   const navigate = useNavigate();
-  const { trackLinkEvent } = useUserInteraction();
+  const { trackSimpleEvent } = useUserInteraction();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error | undefined>();
@@ -49,15 +46,8 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   };
 
   const handleManageSource = () => {
-    const href = manageSourceUrl(catalogSourceConfig.id);
-    trackLinkEvent(MODEL_CATALOG_SOURCE_EVENTS.MANAGE_SOURCE_SELECTED, {
-      href,
-      section: 'Model Catalog Sources',
-      type: 'source',
-      sourceId: catalogSourceConfig.id,
-      sourceType: getModelCatalogTrackingSourceType(catalogSourceConfig),
-    });
-    navigate(href);
+    trackSimpleEvent(MODEL_CATALOG_SOURCE_EVENTS.MANAGE_SOURCE_SELECTED);
+    navigate(manageSourceUrl(catalogSourceConfig.id));
   };
 
   const handleDeleteClick = () => {

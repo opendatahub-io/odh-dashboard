@@ -1,6 +1,4 @@
-import { CatalogSourceConfig, CatalogSourceType } from '~/app/modelCatalogTypes';
-import { TrackingOutcome } from '~/concepts/userInteraction';
-import type { FormTrackingEventProperties } from '~/concepts/userInteraction/trackingTypes';
+import type { SimpleTrackingEventProperties } from '~/concepts/userInteraction/trackingTypes';
 
 /** Event names for Model Catalog Source admin settings (Hugging Face credentials). */
 export const MODEL_CATALOG_SOURCE_EVENTS = {
@@ -16,17 +14,11 @@ export const MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE: ModelCatalogTrackingSourceTy
 
 export type ModelCatalogAccessTokenClearOutcome = 'cleared' | 'cancelled';
 
-export const getModelCatalogTrackingSourceType = (
-  config: Pick<CatalogSourceConfig, 'type'>,
-): ModelCatalogTrackingSourceType =>
-  config.type === CatalogSourceType.HUGGING_FACE ? MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE : 'yaml';
-
 export const buildAccessTokenValidatedTrackingProperties = (
   success: boolean,
   hasOrganization: boolean,
   error?: string,
-): FormTrackingEventProperties => ({
-  outcome: TrackingOutcome.submit,
+): SimpleTrackingEventProperties => ({
   success,
   error,
   sourceType: MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,

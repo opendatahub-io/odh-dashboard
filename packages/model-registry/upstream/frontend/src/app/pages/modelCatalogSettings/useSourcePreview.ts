@@ -109,7 +109,7 @@ export const useSourcePreview = ({
   isEditMode,
   hasExistingApiKey = false,
 }: UseSourcePreviewOptions): UseSourcePreviewResult => {
-  const { trackFormEvent } = useUserInteraction();
+  const { trackSimpleEvent } = useUserInteraction();
   const [credentialsValidationStatus, setCredentialsValidationStatus] =
     React.useState<CredentialsValidationStatus>('unknown');
   const [isValidating, setIsValidating] = React.useState(false);
@@ -201,7 +201,7 @@ export const useSourcePreview = ({
     if (!apiState.apiAvailable) {
       setValidationError(new Error('API is not available'));
       setCredentialsValidationStatus('invalid');
-      trackFormEvent(
+      trackSimpleEvent(
         MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
         buildAccessTokenValidatedTrackingProperties(false, hasOrganization, 'api_unavailable'),
       );
@@ -218,7 +218,7 @@ export const useSourcePreview = ({
         pageSize: DEFAULT_PREVIEW_PAGE_SIZE,
       });
       setCredentialsValidationStatus('valid');
-      trackFormEvent(
+      trackSimpleEvent(
         MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
         buildAccessTokenValidatedTrackingProperties(true, hasOrganization),
       );
@@ -226,7 +226,7 @@ export const useSourcePreview = ({
       const err = error instanceof Error ? error : new Error('Failed to validate credentials');
       setValidationError(err);
       setCredentialsValidationStatus('invalid');
-      trackFormEvent(
+      trackSimpleEvent(
         MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_VALIDATED,
         buildAccessTokenValidatedTrackingProperties(false, hasOrganization, 'validation_failed'),
       );
@@ -238,7 +238,7 @@ export const useSourcePreview = ({
     buildPreviewRequest,
     formData.organization,
     previewApi,
-    trackFormEvent,
+    trackSimpleEvent,
   ]);
 
   const clearValidationSuccess = React.useCallback(() => {

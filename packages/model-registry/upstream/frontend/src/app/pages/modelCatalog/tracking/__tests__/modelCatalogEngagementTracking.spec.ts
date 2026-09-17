@@ -9,6 +9,11 @@ describe('getModelCatalogTrackingHfAccessType', () => {
   it('should map known HF access types', () => {
     expect(
       getModelCatalogTrackingHfAccessType(
+        createHfAccessCatalogModel({ hfAccessType: HfAccessType.PUBLIC }),
+      ),
+    ).toBe('public');
+    expect(
+      getModelCatalogTrackingHfAccessType(
         createHfAccessCatalogModel({ hfAccessType: HfAccessType.PRIVATE }),
       ),
     ).toBe('private');
@@ -17,6 +22,11 @@ describe('getModelCatalogTrackingHfAccessType', () => {
         createHfAccessCatalogModel({ hfAccessType: HfAccessType.GATED_AUTO }),
       ),
     ).toBe('gated_auto');
+    expect(
+      getModelCatalogTrackingHfAccessType(
+        createHfAccessCatalogModel({ hfAccessType: HfAccessType.GATED_MANUAL }),
+      ),
+    ).toBe('gated_manual');
   });
 
   it('should return other when access type is missing', () => {
