@@ -30,6 +30,7 @@ import {
   SUCCESS_MESSAGES,
   CLEAR_ACCESS_TOKEN_MODAL,
 } from '~/app/pages/modelCatalogSettings/constants';
+import { ModelCatalogAccessTokenClearOutcome } from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
 
 type CredentialsSectionProps = {
   formData: ManageSourceFormData;
@@ -41,6 +42,7 @@ type CredentialsSectionProps = {
   onClearValidationSuccess: () => void;
   hasExistingApiKey?: boolean;
   onClearCredentials?: () => Promise<void>;
+  onAccessTokenClearOutcome?: (outcome: ModelCatalogAccessTokenClearOutcome) => void;
 };
 
 const CredentialsSection: React.FC<CredentialsSectionProps> = ({
@@ -53,6 +55,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
   onClearValidationSuccess,
   hasExistingApiKey = false,
   onClearCredentials,
+  onAccessTokenClearOutcome,
 }) => {
   const [isOrganizationTouched, setIsOrganizationTouched] = React.useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = React.useState(false);
@@ -73,6 +76,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
       setData('accessToken', '');
       setData('tokenModified', true);
       onClearValidationSuccess();
+      onAccessTokenClearOutcome?.('cleared');
       setIsClearModalOpen(false);
     } catch (error) {
       setClearError(
@@ -81,7 +85,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
     } finally {
       setIsClearing(false);
     }
-  }, [setData, onClearValidationSuccess, onClearCredentials]);
+  }, [setData, onClearValidationSuccess, onClearCredentials, onAccessTokenClearOutcome]);
 
   const organizationInput = (
     <TextInput
@@ -272,6 +276,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
             variant="link"
             isDisabled={isClearing}
             onClick={() => {
+              onAccessTokenClearOutcome?.('cancelled');
               setIsClearModalOpen(false);
               setClearError(undefined);
             }}

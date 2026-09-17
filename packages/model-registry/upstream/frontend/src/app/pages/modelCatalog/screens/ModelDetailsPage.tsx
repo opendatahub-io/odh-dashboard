@@ -48,6 +48,7 @@ import {
 import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
+import { getModelCatalogAccessLabelSelectedProperties } from '~/app/pages/modelCatalog/tracking/modelCatalogEngagementTracking';
 import ModelCatalogAccessLabel from '~/app/pages/modelCatalog/components/ModelCatalogAccessLabel';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
@@ -107,6 +108,16 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
       modelName: getModelName(model.name),
     });
   }, [model, trackSimpleEvent]);
+
+  const handleAccessLabelSelected = React.useCallback(() => {
+    if (!model || !accessLabelVariant) {
+      return;
+    }
+    trackSimpleEvent(
+      MODEL_CATALOG_EVENTS.ACCESS_LABEL_SELECTED,
+      getModelCatalogAccessLabelSelectedProperties(model, accessLabelVariant),
+    );
+  }, [accessLabelVariant, model, trackSimpleEvent]);
 
   const registerButtonTooltip = (
     headerContent: string,
@@ -229,7 +240,10 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                         </Label>
                       </Popover>
                     ) : accessLabelVariant ? (
-                      <ModelCatalogAccessLabel variant={accessLabelVariant} />
+                      <ModelCatalogAccessLabel
+                        variant={accessLabelVariant}
+                        onLabelClick={handleAccessLabelSelected}
+                      />
                     ) : null}
                     {isRedHatModel(model) && (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.RED_HAT}>
