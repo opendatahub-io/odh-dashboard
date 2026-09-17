@@ -180,7 +180,6 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
     };
     storageClassName?: string;
     volumeMode: 'Filesystem' | 'Block';
-    volumeName?: string;
   };
   status?: {
     phase: string;
@@ -350,10 +349,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
         externalProviders?: boolean;
         clusterDomains?: string[];
       };
-    };
-    groupsConfig?: {
-      adminGroups?: string;
-      allowedGroups?: string;
     };
   };
 };
@@ -1014,7 +1009,6 @@ export type NIMAccountKind = K8sResourceCommon & {
     nimPullSecret?: {
       name: string;
     };
-    lastAccountCheck?: string;
     conditions?: K8sCondition[];
   };
 };
@@ -1038,13 +1032,7 @@ export type RouteKind = K8sResourceCommon & {
       name: string;
       weight: number;
     };
-    tls?: {
-      termination?: string;
-      insecureEdgeTerminationPolicy?: string;
-    };
-    wildcardPolicy?: string;
   };
-  status?: Record<string, unknown>;
 };
 
 export type OdhApplication = {
