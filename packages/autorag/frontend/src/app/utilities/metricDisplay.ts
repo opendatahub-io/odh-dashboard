@@ -41,21 +41,23 @@ export type MetricEvaluatorGroup = {
 export const groupMetricsByEvaluator = (
   metrics: AutoRAGEvaluationMetricResult[],
 ): MetricEvaluatorGroup[] => {
-  const groups = new Map<string, AutoRAGEvaluationMetricResult[]>();
+  const groups = new Map<string, { evaluator: string; metrics: AutoRAGEvaluationMetricResult[] }>();
+
   metrics.forEach((metric) => {
-    const key = metric.evaluator || 'other';
+    const originalEvaluator = metric.evaluator || 'other';
+    const key = originalEvaluator.toLowerCase();
     const existing = groups.get(key);
     if (existing) {
-      existing.push(metric);
+      existing.metrics.push(metric);
     } else {
-      groups.set(key, [metric]);
+      groups.set(key, { evaluator: originalEvaluator, metrics: [metric] });
     }
   });
 
   return Array.from(groups.entries())
     .toSorted(([a], [b]) => {
-      const orderA = EVALUATOR_ORDER.indexOf(a.toLowerCase());
-      const orderB = EVALUATOR_ORDER.indexOf(b.toLowerCase());
+      const orderA = EVALUATOR_ORDER.indexOf(a);
+      const orderB = EVALUATOR_ORDER.indexOf(b);
       const rankA = orderA === -1 ? EVALUATOR_ORDER.length : orderA;
       const rankB = orderB === -1 ? EVALUATOR_ORDER.length : orderB;
       if (rankA !== rankB) {
@@ -63,9 +65,9 @@ export const groupMetricsByEvaluator = (
       }
       return a.localeCompare(b);
     })
-    .map(([evaluator, groupedMetrics]) => ({
-      evaluator,
-      label: formatEvaluatorLabel(evaluator),
-      metrics: groupedMetrics,
+    .map(([, group]) => ({
+      evaluator: group.evaluator,
+      label: formatEvaluatorLabel(group.evaluator),
+      metrics: group.metrics,
     }));
 };
