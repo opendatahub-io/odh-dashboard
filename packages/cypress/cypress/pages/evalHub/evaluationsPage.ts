@@ -17,10 +17,10 @@ class EvaluationsPage {
     return cy.findByTestId('evaluations-table', options);
   }
 
-  findEvaluationStatusButtonInRow(evaluationName: string) {
-    return this.findEvaluationsTable()
-      .contains('tr', evaluationName)
-      .find('[data-testid="evaluation-status-button"]');
+  findEvaluationStatusButtonInRow(evaluationName: string, options?: Partial<Cypress.Timeoutable>) {
+    return this.findEvaluationsTable(options)
+      .contains('tr', evaluationName, options)
+      .find('[data-testid="evaluation-status-button"]', options);
   }
 
   findStatusModal() {
@@ -47,8 +47,8 @@ class EvaluationsPage {
     return cy.findByTestId('status-modal-view-results-button');
   }
 
-  findStatusModalStopButton() {
-    return cy.findByTestId('status-modal-stop-button');
+  findStatusModalStopButton(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('status-modal-stop-button', options);
   }
 
   findStatusModalReconfigureButton() {

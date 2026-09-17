@@ -200,24 +200,25 @@ export const stopAndReconfigureEvaluation = (
   reconfiguredRunName: string,
 ): void => {
   cy.step('Open status modal and stop the running evaluation');
-  evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
+  evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName, { timeout: 120000 }).click();
   evaluationsPage.findStatusModal().should('be.visible');
-  evaluationsPage.findStatusModalStopButton().should('be.visible').click();
+  evaluationsPage
+    .findStatusModalStopButton({ timeout: 120000 })
+    .should('be.visible')
+    .and('be.enabled')
+    .click();
 
   cy.step('Confirm stop in the stop evaluation modal');
   evaluationsPage.findStopModal().should('be.visible');
   evaluationsPage.findStopConfirmButton().click();
   evaluationsPage.findStopModal().should('not.exist');
 
-  cy.step('Wait for evaluation to reach Stopped status');
+  cy.step('Wait for evaluation to reach Canceled status');
   cy.reload();
   evaluationsPage.findPageTitle().should('be.visible', { timeout: 30000 });
   evaluationsPage
-    .findEvaluationStatusButtonInRow(evaluationRunName)
-    .should('not.contain.text', 'Stopping', { timeout: 120000 });
-  evaluationsPage
-    .findEvaluationStatusButtonInRow(evaluationRunName)
-    .should('contain.text', 'Canceled', { timeout: 30000 });
+    .findEvaluationStatusButtonInRow(evaluationRunName, { timeout: 120000 })
+    .should('contain.text', 'Canceled');
 
   cy.step('Open status modal and click Reconfigure');
   evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();

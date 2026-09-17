@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -401,26 +402,127 @@ func TestNewPortForwardManager(t *testing.T) {
 func testEndpointSliceClientset(namespace, serviceName, podName string) *k8sfake.Clientset {
 	ready := true
 	notReady := false
-	return k8sfake.NewSimpleClientset(&discoveryv1.EndpointSlice{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName + "-slice",
-			Namespace: namespace,
-			Labels:    map[string]string{discoveryv1.LabelServiceName: serviceName},
-		},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints: []discoveryv1.Endpoint{
-			{
-				Addresses:  []string{"10.0.0.1"},
-				Conditions: discoveryv1.EndpointConditions{Ready: &notReady},
-				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Name: "not-ready-pod"},
+	return k8sfake.NewSimpleClientset(
+		&discoveryv1.EndpointSlice{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName + "-slice",
+				Namespace: namespace,
+				Labels:    map[string]string{discoveryv1.LabelServiceName: serviceName},
 			},
-			{
-				Addresses:  []string{"10.0.0.2"},
-				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Name: podName},
+			AddressType: discoveryv1.AddressTypeIPv4,
+			Endpoints: []discoveryv1.Endpoint{
+				{
+					Addresses:  []string{"10.0.0.1"},
+					Conditions: discoveryv1.EndpointConditions{Ready: &notReady},
+					TargetRef:  &corev1.ObjectReference{Kind: "Pod", Name: "not-ready-pod"},
+				},
+				{
+					Addresses:  []string{"10.0.0.2"},
+					Conditions: discoveryv1.EndpointConditions{Ready: &ready},
+					TargetRef:  &corev1.ObjectReference{Kind: "Pod", Name: podName},
+				},
 			},
 		},
-	})
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: namespace},
+			Spec: corev1.ServiceSpec{Ports: []corev1.ServicePort{
+				{Port: 8080, TargetPort: intstr.FromInt32(8080)},
+			}},
+		},
+	)
+}
+
+func TestResolveServiceTargetPort(t *testing.T) {
+	const (
+		namespace   = "ns"
+		serviceName = "svc"
+		podName     = "svc-pod"
+	)
+	clientset := k8sfake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: namespace},
+			Spec: corev1.ServiceSpec{Ports: []corev1.ServicePort{
+				{Port: 443, TargetPort: intstr.FromInt32(8443)},
+				{Port: 80, TargetPort: intstr.FromString("http")},
+				{Port: 9090},
+				{Port: 1234, TargetPort: intstr.FromString("missing")},
+			}},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: podName, Namespace: namespace},
+			Spec: corev1.PodSpec{Containers: []corev1.Container{
+				{
+					Name: "evalhub",
+					Ports: []corev1.ContainerPort{
+						{Name: "http", ContainerPort: 8080, Protocol: corev1.ProtocolTCP},
+					},
+				},
+			}},
+		},
+	)
+	pfm := &PortForwardManager{clientset: clientset}
+
+	tests := []struct {
+		name        string
+		servicePort int
+		want        int
+		wantErr     string
+	}{
+		{name: "numeric target port", servicePort: 443, want: 8443},
+		{name: "named target port", servicePort: 80, want: 8080},
+		{name: "omitted target port defaults to service port", servicePort: 9090, want: 9090},
+		{name: "missing service port", servicePort: 9999, wantErr: "service port 9999 not found"},
+		{name: "missing named target port", servicePort: 1234, wantErr: `named target port "missing" not found`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := pfm.resolveServiceTargetPort(context.Background(), namespace, serviceName, podName, tt.servicePort)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("error = %v, want error containing %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("target port = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetOrCreateForward_UsesServiceTargetPort(t *testing.T) {
+	clientset := testEndpointSliceClientset("ns", "svc", "svc-pod")
+	service, err := clientset.CoreV1().Services("ns").Get(context.Background(), "svc", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("getting test service: %v", err)
+	}
+	service.Spec.Ports[0].TargetPort = intstr.FromInt32(8443)
+	if _, err := clientset.CoreV1().Services("ns").Update(context.Background(), service, metav1.UpdateOptions{}); err != nil {
+		t.Fatalf("updating test service: %v", err)
+	}
+
+	pfm := &PortForwardManager{
+		forwards:  make(map[string]*activeForward),
+		clientset: clientset,
+		logger:    slog.Default(),
+	}
+	pfm.createForwardFn = func(_ context.Context, namespace, podName string, podPort int) (*activeForward, error) {
+		if namespace != "ns" || podName != "svc-pod" || podPort != 8443 {
+			t.Errorf("unexpected forward target %s/%s:%d", namespace, podName, podPort)
+		}
+		return &activeForward{
+			localPort: 44444,
+			stopChan:  make(chan struct{}),
+			errChan:   make(chan error, 1),
+		}, nil
+	}
+
+	if _, err := pfm.getOrCreateForward(context.Background(), "ns", "svc", 8080); err != nil {
+		t.Fatalf("getOrCreateForward error: %v", err)
+	}
 }
 
 // TestGetOrCreateForward_ReplacesDeadForward verifies that a dead cached forward

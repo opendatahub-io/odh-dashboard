@@ -14,9 +14,11 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
+	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/httpstream"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
@@ -185,8 +187,12 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 		if err != nil {
 			return nil, fmt.Errorf("resolving pod for %s/%s: %w", namespace, serviceName, err)
 		}
+		podPort, err := m.resolveServiceTargetPort(startupCtx, namespace, serviceName, podName, remotePort)
+		if err != nil {
+			return nil, fmt.Errorf("resolving target port for %s: %w", key, err)
+		}
 
-		fwd, err := m.newForward(startupCtx, namespace, podName, remotePort)
+		fwd, err := m.newForward(startupCtx, namespace, podName, podPort)
 		if err != nil {
 			return nil, fmt.Errorf("creating port-forward %s: %w", key, err)
 		}
@@ -210,11 +216,57 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 	return val.(uint16), nil
 }
 
-func (m *PortForwardManager) newForward(ctx context.Context, namespace, podName string, remotePort int) (*activeForward, error) {
-	if m.createForwardFn != nil {
-		return m.createForwardFn(ctx, namespace, podName, remotePort)
+// resolveServiceTargetPort maps the port exposed by a Service to the port on
+// the selected Pod. Named target ports are resolved against its containers.
+func (m *PortForwardManager) resolveServiceTargetPort(ctx context.Context, namespace, serviceName, podName string, remotePort int) (int, error) {
+	service, err := m.clientset.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+	if err != nil {
+		return 0, fmt.Errorf("getting service %s/%s: %w", namespace, serviceName, err)
 	}
-	return m.createForward(ctx, namespace, podName, remotePort)
+
+	var targetPort intstr.IntOrString
+	found := false
+	for _, servicePort := range service.Spec.Ports {
+		if int(servicePort.Port) == remotePort {
+			targetPort = servicePort.TargetPort
+			found = true
+			break
+		}
+	}
+	if !found {
+		return 0, fmt.Errorf("service port %d not found", remotePort)
+	}
+
+	if targetPort.Type == intstr.Int {
+		if targetPort.IntValue() == 0 {
+			return remotePort, nil
+		}
+		return targetPort.IntValue(), nil
+	}
+	if targetPort.StrVal == "" {
+		return remotePort, nil
+	}
+
+	pod, err := m.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return 0, fmt.Errorf("getting pod %s/%s: %w", namespace, podName, err)
+	}
+	for _, container := range pod.Spec.Containers {
+		for _, containerPort := range container.Ports {
+			if containerPort.Name == targetPort.StrVal && containerPort.Protocol == corev1.ProtocolTCP {
+				return int(containerPort.ContainerPort), nil
+			}
+		}
+	}
+
+	return 0, fmt.Errorf("named target port %q not found on pod %s", targetPort.StrVal, podName)
+}
+
+func (m *PortForwardManager) newForward(ctx context.Context, namespace, podName string, podPort int) (*activeForward, error) {
+	if m.createForwardFn != nil {
+		return m.createForwardFn(ctx, namespace, podName, podPort)
+	}
+	return m.createForward(ctx, namespace, podName, podPort)
 }
 
 // resolvePod finds a ready pod backing the given service.
@@ -241,7 +293,7 @@ func (m *PortForwardManager) resolvePod(ctx context.Context, namespace, serviceN
 }
 
 // createForward establishes a port-forward to a pod and waits for it to be ready.
-func (m *PortForwardManager) createForward(ctx context.Context, namespace, podName string, remotePort int) (*activeForward, error) {
+func (m *PortForwardManager) createForward(ctx context.Context, namespace, podName string, podPort int) (*activeForward, error) {
 	reqURL := m.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(namespace).
@@ -267,7 +319,7 @@ func (m *PortForwardManager) createForward(ctx context.Context, namespace, podNa
 	errChan := make(chan error, 1)
 	active := &activeForward{stopChan: stopChan, errChan: errChan}
 
-	ports := []string{fmt.Sprintf("0:%d", remotePort)}
+	ports := []string{fmt.Sprintf("0:%d", podPort)}
 
 	fw, err := portforward.New(dialer, ports, stopChan, readyChan, nil, nil)
 	if err != nil {
