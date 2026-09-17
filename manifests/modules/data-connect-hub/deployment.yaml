@@ -111,7 +111,7 @@ spec:
               ephemeral-storage: 10Mi
           ports:
             - containerPort: 9243
-              name: data-connect-hub
+              name: dch-ui
           volumeMounts:
             - name: tmp
               mountPath: /tmp
