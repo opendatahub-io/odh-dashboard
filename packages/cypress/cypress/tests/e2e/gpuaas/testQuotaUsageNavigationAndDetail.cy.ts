@@ -12,12 +12,23 @@ import {
   deleteOpenShiftProject,
   deleteOpenShiftProjectBestEffort,
 } from '../../../utils/oc_commands/project';
-import { retryableBefore, wasSetupPerformed } from '../../../utils/retryableHooks';
+import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { infrastructurePage } from '../../../pages/infrastructure';
 import type { KueueQuotaUsageNavigationTestData } from '../../../types';
 
 const describeAdminOnly = Cypress.env('IS_NON_ADMIN_RUN') ? describe.skip : describe;
+
+const generateGrepTagsHash = (): string => {
+  const grepTags = String(Cypress.env('grepTags') || 'local');
+  let hash = 0;
+
+  for (let i = 0; i < grepTags.length; i++) {
+    hash = ((hash << 5) - hash + grepTags.charCodeAt(i)) | 0;
+  }
+
+  return Math.abs(hash).toString(36).slice(0, 6).padStart(6, '0');
+};
 
 type TestContext = {
   managedProjectName: string;
@@ -50,12 +61,7 @@ const buildTestContext = (
   };
 };
 
-const setupTestResources = (
-  testData: KueueQuotaUsageNavigationTestData,
-  uuid: string,
-): Cypress.Chainable<TestContext> => {
-  const context = buildTestContext(testData, uuid);
-
+const setupTestResources = (context: TestContext): Cypress.Chainable<TestContext> => {
   return ensureAdminOcSession()
     .then(() =>
       deleteOpenShiftProject(context.managedProjectName, { wait: true, ignoreNotFound: true }),
@@ -73,7 +79,7 @@ const setupTestResources = (
 };
 
 describeAdminOnly('Quota usage navigation and detail', () => {
-  const uuid = generateTestUUID();
+  const uuid = `${generateTestUUID()}-${generateGrepTagsHash()}`;
   let context: TestContext | undefined;
 
   before(() => {
@@ -84,15 +90,14 @@ describeAdminOnly('Quota usage navigation and detail', () => {
   retryableBefore(() =>
     loadKueueQuotaUsageNavigationFixture(
       'e2e/kueueQuotaUsage/testQuotaUsageNavigationAndDetail.yaml',
-    ).then((testData) =>
-      setupTestResources(testData, uuid).then((testContext) => {
-        context = testContext;
-      }),
-    ),
+    ).then((testData) => {
+      context = buildTestContext(testData, uuid);
+      return setupTestResources(context);
+    }),
   );
 
   after(() => {
-    if (!wasSetupPerformed() || !context) {
+    if (!context) {
       return;
     }
 
@@ -185,6 +190,9 @@ describeAdminOnly('Quota usage navigation and detail', () => {
       infrastructurePage
         .findQuotaUsageSummaryWorkloads()
         .should('have.text', '0 active, 0 pending');
+      infrastructurePage
+        .findQuotaUsageSummaryCapacity()
+        .should('contain.text', `0/${testContext.testData.acceleratorQuota} accelerators`);
       infrastructurePage.findQuotaUsageAcceleratorRow(resourceFlavorName).should('be.visible');
 
       cy.step('Verify the selected queue Kueue projects modal includes only the managed project');
