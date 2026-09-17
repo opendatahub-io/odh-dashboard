@@ -1,11 +1,12 @@
 import React from 'react';
-import { Switch } from '@patternfly/react-core';
+import { Switch, Tooltip } from '@patternfly/react-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import { HardwareProfileModel, toggleHardwareProfileEnablement } from '@odh-dashboard/internal/api';
 import { HardwareProfileWarningType } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
-import { isHardwareProfileEnabled, validateProfileWarning } from './utils';
+import { isDRAHardwareProfile, isHardwareProfileEnabled, validateProfileWarning } from './utils';
+import { DRA_HARDWARE_PROFILE_TOGGLE_DISABLED_MESSAGE } from './const';
 
 type HardwareProfileEnableToggleProps = {
   hardwareProfile: HardwareProfileKind;
@@ -28,7 +29,9 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
   const [hasAccess, hasLoadedAccess] = useAccessAllowed(
     verbModelAccess('patch', HardwareProfileModel),
   );
-  const canNotToggleSwitch = warning || isLoading || !hasAccess || !hasLoadedAccess || isDisabled;
+  const isDRA = isDRAHardwareProfile(hardwareProfile);
+  const canNotToggleSwitch =
+    warning || isLoading || !hasAccess || !hasLoadedAccess || isDisabled || isDRA;
 
   const handleChange = (checked: boolean) => {
     setLoading(true);
@@ -48,7 +51,7 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
       });
   };
 
-  return (
+  const switchInput = (
     <Switch
       aria-label={enabled ? 'enabled' : 'stopped'}
       data-testid="enable-switch"
@@ -57,6 +60,21 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
       isDisabled={canNotToggleSwitch}
       onChange={(_e, checked) => handleChange(checked)}
     />
+  );
+
+  return isDRA ? (
+    <Tooltip content={DRA_HARDWARE_PROFILE_TOGGLE_DISABLED_MESSAGE}>
+      <span
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        data-testid="dra-enable-switch-wrapper"
+        aria-label={DRA_HARDWARE_PROFILE_TOGGLE_DISABLED_MESSAGE}
+      >
+        {switchInput}
+      </span>
+    </Tooltip>
+  ) : (
+    switchInput
   );
 };
 

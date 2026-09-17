@@ -12,6 +12,7 @@ import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import HardwareProfileBindingStateLabel from './HardwareProfileBindingStateLabel';
 import { HardwareProfileBindingState } from './const';
 import { HardwareProfileBindingStateInfo } from './types';
+import { isDRAHardwareProfile } from '../src/pages/utils';
 
 type HardwareProfileTableColumnProps = {
   namespace: string;
@@ -103,6 +104,7 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
               hardwareProfileName={displayName}
               resourceType={resourceType}
               isRunning={isActive}
+              isDRA={!!hardwareProfile && isDRAHardwareProfile(hardwareProfile)}
             />
           </FlexItem>
         )}

@@ -87,6 +87,23 @@ const trainWorkload = (): WorkloadKind =>
     },
   } as unknown as WorkloadKind);
 
+const servingInferenceService = (): WorkloadInferenceService =>
+  ({
+    apiVersion: 'serving.kserve.io/v1beta1',
+    kind: 'InferenceService',
+    metadata: { name: 'my-model', namespace: 'dsp-1' },
+    spec: {
+      predictor: {
+        model: {
+          resources: {
+            requests: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': '1' },
+            limits: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': '1' },
+          },
+        },
+      },
+    },
+  } as WorkloadInferenceService);
+
 describe('workloadHardwareProfileResolver', () => {
   it('returns configured profile from StatefulSet pod-template annotations (notebook path)', () => {
     const hardwareProfileByKey = new Map([
@@ -125,25 +142,9 @@ describe('workloadHardwareProfileResolver', () => {
   });
 
   it('matches model deployment resources to a serving HardwareProfile when no annotation exists', () => {
-    const inferenceService = {
-      apiVersion: 'serving.kserve.io/v1beta1',
-      kind: 'InferenceService',
-      metadata: { name: 'my-model', namespace: 'dsp-1' },
-      spec: {
-        predictor: {
-          model: {
-            resources: {
-              requests: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': '1' },
-              limits: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': '1' },
-            },
-          },
-        },
-      },
-    } as WorkloadInferenceService;
-
     const result = resolveWorkloadHardwareProfileForRow(trainWorkload(), {
       annotationSources: [],
-      inferenceService,
+      inferenceService: servingInferenceService(),
       hardwareProfileByKey: new Map(),
       hardwareProfilesForMatching: [servingProfile],
       workloadType: QuotaUsageWorkloadTypes.Serve,
@@ -206,6 +207,54 @@ describe('workloadHardwareProfileResolver', () => {
       inferenceService,
       hardwareProfileByKey: new Map(),
       hardwareProfilesForMatching: [servingProfile],
+      workloadType: QuotaUsageWorkloadTypes.Serve,
+    });
+
+    expect(result).toBeUndefined();
+  });
+
+  it('does not match a workload that has resource claims to a HardwareProfile', () => {
+    const workloadWithClaims = trainWorkload();
+    const container = workloadWithClaims.spec.podSets[0].template.spec.containers[0];
+    container.resources = { ...container.resources, claims: [{ name: 'gpu' }] };
+
+    const result = resolveWorkloadHardwareProfileForRow(workloadWithClaims, {
+      annotationSources: [],
+      hardwareProfileByKey: new Map(),
+      hardwareProfilesForMatching: [servingProfile],
+      workloadType: QuotaUsageWorkloadTypes.Serve,
+    });
+
+    expect(result).toBeUndefined();
+  });
+
+  it('does not match when the Workload has claims but the InferenceService does not', () => {
+    const workloadWithClaims = trainWorkload();
+    const container = workloadWithClaims.spec.podSets[0].template.spec.containers[0];
+    container.resources = { ...container.resources, claims: [{ name: 'gpu' }] };
+
+    const result = resolveWorkloadHardwareProfileForRow(workloadWithClaims, {
+      annotationSources: [],
+      inferenceService: servingInferenceService(),
+      hardwareProfileByKey: new Map(),
+      hardwareProfilesForMatching: [servingProfile],
+      workloadType: QuotaUsageWorkloadTypes.Serve,
+    });
+
+    expect(result).toBeUndefined();
+  });
+
+  it('does not match workload resources to a DRA HardwareProfile when no annotation exists', () => {
+    const draServingProfile: HardwareProfileKind = {
+      ...servingProfile,
+      spec: { ...servingProfile.spec, dra: { resourceClaimTemplateName: 'single-gpu' } },
+    };
+
+    const result = resolveWorkloadHardwareProfileForRow(trainWorkload(), {
+      annotationSources: [],
+      inferenceService: servingInferenceService(),
+      hardwareProfileByKey: new Map(),
+      hardwareProfilesForMatching: [draServingProfile],
       workloadType: QuotaUsageWorkloadTypes.Serve,
     });
 
