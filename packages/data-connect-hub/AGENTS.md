@@ -97,7 +97,7 @@ mod-arch-starter/
 ### Frontend
 
 - **Node.js**: >= 22.0.0
-- **npm**: >= 10.8.2
+- **pnpm**: 11.22.0 (pinned in the repository root `package.json`)
 
 ### BFF
 
@@ -165,7 +165,7 @@ cd bff && make lint && make test
 cd frontend && pnpm run test:cypress-ci
 
 # Run specific Cypress test
-cd frontend && pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+cd frontend && pnpm run test:cypress-ci --spec "**/testfile.cy.ts"
 ```
 
 ---
@@ -398,7 +398,7 @@ make test   # Run tests
 Bootstrap a fresh copy without cloning the repo:
 
 ```bash
-npx mod-arch-installer my-module --flavor kubeflow
+pnpm dlx mod-arch-installer my-module --flavor kubeflow
 ```
 
 ### CLI Options
@@ -406,7 +406,7 @@ npx mod-arch-installer my-module --flavor kubeflow
 | Flag                           | Description                              | Default  |
 | ------------------------------ | ---------------------------------------- | -------- |
 | `--flavor <kubeflow\|default>` | Kubeflow (MUI) or PatternFly-only flavor | kubeflow |
-| `--skip-install`               | Skip `npm install` in frontend           | false    |
+| `--skip-install`               | Skip `pnpm install` in frontend          | false    |
 | `--no-git`                     | Skip git initialization                  | false    |
 
 ### Flavor Differences

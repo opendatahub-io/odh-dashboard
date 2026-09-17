@@ -159,7 +159,7 @@ cd bff && make lint && make test
 cd frontend && pnpm run test:cypress-ci
 
 # Run specific Cypress test
-cd frontend && pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+cd frontend && pnpm run test:cypress-ci --spec "**/testfile.cy.ts"
 ```
 
 ---

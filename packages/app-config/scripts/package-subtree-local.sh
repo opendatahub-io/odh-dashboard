@@ -574,7 +574,7 @@ _get_commit_url() {
 }
 
 _get_continue_cmd() {
-  local continue_cmd="pnpm --filter $WORKSPACE_LOCATION run update-subtree-local -- --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
+  local continue_cmd="pnpm --filter $WORKSPACE_LOCATION run update-subtree-local --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
   if [ -n "$COMMIT_SHA" ]; then
     continue_cmd="$continue_cmd --commit=$COMMIT_SHA"
   fi

@@ -62,7 +62,7 @@ This fetches the upstream repo, finds all new commits since the last sync, and a
 To test an upstream PR's changes before the PR merges:
 
 ```bash
-pnpm --filter ./packages/model-registry run update-subtree -- --pr=https://github.com/kubeflow/model-registry/pull/1234
+pnpm --filter ./packages/model-registry run update-subtree --pr=https://github.com/kubeflow/model-registry/pull/1234
 ```
 
 This temporarily overrides the `package.json` config to point at the PR's branch, applies the changes, then marks all commits with `[DO NOT MERGE - PR TEST SYNC]`. After testing, discard this branch.
@@ -92,7 +92,7 @@ Use local sync to test changes from a local clone of the upstream repository bef
 
 ```bash
 # Sync all new commits from a local branch
-pnpm --filter ./packages/model-registry run update-subtree-local -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/my-changes
 ```
@@ -111,24 +111,24 @@ pnpm --filter ./packages/model-registry run update-subtree-local -- \
 
 ```bash
 # Sync all new commits from a branch
-pnpm --filter ./packages/model-registry run update-subtree-local -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/new-ui
 
 # Cherry-pick a single commit
-pnpm --filter ./packages/model-registry run update-subtree-local -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=main \
   --commit=abc1234
 
 # Sync up to a specific commit
-pnpm --filter ./packages/model-registry run update-subtree-local -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=main \
   --up-to=def5678
 
 # Continue after resolving conflicts
-pnpm --filter ./packages/model-registry run update-subtree-local -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/new-ui \
   --continue
@@ -191,10 +191,10 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 
    ```bash
    # For PR sync
-   pnpm --filter ./packages/<package-name> run update-subtree -- --continue
+   pnpm --filter ./packages/<package-name> run update-subtree --continue
 
    # For local sync (must pass --local-repo and --branch again)
-   pnpm --filter ./packages/<package-name> run update-subtree-local -- \
+   pnpm --filter ./packages/<package-name> run update-subtree-local \
      --local-repo=/path/to/local/upstream-repo \
      --branch=feature/my-changes \
      --continue
@@ -227,7 +227,7 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 2. Create a branch in odh-dashboard (e.g., `git checkout -b test/my-upstream-feature`)
 3. Run local sync to bring upstream changes into the monorepo:
    ```bash
-   pnpm --filter ./packages/model-registry run update-subtree-local -- \
+   pnpm --filter ./packages/model-registry run update-subtree-local \
      --local-repo=/path/to/local/model-registry \
      --branch=feature/my-changes
    ```
@@ -257,7 +257,7 @@ Behavior:
 
 1. Compare `packages/model-registry/package.json` `subtree.commit` to `kubeflow/model-registry` `main` tip.
 2. If already up to date, exit without a PR.
-3. Otherwise run `npm run update-subtree -w packages/model-registry` in a **read-only sync job** (`persist-credentials: false`; no write token in `.git`).
+3. Otherwise run `pnpm --filter @odh-dashboard/model-registry run update-subtree` in a **read-only sync job** (`persist-credentials: false`; no write token in `.git`).
 4. On conflict, commit the partial sync (including conflict markers) and open a PR for manual resolution — **no separate issue**.
 5. On a clean sync, run `test:lint`, `test:type-check`, and `test:unit` in `packages/model-registry/upstream/frontend`.
 6. **publish-branch** applies validated patches and pushes `automated/model-registry-upstream-sync`; **publish-pr** creates or updates a PR against `main` and assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro`.
@@ -272,7 +272,7 @@ Behavior:
 
 Conflicts are expected to be common for model-registry syncs; they are handled entirely through the automated PR, not through issues. Conflict PRs skip automated frontend validation — run tests locally after resolving markers.
 
-**Handling conflicts:** The workflow assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro` on the PR. Whoever picks it up should checkout `automated/model-registry-upstream-sync`, resolve markers, run `npm run update-subtree -w packages/model-registry -- --continue`, run frontend lint/type-check/unit tests, and push to update the PR. Use `/upstream-sync model-registry` in Claude Code for guided conflict resolution (see `.claude/skills/upstream-sync/SKILL.md`).
+**Handling conflicts:** The workflow assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro` on the PR. Whoever picks it up should checkout `automated/model-registry-upstream-sync`, resolve markers, run `pnpm --filter @odh-dashboard/model-registry run update-subtree --continue`, run frontend lint/type-check/unit tests, and push to update the PR. Use `/upstream-sync model-registry` in Claude Code for guided conflict resolution (see `.claude/skills/upstream-sync/SKILL.md`).
 
 Manual sync with `/upstream-sync` remains available for ad-hoc syncs.
 

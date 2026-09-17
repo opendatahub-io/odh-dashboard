@@ -9,7 +9,7 @@ Single command to run all Cypress tests or a specific test (build frontend, star
 ```bash
 pnpm run test:cypress-ci
 
-pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+pnpm run test:cypress-ci --spec "**/testfile.cy.ts"
 ```
 
 Cypress tests require a frontend server to be running.
@@ -26,7 +26,7 @@ To run all Cypress tests or a specific test headless
 ```bash
 pnpm run cypress:run:mock
 
-pnpm run cypress:run:mock -- --spec "**/testfile.cy.ts"
+pnpm run cypress:run:mock --spec "**/testfile.cy.ts"
 ```
 
 To open the Cypress GUI run

@@ -7,7 +7,8 @@ Date: 2024-10-25 (documented 2026-03-11)
 Superseded for package-manager selection; the monorepo decision remains accepted.
 
 > This ADR records the original npm workspace decision. The repository now uses pnpm
-> workspaces; see [`docs/dev-setup.md`](../dev-setup.md) for current instructions.
+> workspaces; see [ADR 0004](0004-use-pnpm-workspaces.md) for the current decision and
+> [`docs/dev-setup.md`](../dev-setup.md) for current instructions.
 
 ## Context
 
@@ -86,3 +87,4 @@ odh-dashboard/
 - [npm workspaces documentation (historical)](https://docs.npmjs.com/cli/v10/using-npm/workspaces)
 - [Turbo documentation](https://turbo.build/repo/docs)
 - [ADR 0002: Use Module Federation](0002-use-rspack-module-federation.md)
+- [ADR 0004: Use pnpm Workspaces](0004-use-pnpm-workspaces.md)

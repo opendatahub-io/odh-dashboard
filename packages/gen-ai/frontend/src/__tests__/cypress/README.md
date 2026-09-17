@@ -36,13 +36,13 @@ Filter tests by tags using the `@cypress/grep` plugin:
 
 ```bash
 # Run MCP server tests only
-pnpm run cypress:run:mock -- --env grepTags=@MCPServers
+pnpm run cypress:run:mock --env grepTags=@MCPServers
 
 # Run multiple tags (AND)
-pnpm run cypress:run:mock -- --env grepTags="@GenAI+@Authentication"
+pnpm run cypress:run:mock --env grepTags="@GenAI+@Authentication"
 
 # Run multiple tags (OR)
-pnpm run cypress:run:mock -- --env grepTags="@GenAI,@MCPServers"
+pnpm run cypress:run:mock --env grepTags="@GenAI,@MCPServers"
 ```
 
 **Available Tags:**

@@ -149,17 +149,17 @@ Docker deployment documentation is coming soon. For now, please use the local de
 
 Key environment variables for the BFF:
 
-| Variable            | Description                              | Default    |
-| ------------------- | ---------------------------------------- | ---------- |
-| `PORT`              | HTTP server port                         | 4000       |
-| `DEPLOYMENT_MODE`   | `standalone`, `kubeflow`, or `federated` | standalone |
-| `DEV_MODE`          | Enables development features             | false      |
-| `MOCK_K8S_CLIENT`   | Use in-memory mock for Kubernetes        | false      |
-| `MOCK_MAAS_CLIENT`  | Use fake MaaS model discovery and avoid external MaaS calls | false |
-| `MOCK_PIPELINE_SERVER_CLIENT` | Use mock Kubeflow Pipelines client | false |
-| `MOCK_S3_CLIENT`    | Use mock S3 client                      | false      |
-| `STATIC_ASSETS_DIR` | Directory for frontend assets            | ./static   |
-| `LOG_LEVEL`         | Logging level (ERROR, WARN, INFO, DEBUG) | INFO       |
+| Variable                      | Description                                                 | Default    |
+| ----------------------------- | ----------------------------------------------------------- | ---------- |
+| `PORT`                        | HTTP server port                                            | 4000       |
+| `DEPLOYMENT_MODE`             | `standalone`, `kubeflow`, or `federated`                    | standalone |
+| `DEV_MODE`                    | Enables development features                                | false      |
+| `MOCK_K8S_CLIENT`             | Use in-memory mock for Kubernetes                           | false      |
+| `MOCK_MAAS_CLIENT`            | Use fake MaaS model discovery and avoid external MaaS calls | false      |
+| `MOCK_PIPELINE_SERVER_CLIENT` | Use mock Kubeflow Pipelines client                          | false      |
+| `MOCK_S3_CLIENT`              | Use mock S3 client                                          | false      |
+| `STATIC_ASSETS_DIR`           | Directory for frontend assets                               | ./static   |
+| `LOG_LEVEL`                   | Logging level (ERROR, WARN, INFO, DEBUG)                    | INFO       |
 
 ## License
 

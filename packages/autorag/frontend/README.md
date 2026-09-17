@@ -32,14 +32,14 @@ pnpm run start:dev
 
 ### Build & Bundle
 
-| Command         | Description                           |
-| --------------- | ------------------------------------- |
+| Command          | Description                           |
+| ---------------- | ------------------------------------- |
 | `pnpm run build` | Production build to `dist/` directory |
 
 ### Testing
 
-| Command             | Description                                     |
-| ------------------- | ----------------------------------------------- |
+| Command              | Description                                     |
+| -------------------- | ----------------------------------------------- |
 | `pnpm run test`      | Run all tests (lint, type-check, unit, cypress) |
 | `pnpm run test:unit` | Run Jest unit tests                             |
 | `pnpm run test:jest` | Run Jest with output                            |
@@ -48,8 +48,8 @@ pnpm run start:dev
 
 ### Cypress E2E Testing
 
-| Command                     | Description                            |
-| --------------------------- | -------------------------------------- |
+| Command                      | Description                            |
+| ---------------------------- | -------------------------------------- |
 | `pnpm run cypress:open`      | Open Cypress test runner (interactive) |
 | `pnpm run cypress:open:mock` | Open Cypress with mock data            |
 | `pnpm run cypress:run`       | Run Cypress tests (headless)           |
@@ -86,7 +86,7 @@ autorag/frontend/
 ```typescript
 import chartIcon from '@assets/images/chart.png';
 
-<img src={chartIcon} alt="Chart visualization" />
+<img src={chartIcon} alt="Chart visualization" />;
 ```
 
 **Local app assets** - Use the `~/app` alias:
@@ -94,7 +94,7 @@ import chartIcon from '@assets/images/chart.png';
 ```typescript
 import logo from '~/app/assets/images/autorag-logo.png';
 
-<img src={logo} alt="AutoRAG logo" />
+<img src={logo} alt="AutoRAG logo" />;
 ```
 
 ### SVG Images
@@ -104,7 +104,7 @@ import logo from '~/app/assets/images/autorag-logo.png';
 ```typescript
 import icon from '~/app/assets/icons/workflow.svg';
 
-<span dangerouslySetInnerHTML={{ __html: icon }} />
+<span dangerouslySetInnerHTML={{ __html: icon }} />;
 ```
 
 > **⚠️ Security Note**: This pattern is safe only for SVG files imported at build time via rspack. Never use `dangerouslySetInnerHTML` with SVG content from external or user-supplied sources.

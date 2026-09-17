@@ -71,12 +71,12 @@ model_serving_frontend = os.path.join(repo_root, "packages/model-serving/fronten
 quoted_model_serving_frontend = shell_quote(model_serving_frontend)
 local_resource(
     "workspace-install",
-    cmd="npm install --ignore-scripts --legacy-peer-deps --prefix " + quoted_repo_root,
+    cmd="pnpm --dir " + quoted_repo_root + " install --ignore-scripts",
     labels=["model-serving"],
 )
 local_resource(
     "model-serving-remote",
-    serve_cmd="cd " + quoted_model_serving_frontend + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 _DEV_SERVER_ALLOWED_ORIGIN=http://localhost:4000 npm run start:dev",
+    serve_cmd="cd " + quoted_model_serving_frontend + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 _DEV_SERVER_ALLOWED_ORIGIN=http://localhost:4000 pnpm run start:dev",
     serve_env=remote_env,
     resource_deps=["workspace-install"],
     readiness_probe=probe(http_get=http_get_action(port=9109, path="/remoteEntry.js")),

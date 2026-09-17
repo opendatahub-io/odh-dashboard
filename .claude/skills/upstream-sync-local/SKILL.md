@@ -76,7 +76,7 @@ Before running the sync:
 Run the update-subtree-local script from the repository root:
 
 ```bash
-pnpm --filter ./packages/<package-name> run update-subtree-local -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local \
   --local-repo=<local-repo-path> \
   --branch=<branch>
 ```
@@ -85,13 +85,13 @@ pnpm --filter ./packages/<package-name> run update-subtree-local -- \
 
 ```bash
 # Cherry-pick a single commit
-pnpm --filter ./packages/<package-name> run update-subtree-local -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --commit=<sha>
 
 # Sync up to a specific commit
-pnpm --filter ./packages/<package-name> run update-subtree-local -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --up-to=<sha>
@@ -100,7 +100,7 @@ pnpm --filter ./packages/<package-name> run update-subtree-local -- \
 **Continuing after conflict resolution:**
 
 ```bash
-pnpm --filter ./packages/<package-name> run update-subtree-local -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --continue
@@ -128,7 +128,7 @@ When conflicts are detected:
    - Stage the resolved files: `git add <file1> <file2> ...`
    - Continue the sync:
      ```bash
-     pnpm --filter ./packages/<package-name> run update-subtree-local -- \
+     pnpm --filter ./packages/<package-name> run update-subtree-local \
        --local-repo=<local-repo-path> \
        --branch=<branch> \
        --continue

@@ -279,7 +279,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 **Symptom**: `pnpm dlx mod-arch-installer` fails with ENOENT or network error.
 
-**Fix**: The skill falls back to manual scaffolding. Alternatively, install it explicitly: `npm install -g mod-arch-installer` and retry.
+**Fix**: The skill falls back to manual scaffolding. Alternatively, run it explicitly with `pnpm dlx mod-arch-installer` and retry.
 
 ### Rspack build fails with "shared module not found"
 
