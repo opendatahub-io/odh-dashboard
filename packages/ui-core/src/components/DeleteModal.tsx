@@ -14,6 +14,8 @@ type DeleteModalProps = {
   testId?: string;
   typeConfirmationLabel?: string;
   removeConfirmation?: boolean;
+  additionalContent?: React.ReactNode;
+  isSubmitDisabled?: boolean;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -28,6 +30,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   testId,
   typeConfirmationLabel = 'deletion',
   removeConfirmation = false,
+  additionalContent,
+  isSubmitDisabled = false,
 }) => {
   const [value, setValue] = React.useState('');
 
@@ -44,7 +48,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       onClick: onDelete,
       variant: 'danger',
       isLoading: deleting,
-      isDisabled: deleting || !canDelete,
+      isDisabled: deleting || isSubmitDisabled || !canDelete,
       dataTestId: 'delete-button',
     },
     {
@@ -73,7 +77,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               value={value}
               onChange={(_e, newValue) => setValue(newValue)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && canDelete && !deleting) {
+                if (event.key === 'Enter' && canDelete && !deleting && !isSubmitDisabled) {
                   onDelete();
                 }
               }}
@@ -81,6 +85,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           </Flex>
         </StackItem>
       )}
+
+      {additionalContent ? <StackItem>{additionalContent}</StackItem> : null}
 
       {error && (
         <StackItem>

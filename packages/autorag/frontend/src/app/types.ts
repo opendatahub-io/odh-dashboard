@@ -71,6 +71,9 @@ export type PipelineRunRuntimeConfig = {
   pipeline_root?: string;
 };
 
+/** Runtime parameters are displayed read-only and may come from historical or current runs. */
+export type AutoragRuntimeParameters = Record<string, unknown>;
+
 export type PipelineRunErrorDetail = {
   '@type'?: string;
   type_url?: string;
@@ -128,17 +131,16 @@ export type PipelineRun = {
   state_history?: PipelineRunStateHistoryEntry[];
 };
 
-export type MaasModelType = 'llm' | 'embedding';
-
-export type MaasModel = {
+export type MaaSModel = {
   id: string;
-  type: MaasModelType;
-  provider: string;
-  resource_path: string;
+  display_name?: string;
+  description?: string;
+  owned_by?: string;
+  ready: boolean;
 };
 
-export type MaasModelsResponse = {
-  models: MaasModel[];
+export type MaaSModelsResponse = {
+  models: MaaSModel[];
 };
 
 export type SecretListItem = {
@@ -180,7 +182,7 @@ export type Envelope<M, D> = {
   data: D;
 };
 
-export type MaasCredentials = {
+export type LegacyRunCredentials = {
   baseUrl: string;
   apiKey: string;
 };
@@ -188,5 +190,5 @@ export type MaasCredentials = {
 export type EvaluationFileEntry = {
   question: string;
   correct_answers: string[];
-  correct_answer_document_ids: string[];
+  correct_answer_document_keys: string[];
 };

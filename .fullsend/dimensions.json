@@ -187,7 +187,7 @@
       "dispatch": "always",
       "definition": "skills/pr-review/sub-agents/jira-pr-review/SKILL.md",
       "meta_prompt": "meta-prompts/section-output.md",
-      "context_dimension": "jira-snapshot",
+      "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
       "include_findings": true,
       "failure_severity": "info",
       "re_review": "full",

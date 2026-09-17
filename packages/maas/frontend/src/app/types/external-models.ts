@@ -117,6 +117,7 @@ export type UpdateExternalProviderRequest = {
 
 export type SecretSummary = {
   name: string;
+  displayName?: string;
 };
 
 export type CreateSecretRequest = {

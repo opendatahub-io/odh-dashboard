@@ -241,7 +241,10 @@ PY
 
   local jira_definition jira_prompt
   jira_definition="$(jq -r '
-    first(.dimensions[] | select(.context_dimension == "jira-snapshot") | .definition) // empty
+    (first(.dimensions[] | select(.id == "jira-snapshot") | .producer_file) // "") as $snapshot |
+    first(.dimensions[]
+      | select($snapshot != "" and ((.context_file // "") | endswith("/.fullsend/" + $snapshot)))
+      | .definition) // empty
   ' "${_DIR}/../dimensions.json")"
   jira_prompt="${_DIR}/../${jira_definition}"
   [[ -n "${jira_definition}" && -f "${jira_prompt}" ]]

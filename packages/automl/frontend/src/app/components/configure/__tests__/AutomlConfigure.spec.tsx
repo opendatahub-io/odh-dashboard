@@ -979,6 +979,93 @@ describe('AutomlConfigure', () => {
       });
     });
 
+    it('should default a two-column temporal dataset to time series and preserve an override', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'amount', type: 'double', task_type: 'multiclass', unique_count: 3 },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByTestId('task-type-radio-timeseries')).toBeChecked();
+      expectPredictionTypeRecommended('timeseries');
+      expect(screen.getByTestId('id_column-select')).toBeDisabled();
+      expect(screen.getByTestId('id_column-select')).toHaveTextContent('Auto-generated ID column');
+      expect(screen.getByText(/Your dataset does not contain an ID column/)).toHaveTextContent(
+        'Your dataset does not contain an ID column. An ID column will be automatically generated during training.',
+      );
+      expect(screen.getByText('Time series recommended')).toBeInTheDocument();
+      expect(screen.getByText(/Time series is recommended because/)).toHaveTextContent(
+        'Time series is recommended because your target column amount contains numbers, and your dataset also has a timestamp column, observed.',
+      );
+      selectPredictionType('regression');
+      expect(screen.getByTestId('task-type-radio-regression')).toBeChecked();
+      expect(screen.getByTestId('task-type-radio-timeseries')).not.toBeChecked();
+    });
+
+    it('should use the raw dataset count for ID guidance when a non-ASCII column is hidden', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'amount', type: 'double', task_type: 'regression' },
+          { name: '店舗', type: 'string', task_type: 'multiclass' },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByText('Time series recommended')).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Your dataset does not contain an ID column/),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('id_column-select')).toBeEnabled();
+      expect(screen.getByTestId('id_column-select')).toHaveTextContent('Select a column');
+    });
+
+    it('should show unsupported-format guidance only after manually selecting time series', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'date', type: 'integer', task_type: 'regression' },
+          { name: 'amount', type: 'double', task_type: 'regression' },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByTestId('task-type-radio-regression')).toBeChecked();
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+      selectPredictionType('timeseries');
+      expect(screen.getByText('Time series dataset format')).toBeInTheDocument();
+      selectPredictionType('regression');
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+    });
+
+    it('should show format guidance without recommending time series for categorical targets', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'category', type: 'string', task_type: 'multiclass', unique_count: 3 },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('category');
+      expect(screen.getByTestId('task-type-radio-multiclass')).toBeChecked();
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+      selectPredictionType('timeseries');
+      expect(
+        screen.getByText(/Use a timestamp column and a numeric target column/),
+      ).toBeInTheDocument();
+      showOtherPredictionTypes();
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
+    });
+
     describe('Target column', () => {
       it('should render the target column dropdown after file selection', () => {
         renderComponent();
@@ -1038,6 +1125,10 @@ describe('AutomlConfigure', () => {
       });
 
       it('should clear timeseries fields that conflict with the newly selected target column', () => {
+        mockuseS3GetFileSchemaQuery.mockReturnValue({
+          data: [...MOCK_COLUMNS, { name: 'observed', type: 'timestamp', task_type: 'multiclass' }],
+          isLoading: false,
+        } as ReturnType<typeof useS3GetFileSchemaQuery>);
         renderWithInitialValues(
           {
             initialInputDataSecret: {
@@ -1665,7 +1756,7 @@ describe('AutomlConfigure', () => {
       );
 
       showOtherPredictionTypes();
-      expectPredictionTypeNotRecommended('timeseries');
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
       expectPredictionTypeNotRecommended('regression');
       expectPredictionTypeEnabled('timeseries');
       expectPredictionTypeEnabled('regression');
@@ -1767,7 +1858,7 @@ describe('AutomlConfigure', () => {
       expectPredictionTypeRecommended('binary');
       showOtherPredictionTypes();
       expectPredictionTypeNotRecommended('multiclass');
-      expectPredictionTypeNotRecommended('timeseries');
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
       expectPredictionTypeNotRecommended('regression');
       expectPredictionTypeEnabled('multiclass');
       expectPredictionTypeEnabled('timeseries');

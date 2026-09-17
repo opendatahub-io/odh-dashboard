@@ -51,7 +51,6 @@ validate_adapter_registry() {
   local registry="${_SCRIPT_DIR}/../dimensions.json"
   local runner setup_runner
   if ! jq -e '
-    . as $registry |
     (.dimensions | type == "array") and
     (([.dimensions[] | select(.kind == "cli-adapter") | .id] | unique | length) ==
       ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
@@ -78,14 +77,6 @@ validate_adapter_registry() {
           type == "string" and test("^[A-Z][A-Z0-9_]*$")
         )
       else true end)
-    ) and
-    all(
-      .dimensions[] | select(.context_dimension? != null);
-      .context_dimension as $context_dimension |
-      any(
-        $registry.dimensions[];
-        .kind == "cli-adapter" and .id == $context_dimension and .output == "context"
-      )
     )
   ' "${registry}" >/dev/null; then
     return 1
