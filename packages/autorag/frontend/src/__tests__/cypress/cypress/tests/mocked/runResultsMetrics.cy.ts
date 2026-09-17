@@ -4,7 +4,20 @@ const NAMESPACE = 'my-project';
 const SEED_RUN_ID = 'e78c5f2a-5726-4e1c-bcb6-60434e77e453';
 
 const initIntercepts = () => {
+  // Connection types come from the host dashboard API, not the autorag BFF.
   cy.intercept({ method: 'GET', pathname: '**/api/connection-types' }, { body: { items: [] } });
+};
+
+/**
+ * The seed run's optimization_metric is faithfulness, so Answer correctness is not in the
+ * default column set. Enable only the Unitxt column so metric-header-answer_correctness is unique.
+ */
+const enableUnitxtAnswerCorrectnessColumn = (): void => {
+  cy.findByTestId('manage-columns-button').click();
+  cy.findByTestId('manage-columns-modal').should('be.visible');
+  cy.findByTestId('column-check-metric:answer_correctness_(unitxt)').click();
+  cy.findByTestId('manage-columns-modal').findByRole('button', { name: 'Save' }).click();
+  cy.findByTestId('manage-columns-modal').should('not.exist');
 };
 
 describe('AutoRAG run results metrics', () => {
@@ -15,6 +28,7 @@ describe('AutoRAG run results metrics', () => {
   });
 
   it('should provide metric header definitions, CI help, and grouped Sample Q&A metrics', () => {
+    enableUnitxtAnswerCorrectnessColumn();
     autoragRunResultsPage.findMetricHeader('answer_correctness').should('be.visible');
     autoragRunResultsPage
       .findMetricHeader('answer_correctness')
