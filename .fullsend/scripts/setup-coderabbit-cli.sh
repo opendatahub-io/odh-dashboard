@@ -15,7 +15,10 @@ export CODERABBIT_VERSION CODERABBIT_INSTALL_DIR CI=true
 export PATH="${CODERABBIT_INSTALL_DIR}:${PATH}"
 curl -fsSL https://cli.coderabbit.ai/install.sh -o "${installer}"
 actual_sha256="$(sha256sum "${installer}" | awk '{print $1}')"
-[[ "${actual_sha256}" == "${CODERABBIT_INSTALLER_SHA256}" ]]
+if [[ "${actual_sha256}" != "${CODERABBIT_INSTALLER_SHA256}" ]]; then
+  echo "::error::CodeRabbit installer checksum mismatch: expected ${CODERABBIT_INSTALLER_SHA256}, got ${actual_sha256}" >&2
+  exit 1
+fi
 bash "${installer}"
 
 coderabbit_bin="${CODERABBIT_INSTALL_DIR}/coderabbit"
