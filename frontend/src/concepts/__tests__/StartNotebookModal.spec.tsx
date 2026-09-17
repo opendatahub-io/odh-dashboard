@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import {
@@ -29,6 +29,7 @@ describe('Start Notebook modal', () => {
     // Validate the header contents
     const header = screen.getByTestId('notebook-status-modal-header');
     expect(header).toHaveTextContent('Test Workbench statusStarting');
+    expect(within(header).getByText('Workbench status', { exact: true })).toBeInTheDocument();
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
     expect(statusLabel).toHaveTextContent('Waiting for server request to start');

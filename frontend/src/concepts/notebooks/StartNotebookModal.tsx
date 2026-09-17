@@ -653,6 +653,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     >
       <ModalHeader
         data-testid="notebook-status-modal-header"
+        description="Workbench status"
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>
