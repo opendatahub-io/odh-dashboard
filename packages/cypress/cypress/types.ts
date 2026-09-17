@@ -144,6 +144,22 @@ export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   waitingForQuotaMessage: string;
 };
 
+export type KueueQuotaUsageNavigationTestData = {
+  managedProjectName: string;
+  nonKueueManagedProjectName: string;
+  resourceFlavorName: string;
+  parentCohortName: string;
+  cohortName: string;
+  emptyCohortName: string;
+  cohortClusterQueueName: string;
+  standaloneClusterQueueName: string;
+  localQueueName: string;
+  acceleratorResourceName: string;
+  acceleratorQuota: number;
+  cohortTypeLabel: string;
+  clusterQueueTypeLabel: string;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
