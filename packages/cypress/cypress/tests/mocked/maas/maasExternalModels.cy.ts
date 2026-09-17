@@ -147,13 +147,13 @@ describe('External Models Page', () => {
 
       gptRow.findExpandedViewUrlButton('openai-prod').click();
       externalModelProviderUrlModal.findInputValue().should('have.value', 'api.openai.com');
-      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'openai');
+      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'OpenAI');
       externalModelProviderUrlModal.findTargetModelId().should('contain.text', 'gpt-4o');
       externalModelProviderUrlModal.findCloseButton().click();
 
       gptRow.findExpandedViewPathButton('openai-prod').click();
       pathModal.findInputValue().should('have.value', '/v1/chat/completions');
-      pathModal.findSubContent().should('contain.text', 'openai');
+      pathModal.findSubContent().should('contain.text', 'OpenAI');
       pathModal.findCloseButton().click();
 
       const splitRow = externalModelsPage.getRow('Claude A/B Split');
@@ -180,7 +180,7 @@ describe('External Models Page', () => {
       externalModelProviderUrlModal
         .findInputValue()
         .should('have.value', 'bedrock.us-east-1.amazonaws.com');
-      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'aws-bedrock');
+      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'AWS Bedrock');
       externalModelProviderUrlModal
         .findTargetModelId()
         .should('contain.text', 'anthropic.claude-3-sonnet');
@@ -188,7 +188,7 @@ describe('External Models Page', () => {
 
       splitRow.findExpandedViewPathButton('anthropic-dev').click();
       pathModal.findInputValue().should('have.value', '/v1/messages');
-      pathModal.findSubContent().should('contain.text', 'anthropic');
+      pathModal.findSubContent().should('contain.text', 'Anthropic');
       pathModal.findCloseButton().click();
 
       const awaitingRow = externalModelsPage.getRow('Awaiting Pairing Model');
@@ -302,6 +302,7 @@ describe('External Models Page', () => {
       addProviderReferenceWizard.findNextButton().should('not.be.disabled').click();
 
       addProviderReferenceWizard.fillTargetModel('claude-sonnet-4-5-20241022');
+      addProviderReferenceWizard.selectApiFormat('openai-chat');
       addProviderReferenceWizard.expandAdvancedSettings();
       addProviderReferenceWizard.findInheritedProviderConfig().should('be.visible');
       addProviderReferenceWizard.findInheritedConfigKey('project').should('have.value', 'project');
@@ -365,6 +366,7 @@ describe('External Models Page', () => {
       });
       addProviderReferenceWizard.findNextButton().should('not.be.disabled').click();
 
+      addProviderReferenceWizard.selectApiFormat('openai-chat');
       addProviderReferenceWizard.fillTargetModel('gpt-4o');
       addProviderReferenceWizard.findAddButton().click();
 
@@ -448,7 +450,11 @@ describe('External Models Page', () => {
       createExternalModelPage.visit();
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
 
       createExternalModelPage.findProviderRefEditButton(0).click();
       editProviderReferenceModal.findExternalProviderSection().should('exist');
@@ -466,6 +472,7 @@ describe('External Models Page', () => {
         .should('be.visible')
         .should('have.value', 'my-project');
 
+      editProviderReferenceModal.selectApiFormat('openai-chat');
       editProviderReferenceModal.findTargetModelInput().clear();
       editProviderReferenceModal.findTargetModelInput().type('claude-opus-4-20250514');
       editProviderReferenceModal.findSaveButton().click();
@@ -499,7 +506,11 @@ describe('External Models Page', () => {
 
       createExternalModelPage.visit();
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
 
       createExternalModelPage.setProviderRefWeight(0, 0);
       createExternalModelPage
@@ -526,11 +537,15 @@ describe('External Models Page', () => {
       createExternalModelPage.findDistributeEquallyButton().should('not.exist');
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
       createExternalModelPage.findDistributeEquallyButton().should('not.exist');
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('OpenAI Production', 'gpt-4o');
+      addProviderReferenceWizard.addProviderReference('OpenAI Production', 'gpt-4o', 'openai-chat');
       createExternalModelPage.findDistributeEquallyButton().should('be.visible');
       createExternalModelPage.findDistributeEquallyHelp().should('exist');
     });
@@ -539,9 +554,13 @@ describe('External Models Page', () => {
       createExternalModelPage.visit();
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('OpenAI Production', 'gpt-4o');
+      addProviderReferenceWizard.addProviderReference('OpenAI Production', 'gpt-4o', 'openai-chat');
 
       createExternalModelPage.setProviderRefWeight(0, 2);
       createExternalModelPage.setProviderRefWeight(1, 4);
@@ -561,7 +580,11 @@ describe('External Models Page', () => {
       createExternalModelPage.visit();
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
       createExternalModelPage.findProviderRefsRequiredInfo().should('not.exist');
 
       createExternalModelPage.findProviderRefRemoveButton(0).click();
@@ -595,7 +618,11 @@ describe('External Models Page', () => {
       createExternalModelPage.findDescriptionInput().type('External GPT-4 Turbo model');
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
 
       createExternalModelPage.findCreateButton().should('not.be.disabled').click();
 
