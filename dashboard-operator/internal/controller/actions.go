@@ -106,16 +106,18 @@ func remapRayDashboardGatewayRBAC(resources []unstructured.Unstructured) {
 	}
 }
 
-// setRHOAIDashboardRouteHostname gives the core dashboard route the same
-// hostname specificity as other routes attached to the shared RHOAI Gateway.
-// When no gateway domain is configured, the route remains hostname-less.
+// setRHOAIDashboardRouteHostname gives the self-managed RHOAI core dashboard
+// route the same hostname specificity as other routes attached to its shared
+// Gateway. Managed RHOAI supports the MaaS Consumer Portal but does not yet
+// have a core dashboard manifest overlay. When no gateway domain is configured,
+// the route remains hostname-less.
 func setRHOAIDashboardRouteHostname(
 	resources []unstructured.Unstructured,
 	dashboard *v1alpha1.Dashboard,
 	platform cluster.Platform,
 ) error {
 	gatewayDomain := normalizedGatewayDomain(dashboard)
-	if !maasConsumerPortalSupportedPlatform(platform) || gatewayDomain == "" {
+	if platform != cluster.SelfManagedRhoai || gatewayDomain == "" {
 		return nil
 	}
 
