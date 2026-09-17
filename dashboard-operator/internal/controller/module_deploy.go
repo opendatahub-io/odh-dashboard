@@ -222,6 +222,8 @@ func (r *DashboardReconciler) deployModuleManifests(
 			logger.Error(err, "Failed to render module manifests", "module", name)
 			return fmt.Errorf("failed to render manifests for module %s: %w", name, err)
 		}
+		remapRayDashboardGatewayRBAC(rendered)
+		remapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace)
 
 		deployer := deploy.NewDeployer(
 			deploy.WithFieldOwner("dashboard-operator"),

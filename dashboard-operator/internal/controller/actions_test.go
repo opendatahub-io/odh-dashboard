@@ -283,6 +283,40 @@ func TestRemapRayDashboardGatewayRBAC(t *testing.T) {
 	assert.Equal(t, "opendatahub", resources[2].GetNamespace())
 }
 
+func TestRemapDataConnectHubGatewayRBAC(t *testing.T) {
+	resources := []unstructured.Unstructured{
+		{Object: map[string]interface{}{
+			"kind": "Role", "metadata": map[string]interface{}{"name": dchRhoaiGatewayRBACName},
+		}},
+		{Object: map[string]interface{}{
+			"kind": "RoleBinding", "metadata": map[string]interface{}{"name": dchRhoaiGatewayRBACName},
+			"subjects": []interface{}{map[string]interface{}{"kind": "ServiceAccount", "name": "odh-dashboard-data-connect-hub-ui"}},
+		}},
+		{Object: map[string]interface{}{
+			"kind": "Role", "metadata": map[string]interface{}{"name": dchOdhGatewayRBACName},
+		}},
+		{Object: map[string]interface{}{
+			"kind": "RoleBinding", "metadata": map[string]interface{}{"name": dchOdhGatewayRBACName},
+			"subjects": []interface{}{map[string]interface{}{"kind": "ServiceAccount", "name": "odh-dashboard-data-connect-hub-ui"}},
+		}},
+	}
+
+	remapDataConnectHubGatewayRBAC(resources, "redhat-ods-applications")
+
+	assert.Equal(t, dataScienceGatewayNamespace, resources[0].GetNamespace())
+	assert.Equal(t, dataScienceGatewayNamespace, resources[1].GetNamespace())
+	assert.Equal(t, odhGatewayNamespace, resources[2].GetNamespace())
+	assert.Equal(t, odhGatewayNamespace, resources[3].GetNamespace())
+
+	for _, resource := range []unstructured.Unstructured{resources[1], resources[3]} {
+		subjects, found, err := unstructured.NestedSlice(resource.Object, "subjects")
+		require.NoError(t, err)
+		require.True(t, found)
+		subject := subjects[0].(map[string]interface{})
+		assert.Equal(t, "redhat-ods-applications", subject["namespace"])
+	}
+}
+
 func TestMonitoringNamespace(t *testing.T) {
 	tests := []struct {
 		name                  string

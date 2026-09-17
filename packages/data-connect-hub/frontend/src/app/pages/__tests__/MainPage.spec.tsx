@@ -79,7 +79,7 @@ const mockConnectionsTab = jest.fn(({ namespace }: { namespace: string }) => (
 
 jest.mock('~/app/pages/ConnectionsTab', () => ({
   __esModule: true,
-  default: (props: { namespace: string }) => mockConnectionsTab(props),
+  default: (props: { namespace: string; isActive?: boolean }) => mockConnectionsTab(props),
 }));
 
 const mockUseNamespaceSelector = jest.mocked(useNamespaceSelector);
@@ -144,7 +144,9 @@ describe('MainPage', () => {
     renderPage('/ai-hub/connections/connections?project=project-2');
 
     await waitFor(() => {
-      expect(mockConnectionsTab).toHaveBeenCalledWith({ namespace: 'project-2' });
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-2', isActive: true }),
+      );
     });
   });
 
@@ -162,7 +164,9 @@ describe('MainPage', () => {
     renderPage('/ai-hub/connections/connections');
 
     await waitFor(() => {
-      expect(mockConnectionsTab).toHaveBeenCalledWith({ namespace: 'project-2' });
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-2', isActive: true }),
+      );
     });
   });
 
@@ -180,7 +184,9 @@ describe('MainPage', () => {
     renderPage('/ai-hub/connections/connections');
 
     await waitFor(() => {
-      expect(mockConnectionsTab).toHaveBeenCalledWith({ namespace: 'project-1' });
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-1', isActive: true }),
+      );
     });
   });
 

@@ -447,6 +447,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+	remapDataConnectHubGatewayRBAC(allResources, r.ApplicationsNamespace)
 
 	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),

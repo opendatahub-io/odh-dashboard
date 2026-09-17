@@ -109,11 +109,6 @@ type EnvConfig struct {
 	// useful for local dev and tests.
 	DataConnectHubAPIURL string
 
-	// GatewayNamespace and GatewayName identify one of the supported DCH gateway pairs:
-	// openshift-ingress/data-science-gateway or opendatahub/odh-gateway.
-	GatewayNamespace string
-	GatewayName      string
-
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead

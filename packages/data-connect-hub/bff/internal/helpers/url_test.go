@@ -18,3 +18,10 @@ func TestNormalizeHTTPSUpstreamURLRejectsNonHTTPS(t *testing.T) {
 
 	require.Error(t, err)
 }
+
+func TestValidateHTTPSUpstreamURLDoesNotExposeCredentials(t *testing.T) {
+	_, err := NormalizeHTTPSUpstreamURL("https://user:password@internal.example")
+
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "password")
+}

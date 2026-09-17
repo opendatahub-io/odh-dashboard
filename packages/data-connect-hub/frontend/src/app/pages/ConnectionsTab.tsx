@@ -33,7 +33,7 @@ import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
 import emptyStateImage from '~/images/RH-API-Illustration-Gray_20-2024_07-RGB.svg';
 
-type ConnectionsTabProps = { namespace: string };
+type ConnectionsTabProps = { namespace: string; isActive?: boolean };
 
 export const synchronizeTypeSelection = (
   current: string[] | null,
@@ -62,8 +62,8 @@ const statusVariant = {
 const isValidTimestamp = (timestamp?: string): timestamp is string =>
   Boolean(timestamp && !Number.isNaN(new Date(timestamp).getTime()));
 
-const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
-  const [connections, loaded, error, refresh] = useConnections(namespace);
+const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = true }) => {
+  const [connections, loaded, error, refresh] = useConnections(namespace, isActive);
   const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace);
   const [nameFilter, setNameFilter] = React.useState('');
   const [selectedTypes, setSelectedTypes] = React.useState<string[] | null>(null);
@@ -502,7 +502,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace }) => {
           deleteName={deleteTarget.resource.name}
           deleting={deleting}
           error={deleteError}
-          onClose={() => setDeleteTarget(undefined)}
+          onClose={() => {
+            setDeleteTarget(undefined);
+            setDeleteError(undefined);
+          }}
           onDelete={() => void handleDelete()}
         >
           Deleting this connection will not delete the external data source, but any linked data

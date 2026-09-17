@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"fmt"
+	"errors"
 	"net/url"
 	"strings"
 )
@@ -9,10 +9,10 @@ import (
 func ValidateHTTPSUpstreamURL(raw string) error {
 	parsed, err := url.Parse(raw)
 	if err != nil {
-		return fmt.Errorf("invalid upstream URL: %w", err)
+		return errors.New("invalid upstream URL")
 	}
 	if parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return fmt.Errorf("invalid upstream URL %q: expected an HTTPS URL without credentials, query, or fragment", raw)
+		return errors.New("invalid upstream URL: expected HTTPS without credentials, query, or fragment")
 	}
 	return nil
 }

@@ -24,13 +24,3 @@ replacements:
           name: data-connect-hub-ui
         fieldPaths:
           - spec.template.spec.containers.[name=data-connect-hub-ui].image
-  - source:
-      kind: Deployment
-      name: data-connect-hub-ui
-      fieldPath: metadata.namespace
-    targets:
-      - select:
-          kind: RoleBinding
-          name: odh-dashboard-data-connect-hub-gateway-discovery
-        fieldPaths:
-          - subjects.[name=odh-dashboard-data-connect-hub-ui].namespace

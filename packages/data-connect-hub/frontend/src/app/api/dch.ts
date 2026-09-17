@@ -23,6 +23,7 @@ const isConnection = (value: unknown): value is Connection => {
   }
   return (
     typeof value.metadata.id === 'string' &&
+    (value.metadata.tenant_id === undefined || typeof value.metadata.tenant_id === 'string') &&
     typeof value.resource.name === 'string' &&
     typeof value.resource.data_connection_type_id === 'string' &&
     (value.resource.format === 'tabular' || value.resource.format === 'binary') &&
@@ -39,8 +40,15 @@ const isConnectionType = (value: unknown): value is ConnectionType =>
   isRecord(value.metadata) &&
   isRecord(value.resource) &&
   typeof value.metadata.id === 'string' &&
+  (value.metadata.tenant_id === undefined || typeof value.metadata.tenant_id === 'string') &&
   typeof value.resource.name === 'string' &&
-  typeof value.resource.provider === 'string';
+  typeof value.resource.provider === 'string' &&
+  (value.resource.description === undefined || typeof value.resource.description === 'string') &&
+  (value.status === undefined ||
+    (isRecord(value.status) &&
+      isRecord(value.status.capabilities) &&
+      typeof value.status.capabilities.flight === 'boolean' &&
+      typeof value.status.capabilities.rest === 'boolean'));
 
 export const getConnections =
   (hostPath: string) =>

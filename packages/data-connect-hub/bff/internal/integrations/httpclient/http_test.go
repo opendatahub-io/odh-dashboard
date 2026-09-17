@@ -2,6 +2,8 @@ package integrations
 
 import (
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -41,4 +43,17 @@ func TestNewHTTPErrorDoesNotExposeRawResponseBody(t *testing.T) {
 	require.ErrorAs(t, err, &httpErr)
 	require.Equal(t, "502", httpErr.Code)
 	require.Equal(t, "upstream service returned an error", httpErr.Message)
+}
+
+func TestHTTPClientRejectsRedirects(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		http.Redirect(writer, request, "/redirected", http.StatusFound)
+	}))
+	defer server.Close()
+
+	client, err := NewHTTPClient(slog.Default(), "", server.URL, nil, false, nil)
+	require.NoError(t, err)
+	_, err = client.GET("/")
+
+	require.ErrorContains(t, err, "redirects are not allowed")
 }

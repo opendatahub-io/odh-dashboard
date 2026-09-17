@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -54,7 +55,11 @@ func NewHTTPClient(logger *slog.Logger, RequestID string, baseURL string, header
 
 func NewHTTPClientWithTransport(logger *slog.Logger, RequestID string, baseURL string, headers http.Header, insecureSkipVerify bool, rootCAs *x509.CertPool, transport *http.Transport) (HTTPClientInterface, error) {
 	return &HTTPClient{
-		client:    &http.Client{Timeout: httpClientTimeout, Transport: transport},
+		client: &http.Client{
+			Timeout:       httpClientTimeout,
+			Transport:     transport,
+			CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return errors.New("redirects are not allowed") },
+		},
 		baseURL:   baseURL,
 		RequestID: RequestID,
 		logger:    logger,
