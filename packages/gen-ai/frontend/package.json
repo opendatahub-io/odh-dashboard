@@ -37,10 +37,10 @@
     "cypress:server:bff-mock": "cd ../bff && cross-env MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true make run PORT=9001",
     "cypress:open": "cypress open --project src/__tests__/cypress",
     "cypress:open:e2e": "cross-env BASE_URL=http://localhost:4010 pnpm run cypress:open",
-    "cypress:open:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 pnpm run cypress:open -- ",
+    "cypress:open:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 pnpm run cypress:open",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
     "cypress:run:e2e": "cross-env BASE_URL=http://localhost:4010 pnpm run cypress:run",
-    "cypress:run:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 pnpm run cypress:run -- ",
+    "cypress:run:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 pnpm run cypress:run",
     "test:cypress-ci": "pnpm exec concurrently -P -k -s first \"pnpm run cypress:server:bff-mock\" \"cross-env PROXY_HOST=localhost PROXY_PORT=9001 pnpm run cypress:server:dev\" \"pnpm exec wait-on http://localhost:8080 http://localhost:9001 && pnpm run cypress:run:mock\" -- "
   },
   "devDependencies": {

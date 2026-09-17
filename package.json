@@ -41,7 +41,7 @@
     "test:frontend:coverage": "pnpm --filter odh-dashboard-frontend test:coverage",
     "test:frontend:unit-coverage": "pnpm --filter odh-dashboard-frontend test:unit-coverage",
     "test:backend:unit-coverage": "pnpm --filter odh-dashboard-backend test:unit-coverage",
-    "test:cypress-ci": "pnpm --filter odh-dashboard-frontend test:cypress-ci -- ",
+    "test:cypress-ci": "pnpm --filter odh-dashboard-frontend test:cypress-ci",
     "test:unit": "turbo run test:unit",
     "lint:frontend:backend": "run-p test:lint:*",
     "test:lint:backend": "pnpm --filter odh-dashboard-backend test:lint",
@@ -67,7 +67,7 @@
     "install:all": "pnpm install",
     "prepare:e2e": "turbo run prepare:e2e",
     "cypress:server:e2e:wait": "turbo run cypress:server:e2e:wait",
-    "test:cypress:e2e": "concurrently -P -k -s first --hide 0 \"pnpm cypress:server:e2e\" \"pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome -- {@}\" --",
+    "test:cypress:e2e": "concurrently -P -k -s first --hide 0 \"pnpm cypress:server:e2e\" \"pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome {@}\" --",
     "start:dev": "turbo run start:dev",
     "start:dev:ext": "turbo run start:dev:ext"
   },
