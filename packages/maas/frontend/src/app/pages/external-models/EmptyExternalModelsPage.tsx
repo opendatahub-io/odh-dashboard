@@ -10,8 +10,8 @@ import {
   ExternalModelsManageProvidersSource,
   ExternalModelsManageProvidersClickedProperties,
 } from '~/app/types/event-tracking';
+import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 import { createExternalModelPath } from './const';
-import { externalProvidersManagementPath } from '../external-providers/const';
 
 type EmptyExternalModelsPageProps = {
   namespace: string;

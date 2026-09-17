@@ -21,10 +21,10 @@ import {
   ExternalModelProviderContext,
   ExternalModelWizardProviderSourceSelectedProperties,
 } from '~/app/types/event-tracking';
+import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
 import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
 import AddProviderReferenceWizardFooter from './AddProviderReferenceWizardFooter';
 import SelectProviderStep from './SelectProviderStep';
-import { convertStringToAuthMechanism } from '../utils';
 
 type AddProviderReferenceWizardProps = {
   isOpen: boolean;

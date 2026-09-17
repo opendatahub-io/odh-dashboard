@@ -60,10 +60,10 @@ import {
   convertStringToExternalModelProviderType,
 } from '~/app/types/event-tracking';
 import { convertStringToPhaseStatus } from '~/app/utilities/phaseLabelUtils';
+import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
 import AddProviderReferenceWizard from './AddProviderReferenceWizard';
 import EditProviderReferenceModal from './EditProviderReferenceModal';
 import ProviderReferencesTable from './ProviderReferencesTable';
-import { convertStringToAuthMechanism } from '../utils';
 
 type CreateExternalModelFormProps = {
   namespace: string;
