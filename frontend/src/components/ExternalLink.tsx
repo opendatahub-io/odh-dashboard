@@ -16,7 +16,7 @@ const ExternalLink: React.FC<ExternalLinkProps> = ({ text, to, testId }) => (
     data-testid={testId}
     isInline
     component="a"
-    href={isValidHttpUrl(to) ? to : undefined}
+    href={to && isValidHttpUrl(to) ? to : undefined}
     target="_blank"
     rel="noopener noreferrer"
     onClick={() => {
