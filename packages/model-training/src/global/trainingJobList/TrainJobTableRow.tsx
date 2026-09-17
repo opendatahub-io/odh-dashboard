@@ -165,7 +165,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
                     variant="link"
                     isInline
                     onClick={() => setScaleNodesModalOpen(true)}
-                    className="pf-u-p-0 pf-u-color-200"
+                    className="pf-v6-u-p-0 pf-v6-u-color-200"
                     aria-label="Scale nodes"
                     icon={<PencilAltIcon />}
                     style={{ fontSize: 'inherit', padding: 0 }}
