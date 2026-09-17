@@ -53,7 +53,7 @@ func TestSetRHOAIDashboardRouteHostname(t *testing.T) {
 		{
 			name:        "RHOAI with gateway domain",
 			platform:    cluster.SelfManagedRhoai,
-			gateway:     &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+			gateway:     &v1alpha1.GatewaySpec{Domain: "RH-AI.Apps.Example.Com"},
 			want:        []string{"rh-ai.apps.example.com"},
 			wantPresent: true,
 		},

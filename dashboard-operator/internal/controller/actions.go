@@ -126,7 +126,7 @@ func setRHOAIDashboardRouteHostname(
 
 		if err := unstructured.SetNestedStringSlice(
 			resource.Object,
-			[]string{dashboard.Spec.Gateway.Domain},
+			[]string{strings.ToLower(dashboard.Spec.Gateway.Domain)},
 			"spec",
 			"hostnames",
 		); err != nil {
