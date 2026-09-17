@@ -38,8 +38,10 @@ describe('ChatbotToolCalls', () => {
     );
     fireEvent.click(screen.getByTestId('tool-call-github-search-toggle'));
 
-    expect(screen.getByText('ARGUMENTS')).toBeInTheDocument();
-    expect(screen.getByText('RESULT')).toBeInTheDocument();
+    expect(screen.getByText('Arguments')).toBeInTheDocument();
+    expect(screen.getByText('Results')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy arguments to clipboard' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy results to clipboard' })).toBeInTheDocument();
     expect(screen.getByText(/"query": "label:bug state:open"/)).toBeInTheDocument();
     expect(screen.getByText(/"total_count": 12/)).toBeInTheDocument();
   });

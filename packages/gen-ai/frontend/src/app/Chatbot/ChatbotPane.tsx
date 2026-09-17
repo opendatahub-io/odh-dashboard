@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Card, CardBody } from '@patternfly/react-core';
-import { ResponseMetrics } from '~/app/types';
 import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
 
@@ -11,8 +10,6 @@ interface ChatbotPaneProps {
   displayLabel: string;
   onClose: () => void;
   children: React.ReactNode;
-  /** Metrics from the last response (latency, tokens, TTFT) */
-  metrics?: ResponseMetrics | null;
   /** Whether a response is currently being generated */
   isLoading?: boolean;
   isSettingsOpen?: boolean;
@@ -28,7 +25,6 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   displayLabel,
   onClose,
   children,
-  metrics,
   isLoading,
   isSettingsOpen,
   isActiveConfig,
@@ -46,7 +42,6 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
       <ChatbotPaneHeader
         label={displayLabel}
         onCloseClick={onClose}
-        metrics={metrics}
         isLoading={isLoading}
         isSettingsOpen={isSettingsOpen}
         isActiveConfig={isActiveConfig}

@@ -5,7 +5,9 @@ import {
   AccordionItem,
   AccordionToggle,
   CodeBlock,
+  CodeBlockAction,
   CodeBlockCode,
+  ClipboardCopyButton,
   Content,
   ExpandableSection,
   ExpandableSectionToggle,
@@ -61,6 +63,51 @@ const ToolCallIcon: React.FC<Pick<StreamingToolCall, 'status'>> = ({ status }) =
   return <Spinner size="sm" aria-label="Tool call in progress" />;
 };
 
+type ToolCallCodeBlockProps = {
+  heading: string;
+  value: string | undefined;
+  fallback: string;
+  copyButtonId: string;
+};
+
+const ToolCallCodeBlock: React.FC<ToolCallCodeBlockProps> = ({
+  heading,
+  value,
+  fallback,
+  copyButtonId,
+}) => {
+  const code = formatJSON(value, fallback);
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      // Clipboard access is not available in every browser context.
+    }
+  };
+
+  return (
+    <StackItem>
+      <Content component="h4">{heading}</Content>
+      <CodeBlock
+        actions={
+          <CodeBlockAction>
+            <ClipboardCopyButton
+              id={copyButtonId}
+              aria-label={`Copy ${heading.toLowerCase()} to clipboard`}
+              onClick={copyCode}
+              variant="plain"
+            >
+              Copy
+            </ClipboardCopyButton>
+          </CodeBlockAction>
+        }
+      >
+        <CodeBlockCode codeClassName="pf-v6-u-text-break-word">{code}</CodeBlockCode>
+      </CodeBlock>
+    </StackItem>
+  );
+};
+
 const ToolCallRow: React.FC<{ toolCall: StreamingToolCall }> = ({ toolCall }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const contentId = React.useId();
@@ -78,7 +125,8 @@ const ToolCallRow: React.FC<{ toolCall: StreamingToolCall }> = ({ toolCall }) =>
       >
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          justifyContent={{ default: 'justifyContentFlexStart' }}
+          gap={{ default: 'gapSm' }}
           flexWrap={{ default: 'nowrap' }}
         >
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -89,7 +137,11 @@ const ToolCallRow: React.FC<{ toolCall: StreamingToolCall }> = ({ toolCall }) =>
               <span className="pf-v6-u-font-size-sm">{toolCall.name}</span>
             </FlexItem>
             <FlexItem>
-              <Label isCompact color={toolCall.category === 'RAG' ? 'blue' : 'purple'}>
+              <Label
+                isCompact
+                variant="outline"
+                color={toolCall.category === 'RAG' ? 'orange' : 'blue'}
+              >
                 {label}
               </Label>
             </FlexItem>
@@ -113,22 +165,18 @@ const ToolCallRow: React.FC<{ toolCall: StreamingToolCall }> = ({ toolCall }) =>
           aria-labelledby={toggleId}
         >
           <Stack hasGutter>
-            <StackItem>
-              <Content component="h4">ARGUMENTS</Content>
-              <CodeBlock>
-                <CodeBlockCode codeClassName="pf-v6-u-text-break-word">
-                  {formatJSON(toolCall.arguments, 'No request arguments were provided.')}
-                </CodeBlockCode>
-              </CodeBlock>
-            </StackItem>
-            <StackItem>
-              <Content component="h4">RESULT</Content>
-              <CodeBlock>
-                <CodeBlockCode codeClassName="pf-v6-u-text-break-word">
-                  {formatJSON(toolCall.output, 'No response was received from the tool.')}
-                </CodeBlockCode>
-              </CodeBlock>
-            </StackItem>
+            <ToolCallCodeBlock
+              heading="Arguments"
+              value={toolCall.arguments}
+              fallback="No request arguments were provided."
+              copyButtonId={`copy-${toolCall.id}-arguments`}
+            />
+            <ToolCallCodeBlock
+              heading="Results"
+              value={toolCall.output}
+              fallback="No response was received from the tool."
+              copyButtonId={`copy-${toolCall.id}-results`}
+            />
           </Stack>
         </AccordionContent>
       )}
@@ -140,8 +188,9 @@ const ToolCallList: React.FC<{ toolCalls: StreamingToolCall[] }> = ({ toolCalls 
   <Accordion
     aria-label="Tool calls"
     asDefinitionList={false}
+    isBordered
     className="pf-v6-u-w-100"
-    togglePosition="end"
+    togglePosition="start"
   >
     {toolCalls.map((toolCall) => (
       <ToolCallRow key={toolCall.id} toolCall={toolCall} />
