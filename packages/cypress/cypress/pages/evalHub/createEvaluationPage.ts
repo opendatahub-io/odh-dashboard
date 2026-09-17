@@ -40,8 +40,8 @@ class CreateEvaluationPage {
     return cy.findByTestId('select-benchmark-button');
   }
 
-  findStartEvaluationForm() {
-    return cy.findByTestId('start-evaluation-form');
+  findStartEvaluationForm(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('start-evaluation-form', options);
   }
 
   findBenchmarkNameDisplay() {

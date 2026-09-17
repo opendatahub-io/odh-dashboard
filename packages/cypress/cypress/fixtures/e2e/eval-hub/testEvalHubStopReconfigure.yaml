@@ -12,7 +12,7 @@ hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profi
 # Benchmark + evaluation config
 benchmarkCardTitle: Basic science Q&A
 inferenceModelName: evalhub-llm
-defaultExperimentName: EvalHub
+mlflowExperimentName: Cy-Evalhub
 additionalBenchmarkParams: |
   {
     "num_examples": 10,

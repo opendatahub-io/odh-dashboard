@@ -825,8 +825,8 @@ export type EvalHubTestData = {
   benchmarkCardTitle: string;
   /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
   inferenceModelName: string;
-  /** Default experiment name pre-filled in the create-evaluation form. */
-  defaultExperimentName: string;
+  /** MLflow experiment name entered when starting an evaluation. */
+  mlflowExperimentName: string;
   /** JSON object string merged into benchmark parameters (valid JSON object). */
   additionalBenchmarkParams: string;
   /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */

@@ -46,6 +46,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
   let mlflowInstanceYamlPath = '';
   let collectionId = '';
   let collectionName = '';
+  let mlflowExperimentName = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
 
@@ -60,6 +61,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
         mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
         collectionId = testData.collectionId;
         collectionName = testData.collectionName;
+        mlflowExperimentName = testData.mlflowExperimentName;
         additionalBenchmarkParams = testData.additionalBenchmarkParams;
         projectNamePrefix = testData.projectNamePrefix;
         evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
@@ -127,6 +129,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
         collectionName,
         evaluationRunName,
         inferenceServiceName,
+        mlflowExperimentName,
         additionalBenchmarkParams,
       });
       verifyEvaluationProgressModal(evaluationRunName);

@@ -8,6 +8,7 @@ export type SingleBenchmarkEvaluationOptions = {
   benchmarkCardTitle: string;
   evaluationRunName: string;
   inferenceServiceName: string;
+  mlflowExperimentName: string;
   additionalBenchmarkParams?: string;
 };
 
@@ -16,7 +17,18 @@ export type BenchmarkSuiteEvaluationOptions = {
   collectionName: string;
   evaluationRunName: string;
   inferenceServiceName: string;
+  mlflowExperimentName: string;
   additionalBenchmarkParams?: string;
+};
+
+const selectNewMlflowExperiment = (mlflowExperimentName: string): void => {
+  cy.step(`Create MLflow experiment: ${mlflowExperimentName}`);
+  createEvaluationPage.findExperimentModeNew().click().should('be.checked');
+  createEvaluationPage
+    .findNewExperimentNameInput()
+    .should('be.visible')
+    .clear()
+    .type(mlflowExperimentName);
 };
 
 export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
@@ -31,8 +43,13 @@ export const navigateToEvaluationsPage = (evaluationTenantProject: string): void
 };
 
 export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationOptions): void => {
-  const { benchmarkCardTitle, evaluationRunName, inferenceServiceName, additionalBenchmarkParams } =
-    opts;
+  const {
+    benchmarkCardTitle,
+    evaluationRunName,
+    inferenceServiceName,
+    mlflowExperimentName,
+    additionalBenchmarkParams,
+  } = opts;
 
   cy.step('Open create evaluation wizard and select single benchmark');
   evaluationsPage.findCreateEvaluationButton().click();
@@ -47,7 +64,9 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
     .within(() => {
       createEvaluationPage.findSelectBenchmarkButton().click();
     });
-  createEvaluationPage.findStartEvaluationForm().should('exist', { timeout: 120000 });
+  createEvaluationPage.findStartEvaluationForm({ timeout: 120000 }).should('exist');
+
+  selectNewMlflowExperiment(mlflowExperimentName);
 
   cy.step('Enter evaluation name');
   createEvaluationPage.findBenchmarkNameDisplay().should('contain.text', benchmarkCardTitle);
@@ -79,6 +98,7 @@ export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOpt
     collectionName,
     evaluationRunName,
     inferenceServiceName,
+    mlflowExperimentName,
     additionalBenchmarkParams,
   } = opts;
 
@@ -95,7 +115,9 @@ export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOpt
     .within(() => {
       createEvaluationPage.findUseBenchmarkSuiteButton().click();
     });
-  createEvaluationPage.findStartEvaluationForm().should('exist', { timeout: 120000 });
+  createEvaluationPage.findStartEvaluationForm({ timeout: 120000 }).should('exist');
+
+  selectNewMlflowExperiment(mlflowExperimentName);
 
   cy.step('Enter evaluation name');
   createEvaluationPage.findBenchmarkNameDisplay().should('contain.text', collectionName);

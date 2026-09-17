@@ -13,7 +13,7 @@ hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profi
 collectionId: toxicity-and-ethical-principles
 collectionName: Toxicity and Ethical Principles
 inferenceModelName: evalhub-suite-llm
-defaultExperimentName: EvalHub
+mlflowExperimentName: Cy-Evalhub
 additionalBenchmarkParams: |
   {
     "num_examples": 2,
