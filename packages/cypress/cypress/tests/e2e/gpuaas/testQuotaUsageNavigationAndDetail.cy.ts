@@ -206,8 +206,11 @@ describeAdminOnly('Quota usage navigation and detail', () => {
         .findQuotaUsageSummaryCapacity()
         .should('contain.text', `0/${testContext.testData.acceleratorQuota} accelerators`);
       infrastructurePage.findQuotaUsageAcceleratorRow(resourceFlavorName).should('be.visible');
-      infrastructurePage.findQuotaUsageWorkloadsSection().should('be.visible');
-      infrastructurePage.findClusterQueueWorkloadsEmptyState().should('be.visible');
+      infrastructurePage.findQuotaUsageWorkloadsSection().scrollIntoView().should('be.visible');
+      infrastructurePage
+        .findClusterQueueWorkloadsEmptyState()
+        .scrollIntoView()
+        .should('be.visible');
 
       cy.step('Verify the selected queue Kueue projects modal includes only the managed project');
       infrastructurePage.findQuotaUsageViewKueueProjectsLink().click();
