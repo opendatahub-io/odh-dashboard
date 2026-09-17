@@ -7,7 +7,7 @@ kind: Kustomization
 namespace: opendatahub
 
 resources:
-- ../../base
+- ../openshift
 
 components:
 - ../../components/gateway
