@@ -4,6 +4,7 @@ import { mockCatalogModel } from '~/__mocks__/mockCatalogModelList';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import type { CatalogArtifactList } from '~/app/modelCatalogTypes';
 import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
+import { ModelRegistryMetadataType } from '~/app/types';
 import useCatalogDeployPrefillData from '~/odh/hooks/useCatalogDeployPrefillData';
 
 jest.mock('~/app/hooks/useModelRegistryDashboardConfig', () => ({
@@ -165,6 +166,31 @@ describe('useCatalogDeployPrefillData', () => {
       deployPrefillLoaded: true,
       deployPrefillError: true,
     });
+  });
+
+  it('should set private and gated Hugging Face flags from catalog metadata', () => {
+    const model = mockCatalogModel({
+      customProperties: {
+        hf_access_type: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: 'gated_auto',
+        },
+      },
+    });
+
+    const renderResult = testHook(useCatalogDeployPrefillData)(
+      model,
+      artifactsWithUri,
+      true,
+      undefined,
+      'huggingface',
+      model.name,
+    );
+
+    expect(renderResult.result.current.deployPrefill.requiresHuggingFaceApiKey).toBe(true);
+    expect(renderResult.result.current.deployPrefill.huggingFaceApiKeyAlertText).toMatch(
+      /gated access on Hugging Face/i,
+    );
   });
 
   it('should rebuild deployPrefill when sourceId changes', () => {

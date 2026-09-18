@@ -39,6 +39,23 @@
     - create
     - delete
     - get
+    - list
+    - watch
+    - update
+    - patch
+# RBAC escalation: bind permission on system:auth-delegator allows creating
+# kube-rbac-proxy ClusterRoleBindings without holding tokenreviews/SAR create.
+- op: add
+  path: /rules/-
+  value:
+    apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - clusterroles
+    resourceNames:
+    - system:auth-delegator
+    verbs:
+    - bind
 # ReferenceGrant permissions for cross-namespace HTTPRoute backend references
 - op: add
   path: /rules/-

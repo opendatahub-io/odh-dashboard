@@ -74,7 +74,7 @@ filters:
       - 'area/quality'
 
   # Model Registry / Catalog
-  '(frontend/src/(api|concepts|pages|routes)/(modelCatalog|modelRegistry|modelRegistrySettings)/|packages/model-registry/).*':
+  '(frontend/src/(api|concepts|pages|routes)/(modelCatalog|modelRegistry|modelRegistrySettings)/|packages/model-registry/|manifests/modules/model-registry/).*':
     approvers:
       - model-registry-catalog-approvers
     reviewers:
@@ -151,7 +151,7 @@ filters:
       - 'area/workbenches'
 
   # Gen AI
-  'packages/gen-ai/.*':
+  '(packages/gen-ai|manifests/modules/gen-ai)/.*':
     approvers:
       - gen-ai-approvers
     reviewers:
@@ -160,7 +160,7 @@ filters:
       - 'area/gen-ai'
 
   # Models as a Service (MaaS)
-  'packages/maas/.*':
+  '(packages/maas|manifests/modules/maas)/.*':
     approvers:
       - maas-approvers
     reviewers:
@@ -178,7 +178,7 @@ filters:
       - 'area/notebooks'
 
   # AutoRAG
-  'packages/autorag/.*':
+  '(packages/autorag|manifests/modules/autorag)/.*':
     approvers:
       - autorag-approvers
     reviewers:
@@ -187,7 +187,7 @@ filters:
       - 'area/autorag'
 
   # AutoML
-  'packages/automl/.*':
+  '(packages/automl|manifests/modules/automl)/.*':
     approvers:
       - automl-approvers
     reviewers:
@@ -196,13 +196,22 @@ filters:
       - 'area/automl'
 
   # Eval Hub
-  'packages/eval-hub/.*':
+  '(packages/eval-hub|manifests/modules/eval-hub)/.*':
     approvers:
       - eval-hub-approvers
     reviewers:
       - eval-hub-reviewers
     labels:
       - 'area/eval-hub'
+
+  # Agent Ops
+  '(packages/agent-ops|manifests/modules/agent-ops)/.*':
+    approvers:
+      - agent-ops-approvers
+    reviewers:
+      - agent-ops-reviewers
+    labels:
+      - 'area/agent-ops'
 
   # Distributions
   'distributions/.*':
@@ -214,7 +223,7 @@ filters:
       - 'area/distributions'
 
   # Data Registry
-  'packages/data-registry/.*':
+  '(packages/data-registry|manifests/modules/data-registry)/.*':
     approvers:
       - data-registry-approvers
     reviewers:
@@ -223,7 +232,7 @@ filters:
       - 'area/data-registry'
 
   # Data Connect Hub
-  'packages/data-connect-hub/.*':
+  '(packages/data-connect-hub|manifests/modules/data-connect-hub)/.*':
     approvers:
       - data-connect-hub-approvers
     reviewers:
@@ -232,7 +241,7 @@ filters:
       - 'area/data-connect-hub'
 
   # MLflow
-  'packages/mlflow.*/.*':
+  '(packages/mlflow.*|manifests/modules/mlflow)/.*':
     approvers:
       - mlflow-approvers
     reviewers:

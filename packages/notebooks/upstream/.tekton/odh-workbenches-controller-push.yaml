@@ -1,6 +1,5 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
-#
 metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/workbenches?rev={{revision}}
@@ -8,8 +7,13 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: >-
+      event == "push" &&
+      target_branch == "main" &&
+      (
+        "workspaces/controller/***".pathChanged() ||
+        ".tekton/***".pathChanged()
+      )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
@@ -18,17 +22,26 @@ metadata:
   name: odh-workbenches-controller-on-push
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: 2h
+    tasks: 1h
   params:
   - name: git-url
     value: '{{source_url}}'
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-workbenches-controller:odh-stable
+    value: quay.io/opendatahub/odh-workbenches-controller:main
   - name: dockerfile
     value: Dockerfile
   - name: path-context
     value: ./workspaces/controller
+  - name: pipeline-type
+    value: "workbenches-main-build"
+  - name: build-source-image
+    value: "false"
+  - name: enable-slack-failure-notification
+    value: "false"
   pipelineRef:
     resolver: git
     params:

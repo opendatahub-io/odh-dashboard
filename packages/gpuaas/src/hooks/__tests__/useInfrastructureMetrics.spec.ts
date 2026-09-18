@@ -140,6 +140,21 @@ describe('useInfrastructureMetrics', () => {
     expect(renderResult.result.current.hardwareUsage).toBeNull();
   });
 
+  it('should set lastRefreshed once after initial load and preserve it during polling', () => {
+    const initialState = loadedState(EMPTY_PROM_RESPONSE);
+    const polledState = loadedState(EMPTY_PROM_RESPONSE);
+    setupMocks([...Array(QUERY_COUNT).fill(initialState), ...Array(QUERY_COUNT).fill(polledState)]);
+
+    const renderResult = testHook(useInfrastructureMetrics)();
+    const initialLastRefreshed = renderResult.result.current.lastRefreshed;
+
+    expect(initialLastRefreshed).toEqual(expect.any(Date));
+
+    renderResult.rerender();
+
+    expect(renderResult.result.current.lastRefreshed).toBe(initialLastRefreshed);
+  });
+
   it.each([
     {
       label: 'returns parsed and rounded metrics for all queries',

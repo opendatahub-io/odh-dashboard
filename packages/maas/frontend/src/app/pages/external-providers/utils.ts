@@ -5,9 +5,17 @@ import {
   ProviderTypes,
   SecretSummary,
   UpdateExternalProviderRequest,
+  UpdateExternalProviderRequest,
 } from '~/app/types/external-models';
 import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
 import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
+import {
+  ConfigPair,
+  configPairsToRecord,
+  EMPTY_CONFIG_PAIR,
+  recordToConfigPairs,
+} from '~/app/utilities/configPairs';
+import { CreateExternalProviderFormFields } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
 import {
   ConfigPair,
   configPairsToRecord,
@@ -36,6 +44,21 @@ export const getMissingCredentialSecretRef = (
     return undefined;
   }
   return secrets.some((secret) => secret.name === trimmedRef) ? undefined : trimmedRef;
+};
+
+export type OrphanedCredentialSecretContext = 'create' | 'update';
+
+export const formatOrphanedCredentialSecretSubmitError = (
+  message: string,
+  secretName: string,
+  context: OrphanedCredentialSecretContext,
+): string => {
+  const failureReason =
+    context === 'create'
+      ? 'the external provider could not be created'
+      : 'could not be linked to this provider';
+
+  return `${message} The credential secret "${secretName}" was created but ${failureReason}. Select it from the existing secrets list and try again.`;
 };
 
 export type ExternalProviderNameDescInitialData = {

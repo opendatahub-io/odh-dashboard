@@ -17,8 +17,11 @@ import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspaceDetailsOverview } from '~/app/pages/Workspaces/Details/WorkspaceDetailsOverview';
 import { WorkspaceDetailsActions } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActions';
 import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActivity';
+import { WorkspaceDetailsLogs } from '~/app/pages/Workspaces/Details/WorkspaceDetailsLogs';
 import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/WorkspaceDetailsPodTemplate';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { WorkspaceResources } from '~/app/pages/Workspaces/WorkspaceResources';
+import { useWorkspaceDetails } from '~/app/hooks/useWorkspaceDetails';
 
 type WorkspaceDetailsProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -33,6 +36,10 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   onEditClick,
   onDeleteClick,
 }) => {
+  const [details, detailsLoaded, detailsError] = useWorkspaceDetails(
+    workspace.namespace,
+    workspace.name,
+  );
   const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
 
   const handleTabClick = (
@@ -43,7 +50,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   };
 
   return (
-    <DrawerPanelContent data-testid="workspace-details">
+    <DrawerPanelContent defaultSize="45%" minSize="30%" data-testid="workspace-details" isResizable>
       <DrawerHead>
         <Title headingLevel="h6" data-testid="title">
           {workspace.name}
@@ -70,14 +77,20 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             aria-label="Activity"
             data-testid="activity-tab"
           />
-          {/* TODO: Uncomment when Logs visualization is fully supported
           <Tab
             eventKey={2}
+            title={<TabTitleText>Resources</TabTitleText>}
+            tabContentId="resourcesTabContent"
+            aria-label="Resources"
+            data-testid="resources-tab"
+          />
+          <Tab
+            eventKey={3}
             title={<TabTitleText>Logs</TabTitleText>}
             tabContentId="logsTabContent"
             aria-label="Logs"
+            data-testid="logs-tab"
           />
-          */}
           {/* TODO: Uncomment when Pod template visualization is fully supported
           <Tab
             eventKey={3}
@@ -99,7 +112,12 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
           hidden={activeTabKey !== 0}
         >
           <TabContentBody hasPadding>
-            <WorkspaceDetailsOverview workspace={workspace} />
+            <WorkspaceDetailsOverview
+              workspace={workspace}
+              details={details}
+              detailsLoaded={detailsLoaded}
+              detailsError={detailsError}
+            />
           </TabContentBody>
         </TabContent>
 
@@ -115,24 +133,52 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             <WorkspaceDetailsActivity workspace={workspace} />
           </TabContentBody>
         </TabContent>
-
         <TabContent
           key={2}
           eventKey={2}
-          id="logsTabContent"
+          id="resourcesTabContent"
+          data-testid="resources-tab-content"
           activeKey={activeTabKey}
           hidden={activeTabKey !== 2}
         >
-          <TabContentBody hasPadding>Logs</TabContentBody>
+          <TabContentBody hasPadding>
+            <WorkspaceResources
+              workspace={workspace}
+              details={details}
+              detailsLoaded={detailsLoaded}
+              detailsError={detailsError}
+            />
+          </TabContentBody>
         </TabContent>
-
         <TabContent
           key={3}
           style={{ height: '100%' }}
           eventKey={3}
-          id="podTemplateTabContent"
+          id="logsTabContent"
+          data-testid="logs-tab-content"
           activeKey={activeTabKey}
           hidden={activeTabKey !== 3}
+        >
+          <TabContentBody style={{ height: '100%' }} hasPadding>
+            {/* The log viewer sizes itself on mount, so it must not be mounted while hidden. */}
+            {activeTabKey === 3 && (
+              <WorkspaceDetailsLogs
+                workspace={workspace}
+                details={details}
+                detailsLoaded={detailsLoaded}
+                detailsError={detailsError}
+              />
+            )}
+          </TabContentBody>
+        </TabContent>
+
+        <TabContent
+          key={4}
+          style={{ height: '100%' }}
+          eventKey={4}
+          id="podTemplateTabContent"
+          activeKey={activeTabKey}
+          hidden={activeTabKey !== 4}
         >
           <TabContentBody style={{ height: '100%' }} hasPadding>
             <WorkspaceDetailsPodTemplate />

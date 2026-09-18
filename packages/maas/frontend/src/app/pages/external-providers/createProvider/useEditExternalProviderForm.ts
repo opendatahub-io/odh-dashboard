@@ -8,6 +8,7 @@ import { useCreateSecret } from '~/app/hooks/useCreateSecret';
 import { useUpdateExternalProvider } from '~/app/hooks/useUpdateExternalProvider';
 import {
   externalProviderToFormState,
+  formatOrphanedCredentialSecretSubmitError,
   toUpdateExternalProviderRequest,
 } from '~/app/pages/external-providers/utils';
 import {
@@ -131,11 +132,12 @@ export const useEditExternalProviderForm = (
       );
 
       if (createdSecretName) {
+        const linkedSecretName = createdSecretName;
         refreshSecrets();
         setFormData((current) => ({
           ...current,
           isNewSecret: false,
-          credentialSecretRef: createdSecretName,
+          credentialSecretRef: linkedSecretName,
           secretValue: '',
         }));
       }
@@ -145,7 +147,7 @@ export const useEditExternalProviderForm = (
       const message = err instanceof Error ? err.message : 'Failed to update external provider';
       setSubmitError(
         createdSecretName
-          ? `${message} The credential secret "${createdSecretName}" was created but could not be linked to this provider. Select it from the existing secrets list and try again.`
+          ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'update')
           : message,
       );
       return undefined;

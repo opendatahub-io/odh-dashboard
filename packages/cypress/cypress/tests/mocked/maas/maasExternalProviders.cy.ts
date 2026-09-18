@@ -10,6 +10,7 @@ import {
   createExternalProviderModal,
   deleteExternalProviderModal,
   editExternalProviderModal,
+  editExternalProviderModal,
   externalProvidersPage,
   pathModal,
   phaseModal,
@@ -596,8 +597,8 @@ describe('External providers', () => {
       externalProvidersPage.getRow('OpenAI Production').findKebabAction('Edit').click();
       editExternalProviderModal.shouldBeOpen();
       editExternalProviderModal
-        .findCredentialSecretToggle()
-        .should('contain.text', 'deleted-api-key (not found)');
+        .findCredentialSecretInput()
+        .should('have.value', 'deleted-api-key (not found)');
       editExternalProviderModal.findMissingCredentialSecretWarning().should('exist');
       editExternalProviderModal.findSubmitButton().should('be.enabled');
     });

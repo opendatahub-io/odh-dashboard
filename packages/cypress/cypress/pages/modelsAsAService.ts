@@ -1912,6 +1912,7 @@ class CreateExternalModelPage {
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('cancel-external-model-button');
+    return cy.findByTestId('cancel-external-model-button');
   }
 
   findProviderRefEditButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2599,6 +2600,10 @@ class CreateExternalProviderModal extends Modal {
 
   findCredentialSecretToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('credential-secret-toggle');
+  }
+
+  findCredentialSecretInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findCredentialSecretToggle().find('input');
   }
 
   selectExistingSecret(secretName: string): void {

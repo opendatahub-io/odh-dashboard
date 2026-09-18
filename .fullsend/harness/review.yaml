@@ -12,8 +12,12 @@ skills:
 host_files:
   - src: dimensions.json
     dest: /sandbox/workspace/.fullsend/dimensions.json
+  # jira-pr-review reads its trusted snapshot by path (registry context_file).
   - src: .run/jira.json
     dest: /sandbox/workspace/.fullsend/.run/jira.json
+    optional: true
+  - src: .run/collected.json
+    dest: /sandbox/workspace/.fullsend/.run/collected.json
     optional: true
 
 model: sonnet

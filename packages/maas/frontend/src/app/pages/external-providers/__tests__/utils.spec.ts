@@ -2,9 +2,11 @@ import {
   configPairsToRecord,
   externalProviderToFormState,
   formatMissingCredentialSecretLabel,
+  formatOrphanedCredentialSecretSubmitError,
   getMissingCredentialSecretRef,
   getSecretDisplayLabel,
   toCreateExternalProviderRequest,
+  toUpdateExternalProviderRequest,
   toUpdateExternalProviderRequest,
 } from '~/app/pages/external-providers/utils';
 import { createExternalProviderFormSchema } from '~/app/pages/external-providers/validation';
@@ -36,6 +38,19 @@ describe('external provider form utils', () => {
     expect(getMissingCredentialSecretRef('openai-api-key', secrets, false)).toBeUndefined();
     expect(getMissingCredentialSecretRef('deleted-api-key', secrets, true)).toBeUndefined();
     expect(getMissingCredentialSecretRef('  ', secrets, false)).toBeUndefined();
+  });
+
+  it('formats orphaned credential secret submit errors for create and update', () => {
+    expect(
+      formatOrphanedCredentialSecretSubmitError('Request failed', 'openai-prod-key', 'create'),
+    ).toBe(
+      'Request failed The credential secret "openai-prod-key" was created but the external provider could not be created. Select it from the existing secrets list and try again.',
+    );
+    expect(
+      formatOrphanedCredentialSecretSubmitError('Request failed', 'openai-prod-key', 'update'),
+    ).toBe(
+      'Request failed The credential secret "openai-prod-key" was created but could not be linked to this provider. Select it from the existing secrets list and try again.',
+    );
   });
 
   it('strips empty and incomplete config pairs', () => {

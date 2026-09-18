@@ -30,12 +30,9 @@ export const Workspaces: React.FunctionComponent = () => {
     },
     {
       id: 'start',
-      isVisible: (w) => w.state !== V1Beta1WorkspaceState.WorkspaceStateRunning,
-      onActionDone: refreshWorkspaces,
-    },
-    {
-      id: 'restart',
-      isVisible: (w) => w.state === V1Beta1WorkspaceState.WorkspaceStateRunning,
+      isVisible: (w) =>
+        w.state !== V1Beta1WorkspaceState.WorkspaceStateRunning &&
+        w.state !== V1Beta1WorkspaceState.WorkspaceStateError,
       onActionDone: refreshWorkspaces,
     },
   ]);
