@@ -4,7 +4,7 @@
 image:
   fileName: 'test-image.png'
   # Base64 encoded PNG with a red left half and blue right half
-  base64Content: 'iVBORw0KGgoAAAANSUhEUgAAAMgAAABkCAIAAABM5OhcAAAB9klEQVR4nO3NsQkAIAAEsd9/aV3BLhwI6bOzfY/0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9F/yQX+h9ZkqrAgJAAAAABJRU5ErkJggg=='
+  base64Content: 'iVBORw0KGgoAAAANSUhEUgAAAMgAAABkCAIAAABM5OhcAAAB9klEQVR4nO3NsQkAIAAEsd9/aV3BLhwI6bOzfY/0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/yQX+h9ZkqrAgJAAAAABJRU5ErkJggg=='
   mimeType: 'image/png'
 
 audio:
