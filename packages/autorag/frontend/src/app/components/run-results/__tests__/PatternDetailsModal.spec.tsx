@@ -581,6 +581,13 @@ describe('PatternDetailsModal', () => {
         expect(printContainer).toHaveTextContent('Chunking');
         expect(printContainer).toHaveTextContent('Embedding');
         expect(within(printContainer).getByText('0.42', { exact: true })).toBeInTheDocument();
+
+        const ciPage = Array.from(printContainer.querySelectorAll('.autorag-print-page')).find(
+          (page) => page.querySelector('[data-testid="ci-scores-chart"]'),
+        );
+        const ciHeader = ciPage?.querySelector('.autorag-print-header');
+        expect(ciHeader).not.toBeNull();
+        expect(ciHeader).toHaveTextContent('pattern 0');
       } finally {
         printSpy.mockRestore();
       }

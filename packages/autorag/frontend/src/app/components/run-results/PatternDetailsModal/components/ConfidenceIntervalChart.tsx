@@ -143,39 +143,66 @@ const AxisLabels: React.FC<{ testId?: string }> = ({ testId }) => (
   </div>
 );
 
-const CIColumn: React.FC<{
-  label: string;
-  scores: AutoragEvaluationMetric[];
+const CIComparisonChart: React.FC<{
   metrics: AutoragEvaluationMetric[];
-  testIdSuffix: string;
-}> = ({ label, scores, metrics, testIdSuffix }) => (
-  <div className="autorag-ci-column" data-testid={`ci-column-${testIdSuffix}`}>
-    <div className="autorag-ci-column__header">
-      <Content component={ContentVariants.small}>{label}</Content>
-    </div>
-    <div className="autorag-ci-column__chart-area">
-      <div className="autorag-ci-column__tracks">
-        {metrics.map((metric) => {
-          const scoreGroup = groupMetricsByKey(scores).get(metricKey(metric));
-          const score = scoreGroup?.length === 1 ? scoreGroup[0].scores : undefined;
-          if (!score) {
-            return <div key={metricKey(metric)} className="autorag-ci-track m-empty" />;
-          }
-          return (
-            <div key={metricKey(metric)} className="autorag-ci-track">
-              <CIBarWithMarkers
-                score={score}
-                testIdPrefix={`${metricDomSuffix(metric)}-${testIdSuffix}`}
-              />
-            </div>
-          );
-        })}
+  primaryScores: AutoragEvaluationMetric[];
+  comparisonScores: AutoragEvaluationMetric[];
+  primaryLabel: string;
+  comparisonLabel: string;
+}> = ({ metrics, primaryScores, comparisonScores, primaryLabel, comparisonLabel }) => {
+  const columns = [
+    { label: primaryLabel, scores: primaryScores, testIdSuffix: 'primary' },
+    { label: comparisonLabel, scores: comparisonScores, testIdSuffix: 'comparison' },
+  ];
+
+  return (
+    <div className="autorag-ci-scores__comparison">
+      <div className="autorag-ci-comparison-row autorag-ci-comparison-row--header">
+        <div className="autorag-ci-column__header">
+          <Content component={ContentVariants.small}>&nbsp;</Content>
+        </div>
+        {columns.map(({ label, testIdSuffix }) => (
+          <div
+            key={testIdSuffix}
+            className="autorag-ci-column__header"
+            data-testid={`ci-column-${testIdSuffix}`}
+          >
+            <Content component={ContentVariants.small}>{label}</Content>
+          </div>
+        ))}
       </div>
-      <AxisTicks />
+      {metrics.map((metric) => (
+        <div key={metricKey(metric)} className="autorag-ci-comparison-row">
+          <div className="autorag-ci-track autorag-ci-comparison-label">
+            <MetricLabel metric={metric} />
+          </div>
+          {columns.map(({ scores, testIdSuffix }) => {
+            const scoreGroup = groupMetricsByKey(scores).get(metricKey(metric));
+            const score = scoreGroup?.length === 1 ? scoreGroup[0].scores : undefined;
+            return (
+              <div key={testIdSuffix} className="autorag-ci-comparison-bar">
+                <div className={score ? 'autorag-ci-track' : 'autorag-ci-track m-empty'}>
+                  {score && (
+                    <CIBarWithMarkers
+                      score={score}
+                      testIdPrefix={`${metricDomSuffix(metric)}-${testIdSuffix}`}
+                    />
+                  )}
+                </div>
+                <AxisTicks />
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <div className="autorag-ci-comparison-row autorag-ci-comparison-row--axis">
+        <div />
+        <AxisLabels />
+        <AxisLabels />
+      </div>
     </div>
-    <AxisLabels />
-  </div>
-);
+  );
+};
 
 const LegendDiamond: React.FC<{ className: string }> = ({ className }) => (
   <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden>
@@ -299,28 +326,13 @@ const ConfidenceIntervalChart: React.FC<ConfidenceIntervalChartProps> = ({
           : 'Each optimization metric is plotted on a shared 0–1 x-axis. Hover the markers on each track for exact CI low, mean, and CI high values.'}
       </Content>
       {isComparison ? (
-        <div className="autorag-ci-scores__comparison">
-          <div className="autorag-ci-scores__labels">
-            <div className="autorag-ci-column__header">&nbsp;</div>
-            {metrics.map((metric) => (
-              <div key={metricKey(metric)} className="autorag-ci-track">
-                <MetricLabel metric={metric} />
-              </div>
-            ))}
-          </div>
-          <CIColumn
-            label={primaryLabel ?? ''}
-            scores={scores}
-            metrics={metrics}
-            testIdSuffix="primary"
-          />
-          <CIColumn
-            label={comparisonLabel ?? ''}
-            scores={comparisonScores}
-            metrics={metrics}
-            testIdSuffix="comparison"
-          />
-        </div>
+        <CIComparisonChart
+          metrics={metrics}
+          primaryScores={scores}
+          comparisonScores={comparisonScores}
+          primaryLabel={primaryLabel ?? ''}
+          comparisonLabel={comparisonLabel ?? ''}
+        />
       ) : (
         <>
           <div className="autorag-ci-scores__chart-area">

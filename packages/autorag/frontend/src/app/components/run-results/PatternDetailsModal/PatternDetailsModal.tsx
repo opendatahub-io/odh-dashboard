@@ -40,7 +40,7 @@ import {
 import { getVisibleTabs, OVERVIEW_KEY, SAMPLE_QA_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
-import PatternInformationTab, { buildTopLevelFields } from './tabs/PatternInformationTab';
+import { buildTopLevelFields } from './tabs/PatternInformationTab';
 import { settingsSectionEntries } from './tabs/KeyValueTab';
 import KeyValueList from './components/KeyValueList';
 import ComparisonKeyValueList from './components/ComparisonKeyValueList';
@@ -442,18 +442,37 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
               </div>
               <Title headingLevel="h2">Pattern information</Title>
               {comparisonBundle ? (
-                <PatternInformationTab
+                <ComparisonKeyValueList
                   primaryPattern={primaryBundle}
                   comparisonPattern={comparisonBundle}
-                  optimizationMetric={optimizationMetric}
+                  primaryEntries={buildTopLevelFields(data, optimizationMetric)}
+                  comparisonEntries={buildTopLevelFields(
+                    comparisonBundle.pattern,
+                    optimizationMetric,
+                  )}
                 />
               ) : (
-                <>
-                  <KeyValueList entries={buildTopLevelFields(data, optimizationMetric)} />
-                  <ConfidenceIntervalChart scores={data.evaluation.metrics} />
-                </>
+                <KeyValueList entries={buildTopLevelFields(data, optimizationMetric)} />
               )}
             </div>
+            {(data.evaluation.metrics.length > 0 ||
+              (comparisonBundle?.pattern.evaluation.metrics.length ?? 0) > 0) && (
+              <div className="autorag-print-page">
+                <div className="autorag-print-header">
+                  <h1>{formatPatternName(data.name)}</h1>
+                </div>
+                {comparisonBundle ? (
+                  <ConfidenceIntervalChart
+                    scores={data.evaluation.metrics}
+                    comparisonScores={comparisonBundle.pattern.evaluation.metrics}
+                    primaryLabel={formatPatternName(data.name)}
+                    comparisonLabel={formatPatternName(comparisonBundle.pattern.name)}
+                  />
+                ) : (
+                  <ConfidenceIntervalChart scores={data.evaluation.metrics} />
+                )}
+              </div>
+            )}
             {visibleTabs
               .filter((tab) => tab.key !== OVERVIEW_KEY && tab.key !== SAMPLE_QA_KEY)
               .map((tab) => {
