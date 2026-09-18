@@ -6,6 +6,11 @@ pymilvus==2.6.9
 chardet==7.1.0
 ollama==0.6.1
 pypdf==6.9.0
+rich>=13
+# Llama Stack 0.7.0 imports McpError, which MCP 2.x renamed to MCPError.
+mcp==1.23.0
+# Milvus Lite still imports pkg_resources, removed in setuptools 81.
+setuptools>=75,<81
 
 # Override old dependencies from llama-stack 0.7.0 that fail to build on Python 3.12
 # tiktoken 0.13.0 depends on regex 2019.12.9 which doesn't build on Python 3.12
