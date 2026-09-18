@@ -266,17 +266,16 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         isDefault: false,
         benchmarkName: 'ARC Easy',
       });
-      expect(renderResult.result.current.threshold).toBe(0);
     });
 
-    it('should restore the configured threshold when switching back to the default metric', () => {
+    it('should reset the threshold to the default when switching to another metric', () => {
       const renderResult = renderForm();
 
       act(() => {
-        renderResult.result.current.handlePrimaryMetricChange('f1_score');
+        renderResult.result.current.handleThresholdChange(80);
       });
       act(() => {
-        renderResult.result.current.handlePrimaryMetricChange('accuracy');
+        renderResult.result.current.handlePrimaryMetricChange('f1_score');
       });
 
       expect(renderResult.result.current.threshold).toBe(70);

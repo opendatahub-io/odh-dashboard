@@ -396,14 +396,14 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     });
   });
 
-  it('should reset the threshold when the primary metric changes', () => {
+  it('should preserve the threshold when the primary metric changes', () => {
     navigateToBenchmarkStart(rawMetricProvider, 'constant');
     startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
     startEvaluationRunPage.findPrimaryScorerMetricOption('mean_ttft_ms').click();
 
-    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '0');
+    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
   });
 });
 

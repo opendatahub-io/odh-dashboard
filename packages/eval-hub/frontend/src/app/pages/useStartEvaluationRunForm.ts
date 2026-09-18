@@ -125,7 +125,7 @@ export function useStartEvaluationRunForm({
       setPrimaryMetric(metric);
       setPrimaryMetricTouched(true);
       if (metricChanged) {
-        setThreshold(isDefault ? defaultThreshold : 0);
+        setThreshold(defaultThreshold);
         setThresholdTouched(true);
       }
 
