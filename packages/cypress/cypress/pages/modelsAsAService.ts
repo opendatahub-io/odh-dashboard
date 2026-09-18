@@ -1902,10 +1902,6 @@ class CreateExternalModelPage {
     return cy.findByTestId('provider-references-table');
   }
 
-  findProviderRefsRequiredInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('provider-refs-required-info');
-  }
-
   findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-external-model-button');
   }
