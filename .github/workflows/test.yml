@@ -12,19 +12,6 @@ env:
   DO_NOT_TRACK: 1
   # Check if the PR is a draft to disable coverage reporting/upload
   IS_DRAFT: ${{ github.event.pull_request.draft }}
-  # Workspace-scoped turbo cache paths only. Avoid **/.turbo — with pnpm that glob
-  # can traverse node_modules/.pnpm and hang Post Cache turbo uploads.
-  TURBO_CACHE_PATHS: |
-    .turbo
-    backend/.turbo
-    frontend/.turbo
-    frontend/src/.turbo
-    packages/*/.turbo
-    packages/*/*/.turbo
-    packages/*/*/*/.turbo
-    packages/*/*/*/*/.turbo
-    distributions/*/.turbo
-    distributions/*/*/.turbo
 jobs:
   Setup:
     runs-on: ubuntu-latest
@@ -62,7 +49,7 @@ jobs:
       - name: Cache turbo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ env.TURBO_CACHE_PATHS }}
+          path: .turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-
@@ -90,7 +77,7 @@ jobs:
       - name: Cache turbo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ env.TURBO_CACHE_PATHS }}
+          path: .turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
