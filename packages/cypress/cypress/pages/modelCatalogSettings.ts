@@ -50,6 +50,14 @@ class ModelCatalogSettings {
   findEnableToggle(sourceId: string) {
     return cy.findByTestId(`enable-toggle-${sourceId}`);
   }
+
+  findSourceName(sourceId: string) {
+    return cy.findByTestId(`source-name-${sourceId}`);
+  }
+
+  findSourceStatusConnected(sourceId: string, timeout?: number) {
+    return cy.findByTestId(`source-status-connected-${sourceId}`, timeout ? { timeout } : {});
+  }
 }
 
 export const modelCatalogSettings = new ModelCatalogSettings();

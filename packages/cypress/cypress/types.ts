@@ -293,6 +293,7 @@ export type TestConfig = {
   OCI_MODEL_URI: string;
   MAAS_URL?: string;
   MAAS_API_KEY?: string;
+  HF_API_KEY?: string;
   MAAS_GENERATION_MODEL_ID?: string;
   MAAS_EMBEDDING_MODEL_ID?: string;
   // BYOIDC cluster authentication settings
