@@ -95,6 +95,28 @@ func newPipelineCache() *pipelineCache {
 	return &pipelineCache{newTTLCache[map[string]*DiscoveredPipeline]()}
 }
 
+// pipelineInputParametersCache caches the declared root input parameters for a pipeline version.
+// The cache key includes the namespace because Pipeline Server instances are namespace-scoped.
+type pipelineInputParametersCache struct {
+	*ttlCache[[]string]
+}
+
+func newPipelineInputParametersCache() *pipelineInputParametersCache {
+	return &pipelineInputParametersCache{newTTLCache[[]string]()}
+}
+
+func (c *pipelineInputParametersCache) get(key string) ([]string, bool) {
+	value, ok := c.ttlCache.get(key)
+	if !ok {
+		return nil, false
+	}
+	return append([]string(nil), value...), true
+}
+
+func (c *pipelineInputParametersCache) set(key string, value []string) {
+	c.ttlCache.set(key, append([]string(nil), value...))
+}
+
 // getCachedVersionIDs searches all cached namespaces for a pipeline by ID and returns
 // its version IDs, avoiding an API call when discovery already fetched the versions.
 func (c *pipelineCache) getCachedVersionIDs(pipelineID string) []string {
@@ -115,6 +137,26 @@ func (c *pipelineCache) getCachedVersionIDs(pipelineID string) []string {
 		}
 	}
 	return nil
+}
+
+// getCachedPipeline returns the cache entry containing the requested pipeline
+// version. The cache key identifies the logical pipeline type so a refreshed
+// discovery can be stored under the same key.
+func (c *pipelineCache) getCachedPipeline(namespace, pipelineID, versionID string) (string, *DiscoveredPipeline, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	entry, ok := c.entries[namespace]
+	if !ok || time.Now().After(entry.expiresAt) {
+		return "", nil, false
+	}
+
+	for key, pipeline := range entry.value {
+		if pipeline.PipelineID == pipelineID && pipeline.PipelineVersionID == versionID {
+			return key, pipeline, true
+		}
+	}
+	return "", nil, false
 }
 
 // dspaCache caches discovered DSPA info by namespace.
