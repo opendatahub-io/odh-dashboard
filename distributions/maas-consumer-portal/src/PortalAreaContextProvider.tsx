@@ -3,6 +3,7 @@ import { AreaContext, type AreaContextState } from '@odh-dashboard/plugin-core/a
 
 /** Static portal area state: no DSC/DSCI; all areas unavailable via useIsAreaAvailable fallback. */
 const portalAreaContext: AreaContextState = {
+  aiHub: null,
   dscStatus: null,
   dsciStatus: null,
   areasStatus: {},

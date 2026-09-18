@@ -1,5 +1,6 @@
 import { act } from 'react';
 import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import axios from '@odh-dashboard/ui-core/utilities/axios';
 import useFetchAIHub from '#~/concepts/areas/useFetchAIHub';
 
@@ -8,10 +9,7 @@ jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
 }));
 
 const mockAxios = jest.mocked(axios.get);
-const aiHub = {
-  metadata: { name: 'default-aihub' },
-  spec: { instancesNamespace: 'rhoai-model-registries' },
-};
+const aiHub = mockAIHub({ instancesNamespace: 'rhoai-model-registries' });
 
 describe('useFetchAIHub', () => {
   beforeEach(() => {
