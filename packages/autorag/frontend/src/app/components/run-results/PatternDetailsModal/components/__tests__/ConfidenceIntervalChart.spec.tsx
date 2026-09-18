@@ -98,15 +98,18 @@ describe('ConfidenceIntervalChart', () => {
       expect(container.firstChild).toBeNull();
     });
 
-    it('should hide metrics with zero mean and no CI values', () => {
+    it('should render metrics with a finite zero mean and no CI values', () => {
       const scores: AutoragEvaluationMetric[] = [
         metric('answer_correctness', { mean: 0.65, ci_low: 0.4, ci_high: 0.8 }),
         metric('context_correctness', { mean: 0, ci_low: null, ci_high: null }),
+        metric('context_recall', { mean: null, ci_low: null, ci_high: null }),
       ];
       render(<ConfidenceIntervalChart scores={scores} />);
 
       expect(screen.getByTestId('ci-track-answer_correctness')).toBeInTheDocument();
-      expect(screen.queryByTestId('ci-track-context_correctness')).not.toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-marker-mean-context_correctness')).toBeInTheDocument();
+      expect(screen.queryByTestId('ci-track-context_recall')).not.toBeInTheDocument();
     });
 
     it('should render single-mode description text', () => {

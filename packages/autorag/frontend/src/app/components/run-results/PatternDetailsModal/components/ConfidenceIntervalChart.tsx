@@ -248,7 +248,7 @@ const CILegend: React.FC = () => (
 );
 
 function hasData(score: AutoragPatternScoreMetric): boolean {
-  return (score.mean != null && score.mean > 0) || score.ci_low != null || score.ci_high != null;
+  return Number.isFinite(score.mean) || score.ci_low != null || score.ci_high != null;
 }
 
 function getScoreEntries(scores: AutoragEvaluationMetric[]): AutoragEvaluationMetric[] {
