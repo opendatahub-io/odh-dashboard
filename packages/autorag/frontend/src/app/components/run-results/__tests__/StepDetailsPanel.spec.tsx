@@ -24,7 +24,9 @@ jest.mock('~/app/components/run-results/pipelineSummaryMetadata', () => ({
 
 const renderEmptyPanel = (showStageMapUnavailableNotice = false): void => {
   render(
-    <AutoragResultsContext.Provider value={{ patterns: {} }}>
+    <AutoragResultsContext.Provider
+      value={{ patterns: {}, optimizationMetric: { name: 'faithfulness' } }}
+    >
       <StepDetailsPanel
         statusFilter="error"
         showStageMapUnavailableNotice={showStageMapUnavailableNotice}

@@ -56,4 +56,52 @@ describe('EvalHub API Contract Tests', () => {
       });
     });
   });
+
+  describe('Evaluation Job Logs Endpoints', () => {
+    it('should accept -1 and return the job logs truncation header', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/evaluations/jobs/eval-job-001/logs?namespace=default&tail_lines=-1',
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1eval-hub~1api~1v1~1evaluations~1jobs~1{id}~1logs/get/responses/200/content/text~1plain/schema',
+        status: 200,
+        headers: { 'X-Log-Truncated': 'false' },
+      });
+    });
+
+    it('should reject tail_lines values below -1 for job logs', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/evaluations/jobs/eval-job-001/logs?namespace=default&tail_lines=-2',
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+      }
+    });
+
+    it('should accept -1 and return the benchmark logs truncation header', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/evaluations/jobs/eval-job-001/benchmarks/0/logs?namespace=default&tail_lines=-1',
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1eval-hub~1api~1v1~1evaluations~1jobs~1{id}~1benchmarks~1{benchmark_index}~1logs/get/responses/200/content/text~1plain/schema',
+        status: 200,
+        headers: { 'X-Log-Truncated': 'false' },
+      });
+    });
+
+    it('should reject tail_lines values below -1 for benchmark logs', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/evaluations/jobs/eval-job-001/benchmarks/0/logs?namespace=default&tail_lines=-2',
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+      }
+    });
+  });
 });

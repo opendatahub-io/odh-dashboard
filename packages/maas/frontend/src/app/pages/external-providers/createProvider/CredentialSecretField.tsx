@@ -21,8 +21,13 @@ import {
   IPP_MANAGED_SECRET_LABEL_KEY,
   IPP_MANAGED_SECRET_LABEL_VALUE,
   CREATE_NEW_SECRET_VALUE,
+  MISSING_CREDENTIAL_SECRET_WARNING_MESSAGE,
   SECRET_API_KEY_DATA_KEY,
 } from '~/app/pages/external-providers/const';
+import {
+  formatMissingCredentialSecretLabel,
+  getMissingCredentialSecretRef,
+} from '~/app/pages/external-providers/utils';
 import styles from './CredentialSecretField.module.scss';
 
 type CredentialSecretFieldProps = {
@@ -86,23 +91,41 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
 }) => {
   const [isApiKeyVisible, setIsApiKeyVisible] = React.useState(false);
 
-  const secretSelectOptions = React.useMemo<TypeaheadSelectOption[]>(
-    () => [
-      ...secrets.map((secret) => ({
-        value: secret.name,
-        content: secret.name,
-        group: EXISTING_SECRETS_GROUP,
-        'data-testid': `credential-secret-option-${secret.name}`,
-      })),
+  const missingCredentialSecretRef = React.useMemo(
+    () => getMissingCredentialSecretRef(credentialSecretRef, secrets, isNewSecret),
+    [credentialSecretRef, isNewSecret, secrets],
+  );
+
+  const secretSelectOptions = React.useMemo<TypeaheadSelectOption[]>(() => {
+    const existingSecretOptions = secrets.map((secret) => ({
+      value: secret.name,
+      content: secret.name,
+      group: EXISTING_SECRETS_GROUP,
+      'data-testid': `credential-secret-option-${secret.name}`,
+    }));
+
+    const missingSecretOption = missingCredentialSecretRef
+      ? [
+          {
+            value: missingCredentialSecretRef,
+            content: formatMissingCredentialSecretLabel(missingCredentialSecretRef),
+            group: EXISTING_SECRETS_GROUP,
+            'data-testid': 'credential-secret-option-missing',
+          },
+        ]
+      : [];
+
+    return [
+      ...missingSecretOption,
+      ...existingSecretOptions,
       {
         value: CREATE_NEW_SECRET_VALUE,
         content: 'Create new secret',
         icon: <PlusCircleIcon aria-hidden />,
         'data-testid': 'credential-secret-create-new-option',
       },
-    ],
-    [secrets],
-  );
+    ];
+  }, [missingCredentialSecretRef, secrets]);
 
   const selectedSecretValue = isNewSecret ? CREATE_NEW_SECRET_VALUE : credentialSecretRef;
 
@@ -172,6 +195,15 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
+        {missingCredentialSecretRef && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant="warning" data-testid="credential-secret-missing-warning">
+                {MISSING_CREDENTIAL_SECRET_WARNING_MESSAGE}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
         {!isNewSecret && secretValidationMessage && (
           <FormHelperText>
             <HelperText>

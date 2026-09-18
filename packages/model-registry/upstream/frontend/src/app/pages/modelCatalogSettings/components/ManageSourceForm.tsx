@@ -226,6 +226,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                   </FormGroup>
                 </FormSection>
               </StackItem>
+
               <StackItem>
                 <ModelVisibilitySection
                   formData={formData}
@@ -241,7 +242,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
           </Form>
         </SidebarContent>
         <SidebarPanel width={{ default: 'width_50' }}>
-          <PreviewPanel preview={preview} />
+          <PreviewPanel preview={preview} isSourceEnabled={formData.enabled} />
         </SidebarPanel>
       </Sidebar>
       <ManageSourceFormFooter

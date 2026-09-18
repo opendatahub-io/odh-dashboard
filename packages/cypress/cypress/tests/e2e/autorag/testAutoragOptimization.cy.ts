@@ -2,46 +2,41 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
-import {
-  createMaasSecret,
-  isExternalMaasConnection,
-  getExternalMaasConnection,
-} from '../../../utils/oc_commands/maasSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
-import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
-import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
-import {
-  isOgxOperatorManaged,
-  provisionAutoragInfrastructure,
-  cleanupAutoragInfrastructure,
-  provisionVectorDatabase,
-} from '../../../utils/oc_commands/autoragInfra';
+import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
 import type { AutoragTestData } from '../../../types';
 import {
   configureAutoragRun,
+  checkAutoragMaaSReadiness,
   submitAutoragRun,
-  verifyAutoragRunSubmitted,
+  getAutoragInputDataKey,
   waitForAutoragRunCompletion,
   verifyAutoragResultsInteraction,
+} from '../../../utils/autoragTestFlows';
+import type {
+  AutoragConnectionOwnership,
+  AutoragMaaSFixture,
 } from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
 
-/**
- * When MAAS_URL or OGX_URL is set, we use an external Llama Stack / MaaS URL
- * (regression testing). When empty/unset, we self-provision infrastructure
- * (CI mode) — requires the OGX operator to already be Managed on the cluster.
- */
-const isExternalMaas = (): boolean => isExternalMaasConnection();
-
-describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
+describe('AutoRAG Optimization E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
-  let autoragWasEnabled = false;
-  let selfProvisioned = false;
+  let cleanupReady = false;
+  let maasFixture: AutoragMaaSFixture | undefined;
+  const connectionOwnership: AutoragConnectionOwnership = {
+    maasSecretCreated: false,
+    vectorDbSecretCreated: false,
+  };
+  const getMaaSFixture = (): AutoragMaaSFixture => {
+    if (!maasFixture) {
+      throw new Error('AutoRAG MaaS fixture was not resolved.');
+    }
+    return maasFixture;
+  };
 
   retryableBefore(() =>
     cy
@@ -49,68 +44,26 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
+        cleanupReady = true;
       })
-      .then(() =>
-        isAutoragEnabled().then((wasEnabled) => {
-          autoragWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutoragEnabled(true))
-      .then(() =>
-        isOgxOperatorManaged().then((isManaged) => {
-          if (isExternalMaas()) {
-            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-            allowOgxAccess(projectName);
-
-            const connection = getExternalMaasConnection();
-            if (!connection) {
-              throw new Error('Expected MAAS_URL or OGX_URL for external mode');
-            }
-            createMaasSecret(
-              projectName,
-              testData.maasSecretName,
-              connection.url,
-              connection.apiKey,
-            );
-            provisionVectorDatabase(projectName, testData.vectorDbSecretName);
-          } else {
-            if (!isManaged) {
-              throw new Error(
-                'OGX operator is not Managed on this cluster. ' +
-                  'Either set MAAS_URL or OGX_URL for external mode or ensure the operator is Managed.',
-              );
-            }
-
-            selfProvisioned = true;
-
-            cy.step('Provision project with DSPA');
-            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-
-            cy.step('Provision AutoRAG infrastructure (vector store, OGX)');
-            provisionAutoragInfrastructure(
-              projectName,
-              testData.maasSecretName,
-              testData.vectorDbSecretName,
-            );
-          }
-        }),
-      ),
+      .then(() => checkAutoragMaaSReadiness())
+      .then((fixture) => {
+        maasFixture = fixture;
+        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+      }),
   );
 
   after(() => {
-    if (!autoragWasEnabled) {
-      setAutoragEnabled(false);
+    if (!cleanupReady) {
+      return;
     }
 
-    if (selfProvisioned) {
-      cleanupAutoragInfrastructure(
-        projectName,
-        testData.maasSecretName,
-        testData.vectorDbSecretName,
-      );
-    }
-
-    removeOgxAccess(projectName);
+    cleanupAutoragInfrastructure(
+      projectName,
+      testData.maasSecretName,
+      testData.vectorDbSecretName,
+      connectionOwnership,
+    );
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
@@ -127,32 +80,116 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       ],
     },
     () => {
-      configureAutoragRun(testData, projectName, uuid);
+      configureAutoragRun(testData, projectName, uuid, getMaaSFixture(), {
+        createConnections: true,
+        connectionOwnership,
+      });
+
+      cy.step('Select faithfulness optimization metric');
+      autoragConfigurePage.findOptimizationMetricSelect().click();
+      autoragConfigurePage.findMetricOption('faithfulness').click();
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage
         .findMaxRagPatternsInputField()
         .type(`{selectall}${testData.maxRagPatterns}`);
 
-      submitAutoragRun();
-      verifyAutoragRunSubmitted(projectName, testData.runName);
+      submitAutoragRun(
+        testData,
+        projectName,
+        getAutoragInputDataKey(testData, uuid),
+        getMaaSFixture(),
+      );
     },
   );
+});
 
-  // Regression only: waits for the run to complete (~30 min) and verifies
-  // leaderboard, pattern details, tabs, and notebook download.
+describe('AutoRAG Optimization completion results E2E', () => {
+  const completionUuid = generateTestUUID();
+  let testData: AutoragTestData;
+  let projectName: string;
+  let cleanupReady = false;
+  let maasFixture: AutoragMaaSFixture | undefined;
+  const connectionOwnership: AutoragConnectionOwnership = {
+    maasSecretCreated: false,
+    vectorDbSecretCreated: false,
+  };
+  const getMaaSFixture = (): AutoragMaaSFixture => {
+    if (!maasFixture) {
+      throw new Error('AutoRAG MaaS fixture was not resolved.');
+    }
+    return maasFixture;
+  };
+
+  retryableBefore(() =>
+    cy
+      .fixture('e2e/autorag/testAutoragOptimization.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as AutoragTestData;
+        projectName = `${testData.projectNamePrefix}-${completionUuid}`;
+        cleanupReady = true;
+      })
+      .then(() => checkAutoragMaaSReadiness())
+      .then((fixture) => {
+        maasFixture = fixture;
+        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+      }),
+  );
+
+  after(() => {
+    if (!cleanupReady) {
+      return;
+    }
+
+    cleanupAutoragInfrastructure(
+      projectName,
+      testData.maasSecretName,
+      testData.vectorDbSecretName,
+      connectionOwnership,
+    );
+    deleteS3TestFiles(projectName, testData.awsBucket, `*${completionUuid}*`);
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+  });
+
   it(
     'Verify optimization run completes and results are interactive',
     {
       tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'],
       retries: { runMode: 0, openMode: 0 },
     },
-    () => {
-      cy.step('Navigate to the run results page');
-      autoragResultsPage.findRunsTable().contains(testData.runName).click();
+    function verifyCompletionResults() {
+      const fixture = getMaaSFixture();
+      if (!fixture.supportsCompletionResults) {
+        Cypress.log({
+          name: 'skip',
+          message: 'Results/leaderboard validation requires a real vector database.',
+        });
+        this.skip();
+      }
 
-      waitForAutoragRunCompletion();
-      verifyAutoragResultsInteraction();
+      configureAutoragRun(testData, projectName, completionUuid, fixture, {
+        createConnections: true,
+        connectionOwnership,
+      });
+
+      cy.step('Select faithfulness optimization metric');
+      autoragConfigurePage.findOptimizationMetricSelect().click();
+      autoragConfigurePage.findMetricOption('faithfulness').click();
+
+      cy.step('Set max RAG patterns to minimize run time');
+      autoragConfigurePage
+        .findMaxRagPatternsInputField()
+        .type(`{selectall}${testData.maxRagPatterns}`);
+
+      submitAutoragRun(
+        testData,
+        projectName,
+        getAutoragInputDataKey(testData, completionUuid),
+        fixture,
+      ).then(() => {
+        waitForAutoragRunCompletion();
+        verifyAutoragResultsInteraction();
+      });
     },
   );
 });

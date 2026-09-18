@@ -1488,7 +1488,8 @@ func (c *customEndpointMockClient) GetSecretValue(ctx context.Context, identity 
 type guardrailTestK8sClient struct {
 	k8s.KubernetesClientInterface
 	// providerInfoURL is the URL returned by GetModelProviderInfo (simulates ConfigMap URL).
-	providerInfoURL string
+	providerInfoURL      string
+	externalModelsConfig *models.ExternalModelsConfig
 }
 
 func (c *guardrailTestK8sClient) GetUser(_ context.Context, _ *integrations.RequestIdentity) (string, error) {
@@ -1502,6 +1503,10 @@ func (c *guardrailTestK8sClient) GetModelProviderInfo(_ context.Context, _ *inte
 		ProviderType: "remote::vllm",
 		URL:          c.providerInfoURL,
 	}, nil
+}
+
+func (c *guardrailTestK8sClient) GetExternalModelsConfig(_ context.Context, _ string) (*models.ExternalModelsConfig, error) {
+	return c.externalModelsConfig, nil
 }
 
 type guardrailTestK8sFactory struct {
@@ -1618,6 +1623,62 @@ func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 		assert.NotEqual(t, staleConfigmapURL, autoURL, "must not use the ConfigMap URL returned by GetModelProviderInfo")
 	})
 
+	t.Run("passthrough-qualified MaaS catalog ID preserves slashes", func(t *testing.T) {
+		app := newApp()
+		const (
+			geminiModelID  = "publishers/test/models/gemini-proxy"
+			geminiModelURL = "https://maas.apps.example.com/test/gemini-proxy/v1"
+		)
+
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(_ context.Context, method, path string, _ interface{}, response interface{}) error {
+			switch {
+			case method == "GET" && path == "/models":
+				*response.(*models.MaaSBFFModelsResponse) = models.MaaSBFFModelsResponse{
+					Data: models.MaaSBFFModelsData{
+						Object: "list",
+						Data: []models.MaaSBFFModel{
+							{ID: geminiModelID, Object: "model", Ready: true, URL: geminiModelURL},
+						},
+					},
+				}
+				return nil
+			case method == "POST" && path == "/api-keys":
+				*response.(*models.MaaSBFFAPIKeyResponse) = models.MaaSBFFAPIKeyResponse{
+					Data: models.MaaSBFFAPIKeyResponseData{Key: "sk-oai-mock-gemini"},
+				}
+				return nil
+			default:
+				return nil
+			}
+		}
+
+		ctx := context.WithValue(
+			newCtx(),
+			constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)),
+			mockMaaSClient,
+		)
+		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(
+			ctx,
+			constants.PassthroughProviderID+"/"+geminiModelID,
+			models.ModelSourceTypeMaaS,
+			"gemini-subscription",
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, geminiModelURL, baseURL)
+		assert.Equal(t, "sk-oai-mock-gemini", apiKey)
+		assert.Equal(
+			t,
+			geminiModelID,
+			normalizeGuardrailModelName(
+				constants.PassthroughProviderID+"/"+geminiModelID,
+				models.ModelSourceTypeMaaS,
+			),
+		)
+		assert.Equal(t, geminiModelID, normalizeMaaSModelID(constants.PassthroughProviderID+"/maas-"+geminiModelID))
+	})
+
 	t.Run("unknown model in MaaS catalog returns error", func(t *testing.T) {
 		app := newApp()
 		_, _, err := app.getGuardrailModelEndpointAndKey(
@@ -1630,6 +1691,68 @@ func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not found in MaaS catalog")
 	})
+}
+
+func TestGetGuardrailModelEndpointAndKey_CustomEndpoint(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	const (
+		customModelID  = "meta-llama/Llama-3.1-8B-Instruct"
+		customModelURL = "https://custom-endpoint.example.com/v1"
+	)
+
+	app := &App{
+		config:                  config.EnvConfig{Port: 4000},
+		logger:                  logger,
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+		kubernetesClientFactory: &guardrailTestK8sFactory{client: &guardrailTestK8sClient{
+			providerInfoURL: "https://stale-configmap.example.com/v1",
+			externalModelsConfig: &models.ExternalModelsConfig{
+				Providers: models.ProvidersConfig{Inference: []models.InferenceProvider{
+					{
+						ProviderID:   "endpoint-1",
+						ProviderType: models.ProviderTypeOpenAI,
+						Config: models.ProviderConfig{
+							BaseURL: customModelURL,
+						},
+					},
+				}},
+				RegisteredResources: models.RegisteredResourcesConfig{Models: []models.RegisteredModel{
+					{
+						ProviderID: "endpoint-1",
+						ModelID:    customModelID,
+						ModelType:  models.ModelTypeLLM,
+						Metadata:   models.RegisteredModelMetadata{DisplayName: "Llama custom endpoint"},
+					},
+				}},
+			},
+		}},
+		memoryStore: cache.NewMemoryStore(),
+	}
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
+	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+
+	baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(
+		ctx,
+		constants.PassthroughProviderID+"/"+customModelID,
+		models.ModelSourceTypeCustomEndpoint,
+		"",
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, customModelURL, baseURL)
+	assert.Equal(t, "fake", apiKey)
+	assert.Equal(
+		t,
+		customModelID,
+		normalizeGuardrailModelName(
+			constants.PassthroughProviderID+"/"+customModelID,
+			models.ModelSourceTypeCustomEndpoint,
+		),
+	)
 }
 
 func TestProcessResponseCitations(t *testing.T) {

@@ -20,6 +20,8 @@ import * as transformPipelineDataModule from '~/app/topology/tree-view/transform
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutoragTaskTopologyModule from '~/app/topology/useAutoragTaskTopology';
 import * as utils from '~/app/utilities/utils';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
+import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
 
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedPattern: undefined, stageMapNodes: [] }),
@@ -240,6 +242,12 @@ describe('AutoragResults', () => {
                 patterns,
                 parameters: {},
                 ragPatternsBasePath: 'rag_patterns',
+                optimizationMetric: resolveObjectiveReference(
+                  patterns,
+                  typeof pipelineRun?.runtime_config?.parameters?.optimization_metric === 'string'
+                    ? pipelineRun.runtime_config.parameters.optimization_metric
+                    : DEFAULT_OPTIMIZATION_METRIC,
+                ),
                 ...contextOverrides,
               }}
             >
@@ -359,6 +367,7 @@ describe('AutoragResults', () => {
                     patterns,
                     parameters: {},
                     ragPatternsBasePath: 'rag_patterns',
+                    optimizationMetric: { name: 'overall_score', evaluator: 'custom' },
                   }}
                 >
                   <AutoragResults />
