@@ -17,6 +17,7 @@ const mockSummary: CatalogSourcePreviewSummary = {
   totalModels: 20,
   includedModels: 15,
   excludedModels: 5,
+  hasGatedAccessDeniedModels: false,
 };
 
 const mockIncludedItems: CatalogSourcePreviewModel[] = [
@@ -232,26 +233,14 @@ describe('PreviewPanel', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
-  it('shows gated access alert when preview includes gated models without access', () => {
+  it('shows gated access alert when preview summary reports gated models', () => {
     const preview = createMockPreview(
       {},
       {
+        summary: { ...mockSummary, hasGatedAccessDeniedModels: true },
         tabStates: {
           [CatalogSettingsPreviewTab.INCLUDED]: {
-            items: [
-              {
-                name: 'org/model-a',
-                included: true,
-                hfAccessType: 'gated_auto',
-                hfGatedAccessGranted: true,
-              },
-              {
-                name: 'org/model-b',
-                included: true,
-                hfAccessType: 'gated_manual',
-                hfGatedAccessGranted: false,
-              },
-            ],
+            items: [{ name: 'org/model-a', included: true }],
             hasMore: false,
           },
           [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
@@ -265,17 +254,96 @@ describe('PreviewPanel', () => {
     expect(screen.getByText(PREVIEW_ALERTS.GATED_ACCESS_REQUIRED_BODY)).toBeInTheDocument();
   });
 
-  it('does not show gated access alert when all gated models have access', () => {
+  it('shows gated access alert when summary has gated models but loaded page items are not gated', () => {
     const preview = createMockPreview(
       {},
       {
+        summary: {
+          ...mockSummary,
+          totalModels: 50,
+          includedModels: 40,
+          hasGatedAccessDeniedModels: true,
+        },
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: {
+            items: [
+              { name: 'org/public-model', included: true, hfAccessType: 'public' },
+              { name: 'org/private-model', included: true, hfAccessType: 'private' },
+            ],
+            hasMore: true,
+          },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
+
+    expect(screen.getByTestId('preview-gated-access-alert')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Gated access warning')).not.toBeInTheDocument();
+  });
+
+  it('shows gated access alert when summary has gated models and included tab has no items yet', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        summary: {
+          ...mockSummary,
+          totalModels: 10,
+          includedModels: 0,
+          hasGatedAccessDeniedModels: true,
+        },
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: { items: [], hasMore: false },
+          [CatalogSettingsPreviewTab.EXCLUDED]: {
+            items: [{ name: 'org/gated-later', included: false, hfAccessType: 'gated_auto' }],
+            hasMore: false,
+          },
+        },
+        activeTab: CatalogSettingsPreviewTab.INCLUDED,
+      },
+    );
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
+
+    expect(screen.getByTestId('preview-gated-access-alert')).toBeInTheDocument();
+  });
+
+  it('does not show gated access alert when preview summary has no gated models', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        summary: { ...mockSummary, hasGatedAccessDeniedModels: false },
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: {
+            items: [{ name: 'org/model-a', included: true }],
+            hasMore: false,
+          },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
+
+    expect(screen.queryByTestId('preview-gated-access-alert')).not.toBeInTheDocument();
+  });
+
+  it('does not show gated access alert when summary reports no gated-without-access models even if loaded items are gated with access', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        summary: { ...mockSummary, hasGatedAccessDeniedModels: false },
         tabStates: {
           [CatalogSettingsPreviewTab.INCLUDED]: {
             items: [
               {
-                name: 'org/model-a',
+                name: 'org/gated-granted',
                 included: true,
                 hfAccessType: 'gated_auto',
+                hfGatedAccessGranted: true,
+              },
+              {
+                name: 'org/gated-manual-granted',
+                included: true,
+                hfAccessType: 'gated_manual',
                 hfGatedAccessGranted: true,
               },
             ],
@@ -288,6 +356,8 @@ describe('PreviewPanel', () => {
     render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.queryByTestId('preview-gated-access-alert')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Gated access warning')).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText('Included model')).toHaveLength(2);
   });
 
   it('shows refresh alert when hasFormChanged is true', () => {

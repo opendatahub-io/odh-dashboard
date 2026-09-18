@@ -62,6 +62,7 @@ const mockPreviewResult = {
     totalModels: 10,
     includedModels: 8,
     excludedModels: 2,
+    hasGatedAccessDeniedModels: false,
   },
   nextPageToken: 'token-123',
 };
