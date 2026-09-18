@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 import {
+  AddProviderReferenceSource,
   ExternalProvidersAddClickedProperties,
   ExternalProvidersAddSource,
   MaaSEvents,
@@ -16,6 +17,7 @@ import {
   externalModelsFilterOptions,
   ExternalModelsFilterOptions,
   createExternalModelPath,
+  CreateExternalModelLocationState,
 } from './const';
 
 type ExternalModelsToolBarProps = {
@@ -55,7 +57,17 @@ const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
         <Button
           data-testid="add-external-model-button"
           variant="primary"
-          component={(props) => <Link {...props} to={createExternalModelPath(namespace)} />}
+          component={(props) => (
+            <Link
+              {...props}
+              to={createExternalModelPath(namespace)}
+              state={
+                {
+                  addProviderReferenceSource: AddProviderReferenceSource.TOOLBAR,
+                } satisfies CreateExternalModelLocationState
+              }
+            />
+          )}
           onClick={() =>
             fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_ADD_CLICKED, {
               source: ExternalProvidersAddSource.TOOLBAR,

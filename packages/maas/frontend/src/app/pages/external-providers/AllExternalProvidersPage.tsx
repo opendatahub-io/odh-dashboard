@@ -157,7 +157,7 @@ const AllExternalProvidersPage: React.FC = () => {
                 <EmptyExternalProvidersPage
                   onCreateExternalProvider={() => {
                     setIsCreateModalOpen(true);
-                    fireMiscTrackingEvent(MaaSEvents.ADD_PROVIDER_REFERENCE_CLICKED, {
+                    fireMiscTrackingEvent(MaaSEvents.EXTERNAL_PROVIDERS_ADD_CLICKED, {
                       source: ExternalProvidersAddSource.EMPTY_STATE,
                     } satisfies ExternalProvidersAddClickedProperties);
                   }}
@@ -174,7 +174,7 @@ const AllExternalProvidersPage: React.FC = () => {
                       onMultiSelectClear={onMultiSelectClear}
                       onAddExternalProvider={() => {
                         setIsCreateModalOpen(true);
-                        fireMiscTrackingEvent(MaaSEvents.ADD_PROVIDER_REFERENCE_CLICKED, {
+                        fireMiscTrackingEvent(MaaSEvents.EXTERNAL_PROVIDERS_ADD_CLICKED, {
                           source: ExternalProvidersAddSource.TOOLBAR,
                         } satisfies ExternalProvidersAddClickedProperties);
                       }}

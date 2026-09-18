@@ -48,14 +48,10 @@ export const MaaSEvents = {
   EXTERNAL_MODELS_MANAGE_PROVIDERS_CLICKED: 'External Models Manage Providers Clicked',
   EXTERNAL_MODEL_EDIT_CLICKED: 'External Model Edit Clicked',
   EXTERNAL_MODEL_DELETED: 'External Model Deleted',
-  // Add this once we add this functionality
-  //EXTERNAL_MODEL_NESTED_PROVIDER_DELETED: 'External Model Nested Provider Deleted',
-  //EXTERNAL_MODEL_NESTED_PROVIDER_VIEWED: 'External Model Nested Provider Viewed',
   EXTERNAL_MODEL_ADDED: 'External Model Added',
   EXTERNAL_MODEL_UPDATED: 'External Model Updated',
   EXTERNAL_MODEL_PROVIDER_REFERENCE_REMOVED: 'External Model Provider Reference Removed',
   EXTERNAL_MODEL_WEIGHTS_DISTRIBUTED: 'External Model Weights Distributed',
-  //EXTERNAL_MODEL_YAML_VIEWED: 'External Model YAML Viewed',
   EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED: 'External Model Provider Reference Added',
   EXTERNAL_MODEL_WIZARD_INHERITED_CONFIG_SHOW_MORE_CLICKED:
     'External Model Wizard Inherited Config Show More Clicked',
@@ -177,6 +173,7 @@ export enum ExternalModelProviderContext {
 
 export type ExternalModelUpdatedProperties = {
   outcome: TrackingOutcome;
+  success: boolean;
   providerRefCount: number;
   hasDescription: boolean;
 };

@@ -4,6 +4,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AddProviderReferenceSource,
   ExternalProvidersAddClickedProperties,
   MaaSEvents,
   ExternalProvidersAddSource,
@@ -11,7 +12,7 @@ import {
   ExternalModelsManageProvidersClickedProperties,
 } from '~/app/types/event-tracking';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
-import { createExternalModelPath } from './const';
+import { createExternalModelPath, CreateExternalModelLocationState } from './const';
 
 type EmptyExternalModelsPageProps = {
   namespace: string;
@@ -41,9 +42,19 @@ const EmptyExternalModelsPage: React.FC<EmptyExternalModelsPageProps> = ({ names
         </StackItem>
         <StackItem>
           <Button
-            data-testid="add-external-model-button"
+            data-testid="add-external-model-button-empty-state"
             variant="primary"
-            component={(props) => <Link {...props} to={createExternalModelPath(namespace)} />}
+            component={(props) => (
+              <Link
+                {...props}
+                to={createExternalModelPath(namespace)}
+                state={
+                  {
+                    addProviderReferenceSource: AddProviderReferenceSource.EMPTY_LIST,
+                  } satisfies CreateExternalModelLocationState
+                }
+              />
+            )}
             onClick={() =>
               fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_ADD_CLICKED, {
                 source: ExternalProvidersAddSource.EMPTY_STATE,

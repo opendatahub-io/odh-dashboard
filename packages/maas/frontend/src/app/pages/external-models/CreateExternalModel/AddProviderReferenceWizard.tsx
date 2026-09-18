@@ -32,6 +32,7 @@ type AddProviderReferenceWizardProps = {
   externalProviders: ExternalProvider[];
   onClose: () => void;
   onAdd: (providerRef: ProviderRef) => void;
+  eventContext: ExternalModelProviderContext;
 };
 
 const emptyConfigureForm = (): ProviderReferenceFormData => ({
@@ -53,6 +54,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   externalProviders,
   onClose,
   onAdd,
+  eventContext,
 }) => {
   const { refreshExternalProviders, refreshSecrets } = useExternalModelsContext();
   const createProviderForm = useCreateExternalProviderForm(namespace);
@@ -89,7 +91,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
 
       fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PROVIDER_SOURCE_SELECTED, {
         providerSource: convertStringToExternalModelProviderSource(source),
-        context: ExternalModelProviderContext.CREATE,
+        context: eventContext,
         hasExistingProviders: externalProviders.length > 0,
       } satisfies ExternalModelWizardProviderSourceSelectedProperties);
 
@@ -97,7 +99,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         createProviderForm.reset();
       }
     },
-    [createProviderForm, externalProviders],
+    [createProviderForm, externalProviders, eventContext],
   );
 
   const isStepOneValid =
@@ -182,7 +184,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   const trackingProviderType = React.useMemo(
     () =>
       selectedProvider?.provider ??
-      (providerSource === 'create-new' ? createProviderForm.formData.provider : ''),
+      (providerSource === ProviderSource.CREATE_NEW ? createProviderForm.formData.provider : ''),
     [selectedProvider?.provider, providerSource, createProviderForm.formData.provider],
   );
 
@@ -194,7 +196,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   );
 
   const trackingHasCreatedSecret =
-    providerSource === 'create-new' && createProviderForm.formData.isNewSecret;
+    providerSource === ProviderSource.CREATE_NEW && createProviderForm.formData.isNewSecret;
 
   const handleAdd = React.useCallback(async (): Promise<boolean> => {
     setFieldTouched(allConfigureFieldsTouched());
@@ -253,7 +255,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         hasCreatedSecret={trackingHasCreatedSecret}
         hasPathOverride={configureForm.path.trim() !== '/v1/chat/completions'}
         countOfConfigOverrides={configureForm.configPairs.length}
-        context={ExternalModelProviderContext.CREATE}
+        context={eventContext}
       />
     ),
     [
@@ -269,6 +271,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
       trackingAuthMechanism,
       trackingHasCreatedSecret,
       trackingProviderType,
+      eventContext,
     ],
   );
 
