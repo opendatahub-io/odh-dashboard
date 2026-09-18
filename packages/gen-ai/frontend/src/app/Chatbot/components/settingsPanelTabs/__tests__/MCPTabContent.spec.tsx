@@ -70,6 +70,11 @@ describe('MCPTabContent', () => {
         description: 'Test Server 1',
         logo: null,
         status: 'healthy',
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        // eslint-disable-next-line camelcase
+        tool_count: 0,
       },
       {
         name: 'Server 2',
@@ -78,6 +83,11 @@ describe('MCPTabContent', () => {
         description: 'Test Server 2',
         logo: null,
         status: 'healthy',
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        // eslint-disable-next-line camelcase
+        tool_count: 0,
       },
     ];
 

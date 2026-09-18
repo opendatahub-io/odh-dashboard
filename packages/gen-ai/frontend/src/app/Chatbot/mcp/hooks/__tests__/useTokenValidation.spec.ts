@@ -18,6 +18,8 @@ describe('useTokenValidation', () => {
     connectionUrl: 'https://server1.com',
     tools: 0,
     version: 'Unknown',
+    source: 'configmap',
+    logo: null,
   };
 
   const mockGetMCPServerStatus = jest.fn();

@@ -446,6 +446,13 @@ func (r *DashboardReconciler) reconcileDeployment(
 		allResources = append(allResources, rendered...)
 	}
 
+	if err := setRHOAIDashboardRouteHostname(allResources, dashboard, r.Platform); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("RenderTransformFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to configure rendered dashboard route: %w", err)
+	}
+
 	remapRayDashboardGatewayRBAC(allResources)
 
 	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
@@ -910,12 +917,8 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
 	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
-	// part-of=dashboard and is matched here. The MaaS Consumer Portal ConsoleLink is
-	// an independent operand labeled part-of=maas-consumer-portal, so it is not
-	// selected by this teardown — it is managed solely by
-	// reconcileMaaSConsumerPortal, independent of the core dashboard's
-	// managementState. Guard against clusters where the ConsoleLink CRD is not
-	// installed (non-OpenShift).
+	// part-of=dashboard and is matched here. Guard against clusters where the
+	// ConsoleLink CRD is not installed (non-OpenShift).
 	consoleLinks := &unstructured.UnstructuredList{}
 	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
 	if err := r.List(ctx, consoleLinks, matchLabels); err != nil {

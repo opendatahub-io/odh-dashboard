@@ -18,6 +18,7 @@ package webhook
 
 import (
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -129,6 +130,20 @@ var _ = Describe("Workspace Webhook", func() {
 			By("deleting the Workspace")
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 		})
+
+		It("should accept a valid workspace without displayName", func() {
+			By("creating the Workspace")
+			workspace := NewExampleWorkspaceWithoutDisplayName(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			By("verifying displayName is nil")
+			created := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspaceName, Namespace: namespaceName}, created)).To(Succeed())
+			Expect(created.Spec.DisplayName).To(BeNil())
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+		})
 	})
 
 	Context("When updating a Workspace", Ordered, func() {
@@ -147,6 +162,10 @@ var _ = Describe("Workspace Webhook", func() {
 			By("creating the WorkspaceKind")
 			workspaceKind := NewExampleWorkspaceKind(workspaceKindName)
 			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: workspaceKindName}, &kubefloworgv1beta1.WorkspaceKind{})
+			}, time.Second*5, time.Millisecond*100).Should(Succeed())
 
 			By("creating the Workspace")
 			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)

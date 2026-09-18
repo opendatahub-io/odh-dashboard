@@ -70,8 +70,14 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
     try {
       await createCollection(project, {
         namespace: [name.trim()],
-        owner: owner.trim(),
-        properties: description ? { description } : undefined,
+        properties: {
+          ...(description ? { description } : {}),
+          owner: owner.trim(),
+          // eslint-disable-next-line camelcase
+          created_at: new Date().toISOString(),
+          // eslint-disable-next-line camelcase
+          created_by: userId,
+        },
       });
       setName('');
       setDescription('');

@@ -31,12 +31,8 @@ type openAIModelList struct {
 // GenAIProxyNSModelsHandler handles GET /api/v1/genai-proxy/ns/:namespace/v1/models.
 //
 // Aggregates models from namespace ISVCs, custom endpoints, and MaaS and returns them
-// in OpenAI list format. Consumed by OGX's remote::passthrough provider so OGX
-// discovers new models without a pod restart.
-//
-// Auth is required: OGX forwards the user's JWT via X-OGX-Provider-Data →
-// forward_headers → x-forwarded-access-token header. The middleware extracts
-// the identity before this handler runs.
+// in OpenAI list format. Auth is required: OGX forwards the user's JWT via
+// Authorization: Bearer (from passthrough_api_key in X-OGX-Provider-Data).
 func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -49,8 +45,6 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 	r = r.WithContext(ctx)
 
-	// Auth is required: OGX forwards the user's JWT via X-OGX-Provider-Data → forward_headers
-	// → x-forwarded-access-token. The middleware extracts the identity before this handler runs.
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil || identity.Token == "" {
 		app.unauthorizedResponse(w, r, errors.New("missing authentication identity"))

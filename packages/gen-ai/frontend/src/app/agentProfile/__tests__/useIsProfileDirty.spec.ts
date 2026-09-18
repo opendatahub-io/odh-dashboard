@@ -146,6 +146,7 @@ describe('useIsProfileDirty', () => {
       registryAvailable: false,
       loaded: true,
       error: undefined,
+      refetch: jest.fn(),
     });
 
     // Config selects servers in [A, B] order — serialized spec will have [A, B].

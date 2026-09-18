@@ -249,6 +249,10 @@ describe('ViewCodeModal', () => {
       description: 'Test Server Description',
       logo: null,
       status: 'healthy' as const,
+      version: '1.0.0',
+      source: 'configmap',
+      tools: [],
+      tool_count: 0,
     };
 
     // Mock store to return selected MCP servers
@@ -282,6 +286,10 @@ describe('ViewCodeModal', () => {
       description: 'Test Server Description',
       logo: null,
       status: 'healthy' as const,
+      version: '1.0.0',
+      source: 'configmap',
+      tools: [],
+      tool_count: 0,
     };
 
     const mockGetToolSelections = jest.fn((configId: string, ns: string, url: string) => {
@@ -333,6 +341,10 @@ describe('ViewCodeModal', () => {
       description: 'Test Server Description',
       logo: null,
       status: 'healthy' as const,
+      version: '1.0.0',
+      source: 'configmap',
+      tools: [],
+      tool_count: 0,
     };
 
     const mockGetToolSelections = jest.fn(() => undefined);
@@ -378,6 +390,10 @@ describe('ViewCodeModal', () => {
       description: 'Test Server Description',
       logo: null,
       status: 'healthy' as const,
+      version: '1.0.0',
+      source: 'configmap',
+      tools: [],
+      tool_count: 0,
     };
 
     const mockGetToolSelections = jest.fn(() => []);

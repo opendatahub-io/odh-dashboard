@@ -37,7 +37,7 @@ export const FindAdministratorOptions = [
 export const MAX_DISPLAY_NAME_LENGTH = 250;
 export const MAX_DESCRIPTION_LENGTH = 255;
 export const MIN_RAG_PATTERNS = 4;
-export const MAX_RAG_PATTERNS = 20;
+export const MAX_RAG_PATTERNS = 10;
 
 // Presets
 export const PRESET_FASTER = 'speed';
@@ -83,5 +83,4 @@ export const METRIC_DESCRIPTIONS: Record<string, string> = {
 export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =
   {
     s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
-    ogx: [],
   };

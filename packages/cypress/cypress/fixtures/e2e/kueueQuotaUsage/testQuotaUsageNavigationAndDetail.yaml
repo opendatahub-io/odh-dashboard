@@ -1,0 +1,14 @@
+# Quota usage navigation and detail E2E test data
+managedProjectName: 'kueue-quota-nav-managed'
+nonKueueManagedProjectName: 'kueue-quota-nav-nonmanaged'
+resourceFlavorName: 'kueue-quota-nav-flavor'
+parentCohortName: 'kueue-quota-nav-parent-cohort'
+cohortName: 'kueue-quota-nav-cohort'
+emptyCohortName: 'kueue-quota-nav-empty-cohort'
+cohortClusterQueueName: 'kueue-quota-nav-member-cq'
+standaloneClusterQueueName: 'kueue-quota-nav-standalone-cq'
+localQueueName: 'kueue-quota-nav-lq'
+acceleratorResourceName: 'nvidia.com/gpu'
+acceleratorQuota: 1
+cohortTypeLabel: 'Cohort'
+clusterQueueTypeLabel: 'Cluster queue'

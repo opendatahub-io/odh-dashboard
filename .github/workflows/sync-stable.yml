@@ -84,8 +84,12 @@ jobs:
             exit 1
           fi
 
-          if ! git rev-list --first-parent origin/main | grep -Fxq "$TARGET_COMMIT"; then
-            echo "ERROR: target_commit $TARGET_COMMIT is not on main's first-parent history"
+          MAIN_TIP="$(git rev-parse origin/main)"
+          echo "origin/main tip: $MAIN_TIP"
+
+          # Do not use `rev-list | grep -q` with pipefail: grep exits early and rev-list gets SIGPIPE (141).
+          if ! git merge-base --is-ancestor "$TARGET_COMMIT" "$MAIN_TIP"; then
+            echo "ERROR: target_commit $TARGET_COMMIT is not an ancestor of origin/main ($MAIN_TIP)"
             exit 1
           fi
 

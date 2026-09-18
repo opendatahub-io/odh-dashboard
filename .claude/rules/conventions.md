@@ -68,7 +68,7 @@ paths:
 - **`useMemo`** — only memoize expensive computations; React is performant by default
 - **`useRef`** — avoid unless you need DOM access or a mutable value that persists across renders without triggering re-renders
 - **Custom hooks** — always memoize functions returned from hooks (consumers can't control reference stability)
-- See [docs/best-practices.md](../best-practices.md) for detailed examples and code patterns
+- See [docs/best-practices.md](../../docs/best-practices.md) for detailed examples and code patterns
 
 ## PatternFly v6
 

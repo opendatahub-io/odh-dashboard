@@ -116,13 +116,27 @@ func TestDataRegistryProxy_ListNamespaces_ForwardsPathAndAuth(t *testing.T) {
 // TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders guards against attribution
 // spoofing: the upstream Data Registry API trusts X-User/kubeflow-userid for fields like
 // `registered_by`, so a caller-supplied value must never reach the upstream verbatim — only the
-// BFF's own verified identity (via Authorization) may assert who the caller is.
+// BFF's own verified identity (via Authorization) may assert who the caller is. The BFF must set
+// X-User from the verified RequestIdentity.UserID when present.
 func TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders(t *testing.T) {
 	var captured capturedUpstreamRequest
 	upstream := newStandInDataRegistryServer(&captured, http.StatusOK, `{"namespaces":[["default"]]}`, nil)
 	defer upstream.Close()
 
-	app := newRegistryProxyTestApp(upstream.URL)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	cfg := config.EnvConfig{
+		AllowedOrigins:  []string{"*"},
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: config.DefaultAuthTokenHeader,
+		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
+	}
+	app := &App{
+		config:                  cfg,
+		logger:                  logger,
+		kubernetesClientFactory: kubernetes.NewTokenClientFactory(logger, cfg),
+		repositories:            repositories.NewRepositories(),
+		dataRegistryAPIURL:      helper.NewStringHolder(upstream.URL),
+	}
 
 	req, err := http.NewRequest(http.MethodGet, "http://bff.example/api/v1/my-project/namespaces", nil)
 	require.NoError(t, err)
@@ -131,13 +145,20 @@ func TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders(t *testing.T) {
 	req.Header.Set(constants.KubeflowUserIDHeader, "spoofed@example.com")
 	req.Header.Set(constants.KubeflowUserGroupsIdHeader, "spoofed-group")
 
+	// Inject verified identity with UserID already populated (simulating internal auth or SSR-resolved identity)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{
+		Token:  "user-token-123",
+		UserID: "verified-user@example.com",
+	})
+	req = req.WithContext(ctx)
+
 	rr := httptest.NewRecorder()
 	app.Routes().ServeHTTP(rr, req)
 	res := rr.Result()
 	defer res.Body.Close()
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Empty(t, captured.Header.Get("X-User"), "X-User must never be forwarded to the upstream")
+	assert.Equal(t, "verified-user@example.com", captured.Header.Get("X-User"), "X-User must be set from verified RequestIdentity.UserID, not caller-supplied value")
 	assert.Empty(t, captured.Header.Get(constants.KubeflowUserIDHeader), "kubeflow-userid must never be forwarded to the upstream")
 	assert.Empty(t, captured.Header.Get(constants.KubeflowUserGroupsIdHeader), "kubeflow-groups must never be forwarded to the upstream")
 	assert.Equal(t, "Bearer user-token-123", captured.Header.Get("Authorization"))

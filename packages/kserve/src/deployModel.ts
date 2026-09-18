@@ -34,6 +34,7 @@ import {
   applyModelType,
   applyDeploymentStrategy,
 } from './deployUtils';
+import { applyHfTokenEnvVar } from './hfTokenSecret';
 import { applyReplicas } from './hardware';
 import {
   createInferenceService,
@@ -59,6 +60,7 @@ export type CreatingInferenceServiceObject = {
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
   deploymentStrategy?: DeploymentStrategyFieldData;
+  hfTokenSecretName?: string;
 };
 
 export const assembleInferenceService = (
@@ -84,6 +86,7 @@ export const assembleInferenceService = (
     runtimeArgs,
     environmentVariables,
     deploymentStrategy,
+    hfTokenSecretName,
   } = data;
   let inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -155,6 +158,8 @@ export const assembleInferenceService = (
   );
 
   inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
+
+  inferenceService = applyHfTokenEnvVar(inferenceService, hfTokenSecretName);
 
   return inferenceService;
 };

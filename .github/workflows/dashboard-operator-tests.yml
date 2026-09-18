@@ -48,6 +48,18 @@ jobs:
         working-directory: dashboard-operator
         run: make test
 
+      # Cache the envtest Kubernetes binary assets (kube-apiserver, etcd, kubectl)
+      # downloaded by `make setup-envtest` into dashboard-operator/bin/k8s. The download
+      # is the slow part of the integration step; the tests themselves run in seconds.
+      # Keyed on the Makefile so a change to the pinned envtest/K8s version busts the cache.
+      - name: Cache envtest binaries
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: dashboard-operator/bin/k8s
+          key: envtest-${{ runner.os }}-${{ hashFiles('dashboard-operator/Makefile') }}
+          restore-keys: |
+            envtest-${{ runner.os }}-
+
       - name: Integration tests (envtest)
         working-directory: dashboard-operator
         run: make test-integration

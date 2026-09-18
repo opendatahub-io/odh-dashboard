@@ -27,7 +27,12 @@ const makeExtension = (
   type: 'app.cluster-storage/storage-context',
   uid: `ext-${title}`,
   pluginName: 'test',
-  properties: { title, description: `${title} desc`, isPVCUsingStorageContextType },
+  properties: {
+    title,
+    description: `${title} desc`,
+    isPVCUsingStorageContextType,
+    PVCStorageContextSettingsFields: { default: () => null },
+  },
 });
 
 const modelPVC = mockPVCK8sResource({

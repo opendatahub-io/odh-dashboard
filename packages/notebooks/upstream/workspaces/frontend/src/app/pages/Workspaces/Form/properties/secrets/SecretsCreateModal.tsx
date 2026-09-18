@@ -17,15 +17,15 @@ import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggl
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
-import { SecretsSecretListItem } from '~/generated/data-contracts';
+import { SecretsSecretListItem, V1SecretType } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
-import useSecretContents, { SecretKeyValuePair } from '~/app/hooks/useSecretContents';
+import useSecret, { SecretKeyValuePair } from '~/app/hooks/useSecret';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 
 interface SecretsCreateModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  namespace: string;
   onSecretCreated?: (secretName: string) => void;
   existingSecretNames?: string[];
   /** When provided, the modal operates in edit mode */
@@ -45,13 +45,13 @@ const CONFIG_MAP_KEY_REGEX = /^[-._a-zA-Z0-9]+$/;
 export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   isOpen,
   setIsOpen,
+  namespace,
   onSecretCreated,
   existingSecretNames = [],
   secretToEdit,
   onSecretUpdated,
 }) => {
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const isEditMode = !!secretToEdit;
 
@@ -61,32 +61,37 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [immutable, setImmutable] = useState(false);
 
-  const [secretContents, isSecretContentsLoaded, secretContentsError] = useSecretContents({
+  const [secretDetails, isSecretLoaded, secretLoadError] = useSecret({
     isOpen,
     secretName: secretToEdit?.name,
+    namespace,
   });
 
   // Set form fields when editing a secret
   useEffect(() => {
     if (isOpen && secretToEdit) {
       setSecretName(secretToEdit.name);
-      setImmutable(secretToEdit.immutable);
     }
   }, [isOpen, secretToEdit]);
 
-  // Sync fetched secret contents to form state
+  // Sync fetched secret data to form state
   useEffect(() => {
-    if (isSecretContentsLoaded && secretContents.length > 0) {
-      setKeyValuePairs(secretContents);
+    if (isSecretLoaded) {
+      if (secretDetails.keyValuePairs.length > 0) {
+        setKeyValuePairs(secretDetails.keyValuePairs);
+      }
+      if (isEditMode) {
+        setImmutable(secretDetails.immutable);
+      }
     }
-  }, [isSecretContentsLoaded, secretContents]);
+  }, [isSecretLoaded, secretDetails, isEditMode]);
 
-  // Set error from secret contents fetch
+  // Set error from secret fetch
   useEffect(() => {
-    if (secretContentsError) {
+    if (secretLoadError) {
       setError('Failed to load secret contents');
     }
-  }, [secretContentsError]);
+  }, [secretLoadError]);
 
   const validateSecretName = useCallback(
     (name: string): string | null => {
@@ -176,19 +181,21 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
       const currentSecretName = secretName;
 
       if (isEditMode) {
-        await api.secrets.updateSecret(selectedNamespace, secretName, {
-          type: 'Opaque',
-          immutable,
-          contents,
+        await api.secrets.updateSecret(namespace, secretName, {
+          data: {
+            type: V1SecretType.SecretTypeOpaque,
+            immutable,
+            contents,
+          },
         });
         resetForm();
         setIsOpen(false);
         onSecretUpdated?.(currentSecretName);
       } else {
-        await api.secrets.createSecret(selectedNamespace, {
+        await api.secrets.createSecret(namespace, {
           data: {
             name: secretName,
-            type: 'Opaque',
+            type: V1SecretType.SecretTypeOpaque,
             immutable,
             contents,
           },
@@ -211,7 +218,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     secretName,
     isEditMode,
     api.secrets,
-    selectedNamespace,
+    namespace,
     immutable,
     resetForm,
     setIsOpen,
@@ -244,7 +251,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
             {error}
           </Alert>
         )}
-        {isEditMode && !isSecretContentsLoaded && !secretContentsError && (
+        {isEditMode && !isSecretLoaded && !secretLoadError && (
           <Alert variant={AlertVariant.info} isInline title="Loading">
             Loading secret data...
           </Alert>
@@ -304,7 +311,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
               }
               isChecked={immutable}
               onChange={(_event, checked) => setImmutable(checked)}
-              isDisabled={isEditMode && secretToEdit.immutable}
+              isDisabled={isEditMode && secretDetails.immutable}
             />
           </FormGroup>
           <ThemeAwareFormGroupWrapper label="Secret type" isRequired fieldId="secret-type">
@@ -354,8 +361,8 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
           isLoading={isSubmitting}
           isDisabled={
             isSubmitting ||
-            (isEditMode && !isSecretContentsLoaded) ||
-            (isEditMode && secretToEdit.immutable) ||
+            (isEditMode && !isSecretLoaded) ||
+            (isEditMode && secretDetails.immutable) ||
             (isEditMode && !secretToEdit.canUpdate)
           }
           data-testid="secret-modal-submit-button"

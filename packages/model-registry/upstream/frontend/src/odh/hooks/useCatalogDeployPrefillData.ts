@@ -9,6 +9,7 @@ import {
   getModelArtifactUri,
   getValidatedConfigurationsForModel,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { getCustomPropString } from '~/app/pages/modelRegistry/screens/utils';
 import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 
 const useCatalogDeployPrefillData = (
@@ -34,6 +35,11 @@ const useCatalogDeployPrefillData = (
       };
     }
 
+    const hfAccessType = getCustomPropString(model.customProperties || {}, 'hf_access_type');
+    const requiresHuggingFaceApiKey =
+      !!hfAccessType && (hfAccessType === 'private' || hfAccessType.startsWith('gated_'));
+    const isGatedHuggingFace = !!hfAccessType && hfAccessType.startsWith('gated_');
+
     return {
       modelName: model.name,
       modelUri: uri,
@@ -43,6 +49,10 @@ const useCatalogDeployPrefillData = (
       wizardStartIndex: 1,
       prefillAlertText: `The ${model.name} model details have been imported from the model catalog.`,
       ...getValidatedConfigurationsForModel(model, isToolCallingEnabled),
+      requiresHuggingFaceApiKey,
+      huggingFaceApiKeyAlertText: isGatedHuggingFace
+        ? 'This model requires gated access on Hugging Face. Ensure your account has been granted access before deploying.'
+        : undefined,
     };
   }, [model, uri, cancelReturnRoute, isToolCallingEnabled, sourceId]);
 

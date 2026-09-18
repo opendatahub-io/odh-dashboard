@@ -4,6 +4,14 @@
  */
 
 /**
+ * Tool summary as returned by the list endpoint (name + description only)
+ */
+export type MCPToolSummary = {
+  name: string;
+  description: string;
+};
+
+/**
  * MCP Server summary information as returned by the API
  * Corresponds to MCPServerSummary from the BFF
  */
@@ -20,8 +28,11 @@ export type MCPServerFromAPI = {
   logo: string | null;
   /** Server status from ConfigMap validation */
   status: 'healthy' | 'error' | 'unknown';
-  /** Origin of the server: "registry" (MLflow MCP Registry) or "configmap" (manual ConfigMap) */
-  source?: 'registry' | 'configmap';
+  version: string;
+  /** Origin of the server, e.g. "registry" or "configmap" */
+  source?: string;
+  tools: MCPToolSummary[];
+  tool_count: number;
 };
 
 /**
@@ -178,8 +189,9 @@ export interface MCPServer {
   endpoint: string;
   connectionUrl: string;
   tools: number;
-  toolsList?: MCPTool[];
+  toolsList?: MCPToolSummary[];
+  /** Origin of the server, e.g. "registry" or "configmap" */
+  source?: string;
   version: string;
-  /** Origin of the server: "registry" or "configmap" */
-  source?: 'registry' | 'configmap';
+  logo: string | null;
 }

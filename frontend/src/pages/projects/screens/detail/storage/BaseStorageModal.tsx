@@ -15,6 +15,7 @@ import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storag
 import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
 import { StorageData } from '#~/pages/projects/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { StorageContextType } from './useStorageContextType';
 
 type CreateStorageObjectData = Pick<
   StorageData,
@@ -33,6 +34,8 @@ export type BaseStorageModalProps = {
   existingData?: CreateStorageObjectData;
   existingPvc?: PersistentVolumeClaimKind;
   onClose: (submitted: boolean) => void;
+  storageContextTypes?: StorageContextType[];
+  storageContextTypesLoaded?: boolean;
 };
 
 const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
@@ -47,6 +50,8 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   hasDuplicateName,
   onClose,
   onNameChange,
+  storageContextTypes,
+  storageContextTypesLoaded,
 }) => {
   const [defaultStorageClass] = useDefaultStorageClass();
   const [createData, setCreateData] = useCreateStorageObject(existingPvc, existingData);
@@ -102,6 +107,8 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
                 hasDuplicateName={hasDuplicateName}
                 disableStorageClassSelect={!!existingPvc}
                 editableK8sName={!existingPvc}
+                storageContextTypes={storageContextTypes}
+                storageContextTypesLoaded={storageContextTypesLoaded}
               />
             </StackItem>
             {children}

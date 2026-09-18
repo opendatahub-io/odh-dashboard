@@ -24,6 +24,7 @@ import modelRegistryMissingModelImg from '../images/no-models-model-registry.svg
 import modelRegistryMissingVersionImg from '../images/no-versions-model-registry.svg';
 import modelRegistrySelectImg from '../images/UI_icon-Red_Hat-Registered.svg';
 import agentOpsImg from '../images/UI_icon-Red_Hat-Agentic_AI-Black.svg';
+import dataRegistryImg from '../images/UI_icon-Red_Hat-Data-RGB.svg';
 
 export const typedObjectImage = (objectType: ProjectObjectType): string => {
   switch (objectType) {
@@ -60,6 +61,8 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.agentsCatalog:
     case ProjectObjectType.agentOps:
       return agentOpsImg;
+    case ProjectObjectType.dataRegistry:
+      return dataRegistryImg;
     default:
       return '';
   }
