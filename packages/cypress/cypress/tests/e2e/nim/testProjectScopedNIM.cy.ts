@@ -79,6 +79,7 @@ describe('A user can deploy a project-scoped NIM', () => {
             createCustomResource(
               Cypress.env('APPLICATIONS_NAMESPACE'),
               testData.hardwareProfileYamlPath,
+              hardwareProfileName,
             ),
           )
           .then((result) => {
