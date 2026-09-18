@@ -29,8 +29,8 @@ export type MCPServerFromAPI = {
   /** Server status from ConfigMap validation */
   status: 'healthy' | 'error' | 'unknown';
   version: string;
-  /** Origin of the server, e.g. "registry" or "configmap" */
-  source?: string;
+  /** Origin of the server */
+  source: 'registry' | 'configmap';
   tools: MCPToolSummary[];
   tool_count: number;
 };

@@ -12,6 +12,19 @@ import {
 
 describe('MCP Utilities', () => {
   describe('filterUnavailableRegistryServers', () => {
+    const registryServer: MCPServerFromAPI = {
+      name: 'registry-server',
+      url: 'https://registry.example.com/mcp',
+      transport: 'sse',
+      description: '',
+      logo: null,
+      status: 'healthy',
+      version: '1.0.0',
+      source: 'registry',
+      tools: [],
+      tool_count: 0,
+    };
+
     it('should exclude registry servers that are unreachable', () => {
       const unavailableRegistryServer: MCPServerFromAPI = {
         name: 'unavailable-registry-server',
@@ -46,6 +59,27 @@ describe('MCP Utilities', () => {
       );
 
       expect(result).toEqual([reachableRegistryServer, configMapServer]);
+    });
+
+    it('should retain a registry server while its status check is in flight', () => {
+      expect(filterUnavailableRegistryServers([registryServer], new Map())).toEqual([
+        registryServer,
+      ]);
+    });
+
+    it('should retain a registry server that requires authentication', () => {
+      expect(
+        filterUnavailableRegistryServers(
+          [registryServer],
+          new Map([
+            [registryServer.url, { status: 'auth_required', message: 'Authentication required' }],
+          ]),
+        ),
+      ).toEqual([registryServer]);
+    });
+
+    it('should return an empty array when there are no servers', () => {
+      expect(filterUnavailableRegistryServers([], new Map())).toEqual([]);
     });
   });
 
@@ -485,7 +519,7 @@ describe('MCP Utilities', () => {
   });
 
   describe('getSelectedServersForAPI', () => {
-    const mockServers = [
+    const mockServers: MCPServerFromAPI[] = [
       {
         name: 'Server 1',
         url: 'http://server1.com',
@@ -690,7 +724,7 @@ describe('MCP Utilities', () => {
       });
 
       it('handles multiple servers with different tool configurations', () => {
-        const mockServersMultiple = [
+        const mockServersMultiple: MCPServerFromAPI[] = [
           {
             name: 'Server 1',
             url: 'http://server1.com',
