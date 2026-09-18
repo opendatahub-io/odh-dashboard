@@ -86,13 +86,27 @@ const METRIC_UNITS: Record<string, string> = {
 };
 /* eslint-enable camelcase */
 
-export const formatMetricValue = (value: number, metric?: string): string => {
-  const unit = metric ? METRIC_UNITS[metric] : undefined;
+export const getMetricUnit = (metric?: string): string | undefined =>
+  metric ? METRIC_UNITS[metric] : undefined;
+
+// Metrics without a known unit retain EvalHub's existing percentage semantics. This is also the
+// safe fallback for providers whose primary metric metadata is incomplete, such as Inspect AI.
+export const isPercentageMetric = (metric?: string): boolean => getMetricUnit(metric) === undefined;
+
+const formatMetricNumber = (value: number): string =>
+  Number.isFinite(value) ? Number(value.toFixed(2)).toString() : '-';
+
+export const formatMetricValue = (value: number, metric?: string, includeUnit = true): string => {
+  const unit = getMetricUnit(metric);
   if (!unit) {
     return formatAsPercentage(value);
   }
+  if (!Number.isFinite(value)) {
+    return '-';
+  }
 
-  return Number.isFinite(value) ? `${Number(value.toFixed(2))} ${unit}` : '-';
+  const formattedValue = formatMetricNumber(value);
+  return includeUnit ? `${formattedValue} ${unit}` : formattedValue;
 };
 
 const getBenchmarkConfig = (
@@ -124,16 +138,17 @@ const getBenchmarkConfig = (
 export const formatBenchmarkScore = (
   benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
   primaryMetric?: string,
+  includeMetricUnit = true,
 ): string | null => {
   const primaryScore = benchmark.test?.primary_score;
   if (primaryScore != null && Number.isFinite(primaryScore)) {
-    return formatMetricValue(primaryScore, primaryMetric);
+    return formatMetricValue(primaryScore, primaryMetric, includeMetricUnit);
   }
   if (benchmark.metrics) {
     if (primaryMetric) {
       const configured = benchmark.metrics[primaryMetric];
       if (typeof configured === 'number' && Number.isFinite(configured)) {
-        return formatMetricValue(configured, primaryMetric);
+        return formatMetricValue(configured, primaryMetric, includeMetricUnit);
       }
     }
     const candidates: { metric: string; value: unknown }[] = [
@@ -145,13 +160,13 @@ export const formatBenchmarkScore = (
       ({ value }) => typeof value === 'number' && Number.isFinite(value),
     );
     if (preferred !== undefined && typeof preferred.value === 'number') {
-      return formatMetricValue(preferred.value, preferred.metric);
+      return formatMetricValue(preferred.value, preferred.metric, includeMetricUnit);
     }
   }
   return null;
 };
 
-export const getResultScore = (job: EvaluationJob): string => {
+export const getResultScore = (job: EvaluationJob, includeMetricUnit = true): string => {
   const resultBenchmark = job.results.benchmarks?.[0];
   const resolvedIndex = resultBenchmark?.benchmark_index ?? 0;
   const configBenchmark = resultBenchmark
@@ -160,13 +175,13 @@ export const getResultScore = (job: EvaluationJob): string => {
   const primaryMetric = configBenchmark?.primary_score?.metric;
   const score = job.results.test?.score;
   if (score != null && Number.isFinite(score)) {
-    return formatMetricValue(score, primaryMetric);
+    return formatMetricValue(score, primaryMetric, includeMetricUnit);
   }
   if (job.collection) {
     return '-';
   }
   if (resultBenchmark) {
-    return formatBenchmarkScore(resultBenchmark, primaryMetric) ?? '-';
+    return formatBenchmarkScore(resultBenchmark, primaryMetric, includeMetricUnit) ?? '-';
   }
   return '-';
 };
@@ -290,11 +305,17 @@ export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): 
 export const normalizeThreshold = (threshold: number): number =>
   threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);
 
+export const getThresholdInputValue = (threshold: number, metric?: string): number =>
+  isPercentageMetric(metric) ? normalizeThreshold(threshold) : Math.round(threshold);
+
+export const getThresholdRequestValue = (threshold: number, metric?: string): number =>
+  isPercentageMetric(metric) ? threshold / 100 : Math.round(threshold);
+
 export const formatThresholdValue = (value: number, metric?: string): string => {
   if (!Number.isFinite(value)) {
     return '-';
   }
-  return metric && METRIC_UNITS[metric]
-    ? formatMetricValue(value, metric)
-    : `${normalizeThreshold(value)}%`;
+  return isPercentageMetric(metric)
+    ? `${normalizeThreshold(value)}%`
+    : formatMetricValue(value, metric);
 };

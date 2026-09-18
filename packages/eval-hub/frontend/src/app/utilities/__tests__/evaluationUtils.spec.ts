@@ -12,6 +12,8 @@ import {
   formatBenchmarkScore,
   formatMetricValue,
   formatThresholdValue,
+  getThresholdInputValue,
+  getThresholdRequestValue,
   formatDate,
   formatDurationCompact,
   isTerminalState,
@@ -322,6 +324,23 @@ describe('formatThresholdValue', () => {
   });
 });
 
+describe('threshold metric conversions', () => {
+  it('should normalize raw metric thresholds to whole numbers for the form', () => {
+    expect(getThresholdInputValue(10, 'output_tokens_per_second')).toBe(10);
+    expect(getThresholdInputValue(10.4, 'output_tokens_per_second')).toBe(10);
+  });
+
+  it('should normalize raw metric thresholds to whole numbers in requests', () => {
+    expect(getThresholdRequestValue(10, 'output_tokens_per_second')).toBe(10);
+    expect(getThresholdRequestValue(10.6, 'output_tokens_per_second')).toBe(11);
+  });
+
+  it('should convert percentage thresholds between request and form values', () => {
+    expect(getThresholdInputValue(0.75, 'accuracy')).toBe(75);
+    expect(getThresholdRequestValue(75, 'accuracy')).toBe(0.75);
+  });
+});
+
 describe('formatBenchmarkScore', () => {
   /* eslint-disable camelcase */
   it('should prefer test.primary_score over metrics', () => {
@@ -393,6 +412,20 @@ describe('getResultScore', () => {
     ];
     /* eslint-enable camelcase */
     expect(getResultScore(job)).toBe('41.38 output tokens/s');
+  });
+
+  it('should omit the raw metric unit for the prominent result value', () => {
+    const job = mockEvaluationJob({ score: 41.377, benchmarkId: 'constant' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+    expect(getResultScore(job, false)).toBe('41.38');
   });
 
   it('should round fractional percentages to nearest integer', () => {
