@@ -23,6 +23,7 @@ const isConnection = (value: unknown): value is Connection => {
   }
   return (
     typeof value.metadata.id === 'string' &&
+    value.metadata.id.length > 0 &&
     (value.metadata.tenant_id === undefined || typeof value.metadata.tenant_id === 'string') &&
     typeof value.resource.name === 'string' &&
     typeof value.resource.data_connection_type_id === 'string' &&
@@ -93,7 +94,9 @@ export const verifyConnection =
     handleRestFailures(
       restENDPOINT(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(connectionId)}/readiness`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+          connectionId,
+        )}/readiness`,
         { namespace },
         { ...opts, parseJSON: false },
       ),

@@ -129,7 +129,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	dataConnectHubAPIURL := helper.NewStringHolder(cfg.DataConnectHubAPIURL)
 	dataConnectHubHTTPTransport := httpclient.NewSharedHTTPTransport(cfg.InsecureSkipVerify, rootCAs)
 	var discoveryCancel context.CancelFunc
-	if cfg.DataConnectHubAPIURL == "" && !cfg.MockK8Client {
+	if cfg.DataConnectHubAPIURL == "" && !cfg.MockK8Client && !cfg.MockHTTPClient {
 		resolveCtx, cancel := context.WithTimeout(context.Background(), dchDiscoveryAttemptTimeout)
 		resolvedURL, resolveErr := discoverDataConnectHubURL(resolveCtx, cfg, logger)
 		cancel()

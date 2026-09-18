@@ -86,6 +86,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   React.useEffect(() => {
     setDeleteTarget(undefined);
     setDeleteError(undefined);
+    setDeleting(false);
     setVerifying(new Set());
     setVerificationBaselines(new Map());
     setVerificationErrors(new Map());
@@ -298,18 +299,28 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     if (!deleteTarget) {
       return;
     }
+    const requestNamespace = namespace;
+    const connectionId = deleteTarget.metadata.id;
     setDeleting(true);
     setDeleteError(undefined);
     try {
-      await deleteConnection('')({}, namespace, deleteTarget.metadata.id);
+      await deleteConnection('')({}, requestNamespace, connectionId);
+      if (currentNamespace.current !== requestNamespace) {
+        return;
+      }
       setDeleteTarget(undefined);
       refresh();
     } catch (deleteFailure) {
+      if (currentNamespace.current !== requestNamespace) {
+        return;
+      }
       setDeleteError(
         deleteFailure instanceof Error ? deleteFailure : new Error('Unable to delete connection'),
       );
     } finally {
-      setDeleting(false);
+      if (currentNamespace.current === requestNamespace) {
+        setDeleting(false);
+      }
     }
   };
 
