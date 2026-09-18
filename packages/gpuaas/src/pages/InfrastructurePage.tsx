@@ -102,8 +102,10 @@ const renderInfrastructureSection = (
 
 const InfrastructurePage: React.FC = () => {
   const metrics = useInfrastructureMetrics();
+  const { refresh: refreshMetrics } = metrics;
   const quotaHierarchy = useQuotaHierarchy();
   const { refresh: refreshQuotaHierarchy } = quotaHierarchy;
+  const borrowingLendingRefreshRef = React.useRef<(() => void) | undefined>(undefined);
   const quotaWorkloadRefreshRef = React.useRef<(() => Promise<unknown>) | undefined>(undefined);
   const detailRefreshRef = React.useRef<() => Promise<unknown[]>>(() => Promise.resolve([]));
   const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
@@ -111,12 +113,19 @@ const InfrastructurePage: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = React.useState<InfrastructureTabId>(
     INFRASTRUCTURE_TABS[0].id,
   );
+  const [tabRefreshKey, setTabRefreshKey] = React.useState(0);
+  const [currentTime, setCurrentTime] = React.useState(() => Date.now());
   const utilizationContentRef = React.useRef<HTMLElement>(null);
   const quotaUsageContentRef = React.useRef<HTMLElement>(null);
   const tabContentRefs: Record<InfrastructureTabId, React.RefObject<HTMLElement>> = {
     utilization: utilizationContentRef,
     'quota-usage': quotaUsageContentRef,
   };
+
+  React.useEffect(() => {
+    const interval = window.setInterval(() => setCurrentTime(Date.now()), 20_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   React.useEffect(() => {
     if (metrics.loaded && !hasTrackedPageView.current) {
@@ -150,20 +159,36 @@ const InfrastructurePage: React.FC = () => {
     const secondsSinceLastUpdate = metrics.lastRefreshed
       ? Math.round((Date.now() - metrics.lastRefreshed.getTime()) / 1000)
       : undefined;
-    metrics.refresh();
+    refreshMetrics();
+    borrowingLendingRefreshRef.current?.();
     fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, { secondsSinceLastUpdate });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- .refresh is stable from useFetch
-  }, [metrics.lastRefreshed, metrics.refresh]);
+  }, [metrics.lastRefreshed, refreshMetrics]);
 
   const handleQuotaRefresh = React.useCallback(async () => {
     await refreshQuotaHierarchy();
     await detailRefreshRef.current();
-    void quotaWorkloadRefreshRef.current?.();
-    handleRefresh();
-  }, [handleRefresh, refreshQuotaHierarchy]);
+    await quotaWorkloadRefreshRef.current?.();
+  }, [refreshQuotaHierarchy]);
+
+  React.useEffect(() => {
+    if (tabRefreshKey === 0) {
+      return;
+    }
+
+    if (activeTabKey === 'utilization') {
+      refreshMetrics();
+      borrowingLendingRefreshRef.current?.();
+    } else {
+      void handleQuotaRefresh();
+    }
+  }, [activeTabKey, handleQuotaRefresh, refreshMetrics, tabRefreshKey]);
 
   const registerDetailRefresh = React.useCallback((refresh: () => Promise<unknown[]>) => {
     detailRefreshRef.current = refresh;
+  }, []);
+
+  const registerBorrowingLendingRefresh = React.useCallback((refresh: () => void) => {
+    borrowingLendingRefreshRef.current = refresh;
   }, []);
 
   const handleTabSelect = React.useCallback(
@@ -172,17 +197,18 @@ const InfrastructurePage: React.FC = () => {
       eventKey: string | number,
     ) => {
       const tab = INFRASTRUCTURE_TABS.find((tabInfo) => tabInfo.id === eventKey);
-      if (tab) {
+      if (tab && tab.id !== activeTabKey) {
         setActiveTabKey(tab.id);
+        setTabRefreshKey((key) => key + 1);
       }
     },
-    [],
+    [activeTabKey],
   );
 
   const sectionComponents: Record<SectionId, React.ReactElement | null> = {
     cluster: <ClusterSummaryCards metrics={metrics} />,
     'hardware-usage': <HardwareUsageSection metrics={metrics} />,
-    borrowing: <BorrowingLendingSection />,
+    borrowing: <BorrowingLendingSection onRegisterRefresh={registerBorrowingLendingRefresh} />,
     'quota-usage': (
       <QuotaUsageSection
         tree={quotaHierarchy.data.tree}
@@ -198,9 +224,10 @@ const InfrastructurePage: React.FC = () => {
 
   const renderRefreshBadge = (
     onRefresh: () => void,
+    lastRefreshed: Date | null,
     testId = 'infrastructure-refresh-badge',
   ): React.ReactNode =>
-    metrics.lastRefreshed ? (
+    lastRefreshed ? (
       <Flex
         justifyContent={{ default: 'justifyContentFlexEnd' }}
         alignItems={{ default: 'alignItemsCenter' }}
@@ -216,7 +243,7 @@ const InfrastructurePage: React.FC = () => {
         </FlexItem>
         <FlexItem>
           <Content component="small" className="pf-v6-u-color-200">
-            Updated {relativeTime(Date.now(), metrics.lastRefreshed.getTime())}
+            Updated {relativeTime(currentTime, lastRefreshed.getTime())}
           </Content>
         </FlexItem>
       </Flex>
@@ -226,6 +253,7 @@ const InfrastructurePage: React.FC = () => {
     headerAction: section.refreshBadgeTestId
       ? renderRefreshBadge(
           section.id === 'quota-usage' ? handleQuotaRefresh : handleRefresh,
+          section.id === 'quota-usage' ? quotaHierarchy.lastRefreshed : metrics.lastRefreshed,
           section.refreshBadgeTestId,
         )
       : undefined,
