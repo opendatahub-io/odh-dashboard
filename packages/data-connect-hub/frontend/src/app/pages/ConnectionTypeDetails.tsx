@@ -101,7 +101,13 @@ const ConnectionTypeDetails: React.FC = () => {
   if (connectionType) {
     title = (
       <>
-        <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />
+        <ConnectionTypeIcon
+          connectionType={connectionType}
+          iconProps={{
+            size: 'xl',
+            className: 'pf-v6-u-mr-md',
+          }}
+        />
         {connectionType.resource.name}
       </>
     );

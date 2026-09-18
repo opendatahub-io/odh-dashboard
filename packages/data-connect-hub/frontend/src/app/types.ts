@@ -10,6 +10,9 @@ export type Described<D> = {
 export type Valued<V> = {
   value: V;
 };
+export type Iconed<I> = {
+  icon: I;
+};
 
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
@@ -54,6 +57,8 @@ export type Connection = {
     updated_at?: string;
   };
 };
+
+export type ConnectionTypeGroup = 'all' | 'red_hat' | 'partner' | 'other';
 
 type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
 

@@ -5,30 +5,75 @@ import { Card, CardHeader, CardTitle, CardBody, Icon } from '@patternfly/react-c
 import type { IconComponentProps } from '@patternfly/react-core';
 import { useLinkClickHandler, useLocation } from 'react-router-dom';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import type { Identified, ConnectionType } from '~/app/types';
+import type { Identified, Iconed, ConnectionType, ConnectionTypeGroup } from '~/app/types';
 
 import DataSourceIcon from '@patternfly/react-icons/dist/esm/icons/data-source-icon';
 import LinkIcon from '@patternfly/react-icons/dist/esm/icons/link-icon';
-import RhUiAiExperienceFillIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-ai-experience-fill-icon';
+import RhUiAiExperienceIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-ai-experience-icon';
 import RhUiContainerIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-container-icon';
 import RhUiSearchIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-search-icon';
 import RhUiStorageIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-storage-icon';
 
 // Types ---------------------------------------------------------------------->
 
+type KnownConnectionType = Identified<string> &
+  Iconed<React.ReactNode> & {
+    group: ConnectionTypeGroup;
+  };
+
 // Globals -------------------------------------------------------------------->
 
-const knownConnectionTypes: Record<string, Identified<string> & { icon: React.ReactNode }> = {
-  elasticsearch: { id: 'elasticsearch', icon: <RhUiSearchIcon /> },
-  huggingface: { id: 'elasticsearch', icon: <RhUiAiExperienceFillIcon /> },
-  milvus: { id: 'milvus', icon: <RhUiStorageIcon /> },
-  neo4j: { id: 'neo4j', icon: <RhUiStorageIcon /> },
-  'oci-v1': { id: 'oci-v1', icon: <RhUiContainerIcon /> },
-  postgres: { id: 'postgres', icon: <RhUiStorageIcon /> },
-  s3: { id: 's3', icon: <RhUiStorageIcon /> },
-  sqlite: { id: 'sqlite', icon: <RhUiStorageIcon /> },
-  'uri-v1': { id: 'uri-v1', icon: <LinkIcon /> },
-  uri: { id: 'uri', icon: <LinkIcon /> },
+const KnownConnectionTypes: Record<string, KnownConnectionType> = {
+  elasticsearch: {
+    id: 'elasticsearch',
+    icon: <RhUiSearchIcon />,
+    group: 'other',
+  },
+  huggingface: {
+    id: 'elasticsearch',
+    icon: <RhUiAiExperienceIcon />,
+    group: 'other',
+  },
+  milvus: {
+    id: 'milvus',
+    icon: <RhUiStorageIcon />,
+    group: 'other',
+  },
+  neo4j: {
+    id: 'neo4j',
+    icon: <RhUiStorageIcon />,
+    group: 'other',
+  },
+  'oci-v1': {
+    id: 'oci-v1',
+    icon: <RhUiContainerIcon />,
+    group: 'other',
+  },
+  postgres: {
+    id: 'postgres',
+    icon: <RhUiStorageIcon />,
+    group: 'other',
+  },
+  s3: {
+    id: 's3',
+    icon: <RhUiStorageIcon />,
+    group: 'red_hat',
+  },
+  sqlite: {
+    id: 'sqlite',
+    icon: <RhUiStorageIcon />,
+    group: 'other',
+  },
+  'uri-v1': {
+    id: 'uri-v1',
+    icon: <LinkIcon />,
+    group: 'red_hat',
+  },
+  uri: {
+    id: 'uri',
+    icon: <LinkIcon />,
+    group: 'red_hat',
+  },
 };
 
 // Private -------------------------------------------------------------------->
@@ -41,7 +86,7 @@ type ConnectionTypeIconProps = {
 };
 const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType, iconProps }) => {
   const provider = connectionType.resource.provider;
-  const mappedIcon = knownConnectionTypes[provider]?.icon ?? <DataSourceIcon />;
+  const mappedIcon = KnownConnectionTypes[provider]?.icon ?? <DataSourceIcon />;
 
   return (
     <Icon size="sm" {...iconProps}>
@@ -80,4 +125,9 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType 
 
 // Public --------------------------------------------------------------------->
 
-export { ConnectionTypeCardIdentifier, ConnectionTypeCard, ConnectionTypeIcon };
+export {
+  KnownConnectionTypes,
+  ConnectionTypeCardIdentifier,
+  ConnectionTypeCard,
+  ConnectionTypeIcon,
+};

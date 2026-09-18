@@ -8,10 +8,9 @@ import { useConnectionTypes } from '~/app/hooks/useConnectionTypes.ts';
 import emptyStateImage from '~/images/RH-API-Illustration-Gray_20-2024_07-RGB.svg';
 import {
   Checkbox,
+  Content,
   EmptyState,
   EmptyStateBody,
-  Flex,
-  FlexItem,
   Gallery,
   PageSection,
   SearchInput,
@@ -26,10 +25,17 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import {
+  KnownConnectionTypes,
   ConnectionTypeCard,
   ConnectionTypeCardIdentifier,
 } from '~/app/components/ConnectionType.tsx';
-import type { Identified, Labelled, Described, ConnectionType } from '~/app/types';
+import type {
+  Identified,
+  Labelled,
+  Described,
+  ConnectionType,
+  ConnectionTypeGroup,
+} from '~/app/types';
 
 // Types ---------------------------------------------------------------------->
 
@@ -39,7 +45,11 @@ type FilterItems = Record<string, FilterItem>;
 
 type SelectedFilters = Record<string, string | null>;
 
-type ConnectionGroup = Identified<string> & Labelled<string> & Described<string>;
+type ConnectionGroup = Identified<ConnectionTypeGroup> &
+  Labelled<string> &
+  Described<string> & {
+    renderGroupSection?: boolean;
+  };
 
 // Globals -------------------------------------------------------------------->
 
@@ -58,10 +68,15 @@ const licensesFilter: FilterItems = {
   proprietary: { id: 'proprietary', label: 'Proprietary' },
 };
 
-const connectionGroups: Record<string, ConnectionGroup> = {
-  all: { id: 'all', label: 'All connections', description: 'All connections' },
-  rh: {
-    id: 'rh',
+const connectionGroups: Record<ConnectionTypeGroup, ConnectionGroup> = {
+  all: {
+    id: 'all',
+    label: 'All connections',
+    description: 'All connections',
+    renderGroupSection: false,
+  },
+  red_hat: {
+    id: 'red_hat',
     label: 'Red Hat connections',
     description: 'Official Red Hat connection types with full support.',
   },
@@ -79,7 +94,7 @@ const connectionGroups: Record<string, ConnectionGroup> = {
 
 const localFeatureFlags = {
   showOnlyInstalled: false,
-  connectionGroups: false,
+  connectionGroups: true,
   filters: false,
 };
 
@@ -115,13 +130,32 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
     React.useState<SelectedFilters>(initialSelectedFilters);
   const [searchTerm, setSearchTerm] = React.useState<string>('');
   const [showOnlyInstalledToggle, setShowOnlyInstalledToggle] = useState<boolean>(false);
-  const [selectedConnectionGroup, setSelectedConnectionGroup] = useState<string>(
+  const [selectedConnectionGroup, setSelectedConnectionGroup] = useState<ConnectionTypeGroup>(
     defaults.toolbar.groups.all.id,
   );
 
   const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace);
 
   // Helpers ------------------------------------------------------------------>
+
+  const connectionTypesByGroup = React.useMemo<
+    Record<ConnectionTypeGroup, ConnectionType[]>
+  >(() => {
+    const groupedConnectionTypes: Record<ConnectionTypeGroup, ConnectionType[]> = {
+      all: [...connectionTypes],
+      red_hat: [],
+      partner: [],
+      other: [],
+    };
+
+    connectionTypes.forEach((connectionType) => {
+      const knownConnection = KnownConnectionTypes[connectionType.resource.provider];
+      const group = knownConnection?.group ?? 'other';
+      groupedConnectionTypes[group].push(connectionType);
+    });
+
+    return groupedConnectionTypes;
+  }, [connectionTypes]);
 
   const isEmpty = connectionTypes.length === 0;
 
@@ -214,21 +248,23 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
       {localFeatureFlags.connectionGroups && (
         <StackItem className="pf-v6-u-mb-md">
           <ToggleGroup aria-label="Connection groups">
-            {Object.values(defaults.toolbar.groups).map((group) => (
-              <ToggleGroupItem
-                key={`ConnectionTypesTab-toolbar-group-item--${group.id}`}
-                buttonId={`ConnectionTypesTab-toolbar-group-item--${group.id}`}
-                text={group.label}
-                isSelected={selectedConnectionGroup === group.id}
-                onChange={(event, isSelected: boolean) => {
-                  if (!isSelected) {
-                    setSelectedConnectionGroup(defaults.toolbar.groups.all.id);
-                  } else {
-                    setSelectedConnectionGroup(group.id);
-                  }
-                }}
-              />
-            ))}
+            {Object.values(defaults.toolbar.groups)
+              .filter((group) => connectionTypesByGroup[group.id].length)
+              .map((group) => (
+                <ToggleGroupItem
+                  key={`ConnectionTypesTab-toolbar-group-item--${group.id}`}
+                  buttonId={`ConnectionTypesTab-toolbar-group-item--${group.id}`}
+                  text={group.label}
+                  isSelected={selectedConnectionGroup === group.id}
+                  onChange={(event, isSelected: boolean) => {
+                    if (!isSelected) {
+                      setSelectedConnectionGroup(defaults.toolbar.groups.all.id);
+                    } else {
+                      setSelectedConnectionGroup(group.id);
+                    }
+                  }}
+                />
+              ))}
           </ToggleGroup>
         </StackItem>
       )}
@@ -254,6 +290,44 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
     </Sidebar>
   );
 
+  const connectionTypesCatalogWithGroups = (
+    <Sidebar hasBorder hasGutter>
+      {localFeatureFlags.filters && sidebarPanel}
+      <SidebarContent>
+        <Stack>
+          {toolbar}
+          {Object.values(defaults.toolbar.groups)
+            .filter((group) => group.renderGroupSection !== false)
+            .filter((group) => connectionTypesByGroup[group.id].length)
+            .filter((group) => {
+              if (selectedConnectionGroup !== 'all') {
+                return group.id === selectedConnectionGroup;
+              }
+              return true;
+            })
+            .map((group) => (
+              <React.Fragment key={group.id}>
+                <Title headingLevel="h3">{group.label}</Title>
+                <Content component="p" className="pf-v6-u-mb-sm pf-v6-u-mt-sm">
+                  {group.description}
+                </Content>
+                <Gallery hasGutter maxWidths={{ default: '350px' }} className="pf-v6-u-mb-lg">
+                  {connectionTypesByGroup[group.id]
+                    .filter(shouldShowConnectionType)
+                    .map((connectionType) => (
+                      <ConnectionTypeCard
+                        key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
+                        connectionType={connectionType}
+                      />
+                    ))}
+                </Gallery>
+              </React.Fragment>
+            ))}
+        </Stack>
+      </SidebarContent>
+    </Sidebar>
+  );
+
   return (
     <PageSection isFilled hasBodyWrapper={false}>
       <p className="pf-v6-u-mb-md">
@@ -262,7 +336,16 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
         services.
       </p>
       {isEmpty && emptyState}
-      {!isEmpty && typesLoaded && !typesError && connectionTypesCatalog}
+      {!localFeatureFlags.connectionGroups &&
+        !isEmpty &&
+        typesLoaded &&
+        !typesError &&
+        connectionTypesCatalog}
+      {localFeatureFlags.connectionGroups &&
+        !isEmpty &&
+        typesLoaded &&
+        !typesError &&
+        connectionTypesCatalogWithGroups}
     </PageSection>
   );
 };
