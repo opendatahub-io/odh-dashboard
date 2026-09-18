@@ -72,6 +72,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const [verifying, setVerifying] = React.useState<Set<string>>(new Set());
   const [verificationErrors, setVerificationErrors] = React.useState<Map<string, Error>>(new Map());
   const [verificationResponses, setVerificationResponses] = React.useState<Set<string>>(new Set());
+  const verifyingIdsRef = React.useRef<Set<string>>(new Set());
   const [verificationBaselines, setVerificationBaselines] = React.useState<
     Map<string, string | undefined>
   >(new Map());
@@ -88,6 +89,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     setDeleteError(undefined);
     setDeleting(false);
     setVerifying(new Set());
+    verifyingIdsRef.current.clear();
     setVerificationBaselines(new Map());
     setVerificationErrors(new Map());
     setVerificationResponses(new Set());
@@ -131,6 +133,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
             (connection?.status.updated_at && connection.status.updated_at !== baseline)
           ) {
             next.delete(id);
+            verifyingIdsRef.current.delete(id);
             changed = true;
           }
         });
@@ -235,6 +238,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     });
 
   const handleVerify = async (id: string) => {
+    if (verifyingIdsRef.current.has(id)) {
+      return;
+    }
+    verifyingIdsRef.current.add(id);
     const requestNamespace = namespace;
     const connection = connections.find((item) => item.metadata.id === id);
     setVerificationBaselines((current) => new Map(current).set(id, connection?.status.updated_at));
@@ -263,6 +270,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       });
       setVerificationResponses((current) => new Set(current).add(id));
     } catch (verificationFailure) {
+      verifyingIdsRef.current.delete(id);
       if (currentNamespace.current !== requestNamespace) {
         return;
       }
@@ -501,7 +509,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                     )}
                   >
                     <DropdownList>
-                      <DropdownItem onClick={() => void handleVerify(connection.metadata.id)}>
+                      <DropdownItem
+                        isDisabled={verifying.has(connection.metadata.id)}
+                        onClick={() => void handleVerify(connection.metadata.id)}
+                      >
                         Verify connection
                       </DropdownItem>
                       <DropdownItem

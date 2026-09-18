@@ -188,6 +188,7 @@ components:
             id:
               type: string
               minLength: 1
+              pattern: '^[^/]+$'
             tenant_id:
               type: string
             created_at:
@@ -480,6 +481,8 @@ components:
       description: The ID of resource.
       schema:
         type: string
+        minLength: 1
+        pattern: '^[^/]+$'
       in: path
       required: true
     name:
