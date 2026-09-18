@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { cloneCollection, createCollection } from '~/app/api/k8s';
+import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   buildPendingCollection,
@@ -31,6 +32,10 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(),
 }));
 
+jest.mock('~/app/context/CollectionsContext', () => ({
+  useCollectionsContext: jest.fn(),
+}));
+
 const mockNavigate = jest.fn();
 const mockNotification = {
   success: jest.fn(),
@@ -44,7 +49,9 @@ const mockCloneCollection = jest.mocked(cloneCollection);
 const mockCreateCollection = jest.mocked(createCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockRefreshCollections = jest.fn();
 const defaultSuiteNamePattern =
   /^Curated suite - [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} (AM|PM)$/;
 
@@ -129,6 +136,12 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockUseNotification.mockReturnValue(mockNotification);
   mockUseNavigate.mockReturnValue(mockNavigate);
+  mockUseCollectionsContext.mockReturnValue({
+    response: { items: [] },
+    loaded: true,
+    loadError: undefined,
+    refresh: mockRefreshCollections,
+  });
 });
 
 describe('createBenchmarkFromKey', () => {
@@ -164,6 +177,31 @@ describe('createBenchmarkFromKey', () => {
         benchmarks: [benchmark!],
       }).benchmarks?.[0].parameters,
     ).toEqual({ num_examples: 1000, num_few_shot: 0 });
+  });
+
+  it('builds a pending collection for a new suite without a source collection', () => {
+    const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', providers)!;
+
+    expect(
+      buildPendingCollection({
+        suiteName: 'New suite',
+        suiteDescription: 'A new description',
+        suiteDomains: ['safety'],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [benchmark],
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        resource: { id: '' },
+        name: 'New suite',
+        evaluation_targets: ['model'],
+        benchmarks: [expect.objectContaining({ id: 'benchmark-one' })],
+      }),
+    );
   });
 });
 
@@ -479,6 +517,7 @@ describe('useCopySuiteForm', () => {
         countOfBenchmarks: 1,
       }),
     );
+    expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
   });
 
   it('should report create failures from a create-only save', async () => {
@@ -1071,6 +1110,7 @@ describe('useCopySuiteForm', () => {
     expect(cloneFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(cloned).toEqual(clonedCollection);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
+    expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
   });
 
   it('should send explicit empty metadata arrays when all values are removed', async () => {

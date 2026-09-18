@@ -8,6 +8,7 @@ import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
 import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { cloneCollection, createCollection } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
@@ -195,7 +196,7 @@ type UseCopySuiteFormParams = {
 };
 
 type BuildPendingCollectionParams = {
-  sourceCollection: Collection;
+  sourceCollection?: Collection;
   suiteName: string;
   suiteDescription: string;
   suiteDomains: string[];
@@ -219,6 +220,7 @@ export const buildPendingCollection = ({
   suiteThreshold,
   benchmarks,
 }: BuildPendingCollectionParams): Collection => {
+  const baseCollection = sourceCollection ?? { resource: { id: '' }, name: '' };
   /* eslint-disable camelcase */
   const normalizedBenchmarks: CollectionBenchmark[] = benchmarks.map((b) => {
     const parameters = mergeBenchmarkParameters(b);
@@ -236,7 +238,7 @@ export const buildPendingCollection = ({
   /* eslint-enable camelcase */
 
   return {
-    ...sourceCollection,
+    ...baseCollection,
     name: suiteName.trim(),
     description: suiteDescription.trim() || undefined,
     domains: suiteDomains,
@@ -245,7 +247,7 @@ export const buildPendingCollection = ({
     industries: suiteIndustries,
     // eslint-disable-next-line camelcase
     evaluation_targets: suiteEvaluates,
-    custom: buildCustomMetadata(sourceCollection.custom),
+    custom: buildCustomMetadata(baseCollection.custom),
     // eslint-disable-next-line camelcase
     pass_criteria: { threshold: suiteThreshold / 100 },
     benchmarks: normalizedBenchmarks,
@@ -502,6 +504,7 @@ export function useCopySuiteForm({
 }: UseCopySuiteFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
+  const { refresh: refreshCollections } = useCollectionsContext();
   const isCreateMode = mode === 'create';
 
   const form = useForm<CopySuiteFormValues>({
@@ -706,9 +709,6 @@ export function useCopySuiteForm({
   );
 
   const getPendingCollection = React.useCallback((): Collection | undefined => {
-    if (!sourceCollection) {
-      return undefined;
-    }
     const values = form.getValues();
     return buildPendingCollection({
       sourceCollection,
@@ -753,6 +753,8 @@ export function useCopySuiteForm({
           return undefined;
         }
 
+        refreshCollections();
+
         fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
           runType: 'collection',
           collectionName: clonedCollection.name,
@@ -774,7 +776,7 @@ export function useCopySuiteForm({
         }
       }
     },
-    [sourceCollection, namespace, form, buildCloneRequest, notification],
+    [sourceCollection, namespace, form, buildCloneRequest, notification, refreshCollections],
   );
 
   const createCollectionForRun = React.useCallback(
@@ -807,6 +809,8 @@ export function useCopySuiteForm({
           return undefined;
         }
 
+        refreshCollections();
+
         fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
           runType: 'collection',
           collectionName: createdCollection.name,
@@ -828,7 +832,7 @@ export function useCopySuiteForm({
         }
       }
     },
-    [isCreateMode, namespace, form, buildCreateRequest, notification],
+    [isCreateMode, namespace, form, buildCreateRequest, notification, refreshCollections],
   );
 
   const handleSaveAndRun = React.useCallback(() => {
@@ -867,6 +871,7 @@ export function useCopySuiteForm({
         isCreateMode ? 'Suite created' : 'Suite saved',
         `"${savedCollection.name}" has been added to your benchmark suites.`,
       );
+      refreshCollections();
       navigate(evaluationBenchmarkSuitesRoute(namespace));
     } catch (e) {
       if (controller && !controller.signal.aborted) {
@@ -892,6 +897,7 @@ export function useCopySuiteForm({
     buildCloneRequest,
     navigate,
     notification,
+    refreshCollections,
   ]);
 
   const handleCancel = React.useCallback(() => {

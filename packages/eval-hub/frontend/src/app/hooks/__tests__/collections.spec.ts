@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { deleteCollection, getCollections, patchCollection } from '~/app/api/k8s';
 import {
   collectionsQueryKeyPrefix,
+  collectionsQueryKey,
   useCollectionsQuery,
   useDeleteCollectionMutation,
   usePatchCollectionMutation,
@@ -51,6 +52,24 @@ describe('useCollectionsQuery', () => {
       sortBy: undefined,
     });
     expect(getRequest).toHaveBeenCalledWith({ signal: expect.anything() });
+  });
+
+  it('refetches tenant collections on mount when the cached result is still fresh', async () => {
+    const getRequest = jest.fn().mockResolvedValue({ items: [] });
+    mockGetCollections.mockReturnValue(getRequest);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
+    });
+    queryClient.setQueryData(
+      collectionsQueryKey('test-ns', 'tenant', 25, undefined, undefined, undefined),
+      { items: [] },
+    );
+    const wrapper: React.FC<React.PropsWithChildren> = ({ children }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    renderHook(() => useCollectionsQuery('test-ns', 'tenant', 25), { wrapper });
+
+    await waitFor(() => expect(getRequest).toHaveBeenCalledTimes(1));
   });
 
   it('requests curated collections in curation order', async () => {

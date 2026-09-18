@@ -104,7 +104,8 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   });
   const isPageInteractionDisabled = isClonePending || form.isSubmitting;
 
-  const pendingCollection = isCreateMode ? undefined : form.buildPendingCollection();
+  const pendingCollection =
+    isCreateMode || sourceCollection ? form.buildPendingCollection() : undefined;
 
   const renderBreadcrumbLink = React.useCallback(
     (to: string, label: React.ReactNode, testId: string) => {

@@ -65,6 +65,9 @@ export const useCollectionsQuery = (
     // Keep the current page visible while a changed filter, sort, or pagination key is fetching.
     // The gallery uses isFetching to show a localized loading spinner over these results.
     placeholderData: (previousData) => previousData,
+    // A create/clone flow navigates back to this page after writing directly through the API.
+    // Always refresh on mount so a cached collection list cannot hide the newly saved suite.
+    refetchOnMount: 'always',
     enabled: Boolean(namespace),
   });
 

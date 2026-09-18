@@ -127,13 +127,16 @@ jest.mock('~/app/components/BenchmarkWeightsModal', () => ({
 jest.mock('~/app/components/StartEvaluationRunModal', () => ({
   __esModule: true,
   default: ({
+    collection,
     onClonePendingChange,
     onSuccess,
   }: {
+    collection?: Collection;
     onClonePendingChange?: (isPending: boolean) => void;
     onSuccess?: () => void;
   }) => (
     <>
+      <div data-testid="copy-suite-run-collection">{collection?.name ?? 'none'}</div>
       <button
         type="button"
         data-testid="copy-suite-set-clone-pending"
@@ -361,6 +364,27 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('location-display')).toHaveTextContent(
       '/evaluation/test-namespace?tab=runs',
     );
+  });
+
+  it('should pass the pending created suite to the start evaluation modal', () => {
+    const pendingCollection: Collection = {
+      ...sourceCollection,
+      name: 'New suite',
+    };
+    const form = makeForm({
+      buildPendingCollection: jest.fn(() => pendingCollection),
+    });
+    mockUseCopySuiteForm.mockImplementation((options) => ({
+      ...form,
+      handleSaveAndRun: () => options.onSaveAndRunRequest?.(),
+    }));
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+
+    renderCreatePage();
+    goToBenchmarksStep();
+    fireEvent.click(screen.getByTestId('create-suite-submit'));
+
+    expect(screen.getByTestId('copy-suite-run-collection')).toHaveTextContent('New suite');
   });
 
   it('should show a loading state while the collection is loading', () => {
