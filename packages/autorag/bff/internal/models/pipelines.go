@@ -67,7 +67,8 @@ type CreateAutoRAGRunRequest struct {
 }
 
 // CreateIndexingPipelineRunRequest is the BFF-level input for creating a documents-indexing-pipeline run.
-// Parameters come from pattern.indexing.pipeline_spec.parameters and are forwarded to KFP.
+// Parameters come from pattern.indexing.pipeline_spec.parameters and are filtered against the
+// discovered pipeline version before being submitted to KFP.
 type CreateIndexingPipelineRunRequest struct {
 	DisplayName string         `json:"display_name"`
 	Description string         `json:"description,omitempty"`

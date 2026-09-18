@@ -31,6 +31,19 @@ const (
 // replaces "_" with "-" (e.g. "test-data-loader").
 var fakePipelineSpec = json.RawMessage(`{
   "root": {
+    "inputDefinitions": {
+      "parameters": {
+        "embedding_model_id": {"parameterType": "STRING"},
+        "input_data_secret_name": {"parameterType": "STRING"},
+        "input_data_bucket_name": {"parameterType": "STRING"},
+        "input_data_key": {"parameterType": "STRING"},
+        "maas_secret_name": {"parameterType": "STRING"},
+        "vector_db_secret_name": {"parameterType": "STRING"},
+        "chunk_size": {"parameterType": "INT"},
+        "chunk_overlap": {"parameterType": "INT"},
+        "chunking_method": {"parameterType": "STRING"}
+      }
+    },
     "dag": {
       "tasks": {
         "publish-component-stage-map": {

@@ -65,6 +65,9 @@ func (m *mockPipelinesService) ListPipelines(context.Context, string, string) (*
 func (m *mockPipelinesService) GetPipelineVersion(context.Context, string, string, string) (*pipelines.PipelineVersion, error) {
 	return nil, nil
 }
+func (m *mockPipelinesService) GetPipelineInputParameters(context.Context, string, string, string) ([]string, error) {
+	return nil, nil
+}
 func (m *mockPipelinesService) ListPipelineVersions(context.Context, string, string) (*pipelines.PipelineVersionsResponse, error) {
 	return nil, nil
 }
