@@ -195,10 +195,17 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   showStageMapUnavailableNotice = false,
   onClose,
 }) => {
-  const { patterns, parameters, bestPatternKey } = useAutoragResultsContext();
+  const { patterns, parameters, bestPatternKey, optimizationMetric } = useAutoragResultsContext();
   const pipelineSummaryDetails = React.useMemo(
-    () => getPipelineSummaryDetails(pipelineRun, componentStageMap, patterns, bestPatternKey),
-    [pipelineRun, componentStageMap, patterns, bestPatternKey],
+    () =>
+      getPipelineSummaryDetails(
+        pipelineRun,
+        componentStageMap,
+        patterns,
+        bestPatternKey,
+        optimizationMetric,
+      ),
+    [pipelineRun, componentStageMap, patterns, bestPatternKey, optimizationMetric],
   );
 
   if (!selectedNodeId || !nodeData) {

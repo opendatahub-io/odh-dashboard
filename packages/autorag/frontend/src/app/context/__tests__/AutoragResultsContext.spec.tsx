@@ -100,15 +100,18 @@ describe('getAutoragContext', () => {
         patternsLoading: false,
       });
 
-      expect(context).toEqual({
-        pipelineRun,
-        pipelineRunLoading: true,
-        patterns,
-        patternsLoading: false,
-        parameters: { optimization_metric: 'faithfulness' },
-        ragPatternsBasePath: undefined,
-        bestPatternKey: 'pattern-1',
-      });
+      expect(context).toEqual(
+        expect.objectContaining({
+          pipelineRun,
+          pipelineRunLoading: true,
+          patterns,
+          patternsLoading: false,
+          parameters: { optimization_metric: 'faithfulness' },
+          ragPatternsBasePath: undefined,
+          bestPatternKey: 'pattern-1',
+          optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
+        }),
+      );
     });
 
     it('should handle undefined pipelineRun', () => {
@@ -117,15 +120,18 @@ describe('getAutoragContext', () => {
         patterns: mockPatterns,
       });
 
-      expect(context).toEqual({
-        pipelineRun: undefined,
-        pipelineRunLoading: undefined,
-        patterns: mockPatterns,
-        patternsLoading: undefined,
-        parameters: undefined,
-        ragPatternsBasePath: undefined,
-        bestPatternKey: 'pattern-1',
-      });
+      expect(context).toEqual(
+        expect.objectContaining({
+          pipelineRun: undefined,
+          pipelineRunLoading: undefined,
+          patterns: mockPatterns,
+          patternsLoading: undefined,
+          parameters: undefined,
+          ragPatternsBasePath: undefined,
+          bestPatternKey: 'pattern-1',
+          optimizationMetric: { name: 'overall_score', evaluator: 'custom' },
+        }),
+      );
     });
 
     it('should handle empty patterns object', () => {

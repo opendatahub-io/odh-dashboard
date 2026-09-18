@@ -47,6 +47,9 @@ type ManageColumnsModalProps = {
 
 type ColumnState = ColumnManagementModalColumn & { isShown: boolean };
 
+const getColumnCheckTestId = (columnKey: string): string =>
+  `column-check-${columnKey.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+
 const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   isOpen,
   onClose,
@@ -172,14 +175,7 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   const renderDataListItem = (col: ColumnState, index: number) => (
     <DataListItemRow key={col.key}>
       <DataListCheck
-        data-testid={`column-check-${
-          col.key.startsWith('metric:') && typeof col.title === 'string'
-            ? `metric:${col.title
-                .toLowerCase()
-                .replace(/\s+\(optimized\)$/, '')
-                .replace(/ /g, '_')}`
-            : col.key
-        }`}
+        data-testid={getColumnCheckTestId(col.key)}
         isChecked={col.isShown}
         onChange={() => handleCheckChange(col.key)}
         id={`column-${index}-checkbox`}
