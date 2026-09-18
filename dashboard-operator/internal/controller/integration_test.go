@@ -141,6 +141,7 @@ data:
 	// Provide the same minimal core fixture in the RHOAI overlay for tests that
 	// exercise RHOAI-specific reconciliation.
 	require.NoError(t, os.CopyFS(filepath.Join(base, "rhoai"), os.DirFS(overlay)))
+	writeCoreHTTPRouteFixture(t, base)
 
 	// Per-module manifests: basePath/modules/<slug>/
 	// The module path must match deployModuleManifests in module_deploy.go.
@@ -200,6 +201,35 @@ spec:
 	}
 
 	return base
+}
+
+func writeCoreHTTPRouteFixture(t *testing.T, base string) {
+	t.Helper()
+
+	overlay := filepath.Join(base, "rhoai")
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - httproute.yaml
+`), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "httproute.yaml"), []byte(`apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhods-dashboard
+spec:
+  parentRefs:
+    - name: data-science-gateway
+      namespace: openshift-ingress
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rhods-dashboard
+          port: 8443
+`), 0644))
 }
 
 func newDashboard(spec v1alpha1.DashboardSpec) *v1alpha1.Dashboard {

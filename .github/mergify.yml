@@ -6,6 +6,8 @@
 #                   push (not Mergify update) so /lgtm is required before re-queue.
 #
 # Pilot: only PRs labeled mergify-testing are managed by Mergify.
+#
+# mergify/bypass-prow-checks — skips Mergify ci/prow* requirements; not GitHub ruleset injection.
 commands_restrictions:
   queue:
     conditions:
@@ -36,9 +38,12 @@ shared:
     - "#approved-reviews-by >= 1"
   ci_checks: &ci-checks
     - check-success = Tests
-    - check-success = ci/prow/images
-    - -check-failure ~= ^ci/prow
-    - -check-pending ~= ^ci/prow
+    - or:
+        - label = mergify/bypass-prow-checks
+        - and:
+            - check-success = ci/prow/images
+            - -check-failure ~= ^ci/prow
+            - -check-pending ~= ^ci/prow
     # Tide required-if-present-contexts (openshift/release → tide.orgs.opendatahub-io.repos.odh-dashboard).
     # Checks that ran must pass and finish; checks that did not run are ignored.
     - -check-failure ~= ^.+ BFF Tests$
@@ -50,7 +55,9 @@ shared:
   # Proactive update gate: failures only (merge still requires green).
   ci_checks_updateable: &ci-checks-updateable
     - -check-failure = Tests
-    - -check-failure ~= ^ci/prow
+    - or:
+        - label = mergify/bypass-prow-checks
+        - -check-failure ~= ^ci/prow
     - -check-failure ~= ^.+ BFF Tests$
     - -check-failure ~= ^(Test / )?(EvalHub|Gen AI|Model Registry|MaaS) Frontend Tests$
     - -check-failure ~= ^(Test / )?(AutoX Core Services|Dashboard Operator) Tests$

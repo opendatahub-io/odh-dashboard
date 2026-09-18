@@ -15,8 +15,7 @@ import { ExternalProvider } from '~/app/types/external-models';
 import CreateExternalProviderForm from '~/app/pages/external-providers/createProvider/CreateExternalProviderForm';
 import { UseCreateExternalProviderFormReturn } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
-
-export type ProviderSourceType = 'existing' | 'create-new';
+import { ProviderSource, type ProviderSourceType } from '~/app/pages/external-models/const';
 
 type SelectProviderStepProps = {
   namespace: string;
@@ -53,11 +52,11 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
           id="provider-source-existing"
           name="provider-source"
           label="Use existing provider"
-          isChecked={providerSource === 'existing'}
-          onChange={() => onProviderSourceChange('existing')}
+          isChecked={providerSource === ProviderSource.EXISTING}
+          onChange={() => onProviderSourceChange(ProviderSource.EXISTING)}
           data-testid="provider-source-existing"
           body={
-            providerSource === 'existing' ? (
+            providerSource === ProviderSource.EXISTING ? (
               <FormGroup
                 label="External provider"
                 fieldId="provider-ref-provider"
@@ -111,11 +110,11 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
           id="provider-source-create-new"
           name="provider-source"
           label="Create new provider"
-          isChecked={providerSource === 'create-new'}
-          onChange={() => onProviderSourceChange('create-new')}
+          isChecked={providerSource === ProviderSource.CREATE_NEW}
+          onChange={() => onProviderSourceChange(ProviderSource.CREATE_NEW)}
           data-testid="provider-source-create-new"
           body={
-            providerSource === 'create-new' ? (
+            providerSource === ProviderSource.CREATE_NEW ? (
               <CreateExternalProviderForm form={createProviderForm} showProjectField={false} />
             ) : null
           }

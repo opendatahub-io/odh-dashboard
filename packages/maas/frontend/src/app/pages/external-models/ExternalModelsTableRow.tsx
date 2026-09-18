@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ResourceTr } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
@@ -16,7 +17,11 @@ import {
 } from '~/app/types/event-tracking';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { externalModelsColumns } from './columns';
-import { GovernancePairingWarning, MissingMaaSModelRefWarning } from './const';
+import {
+  editExternalModelPath,
+  GovernancePairingWarning,
+  MissingMaaSModelRefWarning,
+} from './const';
 import {
   getExternalModelResource,
   isAwaitingGovernancePairing,
@@ -43,6 +48,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
   rowIndex,
   setDeleteExternalModel,
 }) => {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [hasOverflow, setHasOverflow] = React.useState(false);
   const [visibleLabelCount, setVisibleLabelCount] = React.useState(
@@ -67,6 +73,10 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     }
 
     setIsExpanded((prev) => !prev);
+  };
+
+  const onEditExternalModel = (externalModelsNamespace: string, externalModelName: string) => {
+    navigate(editExternalModelPath(externalModelsNamespace, externalModelName));
   };
 
   React.useLayoutEffect(() => {
@@ -233,6 +243,10 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
       <ActionsColumn
         data-testid="external-model-actions"
         items={[
+          {
+            title: 'Edit',
+            onClick: () => onEditExternalModel(externalModel.namespace, externalModel.name),
+          },
           {
             title: 'Delete',
             onClick: () => setDeleteExternalModel(externalModel),
