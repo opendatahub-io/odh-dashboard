@@ -82,9 +82,10 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
     if (onAdd) {
       await onAdd();
     }
+    const success = onAdd ? await onAdd() : false;
     fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
       outcome: TrackingOutcome.submit,
-      success: true,
+      success,
       providerSource: convertStringToExternalModelProviderSource(providerSource),
       providerType: convertStringToExternalModelProviderType(providerType),
       apiFormat: convertStringToExternalProviderRefApiFormat(apiFormat),
@@ -140,9 +141,8 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
           <ActionListItem>
             <Button
               variant="link"
-              onClick={close}
               data-testid="provider-ref-wizard-cancel"
-              onMouseDown={() =>
+              onClick={() => {
                 fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
                   outcome: TrackingOutcome.cancel,
                   success: false,
@@ -154,8 +154,9 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
                   hasPathOverride,
                   countOfConfigOverrides,
                   context,
-                } satisfies ExternalModelProviderReferenceAddedProperties)
-              }
+                } satisfies ExternalModelProviderReferenceAddedProperties);
+                close();
+              }}
             >
               Cancel
             </Button>

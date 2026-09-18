@@ -14,7 +14,11 @@ import {
   ProviderReferenceFormData,
 } from '~/app/pages/external-models/validations';
 import { configPairsToRecord } from '~/app/utilities/configPairs';
-import { ProviderSource, type ProviderSourceType } from '~/app/pages/external-models/const';
+import {
+  PROVIDER_REFERENCE_API_FORMATS,
+  ProviderSource,
+  type ProviderSourceType,
+} from '~/app/pages/external-models/const';
 import {
   convertStringToExternalModelProviderSource,
   MaaSEvents,
@@ -253,7 +257,10 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         apiFormat={configureForm.apiFormat.trim()}
         authMechanism={trackingAuthMechanism}
         hasCreatedSecret={trackingHasCreatedSecret}
-        hasPathOverride={configureForm.path.trim() !== '/v1/chat/completions'}
+        hasPathOverride={
+          configureForm.path.trim() !==
+          PROVIDER_REFERENCE_API_FORMATS[configureForm.apiFormat].defaultPath
+        }
         countOfConfigOverrides={configureForm.configPairs.length}
         context={eventContext}
       />
@@ -321,7 +328,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
                 : undefined
             }
             providerSource={convertStringToExternalModelProviderSource(providerSource)}
-            context={ExternalModelProviderContext.CREATE}
+            context={eventContext}
           />
         </WizardStep>
       </Wizard>

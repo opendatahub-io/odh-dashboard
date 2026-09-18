@@ -5,11 +5,11 @@ import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AddProviderReferenceSource,
-  ExternalProvidersAddClickedProperties,
   MaaSEvents,
-  ExternalProvidersAddSource,
   ExternalModelsManageProvidersSource,
   ExternalModelsManageProvidersClickedProperties,
+  ExternalModelsAddSource,
+  ExternalModelsAddClickedProperties,
 } from '~/app/types/event-tracking';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 import { createExternalModelPath, CreateExternalModelLocationState } from './const';
@@ -57,8 +57,8 @@ const EmptyExternalModelsPage: React.FC<EmptyExternalModelsPageProps> = ({ names
             )}
             onClick={() =>
               fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_ADD_CLICKED, {
-                source: ExternalProvidersAddSource.EMPTY_STATE,
-              } satisfies ExternalProvidersAddClickedProperties)
+                source: ExternalModelsAddSource.EMPTY_STATE,
+              } satisfies ExternalModelsAddClickedProperties)
             }
           >
             Add external model

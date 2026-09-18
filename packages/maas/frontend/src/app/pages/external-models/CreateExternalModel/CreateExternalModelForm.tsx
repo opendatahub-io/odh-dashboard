@@ -151,13 +151,14 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           description: nameDescData.description.trim(),
           providerRefs,
         };
+        await updateExternalModel()(apiOpts, namespace, externalModel.name, request);
+
         fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_UPDATED, {
           outcome: TrackingOutcome.submit,
           providerRefCount: providerRefs.length,
           hasDescription: nameDescData.description.trim() !== '',
           success: true,
         } satisfies ExternalModelUpdatedProperties);
-        await updateExternalModel()(apiOpts, namespace, externalModel.name, request);
       } else {
         const request: CreateExternalModelRequest = {
           name: nameDescData.k8sName.value,
@@ -167,13 +168,14 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           description: nameDescData.description.trim() || undefined,
           providerRefs,
         };
+        await createExternalModel()(apiOpts, request);
+
         fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_ADDED, {
           outcome: TrackingOutcome.submit,
           providerRefCount: providerRefs.length,
           hasDescription: nameDescData.description.trim() !== '',
           success: true,
         } satisfies ExternalModelAddedProperties);
-        await createExternalModel()(apiOpts, request);
       }
 
       refreshExternalModels();
@@ -433,10 +435,9 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(returnTo)}
             isDisabled={isSubmitting}
             data-testid="cancel-external-model-button"
-            onMouseDown={() => {
+            onClick={() => {
               if (externalModel) {
                 fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_UPDATED, {
                   outcome: TrackingOutcome.cancel,
@@ -452,6 +453,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
                   hasDescription: nameDescData.description.trim() !== '',
                 } satisfies ExternalModelAddedProperties);
               }
+              navigate(returnTo);
             }}
           >
             Cancel
