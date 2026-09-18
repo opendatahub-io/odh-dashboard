@@ -4,49 +4,31 @@
 // Modules -------------------------------------------------------------------->
 
 import React, { useState } from 'react';
-import { useLinkClickHandler, useLocation } from 'react-router-dom';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes.ts';
 import emptyStateImage from '~/images/RH-API-Illustration-Gray_20-2024_07-RGB.svg';
 import {
-  Button,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  CardFooter,
   Checkbox,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   EmptyState,
-  EmptyStateActions,
   EmptyStateBody,
-  EmptyStateVariant,
   Flex,
   FlexItem,
   Gallery,
-  HelperText,
-  HelperTextItem,
-  Label,
-  LabelGroup,
-  MenuToggle,
   PageSection,
   SearchInput,
   Sidebar,
   SidebarContent,
   SidebarPanel,
-  Spinner,
+  Stack,
+  StackItem,
   Switch,
   Title,
   ToggleGroup,
   ToggleGroupItem,
-  Truncate,
-  Toolbar,
-  ToolbarContent,
-  ToolbarGroup,
-  ToolbarItem,
-  ToolbarToggleGroup,
 } from '@patternfly/react-core';
+import {
+  ConnectionTypeCard,
+  ConnectionTypeCardIdentifier,
+} from '~/app/components/ConnectionType.tsx';
 import type { Identified, Labelled, Described, ConnectionType } from '~/app/types';
 
 // Types ---------------------------------------------------------------------->
@@ -116,34 +98,6 @@ const defaults = {
 // Private -------------------------------------------------------------------->
 
 // Components ----------------------------------------------------------------->
-
-const ConnectionTypeCardIdentifier = (id: string) => `${id}--ConnectionTypeCard`;
-type ConnectionTypeCardProps = { connectionType: ConnectionType };
-const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType }) => {
-  const rootId = ConnectionTypeCardIdentifier(connectionType.metadata.id);
-  const { pathname, search } = useLocation();
-  const detailsPath = `${pathname.replace(/\/$/, '')}/${encodeURIComponent(
-    connectionType.metadata.id,
-  )}${search}`;
-  const handleClick = useLinkClickHandler(detailsPath);
-  return (
-    <Card id={rootId} isClickable style={{ aspectRatio: '4 / 3' }}>
-      <CardHeader
-        selectableActions={{
-          to: detailsPath,
-          selectableActionAriaLabelledby: `${rootId}-card-title`,
-          selectableActionProps: { onClick: handleClick },
-        }}
-      >
-        <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
-      </CardHeader>
-      <CardBody>
-        <Truncate content={connectionType.resource.description ?? ''} />
-      </CardBody>
-      <CardFooter>Footer</CardFooter>
-    </Card>
-  );
-};
 
 type ConnectionTypesTabProps = { namespace: string };
 const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) => {
@@ -233,36 +187,32 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
   );
 
   const toolbar = (
-    <Flex direction={{ default: 'column' }}>
-      <Flex className="pf-v6-u-mb-md">
-        <FlexItem className="pf-v6-u-w-100 pf-v6-u-w-50-on-md pf-v6-u-w-33-on-lg">
-          <SearchInput
-            className="pf-v6-u-w-100"
-            aria-label="Search data connection types by name"
-            placeholder="Search by name or description..."
-            value={searchTerm}
-            onChange={(_event, value) => setSearchTerm(value)}
-            onSearch={(_event, value) => setSearchTerm(value)}
-            onClear={() => setSearchTerm('')}
-          />
-        </FlexItem>
+    <Stack>
+      <StackItem className="pf-v6-u-mb-md">
+        <SearchInput
+          name="ConnectionTypesTab-toolbar-search"
+          aria-label="Search data connection types by name"
+          placeholder="Search by name or description..."
+          value={searchTerm}
+          onChange={(_event, value) => setSearchTerm(value)}
+          onSearch={(_event, value) => setSearchTerm(value)}
+          onClear={() => setSearchTerm('')}
+        />
         {localFeatureFlags.showOnlyInstalled && (
-          <FlexItem>
-            <Switch
-              className="pf-v6-u-ml-sm"
-              id="show-only-installed"
-              label="Show only installed"
-              isChecked={showOnlyInstalledToggle}
-              onChange={(_event: React.FormEvent<HTMLInputElement>, checked: boolean) =>
-                setShowOnlyInstalledToggle(checked)
-              }
-              ouiaId="ShowOnlyInstalledSwitch"
-            />
-          </FlexItem>
+          <Switch
+            className="pf-v6-u-ml-sm"
+            id="ConnectionTypesTab-show-only-installed"
+            label="Show only installed"
+            isChecked={showOnlyInstalledToggle}
+            onChange={(_event: React.FormEvent<HTMLInputElement>, checked: boolean) =>
+              setShowOnlyInstalledToggle(checked)
+            }
+            ouiaId="ShowOnlyInstalledSwitch"
+          />
         )}
-      </Flex>
+      </StackItem>
       {localFeatureFlags.connectionGroups && (
-        <Flex className="pf-v6-u-mb-md">
+        <StackItem className="pf-v6-u-mb-md">
           <ToggleGroup aria-label="Connection groups">
             {Object.values(defaults.toolbar.groups).map((group) => (
               <ToggleGroupItem
@@ -280,16 +230,16 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
               />
             ))}
           </ToggleGroup>
-        </Flex>
+        </StackItem>
       )}
-    </Flex>
+    </Stack>
   );
 
   const connectionTypesCatalog = (
     <Sidebar hasBorder hasGutter>
       {localFeatureFlags.filters && sidebarPanel}
       <SidebarContent>
-        <Flex direction={{ default: 'column' }}>
+        <Stack>
           {toolbar}
           <Gallery hasGutter maxWidths={{ default: '350px' }}>
             {connectionTypes.filter(shouldShowConnectionType).map((connectionType) => (
@@ -299,7 +249,7 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
               />
             ))}
           </Gallery>
-        </Flex>
+        </Stack>
       </SidebarContent>
     </Sidebar>
   );

@@ -9,6 +9,7 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   PageSection,
+  Skeleton,
   Timestamp,
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
@@ -16,6 +17,7 @@ import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
+import { ConnectionTypeIcon } from '~/app/components/ConnectionType.tsx';
 import type { Identified, Labelled, Valued, ConnectionType } from '~/app/types';
 
 // Types ---------------------------------------------------------------------->
@@ -91,10 +93,25 @@ const ConnectionTypeDetails: React.FC = () => {
   const [connectionTypes, loaded, loadError] = useConnectionTypes(namespace);
   const connectionType = connectionTypes.find((item) => item.metadata.id === connectionTypeId);
 
+  const loadingSkeleton = <Skeleton screenreaderText="Loading connection type" />;
+
+  let title = loadingSkeleton;
+  let description = loadingSkeleton;
+
+  if (connectionType) {
+    title = (
+      <>
+        <ConnectionTypeIcon connectionType={connectionType} iconProps={{ size: 'xl' }} />
+        {connectionType.resource.name}
+      </>
+    );
+    description = <>{connectionType.resource.description ?? ''}</>;
+  }
+
   return (
     <ApplicationsPage
-      title={connectionType?.resource.name ?? connectionTypeId}
-      description={connectionType?.resource.description}
+      title={title}
+      description={description}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem>
@@ -103,7 +120,7 @@ const ConnectionTypeDetails: React.FC = () => {
             </Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>
-            {connectionType?.resource.name ?? connectionTypeId}
+            {connectionType?.resource.name ?? loadingSkeleton}
           </BreadcrumbItem>
         </Breadcrumb>
       }
