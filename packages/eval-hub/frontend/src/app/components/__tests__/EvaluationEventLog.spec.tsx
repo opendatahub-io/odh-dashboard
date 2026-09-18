@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EvaluationEventLog, { EventLogBenchmark } from '~/app/components/EvaluationEventLog';
+import { getEvaluationJobLogs } from '~/app/api/k8s';
 
 const mockRefresh = jest.fn();
 const mockUseEvaluationJobLogs = jest.fn().mockReturnValue({
@@ -15,11 +16,21 @@ jest.mock('~/app/hooks/useEvaluationJobLogs', () => ({
 }));
 
 jest.mock('~/app/api/k8s', () => ({
-  getEvaluationJobLogs: jest.fn(() => () => Promise.resolve('')),
-  getEvaluationJobBenchmarkLogs: jest.fn(() => () => Promise.resolve('')),
+  getEvaluationJobLogs: jest.fn(() => () => Promise.resolve({ logs: '', truncated: false })),
+  getEvaluationJobBenchmarkLogs: jest.fn(
+    () => () => Promise.resolve({ logs: '', truncated: false }),
+  ),
   isLogApiUnavailable: jest.fn(() => false),
   isLogServerError: jest.fn(() => false),
 }));
+
+const mockNotificationWarning = jest.fn();
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({ warning: mockNotificationWarning }),
+}));
+
+const mockGetEvaluationJobLogs = jest.mocked(getEvaluationJobLogs);
 
 /* eslint-disable camelcase */
 const defaultBenchmarks: EventLogBenchmark[] = [
@@ -43,12 +54,40 @@ const renderComponent = (props: Partial<React.ComponentProps<typeof EvaluationEv
 describe('EvaluationEventLog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+    global.URL.revokeObjectURL = jest.fn();
     mockUseEvaluationJobLogs.mockReturnValue({
       logs: '2026-01-01 10:00:00 - main - INFO - Test log entry',
       loaded: true,
       error: undefined,
       refresh: mockRefresh,
     });
+  });
+
+  it('should warn when a download is truncated while preserving the downloaded content', async () => {
+    const fetcher = jest.fn().mockResolvedValue({ logs: 'partial log output', truncated: true });
+    mockGetEvaluationJobLogs.mockReturnValue(fetcher);
+
+    renderComponent();
+    fireEvent.click(screen.getByTestId('download-logs-button'));
+
+    await waitFor(() => {
+      expect(mockNotificationWarning).toHaveBeenCalledWith(
+        'Log download truncated',
+        'The server truncated the log because of size or time limits. The downloaded file contains the available partial log.',
+      );
+    });
+  });
+
+  it('should not warn when a download is not truncated', async () => {
+    const fetcher = jest.fn().mockResolvedValue({ logs: 'complete log output', truncated: false });
+    mockGetEvaluationJobLogs.mockReturnValue(fetcher);
+
+    renderComponent();
+    fireEvent.click(screen.getByTestId('download-logs-button'));
+
+    await waitFor(() => expect(global.URL.createObjectURL).toHaveBeenCalled());
+    expect(mockNotificationWarning).not.toHaveBeenCalled();
   });
 
   it('should render log content when loaded', () => {

@@ -42,7 +42,7 @@ func NewMaaSClient(httpClient httpClientInterface) *MaaSClient {
 func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // controlled by development-only config
-		MinVersion:         tls.VersionTLS13,
+		MinVersion:         tls.VersionTLS12,
 		RootCAs:            cfg.RootCAs,
 	}
 	lookupIP := cfg.LookupIP

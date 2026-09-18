@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -547,6 +548,8 @@ type httpError struct {
 	Message    string
 }
 
+var pipelineVersionNotFoundPattern = regexp.MustCompile(`\bPipelineVersion\s+\S+\s+not found\b`)
+
 func (e *httpError) Error() string {
 	return fmt.Sprintf("pipeline server returned %d: %s", e.StatusCode, e.Message)
 }
@@ -565,6 +568,9 @@ func readhttpError(resp *http.Response) error {
 	httpErr := &httpError{
 		StatusCode: resp.StatusCode,
 		Message:    errorMsg,
+	}
+	if pipelineVersionNotFoundPattern.MatchString(errorMsg) {
+		return fmt.Errorf("%w: %s", ErrPipelineVersionNotFound, httpErr)
 	}
 
 	switch resp.StatusCode {

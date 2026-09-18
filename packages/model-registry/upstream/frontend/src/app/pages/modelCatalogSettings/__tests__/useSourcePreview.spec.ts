@@ -128,10 +128,10 @@ describe('isPreviewEnabled', () => {
 describe('getPreviewDisabledTooltip', () => {
   it('returns validation tooltip when HF token is present and not validated', () => {
     expect(getPreviewDisabledTooltip(hfFormData, 'unknown')).toBe(
-      'Validate the access token to preview models.',
+      'To preview models, validate the access token.',
     );
     expect(getPreviewDisabledTooltip(hfFormData, 'invalid')).toBe(
-      'Validate the access token to preview models.',
+      'To preview models, validate the access token.',
     );
   });
 
@@ -144,7 +144,7 @@ describe('getPreviewDisabledTooltip', () => {
 
   it('returns validation tooltip when HF token is present and not validated', () => {
     expect(getPreviewDisabledTooltip(hfFormData, 'unknown')).toBe(
-      'Validate the access token to preview models.',
+      'To preview models, validate the access token.',
     );
   });
 });
@@ -408,7 +408,7 @@ describe('useSourcePreview', () => {
 
     expect(result.current.canPreview).toBe(false);
     expect(result.current.previewDisabledTooltip).toBe(
-      'Validate the access token to preview models.',
+      'To preview models, validate the access token.',
     );
   });
 
@@ -709,7 +709,7 @@ describe('useSourcePreview', () => {
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult.result.current.canPreview).toBe(false);
     expect(renderResult.result.current.previewDisabledTooltip).toBe(
-      'Validate the access token to preview models.',
+      'To preview models, validate the access token.',
     );
   });
 

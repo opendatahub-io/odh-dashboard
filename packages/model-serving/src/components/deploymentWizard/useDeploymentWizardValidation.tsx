@@ -46,6 +46,8 @@ export const useModelDeploymentWizardValidation = (
     modelType: state.modelType.data,
     modelLocationData: state.modelLocationData.data,
     createConnectionData: state.createConnectionData.data,
+    huggingFaceApiKey: state.huggingFaceApiKey.data,
+    requiresHuggingFaceApiKey: state.requiresHuggingFaceApiKey,
     ...step1Fields.reduce<Record<string, unknown>>((acc, field) => {
       acc[field.id] = resolveFieldValue(field, state);
       return acc;

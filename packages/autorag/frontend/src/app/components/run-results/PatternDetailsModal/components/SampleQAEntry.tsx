@@ -12,10 +12,14 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
-import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
+import type { AutoRAGEvaluationResult, MetricReference } from '~/app/types/autoragPattern';
+import {
+  formatMetricValue,
+  groupMetricsByKey,
+  metricKey,
+  metricLabel,
+} from '~/app/utilities/metricUtils';
 import ScoreRadarChart from './ScoreRadarChart';
-import { metricIdentity } from './radarChartUtils';
 
 export const RetrievedContextSection: React.FC<{
   result: AutoRAGEvaluationResult;
@@ -64,25 +68,29 @@ export const MetricScores: React.FC<{
   testId?: string;
 }> = ({ metrics, testId }) => (
   <Stack hasGutter data-testid={testId}>
-    {metrics.map((metric) => (
-      <StackItem key={metricIdentity(metric)}>
-        <Content component={ContentVariants.small}>
-          <strong>
-            {formatMetricName(metric.name)} ({metric.evaluator}):{' '}
-            {typeof metric.score === 'number' && Number.isFinite(metric.score)
-              ? formatMetricValue(metric.score)
-              : 'N/A'}
-          </strong>
-        </Content>
-      </StackItem>
-    ))}
+    {Array.from(groupMetricsByKey(metrics).values()).map((group) => {
+      const metric = group[0];
+      const score = group.length === 1 ? metric.score : undefined;
+      return (
+        <StackItem key={metricKey(metric)}>
+          <Content component={ContentVariants.small}>
+            <strong>
+              {metricLabel(metric)}:{' '}
+              {typeof score === 'number' && Number.isFinite(score)
+                ? formatMetricValue(score)
+                : 'N/A'}
+            </strong>
+          </Content>
+        </StackItem>
+      );
+    })}
   </Stack>
 );
 
 const SampleQAEntry: React.FC<{
   result: AutoRAGEvaluationResult;
   questionNumber: number;
-  allMetricNames: string[];
+  allMetricNames: MetricReference[];
 }> = ({ result, questionNumber, allMetricNames }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
