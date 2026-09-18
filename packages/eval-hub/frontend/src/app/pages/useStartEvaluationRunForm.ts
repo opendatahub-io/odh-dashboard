@@ -121,10 +121,13 @@ export function useStartEvaluationRunForm({
   const handlePrimaryMetricChange = React.useCallback(
     (metric: string) => {
       const isDefault = metric === defaultPrimaryMetric;
+      const metricChanged = metric !== primaryMetric;
       setPrimaryMetric(metric);
       setPrimaryMetricTouched(true);
-      setThreshold(isDefault ? defaultThreshold : 0);
-      setThresholdTouched(true);
+      if (metricChanged) {
+        setThreshold(isDefault ? defaultThreshold : 0);
+        setThresholdTouched(true);
+      }
 
       const props: RunMetricSelectedProperties = {
         metricName: metric,
@@ -133,7 +136,7 @@ export function useStartEvaluationRunForm({
       };
       fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
     },
-    [defaultPrimaryMetric, defaultThreshold],
+    [defaultPrimaryMetric, defaultThreshold, primaryMetric],
   );
 
   // ── Evaluation name ─────────────────────────────────────────────────
