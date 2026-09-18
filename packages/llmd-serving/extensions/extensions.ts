@@ -463,6 +463,10 @@ const extensions: (
         import('../src/deployments/model').then((m) => m.extractRuntimeArgs),
       extractEnvironmentVariables: () =>
         import('../src/deployments/model').then((m) => m.extractEnvironmentVariables),
+      extractHuggingFaceApiKey: () =>
+        import('../src/hfTokenSecret').then(
+          (m) => (deployment) => m.extractHuggingFaceApiKeyFromEnv(deployment.model),
+        ),
       extractModelAvailabilityData: () =>
         import('../src/wizardFields/modelAvailability').then((m) => m.extractModelAvailabilityData),
       extractModelLocationData: () =>

@@ -33,6 +33,8 @@
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
     "./shared/types/deploy-prefill": "./src/shared/types/deploy-prefill.ts",
+    "./shared/hfTokenConstants": "./src/shared/hfTokenConstants.ts",
+    "./shared/hfTokenSecret": "./src/shared/hfTokenSecret.ts",
     "./shared": "./src/shared/index.ts",
     "./shared/types": "./src/shared/types.ts",
     "./shared/components": "./src/shared/components/index.ts",

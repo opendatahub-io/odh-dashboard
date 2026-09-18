@@ -21,10 +21,11 @@ delete that singleton resource.
 - A kubeconfig stored in one file.
 - A configured Gateway whose externally reachable hostname is known.
 - RBAC to get the test Namespace and Dashboard CRD; get, create, patch, and
-  delete Dashboards; get and list Deployments, Services, Pods,
-  PodDisruptionBudgets, and HTTPRoutes; get Endpoints and the
-  `openshift-service-ca.crt` ConfigMap in the test namespace; and create the
-  `pods/portforward` subresource.
+  delete Dashboards; list, get, patch, and delete Deployments and Pods; get and
+  list Services, PodDisruptionBudgets, HTTPRoutes, and Endpoints; get
+  ServiceAccounts and NetworkPolicies; create, get, and delete ConfigMaps; get
+  the `openshift-service-ca.crt` ConfigMap; and create the `pods/portforward`
+  subresource in the test namespace.
 
 Set the required environment variables:
 
@@ -34,7 +35,17 @@ export TEST_NAMESPACE=dashboard-operator-e2e
 export TEST_GATEWAY_DOMAIN=dashboard.example.com
 # Optional for gateways signed by a CA outside the host's system trust bundle:
 export TEST_GATEWAY_CA_BUNDLE=/absolute/path/to/gateway-ca.pem
+export TEST_PLATFORM=odh # or rhoai
+export TEST_OPERATOR_DEPLOYMENT=dashboard-operator # optional; this is the default
 ```
+
+`TEST_GATEWAY_DOMAIN` and `TEST_PLATFORM` are required by the module lifecycle
+suite. `TEST_NAMESPACE` must be the dashboard-operator applications namespace,
+because the suite verifies the operands reconciled there. Run the platform
+service-name cases once for each distribution; `TEST_PLATFORM` prevents a run
+against one distribution from accidentally claiming coverage for the other.
+The degraded-image case temporarily rolls the dashboard-operator Deployment;
+set `TEST_OPERATOR_DEPLOYMENT` when it has a non-default name.
 
 `TestMain` verifies connectivity, the namespace, the gateway domain, the
 Dashboard CRD, and its served API version. It then creates one E2E-owned
@@ -58,6 +69,20 @@ test run:
 make test-e2e E2E_TEST_ARGS='-run TestE2E_BFFHealthchecks'
 ```
 
+Run the RHOAIENG-83658 cases, or one ticket story, with:
+
+```bash
+make test-e2e E2E_TEST_ARGS='-run TestE2EModule'
+make test-e2e E2E_TEST_ARGS='-run TestE2EModuleLifecycle/TS2_06_override_wins_over_component'
+```
+
+The current Dashboard API no longer exposes `deploymentMode`, and the
+controller no longer supports sidecar module deployment. The former TS5
+sidecar-to-standalone cases are therefore represented by standalone resource,
+legacy-sidecar cleanup, federation, and idempotency coverage. Restoring literal
+mode-switch coverage requires a historical release test and is not claimed by
+this suite.
+
 The equivalent direct command is:
 
 ```bash
@@ -73,8 +98,8 @@ make build-e2e
 ```
 
 This produces `bin/e2e.test`. Copy that binary into a test image, mount a
-kubeconfig, set all three required environment variables, and run it with standard
-testing flags:
+kubeconfig, set the environment variables required by the selected suite, and
+run it with standard testing flags:
 
 ```bash
 ./bin/e2e.test -test.v -test.run TestE2E_BFFHealthchecks

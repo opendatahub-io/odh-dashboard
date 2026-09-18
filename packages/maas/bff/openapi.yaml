@@ -3091,6 +3091,12 @@ components:
           enum: [apikey, sigv4, oauth2]
         credentialSecretRef:
           type: string
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 63
+          pattern: '^\S(?:.*\S)?$'
+          description: Provider identifier (spec.provider)
         config:
           type: object
           additionalProperties:

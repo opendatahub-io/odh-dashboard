@@ -117,6 +117,26 @@ func (c *pipelineCache) getCachedVersionIDs(pipelineID string) []string {
 	return nil
 }
 
+// getCachedPipeline returns the cache entry containing the requested pipeline
+// version. The cache key identifies the logical pipeline type so a refreshed
+// discovery can be stored under the same key.
+func (c *pipelineCache) getCachedPipeline(namespace, pipelineID, versionID string) (string, *DiscoveredPipeline, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	entry, ok := c.entries[namespace]
+	if !ok || time.Now().After(entry.expiresAt) {
+		return "", nil, false
+	}
+
+	for key, pipeline := range entry.value {
+		if pipeline.PipelineID == pipelineID && pipeline.PipelineVersionID == versionID {
+			return key, pipeline, true
+		}
+	}
+	return "", nil, false
+}
+
 // dspaCache caches discovered DSPA info by namespace.
 type dspaCache = ttlCache[*DiscoveredDSPA]
 
