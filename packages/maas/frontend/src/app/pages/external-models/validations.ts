@@ -186,22 +186,23 @@ export const getProviderReferenceFieldErrors = (
 };
 
 export const isProviderReferenceFormIncomplete = (
-  form: ProviderReferenceFormData,
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
   context?: ProviderReferenceValidationContext,
-): boolean => Object.keys(getProviderReferenceFieldErrors(form, context)).length > 0;
+): boolean =>
+  !form.apiFormat || Object.keys(getProviderReferenceFieldErrors(form, context)).length > 0;
 
 /** Field errors for display — after blur, or immediately when the field has a value. */
 export const getVisibleProviderReferenceFieldErrors = (
-  form: ProviderReferenceFormData,
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
   errors: ProviderReferenceFieldErrors,
   touched: ProviderReferenceFieldTouched,
 ): ProviderReferenceFieldErrors => {
   const visible: ProviderReferenceFieldErrors = {};
 
-  if (errors.targetModel && (touched.targetModel || form.targetModel.trim())) {
+  if (errors.targetModel && (touched.targetModel || form.targetModel?.trim())) {
     visible.targetModel = errors.targetModel;
   }
-  if (errors.path && (touched.path || form.path.trim())) {
+  if (errors.path && (touched.path || form.path?.trim())) {
     visible.path = errors.path;
   }
 
