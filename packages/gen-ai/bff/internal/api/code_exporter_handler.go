@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -54,9 +55,11 @@ func (app *App) CodeExporterHandler(w http.ResponseWriter, r *http.Request, _ ht
 // that are not provided by the client (e.g. discovered URLs).
 type codeExportTemplateData struct {
 	models.CodeExportRequest
-	MLflowExternalURL string
-	NemoGuardrailsURL string
-	Namespace         string
+	MLflowExternalURL       string
+	NemoGuardrailsURL       string
+	Namespace               string
+	PassthroughProviderID   string
+	UsesPassthroughProvider bool
 }
 
 // generatePythonCode creates Python code based on the code export request
@@ -68,10 +71,12 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, namespace st
 
 	// Execute the template with config data, injecting server-side fields
 	result, err := templateRepo.ExecuteTemplate("python", codeExportTemplateData{
-		CodeExportRequest: config,
-		MLflowExternalURL: app.mlflowExternalURL,
-		NemoGuardrailsURL: app.nemoGuardrailsURL,
-		Namespace:         namespace,
+		CodeExportRequest:       config,
+		MLflowExternalURL:       app.mlflowExternalURL,
+		NemoGuardrailsURL:       app.nemoGuardrailsURL,
+		Namespace:               namespace,
+		PassthroughProviderID:   constants.PassthroughProviderID,
+		UsesPassthroughProvider: strings.HasPrefix(config.Model, constants.PassthroughProviderID+"/"),
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to generate Python code: %w", err)

@@ -56,6 +56,8 @@ type CodeExportGuardrailConfig struct {
 type CodeExportRequest struct {
 	Input                string                     `json:"input"`
 	Model                string                     `json:"model"`
+	ModelSourceType      string                     `json:"model_source_type,omitempty"`
+	Subscription         string                     `json:"subscription,omitempty"`
 	Temperature          *float64                   `json:"temperature,omitempty"`
 	Instructions         string                     `json:"instructions,omitempty"`
 	Stream               bool                       `json:"stream,omitempty"`

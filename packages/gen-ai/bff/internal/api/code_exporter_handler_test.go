@@ -246,6 +246,33 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.NotContains(t, code, "OgxClient")
 	})
 
+	t.Run("should generate passthrough auth setup for genai-bff-proxy models", func(t *testing.T) {
+		temperature := 0.5
+		config := models.CodeExportRequest{
+			Input:           "Hello through passthrough",
+			Model:           "genai-bff-proxy/publishers/test/models/gemini-proxy",
+			ModelSourceType: "maas",
+			Subscription:    "gemini-subscription",
+			Temperature:     &temperature,
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, `model_name = "genai-bff-proxy/publishers/test/models/gemini-proxy"`)
+		assert.Contains(t, code, "Keep this prefix in model_name so OGX routes the request through the Gen AI BFF proxy")
+		assert.Contains(t, code, "import json")
+		assert.Contains(t, code, `passthrough_api_key = os.environ.get("OGX_PASSTHROUGH_API_KEY", "")`)
+		assert.Contains(t, code, `"passthrough_api_key": passthrough_api_key,`)
+		assert.Contains(t, code, `"inference_model_source_type": "maas",`)
+		assert.Contains(t, code, `"maas_subscription": "gemini-subscription"`)
+		assert.Contains(t, code, `default_headers={"x-ogx-provider-data": json.dumps(passthrough_provider_data)}`)
+	})
+
 	t.Run("should generate Python code with tools", func(t *testing.T) {
 		temperature := 0.5
 		config := models.CodeExportRequest{

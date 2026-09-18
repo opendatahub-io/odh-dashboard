@@ -326,6 +326,8 @@ export type CodeExportRequest = {
   input: string;
   instructions?: string;
   model: string;
+  model_source_type?: string;
+  subscription?: string;
   stream?: boolean;
   temperature?: number;
   tools?: CodeExportTool[];

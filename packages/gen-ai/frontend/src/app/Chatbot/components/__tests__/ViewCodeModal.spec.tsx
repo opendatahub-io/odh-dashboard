@@ -3,9 +3,10 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import ViewCodeModal from '~/app/Chatbot/components/ViewCodeModal';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { FileModel } from '~/app/types';
+import { AIModel, FileModel } from '~/app/types';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 import { useChatbotConfigStore, ChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
@@ -24,6 +25,7 @@ const mockUseFetchVectorStores = jest.mocked(useFetchVectorStores);
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 const mockUseChatbotConfigStore = jest.mocked(useChatbotConfigStore);
 const mockExportCode = jest.fn();
+let mockAIModels: AIModel[] = [];
 
 // Create a shared mock store that will be modified per test
 let mockStore: ChatbotConfigStore | undefined;
@@ -47,6 +49,7 @@ const createMockStore = (configOverrides: MockConfig = {}) => {
     guardrailUserInputEnabled: false,
     guardrailModelOutputEnabled: false,
     guardrailSubscription: '',
+    selectedSubscription: '',
     ...configOverrides,
   };
 
@@ -80,9 +83,37 @@ const setupMockStore = (configOverrides: MockConfig = {}) => {
     jest.fn(() => mockStore as ChatbotConfigStore);
 };
 
-const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <GenAiContext.Provider value={mockGenAiContextValue}>{children}</GenAiContext.Provider>
-);
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const chatbotContextValue = React.useMemo(
+    (): React.ContextType<typeof ChatbotContext> => ({
+      lsdStatus: null,
+      modelsLoaded: true,
+      lsdStatusLoaded: true,
+      aiModels: mockAIModels,
+      aiModelsLoaded: true,
+      aiModelsError: undefined,
+      maasModels: mockAIModels.filter((model) => model.model_source_type === 'maas'),
+      maasModelsLoaded: true,
+      maasModelsError: undefined,
+      models: [],
+      modelsError: undefined,
+      lsdStatusError: undefined,
+      nemoGuardrailsStatus: null,
+      nemoGuardrailsStatusLoaded: true,
+      nemoGuardrailsStatusError: undefined,
+      refresh: jest.fn(),
+      lastInput: '',
+      setLastInput: jest.fn(),
+    }),
+    [],
+  );
+
+  return (
+    <GenAiContext.Provider value={mockGenAiContextValue}>
+      <ChatbotContext.Provider value={chatbotContextValue}>{children}</ChatbotContext.Provider>
+    </GenAiContext.Provider>
+  );
+};
 
 describe('ViewCodeModal', () => {
   const mockFiles: FileModel[] = [
@@ -141,6 +172,8 @@ describe('ViewCodeModal', () => {
       refreshAllAPI: jest.fn(),
     });
 
+    mockAIModels = [];
+
     // Mock Zustand store to return config values
     setupMockStore();
   });
@@ -186,6 +219,44 @@ describe('ViewCodeModal', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+  });
+
+  it('includes passthrough model source and subscription in the code export request', async () => {
+    mockAIModels = [
+      {
+        model_name: 'Gemini proxy',
+        model_id: 'publishers/test/models/gemini-proxy',
+        serving_runtime: '',
+        api_protocol: 'REST',
+        version: '',
+        usecase: '',
+        description: '',
+        endpoints: [],
+        status: 'Running',
+        display_name: 'Gemini proxy',
+        model_source_type: 'maas',
+      },
+    ];
+    setupMockStore({
+      selectedModel: 'genai-bff-proxy/publishers/test/models/gemini-proxy',
+      selectedSubscription: 'gemini-subscription',
+    });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'genai-bff-proxy/publishers/test/models/gemini-proxy',
+          model_source_type: 'maas',
+          subscription: 'gemini-subscription',
+        }),
+      );
     });
   });
 

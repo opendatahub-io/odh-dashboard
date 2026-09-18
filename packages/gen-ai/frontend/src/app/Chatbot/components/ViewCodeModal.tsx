@@ -14,7 +14,11 @@ import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { CodeExportRequest, FileModel, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { GUARDRAIL_INPUT_PROMPT, GUARDRAIL_OUTPUT_PROMPT } from '~/app/Chatbot/const';
 import { substituteTemplateVariables } from '~/app/Chatbot/promptTemplateUtils';
-import { generateMCPServerConfig, getLlamaModelDisplayName } from '~/app/utilities';
+import {
+  generateMCPServerConfig,
+  getLlamaModelDisplayName,
+  splitLlamaModelId,
+} from '~/app/utilities';
 import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -136,6 +140,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
 
   const [vectorStores, vectorStoresLoaded] = useFetchVectorStores();
   const { api, apiAvailable } = useGenAiAPI();
+  const { aiModels } = React.useContext(ChatbotContext);
   // Get tool selections callback
   const toolSelections = React.useCallback(
     (cfgId: string, ns: string, url: string) =>
@@ -167,6 +172,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         selectedAsrModel,
         isAsrModelEnabled,
         hasVisionImage,
+        selectedSubscription,
       } = config;
       const mcpServersToUse = mcpServers.filter((server) =>
         selectedMcpServerIds.includes(server.url),
@@ -205,6 +211,8 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
       const selectedVectorStore = isRagEnabled
         ? vectorStores.find((vs) => vs.id === selectedVectorStoreId)
         : undefined;
+      const { id: baseModelId } = splitLlamaModelId(selectedModel);
+      const selectedAIModel = aiModels.find((model) => model.model_id === baseModelId);
 
       if (isRagEnabled && !selectedVectorStore) {
         setCodeStates((prev) => ({
@@ -219,6 +227,10 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         const request: CodeExportRequest = {
           input,
           model: selectedModel,
+          ...(selectedAIModel?.model_source_type && {
+            model_source_type: selectedAIModel.model_source_type,
+          }),
+          ...(selectedSubscription && { subscription: selectedSubscription }),
           instructions: substituteTemplateVariables(systemInstruction, variableValues),
           stream: false,
           mcp_servers: mcpServersToUse.map((server) => {
@@ -293,6 +305,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
       apiAvailable,
       vectorStoresLoaded,
       vectorStores,
+      aiModels,
       input,
       files,
       api,

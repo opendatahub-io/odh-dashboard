@@ -20,6 +20,10 @@ const PythonCodeTemplate = `# OGX Quickstart Script
 #
 # Model Configuration:
 #    - The selected model (e.g., "llama3.2:3b") must be available in your OGX deployment with the correct API key.
+{{- if .UsesPassthroughProvider }}
+#    - The selected model uses the "{{.PassthroughProviderID}}/" passthrough provider prefix. Keep this prefix in model_name so OGX routes the request through the Gen AI BFF proxy.
+#    - Set OGX_PASSTHROUGH_API_KEY to your OpenShift user token (run: oc whoami -t). OGX forwards this token to the Gen AI BFF proxy for request authentication.
+{{- end }}
 #
 # Tools (MCP Integration):
 #    - Any tools used must be properly pre-configured in your OGX setup.
@@ -120,13 +124,32 @@ files_to_upload = [
 {{- end }}
 
 import os
+{{- if .UsesPassthroughProvider }}
+import json
+{{- end }}
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 import requests
 {{- end }}
 
 from openai import OpenAI
+{{- if .UsesPassthroughProvider }}
 
-client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused", max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT)
+passthrough_api_key = os.environ.get("OGX_PASSTHROUGH_API_KEY", "")
+if not passthrough_api_key:
+    raise RuntimeError("Set OGX_PASSTHROUGH_API_KEY to your OpenShift token (run: oc whoami -t).")
+
+passthrough_provider_data = {
+    "passthrough_api_key": passthrough_api_key{{- if or .ModelSourceType .Subscription }},{{- end }}
+    {{- if .ModelSourceType }}
+    "inference_model_source_type": "{{.ModelSourceType}}"{{- if .Subscription }},{{- end }}
+    {{- end }}
+    {{- if .Subscription }}
+    "maas_subscription": "{{.Subscription}}"
+    {{- end }}
+}
+{{- end }}
+
+client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused", max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT{{- if .UsesPassthroughProvider }}, default_headers={"x-ogx-provider-data": json.dumps(passthrough_provider_data)}{{- end }})
 {{- if .ASRModel }}
 
 # --- Audio Transcription ---

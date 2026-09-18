@@ -4228,6 +4228,15 @@ components:
           type: string
           example: 'ollama/llama3.2:3b'
           description: Model ID to use in the generated code
+        model_source_type:
+          type: string
+          enum: [namespace, custom_endpoint, maas]
+          example: 'maas'
+          description: Optional source type for passthrough models so generated code can forward the same provider data used by Playground.
+        subscription:
+          type: string
+          example: 'premium-subscription'
+          description: Optional MaaS subscription name for passthrough models so generated code can request the correct ephemeral API key.
         temperature:
           type: number
           format: float
