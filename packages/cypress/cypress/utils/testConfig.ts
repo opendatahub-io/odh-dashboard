@@ -102,6 +102,9 @@ const MAAS_API_KEY = testConfig?.MAAS_API_KEY;
 const MAAS_GENERATION_MODEL_ID = testConfig?.MAAS_GENERATION_MODEL_ID;
 const MAAS_EMBEDDING_MODEL_ID = testConfig?.MAAS_EMBEDDING_MODEL_ID;
 
+// Hugging Face API key for catalog source e2e tests
+const HF_API_KEY = testConfig?.HF_API_KEY;
+
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
 
@@ -124,6 +127,7 @@ export const cypressEnv = {
   OCP_API_URL,
   MAAS_URL,
   MAAS_API_KEY,
+  HF_API_KEY,
   MAAS_GENERATION_MODEL_ID,
   MAAS_EMBEDDING_MODEL_ID,
   CLUSTER_AUTH,

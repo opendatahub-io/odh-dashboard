@@ -21,6 +21,7 @@ const CYPRESS_STRING_SECRET_KEYS = [
   'GEMINI_API_KEY',
   'MAAS_API_KEY',
   'OCI_SECRET_VALUE',
+  'HF_API_KEY',
 ] as const;
 
 const toBase64 = (value: string): string => {
