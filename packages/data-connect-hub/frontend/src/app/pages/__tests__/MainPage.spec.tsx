@@ -8,6 +8,8 @@ import MainPage from '~/app/pages/MainPage';
 
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn(),
+  asEnumMember: (value: string | undefined) => value,
+  DeploymentMode: { Federated: 'federated' },
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
@@ -71,6 +73,15 @@ jest.mock('~/app/components/ApplicationsPage', () => {
   return { __esModule: true, default: ApplicationsPage };
 });
 
+const mockConnectionsTab = jest.fn(({ namespace }: { namespace: string }) => (
+  <div data-testid="connections-tab">{namespace}</div>
+));
+
+jest.mock('~/app/pages/ConnectionsTab', () => ({
+  __esModule: true,
+  default: (props: { namespace: string; isActive?: boolean }) => mockConnectionsTab(props),
+}));
+
 const mockUseNamespaceSelector = jest.mocked(useNamespaceSelector);
 const projects = [
   { name: 'project-1', displayName: 'Project 1' },
@@ -127,6 +138,56 @@ describe('MainPage', () => {
     expect(screen.getByTestId('location').textContent).toBe(
       '/ai-hub/connections/connections?project=project-1',
     );
+  });
+
+  it('should pass the query-selected project to ConnectionsTab', async () => {
+    renderPage('/ai-hub/connections/connections?project=project-2');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-2', isActive: true }),
+      );
+    });
+  });
+
+  it('should pass the preferred project to ConnectionsTab when no project is queried', async () => {
+    mockUseNamespaceSelector.mockReturnValue({
+      namespaces: projects,
+      preferredNamespace: projects[1],
+      updatePreferredNamespace,
+      namespacesLoaded: true,
+      namespacesLoadError: undefined,
+      initializationError: undefined,
+      clearStoredNamespace: jest.fn(),
+    });
+
+    renderPage('/ai-hub/connections/connections');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-2', isActive: true }),
+      );
+    });
+  });
+
+  it('should pass the first project to ConnectionsTab when no project is queried or preferred', async () => {
+    mockUseNamespaceSelector.mockReturnValue({
+      namespaces: projects,
+      preferredNamespace: undefined,
+      updatePreferredNamespace,
+      namespacesLoaded: true,
+      namespacesLoadError: undefined,
+      initializationError: undefined,
+      clearStoredNamespace: jest.fn(),
+    });
+
+    renderPage('/ai-hub/connections/connections');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-1', isActive: true }),
+      );
+    });
   });
 
   it('should update the project query parameter when a project is selected', async () => {

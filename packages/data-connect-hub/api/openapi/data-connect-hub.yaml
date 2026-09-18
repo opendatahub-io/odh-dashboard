@@ -5,10 +5,10 @@ info:
   description: REST API Data Connect Hub BFF
   license:
     name: Apache 2.0
-    url: "https://www.apache.org/licenses/LICENSE-2.0"
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
 servers:
-  - url: "https://localhost:8080"
-  - url: "http://localhost:8080"
+  - url: 'https://localhost:8080'
+  - url: 'http://localhost:8080'
 paths:
   /healthcheck:
     summary: Path targeted for healthcheck purposes.
@@ -18,10 +18,10 @@ paths:
       tags:
         - K8SOperation
       responses:
-        "200":
-          $ref: "#/components/responses/HealthCheckResponse"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint.
@@ -33,10 +33,10 @@ paths:
       tags:
         - K8SOperation
       responses:
-        "200":
-          $ref: "#/components/responses/NamespacesResponse"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/NamespacesResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getNamespaces
       summary: Get Available Namespaces
       description: Returns available namespaces in the cluster.
@@ -48,15 +48,117 @@ paths:
       tags:
         - K8SOperation
       responses:
-        "200":
-          $ref: "#/components/responses/ConfigResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+        '200':
+          $ref: '#/components/responses/ConfigResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       operationId: getConfig
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
+  /api/v1/connections:
+    summary: Path used to list data connections for a project.
+    get:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: getConnections
+      summary: Get data connections
+      description: Returns the data connections belonging to the selected project.
+  /api/v1/connection-types:
+    summary: Path used to list connection types for a project.
+    get:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionTypesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: getConnectionTypes
+      summary: Get connection types
+      description: Returns the connection types available to the selected project.
+  /api/v1/connections/{id}/readiness:
+    summary: Path used to verify a data connection.
+    post:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '204':
+          description: Connection verification completed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: verifyConnection
+      summary: Verify a data connection
+      description: Checks the connection and updates its readiness status.
+  /api/v1/connections/{id}:
+    summary: Path used to delete a data connection.
+    delete:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '204':
+          description: Connection deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: deleteConnection
+      summary: Delete a data connection
+      description: Deletes a data connection from the selected project.
 components:
   schemas:
     Config:
@@ -71,9 +173,100 @@ components:
         clusterAdmin:
           type: boolean
           example: true
+    Connection:
+      required:
+        - metadata
+        - resource
+        - status
+      type: object
+      properties:
+        metadata:
+          type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+              minLength: 1
+              pattern: '^[^/]+$'
+            tenant_id:
+              type: string
+            created_at:
+              type: string
+            updated_at:
+              type: string
+        resource:
+          type: object
+          required:
+            - name
+            - data_connection_type_id
+            - format
+          properties:
+            name:
+              type: string
+              example: warehouse
+            data_connection_type_id:
+              type: string
+              example: postgresql
+            format:
+              type: string
+              enum: [tabular, binary]
+        status:
+          type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum: [ready, ingestion_not_ready, not_ready]
+            message:
+              type: string
+            updated_at:
+              type: string
+    ConnectionType:
+      required:
+        - metadata
+        - resource
+      type: object
+      properties:
+        metadata:
+          type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+            tenant_id:
+              type: string
+        resource:
+          type: object
+          required:
+            - name
+            - provider
+          properties:
+            name:
+              type: string
+              example: PostgreSQL
+            provider:
+              type: string
+              example: postgresql
+            description:
+              type: string
+        status:
+          type: object
+          properties:
+            capabilities:
+              type: object
+              properties:
+                flight:
+                  type: boolean
+                rest:
+                  type: boolean
+    NoContent:
+      description: Successful operation with no response body.
     BaseResource:
       allOf:
-        - $ref: "#/components/schemas/BaseResourceCreate"
+        - $ref: '#/components/schemas/BaseResourceCreate'
         - type: object
           properties:
             id:
@@ -95,7 +288,7 @@ components:
               readOnly: true
     BaseResourceCreate:
       allOf:
-        - $ref: "#/components/schemas/BaseResourceUpdate"
+        - $ref: '#/components/schemas/BaseResourceUpdate'
         - type: object
           properties:
             name:
@@ -111,7 +304,7 @@ components:
           description: User provided custom properties which are not defined by its type.
           type: object
           additionalProperties:
-            $ref: "#/components/schemas/MetadataValue"
+            $ref: '#/components/schemas/MetadataValue'
         description:
           description: |-
             An optional description about the resource.
@@ -135,6 +328,13 @@ components:
         message:
           description: Error message
           type: string
+    ErrorResponse:
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -182,26 +382,50 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/ErrorResponse'
       description: The specified resource was not found
     BadRequest:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/ErrorResponse'
       description: Bad Request parameters
     Unauthorized:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/ErrorResponse'
       description: Unauthorized
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Forbidden
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/ErrorResponse'
       description: Unexpected internal server error
+    UpstreamErrorResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: An error propagated from the upstream Data Connect Hub API.
+    ServiceUnavailable:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: The upstream Data Connect Hub service is unavailable.
+    BadGateway:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: The upstream Data Connect Hub service could not verify the connection.
     ConfigResponse:
       content:
         application/json:
@@ -212,13 +436,43 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: "#/components/schemas/Config"
+                $ref: '#/components/schemas/Config'
       description: A response containing a list of Config entities.
+    ConnectionsResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Connection'
+      description: List of data connections for a project.
+    ConnectionTypesResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConnectionType'
+      description: List of connection types for a project.
     ConflictResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/ErrorResponse'
       description: Conflict - Role Binding with the same name already exists
 
   parameters:
@@ -227,6 +481,8 @@ components:
       description: The ID of resource.
       schema:
         type: string
+        minLength: 1
+        pattern: '^[^/]+$'
       in: path
       required: true
     name:
@@ -242,7 +498,7 @@ components:
     externalId:
       examples:
         externalId:
-          value: "10"
+          value: '10'
       name: externalId
       description: External ID of entity to search.
       schema:
@@ -252,7 +508,7 @@ components:
     parentResourceId:
       examples:
         parentResourceId:
-          value: "10"
+          value: '10'
       name: parentResourceId
       description: ID of the parent resource to use for search.
       schema:
@@ -262,7 +518,7 @@ components:
     pageSize:
       examples:
         pageSize:
-          value: "100"
+          value: '100'
       name: pageSize
       description: Number of entities in each page.
       schema:
@@ -285,7 +541,7 @@ components:
       name: orderBy
       description: Specifies the order by criteria for listing entities.
       schema:
-        $ref: "#/components/schemas/OrderByField"
+        $ref: '#/components/schemas/OrderByField'
       in: query
       required: false
     sortOrder:
@@ -295,9 +551,9 @@ components:
         sortOrder:
           value: DESC
       name: sortOrder
-      description: "Specifies the sort order for listing entities, defaults to ASC."
+      description: 'Specifies the sort order for listing entities, defaults to ASC.'
       schema:
-        $ref: "#/components/schemas/SortOrder"
+        $ref: '#/components/schemas/SortOrder'
       in: query
       required: false
     namespace:
@@ -305,8 +561,10 @@ components:
       description: The namespace to filter resources by.
       schema:
         type: string
+        maxLength: 63
+        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
       in: query
-      required: false
+      required: true
 
   securitySchemes:
     Bearer:
