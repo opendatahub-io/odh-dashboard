@@ -61,6 +61,30 @@ func TestClient_CreatePipelineRun(t *testing.T) {
 			t.Error("expected error")
 		}
 	})
+
+	t.Run("specific missing pipeline version maps to ErrPipelineVersionNotFound", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, `{"error":"PipelineVersion version-1 not found"}`, http.StatusInternalServerError)
+		})
+		defer ts.Close()
+
+		_, err := c.CreatePipelineRun(context.Background(), ts.URL, &CreatePipelineRunInput{})
+		if err == nil || !errors.Is(err, ErrPipelineVersionNotFound) {
+			t.Errorf("expected ErrPipelineVersionNotFound, got %v", err)
+		}
+	})
+
+	t.Run("unrelated not found error remains ErrPipelineNotFound", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, `{"error":"Pipeline not found"}`, http.StatusNotFound)
+		})
+		defer ts.Close()
+
+		_, err := c.CreatePipelineRun(context.Background(), ts.URL, &CreatePipelineRunInput{})
+		if err == nil || !errors.Is(err, ErrPipelineNotFound) || errors.Is(err, ErrPipelineVersionNotFound) {
+			t.Errorf("expected only ErrPipelineNotFound, got %v", err)
+		}
+	})
 }
 
 // --- GetPipelineRun ---

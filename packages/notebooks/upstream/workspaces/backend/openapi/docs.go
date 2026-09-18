@@ -6614,7 +6614,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "image": {
-                    "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0\"",
+                    "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1\"",
                     "type": "string"
                 },
                 "imagePullPolicy": {

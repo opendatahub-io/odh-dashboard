@@ -261,7 +261,13 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
               </Title>
             </FlexItem>
             <FlexItem>
-              <Label color={labelColor} variant="filled" isCompact icon={typeIcon}>
+              <Label
+                color={labelColor}
+                variant="filled"
+                isCompact
+                icon={typeIcon}
+                data-testid="quota-usage-detail-type-label"
+              >
                 {typeLabel}
               </Label>
             </FlexItem>
