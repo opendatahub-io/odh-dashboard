@@ -19,8 +19,12 @@ metadata:
       event == "pull_request"
       && target_branch == "main"
       && ( "dashboard-operator/test/e2e/**".pathChanged()
-            || "dashboard-operator/Dockerfile.e2e".pathChanged()
             || "dashboard-operator/api/**".pathChanged()
+            || "dashboard-operator/config/crd/bases/**".pathChanged()
+            || "dashboard-operator/go.mod".pathChanged()
+            || "dashboard-operator/go.sum".pathChanged()
+            || "dashboard-operator/Dockerfile.e2e".pathChanged()
+            || "dashboard-operator/Dockerfile.e2e.dockerignore".pathChanged()
             || ".tekton/odh-dashboard-operator-e2e-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
@@ -44,7 +48,7 @@ spec:
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
-    - 'pr-{{revision}}'
+    - 'pr-{{pull_request_number}}'
   - name: pipeline-type
     value: pull-request
   pipelineRef:

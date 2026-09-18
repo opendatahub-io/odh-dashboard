@@ -18,8 +18,12 @@ metadata:
       event == "push"
       && target_branch == "main"
       && ( "dashboard-operator/test/e2e/**".pathChanged()
-            || "dashboard-operator/Dockerfile.e2e".pathChanged()
             || "dashboard-operator/api/**".pathChanged()
+            || "dashboard-operator/config/crd/bases/**".pathChanged()
+            || "dashboard-operator/go.mod".pathChanged()
+            || "dashboard-operator/go.sum".pathChanged()
+            || "dashboard-operator/Dockerfile.e2e".pathChanged()
+            || "dashboard-operator/Dockerfile.e2e.dockerignore".pathChanged()
             || ".tekton/odh-dashboard-operator-e2e-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
