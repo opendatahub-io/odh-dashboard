@@ -56,8 +56,16 @@ class AutoragResultsPage {
     return cy.findByTestId(`leaderboard-row-${rank}`);
   }
 
-  findUnrankedLeaderboardRow(patternName: string) {
-    return cy.findByTestId(`leaderboard-row-unranked-${patternName}`);
+  findUnrankedLeaderboardRows() {
+    return this.findLeaderboardTable().find('[data-testid^="leaderboard-row-unranked-"]');
+  }
+
+  findFirstUnrankedLeaderboardRow() {
+    return this.findUnrankedLeaderboardRows().first();
+  }
+
+  findFirstUnrankedLeaderboardRankCell() {
+    return cy.get('[data-testid^="rank-unranked-"]').first();
   }
 
   findLeaderboardRankCell(rank: number | string) {

@@ -2,23 +2,69 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import type { AutoragPatternScores } from '~/app/types/autoragPattern';
-import ConfidenceIntervalChart from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
+import type { AutoragEvaluationMetric } from '~/app/types/autoragPattern';
+import ConfidenceIntervalChart, {
+  hasConfidenceIntervalData,
+} from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
 
-const fullScores: AutoragPatternScores = {
-  answer_correctness: { mean: 0.65, ci_low: 0.4, ci_high: 0.8 },
-  faithfulness: { mean: 0.42, ci_low: 0.2, ci_high: 0.6 },
-  context_correctness: { mean: 0.91, ci_low: 0.85, ci_high: 0.95 },
-};
+const metric = (
+  name: string,
+  scores: AutoragEvaluationMetric['scores'],
+  evaluator = '',
+): AutoragEvaluationMetric => ({ evaluator, name, scores });
 
-const comparisonScores: AutoragPatternScores = {
-  answer_correctness: { mean: 0.55, ci_low: 0.3, ci_high: 0.7 },
-  faithfulness: { mean: 0.38, ci_low: 0.15, ci_high: 0.5 },
-  context_correctness: { mean: 0.82, ci_low: 0.75, ci_high: 0.88 },
-};
+const fullScores: AutoragEvaluationMetric[] = [
+  metric('answer_correctness', { mean: 0.65, ci_low: 0.4, ci_high: 0.8 }),
+  metric('faithfulness', { mean: 0.42, ci_low: 0.2, ci_high: 0.6 }),
+  metric('context_correctness', { mean: 0.91, ci_low: 0.85, ci_high: 0.95 }),
+];
+
+const comparisonScores: AutoragEvaluationMetric[] = [
+  metric('answer_correctness', { mean: 0.55, ci_low: 0.3, ci_high: 0.7 }),
+  metric('faithfulness', { mean: 0.38, ci_low: 0.15, ci_high: 0.5 }),
+  metric('context_correctness', { mean: 0.82, ci_low: 0.75, ci_high: 0.88 }),
+];
 
 describe('ConfidenceIntervalChart', () => {
   describe('single pattern mode', () => {
+    it('should preserve duplicate metric names from different evaluators', () => {
+      const scores: AutoragEvaluationMetric[] = [
+        metric('faithfulness', { mean: 0.62, ci_low: 0.45, ci_high: 0.8 }, 'unitxt'),
+        metric('faithfulness', { mean: 0.77, ci_low: 0.6, ci_high: 0.9 }, 'ragas'),
+        metric('context_recall', { mean: 0.5, ci_low: 0.3, ci_high: 0.7 }, 'ragas'),
+        metric('answer_correctness', { mean: 0.65, ci_low: 0.4, ci_high: 0.8 }, 'unitxt'),
+      ];
+
+      const { container } = render(<ConfidenceIntervalChart scores={scores} />);
+
+      expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-faithfulness-ragas')).toBeInTheDocument();
+      expect(screen.getByText('Answer faithfulness (unitxt)')).toBeInTheDocument();
+      expect(screen.getByText('Answer faithfulness (ragas)')).toBeInTheDocument();
+      expect(
+        Array.from(container.querySelectorAll('.autorag-ci-track__label')).map((label) =>
+          label.textContent.trim(),
+        ),
+      ).toEqual([
+        'Answer correctness (unitxt)',
+        'Answer faithfulness (ragas)',
+        'Answer faithfulness (unitxt)',
+        'Context recall (ragas)',
+      ]);
+    });
+
+    it('should show an empty track for duplicate normalized metric identities', () => {
+      const scores: AutoragEvaluationMetric[] = [
+        metric('faithfulness', { mean: 0.62, ci_low: 0.45, ci_high: 0.8 }, 'unitxt'),
+        metric(' Faithfulness ', { mean: 0.77, ci_low: 0.6, ci_high: 0.9 }, ' UNITXT '),
+      ];
+
+      render(<ConfidenceIntervalChart scores={scores} />);
+
+      expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
+      expect(screen.queryByTestId('ci-marker-mean-faithfulness-unitxt')).not.toBeInTheDocument();
+    });
+
     it('should render all three marker types for each metric', () => {
       render(<ConfidenceIntervalChart scores={fullScores} />);
 
@@ -28,9 +74,9 @@ describe('ConfidenceIntervalChart', () => {
     });
 
     it('should not render ci_low marker when value is null', () => {
-      const scores: AutoragPatternScores = {
-        answer_correctness: { mean: 0.65, ci_low: null, ci_high: 0.8 },
-      };
+      const scores: AutoragEvaluationMetric[] = [
+        metric('answer_correctness', { mean: 0.65, ci_low: null, ci_high: 0.8 }),
+      ];
       render(<ConfidenceIntervalChart scores={scores} />);
 
       expect(screen.queryByTestId('ci-marker-low-answer_correctness')).not.toBeInTheDocument();
@@ -39,9 +85,9 @@ describe('ConfidenceIntervalChart', () => {
     });
 
     it('should not render ci_high marker when value is null', () => {
-      const scores: AutoragPatternScores = {
-        answer_correctness: { mean: 0.65, ci_low: 0.4, ci_high: null },
-      };
+      const scores: AutoragEvaluationMetric[] = [
+        metric('answer_correctness', { mean: 0.65, ci_low: 0.4, ci_high: null }),
+      ];
       render(<ConfidenceIntervalChart scores={scores} />);
 
       expect(screen.getByTestId('ci-marker-low-answer_correctness')).toBeInTheDocument();
@@ -50,19 +96,32 @@ describe('ConfidenceIntervalChart', () => {
     });
 
     it('should return null for empty scores', () => {
-      const { container } = render(<ConfidenceIntervalChart scores={{}} />);
+      const { container } = render(<ConfidenceIntervalChart scores={[]} />);
       expect(container.firstChild).toBeNull();
     });
 
-    it('should hide metrics with zero mean and no CI values', () => {
-      const scores: AutoragPatternScores = {
-        answer_correctness: { mean: 0.65, ci_low: 0.4, ci_high: 0.8 },
-        context_correctness: { mean: 0, ci_low: null, ci_high: null },
-      };
+    it('should report no confidence interval data when all scores are unavailable', () => {
+      const scores: AutoragEvaluationMetric[] = [
+        metric('answer_correctness', { mean: null, ci_low: null, ci_high: null }),
+        metric('faithfulness', { mean: Number.NaN, ci_low: null, ci_high: null }),
+      ];
+
+      expect(hasConfidenceIntervalData(scores)).toBe(false);
+      expect(hasConfidenceIntervalData(fullScores)).toBe(true);
+    });
+
+    it('should render metrics with a finite zero mean and no CI values', () => {
+      const scores: AutoragEvaluationMetric[] = [
+        metric('answer_correctness', { mean: 0.65, ci_low: 0.4, ci_high: 0.8 }),
+        metric('context_correctness', { mean: 0, ci_low: null, ci_high: null }),
+        metric('context_recall', { mean: null, ci_low: null, ci_high: null }),
+      ];
       render(<ConfidenceIntervalChart scores={scores} />);
 
       expect(screen.getByTestId('ci-track-answer_correctness')).toBeInTheDocument();
-      expect(screen.queryByTestId('ci-track-context_correctness')).not.toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-marker-mean-context_correctness')).toBeInTheDocument();
+      expect(screen.queryByTestId('ci-track-context_recall')).not.toBeInTheDocument();
     });
 
     it('should render single-mode description text', () => {

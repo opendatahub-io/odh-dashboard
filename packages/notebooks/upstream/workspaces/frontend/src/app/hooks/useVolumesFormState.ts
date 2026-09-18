@@ -6,7 +6,6 @@ import {
 } from '~/generated/data-contracts';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import {
   validateMountPath,
@@ -47,6 +46,7 @@ const validateForm = (
 
 interface UseVolumesFormStateArgs {
   isOpen: boolean;
+  namespace: string;
   fixedMountPath?: string;
   volumeToEdit?: WorkspacesPodVolumeMountValue;
   excludedPvcNames?: Set<string>;
@@ -76,6 +76,8 @@ interface UseVolumesFormStateResult {
   isMountPathEditing: boolean;
   isStorageClassOpen: boolean;
   setIsStorageClassOpen: Dispatch<SetStateAction<boolean>>;
+  isAccessModeOpen: boolean;
+  setIsAccessModeOpen: Dispatch<SetStateAction<boolean>>;
   isSubmitting: boolean;
   error: string | ApiErrorEnvelope | null;
   setError: Dispatch<SetStateAction<string | ApiErrorEnvelope | null>>;
@@ -91,6 +93,7 @@ interface UseVolumesFormStateResult {
 
 const useVolumesFormState = ({
   isOpen,
+  namespace,
   fixedMountPath,
   volumeToEdit,
   excludedPvcNames,
@@ -102,7 +105,6 @@ const useVolumesFormState = ({
   onVolumeEdited,
 }: UseVolumesFormStateArgs): UseVolumesFormStateResult => {
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const isEditMode = !!volumeToEdit;
 
@@ -117,6 +119,7 @@ const useVolumesFormState = ({
   const [readOnly, setReadOnly] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStorageClassOpen, setIsStorageClassOpen] = useState(false);
+  const [isAccessModeOpen, setIsAccessModeOpen] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   useEffect(() => {
@@ -137,6 +140,7 @@ const useVolumesFormState = ({
       setIsMountPathEditing(false);
       setIsSubmitting(false);
       setIsStorageClassOpen(false);
+      setIsAccessModeOpen(false);
       setError(storageClassLoadError);
     }
   }, [isOpen, fixedMountPath, isEditMode, volumeToEdit, storageClasses, storageClassLoadError]);
@@ -197,7 +201,7 @@ const useVolumesFormState = ({
     setError(null);
 
     try {
-      await api.pvc.createPvc(selectedNamespace, {
+      await api.pvc.createPvc(namespace, {
         data: {
           name: pvcName,
           storageClassName,
@@ -214,7 +218,7 @@ const useVolumesFormState = ({
     }
   }, [
     api.pvc,
-    selectedNamespace,
+    namespace,
     pvcName,
     mountPath,
     mountedPaths,
@@ -249,6 +253,8 @@ const useVolumesFormState = ({
     isMountPathEditing,
     isStorageClassOpen,
     setIsStorageClassOpen,
+    isAccessModeOpen,
+    setIsAccessModeOpen,
     isSubmitting,
     error,
     setError,

@@ -31,13 +31,8 @@ import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import {
-  formatMetricName,
-  getOptimizedMetricForRAG,
-  isRunTerminatable,
-  isRunRetryable,
-  parseErrorStatus,
-} from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
@@ -274,18 +269,14 @@ function AutoragResultsPage(): React.JSX.Element {
         return false;
       }
 
-      const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
-      const scoreLookup = Object.fromEntries(
-        pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
-      );
-      const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
+      const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
         type: 'playground',
         responsesTemplate,
         patternInfo: {
           patternName,
           modelId: pattern.settings?.generation?.model_id || 'N/A',
-          optimizedMetricName: formatMetricName(optimizedMetric),
+          optimizedMetricName: metricLabel(contextValue.optimizationMetric),
           optimizedMetricValue:
             metricMean != null && Number.isFinite(metricMean) ? metricMean : 'N/A',
           chunkMethod: pattern.settings?.chunking?.method || 'N/A',
@@ -293,7 +284,7 @@ function AutoragResultsPage(): React.JSX.Element {
       });
       return true;
     },
-    [patterns, pipelineRun],
+    [contextValue.optimizationMetric, patterns],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 

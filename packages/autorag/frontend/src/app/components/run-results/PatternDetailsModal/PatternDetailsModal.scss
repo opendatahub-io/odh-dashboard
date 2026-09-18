@@ -290,30 +290,27 @@
   margin-left: calc(var(--autorag-ci--label-width) + var(--pf-t--global--spacer--md));
 }
 
-// Comparison layout: labels column + two side-by-side chart columns
+// Comparison layout: each metric is a shared row so wrapped labels determine the
+// height of both corresponding chart cells.
 .autorag-ci-scores__comparison {
   display: flex;
-  gap: var(--pf-t--global--spacer--md);
+  flex-direction: column;
   margin-top: var(--pf-t--global--spacer--md);
 }
 
-.autorag-ci-scores__labels {
-  flex-shrink: 0;
-  width: var(--autorag-ci--label-width);
-  font-weight: var(--pf-t--global--font--weight--body--bold);
+.autorag-ci-comparison-row {
+  display: grid;
+  grid-template-columns: var(--autorag-ci--label-width) minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--pf-t--global--spacer--md);
+}
 
-  .autorag-ci-track {
-    min-height: var(--pf-t--global--spacer--lg);
-  }
+.autorag-ci-comparison-label {
+  min-width: 0;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
 
   .pf-v6-c-content {
     --pf-v6-c-content--MarginBlockEnd: 0;
   }
-}
-
-.autorag-ci-column {
-  flex: 1;
-  min-width: 0;
 }
 
 .autorag-ci-column__header {
@@ -325,8 +322,32 @@
   }
 }
 
-.autorag-ci-column__chart-area {
+.autorag-ci-comparison-bar {
   position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  > .autorag-ci-track {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-width: 0;
+  }
+
+  > .autorag-ci-ticks {
+    z-index: 0;
+  }
+}
+
+.autorag-ci-comparison-row--axis {
+  > :not(:first-child) {
+    min-width: 0;
+  }
+}
+
+.autorag-ci-comparison-row--axis .autorag-ci-axis {
+  margin-top: var(--pf-t--global--spacer--xs);
 }
 
 .autorag-ci-legend {

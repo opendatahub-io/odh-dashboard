@@ -741,7 +741,7 @@ describe('getEvaluationJobLogs', () => {
 
     const result = await getEvaluationJobLogs('', 'test-ns', 'job-1')();
 
-    expect(result).toBe('log line 1\nlog line 2');
+    expect(result).toEqual({ logs: 'log line 1\nlog line 2', truncated: false });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/evaluations/jobs/job-1/logs?'),
       expect.objectContaining({}),
@@ -777,7 +777,21 @@ describe('getEvaluationJobLogs', () => {
 
     const result = await getEvaluationJobLogs('', 'ns', 'j1')();
 
-    expect(result).toBe('log output');
+    expect(result).toEqual({ logs: 'log output', truncated: false });
+  });
+
+  it('should expose the truncation response header', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: {
+        get: (name: string) => (name === 'X-Log-Truncated' ? 'true' : 'text/plain'),
+      },
+      text: () => Promise.resolve('partial log output'),
+    });
+
+    const result = await getEvaluationJobLogs('', 'ns', 'j1')();
+
+    expect(result).toEqual({ logs: 'partial log output', truncated: true });
   });
 
   it('should throw LogFetchError when Content-Type is not text/plain', async () => {
@@ -918,7 +932,7 @@ describe('getEvaluationJobBenchmarkLogs', () => {
 
     const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 2)();
 
-    expect(result).toBe('benchmark log output');
+    expect(result).toEqual({ logs: 'benchmark log output', truncated: false });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/evaluations/jobs/j1/benchmarks/2/logs?'),
       expect.objectContaining({}),
@@ -934,7 +948,21 @@ describe('getEvaluationJobBenchmarkLogs', () => {
 
     const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)();
 
-    expect(result).toBe('output');
+    expect(result).toEqual({ logs: 'output', truncated: false });
+  });
+
+  it('should expose an explicit false truncation response header', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: {
+        get: (name: string) => (name === 'X-Log-Truncated' ? 'false' : 'text/plain'),
+      },
+      text: () => Promise.resolve('complete log output'),
+    });
+
+    const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)();
+
+    expect(result).toEqual({ logs: 'complete log output', truncated: false });
   });
 
   it('should throw LogFetchError when Content-Type is not text/plain', async () => {

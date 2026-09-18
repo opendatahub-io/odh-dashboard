@@ -66,7 +66,7 @@ export const ProviderReferenceApiFormatField: React.FC<ProviderReferenceApiForma
   return (
     <FormGroup label="API format" fieldId="provider-ref-api-format" isRequired>
       <SimpleSelect
-        data-testid="provider-ref-api-format"
+        dataTestId="provider-ref-api-format"
         ariaLabel="API format"
         value={form.apiFormat}
         options={PROVIDER_REFERENCE_API_FORMAT_OPTIONS}

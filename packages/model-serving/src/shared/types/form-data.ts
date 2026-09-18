@@ -28,6 +28,10 @@ import type { useNumReplicasField } from '../../components/deploymentWizard/fiel
 import type { useRuntimeArgsField } from '../../components/deploymentWizard/fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from '../../components/deploymentWizard/fields/TokenAuthenticationField';
 import type { useDeploymentStrategyField } from '../../components/deploymentWizard/fields/DeploymentStrategyField';
+import type {
+  HuggingFaceApiKeyFieldData,
+  useHuggingFaceApiKeyField,
+} from '../../components/deploymentWizard/fields/HuggingFaceApiKeyField';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
@@ -158,6 +162,9 @@ export type InitialWizardFormData = {
   navSourceMetadata?: K8sResourceCommon['metadata'];
   validatedConfigurations?: ValidatedConfiguration[];
   selectedValidatedConfigurations?: Record<string, string[]>;
+  requiresHuggingFaceApiKey?: boolean;
+  huggingFaceApiKeyAlertText?: string;
+  huggingFaceApiKey?: HuggingFaceApiKeyFieldData;
 } & Record<string, unknown>;
 
 export type WizardFormData = {
@@ -179,6 +186,8 @@ export type WizardFormData = {
     modelServer?: ModelServerSelectField;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
+    huggingFaceApiKey: ReturnType<typeof useHuggingFaceApiKeyField>;
+    requiresHuggingFaceApiKey: boolean;
     canCreateRoleBindings: boolean;
     validatedConfigurationSelection: ValidatedConfigurationsFieldHook;
     devFeatureFlags?: {

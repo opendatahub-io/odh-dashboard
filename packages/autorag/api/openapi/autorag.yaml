@@ -820,7 +820,8 @@ paths:
       Creates a new documents-indexing-pipeline run using the runtime parameters from a
       pattern's indexing.pipeline_spec (as written by AutoRAG into pattern.json).
       The BFF discovers the documents-indexing-pipeline managed pipeline in the namespace
-      and injects pipeline/version IDs. Returns 404 if the indexing pipeline is not discovered.
+      and injects pipeline/version IDs. Returns 404 if the indexing pipeline is not discovered
+      and 503 if its input schema cannot be loaded.
     post:
       tags:
         - PipelineOperation
@@ -852,7 +853,8 @@ paths:
       description: >-
         Creates a documents-indexing-pipeline run. Requires a display name and the pipeline
         runtime parameters from pattern.indexing.pipeline_spec.parameters. Returns 404 if
-        documents-indexing-pipeline is not available in the namespace.
+        documents-indexing-pipeline is not available in the namespace, or 503 if its declared
+        input schema cannot be loaded.
 
   # =============================================================================
   # MANAGED PIPELINES ENDPOINTS
@@ -1393,9 +1395,9 @@ components:
         optimization_max_rag_patterns:
           type: integer
           minimum: 4
-          maximum: 20
-          description: Maximum number of RAG patterns to generate. Passed to ai4rag (max_number_of_rag_patterns). Defaults to 8.
-          default: 8
+          maximum: 10
+          description: Maximum number of RAG patterns to generate. Passed to ai4rag (max_number_of_rag_patterns). Defaults to 5.
+          default: 5
       additionalProperties: false
 
     CreateIndexingPipelineRunRequest:
@@ -1403,8 +1405,9 @@ components:
       description: >-
         Request body for creating a documents-indexing-pipeline run from an AutoRAG pattern.
         `parameters` is the runtime config payload from pattern.indexing.pipeline_spec.parameters
-        and is forwarded to Kubeflow Pipelines as-is. The BFF does not re-declare individual
-        pipeline input requiredness; that stays with the managed pipeline version.
+        and is filtered by the BFF against the discovered managed pipeline version's declared
+        root input parameters before being submitted to Kubeflow Pipelines. Pipeline input
+        requiredness and value validation remain with the managed pipeline version.
       required:
         - display_name
         - parameters
@@ -1424,6 +1427,7 @@ components:
           description: >-
             Pipeline runtime parameters from pattern.indexing.pipeline_spec.parameters
             (for example embedding_model_id, input_data_*, maas_secret_name, vector_db_secret_name, chunking fields).
+            Parameters not declared by the discovered pipeline version are removed by the BFF.
           additionalProperties: true
           minProperties: 1
           example:

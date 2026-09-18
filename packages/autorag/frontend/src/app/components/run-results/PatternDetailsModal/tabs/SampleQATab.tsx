@@ -19,7 +19,11 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
-import type { AutoRAGEvaluationResult, TabContentProps } from '~/app/types/autoragPattern';
+import type {
+  AutoRAGEvaluationResult,
+  MetricReference,
+  TabContentProps,
+} from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
 import SampleQAEntry, {
   MetricScores,
@@ -34,7 +38,7 @@ const ComparisonQAEntry: React.FC<{
   primaryLabel: string;
   comparisonLabel: string;
   questionNumber: number;
-  allMetricNames: string[];
+  allMetricNames: MetricReference[];
   onChangeComparisonPattern?: () => void;
 }> = ({
   primaryResult,
