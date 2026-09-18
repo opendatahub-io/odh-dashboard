@@ -39,9 +39,8 @@ export const synchronizeTypeSelection = (
   current: string[] | null,
   previousIds: string[],
   availableIds: string[],
-  namespaceChanged: boolean,
 ): string[] | null => {
-  if (namespaceChanged || current === null) {
+  if (current === null) {
     return availableIds.length > 0 ? availableIds : null;
   }
   const newIds = availableIds.filter((id) => !previousIds.includes(id));
@@ -64,7 +63,7 @@ const isValidTimestamp = (timestamp?: string): timestamp is string =>
 
 const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = true }) => {
   const [connections, loaded, error, refresh] = useConnections(namespace, isActive);
-  const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace);
+  const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace, isActive);
   const [nameFilter, setNameFilter] = React.useState('');
   const [selectedTypes, setSelectedTypes] = React.useState<string[] | null>(null);
   const [typeOpen, setTypeOpen] = React.useState(false);
@@ -81,19 +80,6 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const [deleting, setDeleting] = React.useState(false);
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
-  const namespaceGeneration = React.useRef(0);
-
-  React.useEffect(() => {
-    namespaceGeneration.current += 1;
-    setDeleteTarget(undefined);
-    setDeleteError(undefined);
-    setDeleting(false);
-    setVerifying(new Set());
-    verifyingIdsRef.current.clear();
-    setVerificationBaselines(new Map());
-    setVerificationErrors(new Map());
-    setVerificationResponses(new Set());
-  }, [namespace]);
 
   const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
   const typeIds = React.useMemo(
@@ -105,18 +91,12 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   );
   const activeTypes = (selectedTypes ?? typeIds).filter((typeId) => typeIds.includes(typeId));
   const previousTypeIds = React.useRef<string[]>([]);
-  const previousNamespace = React.useRef(namespace);
-
   React.useEffect(() => {
-    const namespaceChanged = previousNamespace.current !== namespace;
-    const previousIds = namespaceChanged ? [] : previousTypeIds.current;
-    previousNamespace.current = namespace;
+    const previousIds = previousTypeIds.current;
     previousTypeIds.current = typeIds;
 
-    setSelectedTypes((current) =>
-      synchronizeTypeSelection(current, previousIds, typeIds, namespaceChanged),
-    );
-  }, [namespace, typeIds]);
+    setSelectedTypes((current) => synchronizeTypeSelection(current, previousIds, typeIds));
+  }, [typeIds]);
 
   const previousConnections = React.useRef(connections);
   React.useEffect(() => {
@@ -242,8 +222,6 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       return;
     }
     verifyingIdsRef.current.add(id);
-    const requestNamespace = namespace;
-    const requestGeneration = namespaceGeneration.current;
     const connection = connections.find((item) => item.metadata.id === id);
     setVerificationBaselines((current) => new Map(current).set(id, connection?.status.updated_at));
     setVerificationErrors((current) => {
@@ -259,10 +237,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     setVerifying((current) => new Set(current).add(id));
     setActionsFor(undefined);
     try {
-      await verifyConnection('')({}, requestNamespace, id);
-      if (namespaceGeneration.current !== requestGeneration) {
-        return;
-      }
+      await verifyConnection('')({}, namespace, id);
       refresh();
       setVerificationErrors((current) => {
         const next = new Map(current);
@@ -271,9 +246,6 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       });
       setVerificationResponses((current) => new Set(current).add(id));
     } catch (verificationFailure) {
-      if (namespaceGeneration.current !== requestGeneration) {
-        return;
-      }
       verifyingIdsRef.current.delete(id);
       refresh();
       setVerifying((current) => {
@@ -308,29 +280,19 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     if (!deleteTarget) {
       return;
     }
-    const requestNamespace = namespace;
-    const requestGeneration = namespaceGeneration.current;
     const connectionId = deleteTarget.metadata.id;
     setDeleting(true);
     setDeleteError(undefined);
     try {
-      await deleteConnection('')({}, requestNamespace, connectionId);
-      if (namespaceGeneration.current !== requestGeneration) {
-        return;
-      }
+      await deleteConnection('')({}, namespace, connectionId);
       setDeleteTarget(undefined);
       refresh();
     } catch (deleteFailure) {
-      if (namespaceGeneration.current !== requestGeneration) {
-        return;
-      }
       setDeleteError(
         deleteFailure instanceof Error ? deleteFailure : new Error('Unable to delete connection'),
       );
     } finally {
-      if (namespaceGeneration.current === requestGeneration) {
-        setDeleting(false);
-      }
+      setDeleting(false);
     }
   };
 

@@ -64,18 +64,14 @@ describe('ConnectionsTab', () => {
 
   it('keeps manually deselected types deselected during polling', () => {
     expect(
-      synchronizeTypeSelection(['postgresql'], ['postgresql', 's3'], ['postgresql', 's3'], false),
+      synchronizeTypeSelection(['postgresql'], ['postgresql', 's3'], ['postgresql', 's3']),
     ).toEqual(['postgresql']);
   });
 
   it('adds a newly discovered type while preserving existing selection', () => {
     expect(
-      synchronizeTypeSelection(['postgresql'], ['postgresql'], ['postgresql', 'snowflake'], false),
+      synchronizeTypeSelection(['postgresql'], ['postgresql'], ['postgresql', 'snowflake']),
     ).toEqual(['postgresql', 'snowflake']);
-  });
-
-  it('resets selection when the project changes', () => {
-    expect(synchronizeTypeSelection(['postgresql'], ['postgresql'], ['s3'], true)).toEqual(['s3']);
   });
 
   it('renders connection names and readable type names', () => {
@@ -84,6 +80,13 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Unverified')).toBeTruthy();
+  });
+
+  it('disables connection polling while the Registry tab is inactive', () => {
+    render(<ConnectionsTab namespace="test-project" isActive={false} />);
+
+    expect(mockUseConnections).toHaveBeenCalledWith('test-project', false);
+    expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project', false);
   });
 
   it('filters connections by name', async () => {
