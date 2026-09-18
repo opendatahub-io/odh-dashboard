@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import {
@@ -11,12 +11,21 @@ import {
 } from '#~/concepts/__tests__/mockNotebookStates';
 import { EventStatus } from '#~/types';
 
+const getNotebookWithDescription = (description: string) => {
+  const notebook = structuredClone(mockInitialStates.notebookState.notebook);
+  notebook.metadata.annotations ??= {};
+  notebook.metadata.annotations['openshift.io/description'] = description;
+  return notebook;
+};
+
 describe('Start Notebook modal', () => {
   it('should show initial notebook startup status', async () => {
     const mockData = mockInitialStates;
+    const workbenchDescription = 'Workbench for testing model development';
+    const notebookWithDescription = getNotebookWithDescription(workbenchDescription);
     render(
       <StartNotebookModal
-        notebook={mockData.notebookState.notebook}
+        notebook={notebookWithDescription}
         notebookStatus={mockData.notebookStatus}
         isStarting={mockData.notebookState.isStarting}
         isStopping={mockData.notebookState.isStopping}
@@ -29,6 +38,9 @@ describe('Start Notebook modal', () => {
     // Validate the header contents
     const header = screen.getByTestId('notebook-status-modal-header');
     expect(header).toHaveTextContent('Test Workbench statusStarting');
+    expect(within(header).getByTestId('notebook-status-modal-description')).toHaveTextContent(
+      workbenchDescription,
+    );
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
     expect(statusLabel).toHaveTextContent('Waiting for server request to start');
@@ -45,6 +57,23 @@ describe('Start Notebook modal', () => {
     expect(steps[4]).toHaveTextContent('Starting Workbench container');
     expect(steps[5]).toHaveTextContent('Starting Auth proxy container');
     expect(steps[6]).toHaveTextContent('Workbench started');
+  });
+
+  it('should not show a description for a whitespace-only workbench description', () => {
+    const mockData = mockInitialStates;
+    render(
+      <StartNotebookModal
+        notebook={getNotebookWithDescription('   ')}
+        notebookStatus={mockData.notebookStatus}
+        isStarting={mockData.notebookState.isStarting}
+        isStopping={mockData.notebookState.isStopping}
+        isRunning={mockData.notebookState.isRunning}
+        events={mockData.events}
+        buttons={null}
+      />,
+    );
+
+    expect(screen.queryByTestId('notebook-status-modal-description')).not.toBeInTheDocument();
   });
 
   it('should show failed notebook startup status', async () => {
