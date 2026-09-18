@@ -3,6 +3,7 @@
 import { MCPConnectionStatus, MCPServerFromAPI } from '~/app/types';
 import {
   transformMCPServerData,
+  filterUnavailableRegistryServers,
   getStatusErrorMessage,
   processServerStatus,
   getSelectedServersForAPI,
@@ -10,6 +11,44 @@ import {
 } from '~/app/utilities/mcp';
 
 describe('MCP Utilities', () => {
+  describe('filterUnavailableRegistryServers', () => {
+    it('should exclude registry servers that are unreachable', () => {
+      const unavailableRegistryServer: MCPServerFromAPI = {
+        name: 'unavailable-registry-server',
+        url: 'https://registry.example.com/mcp',
+        transport: 'sse',
+        description: '',
+        logo: null,
+        status: 'healthy',
+        version: '1.0.0',
+        source: 'registry',
+        tools: [],
+        tool_count: 0,
+      };
+      const reachableRegistryServer: MCPServerFromAPI = {
+        ...unavailableRegistryServer,
+        name: 'reachable-registry-server',
+        url: 'https://reachable-registry.example.com/mcp',
+      };
+      const configMapServer: MCPServerFromAPI = {
+        ...unavailableRegistryServer,
+        name: 'manual-server',
+        url: 'https://manual.example.com/mcp',
+        source: 'configmap',
+      };
+
+      const result = filterUnavailableRegistryServers(
+        [unavailableRegistryServer, reachableRegistryServer, configMapServer],
+        new Map([
+          [unavailableRegistryServer.url, { status: 'unreachable', message: 'Server unreachable' }],
+          [reachableRegistryServer.url, { status: 'connected', message: 'Connected' }],
+        ]),
+      );
+
+      expect(result).toEqual([reachableRegistryServer, configMapServer]);
+    });
+  });
+
   describe('transformMCPServerData', () => {
     it('transforms API server data to table format correctly', () => {
       const apiServer: MCPServerFromAPI = {

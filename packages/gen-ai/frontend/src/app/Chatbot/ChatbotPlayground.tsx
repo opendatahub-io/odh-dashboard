@@ -34,6 +34,7 @@ import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { API_URL_PREFIX, isLlamaModelEnabled } from '~/app/utilities';
+import { filterUnavailableRegistryServers } from '~/app/utilities/mcp';
 import {
   convertMaaSModelToAIModel,
   getId,
@@ -280,6 +281,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   } = useFetchMCPServers();
   const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
     useMCPServerStatuses(mcpServers, mcpServersLoaded);
+  const availableMcpServers = React.useMemo(
+    () => filterUnavailableRegistryServers(mcpServers, mcpServerStatuses),
+    [mcpServers, mcpServerStatuses],
+  );
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
 
   // UI state — can be controlled externally (e.g. from header Settings button)
@@ -989,7 +994,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           configId={configId}
           username={username}
           currentVectorStoreId={fileManagement.currentVectorStoreId}
-          mcpServers={mcpServers}
+          mcpServers={availableMcpServers}
           mcpServerStatuses={mcpServerStatuses}
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
@@ -1076,7 +1081,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
           input={lastInput}
           files={fileManagement.files}
-          mcpServers={mcpServers}
+          mcpServers={availableMcpServers}
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
         />
@@ -1125,7 +1130,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 sourceManagement={sourceManagement}
                 fileManagement={fileManagement}
                 initialServerStatuses={mcpServerStatusesFromRoute}
-                mcpServers={mcpServers}
+                mcpServers={availableMcpServers}
                 mcpServersLoaded={mcpServersLoaded}
                 mcpServersLoadError={mcpServersLoadError}
                 mcpRegistryAvailable={mcpRegistryAvailable}

@@ -44,6 +44,20 @@ export const transformMCPServerData = (apiServer: MCPServerFromAPI): MCPServer =
 });
 
 /**
+ * Registry entries are centrally discovered, so a server that cannot be reached by the Dashboard
+ * cannot be used in the Playground. Manually configured servers stay visible so their owner can
+ * correct their configuration.
+ */
+export const filterUnavailableRegistryServers = (
+  servers: MCPServerFromAPI[],
+  serverStatuses: Map<string, ServerStatusInfo>,
+): MCPServerFromAPI[] =>
+  servers.filter(
+    (server) =>
+      server.source !== 'registry' || serverStatuses.get(server.url)?.status !== 'unreachable',
+  );
+
+/**
  * Get user-friendly error message from MCP connection status
  * @param statusResponse - The status response from getMCPServerStatus API
  * @returns string - User-friendly error message for tooltip

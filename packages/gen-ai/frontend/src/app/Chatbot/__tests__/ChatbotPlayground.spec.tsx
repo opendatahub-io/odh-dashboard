@@ -111,15 +111,15 @@ jest.mock('~/app/hooks/useFetchBFFConfig', () => ({
 
 jest.mock('~/app/hooks/useFetchMCPServers', () => ({
   __esModule: true,
-  default: () => ({ data: [], registryAvailable: false, loaded: true, error: undefined }),
+  default: jest.fn(() => ({ data: [], registryAvailable: false, loaded: true, error: undefined })),
 }));
 
 jest.mock('~/app/hooks/useMCPServerStatuses', () => ({
   __esModule: true,
-  default: () => ({
+  default: jest.fn(() => ({
     serverStatuses: new Map(),
     checkServerStatus: jest.fn(),
-  }),
+  })),
 }));
 
 jest.mock('~/app/services/llamaStackService', () => ({
@@ -490,9 +490,14 @@ import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import type { MCPServerFromAPI } from '~/app/types';
+import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSetLastInput = (ChatbotContext as any)._currentValue.setLastInput as jest.Mock;
+const mockUseFetchMCPServers = jest.mocked(useFetchMCPServers);
+const mockUseMCPServerStatuses = jest.mocked(useMCPServerStatuses);
 
 // ───────────────────── Helpers ─────────────────────
 
@@ -543,6 +548,21 @@ const triggerDocumentUpload = async (files: File[]) => {
   });
 };
 
+const createMCPServer = (overrides: Partial<MCPServerFromAPI> = {}): MCPServerFromAPI => ({
+  name: 'test-server',
+  url: 'https://example.com/mcp',
+  transport: 'streamable-http',
+  description: '',
+  logo: null,
+  status: 'healthy',
+  version: '1.0.0',
+  source: 'registry',
+  tools: [],
+  // eslint-disable-next-line camelcase
+  tool_count: 0,
+  ...overrides,
+});
+
 // ───────────────────── Tests ─────────────────────
 
 describe('ChatbotPlayground — document upload and messaging', () => {
@@ -551,6 +571,21 @@ describe('ChatbotPlayground — document upload and messaging', () => {
     uuidCounter = 0;
     mockFilesWithSettings = [];
     mockFileManagementFiles = [];
+    mockUseFetchMCPServers.mockReset();
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [],
+      configMapName: null,
+      registryAvailable: false,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+    mockUseMCPServerStatuses.mockReset();
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
 
     act(() => {
       useChatbotConfigStore.setState({
@@ -563,6 +598,46 @@ describe('ChatbotPlayground — document upload and messaging', () => {
         configIds: [DEFAULT_CONFIG_ID],
       });
     });
+  });
+
+  it('should omit unreachable registry servers from the Playground settings', () => {
+    const unreachableRegistryServer = createMCPServer({
+      name: 'unreachable-registry-server',
+      url: 'https://unreachable.example.com/mcp',
+    });
+    const connectedRegistryServer = createMCPServer({
+      name: 'connected-registry-server',
+      url: 'https://connected.example.com/mcp',
+    });
+    const configMapServer = createMCPServer({
+      name: 'manual-server',
+      url: 'https://manual.example.com/mcp',
+      source: 'configmap',
+    });
+
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [unreachableRegistryServer, connectedRegistryServer, configMapServer],
+      configMapName: null,
+      registryAvailable: true,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map([
+        [unreachableRegistryServer.url, { status: 'unreachable', message: 'Server unreachable' }],
+        [connectedRegistryServer.url, { status: 'connected', message: 'Connected' }],
+      ]),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
+
+    renderPlayground();
+
+    const lastCallProps = mockChatbotSettingsPanelProps.mock.calls.at(-1)?.[0] as {
+      mcpServers: MCPServerFromAPI[];
+    };
+    expect(lastCallProps.mcpServers).toEqual([connectedRegistryServer, configMapServer]);
   });
 
   describe('handleAttach — document upload', () => {
