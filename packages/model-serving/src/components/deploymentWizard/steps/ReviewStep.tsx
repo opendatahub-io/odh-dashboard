@@ -26,6 +26,7 @@ import {
 } from '../../../shared/types/form-data';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 import { filterRuntimeArgsForContainer } from '../fields/RuntimeArgsField';
+import { isHuggingFaceApiKeyConfigured } from '../fields/HuggingFaceApiKeyField';
 import { ExternalDataMap } from '../ExternalDataLoader';
 import { isWizardStepTitle } from '../utils';
 
@@ -102,6 +103,20 @@ const getStatusSections = (
             state.modelType.data?.type === ServingRuntimeModelType.PREDICTIVE
               ? ModelTypeLabel.PREDICTIVE
               : ModelTypeLabel.GENERATIVE,
+        },
+        {
+          key: 'huggingFaceApiKey',
+          label: 'Hugging Face API key',
+          comp: (state) => {
+            if (state.huggingFaceApiKey.data?.token.trim()) {
+              return 'Provided';
+            }
+            if (isHuggingFaceApiKeyConfigured(state.huggingFaceApiKey.data)) {
+              return 'Configured';
+            }
+            return undefined;
+          },
+          isVisible: (wizardState) => wizardState.state.requiresHuggingFaceApiKey,
         },
         {
           key: 'modelLocationData-locationType',

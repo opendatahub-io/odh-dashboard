@@ -15,7 +15,10 @@ import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useCreateExternalProvider } from '~/app/hooks/useCreateExternalProvider';
 import { useCreateSecret } from '~/app/hooks/useCreateSecret';
 import { EMPTY_CONFIG_PAIR } from '~/app/pages/external-providers/const';
-import { toCreateExternalProviderRequest } from '~/app/pages/external-providers/utils';
+import {
+  formatOrphanedCredentialSecretSubmitError,
+  toCreateExternalProviderRequest,
+} from '~/app/pages/external-providers/utils';
 import {
   createExternalProviderFormSchema,
   getConfigPairsValidationError,
@@ -122,22 +125,17 @@ export const useCreateExternalProviderForm = (
 
     setSubmitError(undefined);
 
-    try {
-      const credentialSecretRef = formData.credentialSecretRef.trim();
+    const credentialSecretRef = formData.credentialSecretRef.trim();
+    let createdSecretName: string | undefined;
 
+    try {
       if (formData.isNewSecret) {
         await createSecretCallback({
           namespace,
           name: credentialSecretRef,
           value: formData.secretValue.trim(),
         });
-        refreshSecrets();
-        setFormData((current) => ({
-          ...current,
-          isNewSecret: false,
-          credentialSecretRef,
-          secretValue: '',
-        }));
+        createdSecretName = credentialSecretRef;
       }
 
       if (!isAuthMechanism(formData.authMechanism)) {
@@ -157,10 +155,26 @@ export const useCreateExternalProviderForm = (
       );
 
       await createExternalProviderCallback(request);
+
+      if (createdSecretName) {
+        const linkedSecretName = createdSecretName;
+        refreshSecrets();
+        setFormData((current) => ({
+          ...current,
+          isNewSecret: false,
+          credentialSecretRef: linkedSecretName,
+          secretValue: '',
+        }));
+      }
+
       return request.name;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create external provider';
-      setSubmitError(message);
+      setSubmitError(
+        createdSecretName
+          ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'create')
+          : message,
+      );
       return undefined;
     }
   }, [

@@ -112,6 +112,7 @@ export type UpdateExternalProviderRequest = {
   endpointUrl?: string;
   authMechanism?: AuthMechanism;
   credentialSecretRef?: string;
+  provider?: string;
   config?: Record<string, string>;
 };
 
