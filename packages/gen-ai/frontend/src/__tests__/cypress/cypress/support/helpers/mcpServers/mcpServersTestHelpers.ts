@@ -12,6 +12,7 @@ import {
   mockMCPToolsInterceptor,
   mockMCPStatusError,
   mockMCPStatusAutoConnect,
+  mockMCPRegistryStatusAutoConnect,
   mockMCPToolsAutoConnect,
   mockMCPToolsAutoConnectWithCount,
   mockMCPServersWithRegistry,
@@ -138,7 +139,7 @@ type InitInterceptsOptions = {
   serverName: string;
   serverUrl?: string;
   serverStatus?: MCPServerStatus;
-  servers?: Array<{ name: string; status: MCPServerStatus }>;
+  servers?: Array<{ name: string; status: MCPServerStatus; url?: string }>;
   withStatusInterceptor?: { token: string; serverUrl: string };
   withToolsInterceptor?: { token: string; serverUrl: string };
   withStatusError?: { errorType: '400' | '401'; serverUrl: string };
@@ -172,6 +173,12 @@ export const initIntercepts = ({
     mockMCPStatusError(withStatusError.errorType, withStatusError.serverUrl);
   } else if (withStatusInterceptor) {
     mockMCPStatusInterceptor(withStatusInterceptor.token, withStatusInterceptor.serverUrl);
+  } else if (servers) {
+    servers.forEach(({ url }) => {
+      if (url) {
+        mockMCPStatusAutoConnect(url);
+      }
+    });
   } else if (serverUrl) {
     mockMCPStatusError('401', serverUrl);
   }
@@ -309,4 +316,11 @@ export const initRegistryIntercepts = ({
     { query: { namespace } },
     mockMCPServersWithRegistry(regServers, cmServers),
   );
+
+  registryServers?.forEach(({ name, url }) => {
+    mockMCPRegistryStatusAutoConnect(name, url);
+  });
+  configmapServers?.forEach(({ url }) => {
+    mockMCPStatusAutoConnect(url);
+  });
 };
