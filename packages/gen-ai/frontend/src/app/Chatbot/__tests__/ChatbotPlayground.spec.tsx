@@ -111,19 +111,6 @@ jest.mock('~/app/hooks/useFetchBFFConfig', () => ({
   default: () => ({ data: null, isLoading: false }),
 }));
 
-jest.mock('~/app/hooks/useFetchMCPServers', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({ data: [], registryAvailable: false, loaded: true, error: undefined })),
-}));
-
-jest.mock('~/app/hooks/useMCPServerStatuses', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    serverStatuses: new Map(),
-    checkServerStatus: jest.fn(),
-  })),
-}));
-
 jest.mock('~/app/services/llamaStackService', () => ({
   uploadMediaFile: jest.fn(),
   transcribeAudio: jest.fn(),
@@ -499,17 +486,13 @@ import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import type { MCPServerFromAPI } from '~/app/types';
-import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSetLastInput = (ChatbotContext as any)._currentValue.setLastInput as jest.Mock;
-const mockUseFetchMCPServers = jest.mocked(useFetchMCPServers);
-const mockUseMCPServerStatuses = jest.mocked(useMCPServerStatuses);
 
 // ───────────────────── Helpers ─────────────────────
 
-const renderPlayground = () =>
+const renderPlayground = (props: Partial<React.ComponentProps<typeof ChatbotPlayground>> = {}) =>
   render(
     <MemoryRouter initialEntries={['/gen-ai-studio/playground/test-ns']}>
       <ChatbotPlayground
@@ -517,6 +500,7 @@ const renderPlayground = () =>
         setIsViewCodeModalOpen={jest.fn()}
         isNewChatModalOpen={false}
         setIsNewChatModalOpen={jest.fn()}
+        {...props}
       />
     </MemoryRouter>,
   );
@@ -579,22 +563,6 @@ describe('ChatbotPlayground — document upload and messaging', () => {
     uuidCounter = 0;
     mockFilesWithSettings = [];
     mockFileManagementFiles = [];
-    mockUseFetchMCPServers.mockReset();
-    mockUseFetchMCPServers.mockReturnValue({
-      data: [],
-      configMapName: null,
-      registryAvailable: false,
-      loaded: true,
-      error: undefined,
-      refetch: jest.fn(),
-    });
-    mockUseMCPServerStatuses.mockReset();
-    mockUseMCPServerStatuses.mockReturnValue({
-      serverStatuses: new Map(),
-      statusesLoading: new Set(),
-      checkServerStatus: jest.fn(),
-    });
-
     act(() => {
       useChatbotConfigStore.setState({
         configurations: {
@@ -623,25 +591,17 @@ describe('ChatbotPlayground — document upload and messaging', () => {
       source: 'configmap',
     });
 
-    mockUseFetchMCPServers.mockReturnValue({
-      data: [unreachableRegistryServer, connectedRegistryServer, unreachableConfigMapServer],
-      configMapName: null,
-      registryAvailable: true,
-      loaded: true,
-      error: undefined,
-      refetch: jest.fn(),
-    });
-    mockUseMCPServerStatuses.mockReturnValue({
-      serverStatuses: new Map([
+    renderPlayground({
+      mcpServers: [unreachableRegistryServer, connectedRegistryServer, unreachableConfigMapServer],
+      mcpRegistryAvailable: true,
+      mcpServersLoaded: true,
+      mcpServerStatuses: new Map([
         [unreachableRegistryServer.url, { status: 'unreachable', message: 'Server unreachable' }],
         [connectedRegistryServer.url, { status: 'connected', message: 'Connected' }],
         [unreachableConfigMapServer.url, { status: 'unreachable', message: 'Server unreachable' }],
       ]),
-      statusesLoading: new Set(),
-      checkServerStatus: jest.fn(),
+      checkMcpServerStatus: jest.fn(),
     });
-
-    renderPlayground();
 
     const expectedServers = [connectedRegistryServer];
     const settingsProps = mockChatbotSettingsPanelProps.mock.calls.at(-1)?.[0] as {

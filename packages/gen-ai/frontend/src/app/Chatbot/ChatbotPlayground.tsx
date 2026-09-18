@@ -43,10 +43,8 @@ import {
 } from '~/app/utilities/utils';
 import useCapabilityOnboarding from '~/app/hooks/useCapabilityOnboarding';
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
-import { TokenInfo, ResponseMetrics } from '~/app/types';
-import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-
-import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
+import { TokenInfo, ResponseMetrics, MCPServerFromAPI } from '~/app/types';
+import type { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -124,6 +122,10 @@ const TAB_KEY_MAP: Record<string, number> = {
   mcp: 3,
 };
 
+const EMPTY_MCP_SERVER_STATUSES = new Map<string, ServerStatusInfo>();
+const checkMcpServerStatusUnavailable = (): Promise<ServerStatusInfo> =>
+  Promise.reject(new Error('MCP server status checks are unavailable'));
+
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
   setIsViewCodeModalOpen: (isOpen: boolean) => void;
@@ -146,6 +148,12 @@ type ChatbotPlaygroundProps = {
   onClearAgent?: () => void;
   isProfileDirty?: boolean;
   onResetToLastSaved?: () => void;
+  mcpServers?: MCPServerFromAPI[];
+  mcpRegistryAvailable?: boolean;
+  mcpServersLoaded?: boolean;
+  mcpServersLoadError?: Error;
+  mcpServerStatuses?: Map<string, ServerStatusInfo>;
+  checkMcpServerStatus?: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -169,6 +177,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onClearAgent,
   isProfileDirty = false,
   onResetToLastSaved,
+  mcpServers = [],
+  mcpRegistryAvailable = false,
+  mcpServersLoaded = false,
+  mcpServersLoadError,
+  mcpServerStatuses = EMPTY_MCP_SERVER_STATUSES,
+  checkMcpServerStatus = checkMcpServerStatusUnavailable,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -272,15 +286,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     return statuses ? new Map(Object.entries(statuses)) : new Map();
   }, [location.state?.mcpServerStatuses]);
 
-  // MCP hooks
-  const {
-    data: mcpServers = [],
-    registryAvailable: mcpRegistryAvailable,
-    loaded: mcpServersLoaded,
-    error: mcpServersLoadError,
-  } = useFetchMCPServers();
-  const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
-    useMCPServerStatuses(mcpServers, mcpServersLoaded);
   const availableMcpServers = React.useMemo(
     () => filterUnavailableMCPServers(mcpServers, mcpServerStatuses),
     [mcpServers, mcpServerStatuses],
