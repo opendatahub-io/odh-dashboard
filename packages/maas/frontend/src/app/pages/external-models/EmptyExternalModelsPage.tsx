@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, EmptyState, EmptyStateBody, Stack, StackItem } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
+import { typedEmptyImage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
 import { createExternalModelPath } from './const';
 
@@ -11,7 +11,13 @@ const EmptyExternalModelsPage: React.FC<{ namespace: string }> = ({ namespace })
     headingLevel="h3"
     variant="lg"
     data-testid="empty-external-models-page"
-    icon={PlusCircleIcon}
+    icon={() => (
+      <img
+        src={typedEmptyImage(ProjectObjectType.modelServer)}
+        alt="No external models"
+        style={{ height: '200px' }}
+      />
+    )}
   >
     <EmptyStateBody>
       <Stack hasGutter>

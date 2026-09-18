@@ -72,7 +72,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
               body={
                 providerSource === ProviderSource.EXISTING ? (
                   <FormGroup
-                    label="Provider"
+                    label={<strong>Provider</strong>}
                     fieldId="provider-ref-provider"
                     isRequired
                     hasNoPaddingTop

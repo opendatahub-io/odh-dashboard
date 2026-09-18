@@ -20,19 +20,18 @@ export const ProviderConfigurationSection: React.FC<
 > = ({ pairs, onChange, validationMessage }) => (
   <Stack hasGutter>
     <StackItem>
-      <p>
-        Define key-value pairs for this provider. These pairs are inherited by all models that
-        reference this provider. If a model&apos;s request path contains a placeholder such as{' '}
-        {`{project}`}, the system replaces it with the matching value defined here.
-      </p>
-    </StackItem>
-    <StackItem>
       <FormGroup label="Provider configuration" fieldId="provider-configuration">
+        <StackItem>
+          <p>
+            Define key-value pairs for this provider. These pairs are inherited by all models that
+            reference this provider. If a model&apos;s request path contains a placeholder such as{' '}
+            {`{project}`}, the system replaces it with the matching value defined here.
+          </p>
+        </StackItem>
         <ConfigPairsEditor
           pairs={pairs}
           onChange={onChange}
           testIdPrefix="provider-config"
-          ensureEmptyRow
           addButtonTestId="add-provider-config-pair-button"
         />
         {validationMessage && (
