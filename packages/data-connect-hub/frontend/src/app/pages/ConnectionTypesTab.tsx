@@ -125,13 +125,14 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType 
   const detailsPath = `${pathname.replace(/\/$/, '')}/${encodeURIComponent(
     connectionType.metadata.id,
   )}${search}`;
+  const handleClick = useLinkClickHandler(detailsPath);
   return (
     <Card id={rootId} isClickable style={{ aspectRatio: '4 / 3' }}>
       <CardHeader
         selectableActions={{
           to: detailsPath,
           selectableActionAriaLabelledby: `${rootId}-card-title`,
-          selectableActionProps: { onClick: useLinkClickHandler.bind(null, detailsPath) },
+          selectableActionProps: { onClick: handleClick },
         }}
       >
         <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
