@@ -13,9 +13,6 @@ type bearerTokenProvider interface {
 }
 
 func (app *App) dataConnectHubHeaders(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (http.Header, error) {
-	if app.config.InsecureSkipVerify {
-		return nil, fmt.Errorf("insecure TLS verification is not supported for bearer-authenticated Data Connect Hub requests")
-	}
 	token := identity.Token
 	if token == "" {
 		if app.kubernetesClientFactory == nil {

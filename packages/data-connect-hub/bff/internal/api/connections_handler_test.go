@@ -239,15 +239,3 @@ func TestDataConnectHubHeadersUsesServiceAccountTokenForInternalAuth(t *testing.
 	require.Equal(t, "Bearer service-account-token", headers.Get("Authorization"))
 	require.Equal(t, "test-project", headers.Get("X-Tenant-ID"))
 }
-
-func TestDataConnectHubHeadersRejectsInsecureTLS(t *testing.T) {
-	app := &App{config: config.EnvConfig{InsecureSkipVerify: true}, logger: slog.Default()}
-
-	_, err := app.dataConnectHubHeaders(
-		context.Background(),
-		&k8s.RequestIdentity{UserID: "test-user", Token: "user-token"},
-		"test-project",
-	)
-
-	require.ErrorContains(t, err, "insecure TLS verification is not supported")
-}
