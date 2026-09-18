@@ -27,7 +27,7 @@ class RegisterAndStorePage {
   }
 
   findProjectSelectorSearch() {
-    return cy.findByTestId('project-selector-search');
+    return cy.findByTestId('project-selector-search').find('input');
   }
 
   findProjectSelectorMenuList() {
