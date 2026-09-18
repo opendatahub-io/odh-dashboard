@@ -410,7 +410,8 @@ const completeWizardFromModelSource = () => {
   modelServingWizard.findNextButton().should('be.enabled').click();
 
   modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-  modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked').click();
+  // Token auth stays unchecked unless rolebinding create is permitted; leave it
+  // alone so we do not create SA/Role/RoleBinding noise for HF-token assertions.
   modelServingWizard.findNextButton().should('be.enabled').click();
 
   modelServingWizard.findReviewStep().should('be.enabled');
