@@ -21,12 +21,20 @@ class AIAssetsPage {
   }
 
   findMCPServersTab(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('ai-assets-tab-ai-assets-mcp-servers-tab');
+    return cy.findByTestId('ai-assets-tab-mcpservers');
   }
 
   switchToMCPServersTab(): void {
     this.findMCPServersTab().click();
     this.waitForTabLoad();
+  }
+
+  findMCPServersTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-servers-table');
+  }
+
+  findMCPServerRow(serverName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMCPServersTable().contains('tr', serverName);
   }
 
   findAgentProfilesTab(): Cypress.Chainable<JQuery<HTMLElement>> {

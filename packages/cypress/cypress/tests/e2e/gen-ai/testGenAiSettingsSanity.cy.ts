@@ -5,7 +5,13 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { waitForResource, waitForPodReady } from '../../../utils/oc_commands/baseCommands';
+import {
+  startPortForward,
+  stopPortForward,
+  waitForResource,
+  waitForPodReady,
+  type PortForwardHandle,
+} from '../../../utils/oc_commands/baseCommands';
 import {
   enableExternalProviders,
   disableExternalProviders,
@@ -29,6 +35,7 @@ const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
 describe('Verify settings in playground using custom endpoint', { testIsolation: false }, () => {
   let testData: CustomEndpointTestData;
+  let portForwardHandle: PortForwardHandle | null = null;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -88,6 +95,8 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   });
 
   after(() => {
+    stopPortForward(portForwardHandle);
+
     cy.step('Delete test prompt from MLflow');
     deleteGenAiPromptViaAPI(projectName, testData.prompt.name);
 
@@ -173,6 +182,11 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
 
       cy.step('Wait for LSD pod to be fully ready');
       waitForPodReady(testData.lsdPodPrefix, testData.lsdPodReadyTimeout, projectName);
+
+      cy.step('Start port-forward for LSD service');
+      startPortForward(projectName, testData.lsdServiceName, 8321).then((handle) => {
+        portForwardHandle = handle;
+      });
 
       cy.step('Wait for custom model to be registered in LSD');
       waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);

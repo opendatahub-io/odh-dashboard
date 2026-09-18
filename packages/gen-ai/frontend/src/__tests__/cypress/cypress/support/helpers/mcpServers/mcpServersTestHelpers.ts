@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import yaml from 'js-yaml';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
   mockNamespaces,
   mockNamespace,
@@ -130,6 +131,52 @@ export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
   });
 };
 
+export const setMCPRegistryServersFlag = (enabled: boolean): void => {
+  cy.window().then((win) => {
+    win.sessionStorage.setItem(
+      'odh-feature-flags',
+      JSON.stringify({ genAiMcpRegistryServers: enabled }),
+    );
+    win.dispatchEvent(new CustomEvent('odh-dev-flags-changed'));
+  });
+};
+
+export const configureMCPRegistryServersFlag = (enabled: boolean): void => {
+  const dashboardConfig = mockDashboardConfig({
+    genAiStudio: true,
+    aiAssetCustomEndpoints: true,
+    mcpRegistry: true,
+    modelAsService: false,
+    genAiMcpRegistryServers: enabled,
+  });
+
+  if (enabled) {
+    delete dashboardConfig.spec.dashboardConfig.genAiMcpRegistryServers;
+  }
+
+  cy.intercept({ method: 'GET', pathname: '/api/config' }, dashboardConfig);
+};
+
+export const setMCPRegistryServersQueryFlag = (enabled: boolean): void => {
+  Cypress.env('_featureFlagParams', enabled ? 'devFeatureFlags=genAiMcpRegistryServers=true' : '');
+};
+
+export const clearMCPRegistryServersFlag = (): void => {
+  cy.window().then((win) => {
+    const flags = JSON.parse(win.sessionStorage.getItem('odh-feature-flags') ?? '{}') as Record<
+      string,
+      unknown
+    >;
+    delete flags.genAiMcpRegistryServers;
+    if (Object.keys(flags).length === 0) {
+      win.sessionStorage.removeItem('odh-feature-flags');
+    } else {
+      win.sessionStorage.setItem('odh-feature-flags', JSON.stringify(flags));
+    }
+  });
+  Cypress.env('_featureFlagParams', '');
+};
+
 type MCPServerStatus = 'healthy' | 'error' | 'unknown';
 
 type InitInterceptsOptions = {
@@ -181,9 +228,19 @@ export const initIntercepts = ({
   }
 };
 
-export const navigateToPlayground = (namespace: string): void => {
+export const navigateToPlayground = (
+  namespace: string,
+  mcpRegistryServersEnabled?: boolean,
+): void => {
   cy.step('Navigate to Playground');
+  if (mcpRegistryServersEnabled !== undefined) {
+    configureMCPRegistryServersFlag(mcpRegistryServersEnabled);
+  }
   appChrome.visit();
+  if (mcpRegistryServersEnabled !== undefined) {
+    setMCPRegistryServersQueryFlag(mcpRegistryServersEnabled);
+    setMCPRegistryServersFlag(mcpRegistryServersEnabled);
+  }
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
   playgroundPage.mcpTab.openMCPTab();
