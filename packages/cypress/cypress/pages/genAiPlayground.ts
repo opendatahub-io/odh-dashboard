@@ -155,10 +155,6 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-send-button');
   }
 
-  findImageInUserMessage() {
-    return this.findUserMessage().findByTestId('chatbot-inline-image');
-  }
-
   findUserMessage() {
     return cy.findByTestId('chatbot-message-user');
   }
