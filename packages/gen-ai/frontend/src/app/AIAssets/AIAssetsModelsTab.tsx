@@ -14,7 +14,10 @@ import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpoi
 
 const AIAssetsModelsTab: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
-  const { data: playgroundModels } = useFetchLlamaModels(undefined, true);
+  const { data: playgroundModels, refresh: refreshPlaygroundModels } = useFetchLlamaModels(
+    undefined,
+    true,
+  );
 
   const { models, loaded, error, refresh } = useMergedModels();
   const { data: lsdStatus } = useFetchLSDStatus();
@@ -34,10 +37,11 @@ const AIAssetsModelsTab: React.FC = () => {
     [api, apiAvailable],
   );
 
-  // Success handler to refresh models list
+  // Success handler to refresh models lists
   const handleCreationSuccess = React.useCallback(() => {
     refresh();
-  }, [refresh]);
+    refreshPlaygroundModels();
+  }, [refresh, refreshPlaygroundModels]);
 
   // Delete handler for external models
   const handleDeleteExternalModel = React.useCallback(
