@@ -55,7 +55,8 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
             <FormHelperText>
               <HelperText>
                 <HelperTextItem>
-                  Select the provider that supplies the model endpoint and credentials.
+                  Select an existing provider or create a new one. A provider stores the connection
+                  details for an external model service, including its endpoint and credentials
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
@@ -77,6 +78,13 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
                     hasNoPaddingTop
                     isStack
                   >
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem>
+                          Select the provider that supplies the model endpoint and credentials.
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
                     <TypeaheadSelect
                       dataTestId="provider-ref-provider-select"
                       selectOptions={providerOptions}

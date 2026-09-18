@@ -214,7 +214,7 @@ describe('External Models Page', () => {
       missingRefRow
         .findMissingMaaSModelRefWarningPopover()
         .should('exist')
-        .should('contain.text', 'Missing MaaS model setup');
+        .should('contain.text', 'Missing MaaS governance setup');
     });
 
     it('should filter external models by keyword across name, display name, and description', () => {
@@ -421,6 +421,8 @@ describe('External Models Page', () => {
       addProviderReferenceWizard.shouldBeOpen();
       addProviderReferenceWizard.selectProvider('Anthropic Provider');
       addProviderReferenceWizard.findNextButton().click();
+
+      addProviderReferenceWizard.selectApiFormat('openai-chat');
 
       addProviderReferenceWizard.fillTargetModel('claude-sonnet-4');
       addProviderReferenceWizard.fillPath('/{key}/v1/chat/completions');
@@ -723,6 +725,7 @@ describe('Edit External Model Page', () => {
     addProviderReferenceWizard.addProviderReference(
       'Anthropic Provider',
       'claude-sonnet-4-5-20241022',
+      'openai-chat',
     );
     addProviderReferenceWizard.shouldBeOpen(false);
 

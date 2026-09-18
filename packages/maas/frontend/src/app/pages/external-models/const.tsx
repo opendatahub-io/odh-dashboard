@@ -113,7 +113,7 @@ const MISSING_MAAS_MODEL_REF_BODY = (
 
 export const MissingMaaSModelRefWarning: React.FC = () => (
   <Popover
-    headerContent="Missing MaaS model setup"
+    headerContent="Missing MaaS governance setup"
     bodyContent={MISSING_MAAS_MODEL_REF_BODY}
     data-testid="external-model-missing-maas-model-ref-popover"
   >
