@@ -169,9 +169,9 @@ describe('StartEvaluationRunModal', () => {
     mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(mockEvaluationJob()));
   });
 
-  it('should preselect and hide evaluating when a collection has one AI entity', () => {
+  it('should preselect and hide evaluating when a collection has one evaluation target', () => {
     renderModal(undefined, undefined, {
-      collection: { ...collection, ai_entities: ['agent'] },
+      collection: { ...collection, evaluation_targets: ['agent'] },
       defaultSourceMode: 'model',
     });
 
@@ -192,18 +192,18 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.queryByTestId('additional-args-upload')).not.toBeInTheDocument();
   });
 
-  it('should show evaluating when a collection has one unknown AI entity', () => {
+  it('should show evaluating when a collection has one unknown evaluation target', () => {
     renderModal(undefined, undefined, {
-      collection: { ...collection, ai_entities: ['unknown'] },
+      collection: { ...collection, evaluation_targets: ['unknown'] },
       defaultSourceMode: 'model',
     });
 
     expect(screen.getByTestId('source-mode-toggle')).toHaveTextContent('Model');
   });
 
-  it('should show evaluating when a collection has multiple AI entities', () => {
+  it('should show evaluating when a collection has multiple evaluation targets', () => {
     renderModal(undefined, undefined, {
-      collection: { ...collection, ai_entities: ['model', 'agent'] },
+      collection: { ...collection, evaluation_targets: ['model', 'agent'] },
       defaultSourceMode: 'agent',
     });
 

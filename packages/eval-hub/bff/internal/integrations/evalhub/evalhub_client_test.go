@@ -171,13 +171,14 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 					ID:             "col-1",
 					VersionCounter: 3,
 				},
-				Name:        "Safety Suite",
-				Description: "Safety benchmarks",
-				Domains:     []string{"safety"},
-				Tasks:       []string{"classification"},
-				Modalities:  []string{"text"},
-				Industries:  []string{"healthcare"},
-				AIEntities:  []string{"model"},
+				Name:              "Safety Suite",
+				Description:       "Safety benchmarks",
+				Domains:           []string{"safety"},
+				Tasks:             []string{"classification"},
+				Modalities:        []string{"text"},
+				Industries:        []string{"healthcare"},
+				EvaluationTargets: []string{"model"},
+				CurationOrder:     1,
 				State: &CollectionState{
 					DerivedFrom: "curated-suite",
 					RunCount:    2,
@@ -190,11 +191,11 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/evaluations/collections", r.URL.Path)
 		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
-		assert.Equal(t, "curated", r.URL.Query().Get("scope"))
+		assert.Equal(t, "system", r.URL.Query().Get("scope"))
 		assert.Equal(t, "curation_order", r.URL.Query().Get("sort_by"))
 		assert.Equal(t, "agent_tools,tool_use", r.URL.Query().Get("domains"))
 		assert.Equal(t, "healthcare", r.URL.Query().Get("industries"))
-		assert.Equal(t, "agent", r.URL.Query().Get("ai_entities"))
+		assert.Equal(t, "agent", r.URL.Query().Get("evaluation_targets"))
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -204,12 +205,12 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
 	result, err := client.ListCollections(context.Background(), ListCollectionsParams{
-		Namespace:  "test-namespace",
-		Scope:      "curated",
-		SortBy:     "curation_order",
-		Domains:    "agent_tools,tool_use",
-		Industries: "healthcare",
-		AIEntities: "agent",
+		Namespace:         "test-namespace",
+		Scope:             "system",
+		SortBy:            "curation_order",
+		Domains:           "agent_tools,tool_use",
+		Industries:        "healthcare",
+		EvaluationTargets: "agent",
 	})
 
 	require.NoError(t, err)
@@ -221,7 +222,8 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	assert.Equal(t, []string{"classification"}, result.Items[0].Tasks)
 	assert.Equal(t, []string{"text"}, result.Items[0].Modalities)
 	assert.Equal(t, []string{"healthcare"}, result.Items[0].Industries)
-	assert.Equal(t, []string{"model"}, result.Items[0].AIEntities)
+	assert.Equal(t, []string{"model"}, result.Items[0].EvaluationTargets)
+	assert.Equal(t, 1, result.Items[0].CurationOrder)
 	require.NotNil(t, result.Items[0].State)
 	assert.Equal(t, "curated-suite", result.Items[0].State.DerivedFrom)
 	assert.Equal(t, 2, result.Items[0].State.RunCount)
@@ -362,14 +364,14 @@ func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
 
 func TestEvalHubClient_CreateCollection(t *testing.T) {
 	request := CreateCollectionRequest{
-		Name:        "My New Suite",
-		Description: "A custom suite",
-		Domains:     []string{"safety"},
-		Tasks:       []string{"classification"},
-		Modalities:  []string{"text"},
-		Industries:  []string{"technology"},
-		AIEntities:  []string{"agent"},
-		Benchmarks:  []CollectionBenchmark{{ID: "benchmark-001"}},
+		Name:              "My New Suite",
+		Description:       "A custom suite",
+		Domains:           []string{"safety"},
+		Tasks:             []string{"classification"},
+		Modalities:        []string{"text"},
+		Industries:        []string{"technology"},
+		EvaluationTargets: []string{"agent"},
+		Benchmarks:        []CollectionBenchmark{{ID: "benchmark-001"}},
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -388,21 +390,21 @@ func TestEvalHubClient_CreateCollection(t *testing.T) {
 			"tasks": ["classification"],
 			"modalities": ["text"],
 			"industries": ["technology"],
-			"ai_entities": ["agent"],
+			"evaluation_targets": ["agent"],
 			"benchmarks": [{"id": "benchmark-001"}]
 		}`, string(body))
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(Collection{
-			Resource:    CollectionResource{ID: "collection-001"},
-			Name:        request.Name,
-			Description: request.Description,
-			Domains:     request.Domains,
-			Tasks:       request.Tasks,
-			Modalities:  request.Modalities,
-			Industries:  request.Industries,
-			AIEntities:  request.AIEntities,
-			Benchmarks:  request.Benchmarks,
+			Resource:          CollectionResource{ID: "collection-001"},
+			Name:              request.Name,
+			Description:       request.Description,
+			Domains:           request.Domains,
+			Tasks:             request.Tasks,
+			Modalities:        request.Modalities,
+			Industries:        request.Industries,
+			EvaluationTargets: request.EvaluationTargets,
+			Benchmarks:        request.Benchmarks,
 		})
 	}))
 	defer server.Close()
@@ -414,7 +416,7 @@ func TestEvalHubClient_CreateCollection(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, "collection-001", result.Resource.ID)
 	assert.Equal(t, request.Name, result.Name)
-	assert.Equal(t, request.AIEntities, result.AIEntities)
+	assert.Equal(t, request.EvaluationTargets, result.EvaluationTargets)
 }
 
 func TestEvalHubClient_CreateCollection_EmptyNamespace(t *testing.T) {
@@ -717,17 +719,17 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 	tasks := []string{"classification"}
 	modalities := []string{"text"}
 	industries := []string{"technology"}
-	aiEntities := []string{"agent"}
+	evaluationTargets := []string{"agent"}
 	request := CloneCollectionRequest{
-		Name:        "My Cloned Suite",
-		Description: "Custom collection settings",
-		Category:    "Safety",
-		Tags:        []string{"custom", "agent"},
-		Domains:     &domains,
-		Tasks:       &tasks,
-		Modalities:  &modalities,
-		Industries:  &industries,
-		AIEntities:  &aiEntities,
+		Name:              "My Cloned Suite",
+		Description:       "Custom collection settings",
+		Category:          "Safety",
+		Tags:              []string{"custom", "agent"},
+		Domains:           &domains,
+		Tasks:             &tasks,
+		Modalities:        &modalities,
+		Industries:        &industries,
+		EvaluationTargets: &evaluationTargets,
 		Custom: map[string]any{
 			"source": "copy-suite",
 		},
@@ -758,7 +760,7 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 			"tasks": ["classification"],
 			"modalities": ["text"],
 			"industries": ["technology"],
-			"ai_entities": ["agent"],
+			"evaluation_targets": ["agent"],
 			"custom": {"source": "copy-suite"},
 			"pass_criteria": {"threshold": 0.8},
 			"benchmarks": [{
@@ -771,19 +773,19 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(Collection{
-			Resource:     CollectionResource{ID: "collection-001-clone"},
-			Name:         request.Name,
-			Description:  request.Description,
-			Category:     request.Category,
-			Tags:         request.Tags,
-			Domains:      *request.Domains,
-			Tasks:        *request.Tasks,
-			Modalities:   *request.Modalities,
-			Industries:   *request.Industries,
-			AIEntities:   *request.AIEntities,
-			Custom:       request.Custom,
-			PassCriteria: request.PassCriteria,
-			Benchmarks:   request.Benchmarks,
+			Resource:          CollectionResource{ID: "collection-001-clone"},
+			Name:              request.Name,
+			Description:       request.Description,
+			Category:          request.Category,
+			Tags:              request.Tags,
+			Domains:           *request.Domains,
+			Tasks:             *request.Tasks,
+			Modalities:        *request.Modalities,
+			Industries:        *request.Industries,
+			EvaluationTargets: *request.EvaluationTargets,
+			Custom:            request.Custom,
+			PassCriteria:      request.PassCriteria,
+			Benchmarks:        request.Benchmarks,
 		})
 	}))
 	defer server.Close()
@@ -798,7 +800,7 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 	assert.Equal(t, []string{"classification"}, result.Tasks)
 	assert.Equal(t, []string{"text"}, result.Modalities)
 	assert.Equal(t, []string{"technology"}, result.Industries)
-	assert.Equal(t, []string{"agent"}, result.AIEntities)
+	assert.Equal(t, []string{"agent"}, result.EvaluationTargets)
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_AcceptsResponseOverUpstreamLimit(t *testing.T) {
@@ -831,19 +833,19 @@ func TestEvalHubClient_CloneCollection_PreservesMetadataFieldPresence(t *testing
 			request: CloneCollectionRequest{
 				Name: "Inherited metadata",
 			},
-			absentFields: []string{"domains", "tasks", "modalities", "industries", "ai_entities"},
+			absentFields: []string{"domains", "tasks", "modalities", "industries", "evaluation_targets"},
 		},
 		{
 			name: "empty metadata fields are sent to clear inherited values",
 			request: CloneCollectionRequest{
-				Name:       "Cleared metadata",
-				Domains:    &empty,
-				Tasks:      &empty,
-				Modalities: &empty,
-				Industries: &empty,
-				AIEntities: &empty,
+				Name:              "Cleared metadata",
+				Domains:           &empty,
+				Tasks:             &empty,
+				Modalities:        &empty,
+				Industries:        &empty,
+				EvaluationTargets: &empty,
 			},
-			presentFields: []string{"domains", "tasks", "modalities", "industries", "ai_entities"},
+			presentFields: []string{"domains", "tasks", "modalities", "industries", "evaluation_targets"},
 		},
 	}
 

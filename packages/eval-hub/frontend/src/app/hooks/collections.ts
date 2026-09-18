@@ -36,20 +36,20 @@ export const collectionsQueryKey = (
     sortBy ?? 'default',
     filters?.domains ?? [],
     filters?.industries ?? [],
-    filters?.aiEntities ?? [],
+    filters?.evaluationTargets ?? [],
   ] as const;
 
 /**
  * Reads collections for the current tenant. The namespace identifies the
  * tenant in the BFF request; the BFF forwards it to EvalHub as X-Tenant.
  * The optional scope then narrows which collections are returned within that
- * tenant context (for example, tenant or curated collections).
+ * tenant context (for example, tenant or system collections).
  */
 export const useCollectionsQuery = (
   namespace: string,
   scope?: CollectionScope,
   limit = COLLECTION_FETCH_LIMIT,
-  sortBy: CollectionSortBy | undefined = scope === 'curated' ? 'curation_order' : undefined,
+  sortBy: CollectionSortBy | undefined = scope === 'system' ? 'curation_order' : undefined,
   filters?: CollectionFilterParams,
   offset?: number,
 ): UseQueryResult<CollectionsListResponse, Error> =>

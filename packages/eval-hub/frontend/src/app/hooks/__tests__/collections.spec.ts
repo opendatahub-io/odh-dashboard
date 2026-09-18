@@ -58,14 +58,14 @@ describe('useCollectionsQuery', () => {
     mockGetCollections.mockReturnValue(getRequest);
     const { wrapper } = createQueryWrapper();
 
-    const { result } = renderHook(() => useCollectionsQuery('test-ns', 'curated'), { wrapper });
+    const { result } = renderHook(() => useCollectionsQuery('test-ns', 'system'), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockGetCollections).toHaveBeenCalledWith('', {
       namespace: 'test-ns',
       limit: 200,
-      scope: 'curated',
+      scope: 'system',
       sortBy: 'curation_order',
     });
   });
@@ -76,7 +76,7 @@ describe('useCollectionsQuery', () => {
     const { wrapper } = createQueryWrapper();
 
     const { result } = renderHook(
-      () => useCollectionsQuery('test-ns', 'curated', 6, 'curation_order', undefined, 6),
+      () => useCollectionsQuery('test-ns', 'system', 6, 'curation_order', undefined, 6),
       { wrapper },
     );
 
@@ -86,7 +86,7 @@ describe('useCollectionsQuery', () => {
       namespace: 'test-ns',
       limit: 6,
       offset: 6,
-      scope: 'curated',
+      scope: 'system',
       sortBy: 'curation_order',
     });
   });
@@ -98,10 +98,10 @@ describe('useCollectionsQuery', () => {
 
     const { result } = renderHook(
       () =>
-        useCollectionsQuery('test-ns', 'curated', 200, undefined, {
+        useCollectionsQuery('test-ns', 'system', 200, undefined, {
           domains: ['agent_tools'],
           industries: ['healthcare'],
-          aiEntities: ['agent'],
+          evaluationTargets: ['agent'],
         }),
       { wrapper },
     );
@@ -111,11 +111,11 @@ describe('useCollectionsQuery', () => {
     expect(mockGetCollections).toHaveBeenCalledWith('', {
       namespace: 'test-ns',
       limit: 200,
-      scope: 'curated',
+      scope: 'system',
       sortBy: 'curation_order',
       domains: ['agent_tools'],
       industries: ['healthcare'],
-      aiEntities: ['agent'],
+      evaluationTargets: ['agent'],
     });
   });
 });

@@ -20,7 +20,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getCollection } from '~/app/api/k8s';
 import { evaluationCuratedBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
-import { CURATED_SUITE_PAGE_CONFIG, isCuratedAiEntity } from '~/app/curatedSuiteConfig';
+import { CURATED_SUITE_PAGE_CONFIG, isCuratedEvaluationTarget } from '~/app/curatedSuiteConfig';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
@@ -72,18 +72,19 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
 
   const navigationState = location.state;
-  const navigationAiEntity =
+  const navigationEvaluationTarget =
     navigationState &&
     typeof navigationState === 'object' &&
-    'sourceAiEntity' in navigationState &&
-    typeof navigationState.sourceAiEntity === 'string'
-      ? navigationState.sourceAiEntity
+    'sourceEvaluationTarget' in navigationState &&
+    typeof navigationState.sourceEvaluationTarget === 'string'
+      ? navigationState.sourceEvaluationTarget
       : undefined;
-  const sourceAiEntity = [navigationAiEntity, sourceCollection?.ai_entities?.[0]].find(
-    isCuratedAiEntity,
-  );
-  const cancelRoute = sourceAiEntity
-    ? evaluationCuratedBenchmarkSuitesRoute(namespace, sourceAiEntity)
+  const sourceEvaluationTarget = [
+    navigationEvaluationTarget,
+    sourceCollection?.evaluation_targets?.[0],
+  ].find(isCuratedEvaluationTarget);
+  const cancelRoute = sourceEvaluationTarget
+    ? evaluationCuratedBenchmarkSuitesRoute(namespace, sourceEvaluationTarget)
     : evaluationsBaseRoute(namespace);
 
   const {
@@ -175,7 +176,9 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     );
   }
 
-  const curatedSuitePage = sourceAiEntity ? CURATED_SUITE_PAGE_CONFIG[sourceAiEntity] : undefined;
+  const curatedSuitePage = sourceEvaluationTarget
+    ? CURATED_SUITE_PAGE_CONFIG[sourceEvaluationTarget]
+    : undefined;
 
   const breadcrumbItems: React.ReactElement[] = [
     <BreadcrumbItem
@@ -190,13 +193,13 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     />,
   ];
 
-  if (curatedSuitePage && sourceAiEntity) {
+  if (curatedSuitePage && sourceEvaluationTarget) {
     breadcrumbItems.push(
       <BreadcrumbItem
         key="curatedSuites"
         render={() =>
           renderBreadcrumbLink(
-            evaluationCuratedBenchmarkSuitesRoute(namespace, sourceAiEntity),
+            evaluationCuratedBenchmarkSuitesRoute(namespace, sourceEvaluationTarget),
             curatedSuitePage.title,
             'copy-suite-breadcrumb-curated-suites',
           )

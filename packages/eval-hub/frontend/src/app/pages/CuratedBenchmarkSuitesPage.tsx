@@ -10,11 +10,14 @@ import {
   evaluationsBaseRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
-import { CURATED_SUITE_PAGE_CONFIG, isCuratedAiEntity } from '~/app/curatedSuiteConfig';
+import { CURATED_SUITE_PAGE_CONFIG, isCuratedEvaluationTarget } from '~/app/curatedSuiteConfig';
 import './BenchmarkSuitesPage.scss';
 
 const CuratedBenchmarkSuitesPage: React.FC = () => {
-  const { namespace, aiEntity } = useParams<{ namespace: string; aiEntity: string }>();
+  const { namespace, evaluationTarget } = useParams<{
+    namespace: string;
+    evaluationTarget: string;
+  }>();
   const navigate = useNavigate();
 
   const handleCreateSuite = React.useCallback(() => {
@@ -24,17 +27,17 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
   const handleCustomizeCollection = React.useCallback(
     (collection: Collection) => {
       navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
-        state: { sourceAiEntity: aiEntity },
+        state: { sourceEvaluationTarget: evaluationTarget },
       });
     },
-    [aiEntity, navigate, namespace],
+    [evaluationTarget, navigate, namespace],
   );
 
-  if (!isCuratedAiEntity(aiEntity)) {
+  if (!isCuratedEvaluationTarget(evaluationTarget)) {
     return <NotFound />;
   }
 
-  const pageConfig = CURATED_SUITE_PAGE_CONFIG[aiEntity];
+  const pageConfig = CURATED_SUITE_PAGE_CONFIG[evaluationTarget];
 
   return (
     <ApplicationsPage
@@ -67,8 +70,9 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
         >
           <BenchmarkSuitesGallery
             namespace={namespace ?? ''}
-            scope="curated"
-            queryFilters={{ aiEntities: [aiEntity] }}
+            scope="system"
+            queryFilters={{ evaluationTargets: [evaluationTarget] }}
+            requireCuratedIndex
             useMockFallback
             showCreateSuiteCard={false}
             showFilters
@@ -79,7 +83,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
             primaryActionRoute={(collection) =>
               evaluationCopySuiteRoute(namespace, collection.resource.id)
             }
-            primaryActionState={{ sourceAiEntity: aiEntity }}
+            primaryActionState={{ sourceEvaluationTarget: evaluationTarget }}
             onCreateSuite={handleCreateSuite}
             onPrimaryAction={handleCustomizeCollection}
             onDuplicateCollection={handleCustomizeCollection}

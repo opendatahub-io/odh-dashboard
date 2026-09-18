@@ -57,7 +57,7 @@ const sourceCollection: Collection = {
   tasks: ['text-generation'],
   modalities: ['text'],
   industries: ['technology'],
-  ai_entities: ['model'],
+  evaluation_targets: ['model'],
   custom: { source: 'curated', evaluates: ['model'] },
   pass_criteria: { threshold: 0.8 },
   benchmarks: [
@@ -257,7 +257,7 @@ describe('useCopySuiteForm', () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
-        ai_entities: ['model', 'agent', 'model', 'unsupported'],
+        evaluation_targets: ['model', 'agent', 'model', 'unsupported'],
       },
     });
 
@@ -266,11 +266,11 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
   });
 
-  it('should fall back to legacy evaluates metadata when ai entities are empty', async () => {
+  it('should fall back to legacy evaluates metadata when evaluation targets are empty', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
-        ai_entities: [],
+        evaluation_targets: [],
         custom: { source: 'curated', evaluates: 'traces' },
       },
     });
@@ -366,7 +366,7 @@ describe('useCopySuiteForm', () => {
         name: 'New suite',
         description: 'A new suite',
         domains: ['safety', 'reasoning'],
-        ai_entities: ['model'],
+        evaluation_targets: ['model'],
         benchmarks: [
           expect.objectContaining({
             id: 'benchmark-one',
@@ -389,7 +389,7 @@ describe('useCopySuiteForm', () => {
     expect(mockCloneCollection).not.toHaveBeenCalled();
   });
 
-  it('should submit an empty ai_entities array for a create suite with no evaluates selected', async () => {
+  it('should submit an empty evaluation_targets array for a create suite with no evaluates selected', async () => {
     const createFetcher = jest.fn().mockResolvedValue({
       resource: { id: 'created-collection' },
       name: 'New suite',
@@ -422,11 +422,13 @@ describe('useCopySuiteForm', () => {
       '',
       'test-namespace',
       expect.objectContaining({
-        ai_entities: [],
+        evaluation_targets: [],
       }),
     );
     expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('category');
-    expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('ai_entities', ['agent']);
+    expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('evaluation_targets', [
+      'agent',
+    ]);
   });
 
   it('should create a collection for a create-and-run flow', async () => {
@@ -534,10 +536,10 @@ describe('useCopySuiteForm', () => {
     }
   });
 
-  it('should fall back to legacy custom evaluates metadata when ai_entities is absent', async () => {
+  it('should fall back to legacy custom evaluates metadata when evaluation_targets is absent', async () => {
     const legacySourceCollection: Collection = {
       ...sourceCollection,
-      ai_entities: undefined,
+      evaluation_targets: undefined,
       custom: { source: 'curated', evaluates: ['traces'] },
     };
     const result = renderForm({ sourceCollection: legacySourceCollection });
@@ -550,7 +552,7 @@ describe('useCopySuiteForm', () => {
   it('should leave evaluates blank when the source has no evaluates metadata', async () => {
     const sourceWithoutEvaluates: Collection = {
       ...sourceCollection,
-      ai_entities: undefined,
+      evaluation_targets: undefined,
       custom: { source: 'curated' },
     };
     const result = renderForm({ sourceCollection: sourceWithoutEvaluates });
@@ -563,7 +565,7 @@ describe('useCopySuiteForm', () => {
   it('should fall back to provider evaluates metadata when collection metadata is absent', async () => {
     const sourceWithoutEvaluates: Collection = {
       ...sourceCollection,
-      ai_entities: undefined,
+      evaluation_targets: undefined,
       custom: { source: 'curated' },
     };
     const providerWithEvaluates: Provider = {
@@ -1051,7 +1053,7 @@ describe('useCopySuiteForm', () => {
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
-        ai_entities: ['traces'],
+        evaluation_targets: ['traces'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
@@ -1101,7 +1103,7 @@ describe('useCopySuiteForm', () => {
         tasks: [],
         modalities: [],
         industries: [],
-        ai_entities: [],
+        evaluation_targets: [],
       }),
     );
   });
@@ -1204,7 +1206,7 @@ describe('useCopySuiteForm', () => {
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
-        ai_entities: ['guardrails'],
+        evaluation_targets: ['guardrails'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [

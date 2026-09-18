@@ -39,7 +39,7 @@ func TestCollectionsHandlerForwardsScopeAndSort(t *testing.T) {
 
 	result, response, err := setupApiTestWithEvalHub[CollectionsEnvelope](
 		http.MethodGet,
-		ApiPathPrefix+"/evaluations/collections?namespace=test-ns&scope=curated&sort_by=curation_order&domains=agent_tools&industries=healthcare&ai_entities=agent&limit=4&offset=2",
+		ApiPathPrefix+"/evaluations/collections?namespace=test-ns&scope=curated&sort_by=curation_order&domains=agent_tools&industries=healthcare&evaluation_targets=agent&limit=4&offset=2",
 		nil, nil, identity, mockClient,
 	)
 
@@ -47,11 +47,11 @@ func TestCollectionsHandlerForwardsScopeAndSort(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.NotNil(t, mockClient.LastListCollectionsParams)
 	assert.Equal(t, "test-ns", mockClient.LastListCollectionsParams.Namespace)
-	assert.Equal(t, "curated", mockClient.LastListCollectionsParams.Scope)
+	assert.Equal(t, "system", mockClient.LastListCollectionsParams.Scope)
 	assert.Equal(t, "curation_order", mockClient.LastListCollectionsParams.SortBy)
 	assert.Equal(t, "agent_tools", mockClient.LastListCollectionsParams.Domains)
 	assert.Equal(t, "healthcare", mockClient.LastListCollectionsParams.Industries)
-	assert.Equal(t, "agent", mockClient.LastListCollectionsParams.AIEntities)
+	assert.Equal(t, "agent", mockClient.LastListCollectionsParams.EvaluationTargets)
 	assert.Equal(t, 4, mockClient.LastListCollectionsParams.Limit)
 	assert.Equal(t, 2, mockClient.LastListCollectionsParams.Offset)
 	assert.NotNil(t, result.Data.Items)
@@ -279,11 +279,11 @@ func TestCreateCollectionHandler(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()
 	body := evalhub.CreateCollectionRequest{
-		Name:        "My New Suite",
-		Description: "A custom suite",
-		Domains:     []string{"safety"},
-		AIEntities:  []string{"model"},
-		Benchmarks:  []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
+		Name:              "My New Suite",
+		Description:       "A custom suite",
+		Domains:           []string{"safety"},
+		EvaluationTargets: []string{"model"},
+		Benchmarks:        []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
 	}
 
 	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
@@ -298,7 +298,7 @@ func TestCreateCollectionHandler(t *testing.T) {
 	assert.Equal(t, "My New Suite", result.Data.Name)
 	assert.Equal(t, "model", result.Data.Category)
 	assert.Equal(t, []string{"safety"}, result.Data.Domains)
-	assert.Equal(t, []string{"model"}, result.Data.AIEntities)
+	assert.Equal(t, []string{"model"}, result.Data.EvaluationTargets)
 	assert.Len(t, result.Data.Benchmarks, 1)
 }
 
@@ -306,10 +306,10 @@ func TestCreateCollectionHandlerPreservesCategory(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()
 	body := evalhub.CreateCollectionRequest{
-		Name:       "My New Suite",
-		Category:   "  Safety \t",
-		AIEntities: []string{"model"},
-		Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
+		Name:              "My New Suite",
+		Category:          "  Safety \t",
+		EvaluationTargets: []string{"model"},
+		Benchmarks:        []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
 	}
 
 	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
@@ -326,10 +326,10 @@ func TestCreateCollectionHandlerPreservesCategory(t *testing.T) {
 func TestCreateCollectionHandlerFallsBackForWhitespaceCategory(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	body := evalhub.CreateCollectionRequest{
-		Name:       "My New Suite",
-		Category:   " \t\n",
-		AIEntities: []string{"model"},
-		Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
+		Name:              "My New Suite",
+		Category:          " \t\n",
+		EvaluationTargets: []string{"model"},
+		Benchmarks:        []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
 	}
 
 	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
@@ -443,11 +443,11 @@ func TestCloneCollectionHandler(t *testing.T) {
 	tasks := []string{"classification"}
 	modalities := []string{"text"}
 	industries := []string{"technology"}
-	aiEntities := []string{"agent"}
+	evaluationTargets := []string{"agent"}
 	body := evalhub.CloneCollectionRequest{
 		Name: "My Cloned Suite", Description: "Custom collection settings", Category: "Safety",
 		Tags: []string{"custom", "agent"}, Domains: &domains, Tasks: &tasks, Modalities: &modalities,
-		Industries: &industries, AIEntities: &aiEntities, Custom: map[string]any{"source": "copy-suite"},
+		Industries: &industries, EvaluationTargets: &evaluationTargets, Custom: map[string]any{"source": "copy-suite"},
 		PassCriteria: &evalhub.CollectionPassCriteria{Threshold: 0.8},
 		Benchmarks:   []evalhub.CollectionBenchmark{{ID: "arc_challenge", ProviderID: "lm_evaluation_harness", Weight: 0.8, Parameters: map[string]any{"num_few_shot": 5}}},
 	}
@@ -477,7 +477,7 @@ func TestCloneCollectionHandler(t *testing.T) {
 	custom, err := json.Marshal(result.Data.Custom)
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"source":"copy-suite"}`, string(custom))
-	assert.Equal(t, []string{"agent"}, result.Data.AIEntities)
+	assert.Equal(t, []string{"agent"}, result.Data.EvaluationTargets)
 }
 
 func TestCloneCollectionHandlerEncodedSlashID(t *testing.T) {
@@ -515,7 +515,7 @@ func TestCloneCollectionHandlerExplicitlyEmptyMetadata(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()
 	empty := []string{}
-	body := evalhub.CloneCollectionRequest{Name: "Cleared metadata", Domains: &empty, Tasks: &empty, Modalities: &empty, Industries: &empty, AIEntities: &empty}
+	body := evalhub.CloneCollectionRequest{Name: "Cleared metadata", Domains: &empty, Tasks: &empty, Modalities: &empty, Industries: &empty, EvaluationTargets: &empty}
 
 	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
 		http.MethodPost,
@@ -529,7 +529,7 @@ func TestCloneCollectionHandlerExplicitlyEmptyMetadata(t *testing.T) {
 	assert.Empty(t, result.Data.Tasks)
 	assert.Empty(t, result.Data.Modalities)
 	assert.Empty(t, result.Data.Industries)
-	assert.Empty(t, result.Data.AIEntities)
+	assert.Empty(t, result.Data.EvaluationTargets)
 }
 
 func TestCloneCollectionHandlerEmptyChunkedBody(t *testing.T) {

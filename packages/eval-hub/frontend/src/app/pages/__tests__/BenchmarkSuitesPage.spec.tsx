@@ -205,7 +205,7 @@ describe('BenchmarkSuitesPage', () => {
       category: undefined,
       domains: [],
       // eslint-disable-next-line camelcase
-      ai_entities: [],
+      evaluation_targets: [],
       industries: [],
     }));
 
@@ -250,7 +250,7 @@ describe('BenchmarkSuitesPage', () => {
       category: index % 2 === 0 ? 'z-category' : 'a-category',
       domains: ['domain-only'],
       // eslint-disable-next-line camelcase
-      ai_entities: [index % 2 === 0 ? 'z-entity' : 'a-entity'],
+      evaluation_targets: [index % 2 === 0 ? 'z-entity' : 'a-entity'],
       industries: [index % 2 === 0 ? 'z-industry' : 'a-industry'],
     }));
     mockUseCollectionsQuery.mockReturnValue({

@@ -42,7 +42,7 @@ import './BenchmarkSuitesGallery.scss';
 const DEFAULT_PAGE_SIZE = 6;
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
 // These are the collection fields that can provide values for the filter dropdowns.
-type CollectionFilterField = 'domains' | 'ai_entities' | 'industries';
+type CollectionFilterField = 'domains' | 'evaluation_targets' | 'industries';
 
 type CollectionFilterOptions = {
   categories: string[];
@@ -157,6 +157,11 @@ const getAvailableFilterOptions = (
     ...new Set(collections.flatMap((collection) => getCollectionFieldValues(collection, field))),
   ].toSorted();
 
+const hasCuratedIndex = (collection: Collection): boolean =>
+  typeof collection.curation_order === 'number' &&
+  Number.isFinite(collection.curation_order) &&
+  collection.curation_order > 0;
+
 type BenchmarkSuitesGalleryProps = {
   namespace: string;
   maxVisibleCollections?: number;
@@ -168,6 +173,8 @@ type BenchmarkSuitesGalleryProps = {
   showContextualActions?: boolean;
   scope?: CollectionScope;
   queryFilters?: CollectionFilterParams;
+  // System collections without a curation order are not part of the curated gallery.
+  requireCuratedIndex?: boolean;
   primaryActionLabel?: string;
   primaryActionRoute?: (collection: Collection) => string;
   primaryActionState?: unknown;
@@ -191,6 +198,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   showContextualActions = true,
   scope = 'tenant',
   queryFilters,
+  requireCuratedIndex = false,
   primaryActionLabel = 'Run benchmark suite',
   primaryActionRoute,
   primaryActionState,
@@ -214,7 +222,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       [
         queryFilters?.domains?.join(',') ?? '',
         queryFilters?.industries?.join(',') ?? '',
-        queryFilters?.aiEntities?.join(',') ?? '',
+        queryFilters?.evaluationTargets?.join(',') ?? '',
       ].join('|'),
     [queryFilters],
   );
@@ -225,11 +233,14 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     showPagination &&
     Boolean(nameFilter.trim() || categoryFilter || evaluatesFilter || industryFilter);
   const queryLimit = showPagination
-    ? isClientSideFiltering
+    ? requireCuratedIndex || isClientSideFiltering
       ? COLLECTION_FETCH_LIMIT
       : pageSize
     : maxVisibleCollections;
-  const queryOffset = showPagination && !isClientSideFiltering ? (page - 1) * pageSize : undefined;
+  const queryOffset =
+    showPagination && !isClientSideFiltering && !requireCuratedIndex
+      ? (page - 1) * pageSize
+      : undefined;
   // Keep route-level filters such as the curated agent/model selection on the API request.
   // User-selected gallery filters are applied locally against the fetched collection set. When a
   // filter is active, that set is intentionally capped at COLLECTION_FETCH_LIMIT until filtering
@@ -238,7 +249,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     namespace,
     scope,
     queryLimit,
-    scope === 'curated' ? 'curation_order' : undefined,
+    requireCuratedIndex ? 'curation_order' : undefined,
     queryFilters,
     queryOffset,
   );
@@ -250,13 +261,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const apiItems = data?.items;
   const apiCollections = React.useMemo(() => apiItems ?? [], [apiItems]);
   const hasApiCollections = apiCollections.length > 0;
-  const mockAiEntity = queryFilters?.aiEntities?.[0];
+  const mockEvaluationTarget = queryFilters?.evaluationTargets?.[0];
   const mockCollections = React.useMemo(
     () =>
-      scope === 'curated' && (mockAiEntity === 'agent' || mockAiEntity === 'model')
-        ? mockCuratedBenchmarkSuiteCollections(mockAiEntity)
+      requireCuratedIndex && (mockEvaluationTarget === 'agent' || mockEvaluationTarget === 'model')
+        ? mockCuratedBenchmarkSuiteCollections(mockEvaluationTarget)
         : [],
-    [mockAiEntity, scope],
+    [mockEvaluationTarget, requireCuratedIndex],
   );
   // When mock fallback is enabled, keep the gallery usable while the backing API is unavailable.
   // Real-API entry points disable this fallback so they still show the error state.
@@ -268,11 +279,18 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     if (shouldShowLoadError || isLoading) {
       return [];
     }
-    if (isUsingMockCollections) {
-      return mockCollections;
-    }
-    return apiCollections;
-  }, [apiCollections, isLoading, isUsingMockCollections, mockCollections, shouldShowLoadError]);
+    const availableCollections = isUsingMockCollections ? mockCollections : apiCollections;
+    return requireCuratedIndex
+      ? availableCollections.filter(hasCuratedIndex)
+      : availableCollections;
+  }, [
+    apiCollections,
+    isLoading,
+    isUsingMockCollections,
+    mockCollections,
+    requireCuratedIndex,
+    shouldShowLoadError,
+  ]);
   const sourceCollections = React.useMemo(
     () => (maxVisibleCollections ? collections.slice(0, maxVisibleCollections) : collections),
     [collections, maxVisibleCollections],
@@ -288,7 +306,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     [sourceCollections],
   );
   const availableEvaluatesTypes = React.useMemo(
-    () => getAvailableFilterOptions(sourceCollections, 'ai_entities'),
+    () => getAvailableFilterOptions(sourceCollections, 'evaluation_targets'),
     [sourceCollections],
   );
   const availableIndustries = React.useMemo(
@@ -351,7 +369,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       }
       if (
         evaluatesFilter &&
-        !getCollectionFieldValues(collection, 'ai_entities').includes(evaluatesFilter)
+        !getCollectionFieldValues(collection, 'evaluation_targets').includes(evaluatesFilter)
       ) {
         return false;
       }
@@ -367,7 +385,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
 
   // Mock data and client-side-filtered results need local slicing. The latter are limited to the
   // first COLLECTION_FETCH_LIMIT API results by queryLimit above.
-  const shouldUseClientSidePagination = isUsingMockCollections || isClientSideFiltering;
+  const shouldUseClientSidePagination =
+    isUsingMockCollections || isClientSideFiltering || requireCuratedIndex;
   const visibleCollections = showPagination
     ? shouldUseClientSidePagination
       ? filteredCollections.slice((page - 1) * pageSize, page * pageSize)

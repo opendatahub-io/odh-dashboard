@@ -162,11 +162,11 @@ paths:
             type: string
         - name: scope
           in: query
-          description: Limit to system-defined, curated, or tenant-defined collections
+          description: Limit to system-defined or tenant-defined collections
           required: false
           schema:
             type: string
-            enum: [system, curated, tenant]
+            enum: [system, tenant]
         - name: sort_by
           in: query
           description: Sort collections by the requested ordering
@@ -186,9 +186,9 @@ paths:
           required: false
           schema:
             type: string
-        - name: ai_entities
+        - name: evaluation_targets
           in: query
-          description: Filter collections by AI entities (comma-separated)
+          description: Filter collections by evaluation targets (comma-separated)
           required: false
           schema:
             type: string
@@ -325,7 +325,7 @@ paths:
     description: >-
       Creates a tenant-scoped copy of an existing benchmark collection.
       The request body can optionally override the name, description,
-      category, tags, AI entities, custom metadata, benchmarks, and pass
+      category, tags, evaluation targets, custom metadata, benchmarks, and pass
       criteria of the cloned collection.
     post:
       tags:
@@ -1621,11 +1621,15 @@ components:
           items:
             type: string
           nullable: true
-        ai_entities:
+        evaluation_targets:
           type: array
-          description: AI entities evaluated by this collection.
+          description: Evaluation targets for this collection.
           items:
             type: string
+          nullable: true
+        curation_order:
+          type: integer
+          description: Positive ordering priority for system-curated collections. Zero or absent means not curated.
           nullable: true
         state:
           $ref: '#/components/schemas/CollectionState'
@@ -1711,7 +1715,7 @@ components:
           type: array
           items:
             type: string
-        ai_entities:
+        evaluation_targets:
           type: array
           items:
             type: string
@@ -1760,9 +1764,9 @@ components:
           description: Business industries to apply to the cloned collection.
           items:
             type: string
-        ai_entities:
+        evaluation_targets:
           type: array
-          description: AI entities evaluated by this collection.
+          description: Evaluation targets for this collection.
           items:
             type: string
         custom:

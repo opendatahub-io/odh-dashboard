@@ -26,17 +26,17 @@ type ListEvaluationJobsParams struct {
 
 // ListCollectionsParams holds optional query parameters for the list collections endpoint.
 type ListCollectionsParams struct {
-	Namespace  string
-	Limit      int
-	Offset     int
-	Name       string
-	Category   string
-	Tags       string
-	Scope      string
-	SortBy     string
-	Domains    string
-	Industries string
-	AIEntities string
+	Namespace         string
+	Limit             int
+	Offset            int
+	Name              string
+	Category          string
+	Tags              string
+	Scope             string
+	SortBy            string
+	Domains           string
+	Industries        string
+	EvaluationTargets string
 }
 
 // CollectionPatchOperation is one JSON Patch operation accepted by EvalHub's
@@ -337,20 +337,21 @@ type ProviderBenchmarkPassCriteria struct {
 
 // Collection represents a benchmark collection from eval-hub.
 type Collection struct {
-	Resource     CollectionResource      `json:"resource"`
-	Name         string                  `json:"name"`
-	Category     string                  `json:"category,omitempty"`
-	Description  string                  `json:"description,omitempty"`
-	Tags         []string                `json:"tags,omitempty"`
-	Domains      []string                `json:"domains,omitempty"`
-	Tasks        []string                `json:"tasks,omitempty"`
-	Modalities   []string                `json:"modalities,omitempty"`
-	Industries   []string                `json:"industries,omitempty"`
-	AIEntities   []string                `json:"ai_entities,omitempty"`
-	State        *CollectionState        `json:"state,omitempty"`
-	Custom       map[string]any          `json:"custom,omitempty"`
-	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+	Resource          CollectionResource      `json:"resource"`
+	Name              string                  `json:"name"`
+	Category          string                  `json:"category,omitempty"`
+	Description       string                  `json:"description,omitempty"`
+	Tags              []string                `json:"tags,omitempty"`
+	Domains           []string                `json:"domains,omitempty"`
+	Tasks             []string                `json:"tasks,omitempty"`
+	Modalities        []string                `json:"modalities,omitempty"`
+	Industries        []string                `json:"industries,omitempty"`
+	EvaluationTargets []string                `json:"evaluation_targets,omitempty"`
+	CurationOrder     int                     `json:"curation_order,omitempty"`
+	State             *CollectionState        `json:"state,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks,omitempty"`
 }
 
 // CollectionResource holds the resource metadata for a collection.
@@ -400,30 +401,30 @@ type CloneCollectionRequest struct {
 	Category    string   `json:"category,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
 	// Pointer slices distinguish omitted fields (inherit) from explicit empty arrays (clear).
-	Domains      *[]string               `json:"domains,omitempty"`
-	Tasks        *[]string               `json:"tasks,omitempty"`
-	Modalities   *[]string               `json:"modalities,omitempty"`
-	Industries   *[]string               `json:"industries,omitempty"`
-	AIEntities   *[]string               `json:"ai_entities,omitempty"`
-	Custom       map[string]any          `json:"custom,omitempty"`
-	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+	Domains           *[]string               `json:"domains,omitempty"`
+	Tasks             *[]string               `json:"tasks,omitempty"`
+	Modalities        *[]string               `json:"modalities,omitempty"`
+	Industries        *[]string               `json:"industries,omitempty"`
+	EvaluationTargets *[]string               `json:"evaluation_targets,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks,omitempty"`
 }
 
 // CreateCollectionRequest is the payload sent to create a tenant collection.
 type CreateCollectionRequest struct {
-	Name         string                  `json:"name"`
-	Category     string                  `json:"category,omitempty"`
-	Description  string                  `json:"description,omitempty"`
-	Tags         []string                `json:"tags,omitempty"`
-	Domains      []string                `json:"domains,omitempty"`
-	Tasks        []string                `json:"tasks,omitempty"`
-	Modalities   []string                `json:"modalities,omitempty"`
-	Industries   []string                `json:"industries,omitempty"`
-	AIEntities   []string                `json:"ai_entities,omitempty"`
-	Custom       map[string]any          `json:"custom,omitempty"`
-	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []CollectionBenchmark   `json:"benchmarks"`
+	Name              string                  `json:"name"`
+	Category          string                  `json:"category,omitempty"`
+	Description       string                  `json:"description,omitempty"`
+	Tags              []string                `json:"tags,omitempty"`
+	Domains           []string                `json:"domains,omitempty"`
+	Tasks             []string                `json:"tasks,omitempty"`
+	Modalities        []string                `json:"modalities,omitempty"`
+	Industries        []string                `json:"industries,omitempty"`
+	EvaluationTargets []string                `json:"evaluation_targets,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks"`
 }
 
 // CreateEvaluationJobRequest is the payload sent to the EvalHub API to start a new evaluation run.
@@ -647,8 +648,8 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 	if params.Industries != "" {
 		query.Set("industries", params.Industries)
 	}
-	if params.AIEntities != "" {
-		query.Set("ai_entities", params.AIEntities)
+	if params.EvaluationTargets != "" {
+		query.Set("evaluation_targets", params.EvaluationTargets)
 	}
 
 	path := "/evaluations/collections"
@@ -721,7 +722,7 @@ func (c *EvalHubClient) PatchCollection(ctx context.Context, id string, namespac
 // CloneCollection creates a tenant-scoped copy of an existing collection.
 // The namespace is sent as the X-Tenant header. The request body optionally overrides
 // name, description, category, tags, domains, tasks, modalities, industries,
-// AI entities, custom metadata, benchmarks, and pass criteria.
+// evaluation targets, custom metadata, benchmarks, and pass criteria.
 func (c *EvalHubClient) CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error) {
 	path := fmt.Sprintf("/evaluations/collections/%s/clones", url.PathEscape(id))
 

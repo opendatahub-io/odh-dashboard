@@ -19,8 +19,9 @@ export const evaluationBenchmarkSuitesRoute = (namespace?: string): string =>
 
 export const evaluationCuratedBenchmarkSuitesRoute = (
   namespace?: string,
-  aiEntity?: string,
-): string => `${evaluationBenchmarkSuitesRoute(namespace)}/${aiEntity ?? ':aiEntity'}`;
+  evaluationTarget?: string,
+): string =>
+  `${evaluationBenchmarkSuitesRoute(namespace)}/${evaluationTarget ?? ':evaluationTarget'}`;
 
 export const evaluationBenchmarksRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/benchmarks`;

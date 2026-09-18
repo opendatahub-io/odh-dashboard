@@ -90,16 +90,18 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     workspace: namespace ?? '',
   });
 
-  const aiEntitySourceMode = React.useMemo(() => {
-    const aiEntities = collection?.ai_entities;
-    if (aiEntities?.length !== 1) {
+  const evaluationTargetSourceMode = React.useMemo(() => {
+    const evaluationTargets = collection?.evaluation_targets;
+    if (evaluationTargets?.length !== 1) {
       return undefined;
     }
 
-    const aiEntity = aiEntities[0];
-    return isSuiteEvaluatesOption(aiEntity) ? suiteEvaluatesToSourceMode(aiEntity) : undefined;
+    const evaluationTarget = evaluationTargets[0];
+    return isSuiteEvaluatesOption(evaluationTarget)
+      ? suiteEvaluatesToSourceMode(evaluationTarget)
+      : undefined;
   }, [collection]);
-  const hasSingleAiEntity = aiEntitySourceMode !== undefined;
+  const hasSingleEvaluationTarget = evaluationTargetSourceMode !== undefined;
 
   const {
     inferenceServices,
@@ -116,7 +118,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     experiments,
     experimentsLoaded,
     defaultEvaluationName,
-    defaultSourceMode: aiEntitySourceMode ?? defaultSourceMode,
+    defaultSourceMode: evaluationTargetSourceMode ?? defaultSourceMode,
     trackingSource,
     onSuccess,
     onCancel: onClose,
@@ -282,7 +284,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                 />
               </FormGroup>
 
-              {!hasSingleAiEntity ? (
+              {!hasSingleEvaluationTarget ? (
                 <FormGroup
                   className="evalhub-form-group--with-description"
                   label={

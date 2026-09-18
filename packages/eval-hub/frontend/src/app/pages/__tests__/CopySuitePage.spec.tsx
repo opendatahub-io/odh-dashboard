@@ -451,12 +451,12 @@ describe('CopySuitePage', () => {
     expect(screen.queryByTestId('copy-suite-save-and-run')).not.toBeInTheDocument();
   });
 
-  it('should link to the originating curated suite page when ai entity metadata is available', () => {
+  it('should link to the originating curated suite page when evaluation target metadata is available', () => {
     mockUseFetchState.mockReturnValue([
       {
         ...sourceCollection,
         // eslint-disable-next-line camelcase
-        ai_entities: ['model'],
+        evaluation_targets: ['model'],
       },
       true,
       undefined,

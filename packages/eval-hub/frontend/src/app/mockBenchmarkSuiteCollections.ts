@@ -1,11 +1,11 @@
 /* eslint-disable camelcase */
 import type { Collection } from '~/app/types';
 
-const MOCK_AI_ENTITIES = ['model', 'agent'] as const;
-type MockAiEntity = (typeof MOCK_AI_ENTITIES)[number];
+const MOCK_EVALUATION_TARGETS = ['model', 'agent'] as const;
+type MockEvaluationTarget = (typeof MOCK_EVALUATION_TARGETS)[number];
 
-const isMockAiEntity = (value: string): value is MockAiEntity =>
-  MOCK_AI_ENTITIES.some((aiEntity) => aiEntity === value);
+const isMockEvaluationTarget = (value: string): value is MockEvaluationTarget =>
+  MOCK_EVALUATION_TARGETS.some((evaluationTarget) => evaluationTarget === value);
 
 const MOCK_COLLECTION_INDUSTRIES: Record<string, string[]> = {
   'model-suite-2': ['health'],
@@ -37,8 +37,8 @@ const createMockCollection = (
   benchmarkIds: string[],
   benchmarkMetrics: string[],
 ): Collection => {
-  const collectionDomains = domains.filter((domain) => !isMockAiEntity(domain));
-  const aiEntities = domains.filter(isMockAiEntity);
+  const collectionDomains = domains.filter((domain) => !isMockEvaluationTarget(domain));
+  const evaluationTargets = domains.filter(isMockEvaluationTarget);
 
   return {
     resource: {
@@ -49,7 +49,7 @@ const createMockCollection = (
     name,
     category: collectionDomains[0],
     domains: collectionDomains,
-    ai_entities: aiEntities,
+    evaluation_targets: evaluationTargets,
     industries: MOCK_COLLECTION_INDUSTRIES[id] ?? [],
     description,
     tags: domains,
@@ -63,6 +63,12 @@ const createMockCollection = (
     })),
   };
 };
+
+const addCuratedIndexes = (collections: Collection[]): Collection[] =>
+  collections.map((collection, index) => ({
+    ...collection,
+    curation_order: index + 1,
+  }));
 
 export const mockBenchmarkSuiteCollections = (): Collection[] => [
   createMockCollection(
@@ -138,9 +144,11 @@ export const mockBenchmarkSuiteCollections = (): Collection[] => [
   ),
 ];
 
-export const mockCuratedBenchmarkSuiteCollections = (aiEntity: 'agent' | 'model'): Collection[] => {
-  if (aiEntity === 'agent') {
-    return [
+export const mockCuratedBenchmarkSuiteCollections = (
+  evaluationTarget: 'agent' | 'model',
+): Collection[] => {
+  if (evaluationTarget === 'agent') {
+    return addCuratedIndexes([
       createMockCollection(
         'clawbench',
         'ClawBench',
@@ -209,10 +217,10 @@ export const mockCuratedBenchmarkSuiteCollections = (aiEntity: 'agent' | 'model'
           'alignment_score',
         ],
       ),
-    ];
+    ]);
   }
 
-  return [
+  return addCuratedIndexes([
     createMockCollection(
       'curated-open-llm-leaderboard-v2',
       'Open LLM Leaderboard v2',
@@ -363,6 +371,6 @@ export const mockCuratedBenchmarkSuiteCollections = (aiEntity: 'agent' | 'model'
         'alignment_score',
       ],
     ),
-  ];
+  ]);
 };
 /* eslint-enable camelcase */

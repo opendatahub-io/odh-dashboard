@@ -37,7 +37,10 @@ const AppRoutes: React.FC = () => (
       >
         <Route path=":namespace" element={<EvaluationsPage />} />
         <Route path=":namespace/collections" element={<BenchmarkSuitesPage />} />
-        <Route path=":namespace/collections/:aiEntity" element={<CuratedBenchmarkSuitesPage />} />
+        <Route
+          path=":namespace/collections/:evaluationTarget"
+          element={<CuratedBenchmarkSuitesPage />}
+        />
         <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
         <Route
           path={`:namespace/${evaluationComparePathSegment}/benchmarks`}

@@ -244,7 +244,7 @@ export const buildPendingCollection = ({
     modalities: suiteModalities,
     industries: suiteIndustries,
     // eslint-disable-next-line camelcase
-    ai_entities: suiteEvaluates,
+    evaluation_targets: suiteEvaluates,
     custom: buildCustomMetadata(sourceCollection.custom),
     // eslint-disable-next-line camelcase
     pass_criteria: { threshold: suiteThreshold / 100 },
@@ -342,9 +342,9 @@ const resolveInitialEvaluates = (
     return [...new Set(values.filter(isSuiteEvaluatesOption))];
   };
 
-  const aiEntities = normalizeEvaluates(collection.ai_entities);
-  if (aiEntities.length > 0) {
-    return aiEntities;
+  const evaluationTargets = normalizeEvaluates(collection.evaluation_targets);
+  if (evaluationTargets.length > 0) {
+    return evaluationTargets;
   }
 
   const customEvaluates = normalizeEvaluates(collection.custom?.evaluates);
@@ -689,7 +689,7 @@ export function useCopySuiteForm({
       modalities: values.suiteModalities,
       industries: values.suiteIndustries,
       // eslint-disable-next-line camelcase
-      ai_entities: values.suiteEvaluates,
+      evaluation_targets: values.suiteEvaluates,
       custom: buildCustomMetadata(sourceCollection?.custom),
       // eslint-disable-next-line camelcase
       pass_criteria: { threshold: values.suiteThreshold / 100 },

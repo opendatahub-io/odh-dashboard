@@ -9,7 +9,8 @@ export const CURATED_SUITE_PAGE_CONFIG = {
   },
 } as const;
 
-export type CuratedAiEntity = keyof typeof CURATED_SUITE_PAGE_CONFIG;
+export type CuratedEvaluationTarget = keyof typeof CURATED_SUITE_PAGE_CONFIG;
 
-export const isCuratedAiEntity = (value: string | undefined): value is CuratedAiEntity =>
-  value === 'agent' || value === 'model';
+export const isCuratedEvaluationTarget = (
+  value: string | undefined,
+): value is CuratedEvaluationTarget => value === 'agent' || value === 'model';

@@ -108,19 +108,19 @@ func (m *MockEvalHubClient) CreateCollection(
 	req evalhub.CreateCollectionRequest,
 ) (*evalhub.Collection, error) {
 	return &evalhub.Collection{
-		Resource:     evalhub.CollectionResource{ID: "created-collection"},
-		Name:         req.Name,
-		Category:     req.Category,
-		Description:  req.Description,
-		Tags:         req.Tags,
-		Domains:      req.Domains,
-		Tasks:        req.Tasks,
-		Modalities:   req.Modalities,
-		Industries:   req.Industries,
-		AIEntities:   req.AIEntities,
-		Custom:       req.Custom,
-		PassCriteria: req.PassCriteria,
-		Benchmarks:   req.Benchmarks,
+		Resource:          evalhub.CollectionResource{ID: "created-collection"},
+		Name:              req.Name,
+		Category:          req.Category,
+		Description:       req.Description,
+		Tags:              req.Tags,
+		Domains:           req.Domains,
+		Tasks:             req.Tasks,
+		Modalities:        req.Modalities,
+		Industries:        req.Industries,
+		EvaluationTargets: req.EvaluationTargets,
+		Custom:            req.Custom,
+		PassCriteria:      req.PassCriteria,
+		Benchmarks:        req.Benchmarks,
 	}, nil
 }
 
@@ -520,9 +520,9 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 	if req.Industries != nil {
 		industries = *req.Industries
 	}
-	aiEntities := source.AIEntities
-	if req.AIEntities != nil {
-		aiEntities = *req.AIEntities
+	evaluationTargets := source.EvaluationTargets
+	if req.EvaluationTargets != nil {
+		evaluationTargets = *req.EvaluationTargets
 	}
 	custom := req.Custom
 	if custom == nil {
@@ -543,18 +543,18 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 			CreatedAt: "2026-09-02T12:00:00Z",
 			UpdatedAt: "2026-09-02T12:00:00Z",
 		},
-		Name:         name,
-		Description:  description,
-		Category:     category,
-		Tags:         tags,
-		Domains:      domains,
-		Tasks:        tasks,
-		Modalities:   modalities,
-		Industries:   industries,
-		AIEntities:   aiEntities,
-		Custom:       custom,
-		PassCriteria: passCriteria,
-		Benchmarks:   benchmarks,
+		Name:              name,
+		Description:       description,
+		Category:          category,
+		Tags:              tags,
+		Domains:           domains,
+		Tasks:             tasks,
+		Modalities:        modalities,
+		Industries:        industries,
+		EvaluationTargets: evaluationTargets,
+		Custom:            custom,
+		PassCriteria:      passCriteria,
+		Benchmarks:        benchmarks,
 	}, nil
 }
 

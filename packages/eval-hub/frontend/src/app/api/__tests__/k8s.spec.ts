@@ -267,7 +267,7 @@ describe('getCollection', () => {
         name: 'Test',
         resource: { id: 'col-1' },
         domains: ['safety', 123],
-        ai_entities: 'model',
+        evaluation_targets: 'model',
         industries: [null, 'healthcare'],
       },
     });
@@ -277,7 +277,7 @@ describe('getCollection', () => {
 
     expect(result).toMatchObject({
       domains: ['safety'],
-      ai_entities: undefined,
+      evaluation_targets: undefined,
       industries: ['healthcare'],
     });
   });
@@ -472,18 +472,18 @@ describe('createCollection', () => {
     (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
   });
 
-  it('should create a collection with metadata and AI entity arrays', async () => {
+  it('should create a collection with metadata and evaluation target arrays', async () => {
     const request: CreateCollectionRequest = {
       name: 'New suite',
       domains: ['safety'],
-      ai_entities: ['model'],
+      evaluation_targets: ['model'],
       benchmarks: [{ id: 'benchmark-001' }],
     };
     const collection: Collection = {
       resource: { id: 'created-collection' },
       name: 'New suite',
       domains: ['safety'],
-      ai_entities: ['model'],
+      evaluation_targets: ['model'],
       benchmarks: [{ id: 'benchmark-001' }],
     };
     mockRestCREATE.mockResolvedValue({ data: collection });
@@ -603,7 +603,7 @@ describe('getCollections', () => {
         resource: { id: 'col-1' },
         name: 'Collection',
         domains: ['safety', 123],
-        ai_entities: 'model',
+        evaluation_targets: 'model',
         industries: [null, 'healthcare'],
       },
     ];
@@ -613,7 +613,7 @@ describe('getCollections', () => {
     const result = await getCollections('', { namespace: 'ns' })({});
 
     expect(result.items[0].domains).toEqual(['safety']);
-    expect(result.items[0].ai_entities).toBeUndefined();
+    expect(result.items[0].evaluation_targets).toBeUndefined();
     expect(result.items[0].industries).toEqual(['healthcare']);
   });
 
@@ -628,7 +628,7 @@ describe('getCollections', () => {
         tasks: ['question_answering', false],
         modalities: ['text', {}],
         industries: ['healthcare', undefined],
-        ai_entities: ['model', null],
+        evaluation_targets: ['model', null],
         benchmarks: [
           { id: 'valid', weight: 0 },
           { id: 'empty-id' },
@@ -650,7 +650,7 @@ describe('getCollections', () => {
       tasks: ['question_answering'],
       modalities: ['text'],
       industries: ['healthcare'],
-      ai_entities: ['model'],
+      evaluation_targets: ['model'],
       benchmarks: [{ id: 'valid', weight: 0 }, { id: 'empty-id' }],
     });
   });
@@ -684,14 +684,14 @@ describe('getCollections', () => {
 
     await getCollections('', {
       namespace: 'my-ns',
-      scope: 'curated',
+      scope: 'system',
       sortBy: 'curation_order',
     })({});
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
       '/eval-hub/api/v1/evaluations/collections',
-      { namespace: 'my-ns', scope: 'curated', sort_by: 'curation_order' },
+      { namespace: 'my-ns', scope: 'system', sort_by: 'curation_order' },
       {},
     );
   });
@@ -704,7 +704,7 @@ describe('getCollections', () => {
       namespace: 'my-ns',
       domains: ['agent_tools', 'tool_use'],
       industries: ['healthcare'],
-      aiEntities: ['agent'],
+      evaluationTargets: ['agent'],
     })({});
 
     expect(mockRestGET).toHaveBeenCalledWith(
@@ -714,7 +714,7 @@ describe('getCollections', () => {
         namespace: 'my-ns',
         domains: 'agent_tools,tool_use',
         industries: 'healthcare',
-        ai_entities: 'agent',
+        evaluation_targets: 'agent',
       },
       {},
     );

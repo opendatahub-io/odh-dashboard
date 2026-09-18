@@ -312,7 +312,8 @@ export type Collection = {
   tasks?: string[];
   modalities?: string[];
   industries?: string[];
-  ai_entities?: string[];
+  evaluation_targets?: string[];
+  curation_order?: number;
   state?: CollectionState;
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
@@ -330,14 +331,14 @@ export type CollectionPatchOperation =
       path: string;
     };
 
-export type CollectionScope = 'system' | 'curated' | 'tenant';
+export type CollectionScope = 'system' | 'tenant';
 
 export type CollectionSortBy = 'curation_order';
 
 export type CollectionFilterParams = {
   domains?: string[];
   industries?: string[];
-  aiEntities?: string[];
+  evaluationTargets?: string[];
 };
 
 export type CloneCollectionRequest = {
@@ -349,7 +350,7 @@ export type CloneCollectionRequest = {
   tasks?: string[];
   modalities?: string[];
   industries?: string[];
-  ai_entities?: string[];
+  evaluation_targets?: string[];
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
@@ -364,7 +365,7 @@ export type CreateCollectionRequest = {
   tasks?: string[];
   modalities?: string[];
   industries?: string[];
-  ai_entities?: string[];
+  evaluation_targets?: string[];
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks: CollectionBenchmark[];

@@ -46,9 +46,9 @@ describe('EvalHub API Contract Tests', () => {
   });
 
   describe('Collections Endpoint', () => {
-    it('should list collections with curated ordering', async () => {
+    it('should list system collections with curated ordering', async () => {
       const result = await apiClient.get(
-        '/eval-hub/api/v1/evaluations/collections?namespace=default&scope=curated&sort_by=curation_order',
+        '/eval-hub/api/v1/evaluations/collections?namespace=default&scope=system&sort_by=curation_order',
       );
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/CollectionsResponse/content/application/json/schema',
@@ -91,7 +91,7 @@ describe('EvalHub API Contract Tests', () => {
   });
 
   describe('Create Collection Endpoint', () => {
-    it('should create a collection with metadata and AI entity arrays', async () => {
+    it('should create a collection with metadata and evaluation target arrays', async () => {
       const createRequest = {
         name: 'New Collection',
         description: 'A collection created from the suite form',
@@ -100,7 +100,7 @@ describe('EvalHub API Contract Tests', () => {
         modalities: ['text'],
         industries: ['health'],
         // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
-        ai_entities: ['model'],
+        evaluation_targets: ['model'],
         // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
         pass_criteria: { threshold: 0.7 },
         benchmarks: [
@@ -130,7 +130,7 @@ describe('EvalHub API Contract Tests', () => {
             modalities: createRequest.modalities,
             industries: createRequest.industries,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
-            ai_entities: createRequest.ai_entities,
+            evaluation_targets: createRequest.evaluation_targets,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
             pass_criteria: createRequest.pass_criteria,
             benchmarks: createRequest.benchmarks,
@@ -152,7 +152,7 @@ describe('EvalHub API Contract Tests', () => {
         modalities: ['text'],
         industries: ['technology'],
         // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
-        ai_entities: ['agent'],
+        evaluation_targets: ['agent'],
         custom: {
           source: 'copy-suite',
         },
@@ -189,7 +189,7 @@ describe('EvalHub API Contract Tests', () => {
             modalities: cloneRequest.modalities,
             industries: cloneRequest.industries,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
-            ai_entities: cloneRequest.ai_entities,
+            evaluation_targets: cloneRequest.evaluation_targets,
             custom: cloneRequest.custom,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
             pass_criteria: cloneRequest.pass_criteria,

@@ -99,7 +99,7 @@ const sanitizeCollection = (c: Collection): Collection => ({
   modalities: sanitizeStringArray(c.modalities),
   industries: sanitizeStringArray(c.industries),
   // eslint-disable-next-line camelcase
-  ai_entities: sanitizeStringArray(c.ai_entities),
+  evaluation_targets: sanitizeStringArray(c.evaluation_targets),
   benchmarks: Array.isArray(c.benchmarks)
     ? c.benchmarks.filter(isValidCollectionBenchmark)
     : undefined,
@@ -389,9 +389,9 @@ export const getCollections =
     if (params.industries && params.industries.length > 0) {
       queryParams.industries = params.industries.join(',');
     }
-    if (params.aiEntities && params.aiEntities.length > 0) {
+    if (params.evaluationTargets && params.evaluationTargets.length > 0) {
       // eslint-disable-next-line camelcase
-      queryParams.ai_entities = params.aiEntities.join(',');
+      queryParams.evaluation_targets = params.evaluationTargets.join(',');
     }
     return handleRestFailures(
       restGET(

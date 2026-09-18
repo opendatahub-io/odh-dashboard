@@ -11,7 +11,7 @@ type CuratedCategory = {
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   iconColor: string;
-  aiEntities?: string[];
+  evaluationTargets?: string[];
   domains?: string[];
 };
 
@@ -23,7 +23,7 @@ const CURATED_CATEGORIES: CuratedCategory[] = [
       'Evaluate AI agent behavior, tool usage, and multi-step task completion across various scenarios.',
     icon: RhStandardAgenticIcon,
     iconColor: 'purple',
-    aiEntities: ['agent'],
+    evaluationTargets: ['agent'],
   },
   {
     id: 'models',
@@ -32,7 +32,7 @@ const CURATED_CATEGORIES: CuratedCategory[] = [
       'Benchmark model accuracy, latency, and quality across standard and custom evaluation datasets.',
     icon: RhStandardAiModelIcon,
     iconColor: 'red',
-    aiEntities: ['model'],
+    evaluationTargets: ['model'],
   },
   // TODO: Re-enable these categories when EvalHub supports the corresponding
   // curated collection filters.
@@ -43,7 +43,7 @@ const CURATED_CATEGORIES: CuratedCategory[] = [
   //     'Analyze execution traces to identify performance bottlenecks, errors, and unexpected behaviors.',
   //   icon: CodeIcon,
   //   iconColor: 'blue',
-  //   aiEntities: ['trace'],
+  //   evaluationTargets: ['trace'],
   // },
   // {
   //   id: 'guardrails',
@@ -75,8 +75,8 @@ const CURATED_CATEGORIES: CuratedCategory[] = [
 ];
 
 const getCategoryHref = (namespace: string, category: CuratedCategory): string => {
-  const aiEntity = category.aiEntities?.[0];
-  return evaluationCuratedBenchmarkSuitesRoute(namespace, aiEntity);
+  const evaluationTarget = category.evaluationTargets?.[0];
+  return evaluationCuratedBenchmarkSuitesRoute(namespace, evaluationTarget);
 };
 
 type CuratedSuiteCategoriesProps = {

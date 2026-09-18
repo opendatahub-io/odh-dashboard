@@ -163,16 +163,23 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
+	// The dashboard keeps "curated" as a UI-facing scope, while the deployed
+	// EvalHub API exposes those system-owned collections as "system".
+	scope := query.Get("scope")
+	if scope == "curated" {
+		scope = "system"
+	}
+
 	params := evalhub.ListCollectionsParams{
-		Namespace:  query.Get("namespace"),
-		Name:       query.Get("name"),
-		Category:   query.Get("category"),
-		Tags:       query.Get("tags"),
-		Scope:      query.Get("scope"),
-		SortBy:     sortBy,
-		Domains:    query.Get("domains"),
-		Industries: query.Get("industries"),
-		AIEntities: query.Get("ai_entities"),
+		Namespace:         query.Get("namespace"),
+		Name:              query.Get("name"),
+		Category:          query.Get("category"),
+		Tags:              query.Get("tags"),
+		Scope:             scope,
+		SortBy:            sortBy,
+		Domains:           query.Get("domains"),
+		Industries:        query.Get("industries"),
+		EvaluationTargets: query.Get("evaluation_targets"),
 	}
 
 	if limitStr := query.Get("limit"); limitStr != "" {
@@ -242,8 +249,8 @@ func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, 
 	}
 	// TODO: Remove this temporary mapping once the EvalHub API is deployed.
 	input.Category = strings.TrimSpace(input.Category)
-	if input.Category == "" && len(input.AIEntities) > 0 {
-		input.Category = input.AIEntities[0]
+	if input.Category == "" && len(input.EvaluationTargets) > 0 {
+		input.Category = input.EvaluationTargets[0]
 	}
 
 	collection, err := client.CreateCollection(ctx, namespace, input)

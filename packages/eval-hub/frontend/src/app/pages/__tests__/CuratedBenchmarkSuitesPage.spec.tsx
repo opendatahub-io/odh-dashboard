@@ -21,11 +21,14 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
 }));
 
-const renderPage = (aiEntity = 'agent') =>
+const renderPage = (evaluationTarget = 'agent') =>
   render(
-    <MemoryRouter initialEntries={[`/test-project/collections/${aiEntity}`]}>
+    <MemoryRouter initialEntries={[`/test-project/collections/${evaluationTarget}`]}>
       <Routes>
-        <Route path="/:namespace/collections/:aiEntity" element={<CuratedBenchmarkSuitesPage />} />
+        <Route
+          path="/:namespace/collections/:evaluationTarget"
+          element={<CuratedBenchmarkSuitesPage />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -77,11 +80,11 @@ describe('CuratedBenchmarkSuitesPage', () => {
     expect(screen.getAllByText('Customize')).toHaveLength(5);
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
       'test-project',
-      'curated',
-      6,
+      'system',
+      200,
       'curation_order',
-      { aiEntities: ['agent'] },
-      0,
+      { evaluationTargets: ['agent'] },
+      undefined,
     );
   });
 
@@ -164,6 +167,31 @@ describe('CuratedBenchmarkSuitesPage', () => {
     expect(screen.queryByText('Customize')).not.toBeInTheDocument();
   });
 
+  it('should only render system collections with a curated index', () => {
+    const [curatedCollection] = mockCuratedBenchmarkSuiteCollections('agent');
+    const systemOnlyCollection = {
+      ...curatedCollection,
+      resource: { ...curatedCollection.resource, id: 'system-only-suite' },
+      name: 'System-only suite',
+      // eslint-disable-next-line camelcase
+      curation_order: undefined,
+    };
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: [systemOnlyCollection, curatedCollection],
+        // eslint-disable-next-line camelcase
+        total_count: 2,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByTestId('benchmark-suite-card-clawbench')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-system-only-suite')).not.toBeInTheDocument();
+  });
+
   it('should hide classification filters while curated suites are loading', () => {
     mockUseCollectionsQuery.mockReturnValue({
       data: undefined,
@@ -191,19 +219,19 @@ describe('CuratedBenchmarkSuitesPage', () => {
     expect(screen.getByTestId('benchmark-suites-category-filter')).toBeInTheDocument();
     expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
       'test-project',
-      'curated',
+      'system',
       200,
       'curation_order',
-      { aiEntities: ['agent'] },
+      { evaluationTargets: ['agent'] },
       undefined,
     );
   });
 
-  it('should reset gallery filters when the AI entity route changes without remounting', () => {
+  it('should reset gallery filters when the evaluation target route changes without remounting', () => {
     mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
-      const queryFilters = args[4] as { aiEntities?: string[] } | undefined;
-      const aiEntity = queryFilters?.aiEntities?.[0] === 'model' ? 'model' : 'agent';
-      const items = mockCuratedBenchmarkSuiteCollections(aiEntity);
+      const queryFilters = args[4] as { evaluationTargets?: string[] } | undefined;
+      const evaluationTarget = queryFilters?.evaluationTargets?.[0] === 'model' ? 'model' : 'agent';
+      const items = mockCuratedBenchmarkSuiteCollections(evaluationTarget);
 
       return {
         data: {
@@ -220,7 +248,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
       <MemoryRouter initialEntries={['/test-project/collections/agent']}>
         <Routes>
           <Route
-            path="/:namespace/collections/:aiEntity"
+            path="/:namespace/collections/:evaluationTarget"
             element={
               <>
                 <CuratedBenchmarkSuitesPage />
