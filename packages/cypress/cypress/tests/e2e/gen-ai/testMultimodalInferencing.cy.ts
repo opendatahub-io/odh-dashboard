@@ -28,10 +28,10 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     cy.fixture('e2e/genAi/testMultimodalInferencing.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as MultimodalTestData;
 
-      const apiKey = Cypress.env('OPENAI_API_KEY');
+      const apiKey = Cypress.env('GEMINI_API_KEY');
       if (!apiKey) {
         throw new Error(
-          'OPENAI_API_KEY is not set in test-variables.yml — cannot run multimodal tests',
+          'GEMINI_API_KEY is not set in test-variables.yml — cannot run multimodal tests',
         );
       }
 
