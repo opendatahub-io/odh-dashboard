@@ -1,3 +1,12 @@
+export const normalizeVisibleOptionLabel = (label: string): string =>
+  label.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+
+export const getExactVisibleOptionRegex = (label: string): RegExp => {
+  const normalizedLabel = normalizeVisibleOptionLabel(label);
+  const escapedLabel = normalizedLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escapedLabel.replace(/ /g, '\\s+')}$`, 'i');
+};
+
 class AutoragConfigurePage {
   visit(namespace: string) {
     cy.visitWithLogin(`/gen-ai-studio/autorag/configure/${namespace}`);
@@ -24,6 +33,22 @@ class AutoragConfigurePage {
 
   findAddMaasConnectionButton() {
     return cy.findByTestId('add-maas-connection-button');
+  }
+
+  findMaasConnectionNameInput() {
+    return cy.findByTestId('maas-connection-name');
+  }
+
+  findMaasConnectionBaseUrlInput() {
+    return cy.findByTestId('maas-connection-base-url');
+  }
+
+  findMaasConnectionApiKeyInput() {
+    return cy.findByTestId('maas-connection-api-key');
+  }
+
+  findMaasConnectionSubmitButton() {
+    return cy.findByTestId('modal-submit-button');
   }
 
   findNextButton() {
@@ -90,9 +115,71 @@ class AutoragConfigurePage {
     return cy.findByTestId(`model-row-${modelId}`);
   }
 
+  findModelRowOnCurrentPage(modelType: 'llm' | 'embedding', modelId: string) {
+    return this.findModelTable(modelType).then(($table) =>
+      $table.find(`[data-testid="model-row-${modelId}"]`),
+    );
+  }
+
+  findModelCheckboxOnCurrentPage(modelType: 'llm' | 'embedding', modelId: string) {
+    return this.findModelRowOnCurrentPage(modelType, modelId).findByRole('checkbox');
+  }
+
+  findModelPagination(modelType: 'llm' | 'embedding') {
+    return cy.findByTestId(`${modelType}-pagination`);
+  }
+
+  findNextModelPageButton(modelType: 'llm' | 'embedding') {
+    return this.findModelPagination(modelType).find('button[aria-label="Go to next page"]');
+  }
+
+  findSelectModelsButton() {
+    return cy.findByTestId('select-models-button');
+  }
+
+  findFoundationModelsTab() {
+    return cy.findByTestId('foundation-models-tab');
+  }
+
+  findEmbeddingModelsTab() {
+    return cy.findByTestId('embedding-models-tab');
+  }
+
+  findModelCheckbox(modelId: string) {
+    return this.findModelRow(modelId).findByRole('checkbox');
+  }
+
+  findExperimentSettingsSaveButton() {
+    return cy.findByTestId('experiment-settings-save');
+  }
+
   // Step 2 - Vector database secret
   findVectorStoreSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
     return cy.findByTestId('vector-db-secret-selector', options);
+  }
+
+  findAddVectorDbConnectionButton() {
+    return cy.findByTestId('add-vector-db-connection-button');
+  }
+
+  findAddVectorDbDropdownToggle() {
+    return cy.findByTestId('add-vector-db-dropdown-toggle');
+  }
+
+  findAddPgvectorConnectionOption() {
+    return cy.findByTestId('add-pgvector-connection-option');
+  }
+
+  findPgvectorConnectionNameInput() {
+    return cy.findByTestId('vector-db-connection-name');
+  }
+
+  findPgvectorInput(field: 'host' | 'port' | 'db' | 'user' | 'password') {
+    return cy.findByTestId(`pgvector-${field}-input`);
+  }
+
+  findPgvectorConnectionSubmitButton() {
+    return cy.findByTestId('modal-submit-button');
   }
 
   // Step 2 - Optimization
@@ -125,8 +212,8 @@ class AutoragConfigurePage {
     return cy.findByTestId('experiment-settings-cancel');
   }
 
-  findSelectOption(name: string | RegExp) {
-    return cy.findByRole('option', { name: name instanceof RegExp ? name : new RegExp(name) });
+  findSelectOption(name: string) {
+    return cy.findByRole('option', { name: getExactVisibleOptionRegex(name) });
   }
 
   // Evaluation dataset — PF FileUpload renders input with id from field.name
