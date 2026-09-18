@@ -165,7 +165,7 @@ describe('getAutoragContext', () => {
         generation_models: ['llama-3', 'gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
-        optimization_max_rag_patterns: 12,
+        optimization_max_rag_patterns: 9,
       });
 
       const context = getAutoragContext({
@@ -188,6 +188,28 @@ describe('getAutoragContext', () => {
       const context = getAutoragContext({ pipelineRun: createMockPipelineRun(parameters) });
 
       expect(context.parameters).toEqual(parameters);
+    });
+
+    it('should still parse a legacy run whose optimization_max_rag_patterns exceeds the current maximum', () => {
+      const pipelineRun = createMockPipelineRun({
+        display_name: 'Legacy Run',
+        input_data_secret_name: 'my-secret',
+        input_data_bucket_name: 'my-bucket',
+        input_data_key: 'input.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test.csv',
+        ogx_secret_name: 'ogx-secret',
+        optimization_metric: 'faithfulness',
+        // Created before MAX_RAG_PATTERNS was lowered from 20 to 10.
+        optimization_max_rag_patterns: 20,
+      });
+
+      const context = getAutoragContext({
+        pipelineRun,
+      });
+
+      expect(context.parameters?.optimization_max_rag_patterns).toBe(20);
     });
 
     it('should extract detected language metadata from runtime_config parameters', () => {

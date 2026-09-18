@@ -389,8 +389,8 @@ func TestBuildPipelineRunInput(t *testing.T) {
 				t.Errorf("%s should be omitted", legacyKey)
 			}
 		}
-		if _, ok := params["optimization_max_rag_patterns"]; ok {
-			t.Error("nil optimization_max_rag_patterns should be omitted")
+		if params["optimization_max_rag_patterns"] != constants.DefaultMaxRagPatterns {
+			t.Errorf("optimization_max_rag_patterns = %v, want default %d", params["optimization_max_rag_patterns"], constants.DefaultMaxRagPatterns)
 		}
 	})
 }
