@@ -44,7 +44,9 @@ import { buildTopLevelFields } from './tabs/PatternInformationTab';
 import { settingsSectionEntries } from './tabs/KeyValueTab';
 import KeyValueList from './components/KeyValueList';
 import ComparisonKeyValueList from './components/ComparisonKeyValueList';
-import ConfidenceIntervalChart from './components/ConfidenceIntervalChart';
+import ConfidenceIntervalChart, {
+  hasConfidenceIntervalData,
+} from './components/ConfidenceIntervalChart';
 import './PatternDetailsModal.scss';
 
 export type PatternDetailsModalProps = {
@@ -104,7 +106,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
     () =>
       computePatternRankMap(
         Object.fromEntries(patterns.map((pattern, index) => [patternKeys[index], pattern])),
-        optimizationMetric?.name ?? DEFAULT_OPTIMIZATION_METRIC,
+        optimizationMetric ?? DEFAULT_OPTIMIZATION_METRIC,
       ),
     [patterns, patternKeys, optimizationMetric],
   );
@@ -394,9 +396,11 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           const comparisonPattern = patterns[index];
           const primaryRank = rankMap[patternKeys[selectedIndex]] ?? rank;
           const comparisonRank = rankMap[patternKeys[index]];
-          const comparisonObjective = optimizationMetric?.name ?? DEFAULT_OPTIMIZATION_METRIC;
           const getComparisonScore = (pattern: AutoragPattern): number | undefined => {
-            const mean = getObjectiveMetric(pattern, comparisonObjective)?.scores.mean;
+            const mean = getObjectiveMetric(
+              pattern,
+              optimizationMetric ?? DEFAULT_OPTIMIZATION_METRIC,
+            )?.scores.mean;
             return typeof mean === 'number' && Number.isFinite(mean) ? mean : undefined;
           };
           const comparisonScore = getComparisonScore(comparisonPattern);
@@ -435,7 +439,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   {formatPatternName(data.name)} |{' '}
                   {optimizationMetric
                     ? `${metricLabel(optimizationMetric)} (optimized): ${formatMetricValue(
-                        getObjectiveMetric(data, optimizationMetric.name)?.scores.mean ?? 'N/A',
+                        getObjectiveMetric(data, optimizationMetric)?.scores.mean ?? 'N/A',
                       )}`
                     : `Final score: ${getOptimizedScore(data)}`}
                 </p>
@@ -455,8 +459,9 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 <KeyValueList entries={buildTopLevelFields(data, optimizationMetric)} />
               )}
             </div>
-            {(data.evaluation.metrics.length > 0 ||
-              (comparisonBundle?.pattern.evaluation.metrics.length ?? 0) > 0) && (
+            {(hasConfidenceIntervalData(data.evaluation.metrics) ||
+              (comparisonBundle &&
+                hasConfidenceIntervalData(comparisonBundle.pattern.evaluation.metrics))) && (
               <div className="autorag-print-page">
                 <div className="autorag-print-header">
                   <h1>{formatPatternName(data.name)}</h1>

@@ -605,6 +605,32 @@ describe('PatternDetailsModal', () => {
       expect(screen.queryByTestId('ci-scores-chart')).not.toBeInTheDocument();
     });
 
+    it('should omit the confidence interval print page when all scores are unavailable', async () => {
+      const user = userEvent.setup();
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      const patternWithoutChartData: AutoragPattern = {
+        ...mockPattern,
+        evaluation: {
+          ...mockPattern.evaluation,
+          metrics: mockPattern.evaluation.metrics.map((metric) => ({
+            ...metric,
+            scores: { mean: null, ci_low: null, ci_high: null },
+          })),
+        },
+      };
+
+      try {
+        render(<PatternDetailsModal {...defaultProps} patterns={[patternWithoutChartData]} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+
+        expect(
+          within(screen.getByTestId('print-container')).queryByTestId('ci-scores-chart'),
+        ).not.toBeInTheDocument();
+      } finally {
+        printSpy.mockRestore();
+      }
+    });
+
     it('should not show Sample Q&A tab when evaluationResults is empty', () => {
       mockUsePatternEvaluationResults.mockReturnValue({
         data: [],

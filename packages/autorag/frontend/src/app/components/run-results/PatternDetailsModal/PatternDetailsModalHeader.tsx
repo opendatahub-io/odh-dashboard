@@ -141,7 +141,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
               <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
                 {optimizationMetric
                   ? formatMetricValue(
-                      getObjectiveMetric(data, optimizationMetric.name)?.scores.mean ?? 'N/A',
+                      getObjectiveMetric(data, optimizationMetric)?.scores.mean ?? 'N/A',
                     )
                   : formatMetricValue(getOptimizedScore(data))}
               </Title>

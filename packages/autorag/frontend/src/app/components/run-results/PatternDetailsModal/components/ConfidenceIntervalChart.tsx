@@ -267,6 +267,10 @@ function getScoreEntries(scores: AutoragEvaluationMetric[]): AutoragEvaluationMe
     .toSorted(compareMetrics);
 }
 
+export function hasConfidenceIntervalData(scores: AutoragEvaluationMetric[]): boolean {
+  return getScoreEntries(scores).length > 0;
+}
+
 type ConfidenceIntervalChartProps = {
   scores: AutoragEvaluationMetric[];
   comparisonScores?: AutoragEvaluationMetric[];

@@ -11,19 +11,21 @@ export type MetricKey = string;
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
+type ObjectiveReference = MetricReference | string;
+
 /** Normalize the parts of a metric identity without crossing the string-key boundary. */
 export function normalizeMetricReference(reference: MetricReference): NormalizedMetricReference {
   const evaluator = reference.evaluator === undefined ? undefined : normalize(reference.evaluator);
   return {
     name: normalize(reference.name),
-    ...(evaluator ? { evaluator } : {}),
+    ...(evaluator !== undefined ? { evaluator } : {}),
   };
 }
 
 /** Create the single normalized metric key used at UI string boundaries. */
 export function metricKey(reference: MetricReference): MetricKey {
   const normalized = normalizeMetricReference(reference);
-  return `metric:${JSON.stringify([normalized.evaluator ?? '', normalized.name])}`;
+  return `metric:${JSON.stringify([normalized.evaluator, normalized.name])}`;
 }
 
 /** Create the sanitized identity suffix used only at DOM/test-ID boundaries. */
@@ -97,20 +99,34 @@ export function findMetric(
 
 /**
  * Resolve the pattern's objective metric. Prefer the flagged metric when available, but fall
- * back to a uniquely named metric for patterns that do not repeat the objective flag. The
- * evaluator is deliberately not part of this selection: ranking remains per-pattern when
- * evaluators are missing or inconsistent.
+ * back to a uniquely named metric for patterns that do not repeat the objective flag. An
+ * evaluator-qualified reference selects that evaluator even when another evaluator is marked.
  */
 export function getObjectiveMetric(
   pattern: AutoragPattern,
-  objectiveName?: string,
+  objectiveReference?: ObjectiveReference,
 ): AutoragEvaluationMetric | undefined {
-  const normalizedObjective = objectiveName === undefined ? undefined : normalize(objectiveName);
+  const reference =
+    objectiveReference === undefined
+      ? undefined
+      : typeof objectiveReference === 'string'
+        ? { name: objectiveReference }
+        : objectiveReference;
+  const normalizedObjective = reference ? normalizeMetricReference(reference) : undefined;
   const flaggedMatches = pattern.evaluation.metrics.filter(
     (metric) =>
       metric.optimization_metric === true &&
-      (normalizedObjective === undefined || normalize(metric.name) === normalizedObjective),
+      (normalizedObjective === undefined ||
+        (normalize(metric.name) === normalizedObjective.name &&
+          (normalizedObjective.evaluator === undefined ||
+            normalizeMetricReference(metric).evaluator === normalizedObjective.evaluator))),
   );
+
+  // An evaluator-qualified reference identifies the selected metric even when another evaluator
+  // carries the optimization marker.
+  if (reference && normalizedObjective?.evaluator !== undefined) {
+    return findUniqueMetric(pattern.evaluation.metrics, reference);
+  }
 
   if (flaggedMatches.length === 1) {
     const flaggedObjective = findUniqueMetric(pattern.evaluation.metrics, flaggedMatches[0]);
@@ -119,10 +135,10 @@ export function getObjectiveMetric(
     }
   }
 
-  if (objectiveName === undefined) {
+  if (reference === undefined) {
     return undefined;
   }
-  return findUniqueMetric(pattern.evaluation.metrics, { name: objectiveName });
+  return findUniqueMetric(pattern.evaluation.metrics, { name: reference.name });
 }
 
 /** Resolve one display reference for the run objective across the available patterns. */
@@ -139,7 +155,7 @@ export function resolveObjectiveReference(
   const evaluators = new Map<string, string>();
   objectiveMetrics.forEach((metric) => {
     const normalizedEvaluator = normalizeMetricReference(metric).evaluator;
-    if (normalizedEvaluator && !evaluators.has(normalizedEvaluator)) {
+    if (normalizedEvaluator !== undefined && !evaluators.has(normalizedEvaluator)) {
       evaluators.set(normalizedEvaluator, metric.evaluator);
     }
   });
@@ -192,8 +208,11 @@ export function formatMetricValue(value: number | string, precision = 3): string
   return fixed;
 }
 
-export function isPatternRankable(pattern: AutoragPattern, objectiveName: string): boolean {
-  const mean = getObjectiveMetric(pattern, objectiveName)?.scores.mean;
+export function isPatternRankable(
+  pattern: AutoragPattern,
+  objectiveReference: ObjectiveReference,
+): boolean {
+  const mean = getObjectiveMetric(pattern, objectiveReference)?.scores.mean;
   return typeof mean === 'number' && Number.isFinite(mean);
 }
 
@@ -205,14 +224,14 @@ export function getOptimizedScore(pattern: AutoragPattern): number {
 
 export function computePatternRankMap(
   patterns: Record<string, AutoragPattern>,
-  objectiveName = DEFAULT_OPTIMIZATION_METRIC,
+  objectiveReference: ObjectiveReference = { name: DEFAULT_OPTIMIZATION_METRIC },
 ): Record<string, number> {
   const sorted = Object.entries(patterns)
-    .filter(([, pattern]) => isPatternRankable(pattern, objectiveName))
+    .filter(([, pattern]) => isPatternRankable(pattern, objectiveReference))
     .toSorted(
       ([, a], [, b]) =>
-        getObjectiveMetric(b, objectiveName)!.scores.mean! -
-        getObjectiveMetric(a, objectiveName)!.scores.mean!,
+        getObjectiveMetric(b, objectiveReference)!.scores.mean! -
+        getObjectiveMetric(a, objectiveReference)!.scores.mean!,
     );
   const map: Record<string, number> = {};
   sorted.forEach(([key], index) => {
@@ -223,18 +242,18 @@ export function computePatternRankMap(
 
 export function resolveBestPatternKey(
   patterns: Record<string, AutoragPattern>,
-  objectiveName = DEFAULT_OPTIMIZATION_METRIC,
+  objectiveReference: ObjectiveReference = { name: DEFAULT_OPTIMIZATION_METRIC },
 ): string | undefined {
   const patternKeys = Object.keys(patterns).filter((key) =>
-    isPatternRankable(patterns[key], objectiveName),
+    isPatternRankable(patterns[key], objectiveReference),
   );
   if (patternKeys.length === 0) {
     return undefined;
   }
   return patternKeys.toSorted(
     (a, b) =>
-      getObjectiveMetric(patterns[b], objectiveName)!.scores.mean! -
-      getObjectiveMetric(patterns[a], objectiveName)!.scores.mean!,
+      getObjectiveMetric(patterns[b], objectiveReference)!.scores.mean! -
+      getObjectiveMetric(patterns[a], objectiveReference)!.scores.mean!,
   )[0];
 }
 

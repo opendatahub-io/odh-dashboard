@@ -49,7 +49,8 @@ describe('metricUtils', () => {
     expect(metricKey({ name: ' Faithfulness ', evaluator: ' RAGAS ' })).toBe(
       'metric:["ragas","faithfulness"]',
     );
-    expect(metricKey({ name: 'Faithfulness' })).toBe('metric:["","faithfulness"]');
+    expect(metricKey({ name: 'Faithfulness' })).toBe('metric:[null,"faithfulness"]');
+    expect(metricKey({ name: 'Faithfulness', evaluator: '' })).toBe('metric:["","faithfulness"]');
   });
 
   it('normalizes metric DOM IDs without exposing unsafe identity characters', () => {
@@ -84,12 +85,38 @@ describe('metricUtils', () => {
     expect(findMetric(pattern, { name: 'missing', evaluator: 'unitxt' })).toBeUndefined();
   });
 
+  it('preserves an explicit empty evaluator as an exact metric identity', () => {
+    const emptyEvaluatorMetric = makeMetric('faithfulness', '', 0.8, true);
+    const ragasMetric = makeMetric('faithfulness', 'ragas', 0.9);
+    const pattern = makePattern([emptyEvaluatorMetric, ragasMetric]);
+
+    expect(findMetric(pattern, { name: 'faithfulness', evaluator: '' })).toBe(emptyEvaluatorMetric);
+    expect(getObjectiveMetric(pattern, { name: 'faithfulness', evaluator: '' })).toBe(
+      emptyEvaluatorMetric,
+    );
+    expect(resolveObjectiveReference({ pattern }, 'faithfulness')).toEqual({
+      name: 'faithfulness',
+      evaluator: '',
+    });
+  });
+
   it('selects the single flagged objective metric when names are duplicated', () => {
     const unitxtMetric = makeMetric('faithfulness', 'unitxt', 0.6);
     const judgeMetric = makeMetric('faithfulness', 'judge', 0.9, true);
     const pattern = makePattern([unitxtMetric, judgeMetric]);
 
     expect(getObjectiveMetric(pattern, 'FAITHFULNESS')).toBe(judgeMetric);
+  });
+
+  it('uses an evaluator-qualified objective reference when markers select another evaluator', () => {
+    const unitxtMetric = makeMetric('faithfulness', 'unitxt', 0.6);
+    const judgeMetric = makeMetric('faithfulness', 'judge', 0.9, true);
+    const pattern = makePattern([unitxtMetric, judgeMetric]);
+
+    expect(getObjectiveMetric(pattern, { name: 'faithfulness', evaluator: 'unitxt' })).toBe(
+      unitxtMetric,
+    );
+    expect(isPatternRankable(pattern, { name: 'faithfulness', evaluator: 'unitxt' })).toBe(true);
   });
 
   it('falls back to a unique objective metric when the pattern is not flagged', () => {
@@ -159,6 +186,27 @@ describe('metricUtils', () => {
     };
 
     expect(computePatternRankMap(patterns, 'faithfulness')).toEqual({ winner: 1, other: 2 });
+  });
+
+  it('ranks unflagged same-named metrics using the selected evaluator', () => {
+    const selectedPattern = makePattern([makeMetric('faithfulness', 'unitxt', 0.6, true)]);
+    const unflaggedPattern = makePattern([
+      makeMetric('faithfulness', 'unitxt', 0.9),
+      makeMetric('faithfulness', 'judge', 0.1),
+    ]);
+
+    expect(
+      computePatternRankMap(
+        { selected: selectedPattern, unflagged: unflaggedPattern },
+        { name: 'faithfulness', evaluator: 'unitxt' },
+      ),
+    ).toEqual({ unflagged: 1, selected: 2 });
+    expect(
+      resolveBestPatternKey(
+        { selected: selectedPattern, unflagged: unflaggedPattern },
+        { name: 'faithfulness', evaluator: 'unitxt' },
+      ),
+    ).toBe('unflagged');
   });
 
   it('formats non-finite metric values as N/A', () => {

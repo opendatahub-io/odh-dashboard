@@ -191,8 +191,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
   ]);
 
   const rankMap = React.useMemo(
-    () => computePatternRankMap(patterns, optimizationMetric.name),
-    [patterns, optimizationMetric.name],
+    () => computePatternRankMap(patterns, optimizationMetric),
+    [patterns, optimizationMetric],
   );
 
   const patternKeys = React.useMemo(() => Object.keys(patterns), [patterns]);

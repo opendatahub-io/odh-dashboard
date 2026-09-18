@@ -75,7 +75,7 @@ export function getAutoragContext({
     typeof runtimeObjective === 'string' ? runtimeObjective : DEFAULT_OPTIMIZATION_METRIC;
   const optimizationMetric = resolveObjectiveReference(patterns, objectiveName);
 
-  const bestPatternKey = resolveBestPatternKey(patterns, objectiveName);
+  const bestPatternKey = resolveBestPatternKey(patterns, optimizationMetric);
 
   return {
     pipelineRun,

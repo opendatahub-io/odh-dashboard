@@ -794,6 +794,28 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('top-rank-label')).toHaveTextContent('1');
     });
 
+    it('should use the selected evaluator for unflagged same-named metrics', () => {
+      const selectedPattern = createMockPattern('Selected evaluator', { faithfulness: 0.6 });
+      const unflaggedPattern = createMockPattern('Unflagged evaluator', { faithfulness: 0.9 });
+      unflaggedPattern.evaluation.metrics[0].optimization_metric = false;
+      unflaggedPattern.evaluation.metrics.push({
+        evaluator: 'ragas',
+        name: 'faithfulness',
+        scores: { mean: 0.1, ci_high: 0.1, ci_low: 0.1 },
+      });
+
+      renderWithContext({
+        patterns: { selected: selectedPattern, unflagged: unflaggedPattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const rank1Row = screen.getByTestId('leaderboard-row-1');
+      expect(within(rank1Row).getByText('Unflagged evaluator')).toBeInTheDocument();
+      expect(within(rank1Row).getByTestId('metric-faithfulness-unitxt-1')).toHaveTextContent(
+        '0.900',
+      );
+    });
+
     it('should not highlight non-top patterns', () => {
       renderWithContext({
         patterns: mockStandardPatterns,

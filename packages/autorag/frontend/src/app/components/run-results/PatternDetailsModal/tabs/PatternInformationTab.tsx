@@ -11,7 +11,7 @@ export function buildTopLevelFields(
   optimizationMetric?: MetricReference,
 ): Record<string, unknown> {
   const objectiveMean = optimizationMetric
-    ? getObjectiveMetric(pattern, optimizationMetric.name)?.scores.mean
+    ? getObjectiveMetric(pattern, optimizationMetric)?.scores.mean
     : getObjectiveMetric(pattern)?.scores.mean;
   const finalScore =
     typeof objectiveMean === 'number' && Number.isFinite(objectiveMean) ? objectiveMean : 'N/A';

@@ -3,7 +3,9 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { AutoragEvaluationMetric } from '~/app/types/autoragPattern';
-import ConfidenceIntervalChart from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
+import ConfidenceIntervalChart, {
+  hasConfidenceIntervalData,
+} from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
 
 const metric = (
   name: string,
@@ -96,6 +98,16 @@ describe('ConfidenceIntervalChart', () => {
     it('should return null for empty scores', () => {
       const { container } = render(<ConfidenceIntervalChart scores={[]} />);
       expect(container.firstChild).toBeNull();
+    });
+
+    it('should report no confidence interval data when all scores are unavailable', () => {
+      const scores: AutoragEvaluationMetric[] = [
+        metric('answer_correctness', { mean: null, ci_low: null, ci_high: null }),
+        metric('faithfulness', { mean: Number.NaN, ci_low: null, ci_high: null }),
+      ];
+
+      expect(hasConfidenceIntervalData(scores)).toBe(false);
+      expect(hasConfidenceIntervalData(fullScores)).toBe(true);
     });
 
     it('should render metrics with a finite zero mean and no CI values', () => {

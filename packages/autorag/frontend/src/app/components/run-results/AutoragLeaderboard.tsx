@@ -463,11 +463,12 @@ function AutoragLeaderboard({
       normalizeMetricReference(metric.metric).name ===
       normalizeMetricReference(optimizationMetric).name,
   );
-  const nonOptimizedMetricKeys = optimizationMetric.evaluator
-    ? metricKeys.filter((metric) => metric.id !== optimizationMetricKey)
-    : optimizedMetricColumns.length === 1
-      ? metricKeys.filter((metric) => metric.id !== optimizedMetricColumns[0].id)
-      : metricKeys;
+  const nonOptimizedMetricKeys =
+    optimizationMetric.evaluator !== undefined
+      ? metricKeys.filter((metric) => metric.id !== optimizationMetricKey)
+      : optimizedMetricColumns.length === 1
+        ? metricKeys.filter((metric) => metric.id !== optimizedMetricColumns[0].id)
+        : metricKeys;
   // Column definitions — source of truth for column IDs, labels, and default order.
   // Default order: leading columns first, then remaining sorted by priority / alphabetically.
   const columnDefs = React.useMemo<LeaderboardColumn[]>(() => {
@@ -622,7 +623,7 @@ function AutoragLeaderboard({
           metrics[metric.id] = getMetricObject(metric);
         });
 
-        const objectiveMean = getObjectiveMetric(pattern, optimizationMetric.name)?.scores.mean;
+        const objectiveMean = getObjectiveMetric(pattern, optimizationMetric)?.scores.mean;
         const optimizedMetricValue =
           typeof objectiveMean === 'number' && Number.isFinite(objectiveMean)
             ? objectiveMean
@@ -779,7 +780,7 @@ function AutoragLeaderboard({
     }
 
     return rankedEntries;
-  }, [patterns, metricKeys, optimizationMetric.name, activeSort, bestPatternKey]);
+  }, [patterns, metricKeys, optimizationMetric, activeSort, bestPatternKey]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(
@@ -1112,7 +1113,7 @@ function AutoragLeaderboard({
       <CardBody>
         <Content component={ContentVariants.h3}>Results</Content>
         {Object.values(patterns).some(
-          (pattern) => !isPatternRankable(pattern, optimizationMetric.name),
+          (pattern) => !isPatternRankable(pattern, optimizationMetric),
         ) && (
           <Alert
             variant="warning"

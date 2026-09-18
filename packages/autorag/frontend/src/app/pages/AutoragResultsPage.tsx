@@ -269,8 +269,7 @@ function AutoragResultsPage(): React.JSX.Element {
         return false;
       }
 
-      const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric.name)?.scores
-        .mean;
+      const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
         type: 'playground',
         responsesTemplate,

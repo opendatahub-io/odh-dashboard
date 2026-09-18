@@ -36,7 +36,7 @@ const getColumns = (optimizationMetric: MetricReference): ColumnDef[] => [
   {
     label: `${metricLabel(optimizationMetric)} (Optimized)`,
     getValue: (p) => {
-      const mean = getObjectiveMetric(p, optimizationMetric.name)?.scores.mean;
+      const mean = getObjectiveMetric(p, optimizationMetric)?.scores.mean;
       return mean != null ? formatMetricValue(mean) : 'N/A';
     },
   },
