@@ -19,7 +19,7 @@ const ModArchWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <BrowserStorageContextProvider>
       <NotificationContextProvider>
-        <MainPage />
+        <MainPage basePath="/ai-hub/connections" />
       </NotificationContextProvider>
     </BrowserStorageContextProvider>
   </ModularArchContextProvider>

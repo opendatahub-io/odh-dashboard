@@ -56,11 +56,12 @@ export const PROMETHEUS_CLUSTER_QUERY_PATH = '/api/prometheus/cluster/query';
 export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/queryRange';
 
 export const INFRASTRUCTURE_TABS = [
-  { id: 'utilization', title: 'Accelerator utilization' },
-  { id: 'quota-usage', title: 'Quota usage' },
+  { id: 'utilization', title: 'Accelerator utilization', layout: 'page' },
+  { id: 'quota-usage', title: 'Quota usage', layout: 'viewport' },
 ] as const;
 
 export type InfrastructureTabId = (typeof INFRASTRUCTURE_TABS)[number]['id'];
+export type InfrastructureTabLayout = (typeof INFRASTRUCTURE_TABS)[number]['layout'];
 
 export const QUOTA_USAGE_DESCRIPTION =
   'View quota usage across cluster queues, which are entry points for workloads to access defined pools of hardware resources. Cluster queues organized into cohorts can borrow accelerators from the defined pool.';
@@ -72,7 +73,8 @@ export const QUOTA_USAGE_ERROR_TITLE = 'Error loading cluster queue data';
 
 export const QUOTA_UNASSIGNED_NODE_ID = 'quota-unassigned';
 export const QUOTA_UNASSIGNED_LABEL = 'Unassigned';
-export const QUOTA_UNASSIGNED_TOOLTIP = 'Cluster queues not assigned to a cohort.';
+export const QUOTA_UNASSIGNED_DESCRIPTION =
+  'Cluster queues appear here until they are assigned to a cohort.';
 export const QUOTA_USAGE_TREE_DRAWER_PANEL_ID = 'quota-usage-tree-drawer-panel';
 
 export const QUOTA_USAGE_SUMMARY = {
@@ -152,11 +154,13 @@ export const QUOTA_USAGE_METER = {
 export const QUOTA_USAGE_BORROWING = {
   enabledLabel: 'Borrowing enabled',
   label: (count: number, cohortName: string): string =>
-    `Borrowing ${count} ${cohortName} accelerators`,
-  popoverBorrowingLabel: 'Borrowing:',
-  popoverSinceLabel: 'Since:',
+    `Borrowing ${count} ${cohortName} accelerator${count === 1 ? '' : 's'}`,
+  popoverBorrowingLabel: 'Currently borrowing:',
+  popoverSinceLabel: (count: number): string =>
+    `Borrowing accelerator${count === 1 ? '' : 's'} since:`,
   popoverModelLine: (count: number, model: string): string => `${count} x ${model}`,
-  cohortCalloutSuffix: (cohortName: string): string => ` is borrowing ${cohortName} accelerators`,
+  cohortCalloutSuffix: (count: number, cohortName: string): string =>
+    ` is borrowing ${cohortName} accelerator${count === 1 ? '' : 's'}`,
 } as const;
 
 export const INFRASTRUCTURE_SECTIONS = [
@@ -166,7 +170,7 @@ export const INFRASTRUCTURE_SECTIONS = [
     title: 'Summary',
     description: 'Cluster-wide accelerator allocation and average compute and memory consumption.',
     isPlain: true,
-    refreshBadgeTestId: undefined,
+    refreshBadgeTestId: 'infrastructure-refresh-badge',
     showKueueHelpLink: false,
   },
   {

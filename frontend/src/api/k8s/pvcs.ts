@@ -174,11 +174,20 @@ export const updatePvc = (
   );
 };
 
-export const deletePvc = (pvcName: string, namespace: string): Promise<K8sStatus> =>
-  k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: namespace },
-  });
+export const deletePvc = (
+  pvcName: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>(
+    applyK8sAPIOptions(
+      {
+        model: PVCModel,
+        queryOptions: { name: pvcName, ns: namespace },
+      },
+      opts,
+    ),
+  );
 
 export const getPvc = (
   projectName: string,

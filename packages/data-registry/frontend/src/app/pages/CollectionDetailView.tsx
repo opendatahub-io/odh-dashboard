@@ -53,11 +53,11 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
       <Td dataLabel="Type">{assetType}</Td>
       <Td dataLabel="Format">
         {asset.format === 'Structured' || asset.format === 'Unstructured' ? (
-          <Label isCompact color="grey">
+          <Label isCompact variant="outline">
             {assetType}
           </Label>
         ) : (
-          <Label isCompact color={asset.assetType === 'table' ? 'orange' : 'grey'}>
+          <Label isCompact variant="outline">
             {asset.format}
           </Label>
         )}

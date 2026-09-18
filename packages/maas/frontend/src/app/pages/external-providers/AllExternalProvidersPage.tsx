@@ -17,6 +17,8 @@ import {
 } from './const';
 import EmptyExternalProvidersPage from './EmptyExternalProvidersPage';
 import DeleteExternalProviderModal from './DeleteExternalProviderModal';
+import CreateExternalProviderModal from './createProvider/CreateExternalProviderModal';
+import EditExternalProviderModal from './editProvider/EditExternalProviderModal';
 import { ExternalProvidersTable } from './ExternalProvidersTable';
 import ExternalProvidersToolBar from './ExternalProvidersToolbar';
 import { filterExternalProviders, hasActiveExternalProvidersFilters } from './utils';
@@ -32,6 +34,10 @@ const AllExternalProvidersPage: React.FC = () => {
   const [deleteExternalProvider, setDeleteExternalProvider] = React.useState<
     ExternalProvider | undefined
   >(undefined);
+  const [editExternalProvider, setEditExternalProvider] = React.useState<
+    ExternalProvider | undefined
+  >(undefined);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
   const [filterData, setFilterData] = React.useState<ExternalProvidersFilterDataType>(
     initialExternalProvidersFilterData,
@@ -119,12 +125,11 @@ const AllExternalProvidersPage: React.FC = () => {
         errorMessage="Error loading external providers"
         empty={noProjects}
         emptyStatePage={<NoProjectsPage />}
-        data-testid="all-external-providers-page"
         breadcrumb={breadcrumb}
         provideChildrenPadding
         removeChildrenTopPadding
       >
-        <Stack hasGutter>
+        <Stack hasGutter data-testid="all-external-providers-page">
           <StackItem>
             <MaaSExternalResourcesProjectSelector
               namespace={resolvedNamespace || ''}
@@ -137,21 +142,24 @@ const AllExternalProvidersPage: React.FC = () => {
               externalProvidersLoaded &&
               !externalProvidersError &&
               (externalProviders.length === 0 && !hasActiveFilters ? (
-                <EmptyExternalProvidersPage />
+                <EmptyExternalProvidersPage
+                  onCreateExternalProvider={() => setIsCreateModalOpen(true)}
+                />
               ) : (
                 <ExternalProvidersTable
                   externalProviders={filteredExternalProviders}
                   onClearFilters={onClearFilters}
                   toolbarContent={
                     <ExternalProvidersToolBar
-                      namespace={resolvedNamespace}
                       filterData={filterData}
                       onNameChange={onNameChange}
                       onMultiSelectToggle={onMultiSelectToggle}
                       onMultiSelectClear={onMultiSelectClear}
+                      onAddExternalProvider={() => setIsCreateModalOpen(true)}
                     />
                   }
                   emptyTableView={hasActiveFilters ? undefined : <></>}
+                  setEditExternalProvider={setEditExternalProvider}
                   setDeleteExternalProvider={setDeleteExternalProvider}
                 />
               ))}
@@ -163,6 +171,28 @@ const AllExternalProvidersPage: React.FC = () => {
             onClose={(deleted) => {
               setDeleteExternalProvider(undefined);
               if (deleted) {
+                refreshExternalProviders();
+              }
+            }}
+          />
+        )}
+        {editExternalProvider && (
+          <EditExternalProviderModal
+            externalProvider={editExternalProvider}
+            onClose={(updated) => {
+              setEditExternalProvider(undefined);
+              if (updated) {
+                refreshExternalProviders();
+              }
+            }}
+          />
+        )}
+        {isCreateModalOpen && resolvedNamespace && (
+          <CreateExternalProviderModal
+            namespace={resolvedNamespace}
+            onClose={(created) => {
+              setIsCreateModalOpen(false);
+              if (created) {
                 refreshExternalProviders();
               }
             }}

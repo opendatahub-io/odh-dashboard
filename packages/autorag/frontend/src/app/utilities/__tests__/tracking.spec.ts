@@ -30,8 +30,10 @@ import {
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
   fireAutoragVectorStoreConfigured,
+  getVectorStoreProviderTypeFromSecretData,
   isAutoragResultsNavigationState,
   mapOptimizationMetric,
+  toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -255,6 +257,53 @@ describe('fireAutoragModelsSelected', () => {
   });
 });
 
+describe('toVectorStoreProviderType', () => {
+  it('should map remote::milvus to milvus', () => {
+    expect(toVectorStoreProviderType('remote::milvus')).toBe('milvus');
+  });
+
+  it('should map remote::pgvector to pgvector', () => {
+    expect(toVectorStoreProviderType('remote::pgvector')).toBe('pgvector');
+  });
+
+  it('should return undefined for an unrecognized provider type', () => {
+    expect(toVectorStoreProviderType('inline::faiss')).toBeUndefined();
+    expect(toVectorStoreProviderType('')).toBeUndefined();
+  });
+});
+
+describe('getVectorStoreProviderTypeFromSecretData', () => {
+  it('should infer Milvus from redacted key metadata', () => {
+    expect(getVectorStoreProviderTypeFromSecretData({ MILVUS_URI: '[REDACTED]' })).toBe('milvus');
+  });
+
+  it('should infer PGVector from its complete redacted key metadata', () => {
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        PGVECTOR_HOST: '[REDACTED]',
+        PGVECTOR_PORT: '[REDACTED]',
+        PGVECTOR_DB: '[REDACTED]',
+        PGVECTOR_USER: '[REDACTED]',
+        PGVECTOR_PASSWORD: '[REDACTED]',
+      }),
+    ).toBe('pgvector');
+  });
+
+  it('should omit provider type for ambiguous or incomplete metadata', () => {
+    expect(
+      getVectorStoreProviderTypeFromSecretData({
+        MILVUS_URI: '[REDACTED]',
+        PGVECTOR_HOST: '[REDACTED]',
+        PGVECTOR_PORT: '[REDACTED]',
+        PGVECTOR_DB: '[REDACTED]',
+        PGVECTOR_USER: '[REDACTED]',
+        PGVECTOR_PASSWORD: '[REDACTED]',
+      }),
+    ).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromSecretData({})).toBeUndefined();
+  });
+});
+
 describe('fireAutoragVectorStoreConfigured', () => {
   it('should fire with the categorized provider type and compatible provider count', () => {
     fireAutoragVectorStoreConfigured({
@@ -270,6 +319,10 @@ describe('fireAutoragVectorStoreConfigured', () => {
       outcome: TrackingOutcome.submit,
       success: true,
     });
+    const payload =
+      fireFormTrackingEventMock.mock.calls[fireFormTrackingEventMock.mock.calls.length - 1][1];
+    expect(payload).not.toHaveProperty('secretName');
+    expect(payload).not.toHaveProperty('MILVUS_URI');
   });
 });
 

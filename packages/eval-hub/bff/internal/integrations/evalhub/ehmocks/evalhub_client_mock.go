@@ -17,6 +17,7 @@ type MockEvalHubClient struct {
 	collectionOverrides       map[string]*evalhub.Collection
 	deletedCollections        map[string]bool
 	LastListCollectionsParams *evalhub.ListCollectionsParams
+	logsTruncated             bool
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -34,6 +35,18 @@ func (m *MockEvalHubClient) setCollection(id string, c *evalhub.Collection) {
 		m.collectionOverrides = make(map[string]*evalhub.Collection)
 	}
 	m.collectionOverrides[id] = c
+}
+
+func (m *MockEvalHubClient) SetLogsTruncated(truncated bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.logsTruncated = truncated
+}
+
+func (m *MockEvalHubClient) isLogsTruncated() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.logsTruncated
 }
 
 func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.HealthResponse, error) {
@@ -587,12 +600,18 @@ func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ s
 	return nil
 }
 
-func (m *MockEvalHubClient) GetEvaluationJobLogs(_ context.Context, id string, _ string, _ evalhub.GetJobLogsParams) (string, error) {
-	return fmt.Sprintf("=== Logs for job %s ===\n[2026-03-01T09:00:00Z] Starting evaluation...\n[2026-03-01T09:05:00Z] Benchmark truthfulqa_mc1 completed.\n", id), nil
+func (m *MockEvalHubClient) GetEvaluationJobLogs(_ context.Context, id string, _ string, _ evalhub.GetJobLogsParams) (evalhub.EvaluationJobLogsResponse, error) {
+	return evalhub.EvaluationJobLogsResponse{
+		Logs:      fmt.Sprintf("=== Logs for job %s ===\n[2026-03-01T09:00:00Z] Starting evaluation...\n[2026-03-01T09:05:00Z] Benchmark truthfulqa_mc1 completed.\n", id),
+		Truncated: m.isLogsTruncated(),
+	}, nil
 }
 
-func (m *MockEvalHubClient) GetEvaluationJobBenchmarkLogs(_ context.Context, id string, benchmarkIndex int, _ string, _ evalhub.GetJobLogsParams) (string, error) {
-	return fmt.Sprintf("=== Logs for job %s benchmark %d ===\n[2026-03-01T09:01:00Z] Running benchmark...\n[2026-03-01T09:05:00Z] Benchmark completed.\n", id, benchmarkIndex), nil
+func (m *MockEvalHubClient) GetEvaluationJobBenchmarkLogs(_ context.Context, id string, benchmarkIndex int, _ string, _ evalhub.GetJobLogsParams) (evalhub.EvaluationJobLogsResponse, error) {
+	return evalhub.EvaluationJobLogsResponse{
+		Logs:      fmt.Sprintf("=== Logs for job %s benchmark %d ===\n[2026-03-01T09:01:00Z] Running benchmark...\n[2026-03-01T09:05:00Z] Benchmark completed.\n", id, benchmarkIndex),
+		Truncated: m.isLogsTruncated(),
+	}, nil
 }
 
 func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {

@@ -158,6 +158,33 @@ export const getStepDetailsLoadingContent = (): PipelineDetailsEmptyContent => (
   secondaryText: 'Details will appear once this step is complete.',
 });
 
+export const STAGE_MAP_UNAVAILABLE_NOTICE = {
+  title: 'Pipeline view could not be loaded',
+  description:
+    'Something went wrong while preparing the pipeline view. Check your connections, then retry the run.',
+} as const;
+
+export type StageMapUnavailableNoticeArgs = {
+  hasStageMapTask: boolean;
+  hasComponentStageMap: boolean;
+  componentStageMapLoading: boolean;
+  treeLoadingMode?: PipelineTreeLoadingMode;
+  runIsTerminal: boolean;
+};
+
+export const shouldShowStageMapUnavailableNotice = ({
+  hasStageMapTask,
+  hasComponentStageMap,
+  componentStageMapLoading,
+  treeLoadingMode,
+  runIsTerminal,
+}: StageMapUnavailableNoticeArgs): boolean =>
+  hasStageMapTask &&
+  !hasComponentStageMap &&
+  !componentStageMapLoading &&
+  !treeLoadingMode &&
+  runIsTerminal;
+
 export const getPipelineDetailsEmptyContent = (
   statusFilter: PipelineStatusFilter,
 ): PipelineDetailsEmptyContent => {

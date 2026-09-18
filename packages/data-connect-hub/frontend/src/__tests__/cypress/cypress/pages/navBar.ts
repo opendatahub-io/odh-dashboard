@@ -8,25 +8,20 @@ class NavBar {
   }
 
   findNamespaceSelector() {
-    return cy.get('.kubeflow-u-namespace-select');
+    return cy.findByTestId('project-selector-toggle');
   }
 
   selectNamespace(name: string) {
-    this.findNamespaceSelector().findByRole('button').click();
-    cy.findByRole('option', { name }).click();
-  }
-
-  findUsername() {
-    return cy.findByTestId('user-menu-toggle-button');
-  }
-
-  openUserMenu() {
-    this.findUsername().click();
+    this.findNamespaceSelector().click();
+    cy.findByRole('menuitem', { name }).click();
   }
 
   shouldNamespaceSelectorHaveNoItems() {
-    this.findNamespaceSelector().click();
-    cy.findByRole('option').should('not.exist');
+    this.findNamespaceSelector().should('not.exist');
+  }
+
+  shouldShowEmptyState() {
+    return cy.findByTestId('empty-empty-state').should('exist');
   }
 }
 

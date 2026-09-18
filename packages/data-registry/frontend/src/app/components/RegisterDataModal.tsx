@@ -13,7 +13,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSettings } from 'mod-arch-core';
 import { createVolume, createGenericTable, createLabel, ApiError } from '~/app/api/dataRegistry';
-import { CreateVolumeRequest, CreateGenericTableRequest } from '~/app/types';
+import { CreateVolumeRequest, CreateGenericTableRequest, ConnectionModel } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
 import {
   registerDataSchema,
@@ -35,7 +35,10 @@ type RegisterDataModalProps = {
   onManageCollections: () => void;
 };
 
-const buildVolumeRequest = (data: RegisterDataFormData): CreateVolumeRequest => {
+const buildVolumeRequest = (
+  data: RegisterDataFormData,
+  connections: ConnectionModel[],
+): CreateVolumeRequest => {
   const request: CreateVolumeRequest = {
     name: data.name.trim(),
     // eslint-disable-next-line camelcase
@@ -51,21 +54,30 @@ const buildVolumeRequest = (data: RegisterDataFormData): CreateVolumeRequest => 
     request.location = data.path;
   }
   if (data.connection) {
+    const selectedConnection = connections.find((c) => c.name === data.connection);
+    // Determine connection type - DCH connections have connectionType 'dch', others are RHAI
+    const isDch = selectedConnection?.connectionType?.toLowerCase() === 'dch';
     // eslint-disable-next-line camelcase
-    request.connection_ref = data.connection;
+    request.connection_ref = isDch
+      ? { type: 'dch', id: data.connection }
+      : // eslint-disable-next-line camelcase
+        { type: 'rhai', secret_name: data.connection };
   }
   if (data.labels.length > 0) {
     request.labels = data.labels;
   }
   const properties: Record<string, string> = {};
   if (data.purpose) {
-    properties.purpose = data.purpose;
+    // eslint-disable-next-line camelcase
+    properties.volume_purpose = data.purpose;
   }
   if (data.license) {
-    properties.license = data.license;
+    // eslint-disable-next-line camelcase
+    properties.volume_license = data.license;
   }
   if (data.maturity) {
-    properties.maturity = data.maturity;
+    // eslint-disable-next-line camelcase
+    properties.volume_maturity = data.maturity;
   }
   if (data.piiStatus) {
     // eslint-disable-next-line camelcase
@@ -82,7 +94,10 @@ const buildVolumeRequest = (data: RegisterDataFormData): CreateVolumeRequest => 
   return request;
 };
 
-const buildTableRequest = (data: RegisterDataFormData): CreateGenericTableRequest => {
+const buildTableRequest = (
+  data: RegisterDataFormData,
+  connections: ConnectionModel[],
+): CreateGenericTableRequest => {
   const request: CreateGenericTableRequest = {
     name: data.name.trim(),
     format: data.format,
@@ -97,8 +112,14 @@ const buildTableRequest = (data: RegisterDataFormData): CreateGenericTableReques
     request.location = data.path;
   }
   if (data.connection) {
+    const selectedConnection = connections.find((c) => c.name === data.connection);
+    // Determine connection type - DCH connections have connectionType 'dch', others are RHAI
+    const isDch = selectedConnection?.connectionType?.toLowerCase() === 'dch';
     // eslint-disable-next-line camelcase
-    request.connection_ref = data.connection;
+    request.connection_ref = isDch
+      ? { type: 'dch', id: data.connection }
+      : // eslint-disable-next-line camelcase
+        { type: 'rhai', secret_name: data.connection };
   }
   if (data.labels.length > 0) {
     request.labels = data.labels;
@@ -190,9 +211,9 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           );
         }
         if (data.assetType === 'unstructured') {
-          await createVolume(project, data.collection, buildVolumeRequest(data));
+          await createVolume(project, data.collection, buildVolumeRequest(data, connections));
         } else {
-          await createGenericTable(project, data.collection, buildTableRequest(data));
+          await createGenericTable(project, data.collection, buildTableRequest(data, connections));
         }
         form.reset({ ...registerDataDefaults, owner: userId });
         onCreated();
@@ -203,7 +224,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         setIsSubmitting(false);
       }
     },
-    [project, form, onCreated, onClose, userId],
+    [project, form, onCreated, onClose, userId, connections],
   );
 
   const assetType = form.watch('assetType');

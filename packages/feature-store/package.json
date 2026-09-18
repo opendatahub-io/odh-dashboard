@@ -78,6 +78,6 @@
     "react": "^18",
     "react-dom": "^18",
     "react-router": "^7",
-    "react-router-dom": "^7"
+    "react-router-dom": "^7.18.3"
   }
 }

@@ -48,6 +48,9 @@ const WELL_KNOWN_PROPERTIES = new Set([
   'license',
   'maturity',
   'pii_status',
+  'volume_purpose', // Backend storage format for volumes
+  'volume_license',
+  'volume_maturity',
   'description',
   'content-type',
   'connection-ref',
@@ -100,9 +103,9 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
       ? getConnectionDisplayValue(asset.connection_ref)
       : asset.properties?.['connection-ref'] || '',
     path: isTable ? (asset.location ?? '') : asset['storage-location'],
-    purpose: properties.purpose || '',
-    license: properties.license || '',
-    maturity: properties.maturity || '',
+    purpose: isTable ? properties.purpose || '' : properties.volume_purpose || '',
+    license: isTable ? properties.license || '' : properties.volume_license || '',
+    maturity: isTable ? properties.maturity || '' : properties.volume_maturity || '',
     piiStatus: properties.pii_status || '',
     customProperties,
     schemaFields: isTable
@@ -201,12 +204,13 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
             ...customProps,
             ...(persistedFormat ? { 'content-type': persistedFormat } : {}),
           };
-          allProperties.purpose = data.purpose;
+          // Always set volume_purpose to allow clearing it (empty string)
+          allProperties.volume_purpose = data.purpose;
           if (data.license) {
-            allProperties.license = data.license;
+            allProperties.volume_license = data.license;
           }
           if (data.maturity) {
-            allProperties.maturity = data.maturity;
+            allProperties.volume_maturity = data.maturity;
           }
           if (data.piiStatus) {
             allProperties.pii_status = data.piiStatus;

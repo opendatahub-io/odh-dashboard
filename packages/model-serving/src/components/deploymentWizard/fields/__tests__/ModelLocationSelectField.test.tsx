@@ -237,7 +237,7 @@ const StubConnectionTypeFormFields: React.FC<{
       ))}
   </>
 );
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+jest.mock('@odh-dashboard/plugin-core', () => ({
   useWatchConnectionTypes: () => [mockConnectionTypes, true],
   useServingConnections: jest.fn(() => [mockConnections, true]),
   useHostApi: jest.fn(() => ({
@@ -497,6 +497,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       expect(screen.getByRole('button')).toBeInTheDocument();
@@ -534,6 +535,7 @@ describe('ModelLocationSelectField', () => {
             },
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       expect(screen.getByTestId('model-location-select')).toBeInTheDocument();
@@ -556,6 +558,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: undefined,
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -600,6 +603,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: mockConnectionTypes[0],
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const uriInput = screen.getByTestId('field URI');
@@ -639,6 +643,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: mockConnectionTypes[1],
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const s3Input = screen.getByTestId('field AWS_S3_BUCKET');
@@ -681,6 +686,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: mockConnectionTypes[2],
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const ociInput = screen.getByTestId('field OCI_HOST');
@@ -713,6 +719,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: undefined,
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const modalLocationSelect = screen.getByTestId('model-location-select');
@@ -757,6 +764,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       expect(screen.getByTestId('field CUSTOM_URI_FIELD')).toBeInTheDocument();
@@ -783,6 +791,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -822,6 +831,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -881,6 +891,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -907,6 +918,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -926,6 +938,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -945,6 +958,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -964,6 +978,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -983,6 +998,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -1015,6 +1031,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
 
@@ -1036,6 +1053,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');

@@ -229,6 +229,11 @@ export const mockDeploymentWizardState = (
           setData: jest.fn(),
           isVisible: true,
         },
+        huggingFaceApiKey: {
+          data: { token: '' },
+          setData: jest.fn(),
+        },
+        requiresHuggingFaceApiKey: false,
         canCreateRoleBindings: true,
         validatedConfigurationSelection: {
           selectedValidatedConfigurations: {},

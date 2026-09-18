@@ -124,6 +124,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
               titleText={emptyMessage ?? 'No Components Found'}
               variant={EmptyStateVariant.lg}
               data-id="empty-empty-state"
+              data-testid="empty-empty-state"
             />
           </PageSection>
         )

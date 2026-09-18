@@ -1,5 +1,78 @@
-// Prototype match: collapsed toggle points right, expanded points down (PF default caret is down/up).
 .gpuaas-quota-usage-section {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+
+  > .pf-v6-c-drawer {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .pf-v6-c-drawer,
+  .pf-v6-c-drawer__main {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .pf-v6-c-drawer {
+    overflow: hidden;
+  }
+
+  .pf-v6-c-drawer__main {
+    align-items: stretch;
+  }
+
+  .pf-v6-c-drawer__content,
+  .pf-v6-c-drawer__panel {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  // Left column: toolbar pinned, tree scrolls.
+  .pf-v6-c-drawer__content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .gpuaas-quota-usage-nav {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  // Right column: detail header pinned, body scrolls (resizable panel is row + splitter).
+  .gpuaas-quota-usage-detail-drawer {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+
+    > .pf-v6-c-drawer__panel-main {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .pf-v6-c-drawer__head {
+      flex-shrink: 0;
+    }
+
+    .pf-v6-c-drawer__body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+    }
+  }
+
   .gpuaas-quota-usage-tree {
     --pf-v6-c-tree-view__node-toggle-icon--base--Rotate: -90deg;
     --pf-v6-c-tree-view__list-item--m-expanded__node-toggle-icon--Rotate: 0deg;

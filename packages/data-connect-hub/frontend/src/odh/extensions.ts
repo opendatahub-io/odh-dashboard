@@ -14,28 +14,17 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
   },
   {
-    type: 'app.navigation/section',
-    flags: {
-      required: [SupportedArea.PLUGIN_DATA_CONNECT_HUB],
-    },
-    properties: {
-      id: 'data-connect-hub',
-      title: 'Data Connect Hub',
-      group: '7_data_connect_hub_studio',
-      iconRef: () => import('./DataConnectHubNavIcon'),
-    },
-  },
-  {
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.PLUGIN_DATA_CONNECT_HUB],
     },
     properties: {
       id: 'data-connect-hub-view',
-      title: 'Data Connect Hub',
-      href: '/data-connect-hub/main-view',
-      section: 'data-connect-hub',
-      path: '/data-connect-hub/main-view/*',
+      title: 'Connections',
+      href: '/ai-hub/connections',
+      section: 'ai-hub',
+      path: '/ai-hub/connections/*',
+      group: '4_connections',
       label: 'Tech Preview',
     },
   },
@@ -45,7 +34,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [SupportedArea.PLUGIN_DATA_CONNECT_HUB],
     },
     properties: {
-      path: '/data-connect-hub/main-view/*',
+      path: '/ai-hub/connections/*',
       component: () => import('./DataConnectHubWrapper'),
     },
   },

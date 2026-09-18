@@ -504,6 +504,7 @@ func TestEvalHubClient_GetEvaluationJobLogs(t *testing.T) {
 		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "text/plain", r.Header.Get("Accept"))
 		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("X-Log-Truncated", "true")
 		_, _ = w.Write([]byte(logContent))
 	}))
 	defer server.Close()
@@ -512,7 +513,28 @@ func TestEvalHubClient_GetEvaluationJobLogs(t *testing.T) {
 	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
 
 	require.NoError(t, err)
-	assert.Equal(t, logContent, result)
+	assert.Equal(t, logContent, result.Logs)
+	assert.True(t, result.Truncated)
+}
+
+func TestEvalHubClient_GetEvaluationJobLogs_ReadsTruncationTrailer(t *testing.T) {
+	logContent := "=== Job Logs ===\n[2026-03-01] Starting evaluation...\n[2026-03-01] Done.\n"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Trailer", "X-Log-Truncated")
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(logContent))
+		w.Header().Set("X-Log-Truncated", "true")
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
+
+	require.NoError(t, err)
+	assert.Equal(t, logContent, result.Logs)
+	assert.True(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_WithParams(t *testing.T) {
@@ -534,7 +556,8 @@ func TestEvalHubClient_GetEvaluationJobLogs_WithParams(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, "logs", result)
+	assert.Equal(t, "logs", result.Logs)
+	assert.False(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_EmptyNamespace(t *testing.T) {
@@ -588,6 +611,7 @@ func TestEvalHubClient_GetEvaluationJobBenchmarkLogs(t *testing.T) {
 		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "text/plain", r.Header.Get("Accept"))
 		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("X-Log-Truncated", "false")
 		_, _ = w.Write([]byte(logContent))
 	}))
 	defer server.Close()
@@ -596,7 +620,8 @@ func TestEvalHubClient_GetEvaluationJobBenchmarkLogs(t *testing.T) {
 	result, err := client.GetEvaluationJobBenchmarkLogs(context.Background(), "job-1", 0, "my-ns", GetJobLogsParams{})
 
 	require.NoError(t, err)
-	assert.Equal(t, logContent, result)
+	assert.Equal(t, logContent, result.Logs)
+	assert.False(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobBenchmarkLogs_EmptyNamespace(t *testing.T) {
@@ -670,7 +695,7 @@ func TestEvalHubClient_CreateEvaluationJob_WithCollectionBenchmarks(t *testing.T
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.T) {
-	const maxLogResponseSize = 10 * 1024 * 1024
+	const maxLogResponseSize = 64 * 1024 * 1024
 	oversizedBody := strings.Repeat("x", maxLogResponseSize+1)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -774,6 +799,23 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 	assert.Equal(t, []string{"text"}, result.Modalities)
 	assert.Equal(t, []string{"technology"}, result.Industries)
 	assert.Equal(t, []string{"agent"}, result.AIEntities)
+}
+
+func TestEvalHubClient_GetEvaluationJobLogs_AcceptsResponseOverUpstreamLimit(t *testing.T) {
+	const upstreamMaxLogResponseSize = 50 * 1024 * 1024
+	body := strings.Repeat("x", upstreamMaxLogResponseSize+1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(body))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
+
+	require.NoError(t, err)
+	assert.Equal(t, body, result.Logs)
 }
 
 func TestEvalHubClient_CloneCollection_PreservesMetadataFieldPresence(t *testing.T) {

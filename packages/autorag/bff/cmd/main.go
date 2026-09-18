@@ -25,7 +25,7 @@ func main() {
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
-	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock Models as a Service client")
+	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock MaaS client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
 
@@ -92,7 +92,7 @@ func main() {
 	}
 
 	// Prevent disabling TLS verification in production — all authenticated outbound
-	// clients (pipelines, S3, MaaS) send bearer or SA tokens over TLS.
+	// clients (pipelines and S3) send bearer or SA tokens over TLS.
 	if cfg.InsecureSkipVerify && !cfg.DevMode {
 		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)

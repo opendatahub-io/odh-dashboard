@@ -111,6 +111,9 @@
   --ai-group--Color: var(--ai-set-up--BorderColor);
   --ai-group--IconColor: var(--ai-set-up--IconColor);
 
+  --ai-data-registry--BackgroundColor: var(--pf-t--color--purple--10);
+  --ai-data-registry--IconColor: var(--pf-t--global--text--color--regular);
+
   /* Feature Store specific colors */
   --ai-fs-lineage-pill--AccentIconColor: var(--pf-t--color--white);
 
@@ -153,6 +156,9 @@
 
   --ai-general--BackgroundColor: var(--pf-t--color--gray--50);
   --ai-general--IconColor: var(--pf-t--color--white);
+
+  --ai-data-registry--BackgroundColor: var(--pf-t--color--purple--40);
+  --ai-data-registry--IconColor: var(--pf-t--color--white);
 
   /* Feature Store dark theme colors */
   --ai-fs-lineage-pill--AccentIconColor: var(--pf-t--color--white);

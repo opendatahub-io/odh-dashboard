@@ -28,14 +28,22 @@ const useServerSelection = ({
   const [selectedServers, setSelectedServers] = React.useState<MCPServer[]>([]);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = React.useState(false);
   const hasProcessedInitialSelection = React.useRef(false);
+  const hasReceivedInitialSelection = React.useRef(false);
 
   // Handle initial selection from route state
   React.useEffect(() => {
-    if (hasProcessedInitialSelection.current || transformedServers.length === 0) {
+    if (
+      transformedServers.length === 0 ||
+      (hasProcessedInitialSelection.current &&
+        (hasReceivedInitialSelection.current ||
+          !initialSelectedServerIds ||
+          initialSelectedServerIds.length === 0))
+    ) {
       return;
     }
 
     if (initialSelectedServerIds && initialSelectedServerIds.length > 0) {
+      hasReceivedInitialSelection.current = true;
       const serversToSelect = transformedServers.filter((server) =>
         initialSelectedServerIds.includes(server.id),
       );
@@ -64,10 +72,10 @@ const useServerSelection = ({
   React.useEffect(() => {
     const selectedConnectionUrls = selectedServers.map((server) => server.id);
 
-    if (transformedServers.length > 0) {
+    if (isInitialLoadComplete && transformedServers.length > 0) {
       onSelectionChange?.(selectedConnectionUrls);
     }
-  }, [selectedServers, onSelectionChange, transformedServers.length]);
+  }, [isInitialLoadComplete, selectedServers, onSelectionChange, transformedServers.length]);
 
   return {
     selectedServers,

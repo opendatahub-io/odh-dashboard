@@ -87,6 +87,11 @@ describe('GPUaaS Infrastructure Page — Quota usage', () => {
     infrastructurePage.findQuotaUsageTreeNode('inference-edge').should('exist');
     infrastructurePage.findQuotaUsageTreeNode('Unassigned').should('exist');
 
+    infrastructurePage.findQuotaUsageTreeNode('Unassigned').click();
+    infrastructurePage
+      .findQuotaUsageUnassignedDescription()
+      .should('contain.text', 'Cluster queues appear here until they are assigned to a cohort.');
+
     infrastructurePage.findQuotaUsageTreeNode('prod-serving').click();
     infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'prod-serving');
     infrastructurePage.findQuotaUsageBreadcrumb().should('contain.text', 'production');
@@ -259,9 +264,9 @@ describe('GPUaaS Infrastructure Page — Quota usage', () => {
     infrastructurePage.findQuotaUsageBorrowingLink().click();
     infrastructurePage
       .findOpenPopover()
-      .should('contain.text', 'Borrowing:')
+      .should('contain.text', 'Currently borrowing:')
       .and('contain.text', '2 x NVIDIA H100')
-      .and('contain.text', 'Since:');
+      .and('contain.text', 'Borrowing accelerators since:');
 
     infrastructurePage.findQuotaUsageTreeNode('platform-production').click();
     infrastructurePage.findQuotaUsageBorrowingClusterQueueLink('high-priority-compute').click();

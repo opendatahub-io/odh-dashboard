@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core';
 import { byName } from '@odh-dashboard/k8s-core';
 import {
   Bullseye,

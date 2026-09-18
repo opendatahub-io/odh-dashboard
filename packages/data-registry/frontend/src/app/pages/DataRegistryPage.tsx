@@ -12,10 +12,12 @@ import {
   Flex,
   FlexItem,
   Button,
+  Content,
 } from '@patternfly/react-core';
 import { OutlinedFolderIcon } from '@patternfly/react-icons';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useLabels } from '~/app/hooks/useLabels';
@@ -171,7 +173,7 @@ const DataRegistryPage: React.FC = () => {
                 data-testid="go-to-project-link"
                 component={(props) => <Link {...props} to={`/projects/${selectedProject}`} />}
               >
-                Go to <OutlinedFolderIcon /> {selectedProject}
+                Go to <OutlinedFolderIcon /> <strong>{selectedProject}</strong>
               </Button>
             </FlexItem>
           ) : null}
@@ -188,6 +190,16 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
+          <PageSection hasBodyWrapper={false} className="odh-data-registry__header">
+            <span className="odh-data-registry__tab">Registry</span>
+          </PageSection>
+          <PageSection hasBodyWrapper={false}>
+            <Content component="p">
+              View and manage data assets registered in the selected project. The data registry
+              provides a structured and organized way to discover, share, version, and connect
+              schemas, datasets, and data sources.
+            </Content>
+          </PageSection>
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}

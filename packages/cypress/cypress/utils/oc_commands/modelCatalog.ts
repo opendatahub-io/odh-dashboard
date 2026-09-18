@@ -318,6 +318,82 @@ export const ensureModelCatalogSourceEnabled = (sourceId: string): Cypress.Chain
   });
 };
 /**
+ * Delete a user-created Hugging Face catalog source via oc commands.
+ * Removes the source entry from the model-catalog-sources ConfigMap and deletes
+ * the associated API key secret (catalog-{sourceId}-apikey).
+ * Uses --ignore-not-found so cleanup is idempotent and safe to call even if
+ * the source was never fully created.
+ *
+ * YAML filtering is done in TypeScript via js-yaml (same pattern as
+ * hasOtherEnabledCatalogSources) to avoid fragile shell awk/sed scripts.
+ *
+ * @param sourceId The source ID (underscored) as stored in the ConfigMap, e.g. 'e2e_hf_rh_ai_hub_abc123'
+ * @returns A Cypress chainable that resolves when cleanup is complete.
+ */
+export const deleteHuggingFaceCatalogSource = (sourceId: string): Cypress.Chainable<undefined> => {
+  const namespace = getModelRegistryNamespace();
+  const secretName = `catalog-${sourceId.replace(/_/g, '-')}-apikey`;
+
+  cy.log(`Cleaning up HF catalog source: ${sourceId}`);
+
+  return cy.then(() => {
+    cy.exec(`oc delete secret ${secretName} -n ${namespace} --ignore-not-found`, {
+      failOnNonZeroExit: false,
+      timeout: 30000,
+    }).then((result: CommandLineResult) => {
+      if (result.exitCode === 0) {
+        cy.log(`✓ Deleted secret ${secretName}`);
+      } else {
+        cy.log(
+          `⚠️ Secret deletion returned exit ${result.exitCode}: ${maskSensitiveInfo(
+            result.stderr,
+          )}`,
+        );
+      }
+    });
+
+    const getCmd = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
+    execWithOutput(getCmd, 30).then((getResult: CommandLineResult) => {
+      if (getResult.exitCode !== 0 || !getResult.stdout.trim()) {
+        cy.log('⚠️ model-catalog-sources ConfigMap not found or empty — skipping');
+        return;
+      }
+
+      const parsed = yaml.load(getResult.stdout) as {
+        catalogs?: Array<{ id?: string }>;
+      };
+      if (!parsed.catalogs) {
+        cy.log('⚠️ No catalogs array in ConfigMap — skipping');
+        return;
+      }
+
+      const before = parsed.catalogs.length;
+      parsed.catalogs = parsed.catalogs.filter((c) => c.id !== sourceId);
+      if (parsed.catalogs.length === before) {
+        cy.log(`Source ${sourceId} not found in ConfigMap — nothing to remove`);
+        return;
+      }
+
+      const updatedYaml = yaml.dump(parsed, { lineWidth: -1 });
+      const escapedYaml = JSON.stringify(updatedYaml);
+      const patchCmd = `oc patch configmap model-catalog-sources -n ${namespace} --type=merge -p '{"data":{"sources.yaml": ${escapedYaml}}}'`;
+
+      execWithOutput(patchCmd, 30).then((patchResult: CommandLineResult) => {
+        if (patchResult.exitCode === 0) {
+          cy.log(`✓ Removed source ${sourceId} from model-catalog-sources ConfigMap`);
+        } else {
+          cy.log(
+            `⚠️ ConfigMap patch returned exit ${patchResult.exitCode}: ${maskSensitiveInfo(
+              patchResult.stderr,
+            )}`,
+          );
+        }
+      });
+    });
+  });
+};
+
+/**
  * Detect which namespace contains the model-catalog deployment.
  * Searches across all namespaces and returns the first match.
  * @returns A Cypress chainable that resolves with the namespace name, or null if not found.

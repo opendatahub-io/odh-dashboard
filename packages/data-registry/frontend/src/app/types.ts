@@ -60,8 +60,7 @@ export type AssetResponse = {
   content_type?: string;
   columns?: SchemaField[] | null;
   collection?: string;
-  // Backend will return ConnectionRef object per OpenAPI spec; currently returns a plain string
-  connection_ref?: ConnectionRef | string | null;
+  connection_ref?: ConnectionRef | null;
   owner?: string;
   description?: string;
   labels?: string[] | null;
@@ -89,6 +88,7 @@ export type VolumeInfo = {
   labels?: string[] | null;
   properties?: Record<string, string>;
   config?: Record<string, string>;
+  connection_ref?: ConnectionRef | null;
 };
 
 export type ListVolumesResponse = {
@@ -113,7 +113,7 @@ export type CreateVolumeRequest = {
   name: string;
   location?: string;
   content_type?: string;
-  connection_ref?: string;
+  connection_ref?: ConnectionRef;
   description?: string;
   owner?: string;
   labels?: string[];
@@ -124,7 +124,7 @@ export type CreateGenericTableRequest = {
   name: string;
   format?: string;
   location?: string;
-  connection_ref?: string;
+  connection_ref?: ConnectionRef;
   description?: string;
   purpose?: string;
   license?: string;

@@ -4,9 +4,6 @@
 # Build from repository root:
 #   docker build -f distributions/rhaii/Dockerfile -t rhaii-dashboard:latest .
 #
-# With model-serving enabled:
-#   docker build -f distributions/rhaii/Dockerfile --build-arg ENABLE_MODEL_SERVING=true -t rhaii-dashboard:latest .
-
 ARG NODE_BASE_IMAGE=node:22
 ARG GOLANG_BASE_IMAGE=golang:1.25
 ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
@@ -23,11 +20,13 @@ COPY package.json package-lock.json* ./
 COPY frontend/package.json ./frontend/
 COPY frontend/src/ ./frontend/src/
 COPY packages/plugin-core/ ./packages/plugin-core/
+COPY packages/app-config/ ./packages/app-config/
 COPY packages/tsconfig/ ./packages/tsconfig/
 
-# Copy optional packages (always copied for npm workspace resolution;
-# only compiled into the bundle when their env flag is set)
+# Copy feature packages used by the RHAII distribution.
 COPY packages/model-serving/ ./packages/model-serving/
+COPY packages/kserve/ ./packages/kserve/
+COPY packages/analytics/ ./packages/analytics/
 COPY packages/trustyai/ ./packages/trustyai/
 COPY packages/foundation/ ./packages/foundation/
 COPY packages/hardware-profiles/ ./packages/hardware-profiles/
@@ -51,6 +50,8 @@ RUN npm ci --ignore-scripts
 WORKDIR /usr/src/workspace/distributions/rhaii
 ARG ENABLE_MODEL_SERVING=false
 ENV ENABLE_MODEL_SERVING=${ENABLE_MODEL_SERVING}
+ARG MODEL_SERVING_REMOTE_ENTRY=""
+ENV MODEL_SERVING_REMOTE_ENTRY=${MODEL_SERVING_REMOTE_ENTRY}
 RUN npm run build
 
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────

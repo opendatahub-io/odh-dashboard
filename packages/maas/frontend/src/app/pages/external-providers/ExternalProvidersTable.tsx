@@ -9,6 +9,7 @@ type ExternalProvidersTableProps = {
   onClearFilters: () => void;
   toolbarContent: React.ReactElement;
   emptyTableView: React.ReactNode;
+  setEditExternalProvider: (externalProvider: ExternalProvider) => void;
   setDeleteExternalProvider: (externalProvider: ExternalProvider) => void;
 };
 
@@ -17,6 +18,7 @@ export const ExternalProvidersTable: React.FC<ExternalProvidersTableProps> = ({
   onClearFilters,
   toolbarContent,
   emptyTableView,
+  setEditExternalProvider,
   setDeleteExternalProvider,
 }): React.ReactNode => (
   <Table
@@ -30,6 +32,7 @@ export const ExternalProvidersTable: React.FC<ExternalProvidersTableProps> = ({
       <ExternalProvidersTableRow
         key={externalProvider.name}
         externalProvider={externalProvider}
+        setEditExternalProvider={setEditExternalProvider}
         setDeleteExternalProvider={setDeleteExternalProvider}
       />
     )}

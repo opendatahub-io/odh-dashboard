@@ -57,7 +57,7 @@ func TestComputeKustomizeVariables(t *testing.T) {
 			name: "with gateway domain",
 			dashboard: &v1alpha1.Dashboard{
 				Spec: v1alpha1.DashboardSpec{
-					Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
+					Gateway: &v1alpha1.GatewaySpec{Domain: "RH-AI.Apps.Example.Com"},
 				},
 			},
 			platform: cluster.OpenDataHub,
@@ -174,14 +174,12 @@ func TestResolveImageParams(t *testing.T) {
 		t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:v1")
 		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "quay.io/automl-runtime:v2")
 		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "quay.io/autorag-runtime:v3")
-		t.Setenv("RELATED_IMAGE_POSTGRESQL_16_IMAGE", "registry.redhat.io/rhel9/postgresql-16@sha256:abc123")
 
 		got := resolveImageParams()
 		assert.Equal(t, "quay.io/dashboard:latest", got["odh-dashboard-image"])
 		assert.Equal(t, "quay.io/mr:v1", got["model-registry-ui-image"])
 		assert.Equal(t, "quay.io/automl-runtime:v2", got["automl-pipeline-runtime-image"])
 		assert.Equal(t, "quay.io/autorag-runtime:v3", got["autorag-pipeline-runtime-image"])
-		assert.Equal(t, "registry.redhat.io/rhel9/postgresql-16@sha256:abc123", got["pgvector-image"])
 		assert.NotContains(t, got, "gen-ai-ui-image", "unset env vars should not appear")
 	})
 

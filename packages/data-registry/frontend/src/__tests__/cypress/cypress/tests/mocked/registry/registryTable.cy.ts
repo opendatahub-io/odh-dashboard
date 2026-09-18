@@ -405,9 +405,9 @@ describe('Register Volume', () => {
         location: '/data/docs',
       });
       expect(interception.request.body.properties).to.deep.include({
-        purpose: 'ML training',
-        license: 'apache-2.0',
-        maturity: 'production',
+        volume_purpose: 'ML training',
+        volume_license: 'apache-2.0',
+        volume_maturity: 'production',
         pii_status: 'none',
       });
     });
@@ -857,7 +857,10 @@ describe('Connection Selector', () => {
       expect(interception.request.body).to.deep.include({
         name: 'connected-volume',
         content_type: 'other',
-        connection_ref: 'my-s3-connection',
+        connection_ref: {
+          type: 'rhai',
+          secret_name: 'my-s3-connection',
+        },
       });
     });
   });
@@ -894,7 +897,10 @@ describe('Connection Selector', () => {
       expect(interception.request.body).to.deep.include({
         name: 'connected-table',
         format: 'iceberg',
-        connection_ref: 'my-uri-connection',
+        connection_ref: {
+          type: 'rhai',
+          secret_name: 'my-uri-connection',
+        },
       });
     });
   });

@@ -74,6 +74,8 @@ export const buildIndexingPipelineRunRequest = (
   return {
     display_name: trimmedName,
     ...(trimmedDescription ? { description: trimmedDescription } : {}),
+    // The BFF filters these against the discovered pipeline version before submitting to KFP.
+    // Keep the full pattern parameter set here so the existing modal can display it.
     parameters,
   };
 };

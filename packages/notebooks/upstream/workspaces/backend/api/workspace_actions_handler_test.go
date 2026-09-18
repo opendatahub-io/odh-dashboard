@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
@@ -151,7 +150,7 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
 
 			By("ensuring the workspace is paused")
-			Expect(workspace.Spec.Paused).To(Equal(ptr.To(true)))
+			Expect(workspace.Spec.Paused).To(BeTrue())
 		})
 
 		It("should start a workspace successfully", func() {
@@ -209,7 +208,7 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
 
 			By("ensuring the workspace is not paused")
-			Expect(workspace.Spec.Paused).To(Equal(ptr.To(false)))
+			Expect(workspace.Spec.Paused).To(BeFalse())
 		})
 
 		It("should return 404 for a non-existent workspace when starting", func() {
@@ -288,7 +287,7 @@ var _ = Describe("Workspace Actions Handler", func() {
 			By("setting the workspace's status state to Unknown and spec.paused to false")
 			workspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
-			workspace.Spec.Paused = ptr.To(false)
+			workspace.Spec.Paused = false
 			workspace.Status.State = kubefloworgv1beta1.WorkspaceStateUnknown
 			Expect(k8sClient.Update(ctx, workspace)).To(Succeed())
 			Expect(k8sClient.Status().Update(ctx, workspace)).To(Succeed())
@@ -330,7 +329,7 @@ var _ = Describe("Workspace Actions Handler", func() {
 			By("setting the workspace's spec.paused to true")
 			workspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
-			workspace.Spec.Paused = ptr.To(true)
+			workspace.Spec.Paused = true
 			Expect(k8sClient.Update(ctx, workspace)).To(Succeed())
 
 			By("creating the request body")
@@ -368,7 +367,7 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 		It("should return 422 when request body is missing data field", func() {
 			By("creating the request body without data field")
-			requestBody := map[string]interface{}{}
+			requestBody := map[string]any{}
 			bodyBytes, err := json.Marshal(requestBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -440,14 +439,14 @@ var _ = Describe("Workspace Actions Handler", func() {
 			By("setting the workspace's spec.paused to true and status state to Paused")
 			workspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
-			workspace.Spec.Paused = ptr.To(true)
+			workspace.Spec.Paused = true
 			Expect(k8sClient.Update(ctx, workspace)).To(Succeed())
 			workspace.Status.State = kubefloworgv1beta1.WorkspaceStatePaused
 			Expect(k8sClient.Status().Update(ctx, workspace)).To(Succeed())
 
 			By("creating the request body with empty data object")
-			requestBody := map[string]interface{}{
-				"data": map[string]interface{}{},
+			requestBody := map[string]any{
+				"data": map[string]any{},
 			}
 			bodyBytes, err := json.Marshal(requestBody)
 			Expect(err).NotTo(HaveOccurred())
@@ -491,7 +490,7 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
 
 			By("ensuring the workspace is not paused (empty data object results in false)")
-			Expect(workspace.Spec.Paused).To(Equal(ptr.To(false)))
+			Expect(workspace.Spec.Paused).To(BeFalse())
 		})
 	})
 })
