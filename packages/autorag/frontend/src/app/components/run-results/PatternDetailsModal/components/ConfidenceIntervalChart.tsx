@@ -16,7 +16,6 @@ import type {
 } from '~/app/types/autoragPattern';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
 import {
-  findUniqueMetric,
   formatMetricValue,
   groupMetricsByKey,
   metricDomId,
@@ -157,7 +156,8 @@ const CIColumn: React.FC<{
     <div className="autorag-ci-column__chart-area">
       <div className="autorag-ci-column__tracks">
         {metrics.map((metric) => {
-          const score = findUniqueMetric(scores, metric)?.scores;
+          const scoreGroup = groupMetricsByKey(scores).get(metricKey(metric));
+          const score = scoreGroup?.length === 1 ? scoreGroup[0].scores : undefined;
           if (!score) {
             return <div key={metricKey(metric)} className="autorag-ci-track m-empty" />;
           }

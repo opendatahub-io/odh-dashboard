@@ -1,7 +1,7 @@
 import React from 'react';
 import type { AutoragPattern, MetricReference, TabContentProps } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
-import { getObjectiveMetric, getOptimizedScore } from '~/app/utilities/metricUtils';
+import { getObjectiveMetric } from '~/app/utilities/metricUtils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
 import ConfidenceIntervalChart from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
@@ -12,7 +12,7 @@ export function buildTopLevelFields(
 ): Record<string, unknown> {
   const objectiveMean = optimizationMetric
     ? getObjectiveMetric(pattern, optimizationMetric.name)?.scores.mean
-    : getOptimizedScore(pattern);
+    : getObjectiveMetric(pattern)?.scores.mean;
   const finalScore =
     typeof objectiveMean === 'number' && Number.isFinite(objectiveMean) ? objectiveMean : 'N/A';
 
