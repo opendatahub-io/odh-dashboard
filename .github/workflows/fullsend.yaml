@@ -120,15 +120,21 @@ jobs:
           REPO_FULL_NAME: ${{ github.repository }}
         run: |
           set -euo pipefail
-          PR_JSON="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json baseRefOid,headRefOid)"
+          PR_JSON="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json baseRefOid,headRefOid,baseRefName)"
           BASE_SHA="$(jq -r '.baseRefOid // empty' <<<"${PR_JSON}")"
           HEAD_SHA="$(jq -r '.headRefOid // empty' <<<"${PR_JSON}")"
+          BASE_REF="$(jq -r '.baseRefName // empty' <<<"${PR_JSON}")"
           if [[ ! "${BASE_SHA}" =~ ^[0-9a-f]{40}$ || ! "${HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::Could not resolve immutable base and head revisions for PR ${PR_NUMBER}"
             exit 1
           fi
+          if [[ ! "${BASE_REF}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error::Could not resolve base branch name for PR ${PR_NUMBER}"
+            exit 1
+          fi
           echo "base_sha=${BASE_SHA}" >> "${GITHUB_OUTPUT}"
           echo "head_sha=${HEAD_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "base_ref=${BASE_REF}" >> "${GITHUB_OUTPUT}"
 
       - name: Checkout pull request for adapter
         if: ${{ matrix.checkout_pr }}
@@ -152,6 +158,9 @@ jobs:
           FULLSEND_ADAPTER_TOKEN: ${{ secrets[matrix.token_secret] }}
           FULLSEND_ADAPTER_TARGET_REPO: ${{ matrix.checkout_pr && format('{0}/adapter-target', github.workspace) || '' }}
           FULLSEND_ADAPTER_BASE_SHA: ${{ steps.revisions.outputs.base_sha }}
+          FULLSEND_ADAPTER_REPO: ${{ github.repository }}
+          FULLSEND_ADAPTER_BASE_REF: ${{ steps.revisions.outputs.base_ref }}
+          FULLSEND_ADAPTER_HEAD_SHA: ${{ steps.revisions.outputs.head_sha }}
           ADAPTER_RUNNER: ${{ matrix.runner }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}

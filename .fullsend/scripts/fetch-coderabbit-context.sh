@@ -105,14 +105,15 @@ normalize_stream() {
 }
 
 run_producer() {
-  local raw exit_code api_key coderabbit_bin target_repo base_sha
+  local raw exit_code api_key coderabbit_bin repo_slug base_ref head_sha
   raw="$(mktemp)"
   trap 'rm -f "${raw}"' RETURN
 
   api_key="${FULLSEND_ADAPTER_TOKEN:-${CODERABBIT_API_KEY:-}}"
   coderabbit_bin="${FULLSEND_ADAPTER_BIN:-${CODERABBIT_BIN:-}}"
-  target_repo="${FULLSEND_ADAPTER_TARGET_REPO:-${CODERABBIT_TARGET_REPO:-}}"
-  base_sha="${FULLSEND_ADAPTER_BASE_SHA:-${CODERABBIT_BASE_SHA:-}}"
+  repo_slug="${FULLSEND_ADAPTER_REPO:-${CODERABBIT_REPO:-}}"
+  base_ref="${FULLSEND_ADAPTER_BASE_REF:-${CODERABBIT_BASE_REF:-}}"
+  head_sha="${FULLSEND_ADAPTER_HEAD_SHA:-${CODERABBIT_HEAD_SHA:-}}"
 
   if [[ -z "${api_key}" ]]; then
     write_envelope "skipped" "api-key-unset"
@@ -122,19 +123,27 @@ run_producer() {
     write_envelope "error" "cli-unavailable"
     return 0
   fi
-  if [[ ! -d "${target_repo}" ]] || ! git -C "${target_repo}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [[ ! "${repo_slug}" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
     write_envelope "error" "target-repository-unavailable"
     return 0
   fi
-  if [[ ! "${base_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+  if [[ ! "${base_ref}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
     write_envelope "error" "base-revision-invalid"
     return 0
   fi
+  if [[ ! "${head_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+    write_envelope "error" "head-revision-invalid"
+    return 0
+  fi
 
+  # Remote review: CodeRabbit's backend reads the PR content at head_sha itself.
+  # Fork code is never fetched onto this runner, so it cannot reach the API key
+  # through a fork-controlled .coderabbit.yaml / .coderabbit.config.ts (CWE-829).
   set +e
   timeout 20m "${coderabbit_bin}" review --agent \
-    --dir "${target_repo}" \
-    --base-commit "${base_sha}" \
+    --remote "${repo_slug}" \
+    --base "${base_ref}" \
+    --source-branch "${head_sha}" \
     --api-key "${api_key}" > "${raw}" 2>/dev/null
   exit_code=$?
   set -e
@@ -185,6 +194,31 @@ run_self_test() {
   FULLSEND_ADAPTER_BIN="${temp_dir}/missing-coderabbit" \
     run_producer
   jq -e '.status == "error" and .reason == "cli-unavailable"' "${_OUT}" >/dev/null
+
+  # Remote-review inputs are regex-validated before they reach the CLI argv.
+  printf '#!/usr/bin/env bash\nexit 0\n' > "${temp_dir}/fake-coderabbit"
+  chmod +x "${temp_dir}/fake-coderabbit"
+  FULLSEND_ADAPTER_TOKEN='test-token' \
+  FULLSEND_ADAPTER_BIN="${temp_dir}/fake-coderabbit" \
+  FULLSEND_ADAPTER_REPO='owner/repo; rm -rf /' \
+  FULLSEND_ADAPTER_BASE_REF='main' \
+  FULLSEND_ADAPTER_HEAD_SHA="$(printf '0%.0s' {1..40})" \
+    run_producer
+  jq -e '.status == "error" and .reason == "target-repository-unavailable"' "${_OUT}" >/dev/null
+  FULLSEND_ADAPTER_TOKEN='test-token' \
+  FULLSEND_ADAPTER_BIN="${temp_dir}/fake-coderabbit" \
+  FULLSEND_ADAPTER_REPO='opendatahub-io/odh-dashboard' \
+  FULLSEND_ADAPTER_BASE_REF='' \
+  FULLSEND_ADAPTER_HEAD_SHA="$(printf '0%.0s' {1..40})" \
+    run_producer
+  jq -e '.status == "error" and .reason == "base-revision-invalid"' "${_OUT}" >/dev/null
+  FULLSEND_ADAPTER_TOKEN='test-token' \
+  FULLSEND_ADAPTER_BIN="${temp_dir}/fake-coderabbit" \
+  FULLSEND_ADAPTER_REPO='opendatahub-io/odh-dashboard' \
+  FULLSEND_ADAPTER_BASE_REF='main' \
+  FULLSEND_ADAPTER_HEAD_SHA='not-a-sha' \
+    run_producer
+  jq -e '.status == "error" and .reason == "head-revision-invalid"' "${_OUT}" >/dev/null
   echo "PASS CodeRabbit context normalization"
 }
 
