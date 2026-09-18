@@ -15,10 +15,7 @@ import type {
   PersistentVolumeClaimKind,
 } from '@odh-dashboard/k8s-core';
 import { z } from 'zod';
-import {
-  useWatchConnectionTypes,
-  useServingConnections,
-} from '@odh-dashboard/plugin-core/host-api';
+import { useWatchConnectionTypes, useServingConnections } from '@odh-dashboard/plugin-core';
 import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import NewConnectionField from './modelLocationFields/NewConnectionField';

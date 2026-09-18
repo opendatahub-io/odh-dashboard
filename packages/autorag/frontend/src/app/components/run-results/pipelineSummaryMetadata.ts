@@ -1,13 +1,11 @@
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
 import type { ComponentStageMap, ComponentStageMapStage } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import { dedupePreservingOrder } from '~/app/topology/stageMapConstants';
 import type { StepDetail } from '~/app/topology/tree-view/stepMetadata';
-import {
-  formatDurationBetween,
-  formatMetricName,
-  getOptimizedMetricForRAG,
-} from '~/app/utilities/utils';
+import { formatDurationBetween } from '~/app/utilities/utils';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
+import { metricLabel } from '~/app/utilities/metricUtils';
 
 /**
  * Matches `BRANCHING_STAGE_ID` in `~/app/topology/stageMapStatus`. Duplicated as a local
@@ -79,8 +77,8 @@ function resolvePatternsEvaluated(
   return undefined;
 }
 
-function resolveEvaluationMetricDisplay(pipelineRun?: PipelineRun): string {
-  return formatMetricName(getOptimizedMetricForRAG(pipelineRun));
+function resolveEvaluationMetricDisplay(optimizationMetric: MetricReference): string {
+  return metricLabel(optimizationMetric);
 }
 
 function resolveTotalRunTime(pipelineRun?: PipelineRun): string | undefined {
@@ -111,6 +109,7 @@ export function getPipelineSummaryDetails(
   componentStageMap: ComponentStageMap | undefined,
   patterns: Record<string, AutoragPattern>,
   bestPatternKey?: string,
+  optimizationMetric: MetricReference = { name: DEFAULT_OPTIMIZATION_METRIC },
 ): StepDetail[] {
   return [
     { label: 'Total run time', value: resolveTotalRunTime(pipelineRun) ?? '—' },
@@ -132,7 +131,7 @@ export function getPipelineSummaryDetails(
     },
     {
       label: 'Evaluation metric',
-      value: resolveEvaluationMetricDisplay(pipelineRun),
+      value: resolveEvaluationMetricDisplay(optimizationMetric),
     },
   ];
 }

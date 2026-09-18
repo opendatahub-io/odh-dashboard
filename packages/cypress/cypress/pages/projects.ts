@@ -522,8 +522,9 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
     cy.testA11y();
   }
 
-  findNIMEnableButton() {
-    return cy.findByTestId('nim-enable-button');
+  findNIMEnableButton(timeout = 60000) {
+    // The card waits for the NIM Account and project access reviews before rendering this button.
+    return cy.findByTestId('nim-enable-button', { timeout });
   }
 
   findNIMRemoveButton() {

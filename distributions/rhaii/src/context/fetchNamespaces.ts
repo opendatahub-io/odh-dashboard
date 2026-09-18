@@ -37,7 +37,8 @@ const namespaceToProject = (name: string, phase?: string): ProjectKind => ({
 export const FETCH_TIMEOUT_MS = 30_000;
 
 const fetchNamespaces = async (signal?: AbortSignal): Promise<ProjectKind[]> => {
-  const resp = await fetch('/api/k8s/api/v1/namespaces', { signal });
+  const params = new URLSearchParams({ labelSelector: 'opendatahub.io/dashboard=true' });
+  const resp = await fetch(`/api/k8s/api/v1/namespaces?${params.toString()}`, { signal });
   if (!resp.ok) {
     throw new Error(`Failed to list namespaces (HTTP ${resp.status})`);
   }

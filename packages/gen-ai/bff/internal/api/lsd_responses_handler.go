@@ -515,7 +515,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
+	providerData, err := app.getProviderData(ctx, createRequest.Subscription, createRequest.ModelSourceType)
 	if err != nil {
 		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
@@ -534,12 +534,14 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			return
 		}
 
-		// NeMo needs the bare model name (e.g. "claude-haiku-4-5-20251001"), not the
-		// LlamaStack-qualified ID (e.g. "endpoint-1/claude-haiku-4-5-20251001").
-		guardrailModelName := createRequest.GuardrailConfig.GuardrailModel
-		if idx := strings.Index(guardrailModelName, "/"); idx != -1 {
-			guardrailModelName = guardrailModelName[idx+1:]
-		}
+		// NeMo needs the provider-native model name, not the LlamaStack routing ID.
+		// Preserve slash-delimited model IDs by removing only the Gen AI passthrough
+		// provider prefix. For example, "genai-bff-proxy/publishers/test/models/gemini-proxy"
+		// becomes "publishers/test/models/gemini-proxy".
+		guardrailModelName := normalizeGuardrailModelName(
+			createRequest.GuardrailConfig.GuardrailModel,
+			createRequest.GuardrailConfig.GuardrailModelSourceType,
+		)
 		guardrailOpts = buildInlineGuardrailOptions(
 			baseURL,
 			guardrailModelName,
@@ -575,7 +577,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 	params := llamastack.CreateResponseParams{
 		Input:              createRequest.Input,
-		Model:              createRequest.Model,
+		Model:              qualifyPassthroughModelID(createRequest.Model),
 		VectorStoreIDs:     createRequest.VectorStoreIDs,
 		ChatContext:        chatContext,
 		Temperature:        createRequest.Temperature,
@@ -600,6 +602,18 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	} else {
 		app.handleNonStreamingResponse(w, r, ctx, params)
 	}
+}
+
+// qualifyPassthroughModelID ensures OGX routes inference requests through the
+// remote::passthrough provider. Model IDs are displayed without this prefix in
+// the UI, while OGX requires it to resolve the configured provider.
+func qualifyPassthroughModelID(modelID string) string {
+	prefix := constants.PassthroughProviderID + "/"
+	if strings.HasPrefix(modelID, prefix) {
+		return modelID
+	}
+
+	return prefix + modelID
 }
 
 // checkInputModeration runs input moderation and returns the result.
@@ -791,128 +805,31 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 	return nil
 }
 
-// getProviderData retrieves provider data (auth tokens) for models.
-// If vectorStoreIDs is non-empty, it also checks for a custom-endpoint embedding model
-// backing one of those stores and injects its URL and secret. Returns an error if the
-// passthrough embedding lookup fails so the handler can fail closed.
-func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, vectorStoreIDs []string) (map[string]interface{}, error) {
-	var providerData map[string]interface{}
-
-	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
-		// Inference custom endpoints are always remote::openai
-		if apiKey := app.getCustomEndpointSecret(ctx, modelID); apiKey != "" {
-			providerData = map[string]interface{}{"openai_api_key": apiKey}
-		}
-	} else if maasData := app.getMaaSProviderData(ctx, modelID, subscription); maasData != nil {
-		providerData = maasData
-	} else {
-		providerData = app.getUserJWTProviderData(ctx, modelID)
+// getProviderData retrieves provider data for OGX requests.
+// All models route through the genai-bff-proxy passthrough provider. Provider data
+// includes the user JWT (as passthrough_api_key) for auth. MaaS requests additionally
+// include the subscription and source type so the proxy can resolve their endpoint and
+// issue a properly-scoped ephemeral token without relying on a model ID prefix.
+func (app *App) getProviderData(ctx context.Context, subscription, modelSourceType string) (map[string]interface{}, error) {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil || identity.Token == "" {
+		return nil, nil
 	}
 
-	// Inject passthrough_url and passthrough_api_key for custom-endpoint embedding models used by vector stores
-	passthroughURL, passthroughKey, err := app.getPassthroughEmbeddingSecret(ctx, vectorStoreIDs)
-	if err != nil {
-		return nil, err
+	providerData := map[string]interface{}{
+		"passthrough_api_key": identity.Token,
 	}
-	if passthroughURL != "" || passthroughKey != "" {
-		if providerData == nil {
-			providerData = make(map[string]interface{})
-		}
-		providerData["passthrough_url"] = passthroughURL
-		providerData["passthrough_api_key"] = passthroughKey
+
+	// For MaaS models, forward the source type and subscription so the proxy handler can
+	// issue its own properly-scoped ephemeral token via getMaaSTokenForModel.
+	if modelSourceType == string(models.ModelSourceTypeMaaS) {
+		providerData["inference_model_source_type"] = modelSourceType
+	}
+	if subscription != "" {
+		providerData["maas_subscription"] = subscription
 	}
 
 	return providerData, nil
-}
-
-// getPassthroughEmbeddingSecret delegates to ExternalModelsRepository to find the first
-// vector store in vectorStoreIDs that uses a custom-endpoint (remote::passthrough) embedding
-// model and returns its base URL and API key. Returns an error on ConfigMap or Secret
-// read failures so the caller can fail closed rather than proceed with bogus credentials.
-func (app *App) getPassthroughEmbeddingSecret(ctx context.Context, vectorStoreIDs []string) (string, string, error) {
-	if len(vectorStoreIDs) == 0 {
-		return "", "", nil
-	}
-
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
-		return "", "", nil
-	}
-
-	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-	if !ok || namespace == "" {
-		return "", "", nil
-	}
-
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get Kubernetes client: %w", err)
-	}
-
-	info, err := app.repositories.ExternalModels.GetPassthroughEmbeddingProviderInfo(k8sClient, ctx, identity, namespace, vectorStoreIDs)
-	if err != nil {
-		return "", "", err
-	}
-	if info == nil {
-		return "", "", nil
-	}
-
-	app.logger.Debug("Resolved passthrough embedding provider info", "url", info.BaseURL)
-	return info.BaseURL, info.APIKey, nil
-}
-
-// getUserJWTProviderData retrieves user JWT token for InferenceService and LLMInferenceService models
-func (app *App) getUserJWTProviderData(ctx context.Context, modelID string) map[string]interface{} {
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil || identity.Token == "" {
-		return nil
-	}
-
-	app.logger.Debug("Injected user JWT token as provider data", "model", modelID)
-	return map[string]interface{}{
-		"vllm_api_token": identity.Token,
-	}
-}
-
-// getMaaSProviderData retrieves and caches MaaS tokens for MaaS models
-func (app *App) getMaaSProviderData(ctx context.Context, modelID string, subscription string) map[string]interface{} {
-	// Early return if context doesn't have required data
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
-		return nil
-	}
-
-	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-	if !ok || namespace == "" {
-		return nil
-	}
-
-	// Early check: If model ID doesn't start with "maas-", skip MaaS token injection
-	// This handles provider-prefixed format (e.g., "maas-vllm-inference-1/facebook/opt-125m")
-	if !strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
-		app.logger.Debug("Non-MaaS model (no maas- prefix in model ID), skipping token injection", "model", modelID)
-		return nil
-	}
-
-	// Get Kubernetes client
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		return nil
-	}
-
-	app.logger.Debug("Detected MaaS model", "model", modelID, "subscription", subscription)
-
-	// Get or generate MaaS token
-	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, subscription)
-	if token == "" {
-		return nil
-	}
-
-	// Inject token as provider data
-	app.logger.Debug("Injected MaaS provider data", "model", modelID)
-	return map[string]interface{}{
-		"vllm_api_token": token,
-	}
 }
 
 // getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one.
@@ -925,11 +842,7 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		return ""
 	}
 
-	// Build cache key that incorporates subscription so different subscriptions get separate tokens
-	cacheKey := modelID
-	if subscription != "" {
-		cacheKey = modelID + "|" + subscription
-	}
+	cacheKey := maasTokenCacheKey(modelID, subscription)
 
 	// Check cache first
 	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, cacheKey); found {
@@ -1007,164 +920,151 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	return tokenResponse.Key
 }
 
-// getCustomEndpointSecret retrieves the raw API key for a provider-qualified custom endpoint
-// model ID (e.g. "endpoint-1/meta-llama/Llama-3.1-8B"). Returns "" when the secret cannot
-// be resolved so the caller can skip injection.
-func (app *App) getCustomEndpointSecret(ctx context.Context, modelID string) string {
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
-		return ""
-	}
-
-	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-	if !ok || namespace == "" {
-		return ""
-	}
-
-	// Model ID must be provider-qualified to prevent ambiguity when multiple providers expose same model_id
-	if !strings.Contains(modelID, "/") {
-		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
-		return ""
-	}
-
-	// Split on FIRST slash only (model IDs can contain slashes like "meta-llama/Llama-3.1-8B")
-	parts := strings.SplitN(modelID, "/", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		app.logger.Warn("Invalid custom endpoint model ID format", "model", modelID)
-		return ""
-	}
-
-	providerPrefix := parts[0]
-	actualModelID := parts[1]
-	app.logger.Debug("Parsed provider-qualified model ID", "original", modelID, "provider", providerPrefix, "modelID", actualModelID)
-
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
-		return ""
-	}
-
-	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
-	if err != nil {
-		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
-		return ""
-	}
-
-	// Match BOTH ProviderID and ModelID to prevent returning the wrong key
-	var foundModel *models.RegisteredModel
-	for i := range externalModelsConfig.RegisteredResources.Models {
-		m := &externalModelsConfig.RegisteredResources.Models[i]
-		if m.ProviderID == providerPrefix && m.ModelID == actualModelID {
-			foundModel = m
-			break
-		}
-	}
-	if foundModel == nil {
-		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID, "namespace", namespace)
-		return ""
-	}
-
-	var foundProvider *models.InferenceProvider
-	for i := range externalModelsConfig.Providers.Inference {
-		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
-			foundProvider = &externalModelsConfig.Providers.Inference[i]
-			break
-		}
-	}
-	if foundProvider == nil {
-		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID, "namespace", namespace)
-		return ""
-	}
-
-	apiKey := app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
-	app.logger.Debug("Resolved custom endpoint secret", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
-	return apiKey
-}
-
 // getCustomEndpointBaseURLAndKey retrieves both the base URL and API key for a
-// provider-qualified custom endpoint model ID (e.g. "endpoint-1/meta-llama/Llama-3.1-8B").
-// Returns ("", "") when the information cannot be resolved so the caller can skip injection.
+// custom endpoint model ID. The ID can be provider-qualified (for example,
+// "endpoint-1/meta-llama/Llama-3.1-8B") or provider-native (for example,
+// "meta-llama/Llama-3.1-8B"). Returns ("", "") when the information cannot be
+// resolved so the caller can skip injection.
 func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID string) (baseURL, apiKey string) {
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
-		return "", ""
-	}
-
-	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-	if !ok || namespace == "" {
-		return "", ""
-	}
-
-	if !strings.Contains(modelID, "/") {
-		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
-		return "", ""
-	}
-
-	parts := strings.SplitN(modelID, "/", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return "", ""
-	}
-
-	providerPrefix := parts[0]
-	actualModelID := parts[1]
-
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
-		return "", ""
-	}
-
-	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
-	if err != nil {
-		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
-		return "", ""
-	}
-
-	var foundModel *models.RegisteredModel
-	for i := range externalModelsConfig.RegisteredResources.Models {
-		m := &externalModelsConfig.RegisteredResources.Models[i]
-		if m.ProviderID == providerPrefix && m.ModelID == actualModelID {
-			foundModel = m
-			break
-		}
-	}
-	if foundModel == nil {
-		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID)
-		return "", ""
-	}
-
-	var foundProvider *models.InferenceProvider
-	for i := range externalModelsConfig.Providers.Inference {
-		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
-			foundProvider = &externalModelsConfig.Providers.Inference[i]
-			break
-		}
-	}
-	if foundProvider == nil {
-		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID)
-		return "", ""
-	}
-
-	baseURL = foundProvider.Config.BaseURL
-	apiKey = app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
+	baseURL, apiKey, _ = app.getCustomEndpointBaseURLKeyAndModelID(ctx, modelID)
 	return baseURL, apiKey
 }
 
-// getGuardrailModelEndpointAndKey resolves the raw inference endpoint URL and API key
-// for the given guardrail model ID. NeMo Guardrails calls this endpoint directly,
-// bypassing LlamaStack, so the URL must point at the model's native API surface.
-//
-// Resolution mirrors getProviderData for the main model:
-//  1. maas- prefix              → ephemeral MaaS token + MaaS catalog URL
-//  2. "custom_endpoint"         → URL + key from external-models ConfigMap / K8s Secret
-//  3. "namespace" or fallback   → InferenceService URL (falls back to LlamaStack config) + user JWT
-func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, _ *integrations.RequestIdentity, guardrailModelID string) (string, error) {
-	bareID := guardrailModelID
-	if strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix) {
-		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
-			bareID = guardrailModelID[idx+1:]
+// getCustomEndpointBaseURLKeyAndModelID retrieves custom endpoint routing data and
+// returns the provider-native model ID that should be sent to the upstream endpoint.
+func (app *App) getCustomEndpointBaseURLKeyAndModelID(ctx context.Context, modelID string) (baseURL, apiKey, resolvedModelID string) {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return "", "", ""
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", "", ""
+	}
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
+		return "", "", ""
+	}
+
+	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
+	if err != nil {
+		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
+		return "", "", ""
+	}
+
+	var foundModel *models.RegisteredModel
+	lookupModelID := stripPassthroughProviderPrefix(modelID)
+
+	if strings.Contains(lookupModelID, "/") && !strings.HasPrefix(modelID, constants.PassthroughProviderID+"/") {
+		// Provider-qualified form: "endpoint-1/gpt-4o". Try this first for
+		// backwards compatibility, but if it does not match, treat the full value as a
+		// provider-native slash-delimited model ID.
+		parts := strings.SplitN(lookupModelID, "/", 2)
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			for i := range externalModelsConfig.RegisteredResources.Models {
+				m := &externalModelsConfig.RegisteredResources.Models[i]
+				if m.ProviderID == parts[0] && m.ModelID == parts[1] {
+					foundModel = m
+					break
+				}
+			}
 		}
 	}
+
+	if foundModel == nil {
+		// Bare/native model ID (e.g. "gpt-4o" or "meta-llama/Llama-3.1-8B") —
+		// search all registered models by ModelID. OGX strips the provider prefix before
+		// forwarding to the passthrough handler.
+		//
+		// Collect all matches: if more than one provider registers the same bare ID the
+		// lookup is ambiguous and we fail closed rather than silently routing to the wrong
+		// endpoint or leaking another provider's credentials (CWE-441).
+		var matches []*models.RegisteredModel
+		for i := range externalModelsConfig.RegisteredResources.Models {
+			m := &externalModelsConfig.RegisteredResources.Models[i]
+			if m.ModelID == lookupModelID {
+				matches = append(matches, m)
+			}
+		}
+		switch len(matches) {
+		case 1:
+			foundModel = matches[0]
+		default:
+			if len(matches) > 1 {
+				app.logger.Warn("Ambiguous bare model ID — multiple providers register the same ModelID; use a provider-qualified ID",
+					"modelID", modelID, "count", len(matches))
+			}
+			// Return empty strings: no match or ambiguous match is not routable.
+		}
+	}
+
+	if foundModel == nil {
+		return "", "", ""
+	}
+
+	var foundProvider *models.InferenceProvider
+	for i := range externalModelsConfig.Providers.Inference {
+		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
+			foundProvider = &externalModelsConfig.Providers.Inference[i]
+			break
+		}
+	}
+	if foundProvider == nil {
+		app.logger.Warn("Provider not found for custom endpoint model", "model", foundModel.ModelID, "providerID", foundModel.ProviderID)
+		return "", "", ""
+	}
+
+	baseURL = foundProvider.Config.BaseURL
+	apiKey = app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, foundModel.ModelID)
+	return baseURL, apiKey, foundModel.ModelID
+}
+
+func stripPassthroughProviderPrefix(modelID string) string {
+	return strings.TrimPrefix(modelID, constants.PassthroughProviderID+"/")
+}
+
+func normalizeMaaSModelID(modelID string) string {
+	modelID = stripPassthroughProviderPrefix(modelID)
+	if !strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
+		return modelID
+	}
+
+	// Existing tests and utilities still cover provider-qualified MaaS IDs such as
+	// "maas-vllm-inference-1/llama-2-7b-chat". Current passthrough MaaS IDs can be
+	// slash-delimited catalog IDs, optionally prefixed with "maas-", such as
+	// "maas-publishers/test/models/gemini-proxy". Preserve catalog paths.
+	modelID = strings.TrimPrefix(modelID, constants.MaaSProviderPrefix)
+	if strings.HasPrefix(modelID, "publishers/") {
+		return modelID
+	}
+	if idx := strings.Index(modelID, "/"); idx != -1 {
+		return modelID[idx+1:]
+	}
+	return modelID
+}
+
+func normalizeGuardrailModelName(modelID string, sourceType models.ModelSourceTypeEnum) string {
+	if strings.HasPrefix(modelID, constants.PassthroughProviderID+"/") {
+		modelName := stripPassthroughProviderPrefix(modelID)
+		if sourceType == models.ModelSourceTypeMaaS || strings.HasPrefix(modelName, constants.MaaSProviderPrefix) {
+			return normalizeMaaSModelID(modelName)
+		}
+		return modelName
+	}
+	if sourceType == models.ModelSourceTypeMaaS || strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
+		return normalizeMaaSModelID(modelID)
+	}
+	if idx := strings.Index(modelID, "/"); idx != -1 {
+		return modelID[idx+1:]
+	}
+	return modelID
+}
+
+func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, _ *integrations.RequestIdentity, guardrailModelID string) (string, error) {
+	bareID := normalizeMaaSModelID(guardrailModelID)
 
 	// Get namespace from context for MaaS BFF query parameter
 	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
@@ -1205,6 +1105,14 @@ func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, _ *integration
 	return "", fmt.Errorf("MaaS model %q not found in MaaS catalog", guardrailModelID)
 }
 
+// getGuardrailModelEndpointAndKey resolves the raw inference endpoint URL and API key
+// for the given guardrail model ID. NeMo Guardrails calls this endpoint directly,
+// bypassing LlamaStack, so the URL must point at the model's native API surface.
+//
+// Resolution mirrors getProviderData for the main model:
+//  1. maas- prefix              → ephemeral MaaS token + MaaS catalog URL
+//  2. "custom_endpoint"         → URL + key from external-models ConfigMap / K8s Secret
+//  3. "namespace" or fallback   → InferenceService URL (falls back to LlamaStack config) + user JWT
 func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailModelID string, guardrailModelSourceType models.ModelSourceTypeEnum, subscription string) (baseURL, apiKey string, err error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
@@ -1225,7 +1133,7 @@ func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailMo
 	// then namespace as the default fallback. No K8s auto-detect.
 	var effectiveSourceType models.ModelSourceTypeEnum
 	switch {
-	case strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix):
+	case strings.HasPrefix(stripPassthroughProviderPrefix(guardrailModelID), constants.MaaSProviderPrefix):
 		effectiveSourceType = models.ModelSourceTypeMaaS
 	case guardrailModelSourceType == models.ModelSourceTypeMaaS:
 		effectiveSourceType = models.ModelSourceTypeMaaS
@@ -1245,6 +1153,12 @@ func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailMo
 		apiKey = extKey
 
 	case models.ModelSourceTypeMaaS:
+		maasModelID := normalizeMaaSModelID(guardrailModelID)
+		if maasModelID == "" {
+			return "", "", fmt.Errorf("could not resolve MaaS model ID for guardrail model %q", guardrailModelID)
+		}
+
+		guardrailModelID = maasModelID
 		if app.resolveMaaSBaseURL() == "" {
 			return "", "", fmt.Errorf("MaaS is not available (no MAAS_URL or cluster domain configured)")
 		}
@@ -1262,9 +1176,10 @@ func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailMo
 	default:
 		// Strip provider prefix (e.g. "vllm-inference-1/qwen3" → "qwen3") then try ISVC
 		// lookup first (Option B); fall back to LlamaStack config (Option A) if not found.
-		bareModelName := guardrailModelID
-		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
-			bareModelName = guardrailModelID[idx+1:]
+		providerNativeModelID := stripPassthroughProviderPrefix(guardrailModelID)
+		bareModelName := providerNativeModelID
+		if idx := strings.Index(providerNativeModelID, "/"); idx != -1 {
+			bareModelName = providerNativeModelID[idx+1:]
 		}
 		isvcURL, isvcErr := k8sClient.GetInferenceServiceURL(ctx, identity, namespace, bareModelName)
 		if isvcErr != nil {
@@ -1277,7 +1192,7 @@ func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailMo
 		} else {
 			app.logger.Debug("InferenceService not found, falling back to LlamaStack config",
 				"model", guardrailModelID)
-			providerInfo, infoErr := k8sClient.GetModelProviderInfo(ctx, identity, namespace, guardrailModelID)
+			providerInfo, infoErr := k8sClient.GetModelProviderInfo(ctx, identity, namespace, providerNativeModelID)
 			if infoErr != nil {
 				return "", "", fmt.Errorf("failed to get provider URL for guardrail model %q: %w", guardrailModelID, infoErr)
 			}

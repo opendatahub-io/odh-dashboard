@@ -81,6 +81,13 @@ const (
 
 	// Annotation for authentication
 	authAnnotationKey = "security.opendatahub.io/enable-auth"
+
+	// The OpenShift ingress signing CA is required when OGX calls the dashboard
+	// gateway through its HTTPS route.
+	ingressOperatorNamespace = "openshift-ingress-operator"
+	routerCASecretName       = "router-ca"
+	routerCASecretKey        = "tls.crt"
+	ogxRouterCABundleName    = "ogx-router-ca-bundle"
 )
 
 type modelDetailsResult struct {
@@ -108,6 +115,69 @@ type TokenKubernetesClient struct {
 	EnvConfig         config.EnvConfig
 	SAClient          client.Client // in-cluster SA client for elevated operations (nil in local dev/mock)
 	otelConfigManager *otelConfigManager
+}
+
+// ensureOGXGatewayCABundle copies the ingress router CA into a namespace-scoped,
+// dashboard-managed ConfigMap for the OGX operator to mount as SSL_CERT_FILE.
+// The source Secret is read through the dashboard service account because users
+// do not ordinarily have access to openshift-ingress-operator.
+func (kc *TokenKubernetesClient) ensureOGXGatewayCABundle(ctx context.Context, namespace string) (string, bool, error) {
+	secretReader := kc.SAClient
+	if secretReader == nil {
+		secretReader = kc.Client
+	}
+
+	var routerCA corev1.Secret
+	if err := secretReader.Get(ctx, types.NamespacedName{
+		Namespace: ingressOperatorNamespace,
+		Name:      routerCASecretName,
+	}, &routerCA); err != nil {
+		return "", false, fmt.Errorf("failed to read OpenShift ingress router CA: %w", err)
+	}
+
+	certificate, found := routerCA.Data[routerCASecretKey]
+	if !found || len(certificate) == 0 {
+		return "", false, fmt.Errorf("OpenShift ingress router CA secret is missing %q", routerCASecretKey)
+	}
+
+	bundleKey := types.NamespacedName{Namespace: namespace, Name: ogxRouterCABundleName}
+	var bundle corev1.ConfigMap
+	err := kc.Client.Get(ctx, bundleKey, &bundle)
+	if apierrors.IsNotFound(err) {
+		bundle = corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ogxRouterCABundleName,
+				Namespace: namespace,
+				Labels: map[string]string{
+					OpenDataHubDashboardLabelKey: "true",
+					"ogx.io/watch":               "true",
+				},
+			},
+			Data: map[string]string{"ca-bundle.crt": string(certificate)},
+		}
+		if err := kc.Client.Create(ctx, &bundle); err != nil {
+			return "", false, fmt.Errorf("failed to create OGX router CA bundle: %w", err)
+		}
+		return bundle.Name, true, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("failed to get OGX router CA bundle: %w", err)
+	}
+
+	if bundle.Data == nil {
+		bundle.Data = make(map[string]string)
+	}
+	if bundle.Labels == nil {
+		bundle.Labels = make(map[string]string)
+	}
+	bundle.Data["ca-bundle.crt"] = string(certificate)
+	bundle.Labels[OpenDataHubDashboardLabelKey] = "true"
+	bundle.Labels["ogx.io/watch"] = "true"
+	if err := kc.Client.Update(ctx, &bundle); err != nil {
+		return "", false, fmt.Errorf("failed to update OGX router CA bundle: %w", err)
+	}
+
+	return bundle.Name, false, nil
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
@@ -1370,6 +1440,66 @@ func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 }
 
+// buildPassthroughBaseURL returns the base_url that the BFF would register for
+// the remote::passthrough provider in the given namespace. Returns "" when
+// GatewayDomain is not configured, which signals that the zero-restart path
+// is unavailable for this deployment.
+func (kc *TokenKubernetesClient) buildPassthroughBaseURL(namespace string) string {
+	if kc.EnvConfig.GatewayDomain == "" {
+		return ""
+	}
+	pathPrefix := kc.EnvConfig.PathPrefix
+	if pathPrefix == "" {
+		pathPrefix = constants.PathPrefix
+	}
+	return fmt.Sprintf("https://%s%s%s/genai-proxy/ns/%s",
+		kc.EnvConfig.GatewayDomain, pathPrefix, kc.EnvConfig.APIPathPrefix, namespace)
+}
+
+// existingServerHasPassthrough reads the OGXServer's linked ConfigMap and checks
+// whether it already contains a remote::passthrough inference provider whose
+// base_url matches the URL the BFF would generate for this namespace. Returns
+// false (conservatively) on any read/parse error, missing config, or URL mismatch
+// so the caller falls through to the legacy "already exists" error path.
+func (kc *TokenKubernetesClient) existingServerHasPassthrough(ctx context.Context, server *ogxapi.OGXServer, namespace string) bool {
+	expectedURL := kc.buildPassthroughBaseURL(namespace)
+	if expectedURL == "" {
+		// GatewayDomain not configured — zero-restart path requires a passthrough provider.
+		return false
+	}
+	if server.Spec.OverrideConfig == nil ||
+		server.Spec.OverrideConfig.Name == "" ||
+		server.Spec.OverrideConfig.Key == "" {
+		return false
+	}
+	return kc.existingServerHasPassthroughFromConfigMap(ctx, server.Spec.OverrideConfig.Name, server.Spec.OverrideConfig.Key, namespace, expectedURL)
+}
+
+// existingServerHasPassthroughFromConfigMap reads the named ConfigMap and checks
+// whether it contains a remote::passthrough inference provider whose base_url
+// matches expectedBaseURL. Extracted for testability (avoids OGXServer CRD
+// dependency in unit tests).
+func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx context.Context, cmName, cmKey, namespace, expectedBaseURL string) bool {
+	var cm corev1.ConfigMap
+	if err := kc.Client.Get(ctx, types.NamespacedName{
+		Name:      cmName,
+		Namespace: namespace,
+	}, &cm); err != nil {
+		kc.Logger.Debug("could not read OGXServer ConfigMap for passthrough detection", "error", err)
+		return false
+	}
+	configYAML, ok := cm.Data[cmKey]
+	if !ok {
+		return false
+	}
+	var config LlamaStackConfig
+	if err := config.FromYAML(configYAML); err != nil {
+		kc.Logger.Debug("could not parse OGXServer config for passthrough detection", "error", err)
+		return false
+	}
+	return config.HasPassthroughProvider(expectedBaseURL)
+}
+
 // ogxCommand returns the container command for the OGXServer pod.
 //
 // When tracing is enabled, we use opentelemetry-instrument to wrap the OGX
@@ -1435,6 +1565,24 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	}
 
 	if len(existingList.Items) > 0 {
+		// Zero-restart path: if the existing OGXServer already has a passthrough
+		// provider, new models are discoverable without any CR or ConfigMap update.
+		// OGX's Responses API resolves models per-request via the passthrough provider,
+		// so newly added models (ISVCs, MaaS, custom endpoints) are immediately
+		// available without OGX knowing about them in its model registry.
+		//
+		// For updates that require an OGX config change (e.g. vector store additions),
+		// the frontend deletes the playground first and re-installs, so this path
+		// only handles the "no changes needed" case.
+		existing := &existingList.Items[0]
+		if kc.existingServerHasPassthrough(ctx, existing, namespace) {
+			if len(vectorStores) > 0 {
+				return nil, fmt.Errorf("OGXServer already exists in namespace %s; recreate it before adding vector stores", namespace)
+			}
+			kc.Logger.Info("OGXServer exists with passthrough provider; new models resolved per-request via Responses API (zero-restart)",
+				"namespace", namespace, "server", existing.Name)
+			return existing, nil
+		}
 		return nil, fmt.Errorf("OGXServer already exists in namespace %s", namespace)
 	}
 
@@ -1684,6 +1832,59 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
 
+	// Prefer the DSCI-managed bundle. A newly created E2E namespace may not yet
+	// have one, so create an OpenShift-injected bundle as a fallback.
+	caBundleConfigMapName := "odh-trusted-ca-bundle"
+	fallbackCABundleCreated := false
+	var caBundleConfigMap corev1.ConfigMap
+	err = kc.Client.Get(ctx, types.NamespacedName{Name: caBundleConfigMapName, Namespace: namespace}, &caBundleConfigMap)
+	if err != nil || caBundleConfigMap.Data["ca-bundle.crt"] == "" {
+		caBundleConfigMapName = "ogx-trusted-ca-bundle"
+		caBundle := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      caBundleConfigMapName,
+				Namespace: namespace,
+				Labels: map[string]string{
+					"config.openshift.io/inject-trusted-cabundle": "true",
+					"ogx.io/watch": "true",
+				},
+			},
+			Data: map[string]string{},
+		}
+		if err := kc.Client.Create(ctx, caBundle); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return nil, rollbackPgvector(fmt.Errorf("failed to create CA trust ConfigMap: %w", err))
+			}
+		} else {
+			fallbackCABundleCreated = true
+		}
+	} else {
+		if caBundleConfigMap.Labels == nil {
+			caBundleConfigMap.Labels = make(map[string]string)
+		}
+		if caBundleConfigMap.Labels["ogx.io/watch"] != "true" {
+			caBundleConfigMap.Labels["ogx.io/watch"] = "true"
+			if err := kc.Client.Update(ctx, &caBundleConfigMap); err != nil {
+				kc.Logger.Warn("failed to add OGX watch label to trusted CA bundle", "error", err, "namespace", namespace)
+			}
+		}
+	}
+	caCertificates := []ogxapi.ConfigMapKeyRef{
+		{Name: caBundleConfigMapName, Key: "ca-bundle.crt"},
+	}
+	routerCABundleCreated := false
+	if kc.EnvConfig.GatewayDomain != "" {
+		routerCABundleName, created, err := kc.ensureOGXGatewayCABundle(ctx, namespace)
+		if err != nil {
+			return nil, rollbackPgvector(err)
+		}
+		routerCABundleCreated = created
+		caCertificates = append(caCertificates, ogxapi.ConfigMapKeyRef{
+			Name: routerCABundleName,
+			Key:  "ca-bundle.crt",
+		})
+	}
+
 	// Step 5: Create OGXServer
 	replicas := int32(1)
 	workloadResources := &corev1.ResourceRequirements{
@@ -1730,6 +1931,11 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Network: &ogxapi.NetworkSpec{
 				Port: 8321,
 			},
+			TLS: &ogxapi.TLSClientConfig{
+				Trust: &ogxapi.TrustConfig{
+					CACertificates: caCertificates,
+				},
+			},
 		},
 	}
 
@@ -1742,6 +1948,16 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			kc.Logger.Error("failed to clean up ConfigMap after OGXServer creation failure", "error", deleteErr, "namespace", namespace, "configMapName", configMapName)
 		} else {
 			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
+		}
+		if fallbackCABundleCreated {
+			if deleteErr := kc.Client.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: caBundleConfigMapName, Namespace: namespace}}); deleteErr != nil {
+				kc.Logger.Error("failed to clean up fallback CA bundle after OGXServer creation failure", "error", deleteErr, "namespace", namespace)
+			}
+		}
+		if routerCABundleCreated {
+			if deleteErr := kc.Client.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: ogxRouterCABundleName, Namespace: namespace}}); deleteErr != nil {
+				kc.Logger.Error("failed to clean up router CA bundle after OGXServer creation failure", "error", deleteErr, "namespace", namespace)
+			}
 		}
 
 		return nil, rollbackPgvector(fmt.Errorf("failed to create OGXServer: %w", err))
@@ -1769,6 +1985,26 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		// Continue without failing - the OGXServer is created successfully
 	} else {
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
+	}
+
+	// The fallback bundle is dashboard-owned; leave the DSCI-managed bundle untouched.
+	if caBundleConfigMapName == "ogx-trusted-ca-bundle" {
+		var caBundle corev1.ConfigMap
+		if err := kc.Client.Get(ctx, types.NamespacedName{Name: caBundleConfigMapName, Namespace: namespace}, &caBundle); err == nil {
+			caBundle.OwnerReferences = configMap.OwnerReferences
+			if err := kc.Client.Update(ctx, &caBundle); err != nil {
+				kc.Logger.Warn("failed to add owner reference to fallback CA bundle", "error", err, "namespace", namespace)
+			}
+		}
+	}
+	if kc.EnvConfig.GatewayDomain != "" {
+		var routerCABundle corev1.ConfigMap
+		if err := kc.Client.Get(ctx, types.NamespacedName{Name: ogxRouterCABundleName, Namespace: namespace}, &routerCABundle); err == nil {
+			routerCABundle.OwnerReferences = configMap.OwnerReferences
+			if err := kc.Client.Update(ctx, &routerCABundle); err != nil {
+				kc.Logger.Warn("failed to add owner reference to router CA bundle", "error", err, "namespace", namespace)
+			}
+		}
 	}
 
 	// Set owner references on auto-provisioned pgvector resources so
@@ -1817,18 +2053,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	}
 
 	return ogxServer, nil
-}
-
-// ensureVLLMCompatibleURL ensures the URL has /v1 suffix for vLLM provider compatibility
-func ensureVLLMCompatibleURL(url string) string {
-	// Remove any trailing slashes
-	url = strings.TrimSuffix(url, "/")
-	// Check if URL already ends with /v1
-	if strings.HasSuffix(url, "/v1") {
-		return url
-	}
-	// Add /v1 suffix
-	return url + "/v1"
 }
 
 // pgvectorConnectionFromConfig builds a pgvector.Connection from the BFF's
@@ -1918,10 +2142,24 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		config.VectorStores.DefaultProviderID = ""
 	}
 
-	// Create a map of MaaS models for efficient lookup (only call ListModels once)
+	// Add the default embedding model (required for vector stores — OGX's vector store
+	// path lacks per-request model resolution, so embedding models must be static).
+	defaultEmbeddingModel := constants.DefaultEmbeddingModel()
+	embeddingModel := NewEmbeddingModel(
+		defaultEmbeddingModel.ModelID,
+		defaultEmbeddingModel.ProviderID,
+		defaultEmbeddingModel.ProviderModelID,
+		int(defaultEmbeddingModel.EmbeddingDimension),
+	)
+	config.AddModel(embeddingModel)
+
+	// Validate all requested models exist and are ready. OGX's Responses API resolves
+	// inference models per-request via the passthrough provider, so they are NOT
+	// registered in the config — but we validate at install time to give early feedback.
+	// Embedding models are the exception: they must be registered because OGX's vector
+	// store path lacks per-request model resolution.
 	maasModelsMap := make(map[string]*models.MaaSModel)
 	if bffClient != nil {
-		// Check if we have any MaaS models first
 		hasMaaSModels := false
 		for _, model := range installModels {
 			if model.ModelSourceType == models.ModelSourceTypeMaaS {
@@ -1935,10 +2173,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("user auth token is required to list MaaS models")
 			}
 
-			// Call MaaS BFF /models endpoint using BFF client
-			// The response is envelope-wrapped: {"data": {"object": "list", "data": [...]}}
-			// Note: MaaS BFF determines namespace scope via the forwarded authentication token
-			// (x-forwarded-access-token header), not via query parameters
 			var bffResponse models.MaaSBFFModelsResponse
 			err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
 			if err != nil {
@@ -1946,14 +2180,10 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
 			}
 
-			// Extract models from envelope-wrapped response and convert to MaaSModel format
 			bffModels := bffResponse.Data.Data
-
-			// Create map for efficient lookup, converting from BFF model to MaaSModel
 			for i := range bffModels {
 				bffModel := &bffModels[i]
-				// Convert MaaSBFFModel to MaaSModel
-				maasModel := &models.MaaSModel{
+				maasModelsMap[bffModel.ID] = &models.MaaSModel{
 					ID:      bffModel.ID,
 					Object:  bffModel.Object,
 					Created: bffModel.Created,
@@ -1961,24 +2191,11 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 					Ready:   bffModel.Ready,
 					URL:     bffModel.URL,
 				}
-				maasModelsMap[maasModel.ID] = maasModel
 			}
-
-			kc.Logger.Debug("loaded MaaS models into map via BFF", "count", len(maasModelsMap))
+			kc.Logger.Debug("loaded MaaS models for validation", "count", len(maasModelsMap))
 		}
 	}
 
-	// Add the default embedding model
-	defaultEmbeddingModel := constants.DefaultEmbeddingModel()
-	embeddingModel := NewEmbeddingModel(
-		defaultEmbeddingModel.ModelID,
-		defaultEmbeddingModel.ProviderID,
-		defaultEmbeddingModel.ProviderModelID,
-		int(defaultEmbeddingModel.EmbeddingDimension),
-	)
-	config.AddModel(embeddingModel)
-
-	// Pre-fetch the external models ConfigMap once if any external models are present
 	var externalModelsConfig *models.ExternalModelsConfig
 	for _, model := range installModels {
 		if models.IsExternalModelSource(model.ModelSourceType) {
@@ -1996,70 +2213,43 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	}
 
 	for i, model := range installModels {
-		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
-
-		// Skip transcription models — they use a direct audio pipeline and bypass OGX/LlamaStack
 		if model.ModelType == string(models.ModelTypeTranscription) {
 			kc.Logger.Debug("Skipping transcription model (not registered in LlamaStack)", "model", model.ModelName)
 			continue
 		}
 
 		if model.ModelSourceType == models.ModelSourceTypeMaaS {
-			// Handle MaaS models using the pre-loaded map
 			maasModel, exists := maasModelsMap[model.ModelName]
 			if !exists {
-				kc.Logger.Error("MaaS model not found in map", "model", model.ModelName)
 				return "", fmt.Errorf("MaaS model '%s' not found", model.ModelName)
 			}
-
-			// Check if model is ready
 			if !maasModel.Ready {
-				kc.Logger.Error("MaaS model is not ready", "model", model.ModelName, "modelID", maasModel.ID)
 				return "", fmt.Errorf("MaaS model '%s' is not ready (status: %t)", model.ModelName, maasModel.Ready)
 			}
-
-			// Create provider and model for MaaS model
-			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
-			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
-			resolvedMaaSType := model.ModelType
-			if resolvedMaaSType == "" {
-				resolvedMaaSType = "llm"
-			}
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension, true)
-			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
+			kc.Logger.Info("Validated MaaS model", "model", maasModel.ID)
 		} else if models.IsExternalModelSource(model.ModelSourceType) {
-			// Handle external models from ConfigMap
-			kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
 			extDetails, err := kc.getExternalModelDetails(externalModelsConfig, model.ModelName)
 			if err != nil {
-				kc.Logger.Error("failed to get external model details", "model", model.ModelName, "error", err)
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
-
-			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
-			resolvedExtType := model.ModelType
-			if resolvedExtType == "" {
-				resolvedExtType = extDetails.modelType
+			if model.ModelType == string(models.ModelTypeEmbedding) {
+				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
+				kc.Logger.Info("Registered embedding model (custom endpoint)", "model", extDetails.modelID, "providerID", extDetails.providerID)
+			} else {
+				kc.Logger.Info("Validated external model", "model", extDetails.modelID, "providerID", extDetails.providerID)
 			}
-			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
-			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 		} else {
-			// Handle regular cluster models (InferenceService/LLMInferenceService)
-			kc.Logger.Debug("Handling as cluster model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
 			details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
 			if err != nil {
-				kc.Logger.Error("failed to get model details from serving runtime", "model", model.ModelName, "error", err)
 				return "", fmt.Errorf("cannot determine endpoint for model '%s': %w", model.ModelName, err)
 			}
-
-			providerID := fmt.Sprintf("vllm-inference-%d", i+1)
-
-			resolvedClusterType := model.ModelType
-			if resolvedClusterType == "" {
-				resolvedClusterType = details.modelType
+			if model.ModelType == string(models.ModelTypeEmbedding) {
+				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
+				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.MaxTokens, model.EmbeddingDimension, false)
+				kc.Logger.Info("Registered embedding model (cluster)", "model", details.modelID, "providerID", providerID)
+			} else {
+				kc.Logger.Info("Validated cluster model", "model", details.modelID, "endpoint", details.endpointURL)
 			}
-			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension, false)
-			kc.Logger.Info("Added cluster model to configuration", "model", details.modelID, "providerID", providerID, "endpoint", details.endpointURL, "maxTokens", model.MaxTokens)
 		}
 	}
 
@@ -2139,6 +2329,46 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// Ensure storage field is present before serialization (defensive check)
 	config.EnsureStorageField()
 
+	// Add remote::passthrough provider for inference routing through the BFF proxy.
+	// OGX's Responses API resolves models per-request — it forwards inference to the
+	// sole passthrough provider without requiring models in registered_resources.
+	// The BFF proxy then resolves the actual upstream endpoint and credentials.
+	//
+	// URL format: https://<gateway-domain>/gen-ai/api/v1/genai-proxy/ns/<namespace>
+	// Note: remote::passthrough appends /v1 to base_url automatically, so
+	// OGX calls .../genai-proxy/ns/<ns>/v1/models, /v1/chat/completions, etc.
+	// The /gen-ai prefix is required because external traffic arrives at the
+	// Node.js dashboard first, which proxies /gen-ai/* to the Go BFF.
+	if kc.EnvConfig.GatewayDomain != "" {
+		pathPrefix := kc.EnvConfig.PathPrefix
+		if pathPrefix == "" {
+			pathPrefix = constants.PathPrefix
+		}
+		passthroughURL := fmt.Sprintf("https://%s%s%s/genai-proxy/ns/%s",
+			kc.EnvConfig.GatewayDomain, pathPrefix, kc.EnvConfig.APIPathPrefix, namespace)
+		passthroughProvider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
+		config.AddInferenceProvider(passthroughProvider)
+		kc.Logger.Info("Added remote::passthrough provider (Responses API resolves models per-request, supports zero restart)",
+			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
+	} else {
+		// Without GatewayDomain the remote::passthrough provider cannot be registered.
+		// Namespace and custom-endpoint embedding models use static providers; MaaS
+		// embedding models are validation-only. Transcription models are not registered
+		// in Llama Stack. All other supported model sources require passthrough routing.
+		for _, m := range installModels {
+			if !requiresPassthroughProvider(m) {
+				continue
+			}
+			return "", fmt.Errorf(
+				"cannot install %s inference model %q: GATEWAY_DOMAIN is not configured, "+
+					"which is required to register the remote::passthrough inference provider",
+				m.ModelSourceType,
+				m.ModelName,
+			)
+		}
+		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured, no models require it)")
+	}
+
 	// Optionally enable RBAC authentication using Kubernetes auth provider.
 	// Gated behind ENABLE_LLAMASTACK_RBAC env var / --enable-llamastack-rbac flag
 	// to avoid breaking existing deployments that may not have the expected
@@ -2163,6 +2393,20 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// Add comment header
 	configYAML = "# Llama Stack Configuration\n" + configYAML
 	return configYAML, nil
+}
+
+// requiresPassthroughProvider reports whether a supported model requires
+// remote::passthrough for inference routing. Namespace and custom-endpoint
+// embedding models use static providers, MaaS embedding models are validation-only,
+// and transcription models are not registered in Llama Stack.
+func requiresPassthroughProvider(model models.InstallModel) bool {
+	switch model.ModelSourceType {
+	case models.ModelSourceTypeNamespace, models.ModelSourceTypeMaaS, models.ModelSourceTypeCustomEndpoint:
+		return model.ModelType != string(models.ModelTypeEmbedding) &&
+			model.ModelType != string(models.ModelTypeTranscription)
+	default:
+		return false
+	}
 }
 
 // GetExternalModelsConfig retrieves and parses the gen-ai-aa-custom-model-endpoints ConfigMap

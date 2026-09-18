@@ -5,10 +5,16 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/workbenches?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: >-
+      event == "pull_request" &&
+      target_branch == "main" &&
+      (
+        "workspaces/controller/***".pathChanged() ||
+        ".tekton/***".pathChanged()
+      )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
@@ -17,6 +23,9 @@ metadata:
   name: odh-workbenches-controller-on-pull-request
   namespace: open-data-hub-tenant
 spec:
+  timeouts:
+    pipeline: 2h
+    tasks: 1h
   params:
   - name: git-url
     value: '{{source_url}}'
@@ -24,16 +33,21 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/opendatahub/odh-workbenches-controller:odh-pr
+  - name: image-expires-after
+    value: 7d
   - name: dockerfile
     value: Dockerfile
   - name: path-context
     value: ./workspaces/controller
-  # additional params
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
   - name: pipeline-type
     value: pull-request
+  - name: build-source-image
+    value: "false"
+  - name: enable-slack-failure-notification
+    value: "false"
   pipelineRef:
     resolver: git
     params:

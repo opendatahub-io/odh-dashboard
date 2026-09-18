@@ -1,7 +1,5 @@
-import type { PipelineRun } from '~/app/types';
-import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { DEFAULT_OPTIMIZATION_METRIC, MAX_DISPLAY_NAME_LENGTH } from './const';
+import { MAX_DISPLAY_NAME_LENGTH } from './const';
 
 const VALID_RUNTIME_STATES = new Set<string>(Object.values(RuntimeStateKF));
 
@@ -100,28 +98,6 @@ export function parseErrorStatus(error: Error): number | undefined {
 }
 
 /**
- * Gets the optimized metric name from the pipeline run's runtime parameters.
- *
- * Backend contract: this value always matches the `optimization_metric: true`
- * flag on exactly one metric inside each pattern's evaluation block.
- * Both sources are authoritative; prefer this for contexts where the pipeline
- * run is available but individual pattern data is not (e.g. leaderboard headers).
- *
- * @param pipelineRun - The pipeline run object containing parameters
- * @returns The optimized metric name from parameters, or the default optimization metric
- */
-export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
-  const parameters = pipelineRun?.runtime_config?.parameters;
-  if (parameters && 'optimization_metric' in parameters) {
-    const metric = parameters.optimization_metric;
-    if (typeof metric === 'string') {
-      return metric;
-    }
-  }
-  return DEFAULT_OPTIMIZATION_METRIC;
-}
-
-/**
  * Formats the elapsed time between two ISO timestamps as a short human-readable string
  * (e.g. "34 s", "1 m 42 s", "2 h 5 m"). Returns undefined when either timestamp is missing
  * or the resulting duration is invalid.
@@ -213,33 +189,6 @@ export function formatPatternName(name: string): string {
 }
 
 /**
- * Format metric key names for display (e.g. "answer_correctness" -> "Answer Correctness").
- */
-export function formatMetricName(metricKey: string): string {
-  /* eslint-disable camelcase */
-  const specialCases: Record<string, string> = {
-    faithfulness: 'Answer faithfulness',
-    answer_correctness: 'Answer correctness',
-    context_correctness: 'Context correctness',
-    answer_relevance: 'Answer relevance',
-    answer_relevancy: 'Answer relevancy',
-    context_precision: 'Context precision',
-    context_recall: 'Context recall',
-    overall_score: 'Overall score',
-  };
-  /* eslint-enable camelcase */
-
-  if (specialCases[metricKey]) {
-    return specialCases[metricKey];
-  }
-
-  return metricKey
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-/**
  * Convert a snake_case key to Title Case (e.g. 'chunk_size' → 'Chunk Size').
  */
 const HUMANIZE_OVERRIDES: Record<string, string> = {
@@ -269,86 +218,6 @@ export const formatDisplayValue = (value: unknown): string => {
 };
 
 /**
- * Look up a metric by name from a pattern's evaluation metrics.
- */
-export function getMetricByName(
-  pattern: AutoragPattern,
-  name: string,
-): AutoragEvaluationMetric | undefined {
-  const normalized = name.toLowerCase();
-  return pattern.evaluation.metrics.find((m) => m.name.toLowerCase() === normalized);
-}
-
-/**
- * Returns the metric flagged as the optimization target (`optimization_metric: true`).
- *
- * Backend contract: its `name` matches the run's `optimization_metric` pipeline
- * parameter (see {@link getOptimizedMetricForRAG}). Prefer this for contexts
- * where pattern data is available but the pipeline run is not (e.g. modals).
- */
-export function getOptimizationMetric(
-  pattern: AutoragPattern,
-): AutoragEvaluationMetric | undefined {
-  return pattern.evaluation.metrics.find((m) => m.optimization_metric);
-}
-
-/**
- * Returns the name of the optimization metric, or undefined if none is flagged.
- */
-export function getOptimizationMetricName(pattern: AutoragPattern): string | undefined {
-  return getOptimizationMetric(pattern)?.name;
-}
-
-/**
- * Returns the mean score of the optimization metric (the "final score" for ranking).
- */
-export function getOptimizedScore(pattern: AutoragPattern): number {
-  const metric = getOptimizationMetric(pattern);
-  if (!metric) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `Pattern "${pattern.name}" has no metric with optimization_metric flag set; defaulting score to 0`,
-    );
-  }
-  const mean = metric?.scores.mean;
-  return mean != null && Number.isFinite(mean) ? mean : 0;
-}
-
-/**
- * Compute a rank map from an array of patterns, ranked by optimization metric score descending.
- * Returns a Record mapping pattern name to rank (1-based).
- *
- * Uses the pattern-level `optimization_metric` flag, which the backend guarantees
- * matches the run's `optimization_metric` pipeline parameter.
- */
-export function computePatternRankMap(patterns: AutoragPattern[]): Record<string, number> {
-  const sorted = patterns.toSorted((a, b) => getOptimizedScore(b) - getOptimizedScore(a));
-  const map: Record<string, number> = {};
-  sorted.forEach((p, i) => {
-    map[p.name] = i + 1;
-  });
-  return map;
-}
-
-/**
- * Resolves the winning pattern from a patterns record: the record key of the pattern with
- * the highest optimization metric score. Ranking uses record keys (not `AutoragPattern.name`)
- * so duplicate display names still resolve to a stable, unique key. Client-side only — there
- * is no backend `best_model`-equivalent field for AutoRAG patterns.
- */
-export function resolveBestPatternKey(
-  patterns: Record<string, AutoragPattern>,
-): string | undefined {
-  const patternKeys = Object.keys(patterns);
-  if (patternKeys.length === 0) {
-    return undefined;
-  }
-  return patternKeys.toSorted(
-    (a, b) => getOptimizedScore(patterns[b]) - getOptimizedScore(patterns[a]),
-  )[0];
-}
-
-/**
  * Read a CSS custom property from the document root, returning a fallback
  * when the property is empty or not set (e.g. in canvas/ECharts contexts).
  */
@@ -356,69 +225,6 @@ export const getCSSVar = (name: string, fallback: string): string => {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 };
-
-/** Compares two optimized-metric values for leaderboard sorting; 'N/A' always sorts last. */
-export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {
-  if (aVal === 'N/A' && bVal === 'N/A') {
-    return 0;
-  }
-  if (aVal === 'N/A') {
-    return 1;
-  }
-  if (bVal === 'N/A') {
-    return -1;
-  }
-  const aNum = typeof aVal === 'number' ? aVal : 0;
-  const bNum = typeof bVal === 'number' ? bVal : 0;
-  if (Object.is(aNum, bNum)) {
-    return 0;
-  }
-  // NaN is not ordered by >/<; keep it consistently below every finite/infinite metric.
-  if (Number.isNaN(aNum)) {
-    return 1;
-  }
-  if (Number.isNaN(bNum)) {
-    return -1;
-  }
-  return bNum > aNum ? 1 : -1;
-}
-
-/**
- * Orders pattern keys by optimized metric, pinning `bestPatternKey` first when provided.
- * Keeps the leaderboard's rank-1 row consistent with the pipeline visualization's winning
- * pattern (both derived client-side via `computePatternRankMap`/`resolveBestPatternKey`).
- */
-export function orderPatternsByLeaderboardRank(
-  patternKeys: string[],
-  getOptimizedValue: (patternKey: string) => number | string,
-  bestPatternKey?: string,
-): string[] {
-  const sorted = patternKeys.toSorted((a, b) =>
-    compareOptimizedMetricValues(getOptimizedValue(a), getOptimizedValue(b)),
-  );
-
-  if (!bestPatternKey || !patternKeys.includes(bestPatternKey)) {
-    return sorted;
-  }
-
-  return [bestPatternKey, ...sorted.filter((key) => key !== bestPatternKey)];
-}
-
-/**
- * Format metric values for display.
- * Uses scientific notation for non-zero values that would round to 0.000.
- */
-export function formatMetricValue(value: number | string): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  // If the value would round to 0.000 but is actually non-zero, use scientific notation
-  const fixed = value.toFixed(3);
-  if ((fixed === '0.000' || fixed === '-0.000') && value !== 0) {
-    return value.toExponential(3);
-  }
-  return fixed;
-}
 
 /** Match exact task dir or task dir + hyphen + KFP branch numeric suffix (e.g. `-2`). */
 export function isComponentTaskDirName(dirName: string, pattern: string): boolean {

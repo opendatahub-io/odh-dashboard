@@ -1004,6 +1004,10 @@ class WorkbenchStatusModal extends Modal {
     return cy.findByTestId('notebook-status-modal-header').find('h1,h2,h3,h4,h5,h6').first();
   }
 
+  findModalDescription() {
+    return cy.findByTestId('notebook-status-modal-description');
+  }
+
   findEventlogTab() {
     return cy.findByTestId('expand-logs');
   }

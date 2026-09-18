@@ -40,3 +40,12 @@
 - Without a live Kubeflow Pipelines endpoint, enable the HTTP client mock or the BFF may fail at startup when mocks are off.
 - Docker deployment is not documented here; use the package `Makefile` targets for local workflows.
 - Contract tests expect `GET /healthcheck` on the BFF.
+
+## Time Series Dataset Guidance
+
+- Dataset metadata comes from the AutoML BFF at `/automl/api/v1/s3/files/{key}?view=schema` after upload or S3 file selection. The BFF infers column types from a bounded CSV sample; the frontend does not parse CSV files.
+- After the user selects a numeric target, a confirmed timestamp column takes precedence over the target's classification/regression suggestion. The user can override the recommendation; the selected `task_type` is sent to the pipeline.
+- A two-column dataset needs a timestamp and a numeric target. A single-item time series needs no manual item ID column. For two-column datasets, the ID dropdown is disabled and displays "Auto-generated ID column". For datasets with three or more columns, the UI requires an ID selection. The BFF also checks the CSV for direct time series requests without an ID and allows omission only for two columns matching the requested target and timestamp; read failures prevent run creation. Synthetic ID injection is owned by the pipeline (RHOAIENG-81174).
+- Recognized timestamps include ISO 8601 dates and datetimes (with or without timezone), `YYYY-MM-DD HH:mm:ss`, `YYYY/MM/DD`, slash- or hyphen-separated month/day/year or day/month/year dates, and RFC 1123/822 dates. Prefer ISO 8601 to avoid day/month ambiguity. This is a supported subset of pandas-parseable strings, not every format pandas accepts.
+- Unix epoch integers, arbitrary string columns named `date`, and non-numeric targets do not trigger automatic time series recommendation. For unrecognized timestamps, select time series manually and choose the timestamp column; ensure the pipeline supports the representation or convert it to ISO 8601.
+- Recommendations are sample-based guidance, not full-dataset validation. Multi-item detection without an ID and multivariate/multi-target inference are outside this heuristic.
