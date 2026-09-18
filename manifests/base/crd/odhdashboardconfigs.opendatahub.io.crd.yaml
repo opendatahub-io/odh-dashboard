@@ -234,6 +234,9 @@ spec:
                     connectionTest:
                       type: boolean
                       description: 'When true, enables connection test functionality to verify credentials and connectivity for S3, URI, and OCI connections.'
+                    dataConnectHub:
+                      type: boolean
+                      description: 'When true, enables the Data Connect Hub features.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'
