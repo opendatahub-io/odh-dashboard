@@ -7,8 +7,10 @@ class AutoragRunResultsPage {
     return cy.findByTestId('leaderboard-table');
   }
 
-  findMetricHeader(metricName: string) {
-    return cy.findByTestId(`metric-header-${metricName}`);
+  findMetricHeader(metricName: string, evaluator?: string) {
+    return cy.findByTestId(
+      evaluator ? `metric-header-${metricName}-${evaluator}` : `metric-header-${metricName}`,
+    );
   }
 
   findPatternLink(rank: number) {
