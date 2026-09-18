@@ -1,5 +1,14 @@
 /**
- * Start or wait for Cypress mock module-federation static servers.
+ * Temporary adapter for dashboard Cypress mock module-federation servers.
+ *
+ * The pnpm workspace includes nested module frontends and distributions that were not all part
+ * of the previous Turbo workspace graph. Running the generic cypress:server tasks across that
+ * expanded graph invokes scripts with different contracts, including standalone servers and BFF
+ * health checks. Dashboard mock CI only needs the prebuilt public-cypress assets served on each
+ * module's configured federation port.
+ *
+ * Remove this helper after the Cypress build, static-server, and readiness tasks have distinct
+ * names and the root Turbo command can target only packages applicable to dashboard mock CI.
  *
  * Usage (from frontend/):
  *   node ../scripts/cypress/mock-federation-servers.js start
