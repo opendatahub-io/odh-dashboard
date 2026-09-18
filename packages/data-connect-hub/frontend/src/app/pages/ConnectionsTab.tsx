@@ -80,6 +80,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const [deleting, setDeleting] = React.useState(false);
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const deleteOperationRef = React.useRef(0);
 
   const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
   const typeIds = React.useMemo(
@@ -280,19 +281,29 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     if (!deleteTarget) {
       return;
     }
+    const operation = ++deleteOperationRef.current;
+    const requestNamespace = namespace;
     const connectionId = deleteTarget.metadata.id;
     setDeleting(true);
     setDeleteError(undefined);
     try {
-      await deleteConnection('')({}, namespace, connectionId);
+      await deleteConnection('')({}, requestNamespace, connectionId);
+      if (deleteOperationRef.current !== operation || namespace !== requestNamespace) {
+        return;
+      }
       setDeleteTarget(undefined);
       refresh();
     } catch (deleteFailure) {
+      if (deleteOperationRef.current !== operation || namespace !== requestNamespace) {
+        return;
+      }
       setDeleteError(
         deleteFailure instanceof Error ? deleteFailure : new Error('Unable to delete connection'),
       );
     } finally {
-      setDeleting(false);
+      if (deleteOperationRef.current === operation && namespace === requestNamespace) {
+        setDeleting(false);
+      }
     }
   };
 
@@ -482,7 +493,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                       <DropdownItem
                         onClick={() => {
                           setActionsFor(undefined);
+                          deleteOperationRef.current += 1;
                           setDeleteTarget(connection);
+                          setDeleteError(undefined);
+                          setDeleting(false);
                         }}
                       >
                         Delete
@@ -502,8 +516,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           deleting={deleting}
           error={deleteError}
           onClose={() => {
+            deleteOperationRef.current += 1;
             setDeleteTarget(undefined);
             setDeleteError(undefined);
+            setDeleting(false);
           }}
           onDelete={() => void handleDelete()}
         >

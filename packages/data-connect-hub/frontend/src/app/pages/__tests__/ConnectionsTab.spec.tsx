@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
-import { verifyConnection } from '~/app/api/dch';
+import { deleteConnection, verifyConnection } from '~/app/api/dch';
 
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
@@ -14,12 +14,34 @@ jest.mock('~/app/api/dch', () => ({
   verifyConnection: jest.fn(),
 }));
 jest.mock('@odh-dashboard/ui-core', () => ({
-  DeleteModal: () => null,
+  DeleteModal: ({
+    deleteName,
+    error,
+    onClose,
+    onDelete,
+  }: {
+    deleteName: string;
+    error?: Error;
+    onClose: () => void;
+    onDelete: () => void;
+  }) => (
+    <div data-testid="delete-modal">
+      <span>{deleteName}</span>
+      {error && <span>{error.message}</span>}
+      <button type="button" data-testid="delete-confirm" onClick={onDelete}>
+        Confirm delete
+      </button>
+      <button type="button" data-testid="delete-close" onClick={onClose}>
+        Close
+      </button>
+    </div>
+  ),
 }));
 
 const mockUseConnections = jest.mocked(useConnections);
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockVerifyConnection = jest.mocked(verifyConnection);
+const mockDeleteConnection = jest.mocked(deleteConnection);
 
 const connections = [
   {
@@ -58,6 +80,7 @@ describe('ConnectionsTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockVerifyConnection.mockImplementation(() => () => Promise.resolve());
+    mockDeleteConnection.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
   });
@@ -114,6 +137,57 @@ describe('ConnectionsTab', () => {
     await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
 
+  it('refreshes and closes the modal after a successful delete', async () => {
+    const user = userEvent.setup();
+    const refresh = jest.fn();
+    mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
+    mockDeleteConnection.mockImplementation(() => (_opts, _namespace, _id) => Promise.resolve());
+    render(<ConnectionsTab namespace="test-project" />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await user.click(screen.getByTestId('delete-confirm'));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(screen.queryByTestId('delete-modal')).toBeNull();
+  });
+
+  it('ignores a stale delete completion after the modal is replaced', async () => {
+    const user = userEvent.setup();
+    const refresh = jest.fn();
+    let resolveFirst: () => void = () => undefined;
+    let resolveSecond: () => void = () => undefined;
+    const firstDelete = new Promise<void>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const secondDelete = new Promise<void>((resolve) => {
+      resolveSecond = resolve;
+    });
+    mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
+    mockDeleteConnection.mockImplementation(
+      () => (_opts, _namespace, id) => (id === 'connection-1' ? firstDelete : secondDelete),
+    );
+    render(<ConnectionsTab namespace="test-project" />);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await user.click(screen.getByTestId('delete-confirm'));
+    await user.click(screen.getByTestId('delete-close'));
+
+    await user.click(screen.getByRole('button', { name: 'Actions for object-store' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await user.click(screen.getByTestId('delete-confirm'));
+
+    resolveFirst();
+    await Promise.resolve();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(screen.getByTestId('delete-modal')).toBeTruthy();
+
+    resolveSecond();
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('delete-modal')).toBeNull();
+  });
+
   it('includes newly discovered connection types after polling', async () => {
     const user = userEvent.setup();
     const { rerender } = render(<ConnectionsTab namespace="test-project" />);
@@ -138,14 +212,14 @@ describe('ConnectionsTab', () => {
 
   it('resets type selections when the project changes', async () => {
     const user = userEvent.setup();
-    const { rerender } = render(<ConnectionsTab namespace="project-one" />);
+    const { rerender } = render(<ConnectionsTab key="project-one" namespace="project-one" />);
 
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'S3' }));
 
     mockUseConnections.mockReturnValue([[connections[1]], true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([[connectionTypes[1]], true, undefined]);
-    rerender(<ConnectionsTab namespace="project-two" />);
+    rerender(<ConnectionsTab key="project-two" namespace="project-two" />);
 
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Type' })[0]).toBeTruthy());
     expect(screen.getByText('object-store')).toBeTruthy();
