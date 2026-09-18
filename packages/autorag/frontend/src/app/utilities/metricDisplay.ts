@@ -44,7 +44,7 @@ export const groupMetricsByEvaluator = (
   const groups = new Map<string, { evaluator: string; metrics: AutoRAGEvaluationMetricResult[] }>();
 
   metrics.forEach((metric) => {
-    const originalEvaluator = metric.evaluator || 'other';
+    const originalEvaluator = metric.evaluator.trim() || 'other';
     const key = originalEvaluator.toLowerCase();
     const existing = groups.get(key);
     if (existing) {

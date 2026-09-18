@@ -267,10 +267,9 @@ const COLUMN_META: Record<string, ColumnMeta> = {
 // key returns a value, but dynamic settings and metric names may be absent at runtime.
 const getColumnMeta = (id: string, metric?: MetricReference): ColumnMeta | undefined => {
   if (metric) {
-    const name = normalizeMetricReference(metric).name;
-    const staticMeta = METRIC_COLUMN_META[name];
-    if (staticMeta) {
-      return staticMeta;
+    const { name } = normalizeMetricReference(metric);
+    if (Object.hasOwn(METRIC_COLUMN_META, name)) {
+      return METRIC_COLUMN_META[name];
     }
     const description = getMetricDescription(name);
     if (description) {

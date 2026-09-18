@@ -126,7 +126,9 @@ describe('SampleQAEntry', () => {
     );
 
     expect(screen.getByTestId('qa-metric-group-ragas')).toBeInTheDocument();
-    expect(screen.getByTestId('qa-metric-scores-q0')).toHaveTextContent('Answer faithfulness: 0.770');
+    expect(screen.getByTestId('qa-metric-scores-q0')).toHaveTextContent(
+      'Answer faithfulness: 0.770',
+    );
   });
 
   it('should show N/A for duplicate normalized metric identities', () => {

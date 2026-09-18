@@ -15,7 +15,7 @@ const initIntercepts = () => {
 const enableUnitxtAnswerCorrectnessColumn = (): void => {
   cy.findByTestId('manage-columns-button').click();
   cy.findByTestId('manage-columns-modal').should('be.visible');
-  cy.findByTestId('column-check-metric:answer_correctness_(unitxt)').then(($control) => {
+  cy.findByTestId('column-check-metric---unitxt---answer_correctness--').then(($control) => {
     const $checkbox = $control.is('input') ? $control : $control.find('input[type="checkbox"]');
     const isChecked =
       $checkbox.prop('checked') === true ||
@@ -38,9 +38,9 @@ describe('AutoRAG run results metrics', () => {
 
   it('should provide metric header definitions, CI help, and grouped Sample Q&A metrics', () => {
     enableUnitxtAnswerCorrectnessColumn();
-    autoragRunResultsPage.findMetricHeader('answer_correctness').should('be.visible');
+    autoragRunResultsPage.findMetricHeader('answer_correctness', 'unitxt').should('be.visible');
     autoragRunResultsPage
-      .findMetricHeader('answer_correctness')
+      .findMetricHeader('answer_correctness', 'unitxt')
       .findByRole('button', { name: /more info/i })
       .click();
     cy.findByText(/matches the expected ground-truth answers/i).should('be.visible');

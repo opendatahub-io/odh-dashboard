@@ -85,6 +85,17 @@ describe('groupMetricsByEvaluator', () => {
     ]);
   });
 
+  it('should treat surrounding whitespace as the same evaluator', () => {
+    const grouped = groupMetricsByEvaluator([
+      metric('faithfulness', 'unitxt'),
+      metric('answer_correctness', ' UNITXT '),
+    ]);
+
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].evaluator).toBe('unitxt');
+    expect(grouped[0].metrics).toHaveLength(2);
+  });
+
   it('should group missing evaluators under other', () => {
     const grouped = groupMetricsByEvaluator([metric('overall_score', '')]);
 
