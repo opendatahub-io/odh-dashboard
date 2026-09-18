@@ -281,18 +281,6 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
               </Flex>
             </StackItem>
 
-            {providerRefs.length === 0 && (
-              <StackItem>
-                <Alert
-                  variant="info"
-                  isInline
-                  isPlain
-                  title="Add at least one provider reference to configure how this model routes inference traffic."
-                  data-testid="provider-refs-required-info"
-                />
-              </StackItem>
-            )}
-
             {providerRefs.length > 0 && (
               <StackItem>
                 <ProviderReferencesTable
@@ -344,7 +332,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           <Alert
             variant="danger"
             isInline
-            title={`Failed to ${isEditing ? 'update' : 'register'} external model`}
+            title={`Failed to ${isEditing ? 'update' : 'add'} external model`}
           >
             {submitError}
           </Alert>
@@ -365,8 +353,8 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
                 ? 'Saving...'
                 : 'Save'
               : isSubmitting
-                ? 'Registering...'
-                : 'Register external model'}
+                ? 'Adding...'
+                : 'Add external model'}
           </Button>
           <Button
             variant="link"

@@ -242,7 +242,7 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
               <>
                 <HelperTextItem>
                   Add key-value pairs for this provider reference only. Values replace matching{' '}
-                  {`{ placeholders }`} in the request path. If a key matches one inherited from the
+                  {`{placeholders}`} in the request path. If a key matches one inherited from the
                   provider, the value here is used instead.
                 </HelperTextItem>
               </>

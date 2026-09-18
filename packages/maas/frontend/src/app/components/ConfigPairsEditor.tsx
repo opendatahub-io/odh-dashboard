@@ -46,12 +46,21 @@ const ConfigPairsEditor: React.FC<ConfigPairsEditorProps> = ({
     <Stack hasGutter>
       {showHeaders && (
         <StackItem>
-          <Flex gap={{ default: 'gapSm' }}>
-            <FlexItem flex={{ default: 'flex_1' }}>
+          <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-w-100">
+            <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
               <strong>Key</strong>
             </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }}>
+            <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
               <strong>Value</strong>
+            </FlexItem>
+            <FlexItem flex={{ default: 'flexNone' }} aria-hidden="true">
+              <Button
+                variant="plain"
+                tabIndex={-1}
+                isDisabled
+                icon={<MinusCircleIcon />}
+                style={{ visibility: 'hidden' }}
+              />
             </FlexItem>
           </Flex>
         </StackItem>
