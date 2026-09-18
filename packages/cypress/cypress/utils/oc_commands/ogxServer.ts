@@ -29,6 +29,60 @@ const DEFAULT_POLL_OPTIONS: Required<PollOptions> = {
 };
 
 /**
+ * DSC condition name for the OGX operator readiness.
+ */
+const DSC_OGX_CONDITION = 'OGXReady';
+
+/**
+ * Wait for the OGX operator to be ready by polling the DataScienceCluster status.
+ * Checks for the OGXReady condition to be True.
+ *
+ * @param options Polling options (maxAttempts, pollIntervalMs).
+ * @returns A Cypress chainable that resolves when the operator is ready.
+ */
+export const waitForOGXReady = (
+  options: PollOptions = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const { maxAttempts, pollIntervalMs } = { ...DEFAULT_POLL_OPTIONS, ...options };
+  const startTime = Date.now();
+  const totalTimeout = maxAttempts * pollIntervalMs;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> => {
+    const command = `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="${DSC_OGX_CONDITION}")].status}'`;
+
+    return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+      const raw = result.stdout.trim();
+      const isReady = raw.split(/\s+/).includes('True');
+      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+      if (isReady) {
+        cy.log(`OGXReady condition is True (after ${elapsedTime}s)`);
+        return cy.wrap(result);
+      }
+
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(
+          `OGXReady condition not True after ${maxAttempts} attempts (${elapsedTime}s). Current status: ${
+            raw || 'not found'
+          }`,
+        );
+      }
+
+      cy.log(
+        `Waiting for OGXReady (attempt ${attemptNumber}/${maxAttempts}, status: ${
+          raw || 'not found'
+        }, elapsed: ${elapsedTime}s)`,
+      );
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+  };
+
+  cy.step(`Polling for OGXReady condition (max ${totalTimeout / 1000}s)`);
+  return check();
+};
+
+/**
  * Wait for an OGXServer to be Ready in the specified namespace.
  * Polls until the phase is "Ready" or max attempts is reached.
  *

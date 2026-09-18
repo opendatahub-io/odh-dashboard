@@ -8,10 +8,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const gatewayExternalName = 'gateway-external';
 export const modelsAsAServiceNamespace = 'models-as-a-service';
 
-export type MaaSApiKey = { id: string; key: string };
-
-const maasApiKeyRequestTimeoutMs = 30000;
-
 /** LLM completions can exceed Cypress's default 30s `cy.request` timeout (especially with high `max_tokens`). */
 const completionsRequestTimeoutMs = 180000;
 
@@ -27,7 +23,7 @@ const completionsRequestTimeoutMs = 180000;
  * )
  * so we prefer the non-`/publishers/` form when both exist.
  */
-export const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
+const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
   if (!isRecord(doc)) {
     throw new Error('Invalid LLMInferenceService JSON');
   }
@@ -363,95 +359,6 @@ EOF`;
   });
 };
 
-const getMaaSApiBaseUrl = (): Cypress.Chainable<string> =>
-  getClusterAppsDomain().then((clusterDomain) =>
-    cy.wrap(`https://maas.${clusterDomain}/maas-api/api/v1`),
-  );
-
-const getServiceAccountToken = (
-  serviceAccountName: string,
-  namespace: string,
-): Cypress.Chainable<string> =>
-  cy
-    .exec(`oc create token ${serviceAccountName} -n ${namespace} --duration=1h`, {
-      failOnNonZeroExit: true,
-      log: false,
-    })
-    .then((result) => cy.wrap(result.stdout.trim()));
-
-/**
- * Mint an ephemeral key as the dedicated simulator service account. The plaintext key is kept in
- * the Cypress process only; request logging and diagnostic errors deliberately omit response data.
- */
-export const createEphemeralMaaSApiKey = (
-  serviceAccountName: string,
-  namespace: string,
-  subscription: string,
-): Cypress.Chainable<MaaSApiKey> =>
-  getMaaSApiBaseUrl().then((baseUrl) =>
-    getServiceAccountToken(serviceAccountName, namespace).then((serviceAccountToken) =>
-      cy
-        .request({
-          method: 'POST',
-          url: `${baseUrl}/api-keys`,
-          headers: { Authorization: `Bearer ${serviceAccountToken}` },
-          body: {
-            name: `autorag-cypress-ephemeral-${Date.now()}`,
-            description: 'Lifecycle-only AutoRAG Cypress credential',
-            expiresIn: '1h',
-            subscription,
-            ephemeral: true,
-          },
-          failOnStatusCode: false,
-          log: false,
-          timeout: maasApiKeyRequestTimeoutMs,
-          strictSSL: false,
-        } as Partial<Cypress.RequestOptions> & { strictSSL: boolean })
-        .then((response) => {
-          const body = response.body as { id?: unknown; key?: unknown };
-          if (
-            response.status !== 201 ||
-            typeof body.id !== 'string' ||
-            !body.id ||
-            typeof body.key !== 'string' ||
-            !body.key
-          ) {
-            throw new Error(
-              `MaaS ephemeral API key creation failed with status ${response.status}.`,
-            );
-          }
-          return { id: body.id, key: body.key };
-        }),
-    ),
-  );
-
-/** Revoke a previously-created key by identifier without reading Kubernetes Secret data. */
-export const revokeMaaSApiKey = (
-  serviceAccountName: string,
-  namespace: string,
-  apiKeyId: string,
-): Cypress.Chainable<Cypress.Response<unknown>> =>
-  getMaaSApiBaseUrl().then((baseUrl) =>
-    getServiceAccountToken(serviceAccountName, namespace).then((serviceAccountToken) =>
-      cy
-        .request({
-          method: 'DELETE',
-          url: `${baseUrl}/api-keys/${encodeURIComponent(apiKeyId)}`,
-          headers: { Authorization: `Bearer ${serviceAccountToken}` },
-          failOnStatusCode: false,
-          log: false,
-          timeout: maasApiKeyRequestTimeoutMs,
-          strictSSL: false,
-        } as Partial<Cypress.RequestOptions> & { strictSSL: boolean })
-        .then((response) => {
-          if (response.status !== 200 && response.status !== 404) {
-            throw new Error(`MaaS API key revocation failed with status ${response.status}.`);
-          }
-          return response;
-        }),
-    ),
-  );
-
 const applyExternalModelsFixture = (
   resourceLabel: string,
   projectName: string,
@@ -592,42 +499,6 @@ export const waitForExternalModelGovernancePending = (
     });
 
   return checkState();
-};
-
-/**
- * Poll a MaaSModelRef until the MaaS controller reports it ready.
- * The controller has used both phase and Ready condition representations.
- */
-export const waitForMaaSModelRefReady = (
-  resourceName: string,
-  namespace: string,
-  options: { maxAttempts?: number; retryIntervalMs?: number } = {},
-): Cypress.Chainable<CommandLineResult> => {
-  const maxAttempts = options.maxAttempts ?? 96;
-  const retryIntervalMs = options.retryIntervalMs ?? 5000;
-  const readyCommand =
-    `oc get MaaSModelRef ${resourceName} -n ${namespace} -o json | ` +
-    `jq -e '(.status.phase == "Ready") or ` +
-    `any(.status.conditions[]?; .type == "Ready" and .status == "True")'`;
-  let attempts = 0;
-
-  const check = (): Cypress.Chainable<CommandLineResult> =>
-    cy.exec(readyCommand, { failOnNonZeroExit: false }).then((result) => {
-      attempts += 1;
-      if (result.exitCode === 0) {
-        cy.log(`MaaSModelRef ${resourceName} is ready`);
-        return cy.wrap(result);
-      }
-      if (attempts >= maxAttempts) {
-        throw new Error(
-          `MaaSModelRef ${resourceName} did not become ready in namespace ${namespace}`,
-        );
-      }
-      // eslint-disable-next-line cypress/no-unnecessary-waiting -- bounded readiness polling
-      return cy.wait(retryIntervalMs).then(() => check());
-    });
-
-  return check();
 };
 
 const parseMaaSSubscriptionDoc = (
