@@ -1,4 +1,6 @@
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { ClusterQueueKind } from '@odh-dashboard/k8s-core';
+import usePrometheusQueryRange from '@odh-dashboard/internal/api/prometheus/usePrometheusQueryRange';
 import {
   findCurrentBorrowingSinceMs,
   formatBorrowingSinceDate,
@@ -8,7 +10,15 @@ import {
   buildSeries,
   getGpuNominalQuota,
   KueueUsageMetricResult,
+  default as useBorrowingLendingMetrics,
 } from '../useBorrowingLendingMetrics';
+
+jest.mock('@odh-dashboard/internal/api/prometheus/usePrometheusQueryRange', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const usePrometheusQueryRangeMock = jest.mocked(usePrometheusQueryRange);
 
 const makeClusterQueue = (name: string, gpuQuota: number): ClusterQueueKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta2',
@@ -40,6 +50,28 @@ const makeResult = (cqName: string, values: [number, string][]): KueueUsageMetri
 
 const makeCQInfoMap = (entries: [string, { nominalQuota: number; cohortName: string }][]) =>
   new Map(entries);
+
+describe('useBorrowingLendingMetrics', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should issue a new query when manually refreshed', async () => {
+    jest.spyOn(Date, 'now').mockReturnValueOnce(1_000).mockReturnValue(2_000);
+    const endTimes: number[] = [];
+    usePrometheusQueryRangeMock.mockImplementation((_active, _path, _query, _span, endInMs) => {
+      endTimes.push(endInMs);
+      return [[], true, undefined, jest.fn(), false];
+    });
+
+    const renderResult = testHook(useBorrowingLendingMetrics)([]);
+    const refreshPromise = renderResult.result.current.refresh();
+    await renderResult.waitForNextUpdate();
+    await refreshPromise;
+
+    expect(endTimes).toEqual([1_000, 2_000]);
+  });
+});
 
 describe('getGpuNominalQuota', () => {
   it('sums nvidia.com/* resources across all flavors and resource groups', () => {
