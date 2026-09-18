@@ -303,6 +303,24 @@ const initDeployIntercepts = () => {
     });
   }).as('createSecret');
 
+  // Connection create does createSecret then getSecret by the generated name.
+  // Without this, the real deploy aborts after the dry-run HF Secret POST.
+  cy.intercept('GET', '/api/k8s/api/v1/namespaces/test-project/secrets/*', (req) => {
+    const secretName = req.url.split('/').pop()?.split('?')[0];
+    if (!secretName) {
+      req.continue();
+      return;
+    }
+    req.reply({
+      statusCode: 200,
+      body: mockCustomSecretK8sResource({
+        name: secretName,
+        namespace: 'test-project',
+        data: {},
+      }),
+    });
+  });
+
   cy.interceptK8s(
     'GET',
     { model: SecretModel, ns: 'test-project', name: HF_TOKEN_SECRET_NAME },
