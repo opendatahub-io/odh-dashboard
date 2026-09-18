@@ -16,6 +16,7 @@ import {
   getThresholdRequestValue,
   formatDate,
   formatDurationCompact,
+  isEvaluationJobComparable,
   isTerminalState,
   normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
@@ -412,6 +413,25 @@ describe('getResultScore', () => {
     ];
     /* eslint-enable camelcase */
     expect(getResultScore(job)).toBe('41.38 output tokens/s');
+  });
+
+  it('should keep collection aggregate scores normalized when the first benchmark is raw', () => {
+    const job = mockEvaluationJob({
+      score: 0.72,
+      collectionId: 'mixed-metric-suite',
+      benchmarkId: 'constant',
+    });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    expect(getResultScore(job)).toBe('72%');
   });
 
   it('should omit the raw metric unit for the prominent result value', () => {
@@ -834,6 +854,29 @@ describe('isTerminalState', () => {
     },
   );
 });
+
+/* eslint-disable camelcase */
+describe('isEvaluationJobComparable', () => {
+  it('should require a completed job with MLflow experiment and run data', () => {
+    const job = mockEvaluationJob({ state: 'completed' });
+
+    expect(isEvaluationJobComparable(job)).toBe(false);
+
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'benchmark-1', mlflow_run_id: 'run-1' }];
+
+    expect(isEvaluationJobComparable(job)).toBe(true);
+  });
+
+  it('should reject non-terminal jobs even when MLflow data is present', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'benchmark-1', mlflow_run_id: 'run-1' }];
+
+    expect(isEvaluationJobComparable(job)).toBe(false);
+  });
+});
+/* eslint-enable camelcase */
 
 describe('formatDate', () => {
   it('should return dash for undefined input', () => {

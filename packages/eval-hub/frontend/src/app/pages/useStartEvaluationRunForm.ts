@@ -85,10 +85,6 @@ export function useStartEvaluationRunForm({
   }, [benchmark, collection, defaultPrimaryMetric]);
 
   const benchmarkDisplayNameRef = React.useRef('');
-  const defaultPrimaryMetricRef = React.useRef(defaultPrimaryMetric);
-  React.useEffect(() => {
-    defaultPrimaryMetricRef.current = defaultPrimaryMetric;
-  }, [defaultPrimaryMetric]);
 
   const [threshold, setThreshold] = React.useState(
     () => initialValues?.threshold ?? defaultThreshold,
@@ -122,17 +118,23 @@ export function useStartEvaluationRunForm({
     fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props);
   }, []);
 
-  const handlePrimaryMetricChange = React.useCallback((metric: string) => {
-    setPrimaryMetric(metric);
-    setPrimaryMetricTouched(true);
+  const handlePrimaryMetricChange = React.useCallback(
+    (metric: string) => {
+      const isDefault = metric === defaultPrimaryMetric;
+      setPrimaryMetric(metric);
+      setPrimaryMetricTouched(true);
+      setThreshold(isDefault ? defaultThreshold : 0);
+      setThresholdTouched(true);
 
-    const props: RunMetricSelectedProperties = {
-      metricName: metric,
-      isDefault: metric === defaultPrimaryMetricRef.current,
-      benchmarkName: benchmarkDisplayNameRef.current,
-    };
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
-  }, []);
+      const props: RunMetricSelectedProperties = {
+        metricName: metric,
+        isDefault,
+        benchmarkName: benchmarkDisplayNameRef.current,
+      };
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
+    },
+    [defaultPrimaryMetric, defaultThreshold],
+  );
 
   // ── Evaluation name ─────────────────────────────────────────────────
 

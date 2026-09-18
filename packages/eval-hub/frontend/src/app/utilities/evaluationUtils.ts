@@ -175,7 +175,9 @@ export const getResultScore = (job: EvaluationJob, includeMetricUnit = true): st
   const primaryMetric = configBenchmark?.primary_score?.metric;
   const score = job.results.test?.score;
   if (score != null && Number.isFinite(score)) {
-    return formatMetricValue(score, primaryMetric, includeMetricUnit);
+    return job.collection
+      ? formatAsPercentage(score)
+      : formatMetricValue(score, primaryMetric, includeMetricUnit);
   }
   if (job.collection) {
     return '-';
@@ -292,9 +294,11 @@ const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
 
 export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
 
-/** Only completed runs can be selected for compare. */
+/** Only completed runs with the MLflow data required by compare can be selected. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
-  job.status.state === 'completed';
+  job.status.state === 'completed' &&
+  Boolean(job.resource.mlflow_experiment_id) &&
+  Boolean(job.results.benchmarks?.some((benchmark) => Boolean(benchmark.mlflow_run_id)));
 
 export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
   benchmarks.filter((bm) => bm.status === 'failed').length;

@@ -63,6 +63,22 @@ const testProvider = mockProvider({
   ],
 });
 
+const rawMetricProvider = mockProvider({
+  id: 'guidellm',
+  name: 'guidellm',
+  title: 'GuideLLM',
+  benchmarks: [
+    mockBenchmark({
+      id: 'constant',
+      name: 'Constant load',
+      metrics: ['output_tokens_per_second', 'mean_ttft_ms'],
+      primaryScoreMetric: 'output_tokens_per_second',
+      lowerIsBetter: false,
+      threshold: 10,
+    }),
+  ],
+});
+
 const testCollection = mockCollection({
   id: 'col-safety',
   name: 'Safety Suite',
@@ -118,14 +134,15 @@ const fillExternalModelFields = (modelName: string, endpointUrl: string) => {
   cy.wait('@verifyConnection');
 };
 
-const navigateToBenchmarkStart = () => {
-  cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, [
-    testProvider,
-  ]);
+const navigateToBenchmarkStart = (
+  provider = testProvider,
+  benchmarkId = testProvider.benchmarks?.[0].id ?? '',
+) => {
+  cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, [provider]);
 
   chooseBenchmarkPage.visit(NAMESPACE);
   chooseBenchmarkPage
-    .findBenchmarkCard('test-provider', 'bench-alpha')
+    .findBenchmarkCard(provider.resource.id, benchmarkId)
     .findByTestId('select-benchmark-button')
     .click();
 
@@ -298,6 +315,31 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     });
   });
 
+  it('should preserve an untouched raw metric threshold in submission', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-raw-metric-eval',
+      name: 'raw-metric-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createRawMetricJob',
+    );
+
+    navigateToBenchmarkStart(rawMetricProvider, 'constant');
+    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
+
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createRawMetricJob').then((interception) => {
+      expect(interception.request.body.benchmarks[0].pass_criteria).to.have.property(
+        'threshold',
+        10,
+      );
+    });
+  });
+
   it('should submit overridden threshold when user modifies the slider value', () => {
     const createdJob = mockEvaluationJob({
       id: 'new-eval-threshold-override',
@@ -352,6 +394,16 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
         'f1',
       );
     });
+  });
+
+  it('should reset the threshold when the primary metric changes', () => {
+    navigateToBenchmarkStart(rawMetricProvider, 'constant');
+    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
+
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('mean_ttft_ms').click();
+
+    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '0');
   });
 });
 

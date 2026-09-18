@@ -192,6 +192,19 @@ describe('getCompareParentResultScore', () => {
     ];
     expect(getCompareParentResultScore(job)).toBe('72%');
   });
+
+  it('should keep a benchmark suite score normalized when its first benchmark is raw', () => {
+    const job = mockEvaluationJob({ score: 0.72, collectionId: 'mixed-metric-suite' });
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+
+    expect(getCompareParentResultScore(job)).toBe('72%');
+  });
   /* eslint-enable camelcase */
 
   /* eslint-disable camelcase */

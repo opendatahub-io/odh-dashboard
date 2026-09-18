@@ -472,7 +472,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
             </ToolbarItem>
             <ToolbarItem>
               <Tooltip
-                content="Select at least 2 runs to compare"
+                content="Select at least 2 completed runs with MLflow data to compare"
                 isVisible={!canCompare ? undefined : false}
               >
                 <Button

@@ -141,7 +141,9 @@ export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string =
 export const getCompareParentResultScore = (job: EvaluationJob): string => {
   const score = job.results.test?.score;
   if (score != null && Number.isFinite(score)) {
-    return formatMetricValue(score, getJobBenchmarks(job)[0]?.primary_score?.metric);
+    return job.collection
+      ? formatMetricValue(score)
+      : formatMetricValue(score, getJobBenchmarks(job)[0]?.primary_score?.metric);
   }
   return '-';
 };

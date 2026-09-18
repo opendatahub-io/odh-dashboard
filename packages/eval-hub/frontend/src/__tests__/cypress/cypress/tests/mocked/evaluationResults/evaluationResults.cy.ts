@@ -112,7 +112,7 @@ describe('Evaluation Results Page - Single Benchmark', () => {
 
 describe('Evaluation Results Page - Collection', () => {
   const collectionJob = mockCollectionEvaluationJob();
-  collectionJob.status.benchmarks = collectionJob.benchmarks.map((benchmark, index) => ({
+  collectionJob.status.benchmarks = collectionJob.benchmarks!.map((benchmark, index) => ({
     id: benchmark.id,
     // eslint-disable-next-line camelcase
     benchmark_index: index,
@@ -200,7 +200,15 @@ describe('Evaluation Results Page - Non-percentage primary metric', () => {
     benchmarkIds: ['constant'],
     providerId: 'guidellm',
     score: 41.377,
-    threshold: 0.5,
+    threshold: 10,
+    benchmarkResults: [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        metrics: { output_tokens_per_second: 41.377 },
+        test: { primary_score: 41.377, threshold: 10, pass: true },
+      },
+    ],
   });
   guidellmJob.benchmarks![0].primary_score = {
     metric: 'output_tokens_per_second',
@@ -211,9 +219,10 @@ describe('Evaluation Results Page - Non-percentage primary metric', () => {
     initIntercepts({ job: guidellmJob });
   });
 
-  it('should display a non-percentage primary metric with its unit', () => {
+  it('should display a unitless result with the metric unit in benchmark details', () => {
     evaluationResultsPage.visit(NAMESPACE, guidellmJob.resource.id);
-    evaluationResultsPage.findScoreValue().should('contain.text', '41.38 output tokens/s');
-    evaluationResultsPage.findBenchmarkDetailsInfo().should('contain.text', '0.5 output tokens/s');
+    evaluationResultsPage.findScoreValue().should('contain.text', '41.38');
+    evaluationResultsPage.findScoreValue().should('not.contain.text', 'output tokens/s');
+    evaluationResultsPage.findBenchmarkDetailsInfo().should('contain.text', '10 output tokens/s');
   });
 });
