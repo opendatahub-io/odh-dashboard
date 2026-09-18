@@ -26,6 +26,7 @@ const overallUuid = `${uuid}-overall`;
 describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
   let projectName: string;
+  let cleanupReady = false;
   let maasFixture: AutoragMaaSFixture | undefined;
   const connectionOwnership: AutoragConnectionOwnership = {
     maasSecretCreated: false,
@@ -44,6 +45,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
+        cleanupReady = true;
       })
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
@@ -57,6 +59,10 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   );
 
   after(() => {
+    if (!cleanupReady) {
+      return;
+    }
+
     cleanupAutoragInfrastructure(
       projectName,
       testData.maasSecretName,

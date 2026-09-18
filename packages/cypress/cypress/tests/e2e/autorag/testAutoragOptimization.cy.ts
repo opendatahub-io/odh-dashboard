@@ -25,6 +25,7 @@ const uuid = generateTestUUID();
 describe('AutoRAG Optimization E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
+  let cleanupReady = false;
   let maasFixture: AutoragMaaSFixture | undefined;
   const connectionOwnership: AutoragConnectionOwnership = {
     maasSecretCreated: false,
@@ -43,6 +44,7 @@ describe('AutoRAG Optimization E2E', () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
+        cleanupReady = true;
       })
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
@@ -52,6 +54,10 @@ describe('AutoRAG Optimization E2E', () => {
   );
 
   after(() => {
+    if (!cleanupReady) {
+      return;
+    }
+
     cleanupAutoragInfrastructure(
       projectName,
       testData.maasSecretName,
@@ -102,6 +108,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
   const completionUuid = generateTestUUID();
   let testData: AutoragTestData;
   let projectName: string;
+  let cleanupReady = false;
   let maasFixture: AutoragMaaSFixture | undefined;
   const connectionOwnership: AutoragConnectionOwnership = {
     maasSecretCreated: false,
@@ -120,6 +127,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${completionUuid}`;
+        cleanupReady = true;
       })
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
@@ -129,6 +137,10 @@ describe('AutoRAG Optimization completion results E2E', () => {
   );
 
   after(() => {
+    if (!cleanupReady) {
+      return;
+    }
+
     cleanupAutoragInfrastructure(
       projectName,
       testData.maasSecretName,

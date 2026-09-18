@@ -26,6 +26,7 @@ const uuid = generateTestUUID();
 describe('AutoRAG Experiments List and Run Management E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
+  let cleanupReady = false;
   let maasFixture: AutoragMaaSFixture | undefined;
   const connectionOwnership: AutoragConnectionOwnership = {
     maasSecretCreated: false,
@@ -44,6 +45,7 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
+        cleanupReady = true;
       })
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
@@ -53,6 +55,10 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
   );
 
   after(() => {
+    if (!cleanupReady) {
+      return;
+    }
+
     cleanupAutoragInfrastructure(
       projectName,
       testData.maasSecretName,
