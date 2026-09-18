@@ -81,10 +81,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const [deleting, setDeleting] = React.useState(false);
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
-  const currentNamespace = React.useRef(namespace);
-  currentNamespace.current = namespace;
+  const namespaceGeneration = React.useRef(0);
 
   React.useEffect(() => {
+    namespaceGeneration.current += 1;
     setDeleteTarget(undefined);
     setDeleteError(undefined);
     setDeleting(false);
@@ -243,6 +243,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     }
     verifyingIdsRef.current.add(id);
     const requestNamespace = namespace;
+    const requestGeneration = namespaceGeneration.current;
     const connection = connections.find((item) => item.metadata.id === id);
     setVerificationBaselines((current) => new Map(current).set(id, connection?.status.updated_at));
     setVerificationErrors((current) => {
@@ -259,7 +260,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     setActionsFor(undefined);
     try {
       await verifyConnection('')({}, requestNamespace, id);
-      if (currentNamespace.current !== requestNamespace) {
+      if (namespaceGeneration.current !== requestGeneration) {
         return;
       }
       refresh();
@@ -270,10 +271,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       });
       setVerificationResponses((current) => new Set(current).add(id));
     } catch (verificationFailure) {
-      verifyingIdsRef.current.delete(id);
-      if (currentNamespace.current !== requestNamespace) {
+      if (namespaceGeneration.current !== requestGeneration) {
         return;
       }
+      verifyingIdsRef.current.delete(id);
       refresh();
       setVerifying((current) => {
         const next = new Set(current);
@@ -308,25 +309,26 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       return;
     }
     const requestNamespace = namespace;
+    const requestGeneration = namespaceGeneration.current;
     const connectionId = deleteTarget.metadata.id;
     setDeleting(true);
     setDeleteError(undefined);
     try {
       await deleteConnection('')({}, requestNamespace, connectionId);
-      if (currentNamespace.current !== requestNamespace) {
+      if (namespaceGeneration.current !== requestGeneration) {
         return;
       }
       setDeleteTarget(undefined);
       refresh();
     } catch (deleteFailure) {
-      if (currentNamespace.current !== requestNamespace) {
+      if (namespaceGeneration.current !== requestGeneration) {
         return;
       }
       setDeleteError(
         deleteFailure instanceof Error ? deleteFailure : new Error('Unable to delete connection'),
       );
     } finally {
-      if (currentNamespace.current === requestNamespace) {
+      if (namespaceGeneration.current === requestGeneration) {
         setDeleting(false);
       }
     }
