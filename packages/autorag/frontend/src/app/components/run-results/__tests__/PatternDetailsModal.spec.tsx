@@ -191,7 +191,7 @@ describe('PatternDetailsModal', () => {
       />,
     );
 
-    expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('N/A');
+    expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.420');
   });
 
   it('should show plain text when only one pattern exists', () => {
@@ -568,7 +568,9 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
-        render(<PatternDetailsModal {...defaultProps} />);
+        render(
+          <PatternDetailsModal {...defaultProps} optimizationMetric={{ name: 'faithfulness' }} />,
+        );
         await user.click(screen.getByTestId('pattern-details-download'));
 
         // Print container should be portalled to document.body
@@ -578,6 +580,7 @@ describe('PatternDetailsModal', () => {
         expect(printContainer).toHaveTextContent('Pattern information');
         expect(printContainer).toHaveTextContent('Chunking');
         expect(printContainer).toHaveTextContent('Embedding');
+        expect(within(printContainer).getByText('0.42', { exact: true })).toBeInTheDocument();
       } finally {
         printSpy.mockRestore();
       }

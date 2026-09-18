@@ -108,8 +108,8 @@ describe('getAutoragContext', () => {
           patternsLoading: false,
           parameters: { optimization_metric: 'faithfulness' },
           ragPatternsBasePath: undefined,
-          bestPatternKey: undefined,
-          optimizationMetric: { name: 'faithfulness' },
+          bestPatternKey: 'pattern-1',
+          optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
         }),
       );
     });

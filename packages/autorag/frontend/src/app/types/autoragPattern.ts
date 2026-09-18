@@ -104,8 +104,8 @@ export type AutoragEvaluationMetric = MetricReference & {
   description?: string;
   scores: AutoragPatternScoreMetric;
   model_id?: string;
-  // Backend contract: exactly one metric per pattern has this set to true,
-  // and its `name` matches the run's `optimization_metric` pipeline parameter.
+  // Backend marker for the selected objective metric. The run's `optimization_metric` pipeline
+  // parameter remains authoritative when this marker is absent on a pattern.
   optimization_metric?: boolean;
 };
 

@@ -96,27 +96,33 @@ export function findMetric(
 }
 
 /**
- * Find the pattern's flagged objective metric. The evaluator is deliberately not part of this
- * selection: ranking remains per-pattern when evaluators are missing or inconsistent.
+ * Resolve the pattern's objective metric. Prefer the flagged metric when available, but fall
+ * back to a uniquely named metric for patterns that do not repeat the objective flag. The
+ * evaluator is deliberately not part of this selection: ranking remains per-pattern when
+ * evaluators are missing or inconsistent.
  */
 export function getObjectiveMetric(
   pattern: AutoragPattern,
   objectiveName?: string,
 ): AutoragEvaluationMetric | undefined {
   const normalizedObjective = objectiveName === undefined ? undefined : normalize(objectiveName);
-  const matches = pattern.evaluation.metrics.filter(
+  const flaggedMatches = pattern.evaluation.metrics.filter(
     (metric) =>
       metric.optimization_metric === true &&
       (normalizedObjective === undefined || normalize(metric.name) === normalizedObjective),
   );
-  if (matches.length !== 1) {
-    return undefined;
+
+  if (flaggedMatches.length === 1) {
+    const flaggedObjective = findUniqueMetric(pattern.evaluation.metrics, flaggedMatches[0]);
+    if (flaggedObjective) {
+      return flaggedObjective;
+    }
   }
 
-  const objective = matches[0];
-  return groupMetricsByKey(pattern.evaluation.metrics).get(metricKey(objective))?.length === 1
-    ? objective
-    : undefined;
+  if (objectiveName === undefined) {
+    return undefined;
+  }
+  return findUniqueMetric(pattern.evaluation.metrics, { name: objectiveName });
 }
 
 /** Resolve one display reference for the run objective across the available patterns. */

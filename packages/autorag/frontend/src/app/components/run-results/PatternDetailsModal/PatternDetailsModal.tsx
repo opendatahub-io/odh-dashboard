@@ -449,7 +449,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 />
               ) : (
                 <>
-                  <KeyValueList entries={buildTopLevelFields(data)} />
+                  <KeyValueList entries={buildTopLevelFields(data, optimizationMetric)} />
                   <ConfidenceIntervalChart scores={data.evaluation.metrics} />
                 </>
               )}

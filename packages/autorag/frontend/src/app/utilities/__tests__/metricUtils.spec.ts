@@ -92,6 +92,17 @@ describe('metricUtils', () => {
     expect(getObjectiveMetric(pattern, 'FAITHFULNESS')).toBe(judgeMetric);
   });
 
+  it('falls back to a unique objective metric when the pattern is not flagged', () => {
+    const objectiveMetric = makeMetric('faithfulness', 'unitxt', 0.6);
+    const pattern = makePattern([
+      objectiveMetric,
+      makeMetric('overall_score', 'custom', 0.9, true),
+    ]);
+
+    expect(getObjectiveMetric(pattern, 'faithfulness')).toBe(objectiveMetric);
+    expect(isPatternRankable(pattern, 'faithfulness')).toBe(true);
+  });
+
   it('rejects an objective when an exact identity is duplicated, even if only one is flagged', () => {
     const flaggedMetric = makeMetric('faithfulness', 'ragas', 0.9, true);
     const duplicateMetric = makeMetric(' Faithfulness ', ' RAGAS ', 0.1);
@@ -139,6 +150,15 @@ describe('metricUtils', () => {
     expect(isPatternRankable(patterns.invalid, 'faithfulness')).toBe(false);
     expect(computePatternRankMap(patterns, 'faithfulness')).toEqual({ high: 1, low: 2 });
     expect(resolveBestPatternKey(patterns, 'faithfulness')).toBe('high');
+  });
+
+  it('ranks unflagged patterns when their objective metric is uniquely named', () => {
+    const patterns = {
+      winner: makePattern([makeMetric('faithfulness', 'unitxt', 0.9, true)]),
+      other: makePattern([makeMetric('faithfulness', 'unitxt', 0.6)]),
+    };
+
+    expect(computePatternRankMap(patterns, 'faithfulness')).toEqual({ winner: 1, other: 2 });
   });
 
   it('formats non-finite metric values as N/A', () => {
