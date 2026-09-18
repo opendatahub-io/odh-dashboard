@@ -10,13 +10,29 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import type { AutoragPatternScoreMetric, AutoragPatternScores } from '~/app/types/autoragPattern';
-import { formatMetricName } from '~/app/utilities/utils';
+import type {
+  AutoragEvaluationMetric,
+  AutoragPatternScoreMetric,
+} from '~/app/types/autoragPattern';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
+import {
+  findUniqueMetric,
+  formatMetricValue,
+  groupMetricsByKey,
+  metricDomId,
+  metricDomSuffix,
+  metricKey,
+  metricLabel,
+  normalizeMetricReference,
+} from '~/app/utilities/metricUtils';
 import InlineTooltip from '~/app/components/InlineTooltip';
 
 const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1];
 const INNER_TICKS = [0.25, 0.5, 0.75];
+
+const compareMetrics = (left: AutoragEvaluationMetric, right: AutoragEvaluationMetric): number =>
+  metricLabel(left).localeCompare(metricLabel(right)) ||
+  metricKey(left).localeCompare(metricKey(right));
 
 const DiamondMarker: React.FC<
   { testId?: string; ariaLabel: string } & React.SVGProps<SVGSVGElement>
@@ -58,41 +74,41 @@ const CIBarWithMarkers: React.FC<{
 }> = ({ score, testIdPrefix }) => (
   <div className="autorag-ci-track__bar">
     {score.ci_low != null && (
-      <Tooltip content={`CI low: ${score.ci_low.toFixed(3)}`}>
+      <Tooltip content={`CI low: ${formatMetricValue(score.ci_low, 3)}`}>
         <DiamondMarker
           className="autorag-ci-marker m-ci-low"
           style={{ left: `${score.ci_low * 100}%` }}
           testId={`ci-marker-low-${testIdPrefix}`}
-          ariaLabel={`CI low: ${score.ci_low.toFixed(3)}`}
+          ariaLabel={`CI low: ${formatMetricValue(score.ci_low, 3)}`}
         />
       </Tooltip>
     )}
     {score.mean != null && (
-      <Tooltip content={`Mean: ${score.mean.toFixed(3)}`}>
+      <Tooltip content={`Mean: ${formatMetricValue(score.mean, 3)}`}>
         <CircleMarker
           className="autorag-ci-marker m-mean"
           style={{ left: `${score.mean * 100}%` }}
           testId={`ci-marker-mean-${testIdPrefix}`}
-          ariaLabel={`Mean: ${score.mean.toFixed(3)}`}
+          ariaLabel={`Mean: ${formatMetricValue(score.mean, 3)}`}
         />
       </Tooltip>
     )}
     {score.ci_high != null && (
-      <Tooltip content={`CI high: ${score.ci_high.toFixed(3)}`}>
+      <Tooltip content={`CI high: ${formatMetricValue(score.ci_high, 3)}`}>
         <DiamondMarker
           className="autorag-ci-marker m-ci-high"
           style={{ left: `${score.ci_high * 100}%` }}
           testId={`ci-marker-high-${testIdPrefix}`}
-          ariaLabel={`CI high: ${score.ci_high.toFixed(3)}`}
+          ariaLabel={`CI high: ${formatMetricValue(score.ci_high, 3)}`}
         />
       </Tooltip>
     )}
   </div>
 );
 
-const MetricLabel: React.FC<{ metricKey: string }> = ({ metricKey }) => {
-  const label = formatMetricName(metricKey);
-  const description = METRIC_DESCRIPTIONS[metricKey];
+const MetricLabel: React.FC<{ metric: AutoragEvaluationMetric }> = ({ metric }) => {
+  const label = metricLabel(metric);
+  const description = METRIC_DESCRIPTIONS[normalizeMetricReference(metric).name];
   return (
     <Content component={ContentVariants.p}>
       {description ? <InlineTooltip text={label} tooltip={description} /> : label}
@@ -101,14 +117,14 @@ const MetricLabel: React.FC<{ metricKey: string }> = ({ metricKey }) => {
 };
 
 const CIScoreTrack: React.FC<{
-  metricKey: string;
+  metric: AutoragEvaluationMetric;
   score: AutoragPatternScoreMetric;
-}> = ({ metricKey, score }) => (
-  <div className="autorag-ci-track" data-testid={`ci-track-${metricKey}`}>
+}> = ({ metric, score }) => (
+  <div className="autorag-ci-track" data-testid={metricDomId('ci-track', metric)}>
     <div className="autorag-ci-track__label">
-      <MetricLabel metricKey={metricKey} />
+      <MetricLabel metric={metric} />
     </div>
-    <CIBarWithMarkers score={score} testIdPrefix={metricKey} />
+    <CIBarWithMarkers score={score} testIdPrefix={metricDomSuffix(metric)} />
   </div>
 );
 
@@ -130,24 +146,27 @@ const AxisLabels: React.FC<{ testId?: string }> = ({ testId }) => (
 
 const CIColumn: React.FC<{
   label: string;
-  scores: AutoragPatternScores;
-  scoreKeys: string[];
+  scores: AutoragEvaluationMetric[];
+  metrics: AutoragEvaluationMetric[];
   testIdSuffix: string;
-}> = ({ label, scores, scoreKeys, testIdSuffix }) => (
+}> = ({ label, scores, metrics, testIdSuffix }) => (
   <div className="autorag-ci-column" data-testid={`ci-column-${testIdSuffix}`}>
     <div className="autorag-ci-column__header">
       <Content component={ContentVariants.small}>{label}</Content>
     </div>
     <div className="autorag-ci-column__chart-area">
       <div className="autorag-ci-column__tracks">
-        {scoreKeys.map((key) => {
-          const score = scores[key];
+        {metrics.map((metric) => {
+          const score = findUniqueMetric(scores, metric)?.scores;
           if (!score) {
-            return <div key={key} className="autorag-ci-track m-empty" />;
+            return <div key={metricKey(metric)} className="autorag-ci-track m-empty" />;
           }
           return (
-            <div key={key} className="autorag-ci-track">
-              <CIBarWithMarkers score={score} testIdPrefix={`${key}-${testIdSuffix}`} />
+            <div key={metricKey(metric)} className="autorag-ci-track">
+              <CIBarWithMarkers
+                score={score}
+                testIdPrefix={`${metricDomSuffix(metric)}-${testIdSuffix}`}
+              />
             </div>
           );
         })}
@@ -205,15 +224,25 @@ function hasData(score: AutoragPatternScoreMetric): boolean {
   return (score.mean != null && score.mean > 0) || score.ci_low != null || score.ci_high != null;
 }
 
-function getScoreEntries(scores: AutoragPatternScores): [string, AutoragPatternScoreMetric][] {
-  return Object.entries(scores).filter(
-    (entry): entry is [string, AutoragPatternScoreMetric] => entry[1] != null && hasData(entry[1]),
-  );
+function getScoreEntries(scores: AutoragEvaluationMetric[]): AutoragEvaluationMetric[] {
+  // eslint-disable-next-line camelcase
+  const emptyScore: AutoragPatternScoreMetric = { mean: null, ci_low: null, ci_high: null };
+  return Array.from(groupMetricsByKey(scores).values())
+    .flatMap((group) => {
+      const metric = group[0];
+      if (group.length > 1) {
+        return group.some((entry) => hasData(entry.scores))
+          ? [{ ...metric, scores: emptyScore }]
+          : [];
+      }
+      return hasData(metric.scores) ? [metric] : [];
+    })
+    .toSorted(compareMetrics);
 }
 
 type ConfidenceIntervalChartProps = {
-  scores: AutoragPatternScores;
-  comparisonScores?: AutoragPatternScores;
+  scores: AutoragEvaluationMetric[];
+  comparisonScores?: AutoragEvaluationMetric[];
   primaryLabel?: string;
   comparisonLabel?: string;
   'data-testid'?: string;
@@ -234,9 +263,19 @@ const ConfidenceIntervalChart: React.FC<ConfidenceIntervalChartProps> = ({
   }
 
   const isComparison = comparisonScores != null;
-  const scoreKeys = isComparison
-    ? Array.from(new Set([...scoreEntries, ...comparisonEntries].map(([key]) => key)))
-    : scoreEntries.map(([key]) => key);
+  const metrics = isComparison
+    ? Array.from(
+        [...scoreEntries, ...comparisonEntries]
+          .reduce((map, metric) => {
+            const key = metricKey(metric);
+            if (!map.has(key)) {
+              map.set(key, metric);
+            }
+            return map;
+          }, new Map<string, AutoragEvaluationMetric>())
+          .values(),
+      ).toSorted(compareMetrics)
+    : scoreEntries;
 
   return (
     <div className="autorag-ci-scores" data-testid={testId}>
@@ -263,22 +302,22 @@ const ConfidenceIntervalChart: React.FC<ConfidenceIntervalChartProps> = ({
         <div className="autorag-ci-scores__comparison">
           <div className="autorag-ci-scores__labels">
             <div className="autorag-ci-column__header">&nbsp;</div>
-            {scoreKeys.map((key) => (
-              <div key={key} className="autorag-ci-track">
-                <MetricLabel metricKey={key} />
+            {metrics.map((metric) => (
+              <div key={metricKey(metric)} className="autorag-ci-track">
+                <MetricLabel metric={metric} />
               </div>
             ))}
           </div>
           <CIColumn
             label={primaryLabel ?? ''}
             scores={scores}
-            scoreKeys={scoreKeys}
+            metrics={metrics}
             testIdSuffix="primary"
           />
           <CIColumn
             label={comparisonLabel ?? ''}
             scores={comparisonScores}
-            scoreKeys={scoreKeys}
+            metrics={metrics}
             testIdSuffix="comparison"
           />
         </div>
@@ -286,8 +325,8 @@ const ConfidenceIntervalChart: React.FC<ConfidenceIntervalChartProps> = ({
         <>
           <div className="autorag-ci-scores__chart-area">
             <div className="autorag-ci-scores__tracks">
-              {scoreEntries.map(([key, score]) => (
-                <CIScoreTrack key={key} metricKey={key} score={score} />
+              {scoreEntries.map((metric) => (
+                <CIScoreTrack key={metricKey(metric)} metric={metric} score={metric.scores} />
               ))}
             </div>
             <AxisTicks />

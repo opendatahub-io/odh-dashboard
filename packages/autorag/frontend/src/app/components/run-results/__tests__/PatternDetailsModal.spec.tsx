@@ -158,7 +158,7 @@ describe('PatternDetailsModal', () => {
         {...defaultProps}
         patterns={[invalidPattern]}
         rank={undefined}
-        optimizedMetric="overall_score"
+        optimizationMetric={{ name: 'overall_score' }}
       />,
     );
 
@@ -186,12 +186,12 @@ describe('PatternDetailsModal', () => {
       <PatternDetailsModal
         {...defaultProps}
         patterns={[nonWinningCanonicalPattern]}
-        optimizedMetric="faithfulness"
+        optimizationMetric={{ name: 'faithfulness' }}
         rank={2}
       />,
     );
 
-    expect(screen.getByText('0.42')).toBeInTheDocument();
+    expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('N/A');
   });
 
   it('should show plain text when only one pattern exists', () => {
@@ -253,9 +253,9 @@ describe('PatternDetailsModal', () => {
     it('should render a track for each score metric', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
-      expect(screen.getByTestId('ci-track-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-answer_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-context_correctness-unitxt')).toBeInTheDocument();
     });
 
     it('should render x-axis labels', () => {
@@ -989,7 +989,7 @@ describe('PatternDetailsModal', () => {
           <PatternDetailsModal
             {...defaultProps}
             patterns={[mockPattern, unrankedPattern]}
-            optimizedMetric="overall_score"
+            optimizationMetric={{ name: 'overall_score' }}
           />,
         );
         fireMiscTrackingEventMock.mockClear();
@@ -1016,7 +1016,7 @@ describe('PatternDetailsModal', () => {
             patterns={[unrankedPattern, comparisonPattern]}
             selectedIndex={0}
             rank={undefined}
-            optimizedMetric="overall_score"
+            optimizationMetric={{ name: 'overall_score' }}
           />,
         );
         fireMiscTrackingEventMock.mockClear();

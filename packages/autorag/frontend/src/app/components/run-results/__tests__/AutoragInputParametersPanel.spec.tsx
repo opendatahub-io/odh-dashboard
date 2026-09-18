@@ -6,6 +6,7 @@ import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -64,8 +65,13 @@ const renderPanel = (
   contextOverrides: Partial<Parameters<typeof getAutoragContext>[0]> = {},
 ) => {
   const onClose = jest.fn();
+  const panelParameters = props.parameters ?? defaultParameters;
   const contextValue = getAutoragContext({
-    pipelineRun: createMockPipelineRun(),
+    pipelineRun:
+      contextOverrides.pipelineRun ??
+      createMockPipelineRun({
+        runtime_config: { parameters: panelParameters },
+      }),
     patterns: {},
     patternsLoading: false,
     ...contextOverrides,
@@ -289,6 +295,31 @@ describe('AutoragInputParametersPanel', () => {
       },
     });
     expect(screen.getByText('Context correctness')).toBeInTheDocument();
+  });
+
+  it('should include the evaluator when pattern metadata identifies the optimization metric', () => {
+    renderPanel(
+      {},
+      {
+        patterns: {
+          pattern1: {
+            settings: { generation: {} } as AutoragPattern['settings'],
+            evaluation: {
+              metrics: [
+                {
+                  name: 'faithfulness',
+                  evaluator: 'ragas',
+                  optimization_metric: true,
+                  scores: { mean: 0.77, ci_low: 0.6, ci_high: 0.9 },
+                },
+              ],
+            },
+          } as AutoragPattern,
+        },
+      },
+    );
+
+    expect(screen.getByText('Answer faithfulness (ragas)')).toBeInTheDocument();
   });
 
   it('should render model configuration with counts', () => {
