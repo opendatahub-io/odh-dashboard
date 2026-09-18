@@ -59,6 +59,7 @@ var _ = Describe("Code Exporter Execution", func() {
 			"--with", "openai==2.41.1",
 			"python3", tmpFile.Name(),
 		)
+		cmd.Env = append(os.Environ(), "OGX_PASSTHROUGH_API_KEY="+testutil.TestToken)
 
 		output, execErr := cmd.CombinedOutput()
 		outputStr := string(output)
