@@ -18,6 +18,7 @@ import {
 import EmptyExternalProvidersPage from './EmptyExternalProvidersPage';
 import DeleteExternalProviderModal from './DeleteExternalProviderModal';
 import CreateExternalProviderModal from './createProvider/CreateExternalProviderModal';
+import EditExternalProviderModal from './editProvider/EditExternalProviderModal';
 import { ExternalProvidersTable } from './ExternalProvidersTable';
 import ExternalProvidersToolBar from './ExternalProvidersToolbar';
 import { filterExternalProviders, hasActiveExternalProvidersFilters } from './utils';
@@ -31,6 +32,9 @@ const AllExternalProvidersPage: React.FC = () => {
   } = useExternalModelsContext();
 
   const [deleteExternalProvider, setDeleteExternalProvider] = React.useState<
+    ExternalProvider | undefined
+  >(undefined);
+  const [editExternalProvider, setEditExternalProvider] = React.useState<
     ExternalProvider | undefined
   >(undefined);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
@@ -155,6 +159,7 @@ const AllExternalProvidersPage: React.FC = () => {
                     />
                   }
                   emptyTableView={hasActiveFilters ? undefined : <></>}
+                  setEditExternalProvider={setEditExternalProvider}
                   setDeleteExternalProvider={setDeleteExternalProvider}
                 />
               ))}
@@ -166,6 +171,17 @@ const AllExternalProvidersPage: React.FC = () => {
             onClose={(deleted) => {
               setDeleteExternalProvider(undefined);
               if (deleted) {
+                refreshExternalProviders();
+              }
+            }}
+          />
+        )}
+        {editExternalProvider && (
+          <EditExternalProviderModal
+            externalProvider={editExternalProvider}
+            onClose={(updated) => {
+              setEditExternalProvider(undefined);
+              if (updated) {
                 refreshExternalProviders();
               }
             }}

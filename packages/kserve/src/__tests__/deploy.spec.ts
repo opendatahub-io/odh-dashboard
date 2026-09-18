@@ -15,6 +15,10 @@ jest.mock('../deployModel', () => ({
   ...jest.requireActual('../deployModel'),
   deployInferenceService: jest.fn(),
 }));
+jest.mock('../hfTokenSecret', () => ({
+  ...jest.requireActual('../hfTokenSecret'),
+  resolveHfTokenSecretName: jest.fn().mockResolvedValue(undefined),
+}));
 
 const mockCreateServingRuntime = jest.mocked(createServingRuntime);
 const mockUpdateServingRuntime = jest.mocked(updateServingRuntime);
@@ -34,6 +38,8 @@ const WIZARD_DATA = {
   environmentVariables: { data: undefined },
   modelAvailability: { data: undefined },
   deploymentStrategy: { data: undefined },
+  huggingFaceApiKey: { data: { token: '' } },
+  requiresHuggingFaceApiKey: false,
   canCreateRoleBindings: false,
 } as unknown as WizardFormData['state'];
 
