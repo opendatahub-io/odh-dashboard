@@ -157,7 +157,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.findAllUserMessages().should('contain.text', message);
 
       cy.step('Verify image is included in the sent message');
-      cy.findByTestId('chatbot-inline-image').should('exist');
+      cy.findByRole('img', { name: testData.image.fileName }).should('exist');
 
       cy.step('Wait for and verify model response to image');
       genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
