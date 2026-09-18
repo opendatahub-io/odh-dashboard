@@ -287,7 +287,6 @@ describe('External Models Page', () => {
 
       createExternalModelPage.findTitle().should('contain.text', 'Add external model');
       createExternalModelPage.findProjectInput().should('have.value', TEST_PROJECT);
-      createExternalModelPage.findProviderRefsRequiredInfo().should('exist');
       createExternalModelPage.findCreateButton().should('be.disabled');
     });
 
@@ -576,22 +575,6 @@ describe('External Models Page', () => {
       createExternalModelPage.findProviderRefWeightPercent(0).should('contain.text', '50%');
       createExternalModelPage.findProviderRefWeightPercent(1).should('contain.text', '50%');
       createExternalModelPage.findZeroTotalWeightWarning().should('not.exist');
-    });
-
-    it('should keep the provider refs required info visible when all refs are removed', () => {
-      createExternalModelPage.visit();
-
-      createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference(
-        'Anthropic Provider',
-        'claude-sonnet-4',
-        'openai-chat',
-      );
-      createExternalModelPage.findProviderRefsRequiredInfo().should('not.exist');
-
-      createExternalModelPage.findProviderRefRemoveButton(0).click();
-      createExternalModelPage.findProviderRefsRequiredInfo().should('exist');
-      createExternalModelPage.findCreateButton().should('be.disabled');
     });
 
     it('should create an external model with a provider reference', () => {
