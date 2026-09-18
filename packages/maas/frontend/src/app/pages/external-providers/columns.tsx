@@ -17,7 +17,8 @@ const authMechanismPopoverContent: React.ReactNode = (
         <strong>API key:</strong> A secret token used to authenticate API requests.
       </ListItem>
       <ListItem>
-        <strong>AWS signing:</strong> Uses AWS credentials (access key and secret) to sign requests.
+        <strong>Signature Version 4:</strong> Uses AWS credentials (access key and secret) to sign
+        requests.
       </ListItem>
       <ListItem>
         <strong>OAuth 2:</strong> Authenticates using an OAuth 2.0 client credentials flow.
@@ -42,7 +43,7 @@ export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
       a.provider.localeCompare(b.provider),
     info: {
       popover:
-        'An optional label to specify the service type, such as Open AI or Anthropic. This is intended for organization purposes only. ',
+        'The cloud or API provider this resource connects to (e.g. OpenAI, Anthropic, AWS Bedrock).',
     },
   },
   {

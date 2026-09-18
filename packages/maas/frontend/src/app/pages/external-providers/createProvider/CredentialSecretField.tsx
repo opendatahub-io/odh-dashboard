@@ -154,7 +154,7 @@ const CredentialSecretField: React.FC<CredentialSecretFieldProps> = ({
         <FormHelperText>
           <HelperText>
             <HelperTextItem>
-              Select an existing secret by its display name, or create a new one.
+              Select an existing secret by its name, or create a new one.
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
