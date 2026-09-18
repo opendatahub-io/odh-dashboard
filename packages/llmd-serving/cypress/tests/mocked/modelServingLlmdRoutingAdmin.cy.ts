@@ -282,6 +282,39 @@ describe('LLMD Routing Admin Settings', () => {
       routingConfigurations.findTable().should('exist');
     });
 
+    it('should not overwrite Name or Description when starting from a sample', () => {
+      const sampleYaml = [
+        'apiVersion: serving.kserve.io/v1alpha2',
+        'kind: LLMInferenceServiceConfig',
+        'metadata:',
+        '  name: default-scheduling-policy',
+        '  annotations:',
+        '    openshift.io/display-name: default-scheduling-policy',
+        '    description: Sample routing description',
+        'spec: {}',
+        '',
+      ].join('\n');
+
+      cy.intercept('GET', '**/api/service/model-serving/api/v1/samples/llm-d*', {
+        statusCode: 200,
+        headers: { 'content-type': 'text/plain' },
+        body: sampleYaml,
+      }).as('routerSample');
+
+      llmdRoutingCreatePage.findDisplayNameInput().type('My Custom Router');
+      llmdRoutingCreatePage.findDescriptionInput().type('My custom description');
+      llmdRoutingCreatePage.selectTopologyType(TopologyType.SINGLE_NODE);
+      cy.wait('@routerSample');
+      llmdRoutingCreatePage.findConfigSourceSelect().should('be.enabled');
+      llmdRoutingCreatePage.selectConfigSource('template');
+      cy.wait('@routerSample');
+
+      llmdRoutingCreatePage.findYamlEditor().should('exist');
+      llmdRoutingCreatePage.getYamlEditor().containsText('default-scheduling-policy');
+      llmdRoutingCreatePage.findDisplayNameInput().should('have.value', 'My Custom Router');
+      llmdRoutingCreatePage.findDescriptionInput().should('have.value', 'My custom description');
+    });
+
     it('should create a routing config', () => {
       cy.interceptK8s(
         'POST',

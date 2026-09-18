@@ -103,6 +103,10 @@ class LlmdRoutingCreatePage {
     return cy.findByTestId('routing-config-name');
   }
 
+  findDescriptionInput() {
+    return cy.findByTestId('routing-config-description');
+  }
+
   findTopologyTypeSelect() {
     return cy.findByTestId('topology-type-select');
   }
