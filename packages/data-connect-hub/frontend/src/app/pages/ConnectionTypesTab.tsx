@@ -40,6 +40,7 @@ import {
   Title,
   ToggleGroup,
   ToggleGroupItem,
+  Truncate,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,
@@ -125,7 +126,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType 
     connectionType.metadata.id,
   )}${search}`;
   return (
-    <Card id={rootId} isClickable>
+    <Card id={rootId} isClickable style={{ aspectRatio: '4 / 3' }}>
       <CardHeader
         selectableActions={{
           to: detailsPath,
@@ -135,7 +136,9 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType 
       >
         <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
       </CardHeader>
-      <CardBody>{connectionType.resource.description}</CardBody>
+      <CardBody>
+        <Truncate content={connectionType.resource.description ?? ''} />
+      </CardBody>
       <CardFooter>Footer</CardFooter>
     </Card>
   );
@@ -231,9 +234,9 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
   const toolbar = (
     <Flex direction={{ default: 'column' }}>
       <Flex className="pf-v6-u-mb-md">
-        <FlexItem>
+        <FlexItem className="pf-v6-u-w-100 pf-v6-u-w-50-on-md pf-v6-u-w-33-on-lg">
           <SearchInput
-            className="pf-v6-u-mr-sm"
+            className="pf-v6-u-w-100"
             aria-label="Search data connection types by name"
             placeholder="Search by name or description..."
             value={searchTerm}
@@ -245,6 +248,7 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
         {localFeatureFlags.showOnlyInstalled && (
           <FlexItem>
             <Switch
+              className="pf-v6-u-ml-sm"
               id="show-only-installed"
               label="Show only installed"
               isChecked={showOnlyInstalledToggle}
