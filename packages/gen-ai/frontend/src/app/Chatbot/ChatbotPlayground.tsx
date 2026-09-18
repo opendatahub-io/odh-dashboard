@@ -34,7 +34,7 @@ import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { API_URL_PREFIX, isLlamaModelEnabled } from '~/app/utilities';
-import { filterUnavailableRegistryServers } from '~/app/utilities/mcp';
+import { filterUnavailableMCPServers } from '~/app/utilities/mcp';
 import {
   convertMaaSModelToAIModel,
   getId,
@@ -282,7 +282,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
     useMCPServerStatuses(mcpServers, mcpServersLoaded);
   const availableMcpServers = React.useMemo(
-    () => filterUnavailableRegistryServers(mcpServers, mcpServerStatuses),
+    () => filterUnavailableMCPServers(mcpServers, mcpServerStatuses),
     [mcpServers, mcpServerStatuses],
   );
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());

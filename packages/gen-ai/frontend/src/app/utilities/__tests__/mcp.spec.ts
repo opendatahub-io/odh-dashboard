@@ -3,7 +3,7 @@
 import { MCPConnectionStatus, MCPServerFromAPI } from '~/app/types';
 import {
   transformMCPServerData,
-  filterUnavailableRegistryServers,
+  filterUnavailableMCPServers,
   getStatusErrorMessage,
   processServerStatus,
   getSelectedServersForAPI,
@@ -11,7 +11,7 @@ import {
 } from '~/app/utilities/mcp';
 
 describe('MCP Utilities', () => {
-  describe('filterUnavailableRegistryServers', () => {
+  describe('filterUnavailableMCPServers', () => {
     const registryServer: MCPServerFromAPI = {
       name: 'registry-server',
       url: 'https://registry.example.com/mcp',
@@ -25,7 +25,7 @@ describe('MCP Utilities', () => {
       tool_count: 0,
     };
 
-    it('should exclude registry servers that are unreachable', () => {
+    it('should exclude unreachable Registry and ConfigMap servers', () => {
       const unavailableRegistryServer: MCPServerFromAPI = {
         name: 'unavailable-registry-server',
         url: 'https://registry.example.com/mcp',
@@ -50,26 +50,25 @@ describe('MCP Utilities', () => {
         source: 'configmap',
       };
 
-      const result = filterUnavailableRegistryServers(
+      const result = filterUnavailableMCPServers(
         [unavailableRegistryServer, reachableRegistryServer, configMapServer],
         new Map([
           [unavailableRegistryServer.url, { status: 'unreachable', message: 'Server unreachable' }],
           [reachableRegistryServer.url, { status: 'connected', message: 'Connected' }],
+          [configMapServer.url, { status: 'unreachable', message: 'Server unreachable' }],
         ]),
       );
 
-      expect(result).toEqual([reachableRegistryServer, configMapServer]);
+      expect(result).toEqual([reachableRegistryServer]);
     });
 
     it('should retain a registry server while its status check is in flight', () => {
-      expect(filterUnavailableRegistryServers([registryServer], new Map())).toEqual([
-        registryServer,
-      ]);
+      expect(filterUnavailableMCPServers([registryServer], new Map())).toEqual([registryServer]);
     });
 
     it('should retain a registry server that requires authentication', () => {
       expect(
-        filterUnavailableRegistryServers(
+        filterUnavailableMCPServers(
           [registryServer],
           new Map([
             [registryServer.url, { status: 'auth_required', message: 'Authentication required' }],
@@ -79,7 +78,7 @@ describe('MCP Utilities', () => {
     });
 
     it('should return an empty array when there are no servers', () => {
-      expect(filterUnavailableRegistryServers([], new Map())).toEqual([]);
+      expect(filterUnavailableMCPServers([], new Map())).toEqual([]);
     });
   });
 
