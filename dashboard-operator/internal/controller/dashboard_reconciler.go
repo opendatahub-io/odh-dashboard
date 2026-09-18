@@ -446,6 +446,13 @@ func (r *DashboardReconciler) reconcileDeployment(
 		allResources = append(allResources, rendered...)
 	}
 
+	if err := setRHOAIDashboardRouteHostname(allResources, dashboard, r.Platform); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("RenderTransformFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to configure rendered dashboard route: %w", err)
+	}
+
 	remapRayDashboardGatewayRBAC(allResources)
 
 	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
