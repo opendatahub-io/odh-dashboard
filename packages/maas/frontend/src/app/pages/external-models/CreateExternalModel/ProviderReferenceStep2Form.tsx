@@ -1,6 +1,7 @@
 import React from 'react';
-import { Form } from '@patternfly/react-core';
+import { Form, Stack } from '@patternfly/react-core';
 import { ExternalProvider } from '~/app/types/external-models';
+import CreateExternalProviderSubmitError from '~/app/pages/external-providers/createProvider/CreateExternalProviderSubmitError';
 import {
   ProviderReferenceFieldErrors,
   ProviderReferenceFormData,
@@ -21,6 +22,7 @@ type ProviderReferenceStep2FormProps = {
   helperVariant?: ProviderReferenceHelperVariant;
   onTargetModelBlur?: () => void;
   onPathBlur?: () => void;
+  createProviderSubmitError?: string;
   /** Set false when fields render inside a parent Form (e.g. edit provider ref modal). */
   wrapInForm?: boolean;
 };
@@ -33,10 +35,11 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
   helperVariant = 'add',
   onTargetModelBlur,
   onPathBlur,
+  createProviderSubmitError,
   wrapInForm = true,
 }) => {
   const fields = (
-    <>
+    <Stack hasGutter>
       <ProviderReferenceApiFormatField
         form={form}
         onChange={onChange}
@@ -64,7 +67,11 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
         variant="advanced"
         helperVariant={helperVariant}
       />
-    </>
+      <CreateExternalProviderSubmitError
+        error={createProviderSubmitError}
+        dataTestId="create-external-provider-wizard-step-2-error"
+      />
+    </Stack>
   );
 
   return wrapInForm ? <Form>{fields}</Form> : fields;

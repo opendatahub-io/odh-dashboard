@@ -6,6 +6,7 @@ import {
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
 } from '@odh-dashboard/hardware-profiles/shared';
+import { isDashboardManagedHfTokenEnvVar } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import type { KServeDeployment } from './types';
 
 export { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS };
@@ -51,7 +52,10 @@ export const extractRuntimeArgs = (
 export const extractEnvironmentVariables = (
   kserveDeployment: KServeDeployment,
 ): { enabled: boolean; variables: { name: string; value: string }[] } => {
-  const envVars = kserveDeployment.model.spec.predictor.model?.env || [];
+  const envVars =
+    kserveDeployment.model.spec.predictor.model?.env?.filter(
+      (envVar) => !isDashboardManagedHfTokenEnvVar(envVar),
+    ) ?? [];
   return {
     enabled: envVars.length > 0,
     variables: envVars.map((envVar) => ({

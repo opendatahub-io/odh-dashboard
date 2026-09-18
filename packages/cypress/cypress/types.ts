@@ -144,6 +144,22 @@ export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   waitingForQuotaMessage: string;
 };
 
+export type KueueQuotaUsageNavigationTestData = {
+  managedProjectName: string;
+  nonKueueManagedProjectName: string;
+  resourceFlavorName: string;
+  parentCohortName: string;
+  cohortName: string;
+  emptyCohortName: string;
+  cohortClusterQueueName: string;
+  standaloneClusterQueueName: string;
+  localQueueName: string;
+  acceleratorResourceName: string;
+  acceleratorQuota: number;
+  cohortTypeLabel: string;
+  clusterQueueTypeLabel: string;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
@@ -275,10 +291,11 @@ export type TestConfig = {
   GEMINI_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
-  OGX_URL?: string;
-  OGX_API_KEY?: string;
   MAAS_URL?: string;
   MAAS_API_KEY?: string;
+  HF_API_KEY?: string;
+  MAAS_GENERATION_MODEL_ID?: string;
+  MAAS_EMBEDDING_MODEL_ID?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -342,6 +359,20 @@ export type DataScienceProjectData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
+};
+
+export type NIMProjectScopedTestData = {
+  projectNamePrefix: string;
+  modelNamePrefix: string;
+  modelDescription: string;
+  nimImageNameWithGpu: string;
+  nimImageNameWithoutGpu: string;
+  nimModelId: string;
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
+  pvcNamePrefix: string;
+  pvcSizeGi: number;
+  tokenDisplayName: string;
 };
 
 export type RoutingTestData = DataScienceProjectData & {

@@ -112,11 +112,13 @@ export type UpdateExternalProviderRequest = {
   endpointUrl?: string;
   authMechanism?: AuthMechanism;
   credentialSecretRef?: string;
+  provider?: string;
   config?: Record<string, string>;
 };
 
 export type SecretSummary = {
   name: string;
+  displayName?: string;
 };
 
 export type CreateSecretRequest = {

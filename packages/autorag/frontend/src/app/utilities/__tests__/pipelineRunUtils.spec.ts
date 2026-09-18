@@ -21,18 +21,10 @@ describe('normalizePipelineRun', () => {
     expect(result.runtime_config?.parameters).toEqual({ embedding_models: '["model-a"]' });
   });
 
-  it('should not rewrite llama_stack_secret_name to maas_secret_name', () => {
+  it('should rename llama_stack_secret_name to ogx_secret_name', () => {
     const run = makeRun({ llama_stack_secret_name: 'my-secret' });
     const result = normalizePipelineRun(run);
-    expect(result.runtime_config?.parameters).toEqual({ llama_stack_secret_name: 'my-secret' });
-    expect(result).toBe(run);
-  });
-
-  it('should not rewrite ogx_secret_name to maas_secret_name', () => {
-    const run = makeRun({ ogx_secret_name: 'my-secret' });
-    const result = normalizePipelineRun(run);
     expect(result.runtime_config?.parameters).toEqual({ ogx_secret_name: 'my-secret' });
-    expect(result).toBe(run);
   });
 
   it('should rename all legacy keys in a single run', () => {
@@ -45,14 +37,14 @@ describe('normalizePipelineRun', () => {
     const result = normalizePipelineRun(run);
     expect(result.runtime_config?.parameters).toEqual({
       vector_io_provider_id: 'milvus',
-      llama_stack_secret_name: 'my-secret',
+      ogx_secret_name: 'my-secret',
       embedding_models: '["m"]',
       display_name: 'test',
     });
   });
 
   it('should return the same object when no legacy keys are present', () => {
-    const run = makeRun({ vector_io_provider_id: 'milvus', maas_secret_name: 'sec' });
+    const run = makeRun({ vector_io_provider_id: 'milvus', ogx_secret_name: 'sec' });
     const result = normalizePipelineRun(run);
     expect(result).toBe(run);
   });
@@ -69,16 +61,21 @@ describe('normalizePipelineRun', () => {
     expect(result).toBe(run);
   });
 
-  it('should keep ogx_secret_name when maas_secret_name is also present', () => {
+  it('should prefer canonical key value when both old and new are present', () => {
     const run = makeRun({
-      ogx_secret_name: 'ogx-secret',
-      maas_secret_name: 'new-secret',
+      llama_stack_secret_name: 'old-secret',
+      ogx_secret_name: 'new-secret',
     });
     const result = normalizePipelineRun(run);
-    expect(result).toBe(run);
-    expect(result.runtime_config?.parameters).toEqual({
-      ogx_secret_name: 'ogx-secret',
-      maas_secret_name: 'new-secret',
+    expect(result.runtime_config?.parameters).toEqual({ ogx_secret_name: 'new-secret' });
+  });
+
+  it('should prefer canonical key value regardless of iteration order', () => {
+    const run = makeRun({
+      ogx_secret_name: 'new-secret',
+      llama_stack_secret_name: 'old-secret',
     });
+    const result = normalizePipelineRun(run);
+    expect(result.runtime_config?.parameters).toEqual({ ogx_secret_name: 'new-secret' });
   });
 });

@@ -19,6 +19,7 @@ type QuotaUsageAccordionSectionProps = {
   'data-testid'?: string;
   children: React.ReactNode;
   isSummary?: boolean;
+  contentClassName?: string;
 };
 
 const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
@@ -30,6 +31,7 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
   'data-testid': testId,
   children,
   isSummary = false,
+  contentClassName,
 }) => {
   const accordion = (
     <Accordion
@@ -55,7 +57,11 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
         </Flex>
         <AccordionContent
           id={isSummary ? undefined : `${id}-content`}
-          className={isSummary ? 'gpuaas-quota-usage-summary-content' : undefined}
+          className={
+            [isSummary ? 'gpuaas-quota-usage-summary-content' : undefined, contentClassName]
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
         >
           {children}
         </AccordionContent>
@@ -72,7 +78,7 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
       variant="secondary"
       isPlain
       id={`${id}-content`}
-      className="pf-v6-u-w-100 pf-v6-u-py-xs"
+      className="pf-v6-u-w-100"
       data-testid={testId}
     >
       {accordion}

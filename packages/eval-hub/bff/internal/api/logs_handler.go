@@ -15,8 +15,8 @@ func parseLogQueryParams(query func(string) string) (evalhub.GetJobLogsParams, e
 
 	if v := query("tail_lines"); v != "" {
 		n, err := strconv.Atoi(v)
-		if err != nil || n < 0 {
-			return params, fmt.Errorf("tail_lines must be a non-negative integer")
+		if err != nil || n < -1 {
+			return params, fmt.Errorf("tail_lines must be an integer greater than or equal to -1")
 		}
 		params.TailLines = v
 	}
@@ -69,8 +69,9 @@ func (app *App) GetEvaluationJobLogsHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Log-Truncated", strconv.FormatBool(logs.Truncated))
 	w.WriteHeader(http.StatusOK)
-	if _, err = w.Write([]byte(logs)); err != nil {
+	if _, err = w.Write([]byte(logs.Logs)); err != nil {
 		app.logger.Error("failed to write job logs response", "error", err)
 	}
 }
@@ -112,8 +113,9 @@ func (app *App) GetEvaluationJobBenchmarkLogsHandler(w http.ResponseWriter, r *h
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Log-Truncated", strconv.FormatBool(logs.Truncated))
 	w.WriteHeader(http.StatusOK)
-	if _, err = w.Write([]byte(logs)); err != nil {
+	if _, err = w.Write([]byte(logs.Logs)); err != nil {
 		app.logger.Error("failed to write benchmark logs response", "error", err)
 	}
 }

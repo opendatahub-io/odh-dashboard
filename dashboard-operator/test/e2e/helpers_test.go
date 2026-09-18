@@ -87,23 +87,7 @@ func waitForDeploymentReady(c client.Client, namespace, name string, timeout tim
 				return false, err
 			}
 
-			desiredReplicas := int32(1)
-			if deployment.Spec.Replicas != nil {
-				desiredReplicas = *deployment.Spec.Replicas
-			}
-			if deployment.Status.ObservedGeneration < deployment.Generation ||
-				deployment.Status.UpdatedReplicas != desiredReplicas ||
-				deployment.Status.ReadyReplicas != desiredReplicas {
-				return false, nil
-			}
-
-			for _, condition := range deployment.Status.Conditions {
-				if condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
-					return true, nil
-				}
-			}
-
-			return false, nil
+			return deploymentReady(deployment), nil
 		},
 	)
 	if err != nil {
@@ -222,13 +206,7 @@ func waitForServiceEndpoints(c client.Client, namespace, name string, timeout ti
 				return false, err
 			}
 
-			for _, subset := range endpoints.Subsets {
-				if len(subset.Addresses) > 0 {
-					return true, nil
-				}
-			}
-
-			return false, nil
+			return endpointsReady(endpoints), nil
 		},
 	)
 	if err != nil {

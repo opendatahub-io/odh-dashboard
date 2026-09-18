@@ -5,6 +5,7 @@ import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
+import { ValidatedOptions } from '@patternfly/react-core/dist/esm/helpers';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import {
   WorkspaceFormMode,
@@ -16,14 +17,25 @@ import { WorkspaceFormPropertiesSecrets } from './WorkspaceFormPropertiesSecrets
 
 interface WorkspaceFormPropertiesSelectionProps {
   mode: WorkspaceFormMode;
+  namespace: string;
   selectedProperties: WorkspaceFormProperties;
   onSelect: (properties: WorkspaceFormProperties) => void;
   homeVolumeMountPath?: string;
+  workspaceNameError: string | null;
+  onWorkspaceNameChange: (value: string) => void;
 }
 
 const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   WorkspaceFormPropertiesSelectionProps
-> = ({ mode, selectedProperties, onSelect, homeVolumeMountPath }) => {
+> = ({
+  mode,
+  namespace,
+  selectedProperties,
+  onSelect,
+  homeVolumeMountPath,
+  workspaceNameError,
+  onWorkspaceNameChange,
+}) => {
   const [isDataVolumesExpanded, setIsDataVolumesExpanded] = useState(false);
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
 
@@ -76,13 +88,21 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
             isRequired
             fieldId="workspace-name"
             className="pf-u-width-520"
+            helperTextNode={
+              workspaceNameError ? (
+                <HelperText>
+                  <HelperTextItem variant="error">{workspaceNameError}</HelperTextItem>
+                </HelperText>
+              ) : null
+            }
           >
             <TextInput
               isDisabled={mode === 'update'}
               isRequired
               type="text"
+              validated={workspaceNameError ? ValidatedOptions.error : ValidatedOptions.default}
               value={selectedProperties.workspaceName}
-              onChange={(_, value) => onSelect({ ...selectedProperties, workspaceName: value })}
+              onChange={(_, value) => onWorkspaceNameChange(value)}
               id="workspace-name"
               data-testid="workspace-name"
             />
@@ -106,6 +126,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               <WorkspaceFormPropertiesVolumes
                 volumes={homeVolumeArray}
                 setVolumes={handleSetHomeVolume}
+                namespace={namespace}
                 fixedMountPath={homeVolumeMountPath}
                 excludedPvcNames={dataPvcNames}
               />
@@ -137,6 +158,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 <WorkspaceFormPropertiesVolumes
                   volumes={selectedProperties.volumes}
                   setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
+                  namespace={namespace}
                   excludedPvcNames={homePvcNames}
                 />
               </FormGroup>
@@ -158,6 +180,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 <WorkspaceFormPropertiesSecrets
                   secrets={selectedProperties.secrets}
                   setSecrets={(secrets) => onSelect({ ...selectedProperties, secrets })}
+                  namespace={namespace}
                 />
               </FormGroup>
             )}

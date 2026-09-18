@@ -8,15 +8,16 @@ import {
   chart_color_blue_300 as chartColorBlue300,
   chart_color_blue_100 as chartColorBlue100,
 } from '@patternfly/react-tokens';
-import type { AutoRAGEvaluationMetricResult } from '~/app/types/autoragPattern';
-import { formatMetricName, getCSSVar } from '~/app/utilities/utils';
+import type { AutoRAGEvaluationMetricResult, MetricReference } from '~/app/types/autoragPattern';
+import { getCSSVar } from '~/app/utilities/utils';
+import { metricLabel } from '~/app/utilities/metricUtils';
 import { formatRadarLabel, metricValues } from './radarChartUtils';
 
 let echartsRegistered = false;
 
 type ScoreRadarChartProps = {
   metrics: AutoRAGEvaluationMetricResult[];
-  allMetricNames: string[];
+  allMetricNames: MetricReference[];
 };
 
 const ScoreRadarChart: React.FC<ScoreRadarChartProps> = ({ metrics, allMetricNames }) => {
@@ -32,8 +33,8 @@ const ScoreRadarChart: React.FC<ScoreRadarChartProps> = ({ metrics, allMetricNam
   const option = React.useMemo(
     () => ({
       radar: {
-        indicator: allMetricNames.map((name) => ({
-          name: formatRadarLabel(formatMetricName(name)),
+        indicator: allMetricNames.map((metric) => ({
+          name: formatRadarLabel(metricLabel(metric)),
           max: 1,
         })),
         radius: 70,
