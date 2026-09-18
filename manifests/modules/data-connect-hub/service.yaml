@@ -9,7 +9,7 @@ spec:
   selector:
     deployment: data-connect-hub-ui
   ports:
-    - name: data-connect-hub-ui
+    - name: dch-ui
       protocol: TCP
-      port: 9143
-      targetPort: 9143
+      port: 9243
+      targetPort: 9243
