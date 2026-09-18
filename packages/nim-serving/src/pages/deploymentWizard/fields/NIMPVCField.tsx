@@ -165,7 +165,11 @@ type SubPathFieldProps = {
   isDisabled?: boolean;
 };
 
-const SubPathField: React.FC<SubPathFieldProps> = ({ subPath, onSubPathChange, isDisabled }) => (
+export const SubPathField: React.FC<SubPathFieldProps> = ({
+  subPath,
+  onSubPathChange,
+  isDisabled,
+}) => (
   <FormGroup label="Subpath" fieldId="nim-subpath">
     <TextInput
       id="nim-subpath"

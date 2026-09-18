@@ -8,6 +8,7 @@ import {
   NotebookIcon,
   CreateAndTrainIcon,
   DataConnectionIcon,
+  DataRegistryIcon,
   DeployedModelIcon,
   ProjectIcon,
   PipelineIcon,
@@ -187,6 +188,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.apiKeys:
       Icon = ApiKeysAndSubscriptionsIcon;
+      break;
+    case ProjectObjectType.dataRegistry:
+      Icon = DataRegistryIcon;
       break;
     default:
       return null;

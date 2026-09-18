@@ -16,7 +16,7 @@ import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hoo
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
 import type { NIMImage } from '../../../api/images/types';
-import { NIM_MODEL_TYPE } from '../../../constants';
+import { NIM_IMAGE_FIELD_ID, NIM_MODEL_TYPE } from '../../../constants';
 import {
   formatImageString,
   getImageRepository,
@@ -24,7 +24,6 @@ import {
   parseImageString,
 } from '../../../api/images/utils';
 import { useFetchNIMTemplate } from '../../../api/servingruntime/useFetchNIMTemplate';
-import { NIM_IMAGE_FIELD_ID } from '../../../constants';
 
 export const isNIMImageFieldExternalData = (data: unknown): data is NIMImageFieldExternalData =>
   !!data && typeof data === 'object' && 'nimImages' in data && 'accountStatus' in data;

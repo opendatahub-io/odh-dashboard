@@ -14,6 +14,7 @@ const DeployPrefillAction: React.FC<DeployPrefillActionProps> = ({
   deployPrefill,
   deployPrefillLoaded,
   deployPrefillError,
+  disabledTooltip,
 }) => {
   const availablePlatformIds = useAvailablePlatformIds();
   const navigateToWizard = useNavigateToDeploymentWizardWithData(deployPrefill);
@@ -26,15 +27,33 @@ const DeployPrefillAction: React.FC<DeployPrefillActionProps> = ({
   const canInitializeWizardNavigation = deployPrefillLoaded && !deployPrefillError;
   const isLoading = canInitializeWizardNavigation && navigateToWizard === null;
 
-  const buttonState =
-    platformIdButtonState.enabled && canInitializeWizardNavigation && navigateToWizard !== null
-      ? { enabled: true }
-      : {
-          enabled: false,
-          tooltip: isLoading
-            ? 'Loading deployment data...'
-            : platformIdButtonState.tooltip || 'Deployment wizard is not available',
-        };
+  const buttonState = React.useMemo(() => {
+    if (disabledTooltip) {
+      return { enabled: false, tooltip: disabledTooltip };
+    }
+
+    if (
+      platformIdButtonState.enabled &&
+      canInitializeWizardNavigation &&
+      navigateToWizard !== null
+    ) {
+      return { enabled: true };
+    }
+
+    return {
+      enabled: false,
+      tooltip: isLoading
+        ? 'Loading deployment data...'
+        : platformIdButtonState.tooltip || 'Deployment wizard is not available',
+    };
+  }, [
+    disabledTooltip,
+    platformIdButtonState.enabled,
+    platformIdButtonState.tooltip,
+    canInitializeWizardNavigation,
+    navigateToWizard,
+    isLoading,
+  ]);
 
   const deployButton = (
     <Button

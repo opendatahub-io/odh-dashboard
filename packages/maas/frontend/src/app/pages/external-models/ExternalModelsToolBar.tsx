@@ -7,6 +7,7 @@ import {
   ExternalModelsFilterDataType,
   externalModelsFilterOptions,
   ExternalModelsFilterOptions,
+  createExternalModelPath,
 } from './const';
 
 type ExternalModelsToolBarProps = {
@@ -42,6 +43,15 @@ const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
     onFilterUpdate={onFilterUpdate}
   >
     <ToolbarGroup>
+      <ToolbarItem>
+        <Button
+          data-testid="add-external-model-button"
+          variant="primary"
+          component={(props) => <Link {...props} to={createExternalModelPath(namespace)} />}
+        >
+          Add external model
+        </Button>
+      </ToolbarItem>
       <ToolbarItem>
         <Button
           data-testid="manage-external-providers-button"

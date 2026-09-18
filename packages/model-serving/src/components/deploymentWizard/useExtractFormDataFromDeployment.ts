@@ -1,6 +1,6 @@
 import React from 'react';
 import { setupDefaults } from '@odh-dashboard/k8s-core';
-import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
 import { getExternalRouteFromDeployment, getTokenAuthenticationFromDeployment } from './utils';
 import { useWizardFieldExtractors } from './useWizardFieldExtractors';
 import { type InitialWizardFormData } from '../../shared/types/form-data';
@@ -178,6 +178,17 @@ export const useExtractFormDataFromDeployment = (
       // Extract environment variables configuration
       environmentVariables:
         formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
+
+      ...(() => {
+        const huggingFaceApiKey =
+          typeof formDataExtension?.properties.extractHuggingFaceApiKey === 'function'
+            ? formDataExtension.properties.extractHuggingFaceApiKey(deployment) ?? undefined
+            : undefined;
+        return {
+          huggingFaceApiKey,
+          requiresHuggingFaceApiKey: Boolean(huggingFaceApiKey),
+        };
+      })(),
 
       // Extract model availability data
       modelAvailability:

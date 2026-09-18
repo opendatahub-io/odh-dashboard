@@ -28,16 +28,14 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	params["core-bff-image"] = maasConsumerPortalCoreBFFImage
 	params["dashboard-namespace"] = "portal-test"
 	params["gateway-name"] = "portal-gateway"
-	params["maas-consumer-portal-url"] = "https://gateway.apps.example.com/maas-consumer-portal/"
 	params["maas-consumer-portal-federation-config"] = "maas-consumer-portal-federation-test"
 	params["gateway-domain"] = "gateway.apps.example.com"
-	params["section-title"] = "OpenShift Self Managed Services"
 	require.NoError(t, writeParamsEnv(dir, params))
 
 	engine := kustomize.NewEngine()
 	rendered, err := engine.Render(dir, kustomize.WithNamespace("portal-test"))
 	require.NoError(t, err)
-	require.Len(t, rendered, 9, "bundle must render its eight operand resources and params ConfigMap")
+	require.Len(t, rendered, 8, "bundle must render its seven operand resources and params ConfigMap")
 
 	resources := make(map[string]*unstructured.Unstructured, len(rendered))
 	for i := range rendered {
@@ -171,13 +169,6 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	require.Len(t, parentRefs, 1)
 	gatewayName := parentRefs[0].(map[string]interface{})["name"]
 	assert.Equal(t, "portal-gateway", gatewayName)
-
-	consoleLink := resources["ConsoleLink/"+maasConsumerPortalName+"-link"]
-	require.NotNil(t, consoleLink)
-	href, found, err := unstructured.NestedString(consoleLink.Object, "spec", "href")
-	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, "https://gateway.apps.example.com/maas-consumer-portal/", href)
 
 	roleBinding := resources["ClusterRoleBinding/"+maasConsumerPortalName]
 	require.NotNil(t, roleBinding)

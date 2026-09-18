@@ -146,6 +146,7 @@ describe('useIsProfileDirty', () => {
       registryAvailable: false,
       loaded: true,
       error: undefined,
+      refetch: jest.fn(),
     });
 
     // Config selects servers in [A, B] order — serialized spec will have [A, B].
@@ -178,6 +179,34 @@ describe('useIsProfileDirty', () => {
     });
 
     const { result } = renderHook(() => useIsProfileDirty(DEFAULT_CONFIG_ID), { wrapper });
+    expect(result.current).toBe(false);
+  });
+
+  it('should not report dirty after saving excludes an unavailable selected MCP server', () => {
+    jest.mocked(useFetchMCPServers).mockReturnValueOnce({
+      data: [{ name: 'unavailable-server', url: 'http://unavailable-server' }] as never,
+      configMapName: 'gen-ai-aa-mcp-servers',
+      registryAvailable: false,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+    useChatbotConfigStore.setState({
+      profileApplied: true,
+      loadedProfileSpec: makeMatchingSpec(),
+      configurations: {
+        [DEFAULT_CONFIG_ID]: {
+          ...DEFAULT_CONFIGURATION,
+          selectedMcpServerIds: ['http://unavailable-server'],
+        },
+      },
+    });
+
+    const { result } = renderHook(
+      () => useIsProfileDirty(DEFAULT_CONFIG_ID, [], 'gen-ai-aa-mcp-servers'),
+      { wrapper },
+    );
+
     expect(result.current).toBe(false);
   });
 });

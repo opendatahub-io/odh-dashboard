@@ -213,7 +213,23 @@ class ServingModal extends Modal {
 
 class DeleteModelServingModal extends DeleteModal {
   constructor() {
-    super('Delete tier?');
+    super('Delete model deployment?');
+  }
+
+  findPVCCheckbox() {
+    return this.find().findByTestId('nim-delete-pvc-checkbox');
+  }
+
+  findPVCDependentsLoadingAlert() {
+    return this.find().findByTestId('nim-delete-pvc-dependents-loading');
+  }
+
+  findPVCDependentsAlert() {
+    return this.find().findByTestId('nim-delete-pvc-dependents-alert');
+  }
+
+  findPVCDependentItems() {
+    return this.find().findAllByTestId('nim-delete-pvc-dependent-item');
   }
 }
 
@@ -1042,6 +1058,19 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-deployment-resourceName');
   }
 
+  getGeneratedResourceName(): Cypress.Chainable<string> {
+    return this.findResourceNameInput()
+      .should('be.visible')
+      .invoke('val')
+      .then((value) => {
+        const resourceName = value?.toString();
+        if (!resourceName) {
+          throw new Error('Model resource name was not generated');
+        }
+        return resourceName;
+      });
+  }
+
   findModelFormatSelect() {
     return cy.findByTestId('model-framework-select');
   }
@@ -1262,7 +1291,10 @@ class ModelServingWizard extends Wizard {
     cy.findByRole('option', { name }).click();
   }
 
-  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
+  selectPotentiallyDisabledProfile(
+    profileDisplayName: string,
+    profileResourceName = profileDisplayName,
+  ): void {
     const dropdown = this.findHardProfileSelection();
 
     dropdown.then(($el) => {
@@ -1271,7 +1303,7 @@ class ModelServingWizard extends Wizard {
         cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
         dropdown.click();
-        cy.findByTestId(profileName || profileDisplayName).click();
+        cy.findByTestId(profileResourceName).click();
       }
     });
   }

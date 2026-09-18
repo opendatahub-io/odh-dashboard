@@ -1,6 +1,6 @@
 import * as React from 'react';
 import useWorkloadRows, { type UseWorkloadRowsOptions } from './useWorkloadRows';
-import type { ClusterQueueWorkloadRow, WorkloadRowsScope } from '../types';
+import type { ClusterQueueWorkloadRow } from '../types';
 
 export type UseClusterQueueWorkloadsResult = {
   workloads: ClusterQueueWorkloadRow[];
@@ -11,22 +11,21 @@ export type UseClusterQueueWorkloadsResult = {
 };
 
 /**
- * Fetches workloads for one cluster queue — for drawer/panel UX when user selects a CQ.
- * Pass undefined to skip fetch (drawer closed).
+ * Workloads for one cluster queue (Quota usage detail panel).
+ * Row mapping runs synchronously against the shared, pre-scoped namespace workload cache; queue
+ * positions are enriched asynchronously (see useWorkloadRows).
  */
 const useClusterQueueWorkloads = (
   clusterQueueName: string | undefined,
   options: UseWorkloadRowsOptions = {},
 ): UseClusterQueueWorkloadsResult => {
-  const scope = React.useMemo(
-    (): WorkloadRowsScope => ({
+  const { data, loaded, error, refresh } = useWorkloadRows(
+    {
       mode: 'clusterQueues',
       clusterQueueNames: clusterQueueName ? [clusterQueueName] : [],
-    }),
-    [clusterQueueName],
+    },
+    options,
   );
-
-  const { data, loaded, error, refresh } = useWorkloadRows(scope, options);
 
   const workloads = React.useMemo(() => {
     if (!clusterQueueName || data.mode !== 'clusterQueues') {

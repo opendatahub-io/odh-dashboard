@@ -10,3 +10,4 @@ resources:
   - autorag
   - agent-ops
   - notebooks
+  - data-registry

@@ -1,22 +1,25 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useProjects } from '@odh-dashboard/internal/api/k8s/projects';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import useFetch, {
   NotReadyError,
   type FetchStateObject,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import type { WorkloadRowsFetchResult, WorkloadRowsScope } from '../types';
-import { INFRASTRUCTURE_REFRESH_INTERVAL } from '../const';
+import { useKueueNamespaceWorkloadCache } from './KueueNamespaceWorkloadCacheContext';
+import type { WorkloadRowsFetchResult, WorkloadRowsScope, ClusterQueueWorkloadRow } from '../types';
+import { INFRASTRUCTURE_MANUAL_REFRESH_ONLY } from '../const';
 import {
+  applyQueuePositionsToMap,
   fetchNamespaceWorkloads,
-  fetchWorkloadsForClusterQueues,
+  fetchQueuePositions,
   getProjectDisplayName,
+  mapWorkloadsForClusterQueuesSync,
+  type QueuePositionKey,
 } from '../utils/clusterQueueWorkloads';
 import { getKueueManagedDataScienceProjects } from '../utils/kueueProjects';
 
 export type UseWorkloadRowsOptions = {
-  /** When true, includes Complete and Failed workloads. Defaults to active-only. */
-  includeTerminal?: boolean;
   refreshRate?: number;
 };
 
@@ -27,6 +30,9 @@ export type UseWorkloadRowsResult = {
   refresh: FetchStateObject<WorkloadRowsFetchResult>['refresh'];
 };
 
+const emptyPositions = new Map<QueuePositionKey, number>();
+const emptyWorkloadsByClusterQueue = new Map<string, ClusterQueueWorkloadRow[]>();
+
 const buildProjectDisplayNames = (projects: ProjectKind[]): Map<string, string> =>
   new Map(
     projects.flatMap((project) => {
@@ -35,25 +41,11 @@ const buildProjectDisplayNames = (projects: ProjectKind[]): Map<string, string> 
     }),
   );
 
-const buildNamespacesKey = (namespaces: string[]): string =>
-  namespaces.toSorted((a, b) => a.localeCompare(b)).join('\0');
-
-const buildProjectDisplayNamesKey = (projectDisplayNames: Map<string, string>): string =>
-  [...projectDisplayNames.entries()]
-    .toSorted(([a], [b]) => a.localeCompare(b))
-    .map(([namespace, displayName]) => `${namespace}\0${displayName}`)
-    .join('\n');
-
-const buildClusterQueueNamesKey = (clusterQueueNames: string[]): string =>
-  clusterQueueNames.toSorted((a, b) => a.localeCompare(b)).join('\0');
-
 const buildNamespaceScopeKey = (namespace: string, projectDisplayName: string): string =>
   `${namespace}\0${projectDisplayName}`;
 
-const getInitialFetchResult = (scope: WorkloadRowsScope): WorkloadRowsFetchResult =>
-  scope.mode === 'namespace'
-    ? { mode: 'namespace', workloads: [] }
-    : { mode: 'clusterQueues', workloadsByClusterQueue: new Map() };
+const buildClusterQueueNamesKey = (clusterQueueNames: string[]): string =>
+  clusterQueueNames.toSorted((a, b) => a.localeCompare(b)).join('\0');
 
 const buildScopeKey = (scope: WorkloadRowsScope): string => {
   if (scope.mode === 'namespace') {
@@ -64,13 +56,25 @@ const buildScopeKey = (scope: WorkloadRowsScope): string => {
 
 /**
  * Core workload rows hook. Scope selects admin cluster-queue view or single-namespace view.
+ *
+ * Cluster-queue mode: row mapping runs synchronously (`React.useMemo`) against the shared,
+ * pre-scoped namespace workload cache — no second `useFetch` round-trip on a cache hit. Queue
+ * positions (Visibility API) are fetched separately and patched in once available, so the table
+ * renders before that latency resolves.
  */
 const useWorkloadRows = (
   scope: WorkloadRowsScope,
   options: UseWorkloadRowsOptions = {},
 ): UseWorkloadRowsResult => {
-  const { includeTerminal = false, refreshRate = INFRASTRUCTURE_REFRESH_INTERVAL } = options;
-  const [allProjects, projectsLoaded, projectsError] = useProjects();
+  const { refreshRate = INFRASTRUCTURE_MANUAL_REFRESH_ONLY } = options;
+  const [allProjects, , projectsError] = useProjects();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const {
+    cache,
+    loaded: cacheLoaded,
+    error: cacheError,
+    refresh: refreshCache,
+  } = useKueueNamespaceWorkloadCache();
 
   const kueueProjects = React.useMemo(
     () => getKueueManagedDataScienceProjects(allProjects),
@@ -82,93 +86,137 @@ const useWorkloadRows = (
     [kueueProjects],
   );
 
-  const namespaces = React.useMemo(
-    () =>
-      kueueProjects.flatMap((project) => {
-        const namespace = project.metadata.name;
-        return namespace ? [namespace] : [];
-      }),
-    [kueueProjects],
-  );
-
-  const namespacesKey = React.useMemo(() => buildNamespacesKey(namespaces), [namespaces]);
-  const projectDisplayNamesKey = React.useMemo(
-    () => buildProjectDisplayNamesKey(projectDisplayNames),
-    [projectDisplayNames],
-  );
   const scopeKey = React.useMemo(() => buildScopeKey(scope), [scope]);
+  const isClusterQueuesScope = scope.mode === 'clusterQueues';
+  const isSkippedClusterQueueScope = isClusterQueuesScope && scope.clusterQueueNames.length === 0;
 
   const scopeRef = React.useRef(scope);
   scopeRef.current = scope;
-  const namespacesRef = React.useRef(namespaces);
-  namespacesRef.current = namespaces;
-  const projectDisplayNamesRef = React.useRef(projectDisplayNames);
-  projectDisplayNamesRef.current = projectDisplayNames;
 
-  const initialFetchResult = React.useMemo(() => getInitialFetchResult(scope), [scope]);
+  // --- Cluster-queue scope: synchronous row mapping against the shared namespace cache. ---
+  const baseWorkloadsByClusterQueue = React.useMemo(() => {
+    const currentScope = scopeRef.current;
+    if (currentScope.mode !== 'clusterQueues' || currentScope.clusterQueueNames.length === 0) {
+      return emptyWorkloadsByClusterQueue;
+    }
+    if (!cacheLoaded) {
+      return emptyWorkloadsByClusterQueue;
+    }
+    return mapWorkloadsForClusterQueuesSync(
+      currentScope.clusterQueueNames,
+      cache,
+      projectDisplayNames,
+      // scopeKey drives re-mapping when the selected cluster queue(s) change; cache identity
+      // drives re-mapping when the underlying namespace data refreshes.
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scopeKey fingerprints scope; cache identity fingerprints namespace data
+  }, [scopeKey, cache, cacheLoaded, projectDisplayNames]);
 
-  const {
-    data,
-    loaded: workloadsLoaded,
-    error: workloadsError,
-    refresh,
-  } = useFetch<WorkloadRowsFetchResult>(
+  const flattenedBaseRows = React.useMemo(
+    () => [...baseWorkloadsByClusterQueue.values()].flat(),
+    [baseWorkloadsByClusterQueue],
+  );
+
+  // --- Phase C: queue-position enrichment, decoupled from row mapping. ---
+  const { data: positions, loaded: positionsLoaded } = useFetch<Map<QueuePositionKey, number>>(
     React.useCallback(async () => {
-      const currentScope = scopeRef.current;
-
-      if (currentScope.mode === 'namespace') {
-        if (!currentScope.namespace) {
-          return { mode: 'namespace', workloads: [] };
-        }
-
-        const workloads = await fetchNamespaceWorkloads(
-          currentScope.namespace,
-          currentScope.projectDisplayName,
-          includeTerminal,
-        );
-        return { mode: 'namespace', workloads };
+      if (!isClusterQueuesScope || flattenedBaseRows.length === 0) {
+        return emptyPositions;
       }
-
-      if (currentScope.clusterQueueNames.length === 0) {
-        return { mode: 'clusterQueues', workloadsByClusterQueue: new Map() };
-      }
-
-      if (!projectsLoaded) {
-        throw new NotReadyError('Projects not loaded');
-      }
-
-      const workloadsByClusterQueue = await fetchWorkloadsForClusterQueues(
-        currentScope.clusterQueueNames,
-        namespacesRef.current,
-        projectDisplayNamesRef.current,
-        includeTerminal,
-      );
-
-      return { mode: 'clusterQueues', workloadsByClusterQueue };
-      // scopeKey / namespacesKey / projectDisplayNamesKey are content fingerprints.
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- keys trigger refetch when inputs change
-    }, [scopeKey, namespacesKey, projectDisplayNamesKey, includeTerminal, projectsLoaded]),
-    initialFetchResult,
+      return fetchQueuePositions(flattenedBaseRows);
+    }, [isClusterQueuesScope, flattenedBaseRows]),
+    emptyPositions,
     { refreshRate, initialPromisePurity: true },
   );
 
-  const isSkippedClusterQueueScope =
-    scope.mode === 'clusterQueues' && scope.clusterQueueNames.length === 0;
+  const clusterQueuesData = React.useMemo(
+    (): WorkloadRowsFetchResult => ({
+      mode: 'clusterQueues',
+      workloadsByClusterQueue: applyQueuePositionsToMap(
+        baseWorkloadsByClusterQueue,
+        positions,
+        positionsLoaded,
+      ),
+    }),
+    [baseWorkloadsByClusterQueue, positions, positionsLoaded],
+  );
 
-  const loaded =
-    scope.mode === 'namespace' || isSkippedClusterQueueScope
-      ? workloadsLoaded
-      : projectsLoaded && workloadsLoaded;
-  const error =
-    scope.mode === 'namespace' || isSkippedClusterQueueScope
-      ? workloadsError
-      : projectsError ?? workloadsError;
+  // --- Namespace scope: unchanged single fetch (rows + positions together). ---
+  const {
+    data: namespaceData,
+    loaded: namespaceLoaded,
+    error: namespaceError,
+    refresh: namespaceRefresh,
+  } = useFetch<WorkloadRowsFetchResult>(
+    React.useCallback(async () => {
+      const currentScope = scopeRef.current;
+      if (currentScope.mode !== 'namespace') {
+        throw new NotReadyError('Not in namespace scope');
+      }
+      if (!currentScope.namespace) {
+        return { mode: 'namespace', workloads: [] };
+      }
+
+      const workloads = await fetchNamespaceWorkloads(
+        currentScope.namespace,
+        currentScope.projectDisplayName,
+        dashboardNamespace,
+      );
+      return { mode: 'namespace', workloads };
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- scopeKey fingerprints namespace + display name
+    }, [scopeKey, dashboardNamespace]),
+    { mode: 'namespace', workloads: [] },
+    { refreshRate, initialPromisePurity: true },
+  );
+
+  const clusterQueuesRefresh = React.useCallback(async (): Promise<
+    WorkloadRowsFetchResult | undefined
+  > => {
+    const currentScope = scopeRef.current;
+    if (currentScope.mode !== 'clusterQueues') {
+      return {
+        mode: 'clusterQueues',
+        workloadsByClusterQueue: emptyWorkloadsByClusterQueue,
+      };
+    }
+
+    const refreshedCache = await refreshCache();
+    if (!refreshedCache) {
+      return undefined;
+    }
+
+    const workloadsByClusterQueue = mapWorkloadsForClusterQueuesSync(
+      currentScope.clusterQueueNames,
+      refreshedCache,
+      projectDisplayNames,
+    );
+
+    return {
+      mode: 'clusterQueues',
+      workloadsByClusterQueue: applyQueuePositionsToMap(
+        workloadsByClusterQueue,
+        positions,
+        positionsLoaded,
+      ),
+    };
+  }, [positions, positionsLoaded, projectDisplayNames, refreshCache]);
+
+  if (scope.mode === 'namespace') {
+    return {
+      data: namespaceData,
+      loaded: namespaceLoaded,
+      error: namespaceError,
+      refresh: namespaceRefresh,
+    };
+  }
 
   return {
-    data,
-    loaded,
-    error,
-    refresh,
+    data: clusterQueuesData,
+    loaded: isSkippedClusterQueueScope || cacheLoaded,
+    error: isSkippedClusterQueueScope
+      ? undefined
+      : projectsError ?? cacheError ?? cache.namespaceLoadError,
+    refresh: clusterQueuesRefresh,
   };
 };
 

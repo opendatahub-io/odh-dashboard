@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,12 +14,15 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestPipelinesHandler() (*PipelinesHandler, *mockPipelinesRepo) {
@@ -775,6 +779,78 @@ func TestEnableManagedPipelinesHandler(t *testing.T) {
 			if tt.wantBodySubstr != "" {
 				assert.Contains(t, rr.Body.String(), tt.wantBodySubstr)
 			}
+			repo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestCreatePipelineRunHandler_TimeSeriesID(t *testing.T) {
+	str := func(value string) *string { return &value }
+	for _, tc := range []struct {
+		name        string
+		id          *string
+		columns     []string
+		schemaErr   error
+		wantStatus  int
+		skipSchema  bool
+		wantMessage string
+	}{
+		{name: "two columns without ID", columns: []string{"date", "sales"}, wantStatus: 200},
+		{name: "two reversed columns", columns: []string{"sales", "date"}, wantStatus: 200},
+		{name: "empty ID for two columns", id: str(""), columns: []string{"date", "sales"}, wantStatus: 400, skipSchema: true, wantMessage: "id_column must be non-empty"},
+		{name: "whitespace ID for two columns", id: str(" "), columns: []string{"date", "sales"}, wantStatus: 400, skipSchema: true, wantMessage: "id_column must be non-empty"},
+		{name: "three columns without ID", columns: []string{"date", "sales", "store"}, wantStatus: 400, wantMessage: "id_column is required"},
+		{name: "four columns without ID", columns: []string{"date", "sales", "store", "other"}, wantStatus: 400},
+		{name: "three columns empty ID", id: str(""), columns: []string{"date", "sales", "store"}, wantStatus: 400, skipSchema: true, wantMessage: "id_column must be non-empty"},
+		{name: "three columns blank ID", id: str("\ufeff  "), columns: []string{"date", "sales", "store"}, wantStatus: 400, skipSchema: true, wantMessage: "id_column must be non-empty"},
+		{name: "BOM-only ID", id: str("\ufeff"), wantStatus: 400, skipSchema: true, wantMessage: "id_column must be non-empty"},
+		{name: "supplied ID", id: str("store"), wantStatus: 200, skipSchema: true},
+		{name: "supplied ID normalized", id: str(" store "), wantStatus: 200, skipSchema: true},
+		{name: "supplied non-ASCII ID rejected", id: str("店"), wantStatus: 400, skipSchema: true, wantMessage: "id_column"},
+		{name: "one column", columns: []string{"date"}, wantStatus: 400},
+		{name: "wrong column names", columns: []string{"date", "other"}, wantStatus: 400},
+		{name: "CSV unavailable", schemaErr: errors.New("read failed"), wantStatus: 500},
+		{name: "CSV invalid", schemaErr: helper.ErrCSVValidation, wantStatus: 400},
+		{name: "CSV missing", schemaErr: s3.ErrObjectNotFound, wantStatus: 404},
+		{name: "CSV access denied", schemaErr: s3.ErrAccessDenied, wantStatus: 403},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h, repo := newTestPipelinesHandler()
+			schemas := new(mockS3Repo)
+			h.schemas = schemas
+			if !tc.skipSchema {
+				schema := helper.CSVSchemaResult{}
+				for _, name := range tc.columns {
+					schema.Columns = append(schema.Columns, helper.ColumnSchema{Name: name})
+				}
+				schemas.On("GetCSVSchema", mock.Anything, repositories.S3RequestContext{
+					Namespace: "test-ns", SecretName: "secret", Bucket: "bucket",
+				}, "data.csv").Return(schema, tc.schemaErr).Once()
+			}
+			if tc.wantStatus == 200 {
+				repo.On("CreateRun", mock.Anything, "test-ns", mock.MatchedBy(func(req models.CreateAutoMLRunRequest) bool {
+					if tc.skipSchema {
+						return req.IDColumn != nil && *req.IDColumn == "store"
+					}
+					return req.IDColumn == nil
+				})).Return(&models.PipelineRun{RunID: "new-run"}, nil).Once()
+			}
+			body, err := json.Marshal(models.CreateAutoMLRunRequest{
+				DisplayName: "run", TrainDataSecretName: " secret ", TrainDataBucketName: " bucket ",
+				TrainDataFileKey: "data.csv", TaskType: str("timeseries"), Target: str("sales"),
+				TimestampColumn: str("date"), IDColumn: tc.id,
+			})
+			require.NoError(t, err)
+			rr := httptest.NewRecorder()
+			h.CreatePipelineRunHandler(rr, pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", "test-ns", string(body)), nil)
+			assert.Equal(t, tc.wantStatus, rr.Code, rr.Body.String())
+			if tc.wantMessage != "" {
+				assert.Contains(t, rr.Body.String(), tc.wantMessage)
+			}
+			if tc.wantStatus != 200 {
+				repo.AssertNotCalled(t, "CreateRun", mock.Anything, mock.Anything, mock.Anything)
+			}
+			schemas.AssertExpectations(t)
 			repo.AssertExpectations(t)
 		})
 	}

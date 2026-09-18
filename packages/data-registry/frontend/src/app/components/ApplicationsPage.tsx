@@ -12,6 +12,10 @@ import {
   Stack,
   Flex,
 } from '@patternfly/react-core';
+import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
+import ServiceUnavailableError from './errors/ServiceUnavailableError';
+import AccessDeniedError from './errors/AccessDeniedError';
+import ConnectionError from './errors/ConnectionError';
 
 type ApplicationsPageProps = {
   title?: React.ReactNode;
@@ -31,6 +35,7 @@ type ApplicationsPageProps = {
   subtext?: React.ReactNode;
   loadingContent?: React.ReactNode;
   noHeader?: boolean;
+  onRetry?: () => void;
 };
 
 const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
@@ -51,6 +56,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   subtext,
   loadingContent,
   noHeader,
+  onRetry,
 }) => {
   const renderHeader = () => (
     <PageSection hasBodyWrapper={false}>
@@ -79,6 +85,27 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
   const renderContents = () => {
     if (loadError) {
+      if (is503Error(loadError)) {
+        return (
+          <PageSection hasBodyWrapper={false} isFilled>
+            <ServiceUnavailableError onRetry={onRetry} />
+          </PageSection>
+        );
+      }
+      if (is403Error(loadError)) {
+        return (
+          <PageSection hasBodyWrapper={false} isFilled>
+            <AccessDeniedError />
+          </PageSection>
+        );
+      }
+      if (isConnectionError(loadError)) {
+        return (
+          <PageSection hasBodyWrapper={false} isFilled>
+            <ConnectionError onRetry={onRetry} />
+          </PageSection>
+        );
+      }
       return (
         <PageSection hasBodyWrapper={false} isFilled>
           <EmptyState

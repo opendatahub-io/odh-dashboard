@@ -81,6 +81,9 @@ func main() {
 	flag.StringVar(&cfg.PgvectorImage, "pgvector-image", getEnvAsString(pgvector.RelatedImageEnvVar, ""), "Container image for auto-provisioned pgvector (set via RELATED_IMAGE_POSTGRESQL_16_IMAGE)")
 	flag.StringVar(&cfg.OGXCoreImage, "ogx-core-image", getEnvAsString("RELATED_IMAGE_OGX_CORE", ""), "OGX core container image for Sandbox CR creation (set via RELATED_IMAGE_OGX_CORE)")
 
+	// Gateway configuration
+	flag.StringVar(&cfg.GatewayDomain, "gateway-domain", getEnvAsString("GATEWAY_DOMAIN", ""), "External gateway domain for BFF proxy URL (used by remote::passthrough provider)")
+
 	// BFF inter-communication configuration
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
 	flag.StringVar(&cfg.BFFMaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MaaS BFF")

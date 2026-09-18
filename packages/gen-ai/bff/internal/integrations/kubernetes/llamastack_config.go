@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
@@ -395,6 +396,64 @@ func NewInferenceProvider(providerID string, url string) Provider {
 // EmptyConfig returns an empty configuration map
 func EmptyConfig() map[string]interface{} {
 	return map[string]interface{}{}
+}
+
+// NewPassthroughProvider creates a remote::passthrough provider entry.
+// OGX's Responses API resolves models per-request via this provider — no
+// model registration in registered_resources is needed. The BFF proxy at
+// baseURL handles routing to the actual upstream endpoint and credentials.
+//
+// forward_headers maps X-OGX-Provider-Data JSON keys to outbound HTTP headers.
+// OGX reads these keys from the provider data and forwards them as headers to the
+// passthrough endpoint. This allows per-request credentials (e.g. MaaS tokens)
+// to flow through OGX without OGX needing to understand them.
+func NewPassthroughProvider(providerID, baseURL string) Provider {
+	return Provider{
+		ProviderID:   providerID,
+		ProviderType: constants.PassthroughProviderType,
+		Config: map[string]interface{}{
+			"base_url": baseURL,
+			"api_key":  "",
+			"forward_headers": map[string]interface{}{
+				"maas_subscription":           constants.MaaSSubscriptionHeader,
+				"inference_model_source_type": constants.InferenceModelSourceTypeHeader,
+			},
+		},
+	}
+}
+
+// HasPassthroughProvider returns true if the config already contains a
+// remote::passthrough inference provider registered by the BFF, AND the
+// provider's base_url and forward-header configuration match the current BFF
+// requirements.
+//
+// Requiring the URL guards against stale configs written under a previous
+// GATEWAY_DOMAIN value: if the domain or path prefix changes, the existing
+// provider points at the wrong host and must NOT be reused for zero-restart.
+func (c *LlamaStackConfig) HasPassthroughProvider(expectedBaseURL string) bool {
+	for _, p := range c.Providers.Inference {
+		if p.ProviderType == constants.PassthroughProviderType &&
+			p.ProviderID == constants.PassthroughProviderID {
+			baseURL, _ := p.Config["base_url"].(string)
+			return baseURL == expectedBaseURL &&
+				hasExpectedPassthroughForwardHeaders(p.Config["forward_headers"])
+		}
+	}
+	return false
+}
+
+func hasExpectedPassthroughForwardHeaders(forwardHeaders interface{}) bool {
+	var maasSubscription, inferenceModelSourceType string
+	switch headers := forwardHeaders.(type) {
+	case map[string]interface{}:
+		maasSubscription, _ = headers["maas_subscription"].(string)
+		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
+	case map[interface{}]interface{}:
+		maasSubscription, _ = headers["maas_subscription"].(string)
+		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
+	}
+	return maasSubscription == constants.MaaSSubscriptionHeader &&
+		inferenceModelSourceType == constants.InferenceModelSourceTypeHeader
 }
 
 // NewSentenceTransformerProvider creates a new sentence transformer provider

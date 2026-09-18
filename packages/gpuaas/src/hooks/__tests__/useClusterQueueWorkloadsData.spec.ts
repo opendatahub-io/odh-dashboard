@@ -2,12 +2,23 @@ import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { useProjects } from '@odh-dashboard/internal/api/k8s/projects';
 import useFetch from '@odh-dashboard/ui-core/hooks/useFetch';
-import { QuotaUsageWorkloadStatuses, QuotaUsageWorkloadTypes } from '../../types';
 import useClusterQueueWorkloadsData from '../useClusterQueueWorkloadsData';
-import { fetchWorkloadsForClusterQueues } from '../../utils/clusterQueueWorkloads';
+import { useKueueNamespaceWorkloadCache } from '../KueueNamespaceWorkloadCacheContext';
+import {
+  fetchQueuePositions,
+  type KueueNamespaceWorkloadCache,
+} from '../../utils/clusterQueueWorkloads';
 
 jest.mock('@odh-dashboard/internal/api/k8s/projects', () => ({
   useProjects: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
+  useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'redhat-ods-applications' })),
+}));
+
+jest.mock('../KueueNamespaceWorkloadCacheContext', () => ({
+  useKueueNamespaceWorkloadCache: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
@@ -23,35 +34,117 @@ jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
 
 jest.mock('../../utils/clusterQueueWorkloads', () => ({
   ...jest.requireActual('../../utils/clusterQueueWorkloads'),
-  fetchWorkloadsForClusterQueues: jest.fn(),
+  fetchQueuePositions: jest.fn(),
 }));
 
 const useProjectsMock = jest.mocked(useProjects);
 const useFetchMock = jest.mocked(useFetch);
-const fetchWorkloadsForClusterQueuesMock = jest.mocked(fetchWorkloadsForClusterQueues);
+const useKueueNamespaceWorkloadCacheMock = jest.mocked(useKueueNamespaceWorkloadCache);
+const fetchQueuePositionsMock = jest.mocked(fetchQueuePositions);
 
 const kueueProject = mockProjectK8sResource({ k8sName: 'dsp-1', enableKueue: true });
+const emptyCache = {
+  namespaceData: [],
+  hardwareProfileByKey: new Map(),
+  hardwareProfilesForMatching: [],
+};
+
+const mockCacheWithTwoQueues = {
+  namespaceData: [
+    {
+      namespace: 'dsp-1',
+      workloads: [
+        {
+          apiVersion: 'kueue.x-k8s.io/v1beta2' as const,
+          kind: 'Workload' as const,
+          metadata: { name: 'wl-1', namespace: 'dsp-1' },
+          spec: {
+            active: true,
+            queueName: 'user-queue',
+            podSets: [
+              {
+                count: 1,
+                name: 'main',
+                template: {
+                  metadata: {},
+                  spec: {
+                    containers: [
+                      {
+                        name: 'main',
+                        image: 'test-image',
+                        env: [],
+                        resources: { requests: { 'nvidia.com/gpu': '1' } },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+          status: {
+            admission: { clusterQueue: 'gpu-cq', podSetAssignments: [] },
+            conditions: [
+              {
+                type: 'QuotaReserved',
+                status: 'True',
+                reason: 'QuotaReserved',
+                message: 'Quota reserved',
+                lastTransitionTime: '2026-01-01T00:00:00Z',
+              },
+              {
+                type: 'Admitted',
+                status: 'True',
+                reason: 'Admitted',
+                message: 'Admitted',
+                lastTransitionTime: '2026-01-01T00:00:00Z',
+              },
+            ],
+          },
+        },
+      ],
+      localQueues: [
+        {
+          apiVersion: 'kueue.x-k8s.io/v1beta2' as const,
+          kind: 'LocalQueue' as const,
+          metadata: { name: 'user-queue', namespace: 'dsp-1' },
+          spec: { clusterQueue: 'gpu-cq' },
+        },
+      ],
+      pods: [],
+      statefulSets: [],
+      inferenceServices: [],
+      jobKindByUid: new Map(),
+    },
+  ],
+} as unknown as KueueNamespaceWorkloadCache;
+
+const mockUseFetchDefaults = (): void => {
+  useFetchMock.mockImplementation((callback, initialValue) => {
+    void Promise.resolve(callback({ signal: new AbortController().signal })).catch(() => undefined);
+    return { data: initialValue, loaded: true, error: undefined, refresh: jest.fn() };
+  });
+};
 
 describe('useClusterQueueWorkloadsData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useProjectsMock.mockReturnValue([[kueueProject], true, undefined]);
-    useFetchMock.mockImplementation((callback) => {
-      void callback({ signal: new AbortController().signal });
-      return {
-        data: { mode: 'clusterQueues', workloadsByClusterQueue: new Map() },
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      };
+    useKueueNamespaceWorkloadCacheMock.mockReturnValue({
+      cache: emptyCache,
+      loaded: true,
+      enrichmentReady: true,
+      error: undefined,
+      refresh: jest.fn(),
     });
+    fetchQueuePositionsMock.mockResolvedValue(new Map());
+    mockUseFetchDefaults();
   });
 
-  it('returns loading until projects and workloads are loaded', () => {
-    useProjectsMock.mockReturnValue([[], false, undefined]);
-    useFetchMock.mockReturnValue({
-      data: { mode: 'clusterQueues', workloadsByClusterQueue: new Map() },
+  it('returns loading until namespace workload cache is loaded', () => {
+    useKueueNamespaceWorkloadCacheMock.mockReturnValue({
+      cache: emptyCache,
       loaded: false,
+      enrichmentReady: false,
       error: undefined,
       refresh: jest.fn(),
     });
@@ -60,45 +153,19 @@ describe('useClusterQueueWorkloadsData', () => {
     expect(renderResult.result.current.loaded).toBe(false);
   });
 
-  it('fetches workloads once for all cluster queues', () => {
-    const workloadsByClusterQueue = new Map([
-      [
-        'gpu-cq',
-        [
-          {
-            name: 'wl-1',
-            namespace: 'dsp-1',
-            project: 'dsp-1',
-            clusterQueue: 'gpu-cq',
-            type: QuotaUsageWorkloadTypes.Workbench,
-            status: QuotaUsageWorkloadStatuses.Queued,
-            localQueue: 'user-queue',
-            accelerators: 1,
-            queuePosition: 2,
-          },
-        ],
-      ],
-    ]);
-
-    fetchWorkloadsForClusterQueuesMock.mockResolvedValue(workloadsByClusterQueue);
-    useFetchMock.mockImplementation((callback) => {
-      void callback({ signal: new AbortController().signal });
-      return {
-        data: { mode: 'clusterQueues', workloadsByClusterQueue },
-        loaded: true,
-        error: undefined,
-        refresh: jest.fn(),
-      };
+  it('maps workloads for all requested cluster queues from the shared cache', () => {
+    useKueueNamespaceWorkloadCacheMock.mockReturnValue({
+      cache: mockCacheWithTwoQueues,
+      loaded: true,
+      enrichmentReady: true,
+      error: undefined,
+      refresh: jest.fn(),
     });
 
     const renderResult = testHook(useClusterQueueWorkloadsData)(['gpu-cq', 'other-cq']);
-    expect(fetchWorkloadsForClusterQueuesMock).toHaveBeenCalledWith(
-      ['gpu-cq', 'other-cq'],
-      ['dsp-1'],
-      expect.any(Map),
-      false,
-    );
+
     expect(renderResult.result.current.workloadsByClusterQueue.get('gpu-cq')).toHaveLength(1);
+    expect(renderResult.result.current.workloadsByClusterQueue.get('other-cq')).toHaveLength(0);
     expect(renderResult.result.current.loaded).toBe(true);
   });
 

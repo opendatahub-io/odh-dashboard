@@ -22,7 +22,7 @@ This project is a web application built with a modular architecture. It consists
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) (v20 or later)
+- [Node.js](https://nodejs.org/) (v22.18.0 or later)
 - [Go](https://golang.org/) (v1.26 or later)
 - [Docker](https://www.docker.com/) (for containerized deployment)
 

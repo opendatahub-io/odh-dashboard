@@ -12,6 +12,7 @@ import {
   LabelListResponse,
   CreateLabelRequest,
   LabelResponse,
+  ConnectionRef,
 } from '~/app/types';
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
@@ -33,12 +34,18 @@ const schemaFieldSchema = z.object({
   nullable: z.boolean().optional(),
 });
 
+const connectionRefSchema = z.union([
+  z.object({ type: z.literal('dch'), id: z.string() }),
+  // eslint-disable-next-line camelcase
+  z.object({ type: z.literal('rhai'), secret_name: z.string() }),
+]);
+
 const assetResponseSchema = z
   .object({
     name: z.string(),
     // eslint-disable-next-line camelcase
     asset_type: z.string(),
-    columns: z.array(schemaFieldSchema).optional(),
+    columns: z.array(schemaFieldSchema).nullable().optional(),
     labels: z.array(z.string()).nullable().optional(),
   })
   .passthrough();
@@ -51,8 +58,15 @@ const volumeInfoSchema = z
     'volume-type': z.string(),
     'storage-location': z.string(),
     labels: z.array(z.string()).nullable().optional(),
+    properties: z.record(z.string(), z.string()).optional(),
+    // eslint-disable-next-line camelcase
+    connection_ref: connectionRefSchema.nullable().optional(),
   })
   .passthrough();
+
+const listVolumesResponseSchema = z.object({
+  volumes: z.array(volumeInfoSchema).optional(),
+});
 
 const fetchJSON = async <T>(url: string, schema?: z.ZodType<T>): Promise<T> => {
   const response = await fetch(url);
@@ -139,7 +153,7 @@ export const deleteGenericTable = (
 // Volumes
 
 export const fetchVolumes = (project: string, collection: string): Promise<ListVolumesResponse> =>
-  fetchJSON(registryUrl(`/${project}/namespaces/${collection}/volumes`));
+  fetchJSON(registryUrl(`/${project}/namespaces/${collection}/volumes`), listVolumesResponseSchema);
 
 export const createVolume = async (
   project: string,
@@ -199,7 +213,7 @@ export type UpdateGenericTableRequest = {
   description?: string;
   format?: string;
   location?: string;
-  connection_ref?: { type: string; secret_name?: string; id?: string };
+  connection_ref?: ConnectionRef;
   purpose?: string;
   license?: string;
   maturity?: string;
@@ -270,3 +284,18 @@ export const createLabel = async (
 export const deleteLabel = async (project: string, label: string): Promise<void> => {
   await fetchRequest(registryUrl(`/${project}/labels/${encodeURIComponent(label)}`), 'DELETE');
 };
+
+// Error type guards
+
+export const is503Error = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 503;
+
+export const is403Error = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 403;
+
+export const isConnectionError = (error: unknown): boolean =>
+  !(error instanceof ApiError) &&
+  error instanceof Error &&
+  (error.message.includes('NetworkError') ||
+    error.message.includes('Failed to fetch') ||
+    error.message.toLowerCase().includes('network'));

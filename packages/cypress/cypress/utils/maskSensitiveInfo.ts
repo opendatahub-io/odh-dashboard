@@ -19,8 +19,9 @@ const CYPRESS_USER_ENV_KEYS = [
 const CYPRESS_STRING_SECRET_KEYS = [
   'NGC_API_KEY',
   'GEMINI_API_KEY',
-  'OGX_API_KEY',
+  'MAAS_API_KEY',
   'OCI_SECRET_VALUE',
+  'HF_API_KEY',
 ] as const;
 
 const toBase64 = (value: string): string => {

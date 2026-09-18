@@ -27,6 +27,4 @@ func BuildMaaSConsumerPortalFederationConfigMap(
 	return r.buildMaaSConsumerPortalFederationConfigMap(statuses)
 }
 
-const MaaSConsumerPortalConsoleLinkName = maasConsumerPortalConsoleLinkName
-
 const ConditionMaaSConsumerPortalAvailable = conditionMaaSConsumerPortalAvailable

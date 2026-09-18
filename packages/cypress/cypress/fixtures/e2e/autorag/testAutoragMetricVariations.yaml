@@ -1,7 +1,8 @@
 projectNamePrefix: 'cy-e2e-autorag-metrics'
 dspaSecretName: dashboard-dspa-secret
 s3SecretName: ods-ci-ds-pipelines
-ogxSecretName: cy-ogx-secret
+maasSecretName: cy-maas-secret
+vectorDbSecretName: cy-vector-db-secret
 runName: autorag-metrics-run
 runDescription: 'E2E test for metric variation runs'
 documentFile: autorag-test-document.txt
