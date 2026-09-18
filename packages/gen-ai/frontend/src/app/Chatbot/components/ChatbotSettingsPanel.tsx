@@ -115,7 +115,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [, setActiveToolsCount] = React.useState(0);
   const [showResetModal, setShowResetModal] = React.useState(false);
-  const isProfileDirty = useIsProfileDirty(configId);
+  const isProfileDirty = useIsProfileDirty(configId, mcpServers);
 
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);

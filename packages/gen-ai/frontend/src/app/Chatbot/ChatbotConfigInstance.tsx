@@ -133,7 +133,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   );
 
   const embeddedConfig = useEmbeddedMessagesConfig();
-  const isProfileDirty = useIsProfileDirty(configId);
+  const isProfileDirty = useIsProfileDirty(configId, mcpServers);
 
   const standardMessagesHook = useChatbotMessages({
     configId,

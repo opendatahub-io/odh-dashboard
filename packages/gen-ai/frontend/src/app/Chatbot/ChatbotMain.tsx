@@ -64,12 +64,19 @@ const ChatbotMain: React.FunctionComponent = () => {
     loaded: mcpServersLoaded,
     error: mcpServersLoadError,
   } = useFetchMCPServers();
-  const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
-    useMCPServerStatuses(mcpServers, mcpServersLoaded);
+  const {
+    serverStatuses: mcpServerStatuses,
+    statusesLoading: mcpServerStatusesLoading,
+    checkServerStatus: checkMcpServerStatus,
+  } = useMCPServerStatuses(mcpServers, mcpServersLoaded);
   const availableMcpServers = React.useMemo(
     () => filterUnavailableMCPServers(mcpServers, mcpServerStatuses),
     [mcpServers, mcpServerStatuses],
   );
+  const areMcpServerStatusesResolved =
+    mcpServersLoaded &&
+    mcpServerStatusesLoading.size === 0 &&
+    mcpServers.every((server) => mcpServerStatuses.has(server.url));
   const { data: bffConfig } = useFetchBFFConfig();
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const [existingCollections] = useFetchVectorStores();
@@ -109,7 +116,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
 
-  const isProfileDirty = useIsProfileDirty(primaryConfigId);
+  const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
   useSafeBrowserUnloadBlocker(isProfileDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
@@ -405,7 +412,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               onClearAgent={handleNewAgentConfiguration}
               isProfileDirty={isProfileDirty}
               onResetToLastSaved={handleResetToLastSaved}
-              mcpServers={mcpServers}
+              mcpServers={availableMcpServers}
               mcpRegistryAvailable={mcpRegistryAvailable}
               mcpServersLoaded={mcpServersLoaded}
               mcpServersLoadError={mcpServersLoadError}
@@ -457,6 +464,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           mode={saveModalMode}
           mcpServers={availableMcpServers}
           mcpConfigMapName={mcpConfigMapName}
+          isMcpServerStatusCheckComplete={areMcpServerStatusesResolved}
           onClose={handleCloseSaveModal}
           onSaved={handleProfileSaved}
         />

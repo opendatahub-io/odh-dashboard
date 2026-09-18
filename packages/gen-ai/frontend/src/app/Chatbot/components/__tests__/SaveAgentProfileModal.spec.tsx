@@ -57,7 +57,7 @@ const chatbotContextValue = {
   setLastInput: jest.fn(),
 };
 
-const renderModal = (mode: 'save-as' | 'save' = 'save-as') =>
+const renderModal = (mode: 'save-as' | 'save' = 'save-as', isMcpServerStatusCheckComplete = true) =>
   render(
     <GenAiContext.Provider value={genAiContextValue as never}>
       <ChatbotContext.Provider value={chatbotContextValue as never}>
@@ -65,6 +65,7 @@ const renderModal = (mode: 'save-as' | 'save' = 'save-as') =>
           mode={mode}
           mcpServers={[]}
           mcpConfigMapName={null}
+          isMcpServerStatusCheckComplete={isMcpServerStatusCheckComplete}
           onClose={mockOnClose}
           onSaved={mockOnSaved}
         />
@@ -127,6 +128,15 @@ describe('SaveAgentProfileModal', () => {
       await user.click(nameInput);
       await user.tab();
       expect(screen.getByText('Name is required.')).toBeInTheDocument();
+    });
+
+    it('should disable save until MCP server status checks are complete', async () => {
+      const user = userEvent.setup();
+      renderModal('save-as', false);
+
+      await user.type(screen.getByTestId('save-agent-profile-name-input'), 'Test Agent');
+
+      expect(screen.getByTestId('save-agent-profile-submit-button')).toBeDisabled();
     });
 
     it('should call createAgentProfile and onSaved on successful save', async () => {

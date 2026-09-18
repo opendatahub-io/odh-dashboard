@@ -291,12 +291,16 @@ describe('ChatbotMain - Empty State Logic', () => {
     );
 
     const playgroundProps = mockChatbotPlayground.mock.calls.at(-1)?.[0];
+    expect(playgroundProps).toEqual(expect.objectContaining({ mcpServers: [connectedMcpServer] }));
     act(() => {
       playgroundProps?.onOpenSave?.();
     });
 
     expect(mockSaveAgentProfileModal).toHaveBeenLastCalledWith(
-      expect.objectContaining({ mcpServers: [connectedMcpServer] }),
+      expect.objectContaining({
+        mcpServers: [connectedMcpServer],
+        isMcpServerStatusCheckComplete: true,
+      }),
       expect.anything(),
     );
   });
