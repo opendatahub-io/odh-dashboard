@@ -223,11 +223,21 @@ export const waitForPodReady = (
     throw new Error('waitTimeBeforeParsing must be a positive number');
   }
   const [, timeoutValue, timeoutUnit] = timeoutMatch;
+  const parsedTimeoutValue = Number(timeoutValue);
+  if (!Number.isFinite(parsedTimeoutValue)) {
+    throw new Error(`Invalid timeout "${timeout}". The numeric value must be finite`);
+  }
   const timeoutMs =
-    Number(timeoutValue) *
+    parsedTimeoutValue *
     ({ ms: 1, s: 1000, m: 60000, h: 3600000 } as Record<string, number>)[timeoutUnit];
+  if (!Number.isFinite(timeoutMs)) {
+    throw new Error(`Invalid timeout "${timeout}". The calculated milliseconds must be finite`);
+  }
   const pollIntervalMs = Math.min(waitTimeBeforeParsing, 2000);
   const maxAttempts = Math.max(1, Math.floor(timeoutMs / pollIntervalMs) + 1);
+  if (!Number.isSafeInteger(maxAttempts)) {
+    throw new Error(`Invalid timeout "${timeout}". The calculated polling attempts are too large`);
+  }
 
   return pollUntilSuccess(findPodsCommand, `pod matching ${podNameContains}`, {
     maxAttempts,
