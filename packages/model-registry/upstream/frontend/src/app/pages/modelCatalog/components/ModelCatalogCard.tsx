@@ -29,6 +29,10 @@ import {
 } from '~/concepts/modelCatalog/const';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
+import {
+  getModelCatalogIsAccessGranted,
+  getModelCatalogTrackingHfAccessType,
+} from '~/app/pages/modelCatalog/tracking/modelCatalogEngagementTracking';
 import ModelCatalogLabels from './ModelCatalogLabels';
 import ModelCatalogCardBody from './ModelCatalogCardBody';
 import ModelCatalogAccessLabel from './ModelCatalogAccessLabel';
@@ -54,6 +58,13 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
       modelName: getModelName(model.name),
     });
   }, [model.name, trackSimpleEvent]);
+
+  const handleModelSelected = React.useCallback(() => {
+    trackSimpleEvent(MODEL_CATALOG_EVENTS.MODEL_SELECTED, {
+      hfAccessType: getModelCatalogTrackingHfAccessType(model),
+      isAccessGranted: getModelCatalogIsAccessGranted(model),
+    });
+  }, [model, trackSimpleEvent]);
 
   const showHeaderLabels = isValidated || isRedHat || accessLabelVariant || source;
 
@@ -115,7 +126,10 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
           )}
         </Flex>
         <CardTitle>
-          <Link to={catalogModelDetailsFromModel(model.name, source?.id)}>
+          <Link
+            to={catalogModelDetailsFromModel(model.name, source?.id)}
+            onClick={handleModelSelected}
+          >
             <Button
               data-testid="model-catalog-detail-link"
               variant="link"

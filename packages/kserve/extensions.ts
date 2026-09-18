@@ -149,6 +149,10 @@ export const kserveFormDataExtension: ModelServingDeploymentFormDataExtension<KS
       import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
     extractModelServerTemplate: () =>
       import('./src/deployServer').then((m) => m.extractModelServerTemplate),
+    extractHuggingFaceApiKey: () =>
+      import('./src/hfTokenSecret').then(
+        (m) => (deployment) => m.extractHuggingFaceApiKeyFromEnv(deployment.model),
+      ),
     hardwareProfilePaths: () =>
       import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
   },

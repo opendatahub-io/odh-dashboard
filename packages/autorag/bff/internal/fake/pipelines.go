@@ -31,6 +31,19 @@ const (
 // replaces "_" with "-" (e.g. "test-data-loader").
 var fakePipelineSpec = json.RawMessage(`{
   "root": {
+    "inputDefinitions": {
+      "parameters": {
+        "embedding_model_id": {"parameterType": "STRING"},
+        "input_data_secret_name": {"parameterType": "STRING"},
+        "input_data_bucket_name": {"parameterType": "STRING"},
+        "input_data_key": {"parameterType": "STRING"},
+        "maas_secret_name": {"parameterType": "STRING"},
+        "vector_db_secret_name": {"parameterType": "STRING"},
+        "chunk_size": {"parameterType": "INT"},
+        "chunk_overlap": {"parameterType": "INT"},
+        "chunking_method": {"parameterType": "STRING"}
+      }
+    },
     "dag": {
       "tasks": {
         "publish-component-stage-map": {
@@ -298,7 +311,7 @@ func (c *PipelinesClient) seedRuns() {
 			"input_data_keys":               []any{"autorag input data/pdf/bank_policies_pdf/documents"},
 			"input_data_secret_name":        "data-connection",
 			"maas_secret_name":              "maas",
-			"optimization_max_rag_patterns": 8,
+			"optimization_max_rag_patterns": 5,
 			"optimization_metric":           "faithfulness",
 			"test_data_bucket_name":         "s3-bucket",
 			"test_data_key":                 "autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json",

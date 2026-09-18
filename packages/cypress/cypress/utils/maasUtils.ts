@@ -1002,11 +1002,11 @@ export const mockExternalModel = (options: Partial<ExternalModel> = {}): Externa
   namespace: 'test-project',
   displayName: 'GPT-4o External',
   description: 'External GPT-4o model routed through OpenAI provider.',
-  modelName: 'gpt-4o',
+  modelName: 'gpt-4o-external',
   providerRefs: [
     {
       providerName: 'openai-prod',
-      weight: 100,
+      weight: 1,
       apiFormat: 'openai-chat',
       path: '/v1/chat/completions',
       targetModel: 'gpt-4o',
@@ -1037,11 +1037,11 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'claude-split',
     displayName: 'Claude A/B Split',
     description: 'Weighted routing across Anthropic and Bedrock providers.',
-    modelName: 'claude-sonnet',
+    modelName: 'claude-split',
     providerRefs: [
       {
         providerName: 'anthropic-dev',
-        weight: 60,
+        weight: 6,
         apiFormat: 'anthropic',
         path: '/v1/messages',
         targetModel: 'claude-sonnet-4-5-20241022',
@@ -1057,7 +1057,7 @@ export const mockExternalModels = (): ExternalModel[] => [
       },
       {
         providerName: 'bedrock-us-east',
-        weight: 40,
+        weight: 4,
         apiFormat: 'anthropic',
         path: '/v1/messages',
         targetModel: 'anthropic.claude-3-sonnet',
@@ -1084,7 +1084,7 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'awaiting-pairing-model',
     displayName: 'Awaiting Pairing Model',
     description: 'Model waiting for subscription and auth pairing.',
-    modelName: 'awaiting-model',
+    modelName: 'awaiting-pairing-model',
     phase: 'Pending',
     statusMessage: 'External model is pending',
     maaSModelRef: {
@@ -1096,7 +1096,7 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'missing-ref-model',
     displayName: 'Missing Ref Model',
     description: 'External model without a MaaS model reference.',
-    modelName: 'missing-ref',
+    modelName: 'missing-ref-model',
     phase: 'Ready',
     statusMessage: 'External model is ready',
     maaSModelRef: undefined,
@@ -1136,6 +1136,9 @@ export const mockExternalProvidersForCreateFlow = (): ExternalProvider[] => [
     lastTransitionTime: '2025-03-01T10:00:00Z',
     conditionType: 'Ready',
     reason: 'ready',
+    config: {
+      project: 'my-project',
+    },
   }),
 ];
 

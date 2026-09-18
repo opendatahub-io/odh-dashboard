@@ -1,8 +1,9 @@
 import * as React from 'react';
 import type { AutoragRuntimeParameters, LegacyRunCredentials, PipelineRun } from '~/app/types';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { getOptimizedMetricForRAG, resolveBestPatternKey } from '~/app/utilities/utils';
+import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
+import { resolveBestPatternKey, resolveObjectiveReference } from '~/app/utilities/metricUtils';
 
 export type AutoragResultsContextProps = {
   pipelineRun?: PipelineRun;
@@ -18,6 +19,7 @@ export type AutoragResultsContextProps = {
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
+  optimizationMetric: MetricReference;
   /**
    * Client-side winning pattern: the record key of the highest valid objective score.
    * AutoRAG has no backend `best_model`-equivalent field, so this is always derived from
@@ -68,8 +70,12 @@ export function getAutoragContext({
   // Runtime parameters are historical data, not create-form input. Preserve unknown and legacy
   // fields so read-only results remain usable when the create schema evolves.
   const parameters = pipelineRun?.runtime_config?.parameters;
+  const runtimeObjective = parameters?.optimization_metric;
+  const objectiveName =
+    typeof runtimeObjective === 'string' ? runtimeObjective : DEFAULT_OPTIMIZATION_METRIC;
+  const optimizationMetric = resolveObjectiveReference(patterns, objectiveName);
 
-  const bestPatternKey = resolveBestPatternKey(patterns, getOptimizedMetricForRAG(pipelineRun));
+  const bestPatternKey = resolveBestPatternKey(patterns, optimizationMetric);
 
   return {
     pipelineRun,
@@ -86,5 +92,6 @@ export function getAutoragContext({
     componentStageMapLoading,
     componentStageMapError,
     bestPatternKey,
+    optimizationMetric,
   };
 }

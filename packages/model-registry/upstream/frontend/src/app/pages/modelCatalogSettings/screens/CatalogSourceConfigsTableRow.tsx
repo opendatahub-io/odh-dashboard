@@ -11,6 +11,8 @@ import {
 import { hasSourceFilters, getOrganizationDisplay } from '~/concepts/modelCatalogSettings/utils';
 import DeleteModal from '~/app/shared/components/DeleteModal';
 import CatalogSourceStatus from '~/app/pages/modelCatalogSettings/components/CatalogSourceStatus';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import { MODEL_CATALOG_SOURCE_EVENTS } from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
 
 type CatalogSourceConfigsTableRowProps = {
   catalogSourceConfig: CatalogSourceConfig;
@@ -26,6 +28,7 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   onToggleUpdate,
 }) => {
   const navigate = useNavigate();
+  const { trackSimpleEvent } = useUserInteraction();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error | undefined>();
@@ -43,6 +46,7 @@ const CatalogSourceConfigsTableRow: React.FC<CatalogSourceConfigsTableRowProps> 
   };
 
   const handleManageSource = () => {
+    trackSimpleEvent(MODEL_CATALOG_SOURCE_EVENTS.MANAGE_SOURCE_SELECTED);
     navigate(manageSourceUrl(catalogSourceConfig.id));
   };
 

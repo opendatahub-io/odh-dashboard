@@ -27,6 +27,12 @@ import {
   transformFormDataToConfig,
 } from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
 import { CatalogSourceConfig, CatalogSourceType } from '~/app/modelCatalogTypes';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,
+  MODEL_CATALOG_SOURCE_EVENTS,
+  ModelCatalogAccessTokenClearOutcome,
+} from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
 import SourceDetailsSection from './SourceDetailsSection';
 import CredentialsSection from './CredentialsSection';
 import YamlSection from './YamlSection';
@@ -46,6 +52,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
   onToggleExpectedFormatDrawer,
 }) => {
   const navigate = useNavigate();
+  const { trackSimpleEvent } = useUserInteraction();
   const existingData = existingSourceConfig
     ? { ...catalogSourceConfigToFormData(existingSourceConfig), tokenModified: false }
     : undefined;
@@ -76,6 +83,30 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
     hasExistingApiKey,
   });
 
+  const isHuggingFaceMode = formData.sourceType === CatalogSourceType.HUGGING_FACE;
+
+  const handleEnableSourceChange = React.useCallback(
+    (checked: boolean) => {
+      setData('enabled', checked);
+      if (isHuggingFaceMode) {
+        trackSimpleEvent(MODEL_CATALOG_SOURCE_EVENTS.ENABLE_SOURCE_TOGGLED, {
+          isSourceEnabled: checked,
+          sourceType: MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,
+        });
+      }
+    },
+    [isHuggingFaceMode, setData, trackSimpleEvent],
+  );
+
+  const handleAccessTokenClearOutcome = React.useCallback(
+    (outcome: ModelCatalogAccessTokenClearOutcome) => {
+      trackSimpleEvent(MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_CLEAR_CONFIRMED, {
+        outcome,
+      });
+    },
+    [trackSimpleEvent],
+  );
+
   const handleClearCredentials = React.useCallback(async () => {
     if (!formData.id) {
       return;
@@ -88,7 +119,6 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
     refreshCatalogSources();
   }, [apiState, formData.id, refreshCatalogSourceConfigs, refreshCatalogSources]);
 
-  const isHuggingFaceMode = formData.sourceType === CatalogSourceType.HUGGING_FACE;
   const isFormComplete = isFormValid(formData);
 
   const handleSubmit = async () => {
@@ -162,6 +192,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                     onClearValidationSuccess={preview.clearValidationSuccess}
                     hasExistingApiKey={hasExistingApiKey}
                     onClearCredentials={handleClearCredentials}
+                    onAccessTokenClearOutcome={handleAccessTokenClearOutcome}
                   />
                 </StackItem>
               )}
@@ -190,11 +221,12 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                       data-testid="enable-source-checkbox"
                       description={DESCRIPTION_TEXT.ENABLE_SOURCE}
                       isChecked={formData.enabled}
-                      onChange={(_event, checked) => setData('enabled', checked)}
+                      onChange={(_event, checked) => handleEnableSourceChange(checked)}
                     />
                   </FormGroup>
                 </FormSection>
               </StackItem>
+
               <StackItem>
                 <ModelVisibilitySection
                   formData={formData}
@@ -210,7 +242,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
           </Form>
         </SidebarContent>
         <SidebarPanel width={{ default: 'width_50' }}>
-          <PreviewPanel preview={preview} />
+          <PreviewPanel preview={preview} isSourceEnabled={formData.enabled} />
         </SidebarPanel>
       </Sidebar>
       <ManageSourceFormFooter

@@ -35,9 +35,9 @@ export const VALIDATION_MESSAGES = {
 
 export const DESCRIPTION_TEXT = {
   ACCESS_TOKEN:
-    'To fetch metadata for private or gated models, enter a fine-grained Hugging Face access token. The token must allow read access to the relevant repositories, including your namespace and public repos that you can access.',
+    'Enter your fine-grained Hugging Face access token. The token must have the following permissions: read repos in your namespace, read public repos that you can access, access webhooks, and create webhooks.',
   ORGANIZATION:
-    'Limiting each Hugging Face source to a single organization helps prevent performance issues when loading large model sets.',
+    'The name of an organization within the source to use models from. Hugging Face sources are limited to a single organization.',
   ENABLE_SOURCE:
     'Enable users in your organization to view models from this source in the model catalog.',
   FILTER_INFO_GENERIC:
@@ -47,7 +47,7 @@ export const DESCRIPTION_TEXT = {
 export const HELPER_TEXT = {
   YAML: 'Upload or paste a YAML string.',
   ORGANIZATION_SLUG:
-    'Use the Hugging Face URL slug (for example, meta-llama). Names are case-sensitive and might differ from the displayed organization name.',
+    'Case-sensitive. Type only the Hugging Face URL slug. For example, meta-llama.',
   ACCESS_TOKEN_HIDDEN: 'The access token is hidden. To replace or remove it, clear the token.',
 } as const;
 
@@ -61,7 +61,7 @@ export const PLACEHOLDERS = {
 export const CLEAR_ACCESS_TOKEN_MODAL = {
   MODAL_TITLE: 'Clear access token?',
   MODAL_BODY:
-    'The access token will be removed, and the metadata of any models using this token will no longer be accessible from the model catalog. Remove the access token, or cancel to continue editing.',
+    'Gated and private models from this source will not be available in the model catalog.',
   CONFIRM_BTN: 'Clear access token',
   CANCEL_BTN: 'Cancel',
 } as const;
@@ -74,9 +74,12 @@ export const PAGE_TITLES = {
 } as const;
 
 export const PREVIEW_ALERTS = {
-  GATED_ACCESS_REQUIRED_TITLE: 'Some models require access',
+  GATED_ACCESS_REQUIRED_TITLE: 'Additional action required',
   GATED_ACCESS_REQUIRED_BODY:
-    'A few included models are gated on Hugging Face and require permission to use. Request access on Hugging Face to use these models.',
+    'Some models in this source are gated. To enable them for the model catalog, request access to them on Hugging Face. It can take 24 hours for access updates to sync to OpenShift AI.',
+  SOURCE_DISABLED_TITLE: 'Source not enabled',
+  SOURCE_DISABLED_BODY:
+    'Models from this source will not appear in the model catalog until the source is enabled.',
 } as const;
 
 export const ERROR_MESSAGES = {
@@ -86,20 +89,20 @@ export const ERROR_MESSAGES = {
   FILE_UPLOAD_FAILED_BODY:
     "The YAML file couldn't be uploaded. Check its syntax and structure, then try again.",
   CLEAR_CREDENTIALS_FAILED: 'Failed to clear access token',
-  VALIDATION_FAILED: 'Credentials validation failed',
+  VALIDATION_FAILED: 'Validation failed',
   VALIDATION_FAILED_BODY:
-    'Could not validate your organization or access token. Check your entries and try again.',
+    'The access token is invalid. Ensure that it is accurate, then try again.',
   SOURCE_VALIDATION_FAILED: 'Validation failed',
   SOURCE_VALIDATION_FAILED_BODY: 'The source validation failed. Check the error details below.',
 } as const;
 
 export const SUCCESS_MESSAGES = {
-  VALIDATION_SUCCESSFUL: 'Credentials validated',
-  VALIDATION_SUCCESSFUL_BODY: 'Organization and access token were validated successfully.',
+  VALIDATION_SUCCESSFUL: 'Access token validated',
+  VALIDATION_SUCCESSFUL_BODY: 'Access token validated successfully.',
 } as const;
 
 export const TOOLTIP_MESSAGES = {
-  PREVIEW_REQUIRES_VALIDATION: 'Validate the access token to preview models.',
+  PREVIEW_REQUIRES_VALIDATION: 'To preview models, validate the access token.',
 } as const;
 
 export const TABLE_COLUMN_LABELS = {
@@ -137,11 +140,12 @@ export const getFilterInfoWithOrg = (organization: string): React.ReactNode => (
 export const getAllowedModelsHelp = (organization?: string): React.ReactNode =>
   organization ? (
     <>
-      Enter the names of <strong>{organization}</strong> models to include from this source. These
-      models will appear in the model catalog.
+      Enter names of <strong>{organization}</strong> models in this source that will appear in the
+      catalog. If no names are specified, all <strong>{organization}</strong> models will be
+      included.
     </>
   ) : (
-    'Enter the names of models to include from this source. These models will appear in the model catalog.'
+    'Enter names of models in this source that will appear in the catalog. If no names are specified, all models will be included.'
   );
 
 export const getExcludedModelsHelp = (organization?: string): React.ReactNode =>

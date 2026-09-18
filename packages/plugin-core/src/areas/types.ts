@@ -69,7 +69,6 @@ export enum SupportedArea {
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
-  EXTERNAL_MODELS = 'external-models',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',

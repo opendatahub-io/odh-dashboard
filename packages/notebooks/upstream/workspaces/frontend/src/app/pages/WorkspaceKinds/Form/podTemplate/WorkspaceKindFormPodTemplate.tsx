@@ -17,6 +17,7 @@ import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsT
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import { WorkspaceKindFormActivityRules } from '~/app/pages/WorkspaceKinds/Form/activityRules/WorkspaceKindFormActivityRules';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 
 interface WorkspaceKindFormPodTemplateProps {
   podTemplate: WorkspaceKindPodTemplateData;
@@ -33,6 +34,7 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [volumes, setVolumes] = useState<WorkspacesPodVolumeMountValue[]>([]);
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const toggleActivityProbeEnabled = useCallback(
     (checked: boolean) => {
@@ -195,7 +197,11 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
             />
           }
         >
-          <WorkspaceFormPropertiesVolumes volumes={volumes} setVolumes={handleVolumes} />
+          <WorkspaceFormPropertiesVolumes
+            volumes={volumes}
+            setVolumes={handleVolumes}
+            namespace={selectedNamespace}
+          />
         </FormFieldGroup>
       </Form>
     </ExpandableSection>

@@ -22,9 +22,10 @@ import (
 const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
 
 var (
-	ErrPipelineRunNotFound      = errors.New("pipeline run not found")
-	ErrValidation               = errors.New("validation error")
-	ErrManagedPipelinesNotFound = errors.New(ManagedPipelinesNotFoundMessage)
+	ErrPipelineRunNotFound         = errors.New("pipeline run not found")
+	ErrValidation                  = errors.New("validation error")
+	ErrManagedPipelinesNotFound    = errors.New(ManagedPipelinesNotFoundMessage)
+	ErrIndexingPipelineUnavailable = errors.New("indexing pipeline input schema unavailable")
 )
 
 type ValidationError struct {
@@ -76,8 +77,15 @@ func (r *PipelinesRepository) ListManagedPipelines(ctx context.Context, namespac
 	}
 
 	pipelinesList := make([]models.ManagedPipeline, 0, len(discovered))
+	indexingSchemaAvailable := true
+	if indexingPipeline := discovered[constants.PipelineTypeIndexing]; indexingPipeline != nil {
+		_, indexingSchemaAvailable = r.getIndexingPipelineInputParameters(ctx, namespace, indexingPipeline)
+	}
 	for pipelineType, dp := range discovered {
 		if dp == nil {
+			continue
+		}
+		if pipelineType == constants.PipelineTypeIndexing && !indexingSchemaAvailable {
 			continue
 		}
 		pipelinesList = append(pipelinesList, models.ManagedPipeline{
@@ -103,6 +111,37 @@ func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namesp
 		constants.PipelineTypeIndexing: r.config.IndexingPipelineName,
 	}
 	return r.core.DiscoverNamedPipelines(ctx, namespace, r.config.DefaultPipelineVersion, definitions)
+}
+
+// getIndexingPipelineInputParameters loads the declared input names for the discovered
+// indexing version. The shared pipeline service caches successful lookups by version; schema
+// failures are intentionally treated as an unavailable indexing pipeline so callers never fall
+// back to forwarding an unvalidated parameter map.
+func (r *PipelinesRepository) getIndexingPipelineInputParameters(
+	ctx context.Context,
+	namespace string,
+	discovered *pipelines.DiscoveredPipeline,
+) ([]string, bool) {
+	if discovered == nil {
+		return nil, false
+	}
+
+	parameters, err := r.core.GetPipelineInputParameters(
+		ctx,
+		namespace,
+		discovered.PipelineID,
+		discovered.PipelineVersionID,
+	)
+	if err != nil {
+		r.logger.Warn(
+			"indexing pipeline unavailable because its input schema could not be loaded",
+			"pipeline_id", discovered.PipelineID,
+			"pipeline_version_id", discovered.PipelineVersionID,
+		)
+		return nil, false
+	}
+
+	return parameters, true
 }
 
 // --- Pipeline Runs: List ---
@@ -216,6 +255,36 @@ func (r *PipelinesRepository) CreateIndexingRun(ctx context.Context, namespace s
 	if dp == nil {
 		return nil, ErrManagedPipelinesNotFound
 	}
+
+	parameterNames, ok := r.getIndexingPipelineInputParameters(ctx, namespace, dp)
+	if !ok {
+		return nil, ErrIndexingPipelineUnavailable
+	}
+
+	allowedParameters := make(map[string]struct{}, len(parameterNames))
+	for _, name := range parameterNames {
+		allowedParameters[name] = struct{}{}
+	}
+
+	filteredParameters := make(map[string]any, len(req.Parameters))
+	for name, value := range req.Parameters {
+		if _, allowed := allowedParameters[name]; allowed {
+			filteredParameters[name] = value
+		}
+	}
+
+	if len(filteredParameters) == 0 {
+		return nil, NewValidationError("no supported indexing pipeline parameters were provided")
+	}
+
+	r.logger.Info(
+		"filtered indexing pipeline parameters",
+		"pipeline_id", dp.PipelineID,
+		"pipeline_version_id", dp.PipelineVersionID,
+		"provided_count", len(req.Parameters),
+		"accepted_count", len(filteredParameters),
+	)
+	req.Parameters = filteredParameters
 
 	input := BuildIndexingPipelineRunInput(req, dp.PipelineID, dp.PipelineVersionID)
 
@@ -448,9 +517,11 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 	}
 	params["optimization_metric"] = metric
 
+	maxRagPatterns := constants.DefaultMaxRagPatterns
 	if req.OptimizationMaxRagPatterns != nil {
-		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns
+		maxRagPatterns = *req.OptimizationMaxRagPatterns
 	}
+	params["optimization_max_rag_patterns"] = maxRagPatterns
 
 	return &pipelines.CreatePipelineRunInput{
 		DisplayName: req.DisplayName,

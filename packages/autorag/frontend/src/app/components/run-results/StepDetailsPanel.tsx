@@ -43,6 +43,7 @@ import {
   getPipelineTreeLoadingContent,
   getStepDetailsLoadingContent,
   getStepStateLabel,
+  STAGE_MAP_UNAVAILABLE_NOTICE,
   type PipelineStatusLabel,
   type PipelineTreeLoadingMode,
 } from './pipelineStatusLabels';
@@ -58,6 +59,7 @@ type StepDetailsPanelProps = {
   treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
+  showStageMapUnavailableNotice?: boolean;
   onClose?: () => void;
 };
 
@@ -190,12 +192,20 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   treeLoadingMode,
   componentStageMap,
   pipelineRun,
+  showStageMapUnavailableNotice = false,
   onClose,
 }) => {
-  const { patterns, parameters, bestPatternKey } = useAutoragResultsContext();
+  const { patterns, parameters, bestPatternKey, optimizationMetric } = useAutoragResultsContext();
   const pipelineSummaryDetails = React.useMemo(
-    () => getPipelineSummaryDetails(pipelineRun, componentStageMap, patterns, bestPatternKey),
-    [pipelineRun, componentStageMap, patterns, bestPatternKey],
+    () =>
+      getPipelineSummaryDetails(
+        pipelineRun,
+        componentStageMap,
+        patterns,
+        bestPatternKey,
+        optimizationMetric,
+      ),
+    [pipelineRun, componentStageMap, patterns, bestPatternKey, optimizationMetric],
   );
 
   if (!selectedNodeId || !nodeData) {
@@ -225,6 +235,18 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
             />
           ) : (
             <Stack hasGutter>
+              {showStageMapUnavailableNotice && (
+                <StackItem>
+                  <Alert
+                    variant="danger"
+                    isInline
+                    title={STAGE_MAP_UNAVAILABLE_NOTICE.title}
+                    data-testid="stage-map-unavailable-alert"
+                  >
+                    {STAGE_MAP_UNAVAILABLE_NOTICE.description}
+                  </Alert>
+                </StackItem>
+              )}
               <StackItem>
                 <Content
                   component={ContentVariants.p}

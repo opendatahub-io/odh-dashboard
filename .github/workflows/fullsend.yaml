@@ -60,7 +60,10 @@ jobs:
       - name: Checkout trusted review integration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          # github.sha is the base branch's current tip, unlike pull_request.base.sha
+          # which is stale for any PR that hasn't been synced since this checkout ref
+          # was last advanced (see RHOAIENG-82125 CI failure on PR #9090).
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Build adapter matrix from registry
@@ -106,7 +109,7 @@ jobs:
       - name: Checkout trusted review integration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Resolve pull request context

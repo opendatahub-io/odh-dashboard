@@ -1,0 +1,5 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "include": ["./__tests__/**/*.ts"],
+  "exclude": ["node_modules", "contract-test-results"]
+}

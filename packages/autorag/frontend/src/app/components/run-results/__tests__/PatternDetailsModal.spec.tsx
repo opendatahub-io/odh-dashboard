@@ -158,7 +158,7 @@ describe('PatternDetailsModal', () => {
         {...defaultProps}
         patterns={[invalidPattern]}
         rank={undefined}
-        optimizedMetric="overall_score"
+        optimizationMetric={{ name: 'overall_score' }}
       />,
     );
 
@@ -186,12 +186,12 @@ describe('PatternDetailsModal', () => {
       <PatternDetailsModal
         {...defaultProps}
         patterns={[nonWinningCanonicalPattern]}
-        optimizedMetric="faithfulness"
+        optimizationMetric={{ name: 'faithfulness' }}
         rank={2}
       />,
     );
 
-    expect(screen.getByText('0.42')).toBeInTheDocument();
+    expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.420');
   });
 
   it('should show plain text when only one pattern exists', () => {
@@ -253,9 +253,9 @@ describe('PatternDetailsModal', () => {
     it('should render a track for each score metric', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
-      expect(screen.getByTestId('ci-track-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-answer_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-context_correctness-unitxt')).toBeInTheDocument();
     });
 
     it('should render x-axis labels', () => {
@@ -568,7 +568,9 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
-        render(<PatternDetailsModal {...defaultProps} />);
+        render(
+          <PatternDetailsModal {...defaultProps} optimizationMetric={{ name: 'faithfulness' }} />,
+        );
         await user.click(screen.getByTestId('pattern-details-download'));
 
         // Print container should be portalled to document.body
@@ -578,6 +580,14 @@ describe('PatternDetailsModal', () => {
         expect(printContainer).toHaveTextContent('Pattern information');
         expect(printContainer).toHaveTextContent('Chunking');
         expect(printContainer).toHaveTextContent('Embedding');
+        expect(within(printContainer).getByText('0.42', { exact: true })).toBeInTheDocument();
+
+        const ciPage = Array.from(printContainer.querySelectorAll('.autorag-print-page')).find(
+          (page) => page.querySelector('[data-testid="ci-scores-chart"]'),
+        );
+        const ciHeader = ciPage?.querySelector('.autorag-print-header');
+        expect(ciHeader).not.toBeNull();
+        expect(ciHeader).toHaveTextContent('pattern 0');
       } finally {
         printSpy.mockRestore();
       }
@@ -593,6 +603,32 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...defaultProps} patterns={[patternNoScores]} />);
 
       expect(screen.queryByTestId('ci-scores-chart')).not.toBeInTheDocument();
+    });
+
+    it('should omit the confidence interval print page when all scores are unavailable', async () => {
+      const user = userEvent.setup();
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      const patternWithoutChartData: AutoragPattern = {
+        ...mockPattern,
+        evaluation: {
+          ...mockPattern.evaluation,
+          metrics: mockPattern.evaluation.metrics.map((metric) => ({
+            ...metric,
+            scores: { mean: null, ci_low: null, ci_high: null },
+          })),
+        },
+      };
+
+      try {
+        render(<PatternDetailsModal {...defaultProps} patterns={[patternWithoutChartData]} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+
+        expect(
+          within(screen.getByTestId('print-container')).queryByTestId('ci-scores-chart'),
+        ).not.toBeInTheDocument();
+      } finally {
+        printSpy.mockRestore();
+      }
     });
 
     it('should not show Sample Q&A tab when evaluationResults is empty', () => {
@@ -989,7 +1025,7 @@ describe('PatternDetailsModal', () => {
           <PatternDetailsModal
             {...defaultProps}
             patterns={[mockPattern, unrankedPattern]}
-            optimizedMetric="overall_score"
+            optimizationMetric={{ name: 'overall_score' }}
           />,
         );
         fireMiscTrackingEventMock.mockClear();
@@ -1016,7 +1052,7 @@ describe('PatternDetailsModal', () => {
             patterns={[unrankedPattern, comparisonPattern]}
             selectedIndex={0}
             rank={undefined}
-            optimizedMetric="overall_score"
+            optimizationMetric={{ name: 'overall_score' }}
           />,
         );
         fireMiscTrackingEventMock.mockClear();

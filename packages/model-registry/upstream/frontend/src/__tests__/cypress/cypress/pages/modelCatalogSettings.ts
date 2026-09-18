@@ -499,11 +499,11 @@ class ManageSourcePage {
   }
 
   findValidationSuccessAlert() {
-    return cy.contains('Credentials validated');
+    return cy.contains('Access token validated');
   }
 
   findValidationFailedAlert() {
-    return cy.contains('Credentials validation failed');
+    return cy.contains('Validation failed');
   }
 
   findPreviewModelsIncludedSummary(count: number, total: number) {
@@ -525,6 +525,10 @@ class ManageSourcePage {
 
   findPreviewGatedAccessWarningIcon(modelName: string) {
     return this.findPreviewModelRow(modelName).findByLabelText('Gated access warning');
+  }
+
+  findSourceDisabledWarning() {
+    return cy.findByTestId('source-disabled-warning');
   }
 }
 
