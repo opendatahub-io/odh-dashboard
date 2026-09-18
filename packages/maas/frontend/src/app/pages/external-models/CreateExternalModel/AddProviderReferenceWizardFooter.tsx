@@ -79,9 +79,6 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
   };
 
   const handleAdd = async () => {
-    if (onAdd) {
-      await onAdd();
-    }
     const success = onAdd ? await onAdd() : false;
     fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
       outcome: TrackingOutcome.submit,
