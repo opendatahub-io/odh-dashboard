@@ -1,0 +1,15 @@
+# Hugging Face catalog source e2e test data.
+# The shared HF token is stored in test-variables.yml as HF_API_KEY.
+
+# Source 1: RH-AI-Hub (public + gated models for preview validation)
+sourceNamePrefix: e2e-hf-rh-ai-hub
+organization: RH-AI-Hub
+catalogCategoryBlockId: no-labels
+publicModel: Public-Model-1
+gatedManualModel: Manual-Gated-Model-1
+gatedAutoModel: Auto-Gated-Model-1
+
+# Source 2: RedHatAI (private model access via token, filtered to single model)
+privateSourceNamePrefix: e2e-hf-redhatai
+privateOrganization: RedHatAI
+privateModel: Private-Model-AI-Hub-Testing

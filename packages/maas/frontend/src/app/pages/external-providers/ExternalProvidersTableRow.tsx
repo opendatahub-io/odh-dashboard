@@ -13,11 +13,13 @@ import { convertStringToProviderType, getExternalProviderResource } from './util
 
 type ExternalProvidersTableRowProps = {
   externalProvider: ExternalProvider;
+  setEditExternalProvider: (externalProvider: ExternalProvider) => void;
   setDeleteExternalProvider: (externalProvider: ExternalProvider) => void;
 };
 
 const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
   externalProvider,
+  setEditExternalProvider,
   setDeleteExternalProvider,
 }) => {
   const [endpointURLModalRef, setEndpointURLModalRef] = React.useState<string | null>(null);
@@ -105,6 +107,10 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
       <ActionsColumn
         data-testid="external-provider-actions"
         items={[
+          {
+            title: 'Edit',
+            onClick: () => setEditExternalProvider(externalProvider),
+          },
           {
             title: 'Delete',
             onClick: () => setDeleteExternalProvider(externalProvider),

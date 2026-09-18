@@ -22,6 +22,7 @@ import type {
   WorkloadMetricsTestData,
   KueueWorkbenchTestData,
   KueueWorkbenchLifecycleTestData,
+  KueueQuotaUsageNavigationTestData,
   PromptManagementTestData,
   MlflowExperimentsTestData,
   ModelAsAServiceTestData,
@@ -215,6 +216,14 @@ export const loadKueueWorkbenchLifecycleFixture = (
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as KueueWorkbenchLifecycleTestData;
 
+    return data;
+  });
+
+export const loadKueueQuotaUsageNavigationFixture = (
+  fixturePath: string,
+): Cypress.Chainable<KueueQuotaUsageNavigationTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as KueueQuotaUsageNavigationTestData;
     return data;
   });
 

@@ -25,11 +25,15 @@ import { UseCreateExternalProviderFormReturn } from './useCreateExternalProvider
 type CreateExternalProviderFormProps = {
   form: UseCreateExternalProviderFormReturn;
   showProjectField?: boolean;
+  submitErrorTitle?: string;
+  submitErrorTestId?: string;
 };
 
 const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
   form,
   showProjectField = true,
+  submitErrorTitle,
+  submitErrorTestId,
 }) => {
   const {
     namespace,
@@ -225,7 +229,11 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
         />
       </ExpandableSection>
 
-      <CreateExternalProviderSubmitError error={submitError} />
+      <CreateExternalProviderSubmitError
+        error={submitError}
+        title={submitErrorTitle}
+        dataTestId={submitErrorTestId}
+      />
     </Form>
   );
 };

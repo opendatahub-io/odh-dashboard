@@ -41,11 +41,17 @@ describe('assembleNIMAccount', () => {
 });
 
 describe('assembleUpdatedSecret', () => {
-  it('should build an updated secret with new key and force-validation annotation', () => {
+  it('should add the managed label while preserving existing metadata', () => {
     const existing: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
-      metadata: { name: 'test-secret', namespace: 'test-ns', resourceVersion: '123' },
+      metadata: {
+        name: 'test-secret',
+        namespace: 'test-ns',
+        resourceVersion: '123',
+        labels: { 'legacy-label': 'true' },
+        annotations: { 'legacy-annotation': 'value' },
+      },
       type: 'Opaque',
       data: { old: 'data' },
     };
@@ -53,7 +59,14 @@ describe('assembleUpdatedSecret', () => {
 
     expect(updated.data).toBeUndefined();
     expect(updated.metadata.resourceVersion).toBe('123');
-    expect(updated.metadata.annotations?.[NIM_FORCE_VALIDATION_ANNOTATION]).toBeDefined();
+    expect(updated.metadata.labels).toEqual({
+      'legacy-label': 'true',
+      'opendatahub.io/managed': 'true',
+    });
+    expect(updated.metadata.annotations).toEqual({
+      'legacy-annotation': 'value',
+      [NIM_FORCE_VALIDATION_ANNOTATION]: expect.any(String),
+    });
     expect(updated.stringData?.[NIM_API_KEY_DATA_KEY]).toBe('nvapi-new-key');
     expect(updated.stringData?.[NGC_API_KEY_DATA_KEY]).toBe('nvapi-new-key');
   });
