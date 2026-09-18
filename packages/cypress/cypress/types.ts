@@ -279,6 +279,7 @@ export type TestConfig = {
   OGX_API_KEY?: string;
   MAAS_URL?: string;
   MAAS_API_KEY?: string;
+  HF_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
