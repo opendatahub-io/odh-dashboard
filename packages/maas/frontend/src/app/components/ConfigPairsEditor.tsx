@@ -15,7 +15,6 @@ type ConfigPairsEditorProps = {
   pairs: ConfigPair[];
   onChange: (pairs: ConfigPair[]) => void;
   testIdPrefix: string;
-  ensureEmptyRow?: boolean;
   addButtonTestId?: string;
 };
 
@@ -25,22 +24,37 @@ const updatePair = (
   update: Partial<ConfigPair>,
 ): ConfigPair[] => pairs.map((pair, i) => (i === index ? { ...pair, ...update } : pair));
 
-const removePair = (pairs: ConfigPair[], index: number, ensureEmptyRow: boolean): ConfigPair[] => {
-  const next = pairs.filter((_, i) => i !== index);
-  if (ensureEmptyRow && next.length === 0) {
-    return [EMPTY_CONFIG_PAIR];
-  }
-  return next;
-};
+const removePair = (pairs: ConfigPair[], index: number): ConfigPair[] =>
+  pairs.filter((_, i) => i !== index);
 
 const ConfigPairsEditor: React.FC<ConfigPairsEditorProps> = ({
   pairs,
   onChange,
   testIdPrefix,
-  ensureEmptyRow = false,
   addButtonTestId,
 }) => (
   <Stack hasGutter>
+    {pairs.length > 0 && (
+      <StackItem>
+        <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-w-100">
+          <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
+            <strong>Key</strong>
+          </FlexItem>
+          <FlexItem flex={{ default: 'flex_1' }} className="pf-v6-u-min-width-0">
+            <strong>Value</strong>
+          </FlexItem>
+          <FlexItem flex={{ default: 'flexNone' }} aria-hidden="true">
+            <Button
+              variant="plain"
+              tabIndex={-1}
+              isDisabled
+              icon={<MinusCircleIcon />}
+              style={{ visibility: 'hidden' }}
+            />
+          </FlexItem>
+        </Flex>
+      </StackItem>
+    )}
     {pairs.map((pair, index) => (
       <StackItem key={index} data-testid={`${testIdPrefix}-pair-${index}`}>
         <FormGroup fieldId={`${testIdPrefix}-pair-${index}`} isStack>
@@ -72,7 +86,7 @@ const ConfigPairsEditor: React.FC<ConfigPairsEditorProps> = ({
                 variant="plain"
                 aria-label={`Remove configuration pair ${index + 1}`}
                 icon={<MinusCircleIcon />}
-                onClick={() => onChange(removePair(pairs, index, ensureEmptyRow))}
+                onClick={() => onChange(removePair(pairs, index))}
                 data-testid={`${testIdPrefix}-remove-${index}`}
               />
             </FlexItem>
@@ -89,7 +103,7 @@ const ConfigPairsEditor: React.FC<ConfigPairsEditorProps> = ({
         onClick={() => onChange([...pairs, EMPTY_CONFIG_PAIR])}
         data-testid={addButtonTestId ?? `${testIdPrefix}-add-button`}
       >
-        Add configuration pair
+        Add key-value pair
       </Button>
     </StackItem>
   </Stack>

@@ -34,7 +34,7 @@ const DeleteExternalModelModal: React.FC<DeleteExternalModelModalProps> = ({
       submitButtonLabel="Delete"
       deleteName={externalModel.displayName || externalModel.name}
       error={error}
-      genericLabel
+      genericLabel={false}
       testId="delete-external-model-modal"
     >
       <Stack hasGutter>

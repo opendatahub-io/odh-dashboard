@@ -90,7 +90,7 @@ const AllExternalModelsPage: React.FC = () => {
             }
             emptyTableView={
               filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
-                <EmptyExternalModelsPage />
+                <EmptyExternalModelsPage namespace={resolvedNamespace} />
               )
             }
           />

@@ -1,11 +1,19 @@
 import React from 'react';
-import { Form, Stack } from '@patternfly/react-core';
+import {
+  Form,
+  Stack,
+  FormHelperText,
+  FormSection,
+  HelperTextItem,
+  HelperText,
+} from '@patternfly/react-core';
 import { ExternalProvider } from '~/app/types/external-models';
 import CreateExternalProviderSubmitError from '~/app/pages/external-providers/createProvider/CreateExternalProviderSubmitError';
 import {
   ProviderReferenceFieldErrors,
   ProviderReferenceFormData,
   ProviderReferenceHelperVariant,
+  InitialProviderReferenceFormData,
 } from '~/app/pages/external-models/validations';
 import {
   ProviderReferenceApiFormatField,
@@ -15,7 +23,7 @@ import {
 } from './ProviderReferenceStep2Fields';
 
 type ProviderReferenceStep2FormProps = {
-  form: ProviderReferenceFormData;
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData;
   selectedProvider?: ExternalProvider;
   onChange: (updates: Partial<ProviderReferenceFormData>) => void;
   fieldErrors?: ProviderReferenceFieldErrors;
@@ -40,6 +48,14 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
 }) => {
   const fields = (
     <Stack hasGutter>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Configure how requests are sent to this provider. The API format determines how requests
+            are translated. The path is appended to the provider endpoint when routing requests.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <ProviderReferenceApiFormatField
         form={form}
         onChange={onChange}
@@ -49,7 +65,6 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
         form={form}
         onChange={onChange}
         fieldErrors={fieldErrors}
-        showHelperText={helperVariant === 'add'}
         onBlur={onTargetModelBlur}
       />
       <ProviderReferencePathField
@@ -74,7 +89,13 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
     </Stack>
   );
 
-  return wrapInForm ? <Form>{fields}</Form> : fields;
+  return wrapInForm ? (
+    <Form>
+      <FormSection title="Model configuration">{fields}</FormSection>
+    </Form>
+  ) : (
+    fields
+  );
 };
 
 export default ProviderReferenceStep2Form;
