@@ -384,36 +384,36 @@ Cypress.Commands.add(
   { prevSubject: 'element' },
   (subject, name, isDropdownToggle) => {
     Cypress.log({ displayName: 'findKebab', message: name });
-    return cy
-      .wrap(subject)
+    cy.wrap(subject)
       .findKebab(isDropdownToggle)
       .then(($el) => {
         if ($el.attr('aria-expanded') === 'false') {
           cy.wrap($el).click();
         }
-        return cy.findByRole('menuitem', { name });
       });
+    // Menu items may render in a PF portal; query at document scope after opening.
+    return cy.findByRole('menuitem', { name });
   },
 );
 
 Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findDropdownItem', message: name });
-  return cy.wrap(subject).then(($el) => {
+  cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.get('[data-ouia-component-type="PF6/Dropdown"]').findByRole('menuitem', { name });
   });
+  return cy.findByRole('menuitem', { name });
 });
 
 Cypress.Commands.add('findMenuItem', { prevSubject: 'element' }, (subject, name) => {
   Cypress.log({ displayName: 'findMenuItem', message: name });
-  return cy.wrap(subject).then(($el) => {
+  cy.wrap(subject).then(($el) => {
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.get('[data-ouia-component-type="PF6/Menu"]').findByRole('menuitem', { name });
   });
+  return cy.findByRole('menuitem', { name });
 });
 
 Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (subject, testId) => {

@@ -264,7 +264,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               onChange={() => {
                 form.setExperimentMode('existing');
                 form.setNewExperimentName('');
-                form.experimentManuallyChangedRef.current = true;
+                // Allow auto-selection when experiments load after switching back from new mode.
+                form.experimentManuallyChangedRef.current = false;
               }}
             />
 
