@@ -312,7 +312,7 @@ export const checkInferenceServiceState = (
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(50000).then(() => {
+        return cy.wait(5000).then(() => {
           failOnDeploymentStatus(serviceName);
           return checkState();
         });
