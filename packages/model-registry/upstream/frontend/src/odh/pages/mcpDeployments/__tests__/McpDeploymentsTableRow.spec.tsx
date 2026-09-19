@@ -100,7 +100,7 @@ describe('McpDeploymentsTableRow', () => {
     renderRow(createMockDeployment());
     const dateCell = screen.getByTestId('mcp-deployment-created');
     expect(dateCell.textContent).toMatch(
-      /\d{1,2}\/\d{1,2}\/\d{4}|[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}/,
+      /\d{1,4}[/-]\d{1,2}[/-]\d{1,4}|[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}/,
     );
   });
 
