@@ -1,0 +1,5 @@
+# Core RHOAI rename: the main dashboard pod is renamed odh-dashboard -> rhods-dashboard,
+# so its operand NetworkPolicy podSelector must track the renamed `deployment` label.
+- op: replace
+  path: /spec/podSelector/matchLabels/deployment
+  value: rhods-dashboard

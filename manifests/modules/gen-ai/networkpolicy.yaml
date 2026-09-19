@@ -1,3 +1,5 @@
+# Operand NetworkPolicy for the Gen AI BFF/UI. Least-privilege ingress/egress per
+# HPSTRAT-104 / operand contract RHOAIENG-90747 (R3-R5).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -10,6 +12,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Gateway / router and the MaaS consumer portal -> Gen AI UI.
     - ports:
         - port: 8143
           protocol: TCP
@@ -21,6 +24,7 @@ spec:
             matchLabels:
               deployment: maas-consumer-portal
   egress:
+    # Cluster DNS resolution.
     - to:
         - namespaceSelector:
             matchLabels:
@@ -30,6 +34,7 @@ spec:
           protocol: UDP
         - port: 5353
           protocol: TCP
+    # Peer dashboard BFFs consumed by Gen AI (MaaS, MLflow).
     - to:
         - podSelector:
             matchLabels:
@@ -44,14 +49,16 @@ spec:
       ports:
         - port: 8343
           protocol: TCP
-    - to:
-        - namespaceSelector: {}
+    # Kubernetes API server. NetworkPolicy cannot select the API server endpoints
+    # (host-networked, dynamic IP/port); documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
         - port: 6443
           protocol: TCP
+    # External / off-cluster HTTP(S) to user-configurable, hostname-based model
+    # endpoints that cannot be expressed as NetworkPolicy peers; documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
