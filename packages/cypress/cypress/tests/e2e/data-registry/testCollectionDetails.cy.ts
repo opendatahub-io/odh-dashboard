@@ -1,4 +1,63 @@
+import * as yaml from 'js-yaml';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
+import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { createCleanProject } from '../../../utils/projectChecker';
+import {
+  deleteDataRegistryBrowseAsset,
+  seedDataRegistryBrowseAsset,
+} from '../../../utils/api/dataRegistry';
+import { generateTestUUID } from '../../../utils/uuidGenerator';
+
+const testProjectName = `data-registry-collection-e2e-${generateTestUUID()}`;
+
 describe('Data Registry - Collection Details', () => {
+  let testData: Record<string, string>;
+  let projectCreated = false;
+  let browseAssetCreated = false;
+
+  before(() => {
+    return ensureAdminOcSession()
+      .then(() => cy.fixture('e2e/dataRegistry/testDataRegistry.yaml', 'utf8'))
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as Record<string, string>;
+        testData.project = testProjectName;
+      })
+      .then(() => {
+        cy.step(`Create Data Registry project/${testProjectName}`);
+        return createCleanProject(testProjectName).then(() => {
+          projectCreated = true;
+        });
+      })
+      .then(() =>
+        seedDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset),
+      )
+      .then((created) => {
+        browseAssetCreated = created;
+      });
+  });
+
+  after(() => {
+    if (!browseAssetCreated && !projectCreated) {
+      return;
+    }
+    return ensureAdminOcSession()
+      .then(() =>
+        browseAssetCreated
+          ? deleteDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset)
+          : undefined,
+      )
+      .then(() => {
+        if (!projectCreated) {
+          return;
+        }
+        cy.step(`Delete Data Registry project/${testProjectName}`);
+        return deleteOpenShiftProject(testProjectName, {
+          wait: false,
+          ignoreNotFound: true,
+        });
+      });
+  });
+
   beforeEach(() => {
     cy.visit('/');
     cy.get('[data-testid="app-launcher"]').click();
@@ -7,24 +66,24 @@ describe('Data Registry - Collection Details', () => {
 
     // Select project
     cy.get('[data-testid="project-selector"]').click();
-    cy.get('[data-testid="project-option-demo-user-1"]').click();
+    cy.get(`[data-testid="project-option-${testData.project}"]`).click();
   });
 
   it('should display collection detail page', () => {
     // Navigate to collection detail from breadcrumb on asset detail page
-    cy.get('[data-testid="registry-table"]').find('a').contains('test-connection-details').click();
+    cy.get('[data-testid="registry-table"]').find('a').contains(testData.asset).click();
 
-    cy.get('[data-testid="app-page-breadcrumb"]').find('a').contains('default').click();
+    cy.get('[data-testid="app-page-breadcrumb"]').find('a').contains(testData.collection).click();
 
     // Verify collection detail page loaded
-    cy.get('[data-testid="app-page-title"]').should('contain', 'default');
+    cy.get('[data-testid="app-page-title"]').should('contain', testData.collection);
     cy.get('[data-testid="collection-type-badge"]').should('contain', 'Collection');
     cy.get('[data-testid="collection-description"]').should('exist');
   });
 
   it('should display collection details card with correct information', () => {
     // Navigate directly to collection detail
-    cy.visit('/ai-hub/data/browse/collections/demo-user-1/default');
+    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
 
     // Verify collection details card
     cy.get('[data-testid="collection-details-card"]').should('exist');
@@ -42,7 +101,7 @@ describe('Data Registry - Collection Details', () => {
   });
 
   it('should display data assets table', () => {
-    cy.visit('/ai-hub/data/browse/collections/demo-user-1/default');
+    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
 
     // Verify data assets card
     cy.get('[data-testid="data-assets-card"]').should('exist');
@@ -57,18 +116,18 @@ describe('Data Registry - Collection Details', () => {
   });
 
   it('should navigate to asset detail from collection assets table', () => {
-    cy.visit('/ai-hub/data/browse/collections/demo-user-1/default');
+    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
 
     // Click on an asset name
-    cy.get('[data-testid="collection-assets-table"]').find('a').first().click();
+    cy.get('[data-testid="collection-assets-table"]').find('a').contains(testData.asset).click();
 
     // Verify navigated to asset detail page
-    cy.url().should('include', '/tables/demo-user-1/default/');
+    cy.url().should('include', `/tables/${testData.project}/${testData.collection}/`);
     cy.get('[data-testid="asset-type-badge"]').should('contain', 'Data asset');
   });
 
   it('should show delete collection disabled when collection has assets', () => {
-    cy.visit('/ai-hub/data/browse/collections/demo-user-1/default');
+    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
 
     // Open actions menu
     cy.get('[data-testid="collection-actions-toggle"]').click();
@@ -78,7 +137,7 @@ describe('Data Registry - Collection Details', () => {
   });
 
   it('should open register data modal', () => {
-    cy.visit('/ai-hub/data/browse/collections/demo-user-1/default');
+    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
 
     // Open actions menu
     cy.get('[data-testid="collection-actions-toggle"]').click();
@@ -91,7 +150,7 @@ describe('Data Registry - Collection Details', () => {
   });
 
   it('should open manage collections modal with all collections', () => {
-    cy.visit('/ai-hub/data/browse/collections/demo-user-1/default');
+    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
 
     // Open actions menu
     cy.get('[data-testid="collection-actions-toggle"]').click();
@@ -113,17 +172,17 @@ describe('Data Registry - Collection Details', () => {
 
     // Select project
     cy.get('[data-testid="project-selector"]').click();
-    cy.get('[data-testid="project-option-demo-user-1"]').click();
+    cy.get(`[data-testid="project-option-${testData.project}"]`).click();
 
     // Open manage collections
     cy.get('[data-testid="registry-kebab"]').click();
     cy.get('[data-testid="manage-collections-action"]').click();
 
     // Click on a collection name
-    cy.get('[data-testid="collections-table"]').find('a').contains('default').click();
+    cy.get('[data-testid="collections-table"]').find('a').contains(testData.collection).click();
 
     // Verify navigated to collection detail
-    cy.url().should('include', '/collections/demo-user-1/default');
+    cy.url().should('include', `/collections/${testData.project}/${testData.collection}`);
     cy.get('[data-testid="collection-type-badge"]').should('contain', 'Collection');
   });
 
@@ -132,7 +191,7 @@ describe('Data Registry - Collection Details', () => {
 
     // Select project
     cy.get('[data-testid="project-selector"]').click();
-    cy.get('[data-testid="project-option-demo-user-1"]').click();
+    cy.get(`[data-testid="project-option-${testData.project}"]`).click();
 
     // Open manage collections
     cy.get('[data-testid="registry-kebab"]').click();
