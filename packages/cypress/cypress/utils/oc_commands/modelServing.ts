@@ -62,6 +62,15 @@ type InferenceServiceState = {
     modelStatus?: {
       states?: {
         activeModelState?: string;
+        targetModelState?: string;
+      };
+      transitionStatus?: string;
+      lastFailureInfo?: {
+        reason?: string;
+        message?: string;
+        location?: string;
+        modelRevisionName?: string;
+        time?: string;
       };
     };
     deploymentMode?: string;
@@ -133,13 +142,24 @@ const safeString = (value: string | undefined | null): string => value ?? '';
  * @param options Optional configuration for condition checks
  * @returns Result Object of the operation
  */
+// KServe `reason` values on the Ready condition that indicate a terminal, non-recoverable
+// failure. These will never self-heal regardless of how many pod restarts occur.
+const TERMINAL_FAILURE_REASONS = new Set([
+  'ModelLoadFailed',
+  'InvalidStorageURI',
+  'BlockedByFailedLoad',
+  'RuntimeDisabled',
+  'NoSupportingRuntime',
+  'RuntimeNotRecognized',
+]);
+
 export const checkInferenceServiceState = (
   serviceName: string,
   namespace: string,
   options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
   const ocCommand = `oc get InferenceService ${serviceName} -n ${namespace} -o json`;
-  const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
+  const maxAttempts = 96; // 96 attempts × 30 s wait = ~48 minutes maximum
   let attempts = 0;
 
   const checkState = (): Cypress.Chainable<Cypress.Exec> =>
@@ -183,6 +203,11 @@ export const checkInferenceServiceState = (
       // Check active model state
       const activeModelState =
         serviceState.status?.modelStatus?.states?.activeModelState || 'EMPTY';
+      const targetModelState =
+        serviceState.status?.modelStatus?.states?.targetModelState || 'EMPTY';
+      const transitionStatus = serviceState.status?.modelStatus?.transitionStatus || 'EMPTY';
+      const lastFailureReason = serviceState.status?.modelStatus?.lastFailureInfo?.reason || '';
+      const lastFailureMessage = serviceState.status?.modelStatus?.lastFailureInfo?.message || '';
       const conditions = serviceState.status?.conditions || [];
 
       // Check deployment mode — Standard mode does not populate activeModelState;
@@ -194,6 +219,10 @@ export const checkInferenceServiceState = (
       cy.log(`🧐 Attempt ${attempts}: Checking InferenceService state
         Service Name: ${serviceName}
         Active Model State: ${activeModelState}
+        Target Model State: ${targetModelState}
+        Transition Status: ${transitionStatus}
+        Last Failure Reason: ${lastFailureReason || '(none)'}
+        Last Failure Message: ${lastFailureMessage || '(none)'}
         Deployment Mode: ${actualDeploymentMode}
         Total Conditions: ${conditions.length}`);
 
@@ -270,6 +299,76 @@ export const checkInferenceServiceState = (
       );
       cy.log(`📋 InferenceService ${serviceName} deployment mode: ${actualDeploymentMode}`);
 
+      // Build full condition detail string — used in all error messages below.
+      const buildConditionDetails = (): string =>
+        conditions
+          .map(
+            (c) =>
+              `Type: ${safeString(c.type)}, Status: ${safeString(c.status)}, Reason: ${safeString(
+                c.reason,
+              )}, Message: ${safeString(c.message)}`,
+          )
+          .join('\n');
+
+      // --- Terminal failure detection (KServe-specific, both Standard and RawDeployment) ---
+      //
+      // KServe writes failure state in this order:
+      //   1. targetModelState  → 'FailedToLoad'         (set before activeModelState changes)
+      //   2. transitionStatus  → 'BlockedByFailedLoad'  (set in both Standard and RawDeployment)
+      //   3. activeModelState  → may remain '' or 'Loaded' from a prior successful load
+      //
+      // Checking only activeModelState === 'Failed' misses the common cases:
+      //   • Standard mode: activeModelState is never written, it stays ''
+      //   • RawDeployment first-load failure: activeModelState stays '' until KServe catches up
+      //   • Redeployment failure: activeModelState still shows 'Loaded' for the old revision
+      //
+      // The authoritative terminal-failure signal is therefore targetModelState or transitionStatus.
+      // lastFailureInfo.reason / .message carry the human-readable cause.
+      const isTerminalLoadFailure =
+        targetModelState === 'FailedToLoad' || transitionStatus === 'BlockedByFailedLoad';
+
+      if (isTerminalLoadFailure) {
+        const failureDetail =
+          lastFailureReason || lastFailureMessage || 'no additional details available';
+        const errorMessage =
+          `❌ InferenceService ${serviceName} has a terminal load failure — stopping poll.\n` +
+          `  targetModelState: ${targetModelState}\n` +
+          `  transitionStatus: ${transitionStatus}\n` +
+          `  lastFailureInfo.reason: ${lastFailureReason || '(none)'}\n` +
+          `  lastFailureInfo.message: ${lastFailureMessage || '(none)'}\n` +
+          `  Detail: ${failureDetail}\n` +
+          `  Full Condition Details:\n  ${buildConditionDetails()}`;
+        cy.log(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // --- Legacy activeModelState === 'Failed' guard ---
+      // Catches the edge case where KServe sets activeModelState='Failed' directly
+      // without setting targetModelState='FailedToLoad' (older controller versions).
+      // Uses TERMINAL_FAILURE_REASONS to distinguish permanent failures from transient
+      // pod restarts (e.g. RuntimeUnhealthy from OOMKill — those should keep polling).
+      if (activeModelState === 'Failed') {
+        const readyCondition = conditions.find((c) => c.type === 'Ready');
+        const failReason = safeString(readyCondition?.reason);
+        const isTerminal = TERMINAL_FAILURE_REASONS.has(failReason);
+
+        cy.log(
+          `⚠️ activeModelState is "Failed" — Ready condition reason: "${failReason}" — terminal: ${isTerminal}`,
+        );
+
+        if (isTerminal) {
+          const terminalMsg =
+            `❌ InferenceService ${serviceName} has a terminal failure (reason: ${failReason}) — aborting poll immediately\n` +
+            `  Active Model State: ${activeModelState}\n` +
+            `  Ready condition message: ${safeString(readyCondition?.message)}\n` +
+            `  Full Condition Details:\n  ${buildConditionDetails()}`;
+          cy.log(terminalMsg);
+          throw new Error(terminalMsg);
+        }
+        // Non-terminal (e.g. RuntimeUnhealthy) — pod may recover, keep polling.
+        cy.log(`ℹ️ Failure reason "${failReason}" is transient — continuing to poll`);
+      }
+
       // Determine overall success
       const allConditionsPassed =
         !shouldValidateConditions || checkedConditions.every((check) => check.isPassed);
@@ -281,41 +380,33 @@ export const checkInferenceServiceState = (
         return cy.wrap(result);
       }
 
-      if (attempts >= maxAttempts) {
-        // Prepare detailed error message with full condition details
-        const conditionDetails = conditions
-          .map(
-            (condition) =>
-              `Type: ${safeString(condition.type)}, Status: ${safeString(
-                condition.status,
-              )}, Reason: ${safeString(condition.reason)}, Message: ${safeString(
-                condition.message,
-              )}`,
-          )
-          .join('\n');
+      // UI deployment status badge — only shows "Failed" when KServe has conclusively
+      // marked the service as failed in the dashboard. Check before sleeping so a
+      // genuine UI-level failure is caught without waiting the full 30 s interval.
+      failOnDeploymentStatus(serviceName);
 
-        const errorMessage = `❌ InferenceService ${serviceName} did not meet all conditions within 8 minutes
-          Active Model State: ${activeModelState}
-          Condition Checks:
-          ${checkedConditions
+      if (attempts >= maxAttempts) {
+        const errorMessage =
+          `❌ InferenceService ${serviceName} did not meet all conditions within ~48 minutes\n` +
+          `  Active Model State: ${activeModelState}\n` +
+          `  Target Model State: ${targetModelState}\n` +
+          `  Transition Status: ${transitionStatus}\n` +
+          `  Last Failure Reason: ${lastFailureReason || '(none)'}\n` +
+          `  Last Failure Message: ${lastFailureMessage || '(none)'}\n` +
+          `  Condition Checks:\n  ${checkedConditions
             .map(
               (check) =>
                 `${check.name}: ${check.isPassed ? '✅' : '❌'} (Status: ${safeString(
                   check.foundCondition?.status,
                 )})`,
             )
-            .join('\n')}
-
-          Full Condition Details:
-          ${conditionDetails}`;
+            .join('\n  ')}\n` +
+          `  Full Condition Details:\n  ${buildConditionDetails()}`;
 
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(50000).then(() => {
-          failOnDeploymentStatus(serviceName);
-          return checkState();
-        });
+        return cy.wait(30000).then(() => checkState());
       }
     });
 
