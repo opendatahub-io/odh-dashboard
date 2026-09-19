@@ -23,7 +23,7 @@ import {
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
 import InlineTooltip from '~/app/components/InlineTooltip';
-import { formatAsPercentage } from '~/app/utilities/evaluationUtils';
+import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import { capitalizeFirst, getMetricDisplayName, toSafeExternalUrl } from './benchmarkUtils';
 
 type BenchmarkDrawerTileContentProps = {
@@ -192,7 +192,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
                       Benchmark threshold
                     </DescriptionListTerm>
                     <DescriptionListDescription style={compactFontStyle}>
-                      {formatAsPercentage(passCriteria.threshold)}
+                      {formatThresholdValue(passCriteria.threshold, primaryScore?.metric)}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 )}

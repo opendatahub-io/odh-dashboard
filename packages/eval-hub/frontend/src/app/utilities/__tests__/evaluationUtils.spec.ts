@@ -10,8 +10,13 @@ import {
   getResultScore,
   formatAsPercentage,
   formatBenchmarkScore,
+  formatMetricValue,
+  formatThresholdValue,
+  getThresholdInputValue,
+  getThresholdRequestValue,
   formatDate,
   formatDurationCompact,
+  isEvaluationJobComparable,
   isTerminalState,
   normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
@@ -291,12 +296,67 @@ describe('formatAsPercentage', () => {
   });
 });
 
+describe('formatMetricValue', () => {
+  it('should format percentage metrics as percentages', () => {
+    expect(formatMetricValue(0.85, 'acc')).toBe('85%');
+  });
+
+  it('should format throughput metrics with their units', () => {
+    expect(formatMetricValue(41.377, 'output_tokens_per_second')).toBe('41.38 output tokens/s');
+  });
+
+  it('should preserve percentage formatting for unknown metrics', () => {
+    expect(formatMetricValue(0.42, 'custom_metric')).toBe('42%');
+  });
+
+  it('should return dash for non-finite metric values', () => {
+    expect(formatMetricValue(Infinity, 'output_tokens_per_second')).toBe('-');
+  });
+});
+
+describe('formatThresholdValue', () => {
+  it('should format percentage thresholds using percentage semantics', () => {
+    expect(formatThresholdValue(0.5, 'acc')).toBe('50%');
+    expect(formatThresholdValue(90, 'acc')).toBe('90%');
+  });
+
+  it('should format non-percentage thresholds according to the metric', () => {
+    expect(formatThresholdValue(0.5, 'output_tokens_per_second')).toBe('0.5 output tokens/s');
+  });
+});
+
+describe('threshold metric conversions', () => {
+  it('should normalize raw metric thresholds to whole numbers for the form', () => {
+    expect(getThresholdInputValue(10, 'output_tokens_per_second')).toBe(10);
+    expect(getThresholdInputValue(10.4, 'output_tokens_per_second')).toBe(10);
+  });
+
+  it('should normalize raw metric thresholds to whole numbers in requests', () => {
+    expect(getThresholdRequestValue(10, 'output_tokens_per_second')).toBe(10);
+    expect(getThresholdRequestValue(10.6, 'output_tokens_per_second')).toBe(11);
+  });
+
+  it('should convert percentage thresholds between request and form values', () => {
+    expect(getThresholdInputValue(0.75, 'accuracy')).toBe(75);
+    expect(getThresholdRequestValue(75, 'accuracy')).toBe(0.75);
+  });
+});
+
 describe('formatBenchmarkScore', () => {
   /* eslint-disable camelcase */
   it('should prefer test.primary_score over metrics', () => {
     expect(
       formatBenchmarkScore({ id: 'b1', test: { primary_score: 0.8 }, metrics: { acc: 0.5 } }),
     ).toBe('80%');
+  });
+
+  it('should format test primary scores according to the configured metric', () => {
+    expect(
+      formatBenchmarkScore(
+        { id: 'b1', test: { primary_score: 41.377 } },
+        'output_tokens_per_second',
+      ),
+    ).toBe('41.38 output tokens/s');
   });
 
   it('should use primaryMetric parameter when test is absent', () => {
@@ -339,6 +399,53 @@ describe('getResultScore', () => {
   it('should return percentage from top-level test score', () => {
     const job = mockEvaluationJob({ score: 0.85 });
     expect(getResultScore(job)).toBe('85%');
+  });
+
+  it('should format a top-level score according to the job primary metric', () => {
+    const job = mockEvaluationJob({ score: 41.377, benchmarkId: 'constant' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+    expect(getResultScore(job)).toBe('41.38 output tokens/s');
+  });
+
+  it('should keep collection aggregate scores normalized when the first benchmark is raw', () => {
+    const job = mockEvaluationJob({
+      score: 0.72,
+      collectionId: 'mixed-metric-suite',
+      benchmarkId: 'constant',
+    });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    expect(getResultScore(job)).toBe('72%');
+  });
+
+  it('should omit the raw metric unit for the prominent result value', () => {
+    const job = mockEvaluationJob({ score: 41.377, benchmarkId: 'constant' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+    expect(getResultScore(job, false)).toBe('41.38');
   });
 
   it('should round fractional percentages to nearest integer', () => {
@@ -747,6 +854,29 @@ describe('isTerminalState', () => {
     },
   );
 });
+
+/* eslint-disable camelcase */
+describe('isEvaluationJobComparable', () => {
+  it('should require a completed job with MLflow experiment and run data', () => {
+    const job = mockEvaluationJob({ state: 'completed' });
+
+    expect(isEvaluationJobComparable(job)).toBe(false);
+
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'benchmark-1', mlflow_run_id: 'run-1' }];
+
+    expect(isEvaluationJobComparable(job)).toBe(true);
+  });
+
+  it('should reject non-terminal jobs even when MLflow data is present', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'benchmark-1', mlflow_run_id: 'run-1' }];
+
+    expect(isEvaluationJobComparable(job)).toBe(false);
+  });
+});
+/* eslint-enable camelcase */
 
 describe('formatDate', () => {
   it('should return dash for undefined input', () => {

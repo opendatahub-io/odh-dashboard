@@ -235,6 +235,34 @@ describe('AboutBenchmarkResultPopover', () => {
     ).toBeInTheDocument();
   });
 
+  it('should format non-percentage thresholds using the primary metric', () => {
+    /* eslint-disable camelcase */
+    const job = mockEvaluationJob({
+      score: 86.25,
+      benchmarkId: 'default-benchmark',
+    });
+    job.benchmarks = [
+      {
+        id: 'default-benchmark',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+        pass_criteria: { threshold: 0.5 },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    render(
+      <MemoryRouter>
+        <AboutBenchmarkResultPopover benchmarkId="default-benchmark" benchmarkIndex={0} job={job} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
+    expect(
+      screen.getByText(
+        'This benchmark scored 86.25 output tokens/s against a threshold of 0.5 output tokens/s.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('should not render score line when threshold is missing', () => {
     /* eslint-disable camelcase */
     const job = mockEvaluationJob({

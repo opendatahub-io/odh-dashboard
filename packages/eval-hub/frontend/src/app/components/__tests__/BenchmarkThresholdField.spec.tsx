@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 
 describe('BenchmarkThresholdField', () => {
@@ -25,6 +25,26 @@ describe('BenchmarkThresholdField', () => {
     expect(slider).toHaveAttribute('aria-valuemin', '0');
     expect(slider).toHaveAttribute('aria-valuemax', '100');
     expect(slider).toHaveAttribute('aria-valuenow', '25');
+  });
+
+  it('should render raw metric thresholds as whole numbers in an unbounded numeric input', () => {
+    const onChange = jest.fn();
+    render(
+      <BenchmarkThresholdField value={250} metric="output_tokens_per_second" onChange={onChange} />,
+    );
+
+    const input = screen.getByRole('spinbutton', { name: 'Benchmark threshold' });
+    const inputGroup = input.closest('.pf-v6-c-input-group');
+    expect(input).toHaveValue(250);
+    expect(screen.getByText('output tokens/s')).toBeInTheDocument();
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    expect(input).toHaveAttribute('step', '1');
+    expect(inputGroup).toHaveClass('pf-v6-u-w-50');
+
+    fireEvent.change(input, { target: { value: '1250.25' } });
+    fireEvent.blur(input);
+    expect(input).toHaveValue(1250);
+    expect(onChange).toHaveBeenCalledWith(1250);
   });
 
   it('should display 0 and 100 boundary labels', () => {

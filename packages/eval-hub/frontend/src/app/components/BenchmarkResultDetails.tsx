@@ -14,7 +14,7 @@ import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
 import { useProvider } from '~/app/hooks/useProvider';
 import {
-  formatAsPercentage,
+  formatThresholdValue,
   getBenchmarkDisplayName,
   getJobBenchmarks,
 } from '~/app/utilities/evaluationUtils';
@@ -120,7 +120,9 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
         {typeof threshold === 'number' && Number.isFinite(threshold) && (
           <DescriptionListGroup>
             <DescriptionListTerm>Benchmark threshold</DescriptionListTerm>
-            <DescriptionListDescription>{formatAsPercentage(threshold)}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {formatThresholdValue(threshold, primaryMetricName)}
+            </DescriptionListDescription>
           </DescriptionListGroup>
         )}
         {complements?.length ? (

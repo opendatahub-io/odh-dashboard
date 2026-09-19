@@ -124,7 +124,7 @@ const EvaluationResultsPage: React.FC = () => {
     if (!job) {
       return '-';
     }
-    return getResultScore(job);
+    return getResultScore(job, false);
   }, [job]);
 
   const mlflowExperimentId = job?.resource.mlflow_experiment_id;

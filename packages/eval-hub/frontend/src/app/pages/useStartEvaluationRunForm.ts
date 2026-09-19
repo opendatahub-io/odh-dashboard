@@ -19,7 +19,11 @@ import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
-import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
+import {
+  getThresholdInputValue,
+  getThresholdRequestValue,
+  normalizeThreshold,
+} from '~/app/utilities/evaluationUtils';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
@@ -64,6 +68,9 @@ export function useStartEvaluationRunForm({
 
   // ── Threshold & primary metric ──────────────────────────────────────
 
+  const availableMetrics = React.useMemo(() => benchmark?.metrics ?? [], [benchmark]);
+  const defaultPrimaryMetric = benchmark?.primary_score?.metric ?? availableMetrics[0];
+
   const defaultThreshold = React.useMemo(() => {
     if (collection?.pass_criteria) {
       return normalizeThreshold(collection.pass_criteria.threshold);
@@ -72,19 +79,12 @@ export function useStartEvaluationRunForm({
       return DEFAULT_SUITE_THRESHOLD;
     }
     if (benchmark?.pass_criteria) {
-      return normalizeThreshold(benchmark.pass_criteria.threshold);
+      return getThresholdInputValue(benchmark.pass_criteria.threshold, defaultPrimaryMetric);
     }
     return 0;
-  }, [benchmark, collection]);
-
-  const availableMetrics = React.useMemo(() => benchmark?.metrics ?? [], [benchmark]);
-  const defaultPrimaryMetric = benchmark?.primary_score?.metric ?? availableMetrics[0];
+  }, [benchmark, collection, defaultPrimaryMetric]);
 
   const benchmarkDisplayNameRef = React.useRef('');
-  const defaultPrimaryMetricRef = React.useRef(defaultPrimaryMetric);
-  React.useEffect(() => {
-    defaultPrimaryMetricRef.current = defaultPrimaryMetric;
-  }, [defaultPrimaryMetric]);
 
   const [threshold, setThreshold] = React.useState(
     () => initialValues?.threshold ?? defaultThreshold,
@@ -118,17 +118,26 @@ export function useStartEvaluationRunForm({
     fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props);
   }, []);
 
-  const handlePrimaryMetricChange = React.useCallback((metric: string) => {
-    setPrimaryMetric(metric);
-    setPrimaryMetricTouched(true);
+  const handlePrimaryMetricChange = React.useCallback(
+    (metric: string) => {
+      const isDefault = metric === defaultPrimaryMetric;
+      const metricChanged = metric !== primaryMetric;
+      setPrimaryMetric(metric);
+      setPrimaryMetricTouched(true);
+      if (metricChanged) {
+        setThreshold(defaultThreshold);
+        setThresholdTouched(true);
+      }
 
-    const props: RunMetricSelectedProperties = {
-      metricName: metric,
-      isDefault: metric === defaultPrimaryMetricRef.current,
-      benchmarkName: benchmarkDisplayNameRef.current,
-    };
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
-  }, []);
+      const props: RunMetricSelectedProperties = {
+        metricName: metric,
+        isDefault,
+        benchmarkName: benchmarkDisplayNameRef.current,
+      };
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
+    },
+    [defaultPrimaryMetric, defaultThreshold, primaryMetric],
+  );
 
   // ── Evaluation name ─────────────────────────────────────────────────
 
@@ -494,7 +503,12 @@ export function useStartEvaluationRunForm({
 
     const shouldIncludeThreshold = thresholdTouched || defaultThreshold > 0;
     const passCriteriaOverride = shouldIncludeThreshold
-      ? { threshold: threshold / 100 }
+      ? {
+          threshold: getThresholdRequestValue(
+            threshold,
+            isCollectionFlow ? undefined : primaryMetric,
+          ),
+        }
       : undefined;
 
     const primaryScoreOverride = primaryMetric

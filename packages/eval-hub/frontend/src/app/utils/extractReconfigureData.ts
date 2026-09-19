@@ -6,7 +6,7 @@ import type {
   ModelSelection,
   SourceMode,
 } from '~/app/types';
-import { getEvaluationName } from '~/app/utilities/evaluationUtils';
+import { getEvaluationName, getThresholdInputValue } from '~/app/utilities/evaluationUtils';
 
 export type ReconfigureFormData = {
   evaluationName: string;
@@ -114,9 +114,10 @@ const extractReconfigureData = (
   // Collection flow writes pass_criteria at the job level; benchmark flow writes it on the
   // individual benchmark entry. Fall back to the first benchmark to cover the latter case.
   const passCriteria = job.pass_criteria ?? firstBenchmark?.pass_criteria;
-  const threshold = passCriteria ? Math.round(passCriteria.threshold * 100) : 0;
-
   const primaryMetric = firstBenchmark?.primary_score?.metric;
+  const threshold = passCriteria
+    ? getThresholdInputValue(passCriteria.threshold, isCollectionFlow ? undefined : primaryMetric)
+    : 0;
 
   let additionalArgs = '';
   if (firstBenchmark?.parameters && Object.keys(firstBenchmark.parameters).length > 0) {

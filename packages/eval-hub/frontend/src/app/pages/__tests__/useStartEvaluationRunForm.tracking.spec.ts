@@ -241,6 +241,19 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       });
     });
 
+    it('should preserve the threshold when reselecting the current metric', () => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleThresholdChange(80);
+      });
+      act(() => {
+        renderResult.result.current.handlePrimaryMetricChange('accuracy');
+      });
+
+      expect(renderResult.result.current.threshold).toBe(80);
+    });
+
     it('should fire metric selected event with isDefault false when selecting non-default metric', () => {
       const renderResult = renderForm();
 
@@ -253,6 +266,19 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         isDefault: false,
         benchmarkName: 'ARC Easy',
       });
+    });
+
+    it('should reset the threshold to the default when switching to another metric', () => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleThresholdChange(80);
+      });
+      act(() => {
+        renderResult.result.current.handlePrimaryMetricChange('f1_score');
+      });
+
+      expect(renderResult.result.current.threshold).toBe(70);
     });
   });
 

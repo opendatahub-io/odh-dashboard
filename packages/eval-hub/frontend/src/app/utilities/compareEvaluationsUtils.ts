@@ -1,7 +1,7 @@
 import { EvaluationJob } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import {
-  formatAsPercentage,
+  formatMetricValue,
   getBenchmarkDisplayName,
   getBenchmarkName,
   getBenchmarkResultScore,
@@ -141,7 +141,9 @@ export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string =
 export const getCompareParentResultScore = (job: EvaluationJob): string => {
   const score = job.results.test?.score;
   if (score != null && Number.isFinite(score)) {
-    return formatAsPercentage(score);
+    return job.collection
+      ? formatMetricValue(score)
+      : formatMetricValue(score, getJobBenchmarks(job)[0]?.primary_score?.metric);
   }
   return '-';
 };
