@@ -1,0 +1,33 @@
+# Test data for multimodal inferencing E2E tests
+# This file contains configuration for testing image/audio uploads and vision model inference
+
+image:
+  fileName: 'test-image.png'
+  # Base64 encoded PNG with a red left half and blue right half
+  base64Content: 'iVBORw0KGgoAAAANSUhEUgAAAMgAAABkCAIAAABM5OhcAAAB9klEQVR4nO3NsQkAIAAEsd9/aV3BLhwI6bOzfY/0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9E/yn6L9F/iv5L9J+i/xL9p+i/RP8p+i/Rf4r+S/Sfov8S/afov0T/Kfov0X+K/kv0n6L/Ev2n6L9F/yQX+h9ZkqrAgJAAAAABJRU5ErkJggg=='
+  mimeType: 'image/png'
+
+audio:
+  fileName: 'test-audio.mp3'
+  # Placeholder audio content for testing
+  sampleContent: 'fake-audio-content-for-testing'
+  mimeType: 'audio/mpeg'
+
+validation:
+  # Maximum file size in bytes (10MB, matches VISION_UPLOAD_CONFIG.MAX_FILE_SIZE)
+  maxFileSizeBytes: 10485760
+
+inference:
+  visionTestMessage: 'What do you see in this image?'
+  expectedResponseKeywords:
+    - 'red'
+    - 'blue'
+
+model:
+  modelId: 'gpt-4o'
+  displayName: 'E2E Multimodal Vision Model'
+  endpointUrl: 'https://api.openai.com/v1'
+  configMapName: 'llama-stack-config'
+  lsdServiceName: 'lsd-genai-playground-service'
+  lsdPodPrefix: 'lsd-genai-playground'
+  lsdPodReadyTimeout: '120s'

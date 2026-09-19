@@ -288,6 +288,7 @@ export type TestConfig = {
   PIP_INDEX_URL: string;
   PIP_TRUSTED_HOST: string;
   NGC_API_KEY: string;
+  OPENAI_API_KEY?: string;
   GEMINI_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
@@ -769,6 +770,35 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
   servingRuntimesPath: string;
+};
+
+export type MultimodalTestData = {
+  image: {
+    fileName: string;
+    base64Content: string;
+    mimeType: string;
+  };
+  audio: {
+    fileName: string;
+    sampleContent: string;
+    mimeType: string;
+  };
+  validation: {
+    maxFileSizeBytes: number;
+  };
+  inference: {
+    visionTestMessage: string;
+    expectedResponseKeywords: string[];
+  };
+  model: {
+    modelId: string;
+    displayName: string;
+    endpointUrl: string;
+    configMapName: string;
+    lsdServiceName: string;
+    lsdPodPrefix: string;
+    lsdPodReadyTimeout: string;
+  };
 };
 
 export type CustomEndpointTestData = {
