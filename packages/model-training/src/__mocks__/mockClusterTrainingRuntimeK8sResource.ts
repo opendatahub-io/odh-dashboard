@@ -3,14 +3,12 @@ import { ClusterTrainingRuntimeKind } from '@odh-dashboard/model-training/k8sTyp
 type MockClusterTrainingRuntimeConfigType = {
   name?: string;
   numNodes?: number;
-  numProcPerNode?: string | number;
   framework?: string;
 };
 
 export const mockClusterTrainingRuntimeK8sResource = ({
   name = 'training-cuda128-torch28-py312',
   numNodes = 1,
-  numProcPerNode = 'auto',
   framework = 'torch',
 }: MockClusterTrainingRuntimeConfigType = {}): ClusterTrainingRuntimeKind => ({
   apiVersion: 'trainer.kubeflow.org/v1alpha1',
@@ -29,9 +27,7 @@ export const mockClusterTrainingRuntimeK8sResource = ({
   spec: {
     mlPolicy: {
       numNodes,
-      torch: {
-        numProcPerNode,
-      },
+      torch: {},
     },
     template: {
       spec: {
