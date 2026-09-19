@@ -108,10 +108,44 @@ func TestNewConnectionProbeClient_InternalHost(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, client)
-	assert.Equal(t, "http://my-svc.default.svc.cluster.local:8080", client.baseURL)
+	assert.Equal(t, "https://my-svc.default.svc.cluster.local:8080", client.baseURL, "internal http:// should be auto-upgraded to https://")
 	assert.Equal(t, "secret-key", client.secretValue)
 	assert.Equal(t, "model", client.sourceType)
 	assert.True(t, client.skipSSRFValidation)
+}
+
+func TestNewConnectionProbeClient_InternalHost_HTTPAutoUpgrade(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	tests := []struct {
+		name        string
+		inputURL    string
+		expectedURL string
+	}{
+		{
+			"http with port",
+			"http://my-svc.ns.svc.cluster.local:8000/v1",
+			"https://my-svc.ns.svc.cluster.local:8000/v1",
+		},
+		{
+			"http without port",
+			"http://my-svc.ns.svc.cluster.local",
+			"https://my-svc.ns.svc.cluster.local",
+		},
+		{
+			"https stays unchanged",
+			"https://my-svc.ns.svc.cluster.local:8000/v1",
+			"https://my-svc.ns.svc.cluster.local:8000/v1",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client, err := NewConnectionProbeClient(logger, tc.inputURL, "", "model", nil)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedURL, client.baseURL)
+		})
+	}
 }
 
 func TestNewConnectionProbeClient_ExternalHost(t *testing.T) {

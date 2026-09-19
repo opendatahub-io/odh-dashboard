@@ -2,6 +2,7 @@ import {
   isValidUrl,
   getUrlValidationError,
   getUserFriendlyConnectionError,
+  RECOGNIZED_CONNECTION_ERROR_CODES,
 } from '~/app/utils/validationUtils';
 
 describe('isValidUrl', () => {
@@ -103,5 +104,19 @@ describe('getUserFriendlyConnectionError', () => {
     expect(getUserFriendlyConnectionError(undefined, 'model')).toBe(
       'Connection verification failed.',
     );
+  });
+
+  it('should return generic message for unrecognized error codes regardless of server context', () => {
+    expect(getUserFriendlyConnectionError('SECRET_NOT_FOUND', 'model')).toBe(
+      'Connection verification failed.',
+    );
+  });
+
+  it('should recognize all codes in RECOGNIZED_CONNECTION_ERROR_CODES', () => {
+    for (const code of RECOGNIZED_CONNECTION_ERROR_CODES) {
+      expect(getUserFriendlyConnectionError(code, 'model')).not.toBe(
+        'Connection verification failed.',
+      );
+    }
   });
 });
