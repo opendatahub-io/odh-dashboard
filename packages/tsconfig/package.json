@@ -3,6 +3,6 @@
   "name": "@odh-dashboard/tsconfig",
   "version": "0.0.0",
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*"
+    "@odh-dashboard/eslint-config": "workspace:*"
   }
 }

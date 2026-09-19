@@ -13,14 +13,6 @@ updates:
   - package-ecosystem: npm
     directories:
       - /
-      - /distributions/core-bff/frontend
-      - /packages/agent-ops/frontend
-      - /packages/automl/frontend
-      - /packages/autorag/frontend
-      - /packages/eval-hub/frontend
-      - /packages/gen-ai/frontend
-      - /packages/maas/frontend
-      - /packages/mlflow/frontend
     schedule:
       interval: weekly
       day: monday

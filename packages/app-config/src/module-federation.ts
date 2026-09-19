@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import path from 'path';
 import type {
   ModuleFederationConfig,
   ModuleFederationConfigOld,
@@ -69,11 +70,11 @@ const convertModuleFederationConfig = (
 };
 
 /**
- * Get all workspace packages using npm query from frontend directory
- * @returns {Array} Array of workspace package objects
+ * Get all workspace packages from the pnpm workspace
  */
 const getWorkspacePackages = (): WorkspacePackage[] => {
-  const stdout = execSync('npm query .workspace --json', {
+  const scriptPath = path.resolve(__dirname, '../../../scripts/query-workspace-packages.js');
+  const stdout = execSync(`node "${scriptPath}"`, {
     encoding: 'utf8',
   });
   return JSON.parse(stdout);
