@@ -3,6 +3,7 @@ import * as React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import PromptTable from '~/app/Chatbot/components/promptManagementModal/promptTable';
+import { mockMLflowPrompt } from '~/__mocks__/mockMLflowPrompts';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -272,7 +273,7 @@ describe('PromptTable', () => {
     expect(modelCells[0]).toHaveTextContent('gpt-4');
   });
 
-  it('should display "Not specified" for prompts without model config', () => {
+  it('should display "--" for prompts without model config', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,
       totalCount: mockPrompts.length,
@@ -283,7 +284,7 @@ describe('PromptTable', () => {
     render(<PromptTable {...defaultProps} />);
 
     const modelCells = screen.getAllByTestId('prompt-model-name');
-    expect(modelCells[1]).toHaveTextContent('Not specified');
+    expect(modelCells[1]).toHaveTextContent('--');
   });
 
   it('should render long model names with PatternFly Truncate component', () => {
@@ -342,7 +343,7 @@ describe('PromptTable', () => {
     expect(modelCell.querySelector('[class*="truncate"]')).toBeInTheDocument();
   });
 
-  it('should display "Not specified" when model_config is present but model_name is missing', () => {
+  it('should display "--" when model_config is present but model_name is missing', () => {
     const promptsWithNoModelName: MLflowPrompt[] = [
       {
         name: 'no-model-name-prompt',
@@ -365,7 +366,7 @@ describe('PromptTable', () => {
     render(<PromptTable {...defaultProps} />);
 
     const modelCell = screen.getByTestId('prompt-model-name');
-    expect(modelCell).toHaveTextContent('Not specified');
+    expect(modelCell).toHaveTextContent('--');
   });
 });
 
@@ -677,6 +678,106 @@ describe('PromptTable - Tab Navigation', () => {
       expect(screen.getByText('template-1')).toBeInTheDocument();
       expect(screen.getByText('template-2')).toBeInTheDocument();
       expect(screen.getByText('template-3')).toBeInTheDocument();
+    });
+  });
+
+  describe('Model filter and sort', () => {
+    const modelPrompts: MLflowPrompt[] = [
+      mockMLflowPrompt({
+        name: 'prompt-llama',
+        model_config: { model_name: 'llama-3' },
+        scope: { type: 'project', namespace: 'my-project' },
+      }),
+      mockMLflowPrompt({
+        name: 'prompt-none',
+        scope: { type: 'project', namespace: 'my-project' },
+      }),
+      mockMLflowPrompt({
+        name: 'prompt-granite',
+        model_config: { model_name: 'granite-8b' },
+        scope: { type: 'project', namespace: 'my-project' },
+      }),
+      mockMLflowPrompt({
+        name: 'prompt-global-mistral',
+        model_config: { model_name: 'mistral-7b' },
+        scope: { type: 'global', namespace: 'rhoai-templates' },
+      }),
+    ];
+
+    const getRowNames = () =>
+      within(screen.getByTestId('prompt-table'))
+        .getAllByTestId('prompt-table-row-name')
+        .map((cell) => cell.textContent);
+
+    beforeEach(() => {
+      mockUsePromptsList.mockReturnValue({
+        prompts: modelPrompts,
+        isLoading: false,
+        isFetchingNextPage: false,
+        fetchNextPage: jest.fn(),
+        error: null,
+      });
+    });
+
+    it('should switch the filter type to Model and show the model select', () => {
+      render(<PromptTable {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-search-input')).toBeInTheDocument();
+      expect(screen.queryByTestId('prompt-model-filter-select')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+
+      expect(screen.getByTestId('prompt-model-filter-select')).toBeInTheDocument();
+      expect(screen.queryByTestId('prompt-search-input')).not.toBeInTheDocument();
+    });
+
+    it('should list unique models from the current tab and filter rows by the selected model', () => {
+      render(<PromptTable {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+      fireEvent.click(screen.getByTestId('prompt-model-filter-select'));
+
+      // Alphabetical, and the global tab's model is not offered on the project tab
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'granite-8b',
+        'llama-3',
+      ]);
+
+      fireEvent.click(screen.getByRole('option', { name: 'llama-3' }));
+
+      expect(getRowNames()).toEqual(['prompt-llama']);
+    });
+
+    it('should show the selected model in the toggle with the full name as its title', () => {
+      render(<PromptTable {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+
+      const toggle = screen.getByTestId('prompt-model-filter-select');
+      expect(toggle).toHaveTextContent('Filter by model');
+
+      fireEvent.click(toggle);
+      fireEvent.click(screen.getByRole('option', { name: 'granite-8b' }));
+
+      expect(toggle).toHaveTextContent('granite-8b');
+      expect(within(toggle).getByTitle('granite-8b')).toBeInTheDocument();
+    });
+
+    it('should sort by model ascending and descending with unspecified models last', () => {
+      render(<PromptTable {...defaultProps} />);
+
+      const sortButton = within(screen.getByTestId('prompt-model-column-header')).getByRole(
+        'button',
+      );
+
+      fireEvent.click(sortButton);
+      expect(getRowNames()).toEqual(['prompt-granite', 'prompt-llama', 'prompt-none']);
+
+      fireEvent.click(sortButton);
+      expect(getRowNames()).toEqual(['prompt-llama', 'prompt-granite', 'prompt-none']);
     });
   });
 });
