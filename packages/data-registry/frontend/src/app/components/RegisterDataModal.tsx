@@ -1,10 +1,10 @@
 import React from 'react';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   Modal,
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
   Form,
   Alert,
   Content,
@@ -12,7 +12,12 @@ import {
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSettings } from 'mod-arch-core';
-import { createVolume, createGenericTable, createLabel, ApiError } from '~/app/api/dataRegistry';
+import {
+  createVolume,
+  createGenericTable,
+  createLabel,
+  isConflictError,
+} from '~/app/api/dataRegistry';
 import { CreateVolumeRequest, CreateGenericTableRequest, ConnectionModel } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
 import {
@@ -202,7 +207,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           await Promise.all(
             data.labels.map((label) =>
               createLabel(project, { name: label }).catch((err) => {
-                if (err instanceof ApiError && err.status === 409) {
+                if (isConflictError(err)) {
                   return;
                 }
                 throw err;
@@ -263,18 +268,14 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         </FormProvider>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          onClick={form.handleSubmit(handleSubmit)}
-          isDisabled={isSubmitting}
-          isLoading={isSubmitting}
-          data-testid="register-data-submit"
-        >
-          Register
-        </Button>
-        <Button variant="link" onClick={handleClose}>
-          Cancel
-        </Button>
+        <DashboardModalFooter
+          submitLabel="Register"
+          onSubmit={form.handleSubmit(handleSubmit)}
+          onCancel={handleClose}
+          isSubmitDisabled={isSubmitting}
+          isSubmitLoading={isSubmitting}
+          submitButtonTestId="register-data-submit"
+        />
       </ModalFooter>
     </Modal>
   );
