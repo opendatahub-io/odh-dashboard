@@ -75,23 +75,12 @@ func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.P
 		params["section-title"] = title
 	}
 
-	if gatewayDomain := normalizedGatewayDomain(dashboard); gatewayDomain != "" {
-		params["gateway-domain"] = gatewayDomain
-		params["dashboard-url"] = fmt.Sprintf("https://%s/", gatewayDomain)
+	if dashboard.Spec.Gateway != nil && dashboard.Spec.Gateway.Domain != "" {
+		params["gateway-domain"] = dashboard.Spec.Gateway.Domain
+		params["dashboard-url"] = fmt.Sprintf("https://%s/", dashboard.Spec.Gateway.Domain)
 	}
 
 	return params
-}
-
-// normalizedGatewayDomain returns the canonical hostname used by all rendered
-// routes and externally reported URLs. Gateway API Hostname values require
-// lowercase DNS names, while the Dashboard API accepts either case.
-func normalizedGatewayDomain(dashboard *v1alpha1.Dashboard) string {
-	if dashboard.Spec.Gateway == nil {
-		return ""
-	}
-
-	return strings.ToLower(dashboard.Spec.Gateway.Domain)
 }
 
 func readExistingParams(path string) map[string]string {
