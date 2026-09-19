@@ -15,6 +15,7 @@ type LlamaStackClientInterface interface {
 	ListModelsWithProviderData(ctx context.Context, providerData map[string]interface{}) ([]openai.Model, error)
 	ListVectorStores(ctx context.Context, params ListVectorStoresParams) ([]openai.VectorStore, error)
 	CreateVectorStore(ctx context.Context, params CreateVectorStoreParams) (*openai.VectorStore, error)
+	RetrieveVectorStore(ctx context.Context, vectorStoreID string) (*openai.VectorStore, error)
 	DeleteVectorStore(ctx context.Context, vectorStoreID string) error
 	UploadFile(ctx context.Context, params UploadFileParams) (*FileUploadResult, error)
 	ListFiles(ctx context.Context, params ListFilesParams) ([]openai.FileObject, error)
