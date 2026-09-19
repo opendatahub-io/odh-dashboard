@@ -92,7 +92,12 @@ const matchProfileFromPodSpec = (
   visibility: HardwareProfileFeatureVisibility[],
   podSpec: ReturnType<typeof extractWorkloadPodSpecOptions>,
 ): HardwareProfileKind | undefined => {
-  const candidates = filterHardwareProfilesByVisibility(hardwareProfiles, visibility);
+  if (podSpec.resources?.claims?.length) {
+    return undefined;
+  }
+  const candidates = filterHardwareProfilesByVisibility(hardwareProfiles, visibility).filter(
+    (profile) => !profile.spec.dra,
+  );
   return matchToHardwareProfile(
     candidates,
     podSpec.resources,
@@ -123,6 +128,11 @@ export const resolveWorkloadHardwareProfileForRow = (
     return configuredProfile;
   }
 
+  const workloadPodSpec = extractWorkloadPodSpecOptions(workload);
+  if (workloadPodSpec.resources?.claims?.length) {
+    return undefined;
+  }
+
   const visibility = visibilityForWorkloadType(workloadType);
 
   if (inferenceService) {
@@ -139,7 +149,7 @@ export const resolveWorkloadHardwareProfileForRow = (
   const workloadMatch = matchProfileFromPodSpec(
     hardwareProfilesForMatching,
     visibility,
-    extractWorkloadPodSpecOptions(workload),
+    workloadPodSpec,
   );
   if (workloadMatch) {
     return toProfileInfo(workloadMatch);

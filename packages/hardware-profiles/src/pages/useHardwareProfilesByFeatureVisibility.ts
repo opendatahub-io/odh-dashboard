@@ -8,7 +8,7 @@ import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwa
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { ProjectHardwareProfilesContext } from '@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext';
 import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
-import { filterRecognizedVisibility, isHardwareProfileValid } from './utils';
+import { filterRecognizedVisibility, isDRAHardwareProfile, isHardwareProfileValid } from './utils';
 
 /**
  * Hook to get hardware profiles filtered by feature visibility.
@@ -25,10 +25,15 @@ import { filterRecognizedVisibility, isHardwareProfileValid } from './utils';
  *
  * @param visibility - Feature visibility filter
  * @param namespace - Optional namespace for project-scoped profiles
+ * @param options - `includeDRA` keeps profiles that use dynamic resource allocation, including ones
+ * without identifiers. They are excluded by default because they cannot be selected for workloads in
+ * the dashboard; callers that resolve an already-assigned profile (rather than offering a choice)
+ * should opt in.
  */
 export const useHardwareProfilesByFeatureVisibility = (
   visibility?: HardwareProfileFeatureVisibility[],
   namespace?: string,
+  options?: { includeDRA?: boolean },
 ): {
   projectProfiles: [data: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined];
   globalProfiles: [data: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined];
@@ -80,13 +85,14 @@ export const useHardwareProfilesByFeatureVisibility = (
 
   const [projectProfiles, projectProfilesLoaded, projectProfilesError] = projectProfilesResult;
 
+  const includeDRA = options?.includeDRA ?? false;
   const projectProfilesFiltered = React.useMemo(
-    () => filterHardwareProfileByFeatureVisibility(projectProfiles, visibility),
-    [projectProfiles, visibility],
+    () => filterHardwareProfileByFeatureVisibility(projectProfiles, visibility, includeDRA),
+    [projectProfiles, visibility, includeDRA],
   );
   const globalProfilesFiltered = React.useMemo(
-    () => filterHardwareProfileByFeatureVisibility(globalProfiles, visibility),
-    [globalProfiles, visibility],
+    () => filterHardwareProfileByFeatureVisibility(globalProfiles, visibility, includeDRA),
+    [globalProfiles, visibility, includeDRA],
   );
   return {
     projectProfiles: [projectProfilesFiltered, projectProfilesLoaded, projectProfilesError],
@@ -97,10 +103,10 @@ export const useHardwareProfilesByFeatureVisibility = (
 export const filterHardwareProfileByFeatureVisibility = (
   hardwareProfiles: HardwareProfileKind[],
   visibility?: HardwareProfileFeatureVisibility[],
+  includeDRA = false,
 ): HardwareProfileKind[] => {
-  // only show valid profiles
   const validHardwareProfiles = hardwareProfiles.filter((profile) =>
-    isHardwareProfileValid(profile),
+    isDRAHardwareProfile(profile) ? includeDRA : isHardwareProfileValid(profile),
   );
 
   const filteredHardwareProfiles = validHardwareProfiles.filter((profile) => {

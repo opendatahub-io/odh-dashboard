@@ -1,6 +1,9 @@
 import * as React from 'react';
 import {
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Stack,
   StackItem,
   ExpandableSection,
@@ -20,12 +23,17 @@ import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
 import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
-import { HARDWARE_PROFILE_SELECTION_HELP, LOCAL_QUEUE_MISSING_BODY } from './const';
+import {
+  DRA_HARDWARE_PROFILE_WORKLOAD_LOCKED_MESSAGE,
+  HARDWARE_PROFILE_SELECTION_HELP,
+  LOCAL_QUEUE_MISSING_BODY,
+} from './const';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
 import { PodSpecOptions, HardwarePodSpecOptionsState, HardwarePodSpecOptions } from './types';
 import { getContainerResourcesFromHardwareProfile } from './utils';
+import { isDRAHardwareProfile } from '../src/pages/utils';
 
 type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
   isEditing: boolean;
@@ -50,6 +58,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
     hardwareProfile: { formData, initialHardwareProfile, setFormData },
   } = podSpecOptionsState;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const isDRAProfile = !!formData.selectedProfile && isDRAHardwareProfile(formData.selectedProfile);
 
   const validation = useValidation(formData, hardwareProfileValidationSchema);
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
@@ -90,7 +99,10 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
             label="Hardware profile"
             isRequired
             labelHelp={
-              isProjectScoped && project && projectScopedHardwareProfiles[0].length > 0 ? (
+              isProjectScoped &&
+              project &&
+              (projectScopedHardwareProfiles[0].length > 0 ||
+                formData.selectedProfile?.metadata.namespace === project) ? (
                 <ProjectScopedPopover
                   title="Hardware profile"
                   item="hardware profiles"
@@ -132,9 +144,19 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               }
             />
             <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />
+            {isDRAProfile && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem data-testid="dra-hardware-profile-locked">
+                    {DRA_HARDWARE_PROFILE_WORKLOAD_LOCKED_MESSAGE}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
           </FormGroup>
         </StackItem>
-        {formData.selectedProfile?.spec.identifiers &&
+        {!isDRAProfile &&
+          formData.selectedProfile?.spec.identifiers &&
           formData.selectedProfile.spec.identifiers.length > 0 &&
           formData.resources && (
             <StackItem>

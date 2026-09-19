@@ -9,7 +9,10 @@ import {
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '@odh-dashboard/ui-core/utilities/valueUnits';
-import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
+import {
+  isHardwareProfileEnabled,
+  isDRAHardwareProfile,
+} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
@@ -132,7 +135,7 @@ export const useHardwareProfileConfig = (
       projectScopedProfilesLoaded,
       projectScopedProfilesLoadError,
     ],
-  } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace);
+  } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace, { includeDRA: true });
 
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
@@ -143,6 +146,10 @@ export const useHardwareProfileConfig = (
   const profiles = React.useMemo(
     () => [...dashboardProfiles, ...projectScopedProfiles],
     [dashboardProfiles, projectScopedProfiles],
+  );
+  const selectableProfiles = React.useMemo(
+    () => profiles.filter((profile) => !isDRAHardwareProfile(profile)),
+    [profiles],
   );
   const profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
   const profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
@@ -164,23 +171,44 @@ export const useHardwareProfileConfig = (
     if (!formData.resources) {
       let selectedProfile: HardwareProfileKind | undefined;
 
+      let assignedProfile: HardwareProfileKind | undefined;
+      if (existingHardwareProfileName && hardwareProfileNamespace) {
+        assignedProfile =
+          hardwareProfileNamespace === dashboardNamespace
+            ? dashboardProfiles.find(
+                (profile) => profile.metadata.name === existingHardwareProfileName,
+              )
+            : projectScopedProfiles.find(
+                (profile) =>
+                  profile.metadata.name === existingHardwareProfileName &&
+                  profile.metadata.namespace === hardwareProfileNamespace,
+              );
+      }
+
+      if (assignedProfile && isDRAHardwareProfile(assignedProfile)) {
+        initialHardwareProfile.current = assignedProfile;
+        setFormData('resources', {
+          ...resources,
+          requests: resources?.requests ?? {},
+          limits: resources?.limits ?? {},
+        });
+        setFormData('useExistingSettings', true);
+        setFormData('selectedProfile', assignedProfile);
+        return;
+      }
+
       // if editing, try to select existing profile
       if (resources) {
         // try to match to existing profile
         if (existingHardwareProfileName && hardwareProfileNamespace) {
-          if (hardwareProfileNamespace === dashboardNamespace) {
-            selectedProfile = dashboardProfiles.find(
-              (profile) => profile.metadata.name === existingHardwareProfileName,
-            );
-          } else {
-            selectedProfile = projectScopedProfiles.find(
-              (profile) =>
-                profile.metadata.name === existingHardwareProfileName &&
-                profile.metadata.namespace === hardwareProfileNamespace,
-            );
-          }
-        } else {
-          selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
+          selectedProfile = assignedProfile;
+        } else if (!resources.claims?.length) {
+          selectedProfile = matchToHardwareProfile(
+            selectableProfiles,
+            resources,
+            tolerations,
+            nodeSelector,
+          );
         }
 
         initialHardwareProfile.current = selectedProfile;
@@ -204,7 +232,7 @@ export const useHardwareProfileConfig = (
           return;
         }
         const filteredProfiles = filterProfilesByKueue(
-          profiles.filter(isHardwareProfileEnabled),
+          selectableProfiles.filter(isHardwareProfileEnabled),
           kueueFilteringState,
           availableLocalQueueNames,
         );
@@ -217,7 +245,7 @@ export const useHardwareProfileConfig = (
     }
   }, [
     existingHardwareProfileName,
-    profiles,
+    selectableProfiles,
     profilesLoaded,
     setFormData,
     resources,

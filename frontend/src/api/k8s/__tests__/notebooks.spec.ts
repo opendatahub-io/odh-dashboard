@@ -669,6 +669,27 @@ describe('mergePatchUpdateNotebook', () => {
     expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(existingNotebook);
   });
+  it('should keep the node selector of a workbench on a DRA hardware profile', () => {
+    const existingNotebook = mockNotebookK8sResource({ uid });
+    existingNotebook.spec.template.spec.nodeSelector = { 'nvidia.com/gpu.present': 'true' };
+    const startNotebookData = {
+      ...mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
+      hardwareProfileOptions: mockUseAssignHardwareProfileResult<NotebookKind>({
+        paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+        selectedHardwareProfile: mockHardwareProfile({
+          name: 'dra-profile',
+          dra: { resourceClaimTemplateName: 'single-gpu' },
+        }),
+      }),
+    };
+    k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
+
+    void mergePatchUpdateNotebook(existingNotebook, startNotebookData, username);
+
+    const { resource } = k8sMergePatchResourceMock.mock.calls[0][0];
+    expect(resource.spec.template.spec.nodeSelector).toBeUndefined();
+  });
+
   it('should handle errors and rethrow', async () => {
     const existingNotebook = mockNotebookK8sResource({ uid });
     const notebook = assembleNotebook(

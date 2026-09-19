@@ -1,5 +1,6 @@
 import {
   mockGlobalScopedHardwareProfiles,
+  mockHardwareProfile,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
@@ -631,6 +632,81 @@ describe('Workbench page', () => {
       cy.findAllByRole('option').should('not.contain.text', attachedPvcName);
       cy.findAllByRole('option').should('contain.text', 'new-pvc');
       cy.findAllByRole('option').should('contain.text', 'new-pvc-1');
+    });
+  });
+
+  it('Edit workbench assigned a DRA hardware profile keeps its binding and resources', () => {
+    const resources = {
+      requests: { cpu: '8', memory: '16Gi' },
+      limits: { cpu: '8', memory: '16Gi' },
+    };
+    initIntercepts({
+      hardwareProfiles: {
+        global: [
+          mockHardwareProfile({
+            name: 'dra-profile',
+            displayName: 'DRA Profile',
+            namespace: 'opendatahub',
+            identifiers: [],
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+          }),
+        ],
+        project: [],
+      },
+      notebooks: [
+        mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
+          resources,
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+                'opendatahub.io/hardware-profile-name': 'dra-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+                'opendatahub.io/hardware-profile-resource-version': '1',
+              },
+            },
+          },
+        }),
+      ],
+    });
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+    );
+    editSpawnerPage.visit('test-notebook');
+    hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
+    editSpawnerPage.findSubmitButton().should('be.enabled');
+
+    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
+    editSpawnerPage.findSubmitButton().click();
+
+    cy.wait('@editWorkbenchDryRun');
+    cy.wait('@editWorkbench').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'opendatahub.io/hardware-profile-name': 'dra-profile',
+            'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+          },
+        },
+        spec: {
+          template: {
+            spec: {
+              containers: [{ name: 'test-notebook', resources }],
+            },
+          },
+        },
+      });
+      expect(interception.request.body.metadata.annotations).not.to.have.property(
+        'opendatahub.io/hardware-profile-resource-version',
+      );
     });
   });
 });
