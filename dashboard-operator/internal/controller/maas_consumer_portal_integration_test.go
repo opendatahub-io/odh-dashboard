@@ -41,6 +41,38 @@ func writeMaaSConsumerPortalManifest(t *testing.T, base string) {
 	require.NoError(t, os.CopyFS(destination, os.DirFS(source)))
 }
 
+// writeDashboardRouteManifest adds the RHOAI core route to the minimal
+// integration fixture so a managed Dashboard exercises both shared routes.
+func writeDashboardRouteManifest(t *testing.T, base string) {
+	t.Helper()
+
+	overlay := filepath.Join(base, "rhoai")
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - httproute.yaml
+`), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "httproute.yaml"), []byte(`apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhods-dashboard
+spec:
+  parentRefs:
+    - name: data-science-gateway
+      kind: Gateway
+      namespace: openshift-ingress
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rhods-dashboard
+          port: 8443
+`), 0644))
+}
+
 func cleanupMaaSConsumerPortalResources(t *testing.T, r *ctrlpkg.DashboardReconciler) {
 	t.Helper()
 	require.NoError(t, r.DeleteMaaSConsumerPortalResources(context.Background()))
@@ -79,6 +111,58 @@ func conditionReason(dashboard *v1alpha1.Dashboard, conditionType string) string
 	}
 
 	return ""
+}
+
+func TestIntegration_CoreDashboardAndMaaSConsumerPortalRoutesShareGateway(t *testing.T) {
+	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
+	writeDashboardRouteManifest(t, base)
+	writeMaaSConsumerPortalManifest(t, base)
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                k8sClient,
+		Scheme:                k8sClient.Scheme(),
+		ManifestsBasePath:     base,
+		Platform:              cluster.SelfManagedRhoai,
+		Namespace:             integrationNamespace,
+		ApplicationsNamespace: integrationNamespace,
+	}
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		ManagementSpec:     common.ManagementSpec{ManagementState: "Managed"},
+		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:            disableAllModulesExcept("maas", "genAi"),
+		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+	})
+	require.NoError(t, k8sClient.Create(context.Background(), dashboard))
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupMaaSConsumerPortalResources(t, r)
+		cleanupModuleResources(t)
+		deleteIgnoreNotFound(t, &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: "rhods-dashboard", Namespace: integrationNamespace}})
+	})
+
+	// The first pass adds the finalizer; the second applies the core and portal bundles.
+	reconcile(t, r)
+	reconcile(t, r)
+
+	for _, tt := range []struct {
+		name string
+		path string
+	}{
+		{name: "rhods-dashboard", path: "/"},
+		{name: "maas-consumer-portal", path: "/maas-consumer-portal"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			route := &gatewayv1.HTTPRoute{}
+			require.NoError(t, k8sClient.Get(context.Background(), types.NamespacedName{Name: tt.name, Namespace: integrationNamespace}, route))
+			assert.Empty(t, route.Spec.Hostnames)
+			require.Len(t, route.Spec.ParentRefs, 1)
+			assert.Equal(t, gatewayv1.ObjectName("data-science-gateway"), route.Spec.ParentRefs[0].Name)
+			require.NotEmpty(t, route.Spec.Rules)
+			require.NotEmpty(t, route.Spec.Rules[0].Matches)
+			require.NotNil(t, route.Spec.Rules[0].Matches[0].Path)
+			assert.Equal(t, tt.path, *route.Spec.Rules[0].Matches[0].Path.Value)
+		})
+	}
 }
 
 func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
@@ -145,15 +229,53 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	}
 	route := &gatewayv1.HTTPRoute{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	assert.Empty(t, route.Spec.Hostnames, "the portal route must use the shared Gateway hostname contract")
+	require.Len(t, route.Spec.ParentRefs, 1)
+	assert.Equal(t, gatewayv1.ObjectName("data-science-gateway"), route.Spec.ParentRefs[0].Name)
+	require.Len(t, route.Spec.Rules, 2)
+	require.Len(t, route.Spec.Rules[0].Matches, 1)
+	require.NotNil(t, route.Spec.Rules[0].Matches[0].Path)
+	assert.Equal(t, gatewayv1.PathMatchExact, *route.Spec.Rules[0].Matches[0].Path.Type)
+	assert.Equal(t, "/maas-consumer-portal", *route.Spec.Rules[0].Matches[0].Path.Value)
+	require.Len(t, route.Spec.Rules[1].Matches, 1)
+	require.NotNil(t, route.Spec.Rules[1].Matches[0].Path)
+	assert.Equal(t, gatewayv1.PathMatchPathPrefix, *route.Spec.Rules[1].Matches[0].Path.Type)
+	assert.Equal(t, "/maas-consumer-portal", *route.Spec.Rules[1].Matches[0].Path.Value)
+
+	// Model an upgrade from the previous bundle. Applying this object with the
+	// operator's field owner means the next reconciliation must remove the
+	// formerly-owned hostname field without replacing the route.
+	preFixRoute := route.DeepCopy()
+	preFixRoute.Spec.Hostnames = []gatewayv1.Hostname{"test.example.com"}
+	preFixObject, err := runtime.DefaultUnstructuredConverter.ToUnstructured(preFixRoute)
+	require.NoError(t, err)
+	preFix := &unstructured.Unstructured{Object: preFixObject}
+	preFix.SetAPIVersion(gatewayv1.GroupVersion.String())
+	preFix.SetKind("HTTPRoute")
+	unstructured.RemoveNestedField(preFix.Object, "metadata", "managedFields")
+	unstructured.RemoveNestedField(preFix.Object, "metadata", "resourceVersion")
+	unstructured.RemoveNestedField(preFix.Object, "metadata", "uid")
+	unstructured.RemoveNestedField(preFix.Object, "status")
+	require.NoError(t, k8sClient.Apply(ctx, client.ApplyConfigurationFromUnstructured(preFix), client.FieldOwner("dashboard-operator")))
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	previousRouteUID := route.GetUID()
+	assert.Equal(t, []gatewayv1.Hostname{"test.example.com"}, route.Spec.Hostnames)
 	route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
 		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 	}}}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
 	reconcile(t, r)
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+	assert.Equal(t, previousRouteUID, route.GetUID(), "removing hostnames must update the existing HTTPRoute")
+	assert.Empty(t, route.Spec.Hostnames)
+	for i := range route.Status.Parents[0].Conditions {
+		route.Status.Parents[0].Conditions[i].ObservedGeneration = route.Generation
+	}
+	require.NoError(t, k8sClient.Status().Update(ctx, route))
+	reconcile(t, r)
 
 	updated := getDashboard(t)
-	previousRouteUID := route.GetUID()
 	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, string(common.ConditionTypeReady)))
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaaSConsumerPortalAvailable"))
@@ -172,7 +294,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	route = &gatewayv1.HTTPRoute{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
 	assert.Equal(t, previousRouteUID, route.GetUID(), "gateway-domain changes must update the existing HTTPRoute")
-	assert.Equal(t, []gatewayv1.Hostname{"updated.example.com"}, route.Spec.Hostnames)
+	assert.Empty(t, route.Spec.Hostnames, "gateway-domain changes must not restore route hostnames")
 	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSConsumerPortalURL)
 
 	deployment.Status.ObservedGeneration = deployment.Generation
