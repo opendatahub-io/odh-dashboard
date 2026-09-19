@@ -62,7 +62,7 @@ runs:
     - name: Install agent-ops dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.agent-ops-cache.outputs.cache-hit != 'true')
       shell: bash
-      run: npm install --prefix packages/agent-ops/frontend
+      run: npm install --legacy-peer-deps --prefix packages/agent-ops/frontend
 
     - name: data-registry node_modules cache
       id: data-registry-cache

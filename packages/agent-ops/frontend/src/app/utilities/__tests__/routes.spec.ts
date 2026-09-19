@@ -1,10 +1,21 @@
 import {
   agentOpsDeploymentsRoute,
+  agentOpsSandboxDetailPath,
+  agentOpsWorkspaceDetailPath,
+  agentOpsWorkspacesPath,
   isSafeAgentOpsInternalRoute,
   sanitizeAgentOpsReturnRoute,
 } from '~/app/utilities/routes';
 
 describe('agent-ops routes', () => {
+  it('defines workspace paths under the agents root', () => {
+    expect(agentOpsWorkspacesPath).toBe('/ai-hub/agents/workspaces');
+    expect(agentOpsWorkspaceDetailPath('ws-1')).toBe('/ai-hub/agents/workspaces/ws-1');
+    expect(agentOpsSandboxDetailPath('ws-1', 'sb-1')).toBe(
+      '/ai-hub/agents/workspaces/ws-1/sandboxes/sb-1',
+    );
+  });
+
   describe('isSafeAgentOpsInternalRoute', () => {
     it('accepts valid agent-ops paths', () => {
       expect(isSafeAgentOpsInternalRoute('/ai-hub/agents/deployments/team1')).toBe(true);
