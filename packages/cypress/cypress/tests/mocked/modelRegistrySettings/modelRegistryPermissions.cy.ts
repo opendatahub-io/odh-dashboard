@@ -1,4 +1,5 @@
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
@@ -49,6 +50,10 @@ const initIntercepts = ({ isEmpty = false, hasPermission = true }: HandlersProps
     asProductAdminUser();
   }
   cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
+  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: 'odh-model-registries' }));
+  cy.intercept('GET', '/api/hub', {
+    body: mockAIHub({ instancesNamespace: 'odh-model-registries' }),
+  });
   cy.interceptK8sList(
     ModelRegistryModel,
     mockK8sResourceList([

@@ -9,7 +9,7 @@ import {
 } from 'mod-arch-core';
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { Bullseye } from '@patternfly/react-core';
-import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
+import useFetchAIHub from '@odh-dashboard/internal/concepts/areas/useFetchAIHub';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import AgentsCatalogRoutes from '~/app/pages/agentsCatalog/AgentsCatalogRoutes';
@@ -49,13 +49,16 @@ const AgentsCatalogWrapperContent: React.FC = () => {
 };
 
 const AgentsCatalogWrapper: React.FC = () => {
-  const [dscStatus] = useFetchDscStatus();
+  const [aiHub, , aiHubError] = useFetchAIHub();
   const modularArchConfig: ModularArchConfig = {
     deploymentMode: DeploymentMode.Federated,
     URL_PREFIX,
     BFF_API_VERSION,
-    mandatoryNamespace: dscStatus?.components?.modelregistry?.registriesNamespace,
+    mandatoryNamespace: aiHub?.spec.instancesNamespace,
   };
+  if (aiHubError) {
+    return <div>Error: {aiHubError.message}</div>;
+  }
   return (
     <ModularArchContextProvider config={modularArchConfig}>
       <AgentsCatalogWrapperContent />

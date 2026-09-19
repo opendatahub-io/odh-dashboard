@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
 import { useMLflowStatus } from '@odh-dashboard/internal/concepts/mlflow/hooks/useMLflowStatus';
-import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
+import useFetchAIHub from '@odh-dashboard/internal/concepts/areas/useFetchAIHub';
 import type { McpDeploySpec, McpServer } from '~/app/types/mcpCatalogTypes';
 import { useMcpServerConverter } from '~/app/hooks/useMcpServerCatalog';
 import { getRegisterButtonState } from '~/odh/utils';
@@ -30,8 +30,8 @@ type OpenRegisterModal = {
 
 const McpServerRegisterAction: React.FC<McpServerRegisterActionProps> = ({ server }) => {
   const mlflowStatus = useMLflowStatus(true);
-  const [dscStatus, dscLoaded, dscError] = useFetchDscStatus();
-  const registriesNamespace = dscStatus?.components?.modelregistry?.registriesNamespace || '';
+  const [aiHub, aiHubLoaded, aiHubError] = useFetchAIHub();
+  const registriesNamespace = aiHub?.spec.instancesNamespace || '';
   const [crData, crLoaded, crError] = useMcpServerConverter(
     server.data?.id || '',
     registriesNamespace,
@@ -39,7 +39,8 @@ const McpServerRegisterAction: React.FC<McpServerRegisterActionProps> = ({ serve
   const buttonState = getRegisterButtonState({
     serverSettled: server.loaded || !!server.error,
     hasServerData: !!server.data,
-    dscSettled: dscLoaded || !!dscError,
+    aihubSettled: aiHubLoaded || !!aiHubError,
+    aihubError: aiHubError,
     registriesNamespace,
     mlflowLoaded: mlflowStatus.loaded,
     mlflowUnreachable: mlflowStatus.error,
