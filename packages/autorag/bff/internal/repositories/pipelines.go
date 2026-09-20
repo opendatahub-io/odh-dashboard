@@ -447,8 +447,16 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of speed, balanced", *req.Preset))
 	}
 
+	preset := constants.DefaultPreset
+	if req.Preset != nil {
+		preset = *req.Preset
+	}
 	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
-		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric))
+		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q", req.OptimizationMetric))
+	}
+	metric := constants.NormalizeOptimizationMetric(req.OptimizationMetric, preset)
+	if !constants.ValidOptimizationMetricsByPreset[preset][metric] {
+		return NewValidationError(fmt.Sprintf("optimization_metric %q is not available for preset %q", req.OptimizationMetric, preset))
 	}
 
 	if req.OptimizationMaxRagPatterns != nil {
@@ -511,10 +519,7 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 	params["embedding_models"] = req.EmbeddingsModels
 	params["generation_models"] = req.GenerationModels
 
-	metric := req.OptimizationMetric
-	if metric == "" {
-		metric = constants.DefaultOptimizationMetric
-	}
+	metric := constants.NormalizeOptimizationMetric(req.OptimizationMetric, preset)
 	params["optimization_metric"] = metric
 
 	maxRagPatterns := constants.DefaultMaxRagPatterns

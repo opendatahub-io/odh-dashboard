@@ -203,11 +203,40 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 	})
 
 	t.Run("valid optimization_metric values", func(t *testing.T) {
-		for _, metric := range []string{"faithfulness", "answer_correctness", "context_correctness"} {
+		for _, metric := range []string{
+			constants.MetricUnitxtFaithfulness,
+			constants.MetricUnitxtAnswerCorrectness,
+			constants.MetricCustomOverallScore,
+			constants.MetricRagasFaithfulness,
+			constants.MetricRagasAnswerRelevancy,
+			constants.MetricRagasContextPrecision,
+			constants.MetricRagasContextRecall,
+		} {
 			req := validRequest()
+			req.Preset = ptr("balanced")
 			req.OptimizationMetric = metric
 			if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
 				t.Errorf("metric %q should be valid: %v", metric, err)
+			}
+		}
+	})
+
+	t.Run("normalizes legacy faithfulness by preset", func(t *testing.T) {
+		for _, test := range []struct {
+			preset string
+			want   string
+		}{
+			{preset: "speed", want: constants.MetricUnitxtFaithfulness},
+			{preset: "balanced", want: constants.MetricRagasFaithfulness},
+		} {
+			req := validRequest()
+			req.Preset = ptr(test.preset)
+			req.OptimizationMetric = "faithfulness"
+			if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
+				t.Fatalf("legacy metric should be valid: %v", err)
+			}
+			if got := BuildPipelineRunInput(req, "pid", "vid").RuntimeConfig.Parameters["optimization_metric"]; got != test.want {
+				t.Errorf("metric = %v, want %q", got, test.want)
 			}
 		}
 	})
@@ -221,6 +250,25 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "optimization_metric") {
 			t.Errorf("error should mention optimization_metric: %v", err)
+		}
+	})
+
+	t.Run("rejects metrics unavailable for the selected preset", func(t *testing.T) {
+		req := validRequest()
+		req.Preset = ptr("speed")
+		req.OptimizationMetric = constants.MetricRagasFaithfulness
+		if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+			t.Fatal("expected preset-specific validation error")
+		}
+	})
+
+	t.Run("rejects forbidden and unsupported bare metrics", func(t *testing.T) {
+		for _, metric := range []string{"context_correctness", "answer_correctness", "overall_score"} {
+			req := validRequest()
+			req.OptimizationMetric = metric
+			if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+				t.Errorf("metric %q should be rejected", metric)
+			}
 		}
 	})
 
@@ -320,9 +368,9 @@ func TestBuildPipelineRunInput(t *testing.T) {
 
 	t.Run("custom optimization_metric", func(t *testing.T) {
 		req := validRequest()
-		req.OptimizationMetric = "answer_correctness"
+		req.OptimizationMetric = constants.MetricUnitxtAnswerCorrectness
 		kfp := BuildPipelineRunInput(req, "pid", "vid")
-		if kfp.RuntimeConfig.Parameters["optimization_metric"] != "answer_correctness" {
+		if kfp.RuntimeConfig.Parameters["optimization_metric"] != constants.MetricUnitxtAnswerCorrectness {
 			t.Errorf("metric = %v", kfp.RuntimeConfig.Parameters["optimization_metric"])
 		}
 	})
