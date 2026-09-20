@@ -5,17 +5,9 @@ import {
   ProviderTypes,
   SecretSummary,
   UpdateExternalProviderRequest,
-  UpdateExternalProviderRequest,
 } from '~/app/types/external-models';
 import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
 import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
-import {
-  ConfigPair,
-  configPairsToRecord,
-  EMPTY_CONFIG_PAIR,
-  recordToConfigPairs,
-} from '~/app/utilities/configPairs';
-import { CreateExternalProviderFormFields } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
 import {
   ConfigPair,
   configPairsToRecord,

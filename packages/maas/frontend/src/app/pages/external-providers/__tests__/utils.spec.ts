@@ -7,7 +7,6 @@ import {
   getSecretDisplayLabel,
   toCreateExternalProviderRequest,
   toUpdateExternalProviderRequest,
-  toUpdateExternalProviderRequest,
 } from '~/app/pages/external-providers/utils';
 import { createExternalProviderFormSchema } from '~/app/pages/external-providers/validation';
 import { EMPTY_CONFIG_PAIR, getConfigPairsValidationError } from '~/app/utilities/configPairs';

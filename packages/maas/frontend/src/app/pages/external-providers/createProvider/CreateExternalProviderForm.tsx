@@ -112,7 +112,9 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
         {getFieldValidation(['endpointUrl']).map((validation) => (
           <FormHelperText key={validation.path.join('.')}>
             <HelperText>
-              <HelperTextItem variant="error" data-testid="external-provider-endpoint-error">{validation.message}</HelperTextItem>
+              <HelperTextItem variant="error" data-testid="external-provider-endpoint-error">
+                {validation.message}
+              </HelperTextItem>
             </HelperText>
           </FormHelperText>
         ))}
