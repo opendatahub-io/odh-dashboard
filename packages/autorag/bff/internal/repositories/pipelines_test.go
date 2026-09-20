@@ -202,21 +202,41 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("valid optimization_metric values", func(t *testing.T) {
-		for _, metric := range []string{
-			constants.MetricUnitxtFaithfulness,
-			constants.MetricUnitxtAnswerCorrectness,
-			constants.MetricCustomOverallScore,
-			constants.MetricRagasFaithfulness,
-			constants.MetricRagasAnswerRelevancy,
-			constants.MetricRagasContextPrecision,
-			constants.MetricRagasContextRecall,
+	t.Run("valid optimization_metric values by preset", func(t *testing.T) {
+		for _, test := range []struct {
+			preset  string
+			metrics []string
+		}{
+			{
+				preset: "speed",
+				metrics: []string{
+					constants.MetricUnitxtFaithfulness,
+					constants.MetricUnitxtAnswerCorrectness,
+					constants.MetricCustomOverallScore,
+				},
+			},
+			{
+				preset: "balanced",
+				metrics: []string{
+					constants.MetricUnitxtFaithfulness,
+					constants.MetricUnitxtAnswerCorrectness,
+					constants.MetricCustomOverallScore,
+					constants.MetricRagasFaithfulness,
+					constants.MetricRagasAnswerRelevancy,
+					constants.MetricRagasContextPrecision,
+					constants.MetricRagasContextRecall,
+				},
+			},
 		} {
-			req := validRequest()
-			req.Preset = ptr("balanced")
-			req.OptimizationMetric = metric
-			if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
-				t.Errorf("metric %q should be valid: %v", metric, err)
+			for _, metric := range test.metrics {
+				t.Run(test.preset+"/"+metric, func(t *testing.T) {
+					req := validRequest()
+					req.Preset = ptr(test.preset)
+					req.OptimizationMetric = metric
+					if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
+						t.Fatalf("metric %q should be valid: %v", metric, err)
+					}
+				})
 			}
 		}
 	})
@@ -253,12 +273,21 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("rejects metrics unavailable for the selected preset", func(t *testing.T) {
-		req := validRequest()
-		req.Preset = ptr("speed")
-		req.OptimizationMetric = constants.MetricRagasFaithfulness
-		if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
-			t.Fatal("expected preset-specific validation error")
+	t.Run("rejects RAGAS metrics for the speed preset", func(t *testing.T) {
+		for _, metric := range []string{
+			constants.MetricRagasFaithfulness,
+			constants.MetricRagasAnswerRelevancy,
+			constants.MetricRagasContextPrecision,
+			constants.MetricRagasContextRecall,
+		} {
+			t.Run(metric, func(t *testing.T) {
+				req := validRequest()
+				req.Preset = ptr("speed")
+				req.OptimizationMetric = metric
+				if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+					t.Fatal("expected preset-specific validation error")
+				}
+			})
 		}
 	})
 

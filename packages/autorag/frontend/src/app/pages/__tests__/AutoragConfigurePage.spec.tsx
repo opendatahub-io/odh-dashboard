@@ -1557,9 +1557,9 @@ describe('AutoragConfigurePage', () => {
 
       fireEvent.click(screen.getByTestId('optimization-metric-select'));
       await waitFor(() => {
-        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+        expect(screen.getByText('Answer correctness (Unitxt)')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByText('Answer correctness'));
+      fireEvent.click(screen.getByText('Answer correctness (Unitxt)'));
 
       const runButton = await screen.findByRole('button', { name: 'Create new run' });
       await waitFor(() => {
@@ -1637,9 +1637,9 @@ describe('AutoragConfigurePage', () => {
 
       fireEvent.click(screen.getByTestId('optimization-metric-select'));
       await waitFor(() => {
-        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+        expect(screen.getByText('Answer correctness (Unitxt)')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByText('Answer correctness'));
+      fireEvent.click(screen.getByText('Answer correctness (Unitxt)'));
 
       const runButton = await screen.findByRole('button', { name: 'Create new run' });
       await waitFor(() => {
@@ -1680,9 +1680,9 @@ describe('AutoragConfigurePage', () => {
 
       fireEvent.click(screen.getByTestId('optimization-metric-select'));
       await waitFor(() => {
-        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+        expect(screen.getByText('Answer correctness (Unitxt)')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByText('Answer correctness'));
+      fireEvent.click(screen.getByText('Answer correctness (Unitxt)'));
 
       await user.click(await screen.findByRole('button', { name: 'Back' }));
 
@@ -2423,8 +2423,38 @@ describe('AutoragConfigurePage', () => {
         await navigateToConfigure();
 
         expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-          'Answer faithfulness',
+          'Faithfulness (Unitxt)',
         );
+      });
+
+      it('should submit the selected preset and qualified optimization metric when reconfiguring', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={{
+              ...reconfigureInitialValues,
+              preset: 'balanced',
+              optimization_metric: 'ragas:faithfulness',
+            }}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+        const user = await navigateToConfigure();
+        mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+
+        // The form starts with the source run's balanced/RAGAS selections and should preserve
+        // those qualified values through the reconfigure submission.
+        await user.click(screen.getByRole('button', { name: 'Create new run' }));
+
+        await waitFor(() => {
+          expect(mockMutateAsync).toHaveBeenCalledWith(
+            expect.objectContaining({
+              preset: 'balanced',
+              optimization_metric: 'ragas:faithfulness',
+            }),
+          );
+        });
       });
 
       it('should show the pre-filled max RAG patterns value in the configure step', async () => {

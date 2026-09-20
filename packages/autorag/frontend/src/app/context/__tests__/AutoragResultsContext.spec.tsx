@@ -259,6 +259,39 @@ describe('getAutoragContext', () => {
   });
 
   describe('optimization_metric handling', () => {
+    it.each([
+      ['unitxt:faithfulness', 'unitxt'],
+      ['ragas:faithfulness', 'ragas'],
+    ])('should resolve qualified %s to the matching evaluator', (runtimeMetric, evaluator) => {
+      const pattern = createMockPattern('Pattern 1', { faithfulness: 0.95 });
+      pattern.evaluation.metrics = [
+        {
+          evaluator: 'unitxt',
+          name: 'faithfulness',
+          scores: { mean: 0.95, ci_high: 1, ci_low: 0.9 },
+        },
+        {
+          evaluator: 'ragas',
+          name: 'faithfulness',
+          scores: { mean: 0.85, ci_high: 0.9, ci_low: 0.8 },
+        },
+        {
+          evaluator: 'custom',
+          name: 'overall_score',
+          scores: { mean: 0.9, ci_high: null, ci_low: null },
+          optimization_metric: true,
+        },
+      ];
+
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun({ optimization_metric: runtimeMetric }),
+        patterns: { 'pattern-1': pattern },
+      });
+
+      expect(context.optimizationMetric).toEqual({ name: 'faithfulness', evaluator });
+      expect(context.bestPatternKey).toBe('pattern-1');
+    });
+
     it('should preserve optimization_metric when provided', () => {
       const metrics = ['faithfulness', 'answer_correctness', 'context_correctness'] as const;
 

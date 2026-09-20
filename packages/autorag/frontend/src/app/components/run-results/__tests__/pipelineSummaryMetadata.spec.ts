@@ -310,4 +310,35 @@ describe('getPipelineSummaryDetails', () => {
       'Answer faithfulness (ragas)',
     );
   });
+
+  it.each([
+    {
+      runtimeMetric: 'unitxt:faithfulness',
+      optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
+      expectedLabel: 'Answer faithfulness (unitxt)',
+    },
+    {
+      runtimeMetric: 'ragas:faithfulness',
+      optimizationMetric: { name: 'faithfulness', evaluator: 'ragas' },
+      expectedLabel: 'Answer faithfulness (ragas)',
+    },
+  ])(
+    'renders qualified runtime metric $runtimeMetric',
+    ({ runtimeMetric, optimizationMetric, expectedLabel }) => {
+      const details = getPipelineSummaryDetails(
+        {
+          ...mockPipelineRun,
+          runtime_config: { parameters: { optimization_metric: runtimeMetric } },
+        },
+        mockStageMap,
+        patterns,
+        undefined,
+        optimizationMetric,
+      );
+
+      expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe(
+        expectedLabel,
+      );
+    },
+  );
 });
