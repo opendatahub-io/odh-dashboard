@@ -327,11 +327,11 @@ describe('fireAutoragVectorStoreConfigured', () => {
 });
 
 describe('mapOptimizationMetric', () => {
-  it('should map all four schema values to their camelCase taxonomy', () => {
-    expect(mapOptimizationMetric('overall_score')).toBe('overallScore');
-    expect(mapOptimizationMetric('faithfulness')).toBe('answerFaithfulness');
-    expect(mapOptimizationMetric('answer_correctness')).toBe('answerCorrectness');
-    expect(mapOptimizationMetric('context_correctness')).toBe('contextCorrectness');
+  it('should map qualified schema values to their camelCase taxonomy', () => {
+    expect(mapOptimizationMetric('custom:overall_score')).toBe('overallScore');
+    expect(mapOptimizationMetric('unitxt:faithfulness')).toBe('answerFaithfulness');
+    expect(mapOptimizationMetric('unitxt:answer_correctness')).toBe('answerCorrectness');
+    expect(mapOptimizationMetric('ragas:context_precision')).toBe('contextPrecision');
   });
 
   it('should return undefined for an unrecognized metric', () => {

@@ -1328,7 +1328,7 @@ describe('AutoragConfigurePage', () => {
       test_data_secret_name: 'Test AWS Secret',
       test_data_bucket_name: 'test-bucket',
       test_data_key: 'eval.json',
-      optimization_metric: 'faithfulness' as const,
+      optimization_metric: 'unitxt:faithfulness' as const,
       generation_models: ['llama-3-8b', 'llama-3-70b'],
       embedding_models: ['text-embedding-ada-002'],
     };
@@ -2309,7 +2309,7 @@ describe('AutoragConfigurePage', () => {
         test_data_secret_name: 'Test AWS Secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'eval.json',
-        optimization_metric: 'faithfulness' as const,
+        optimization_metric: 'unitxt:faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
       const reconfigureInitialOgxSecret = {

@@ -16,7 +16,7 @@ describe('Configure Schema', () => {
     vector_db_secret_name: 'vector-db-secret',
     generation_models: ['gpt-4'],
     embedding_models: ['text-embedding-3'],
-    optimization_metric: 'faithfulness' as const,
+    optimization_metric: 'unitxt:faithfulness' as const,
     optimization_max_rag_patterns: 10,
   };
 

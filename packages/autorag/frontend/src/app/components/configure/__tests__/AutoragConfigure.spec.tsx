@@ -1245,7 +1245,19 @@ describe('AutoragConfigure', () => {
       );
     });
 
-    it('should only offer overall_score, faithfulness, and answer_correctness as selectable metrics', async () => {
+    it('should reset an unavailable metric when switching to speed', () => {
+      renderComponent({
+        preset: 'balanced',
+        optimization_metric: 'ragas:faithfulness',
+      });
+      selectSecretAndFile();
+
+      fireEvent.click(screen.getByTestId('preset-radio-speed'));
+
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent('Overall score');
+    });
+
+    it('should offer only speed metrics by default', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -1253,33 +1265,34 @@ describe('AutoragConfigure', () => {
       await user.click(screen.getByTestId('optimization-metric-select'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('metric-option-overall_score')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
+        expect(screen.getByTestId('metric-option-custom:overall_score')).toBeInTheDocument();
+        expect(screen.getByTestId('metric-option-unitxt:faithfulness')).toBeInTheDocument();
+        expect(screen.getByTestId('metric-option-unitxt:answer_correctness')).toBeInTheDocument();
       });
       expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
     });
 
-    it('should offer exactly three optimization metrics', async () => {
+    it('should offer all seven metrics when balanced is selected', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
 
+      await user.click(screen.getByTestId('preset-radio-balanced'));
       await user.click(screen.getByTestId('optimization-metric-select'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
+        expect(screen.getByTestId('metric-option-ragas:context_recall')).toBeInTheDocument();
       });
 
       const selectList = screen.getByTestId('optimization-metric-select-list');
       const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
-      expect(options).toHaveLength(3);
+      expect(options).toHaveLength(7);
     });
 
     it('should render with a non-default metric when configured', () => {
       renderComponent({
         // eslint-disable-next-line camelcase
-        optimization_metric: 'answer_correctness',
+        optimization_metric: 'unitxt:answer_correctness',
       });
       selectSecretAndFile();
 
@@ -1634,7 +1647,7 @@ describe('AutoragConfigure', () => {
           vector_db_secret_name: 'vector-db-secret',
           generation_models: ['model-a'],
           embedding_models: ['model-b'],
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
         {
@@ -1672,7 +1685,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
         {
@@ -1682,7 +1695,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
       );
@@ -1706,7 +1719,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
         {
@@ -1716,7 +1729,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
       );
@@ -1743,7 +1756,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'answer_correctness',
+          optimization_metric: 'unitxt:answer_correctness',
           optimization_max_rag_patterns: 8,
         },
         {
@@ -1753,7 +1766,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'answer_correctness',
+          optimization_metric: 'unitxt:answer_correctness',
           optimization_max_rag_patterns: 8,
         },
       );
@@ -1779,7 +1792,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 9,
         },
         {
@@ -1789,7 +1802,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 9,
         },
       );

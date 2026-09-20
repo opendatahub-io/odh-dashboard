@@ -189,6 +189,31 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
   });
 
+  it('should normalize legacy optimization metrics using the restored preset', async () => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'vector-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+        preset: 'balanced',
+        optimization_metric: 'faithfulness',
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({
+      preset: 'balanced',
+      optimization_metric: 'ragas:faithfulness',
+    });
+  });
+
   it('should resolve restored model overlap in favor of generation models without warning', async () => {
     mockUsePipelineRunQuery.mockReturnValue({
       data: createRun({

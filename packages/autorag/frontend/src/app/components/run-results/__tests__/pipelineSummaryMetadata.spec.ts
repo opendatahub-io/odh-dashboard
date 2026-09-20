@@ -85,7 +85,7 @@ describe('getPipelineSummaryDetails', () => {
       },
       {
         label: 'Evaluation metric',
-        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+        value: `${OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC]} (custom)`,
       },
     ]);
   });
@@ -192,7 +192,7 @@ describe('getPipelineSummaryDetails', () => {
       },
       {
         label: 'Evaluation metric',
-        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+        value: `${OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC]} (custom)`,
       },
     ]);
   });
