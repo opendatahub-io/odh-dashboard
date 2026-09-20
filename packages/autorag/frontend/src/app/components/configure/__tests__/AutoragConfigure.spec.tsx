@@ -1257,6 +1257,20 @@ describe('AutoragConfigure', () => {
       expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent('Overall score');
     });
 
+    it('should preserve an available metric when switching presets', () => {
+      renderComponent({
+        preset: 'balanced',
+        optimization_metric: 'unitxt:faithfulness',
+      });
+      selectSecretAndFile();
+
+      fireEvent.click(screen.getByTestId('preset-radio-speed'));
+
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+        'Faithfulness (Unitxt)',
+      );
+    });
+
     it('should offer only speed metrics by default', async () => {
       const user = userEvent.setup();
       renderComponent();
@@ -1264,15 +1278,22 @@ describe('AutoragConfigure', () => {
 
       await user.click(screen.getByTestId('optimization-metric-select'));
 
+      const expectedMetrics = [
+        ['custom:overall_score', 'Overall score'],
+        ['unitxt:faithfulness', 'Faithfulness (Unitxt)'],
+        ['unitxt:answer_correctness', 'Answer correctness (Unitxt)'],
+      ];
       await waitFor(() => {
-        expect(screen.getByTestId('metric-option-custom:overall_score')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-unitxt:faithfulness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-unitxt:answer_correctness')).toBeInTheDocument();
+        expect(screen.getAllByTestId(/^metric-option-/)).toHaveLength(expectedMetrics.length);
+      });
+      expectedMetrics.forEach(([metric, label]) => {
+        expect(screen.getByTestId(`metric-option-${metric}`)).toHaveTextContent(label);
       });
       expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-option-ragas:faithfulness')).not.toBeInTheDocument();
     });
 
-    it('should offer all seven metrics when balanced is selected', async () => {
+    it('should offer exactly the seven balanced metrics with evaluator-specific labels', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -1280,13 +1301,23 @@ describe('AutoragConfigure', () => {
       await user.click(screen.getByTestId('preset-radio-balanced'));
       await user.click(screen.getByTestId('optimization-metric-select'));
 
+      const expectedMetrics = [
+        ['custom:overall_score', 'Overall score'],
+        ['unitxt:faithfulness', 'Faithfulness (Unitxt)'],
+        ['unitxt:answer_correctness', 'Answer correctness (Unitxt)'],
+        ['ragas:faithfulness', 'Faithfulness (RAGAS)'],
+        ['ragas:answer_relevancy', 'Answer relevancy (RAGAS)'],
+        ['ragas:context_precision', 'Context precision (RAGAS)'],
+        ['ragas:context_recall', 'Context recall (RAGAS)'],
+      ];
       await waitFor(() => {
-        expect(screen.getByTestId('metric-option-ragas:context_recall')).toBeInTheDocument();
+        expect(screen.getAllByTestId(/^metric-option-/)).toHaveLength(expectedMetrics.length);
       });
 
-      const selectList = screen.getByTestId('optimization-metric-select-list');
-      const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
-      expect(options).toHaveLength(7);
+      expectedMetrics.forEach(([metric, label]) => {
+        expect(screen.getByTestId(`metric-option-${metric}`)).toHaveTextContent(label);
+      });
+      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
     });
 
     it('should render with a non-default metric when configured', () => {

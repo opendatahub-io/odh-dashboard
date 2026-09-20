@@ -125,13 +125,13 @@ export const normalizeRestoredOptimizationMetric = (
 
 /** Human-readable labels for optimization metric values. */
 export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
-  [RAG_METRIC_UNITXT_FAITHFULNESS]: 'Answer faithfulness',
-  [RAG_METRIC_UNITXT_ANSWER_CORRECTNESS]: 'Answer correctness',
+  [RAG_METRIC_UNITXT_FAITHFULNESS]: 'Faithfulness (Unitxt)',
+  [RAG_METRIC_UNITXT_ANSWER_CORRECTNESS]: 'Answer correctness (Unitxt)',
   [RAG_METRIC_CUSTOM_OVERALL_SCORE]: 'Overall score',
-  [RAG_METRIC_RAGAS_FAITHFULNESS]: 'Answer faithfulness',
-  [RAG_METRIC_RAGAS_ANSWER_RELEVANCY]: 'Answer relevancy',
-  [RAG_METRIC_RAGAS_CONTEXT_PRECISION]: 'Context precision',
-  [RAG_METRIC_RAGAS_CONTEXT_RECALL]: 'Context recall',
+  [RAG_METRIC_RAGAS_FAITHFULNESS]: 'Faithfulness (RAGAS)',
+  [RAG_METRIC_RAGAS_ANSWER_RELEVANCY]: 'Answer relevancy (RAGAS)',
+  [RAG_METRIC_RAGAS_CONTEXT_PRECISION]: 'Context precision (RAGAS)',
+  [RAG_METRIC_RAGAS_CONTEXT_RECALL]: 'Context recall (RAGAS)',
   [RAG_METRIC_FAITHFULNESS]: 'Answer faithfulness',
   [RAG_METRIC_ANSWER_CORRECTNESS]: 'Answer correctness',
   [RAG_METRIC_CONTEXT_CORRECTNESS]: 'Context correctness',
