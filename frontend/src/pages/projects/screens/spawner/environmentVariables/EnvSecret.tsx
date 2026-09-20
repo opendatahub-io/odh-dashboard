@@ -48,7 +48,15 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
   const noPermission = loaded && !canList;
   const loadFailed = loaded && canList && !!error;
   const noSecrets = loaded && canList && !error && secrets.length === 0;
-  const existingDisabled = !loaded || noPermission || loadFailed || noSecrets;
+  const allUsedElsewhere =
+    loaded &&
+    canList &&
+    !error &&
+    secrets.length > 0 &&
+    existingSecretRefs.length === 0 &&
+    usedSecretNames != null &&
+    secrets.every((s) => usedSecretNames.has(s.name));
+  const existingDisabled = !loaded || noPermission || loadFailed || noSecrets || allUsedElsewhere;
 
   const disabledMessage = !loaded
     ? 'Loading secrets...'
@@ -58,6 +66,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
     ? EXISTING_SECRET_DISABLED_MESSAGES.noPermission
     : noSecrets
     ? EXISTING_SECRET_DISABLED_MESSAGES.noSecrets
+    : allUsedElsewhere
+    ? 'All secrets are already attached in other variables.'
     : undefined;
 
   return (
@@ -69,8 +79,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
       radioGroupName="env-secret-subtype"
       options={{
         [SecretCategory.GENERIC]: {
-          label: 'Key / value',
-          description: 'Create a new key-value pair for this environment variable',
+          label: 'Create',
+          description: 'Enter key-value pairs manually.',
           render: (
             <GenericKeyValuePairField
               values={env.data.length === 0 ? [EMPTY_KEY_VALUE_PAIR] : env.data}
@@ -81,7 +91,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
         },
         [SecretCategory.UPLOAD]: {
           label: 'Upload',
-          description: 'Upload environment variables from a file',
+          description: 'Upload key-value pairs from a file.',
           render: (
             <EnvUploadField
               envVarType={EnvironmentVariableType.SECRET}
@@ -91,9 +101,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
           ),
         },
         [SecretCategory.EXISTING]: {
-          label: 'Existing secret',
-          description:
-            'Attach an available secret from this project. Use Existing Secrets to attach secrets managed by your platform team or provisioned through external tools. For reusable credentials like S3 or database connections, use the Connections section.',
+          label: 'Existing connection',
+          description: 'Attach a secret from this project.',
           isDisabled: existingDisabled,
           labelIcon: disabledMessage ? (
             <Tooltip content={disabledMessage}>

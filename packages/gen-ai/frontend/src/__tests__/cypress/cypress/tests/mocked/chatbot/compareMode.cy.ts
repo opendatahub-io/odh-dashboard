@@ -80,6 +80,10 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
     // Wait for APIs
     cy.wait('@bffConfig');
     cy.wait('@aaModels');
+
+    // Wait for the page body to fully render and stabilize after any
+    // refetch triggered by namespace resolution.
+    chatbotPage.findMessageInput().should('be.visible');
   });
 
   afterEach(() => {

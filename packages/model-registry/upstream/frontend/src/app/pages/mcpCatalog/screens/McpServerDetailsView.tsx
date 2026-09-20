@@ -25,6 +25,7 @@ import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import ExternalLink from '~/app/shared/components/ExternalLink';
 import MarkdownComponent from '~/app/shared/markdown/MarkdownComponent';
 import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTimestamp';
+import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
 import McpServerToolsSection from '~/app/pages/mcpCatalog/screens/McpServerToolsSection';
 import { getMcpServerPrimaryEndpoint } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
 
@@ -65,6 +66,9 @@ const McpServerDetailsView: React.FC<McpServerDetailsViewProps> = ({ server }) =
   const deploymentModeLabel = getDeploymentModeLabel(server.deploymentMode);
   const transportTypeLabel = getTransportTypeLabel(server.transports);
   const primaryEndpoint = getMcpServerPrimaryEndpoint(server.endpoints);
+  const serverJsonContent = server.serverJson
+    ? JSON.stringify(server.serverJson, null, 2)
+    : undefined;
 
   return (
     <PageSection hasBodyWrapper={false} isFilled padding={{ default: 'noPadding' }}>
@@ -90,6 +94,26 @@ const McpServerDetailsView: React.FC<McpServerDetailsViewProps> = ({ server }) =
             <StackItem>
               <McpServerToolsSection serverId={server.id} />
             </StackItem>
+            {serverJsonContent && (
+              <StackItem>
+                <Card data-testid="mcp-server-json-card">
+                  <CardHeader>
+                    <Title headingLevel="h2" size="lg">
+                      Server.json
+                    </Title>
+                  </CardHeader>
+                  <CardBody>
+                    <CodeBlockComponent
+                      maxHeight="400px"
+                      scrollTestId="mcp-server-json-scroll"
+                      codeTestId="mcp-server-json-code"
+                    >
+                      {serverJsonContent}
+                    </CodeBlockComponent>
+                  </CardBody>
+                </Card>
+              </StackItem>
+            )}
             <StackItem>
               <Card>
                 <CardHeader>

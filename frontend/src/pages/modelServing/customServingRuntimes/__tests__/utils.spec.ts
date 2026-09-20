@@ -12,8 +12,8 @@ import {
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
-} from '#~/__mocks__/mockServingRuntimeK8sResource';
-import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+} from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 
 describe('getDisplayNameFromServingRuntimeTemplate', () => {
   it('should provide default name if not found', () => {

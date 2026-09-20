@@ -26,6 +26,7 @@ describe('Workbench Storage Classes Tests', () => {
   const createdStorageClasses: string[] = [];
   let projectName: string;
   let notebookImage: string;
+  let hardwareProfileName: string;
   const uuid = generateTestUUID();
 
   // Storage class names
@@ -67,8 +68,8 @@ describe('Workbench Storage Classes Tests', () => {
       .then((fixtureData: WBStorageClassesTestData) => {
         cy.log('Loaded test data from fixtures');
         projectName = `${fixtureData.projectName}-${uuid}`;
-        storageClassRWO = fixtureData.storageClassRWO;
-        storageClassMultiAccess = fixtureData.storageClassMultiAccess;
+        storageClassRWO = `${fixtureData.storageClassRWO}-${uuid}`;
+        storageClassMultiAccess = `${fixtureData.storageClassMultiAccess}-${uuid}`;
         workbenchNameRWO = fixtureData.workbenchRWO;
         workbenchNameMultiA = fixtureData.workbenchMultiAccessA;
         workbenchNameMultiB = fixtureData.workbenchMultiAccessB;
@@ -84,6 +85,7 @@ describe('Workbench Storage Classes Tests', () => {
         mountPathC = fixtureData.mountPathC;
         notebookImage = fixtureData.notebookImage;
         isS390x = !!fixtureData.isS390x;
+        hardwareProfileName = fixtureData.hardwareProfileName;
       })
       .then(() => {
         cy.step('Provisioning storage class');
@@ -156,6 +158,8 @@ describe('Workbench Storage Classes Tests', () => {
         (imageStreamName: string) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(hardwareProfileName);
           cy.step('Attach RWO storage to workbench');
           createSpawnerPage.findAttachExistingStorageButton().click();
           attachExistingStorageModal.findStandardPathInput().fill(mountPathA);
@@ -230,6 +234,8 @@ describe('Workbench Storage Classes Tests', () => {
       createSpawnerPage.getNameInput().fill(workbenchNameMultiA);
 
       selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(() => {
+        cy.step('Select the default hardware profile');
+        createSpawnerPage.selectHardwareProfile(hardwareProfileName);
         cy.step('Open attach storage modal');
         createSpawnerPage.findAttachExistingStorageButton().click();
 
@@ -280,6 +286,8 @@ describe('Workbench Storage Classes Tests', () => {
       createSpawnerPage.getNameInput().fill(workbenchNameMultiB);
 
       selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(() => {
+        cy.step('Select the default hardware profile');
+        createSpawnerPage.selectHardwareProfile(hardwareProfileName);
         cy.step('Create new storage with RWO access mode');
         createSpawnerPage.findCreateStorageButton().click();
         storageModal.findNameInput().type(storageCreateRWO);

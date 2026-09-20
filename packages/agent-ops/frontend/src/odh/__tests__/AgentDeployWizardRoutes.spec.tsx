@@ -44,7 +44,7 @@ jest.mock('~/app/hooks/useAgentOpsProjectNamespaces', () => ({
   }),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () => ({
+jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', () => ({
   __esModule: true,
   default: ({
     namespace,

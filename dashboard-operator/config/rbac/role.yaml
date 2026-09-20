@@ -267,6 +267,7 @@ rules:
       - ""
     resources:
       - pods
+      - persistentvolumes
     verbs:
       - get
       - list
@@ -291,7 +292,7 @@ rules:
       - get
       - update
       - delete
-  # Storage classes — mirrors sa-rbac/cluster-role.yaml + gen-ai module ClusterRole.
+  # Storage classes — mirrors sa-rbac/cluster-role.yaml + gen-ai module ClusterRole + notebooks module.
   - apiGroups:
       - storage.k8s.io
     resources:
@@ -299,6 +300,7 @@ rules:
     verbs:
       - get
       - list
+      - watch
       - update
       - patch
   # Auth delegation for operand service accounts
@@ -327,6 +329,22 @@ rules:
       - get
       - create
       - update
+  # TLS security profile for server TLS configuration
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    verbs:
+      - watch
+      - list
   # OpenShift platform detection for operand
   - apiGroups:
       - config.openshift.io
@@ -523,11 +541,13 @@ rules:
       - default-gateway
     verbs:
       - get
-  # Kubeflow notebooks
+  # Kubeflow notebooks and workbenches V2
   - apiGroups:
       - kubeflow.org
     resources:
       - notebooks
+      - workspaces
+      - workspacekinds
     verbs:
       - get
       - list

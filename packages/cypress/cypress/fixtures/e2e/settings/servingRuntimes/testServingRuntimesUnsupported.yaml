@@ -1,0 +1,20 @@
+# testServingRuntimesUnsupported.cy.ts Test Data #
+
+# resource kind
+resourceType: 'kind: ServingRuntime'
+resourceApiVersion: 'serving.kserve.io/v1alpha1'
+
+# Model Serving 
+projectResourceName: 'test-serving-runtime'
+singleModelName: 'test-serving-runtime-model'
+modelLocationURI: 'hf://facebook/opt-125m'
+connectionNameSuffix: '-connection'
+deploymentMethod: 'legacy'
+
+# Serving runtime template
+servingRuntimeId: 'cypress-custom-servingruntime'
+servingRuntimeDisplayName: 'Cypress Custom ServingRuntime for KServe'
+unsupportedServingRuntimeYamlFixturePath: 'resources/modelServing/unsupported_servingruntime_config.yaml'
+apiProtocol: 'REST'
+replaceSourceString: "opendatahub.io/support-status: unsupported"
+replaceTargetString: "opendatahub.io/support-status: supported"

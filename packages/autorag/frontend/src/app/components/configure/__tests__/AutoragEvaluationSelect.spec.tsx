@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluationSelect';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
@@ -13,10 +14,21 @@ import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
+import {
+  AUTORAG_EVENTS,
+  AUTORAG_FAILURE_CATEGORY,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
+import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
@@ -96,6 +108,7 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
 
 const mockUseParams = jest.mocked(useParams);
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const configureSchema = createConfigureSchema();
 
@@ -188,17 +201,34 @@ const renderWithProviders = (
   options?: {
     onFormChange?: (values: unknown) => void;
     defaultValues?: Partial<typeof configureSchema.defaults>;
+    onEvaluationSourceConfigured?: (sourceType: string) => void;
   },
 ) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const tree = (
     <QueryClientProvider client={queryClient}>
       <FormWrapper onFormChange={options?.onFormChange} defaultValues={options?.defaultValues}>
         {component}
       </FormWrapper>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+  );
+  return render(
+    options?.onEvaluationSourceConfigured ? (
+      <RunTriggeredTrackingContext.Provider
+        value={{
+          onKnowledgeSourceConfigured: jest.fn(),
+          onEvaluationSourceConfigured: options.onEvaluationSourceConfigured,
+          onVectorStoreConfigured: jest.fn(),
+          onModelsConfigured: jest.fn(),
+        }}
+      >
+        {tree}
+      </RunTriggeredTrackingContext.Provider>
+    ) : (
+      tree
+    ),
   );
 };
 
@@ -645,6 +675,139 @@ describe('AutoragEvaluationSelect', () => {
       expect(formValues).toMatchObject({
         test_data_key: 'created-eval.json', // eslint-disable-line camelcase
       });
+    });
+  });
+
+  describe('AutoRAG Evaluation Source Configured tracking', () => {
+    it('should fire with evaluationSourceType: upload and success: true on successful upload', async () => {
+      const user = userEvent.setup();
+      const file = new File(['test content'], 'test.json', { type: 'application/json' });
+      mockUploadMutateAsync.mockResolvedValue({ key: 'test.json' });
+
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+
+      await user.upload(getEvaluationFileInput(container), file);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+          {
+            evaluationSourceType: 'upload',
+            countOfDocuments: 1,
+            outcome: TrackingOutcome.submit,
+            success: true,
+          },
+        );
+      });
+    });
+
+    it('should fire with success: false and an allowlisted failure category (not the raw error message) on a failed upload', async () => {
+      const user = userEvent.setup();
+      const file = new File(['test content'], 'test.json', { type: 'application/json' });
+      mockUploadMutateAsync.mockRejectedValueOnce(
+        new Error('Upload failed: s3://acme-secret-bucket'),
+      );
+
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+
+      await user.upload(getEvaluationFileInput(container), file);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+          {
+            evaluationSourceType: 'upload',
+            countOfDocuments: 0,
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: AUTORAG_FAILURE_CATEGORY,
+          },
+        );
+      });
+
+      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-secret-bucket');
+    });
+
+    it('should fire with evaluationSourceType: s3 and countOfDocuments: 1 when a file is selected', async () => {
+      const user = userEvent.setup();
+
+      renderWithProviders(<AutoragEvaluationSelect />);
+
+      await user.click(screen.getByRole('button', { name: /s3/i }));
+      await user.click(screen.getByTestId('s3-select-file'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+        {
+          evaluationSourceType: 's3',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      );
+    });
+
+    it('should fire with outcome: cancel and success: false when the S3 file browser is closed without a selection', async () => {
+      const user = userEvent.setup();
+
+      renderWithProviders(<AutoragEvaluationSelect />);
+
+      await user.click(screen.getByRole('button', { name: /s3/i }));
+      await user.click(screen.getByTestId('s3-close'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+        {
+          evaluationSourceType: 's3',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.cancel,
+          success: false,
+        },
+      );
+    });
+
+    it('should not fire a cancel event when the browser is closed right after a successful selection', async () => {
+      const user = userEvent.setup();
+
+      renderWithProviders(<AutoragEvaluationSelect />);
+
+      await user.click(screen.getByRole('button', { name: /s3/i }));
+      fireFormTrackingEventMock.mockClear();
+      // Real S3FileExplorer/FileExplorer calls onSelectFiles then onClose in sequence when the
+      // user clicks "Select" — simulate that ordering here to verify onClose doesn't re-fire.
+      await user.click(screen.getByTestId('s3-select-file'));
+      await user.click(screen.getByTestId('s3-close'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+        expect.objectContaining({ outcome: TrackingOutcome.submit }),
+      );
+    });
+
+    it('should report a successful s3 selection to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', async () => {
+      const user = userEvent.setup();
+      const onEvaluationSourceConfigured = jest.fn();
+
+      renderWithProviders(<AutoragEvaluationSelect />, { onEvaluationSourceConfigured });
+
+      await user.click(screen.getByRole('button', { name: /s3/i }));
+      await user.click(screen.getByTestId('s3-select-file'));
+
+      expect(onEvaluationSourceConfigured).toHaveBeenCalledWith('s3');
+    });
+
+    it('should not report a cancelled s3 selection to RunTriggeredTrackingContext', async () => {
+      const user = userEvent.setup();
+      const onEvaluationSourceConfigured = jest.fn();
+
+      renderWithProviders(<AutoragEvaluationSelect />, { onEvaluationSourceConfigured });
+
+      await user.click(screen.getByRole('button', { name: /s3/i }));
+      await user.click(screen.getByTestId('s3-close'));
+
+      expect(onEvaluationSourceConfigured).not.toHaveBeenCalled();
     });
   });
 });

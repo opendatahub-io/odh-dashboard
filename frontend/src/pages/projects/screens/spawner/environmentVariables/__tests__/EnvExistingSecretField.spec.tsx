@@ -25,24 +25,6 @@ describe('EnvExistingSecretField', () => {
     jest.clearAllMocks();
   });
 
-  describe('all-used state', () => {
-    it('should show message when all secrets are already attached elsewhere', () => {
-      render(
-        <EnvExistingSecretField
-          existingSecretRefs={[]}
-          onUpdate={jest.fn()}
-          usedSecretNames={new Set(['db-credentials', 'api-key-secret', 'tls-cert'])}
-          existingSecretsData={mockExistingSecretsData()}
-        />,
-      );
-
-      expect(screen.getByTestId('env-existing-secret-all-used')).toBeInTheDocument();
-      expect(screen.getByTestId('env-existing-secret-all-used')).toHaveTextContent(
-        'All secrets in this project are already attached in other variables.',
-      );
-    });
-  });
-
   describe('with available secrets', () => {
     const loadedSecretsData = mockExistingSecretsData();
 
@@ -68,7 +50,7 @@ describe('EnvExistingSecretField', () => {
       );
 
       expect(screen.getByTestId('env-existing-secret-search')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Search secrets')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Select secrets')).toBeInTheDocument();
     });
 
     it('should show secret options when dropdown is opened', async () => {
@@ -292,10 +274,12 @@ describe('EnvExistingSecretField', () => {
 
       const alert = screen.getByTestId('env-collision-warning');
       expect(alert).toBeInTheDocument();
-      expect(alert).toHaveTextContent('SHARED_KEY is defined in both secret-a and secret-b.');
+      expect(alert).toHaveTextContent('Resolve key name collisions');
       expect(alert).toHaveTextContent(
-        'Choose one and deselect the duplicate key to resolve the collision.',
+        'The following keys are defined more than once across the selected secrets.',
       );
+      expect(alert).toHaveTextContent('Defined in secrets: secret-a, secret-b');
+      expect(within(alert).getByText('secret-a, secret-b').tagName).toBe('STRONG');
     });
 
     it('should show plural collision warning for multiple key collisions', () => {
@@ -318,9 +302,10 @@ describe('EnvExistingSecretField', () => {
 
       const alert = screen.getByTestId('env-collision-warning');
       expect(alert).toBeInTheDocument();
-      expect(alert).toHaveTextContent('Key name collisions across attached secrets');
-      expect(alert).toHaveTextContent('KEY_1 is defined in both secret-a and secret-b.');
-      expect(alert).toHaveTextContent('KEY_2 is defined in both secret-a and secret-b.');
+      expect(alert).toHaveTextContent('Resolve key name collisions');
+      expect(alert).toHaveTextContent('Defined in secrets: secret-a, secret-b');
+      expect(alert).toHaveTextContent('KEY_1');
+      expect(alert).toHaveTextContent('KEY_2');
     });
 
     it('should not show collision warning when only one secret is selected', () => {
@@ -333,6 +318,27 @@ describe('EnvExistingSecretField', () => {
           existingSecretRefs={existingRefs}
           onUpdate={jest.fn()}
           existingSecretsData={mockExistingSecretsData()}
+        />,
+      );
+
+      expect(screen.queryByTestId('env-collision-warning')).not.toBeInTheDocument();
+    });
+
+    it('should not show collision warning when only reserved keys overlap', () => {
+      const collidingSecrets: ExistingSecretMetadata[] = [
+        { name: 'secret-a', keys: ['TOKEN_VALUE', 'NOTEBOOK_ARGS'] },
+        { name: 'secret-b', keys: ['NOTEBOOK_ARGS'] },
+      ];
+      const existingRefs: ExistingSecretRef[] = [
+        { secretName: 'secret-a', selectedKeys: ['TOKEN_VALUE', 'NOTEBOOK_ARGS'] },
+        { secretName: 'secret-b', selectedKeys: ['NOTEBOOK_ARGS'] },
+      ];
+
+      render(
+        <EnvExistingSecretField
+          existingSecretRefs={existingRefs}
+          onUpdate={jest.fn()}
+          existingSecretsData={mockExistingSecretsData({ secrets: collidingSecrets })}
         />,
       );
 

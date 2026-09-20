@@ -20,14 +20,17 @@ import (
 	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 )
 
-func setupApiTest[T any](method string, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, requestIdentity kubernetes.RequestIdentity, namespace string) (T, *http.Response, error) {
+// serveApiTest builds the test App with mocked clients, serves the request and returns
+// the raw response together with its (already read) body. Use it directly for non-JSON
+// responses (e.g. binary payloads); setupApiTest wraps it for JSON envelope responses.
+func serveApiTest(method string, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, requestIdentity kubernetes.RequestIdentity, namespace string) (*http.Response, []byte, error) {
 	mockMRClient, err := mocks.NewModelRegistryClient(nil)
 	if err != nil {
-		return *new(T), nil, err
+		return nil, nil, err
 	}
 	mockModelCatalogClient, err := mocks.NewModelCatalogClientMock(nil)
 	if err != nil {
-		return *new(T), nil, err
+		return nil, nil, err
 	}
 
 	mockClient := new(mocks.MockHTTPClient)
@@ -50,17 +53,17 @@ func setupApiTest[T any](method string, url string, body interface{}, k8Factory 
 	if body != nil {
 		r, err := json.Marshal(body)
 		if err != nil {
-			return *new(T), nil, err
+			return nil, nil, err
 		}
 		bytes.NewReader(r)
 		req, err = http.NewRequest(method, url, bytes.NewReader(r))
 		if err != nil {
-			return *new(T), nil, err
+			return nil, nil, err
 		}
 	} else {
 		req, err = http.NewRequest(method, url, nil)
 		if err != nil {
-			return *new(T), nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -87,6 +90,15 @@ func setupApiTest[T any](method string, url string, body interface{}, k8Factory 
 	rs := rr.Result()
 	defer rs.Body.Close()
 	respBody, err := io.ReadAll(rs.Body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return rs, respBody, nil
+}
+
+func setupApiTest[T any](method string, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, requestIdentity kubernetes.RequestIdentity, namespace string) (T, *http.Response, error) {
+	rs, respBody, err := serveApiTest(method, url, body, k8Factory, requestIdentity, namespace)
 	if err != nil {
 		return *new(T), nil, err
 	}

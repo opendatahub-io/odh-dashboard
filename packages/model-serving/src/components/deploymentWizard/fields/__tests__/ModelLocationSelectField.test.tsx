@@ -12,10 +12,13 @@ import type {
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
+import type { ModelLocationFieldOverride } from '../../../../shared/types/form-data';
 import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
+import { NIMModelLocationKey } from '../../../../shared/wizard-fields';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
+import { useWizardFieldOverrides } from '../../dynamicFormUtils';
 
 const modelLocationSchema = z.object({
   modelLocationData: z.custom<ModelLocationData>((val) => {
@@ -29,6 +32,11 @@ jest.mock('@patternfly/react-core', () => ({
   useWizardContext: jest.fn(),
   useWizardFooter: jest.fn(),
 }));
+jest.mock('../../dynamicFormUtils', () => ({
+  ...jest.requireActual('../../dynamicFormUtils'),
+  useWizardFieldOverrides: jest.fn(() => []),
+}));
+const mockUseWizardFieldOverrides = jest.mocked(useWizardFieldOverrides);
 const mockUseWizardContext = useWizardContext as jest.MockedFunction<typeof useWizardContext>;
 const mockUseWizardFooter = useWizardFooter as jest.MockedFunction<typeof useWizardFooter>;
 const mockConnectionTypes: ConnectionTypeConfigMapObj[] = [
@@ -211,10 +219,32 @@ const mockConnectionTypes: ConnectionTypeConfigMapObj[] = [
     },
   },
 ];
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+const StubConnectionTypeFormFields: React.FC<{
+  fields?: { type: string; envVar?: string }[];
+  connectionValues?: Record<string, unknown>;
+  onChange?: (field: { type: string; envVar?: string }, value: unknown) => void;
+}> = ({ fields, connectionValues, onChange }) => (
+  <>
+    {fields
+      ?.filter((f): f is { type: string; envVar: string } => f.type !== 'section' && !!f.envVar)
+      .map((field) => (
+        <input
+          key={field.envVar}
+          data-testid={`field ${field.envVar}`}
+          value={String(connectionValues?.[field.envVar] ?? '')}
+          onChange={(e) => onChange?.(field, e.target.value)}
+        />
+      ))}
+  </>
+);
+jest.mock('@odh-dashboard/plugin-core', () => ({
   useWatchConnectionTypes: () => [mockConnectionTypes, true],
   useServingConnections: jest.fn(() => [mockConnections, true]),
-  useHostApi: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApi: jest.fn(() => ({
+    ConnectionTypeFormFields: StubConnectionTypeFormFields,
+  })),
+  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -234,11 +264,15 @@ const mockAreaStatus = (status: boolean): IsAreaAvailableStatus => ({
 
 const mockConnections: Connection[] = [];
 const mockPvcs: PersistentVolumeClaimKind[] = [];
-
-jest.mock('@odh-dashboard/internal/pages/modelServing/usePvcs', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({ data: mockPvcs, loaded: true, error: undefined })),
-}));
+const NIMModelLocationOverride: ModelLocationFieldOverride = {
+  id: 'modelLocation',
+  type: 'modifier' as const,
+  isActive: () => true,
+  locationKey: NIMModelLocationKey,
+  disableWhenEditing: true,
+  disabledTooltip: 'Model location cannot be changed when editing an NVIDIA NIM deployment.',
+  hideOptionWhenEditingOtherLocation: true,
+};
 
 describe('ModelLocationSelectField', () => {
   const mockWizardContext = {
@@ -434,6 +468,7 @@ describe('ModelLocationSelectField', () => {
     const mockSetModelLocationData = jest.fn();
     const mockWizardState: UseModelDeploymentWizardState = {
       fields: [],
+      initialData: undefined,
       state: {
         createConnectionData: {
           data: {},
@@ -450,6 +485,7 @@ describe('ModelLocationSelectField', () => {
     } as unknown as UseModelDeploymentWizardState;
     beforeEach(() => {
       jest.clearAllMocks();
+      mockUseWizardFieldOverrides.mockReturnValue([]);
     });
     it('should render with default props', () => {
       render(
@@ -461,6 +497,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       expect(screen.getByRole('button')).toBeInTheDocument();
@@ -490,9 +527,15 @@ describe('ModelLocationSelectField', () => {
                   'opendatahub.io/connection-type': 'true',
                 },
               },
+              data: {
+                fields: [
+                  { envVar: 'URI', name: 'URI', required: true, type: 'uri', properties: {} },
+                ],
+              },
             },
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       expect(screen.getByTestId('model-location-select')).toBeInTheDocument();
@@ -515,6 +558,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: undefined,
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -559,6 +603,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: mockConnectionTypes[0],
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const uriInput = screen.getByTestId('field URI');
@@ -598,6 +643,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: mockConnectionTypes[1],
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const s3Input = screen.getByTestId('field AWS_S3_BUCKET');
@@ -640,6 +686,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: mockConnectionTypes[2],
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const ociInput = screen.getByTestId('field OCI_HOST');
@@ -672,6 +719,7 @@ describe('ModelLocationSelectField', () => {
             connectionTypeObject: undefined,
           }}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const modalLocationSelect = screen.getByTestId('model-location-select');
@@ -716,6 +764,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       expect(screen.getByTestId('field CUSTOM_URI_FIELD')).toBeInTheDocument();
@@ -742,6 +791,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -781,6 +831,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -840,6 +891,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -866,6 +918,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -885,6 +938,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -904,6 +958,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -923,6 +978,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -942,6 +998,7 @@ describe('ModelLocationSelectField', () => {
           setSelectedConnection={jest.fn()}
           selectedConnection={undefined}
           pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
         />,
       );
       const button = screen.getByTestId('model-location-select');
@@ -957,6 +1014,53 @@ describe('ModelLocationSelectField', () => {
         fieldValues: {},
         additionalFields: {},
       });
+    });
+    it('should disable model location select when editing a NIM deployment', () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      mockUseWizardFieldOverrides.mockReturnValue([NIMModelLocationOverride]);
+      render(
+        <ModelLocationSelectField
+          wizardState={{
+            ...mockWizardState,
+            initialData: { isEditing: true },
+          }}
+          modelLocation={ModelLocationType.NIM}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={jest.fn()}
+          connections={mockConnections}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
+        />,
+      );
+
+      expect(screen.getByTestId('model-location-select')).toBeDisabled();
+    });
+    it('should hide NVIDIA NIM option when editing a non-NIM deployment', async () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      mockUseWizardFieldOverrides.mockReturnValue([NIMModelLocationOverride]);
+      render(
+        <ModelLocationSelectField
+          wizardState={{
+            ...mockWizardState,
+            initialData: { isEditing: true },
+          }}
+          modelLocation={ModelLocationType.EXISTING}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={jest.fn()}
+          connections={mockConnections}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          pvcs={mockPvcs}
+          connectionTypes={mockConnectionTypes}
+        />,
+      );
+      const button = screen.getByTestId('model-location-select');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.queryByRole('option', { name: 'NVIDIA NIM' })).not.toBeInTheDocument();
     });
   });
 });

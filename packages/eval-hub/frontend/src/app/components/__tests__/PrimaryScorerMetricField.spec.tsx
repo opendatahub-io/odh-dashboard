@@ -8,7 +8,7 @@ describe('PrimaryScorerMetricField', () => {
   it('should render with the selected metric displayed', () => {
     render(<PrimaryScorerMetricField metrics={metrics} selected="accuracy" onChange={jest.fn()} />);
 
-    expect(screen.getByTestId('primary-scorer-metric-toggle')).toHaveTextContent('accuracy');
+    expect(screen.getByTestId('primary-scorer-metric-toggle')).toHaveTextContent('Accuracy');
   });
 
   it('should show placeholder when no metric is selected', () => {
@@ -32,9 +32,9 @@ describe('PrimaryScorerMetricField', () => {
 
     fireEvent.click(screen.getByTestId('primary-scorer-metric-toggle'));
 
-    expect(screen.getByRole('option', { name: 'accuracy' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'f1' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'perplexity' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Accuracy' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'F1' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Perplexity' })).toBeInTheDocument();
   });
 
   it('should call onChange when a metric is selected', () => {
@@ -42,7 +42,7 @@ describe('PrimaryScorerMetricField', () => {
     render(<PrimaryScorerMetricField metrics={metrics} selected="accuracy" onChange={onChange} />);
 
     fireEvent.click(screen.getByTestId('primary-scorer-metric-toggle'));
-    fireEvent.click(screen.getByRole('option', { name: 'f1' }));
+    fireEvent.click(screen.getByRole('option', { name: 'F1' }));
 
     expect(onChange).toHaveBeenCalledWith('f1');
   });
@@ -51,15 +51,20 @@ describe('PrimaryScorerMetricField', () => {
     render(<PrimaryScorerMetricField metrics={metrics} selected="accuracy" onChange={jest.fn()} />);
 
     fireEvent.click(screen.getByTestId('primary-scorer-metric-toggle'));
-    expect(screen.getByRole('option', { name: 'f1' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'F1' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('option', { name: 'f1' }));
-    expect(screen.queryByRole('option', { name: 'f1' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: 'F1' }));
+    expect(screen.queryByRole('option', { name: 'F1' })).not.toBeInTheDocument();
   });
 
-  it('should render the label and help popover', () => {
+  it('should render the label and description', () => {
     render(<PrimaryScorerMetricField metrics={metrics} selected="accuracy" onChange={jest.fn()} />);
 
     expect(screen.getByText('Primary scorer metric')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Choose the primary metric used to calculate the result for this benchmark.',
+      ),
+    ).toBeInTheDocument();
   });
 });

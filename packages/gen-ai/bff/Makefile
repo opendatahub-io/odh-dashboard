@@ -23,6 +23,8 @@ MOCK_NEMO_CLIENT ?= false
 AUTH_METHOD ?= "user_token"
 PATH_PREFIX ?= ""
 DISTRIBUTION_NAME ?= "rh-dev"
+PLAYGROUND_NAMESPACE ?=
+KUBERNETES_MCP_SERVER_URL ?=
 
 # Inter-BFF Communication configuration
 BFF_MAAS_SERVICE_NAME ?= "odh-dashboard"
@@ -33,14 +35,17 @@ BFF_MAAS_DEV_URL ?= ""
 BFF_MAAS_AUTH_METHOD ?= "user_token"
 BFF_MAAS_AUTH_TOKEN_HEADER ?= "x-forwarded-access-token"
 BFF_MAAS_AUTH_TOKEN_PREFIX ?= ""
+# MLflow BFF dev override URL (local development)
+BFF_MLFLOW_DEV_URL ?= ""
 
 # MLflow configuration
-MLFLOW_VERSION ?= 3.12.0
+MLFLOW_VERSION ?= 3.15.1
+MLFLOW_DIR ?= testdata/mlflow
 MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
 # Llama Stack test server configuration (used by mock/test mode only)
-TEST_LLAMA_STACK_VERSION ?= 1.2.0
+TEST_LLAMA_STACK_VERSION ?= 1.3.0
 TEST_LLAMA_STACK_PORT ?= 18321
 TEST_LLAMA_STACK_DIR ?= testdata/llamastack
 TEST_LLAMA_STACK_DATA ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)/.data
@@ -55,8 +60,10 @@ TEST_LLAMA_STACK_EMBEDDING_MODEL_ID ?= models/gemini-embedding-001
 TEST_LLAMA_STACK_EMBEDDING_DIMENSION ?= 128
 
 # Prefixed model refs (derived from above, used by Go tests)
-TEST_LLAMA_STACK_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_MODEL_ID)
-TEST_LLAMA_STACK_EMBEDDING_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID)
+# The response handler routes models through the BFF passthrough provider. Keep
+# replay requests qualified exactly as production OGX requests are.
+TEST_LLAMA_STACK_MODEL ?= genai-bff-proxy/$(TEST_LLAMA_STACK_MODEL_ID)
+TEST_LLAMA_STACK_EMBEDDING_MODEL ?= genai-bff-proxy/$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID)
 
 .PHONY: all
 all: build
@@ -87,7 +94,6 @@ vet:  . ## Runs static analysis tools on source files and reports suspicious con
 
 .PHONY: test
 test: fmt vet envtest uv ## Runs the full test suite.
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	UV_PYTHON=">=3.12,<3.14" \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
@@ -107,7 +113,6 @@ build: fmt vet test ## Builds the project to produce a binary executable.
 
 .PHONY: run
 run: fmt vet envtest uv ## Runs the project.
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
@@ -118,13 +123,15 @@ run: fmt vet envtest uv ## Runs the project.
 	BFF_MAAS_AUTH_METHOD=$(BFF_MAAS_AUTH_METHOD) \
 	BFF_MAAS_AUTH_TOKEN_HEADER=$(BFF_MAAS_AUTH_TOKEN_HEADER) \
 	BFF_MAAS_AUTH_TOKEN_PREFIX=$(BFF_MAAS_AUTH_TOKEN_PREFIX) \
+	BFF_MLFLOW_DEV_URL=$(BFF_MLFLOW_DEV_URL) \
+	BFF_MLFLOW_AUTH_TOKEN_HEADER=$(BFF_MLFLOW_AUTH_TOKEN_HEADER) \
+	BFF_MLFLOW_AUTH_TOKEN_PREFIX=$(BFF_MLFLOW_AUTH_TOKEN_PREFIX) \
 	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --asr-model-url=$(ASR_MODEL_URL) --nemo-guardrails-url=$(NEMO_GUARDRAILS_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --mock-nemo=$(MOCK_NEMO_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
 .PHONY: debug
 debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can attach on port 2345).
 	@echo "Starting BFF with Delve debugger on port 2345..."
 	@echo "In VSCode: Press F5 and select 'Attach to Delve (make dev-start-debug)'"
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
@@ -135,6 +142,7 @@ debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can at
 	BFF_MAAS_AUTH_METHOD=$(BFF_MAAS_AUTH_METHOD) \
 	BFF_MAAS_AUTH_TOKEN_HEADER=$(BFF_MAAS_AUTH_TOKEN_HEADER) \
 	BFF_MAAS_AUTH_TOKEN_PREFIX=$(BFF_MAAS_AUTH_TOKEN_PREFIX) \
+	BFF_MLFLOW_DEV_URL=$(BFF_MLFLOW_DEV_URL) \
 	dlv debug ./cmd --headless --listen=:2345 --api-version=2 --accept-multiclient --continue -- \
 		--port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --asr-model-url=$(ASR_MODEL_URL) --nemo-guardrails-url=$(NEMO_GUARDRAILS_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --mock-nemo=$(MOCK_NEMO_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
@@ -143,12 +151,15 @@ debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can at
 .PHONY: mlflow-up
 mlflow-up: uv ## Start local MLflow tracking server via uv.
 	@mkdir -p $(MLFLOW_DATA)
+	@$(UV) run --directory $(MLFLOW_DIR) --with mlflow==$(MLFLOW_VERSION) --with-requirements requirements.txt mlflow db upgrade sqlite:///$(MLFLOW_DATA)/mlflow.db 2>/dev/null || true
 	@echo "Starting MLflow server on port $(MLFLOW_PORT)... (Ctrl+C to stop)"
-	$(UV) run --with mlflow==$(MLFLOW_VERSION) mlflow server \
+	MLFLOW_ENABLE_WORKSPACES=true \
+	$(UV) run --directory $(MLFLOW_DIR) --with mlflow==$(MLFLOW_VERSION) --with-requirements requirements.txt mlflow server \
 		--host 127.0.0.1 \
 		--port $(MLFLOW_PORT) \
 		--backend-store-uri sqlite:///$(MLFLOW_DATA)/mlflow.db \
-		--default-artifact-root $(MLFLOW_DATA)/artifacts
+		--default-artifact-root $(MLFLOW_DATA)/artifacts \
+		--enable-workspaces
 
 .PHONY: mlflow-down
 mlflow-down: ## Stop local MLflow tracking server.
@@ -159,6 +170,17 @@ mlflow-down: ## Stop local MLflow tracking server.
 mlflow-clean: mlflow-down ## Remove local MLflow data.
 	rm -rf $(MLFLOW_DATA) $(MLFLOW_DATA)-test
 	@echo "MLflow data cleaned"
+
+.PHONY: mlflow-seed
+mlflow-seed: uv ## Seed local MLflow prompts + MCP registry (default + PLAYGROUND_NAMESPACE).
+	@curl --fail --silent --show-error --connect-timeout 2 --max-time 5 "http://127.0.0.1:$(MLFLOW_PORT)/health" >/dev/null 2>&1 || { \
+		echo "ERROR: MLflow is not running on :$(MLFLOW_PORT). Start it first (make mlflow-up)."; \
+		exit 1; \
+	}
+	MLFLOW_TRACKING_URI=http://127.0.0.1:$(MLFLOW_PORT) \
+	PLAYGROUND_NAMESPACE=$(PLAYGROUND_NAMESPACE) \
+	KUBERNETES_MCP_SERVER_URL=$(KUBERNETES_MCP_SERVER_URL) \
+	go test ./internal/integrations/mlflow/mlflowmocks/ -run "TestSeedMCPRegistry|TestSeedPrompts" -count=1
 
 ##@ Llama Stack
 

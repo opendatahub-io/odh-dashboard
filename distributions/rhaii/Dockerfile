@@ -4,9 +4,6 @@
 # Build from repository root:
 #   docker build -f distributions/rhaii/Dockerfile -t rhaii-dashboard:latest .
 #
-# With model-serving enabled:
-#   docker build -f distributions/rhaii/Dockerfile --build-arg ENABLE_MODEL_SERVING=true -t rhaii-dashboard:latest .
-
 ARG NODE_BASE_IMAGE=node:22
 ARG GOLANG_BASE_IMAGE=golang:1.25
 ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
@@ -23,11 +20,13 @@ COPY package.json package-lock.json* ./
 COPY frontend/package.json ./frontend/
 COPY frontend/src/ ./frontend/src/
 COPY packages/plugin-core/ ./packages/plugin-core/
+COPY packages/app-config/ ./packages/app-config/
 COPY packages/tsconfig/ ./packages/tsconfig/
 
-# Copy optional packages (always copied for npm workspace resolution;
-# only compiled into the bundle when their env flag is set)
+# Copy feature packages used by the RHAII distribution.
 COPY packages/model-serving/ ./packages/model-serving/
+COPY packages/kserve/ ./packages/kserve/
+COPY packages/analytics/ ./packages/analytics/
 COPY packages/trustyai/ ./packages/trustyai/
 COPY packages/foundation/ ./packages/foundation/
 COPY packages/hardware-profiles/ ./packages/hardware-profiles/
@@ -36,22 +35,23 @@ COPY packages/k8s-core/ ./packages/k8s-core/
 COPY packages/model-registry/ ./packages/model-registry/
 COPY packages/ui-core/ ./packages/ui-core/
 
-# Copy the base distribution (shell components + shared webpack config)
+# Copy the base distribution (shell components + shared rspack config)
 COPY distributions/base/ ./distributions/base/
 
 # Copy the RHAII distribution
 COPY distributions/rhaii/ ./distributions/rhaii/
 
 # Install workspace dependencies
-# Cannot use --omit=optional or --ignore-scripts: @swc/core distributes its
-# native bindings as optional deps and needs its postinstall to set them up.
+# Use --ignore-scripts for hermetic/Hermeto builds. Do not use --omit=optional:
 RUN npm cache clean --force
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Build the RHAII frontend
 WORKDIR /usr/src/workspace/distributions/rhaii
 ARG ENABLE_MODEL_SERVING=false
 ENV ENABLE_MODEL_SERVING=${ENABLE_MODEL_SERVING}
+ARG MODEL_SERVING_REMOTE_ENTRY=""
+ENV MODEL_SERVING_REMOTE_ENTRY=${MODEL_SERVING_REMOTE_ENTRY}
 RUN npm run build
 
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────
@@ -64,9 +64,13 @@ WORKDIR /usr/src/app
 
 # Copy Go module files and download dependencies
 COPY distributions/core-bff/bff/go.mod distributions/core-bff/bff/go.sum ./
+# The core-bff module has a replace directive for the shared pkg/tls module
+# (../../../pkg/tls, which resolves to /pkg/tls from this WORKDIR).
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 RUN go mod download
 
 # Copy source code
+COPY pkg/tls/ /pkg/tls/
 COPY distributions/core-bff/bff/cmd/ cmd/
 COPY distributions/core-bff/bff/internal/ internal/
 COPY distributions/core-bff/bff/openapi/ openapi/

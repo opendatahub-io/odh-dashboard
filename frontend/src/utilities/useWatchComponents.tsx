@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { useAppSelector } from '#~/redux/hooks';
 import { fetchComponents } from '#~/services/componentsServices';
-import { OdhApplication } from '#~/types';
 import { POLL_INTERVAL } from './const';
 
 export const useWatchComponents = (

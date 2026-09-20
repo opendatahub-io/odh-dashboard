@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { TrustyAIContext } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
+import { TrustyAIContext } from '@odh-dashboard/trustyai/context';
 import { DeleteModal } from '@odh-dashboard/ui-core';
 import { BiasMetricType, type BiasMetricConfig } from '@odh-dashboard/trustyai/types';
 

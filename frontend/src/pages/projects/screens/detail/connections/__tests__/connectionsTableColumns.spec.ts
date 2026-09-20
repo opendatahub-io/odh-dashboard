@@ -1,5 +1,5 @@
+import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { mockConnection } from '#~/__mocks__/mockConnection';
-import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import {
   ConnectionTestStatus,
   CONNECTION_TEST_ANNOTATIONS,

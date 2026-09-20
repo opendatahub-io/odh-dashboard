@@ -2,7 +2,8 @@
  * Tests for the Assign Roles page with projectRBAC feature enabled.
  * Covers discard changes modal, confirmation modal, save operations, and page scenarios.
  */
-import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { RoleBindingModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   initProjectRbacIntercepts,
   mockRoleBindingK8sResource,
@@ -10,7 +11,6 @@ import {
   NAMESPACE,
 } from './permissionsRbacTestUtils';
 import { projectRbacPermissions } from '../../../../pages/projectRbacPermissions';
-import { RoleBindingModel } from '../../../../utils/models';
 import { asProjectAdminUser } from '../../../../utils/mockUsers';
 
 describe('Assign Roles Page - Discard Changes Modal', () => {

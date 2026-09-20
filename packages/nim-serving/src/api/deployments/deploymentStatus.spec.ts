@@ -1,5 +1,5 @@
-import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
-import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { getNIMDeploymentStatus } from './status';
 

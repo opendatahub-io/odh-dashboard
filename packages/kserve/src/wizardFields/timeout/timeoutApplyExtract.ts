@@ -1,6 +1,6 @@
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { TimeoutFieldValue } from './TimeoutField';
-import { KServeDeployment } from '../../deployments';
+import { KServeDeployment } from '../../types';
 
 export type TimeoutConfigFieldData = {
   timeout?: number;

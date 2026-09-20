@@ -16,7 +16,8 @@ import {
   type HardwareProfileKind,
 } from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { HardwareProfileModel } from '#~/api/models';
 import {
   createHardwareProfile,
@@ -26,7 +27,6 @@ import {
   updateHardwareProfile,
 } from '#~/api/k8s/hardwareProfiles';
 import { DisplayNameAnnotation } from '#~/types';
-import { mock200Status, mock404Error } from '#~/__mocks__';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

@@ -7,7 +7,7 @@ import {
   type IntegrationAppStatus,
   VariablesValidationStatus,
 } from '@odh-dashboard/plugin-core/integrations';
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
 import { isIntegrationApp } from '#~/utilities/utils';
 import { useAppSelector } from '#~/redux/hooks';

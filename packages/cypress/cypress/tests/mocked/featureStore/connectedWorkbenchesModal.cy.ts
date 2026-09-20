@@ -8,9 +8,9 @@ import {
   mockRecentlyVisited,
   mockResourceCounts,
 } from '@odh-dashboard/feature-store/mocks/mockMetrics';
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';

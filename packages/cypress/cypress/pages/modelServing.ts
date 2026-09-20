@@ -2,6 +2,7 @@ import { appChrome } from './appChrome';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
+import { NIMWizardFields } from './modelServing/NIMWizardFields';
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
@@ -38,7 +39,7 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-tab-page-title').should('have.text', 'Model deployments');
+    cy.findByTestId('app-tab-page-title').invoke('text').should('match', /Model/);
     cy.testA11y();
   }
 
@@ -212,7 +213,23 @@ class ServingModal extends Modal {
 
 class DeleteModelServingModal extends DeleteModal {
   constructor() {
-    super('Delete tier?');
+    super('Delete model deployment?');
+  }
+
+  findPVCCheckbox() {
+    return this.find().findByTestId('nim-delete-pvc-checkbox');
+  }
+
+  findPVCDependentsLoadingAlert() {
+    return this.find().findByTestId('nim-delete-pvc-dependents-loading');
+  }
+
+  findPVCDependentsAlert() {
+    return this.find().findByTestId('nim-delete-pvc-dependents-alert');
+  }
+
+  findPVCDependentItems() {
+    return this.find().findAllByTestId('nim-delete-pvc-dependent-item');
   }
 }
 
@@ -692,6 +709,10 @@ class ModelServingRow extends TableRow {
     return this.find().find(`[data-label="Last deployed"]`);
   }
 
+  findStatusSubtitle() {
+    return this.find().findByTestId('deployment-status-subtitle');
+  }
+
   findConfirmStopModal() {
     return cy.findByTestId('stop-model-modal');
   }
@@ -788,6 +809,22 @@ class InferenceServiceRow extends ModelServingRow {
 
   findStatusLabel(label: string) {
     return this.find().findByTestId('model-status-text').should('include.text', label);
+  }
+
+  findCapabilitiesCell() {
+    return this.find().find('[data-label="Capabilities"]');
+  }
+
+  findCapabilitiesGroup() {
+    return this.findCapabilitiesCell().findByTestId('deployment-capabilities');
+  }
+
+  findCapabilityLabels() {
+    return this.findCapabilitiesCell().findAllByTestId('deployment-capability-label');
+  }
+
+  findCapabilityOverflowLabel() {
+    return this.findCapabilitiesCell().findByTestId('capability-overflow-label');
   }
 
   findHardwareProfileColumn() {
@@ -926,6 +963,8 @@ class ModelServingSection {
 }
 
 class ModelServingWizard extends Wizard {
+  nim = new NIMWizardFields();
+
   constructor(private edit = false) {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
@@ -950,6 +989,30 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
   }
 
+  findValidatedArgumentsSection() {
+    return this.findValidatedConfigurationSection('args');
+  }
+
+  findValidatedConfigurationSection(forField: string) {
+    return cy.findByTestId(`validated-configuration-section-${forField}`);
+  }
+
+  findValidatedConfigurationOption(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-option-${optionSlug}`);
+  }
+
+  findValidatedConfigurationOptionCheckbox(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-option-checkbox-${optionSlug}`);
+  }
+
+  findValidatedConfigurationViewArguments(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-view-arguments-${optionSlug}`);
+  }
+
+  findValidatedConfigurationArgumentsPopoverContent(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-arguments-popover-content-${optionSlug}`);
+  }
+
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }
@@ -960,6 +1023,10 @@ class ModelServingWizard extends Wizard {
 
   findAdvancedOptionsStep() {
     return this.findStep('advanced-options-step');
+  }
+
+  findReviewStep() {
+    return this.findStep('summary-step');
   }
 
   findModelTypeSelect() {
@@ -992,6 +1059,19 @@ class ModelServingWizard extends Wizard {
 
   findResourceNameInput() {
     return cy.findByTestId('model-deployment-resourceName');
+  }
+
+  getGeneratedResourceName(): Cypress.Chainable<string> {
+    return this.findResourceNameInput()
+      .should('be.visible')
+      .invoke('val')
+      .then((value) => {
+        const resourceName = value?.toString();
+        if (!resourceName) {
+          throw new Error('Model resource name was not generated');
+        }
+        return resourceName;
+      });
   }
 
   findModelFormatSelect() {
@@ -1221,6 +1301,22 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('prefill-alert');
   }
 
+  findHfApiKeyField() {
+    return cy.findByTestId('hf-api-key-field');
+  }
+
+  findHfApiKeyInput() {
+    return cy.findByTestId('hf-api-key-input');
+  }
+
+  findHfGatedAccessAlert() {
+    return cy.findByTestId('hf-gated-access-alert');
+  }
+
+  findHfApiKeyConfiguredHelper() {
+    return cy.findByTestId('hf-api-key-configured-helper');
+  }
+
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-select');
   }
@@ -1230,25 +1326,29 @@ class ModelServingWizard extends Wizard {
     cy.findByRole('option', { name }).click();
   }
 
-  selectPotentiallyDisabledProfile(profileDisplayName: string): void {
+  selectPotentiallyDisabledProfile(
+    profileDisplayName: string,
+    profileResourceName = profileDisplayName,
+  ): void {
     const dropdown = this.findHardProfileSelection();
 
     dropdown.then(($el) => {
       if ($el.prop('disabled')) {
-        // If disabled, verify it contains the base profile name
-        const nameToCheck = profileDisplayName;
-        cy.wrap($el).contains(nameToCheck).should('exist');
-        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+        cy.wrap($el).contains(profileDisplayName).should('exist');
+        cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
-        // If enabled, proceed with selection as before using the full display name
         dropdown.click();
-        cy.findByTestId(`${profileDisplayName}`).click();
+        cy.findByTestId(profileResourceName).click();
       }
     });
   }
 
   findExternalRouteCheckbox() {
     return cy.findByTestId('model-access-checkbox');
+  }
+
+  findAuthenticationSection() {
+    return cy.findByTestId('auth-section');
   }
 
   findTokenAuthenticationCheckbox() {
@@ -1305,10 +1405,6 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('num-replicas').findByRole('button', { name: 'Plus' });
   }
 
-  findRuntimeArgsCheckbox() {
-    return cy.findByTestId('runtime-args-checkbox');
-  }
-
   findRuntimeArgsTextBox() {
     return cy.findByTestId('runtime-args-textarea');
   }
@@ -1339,6 +1435,71 @@ class ModelServingWizard extends Wizard {
 
   findUseCaseInput() {
     return cy.findByTestId('use-case-input');
+  }
+
+  findModelCapabilitiesField() {
+    return cy.findByTestId('model-capabilities-field');
+  }
+
+  findAddCapabilityButton() {
+    return cy.findByTestId('add-capability-btn');
+  }
+
+  findWellKnownCapabilityOption(capability: string) {
+    return cy.findByTestId(`well-known-capability-${capability}`);
+  }
+
+  findCustomCapabilityInput() {
+    return cy.findByTestId('custom-capability-input');
+  }
+
+  findAddCustomCapabilityButton() {
+    return cy.findByTestId('add-custom-capability-btn');
+  }
+
+  findCapabilityLabel(capability: string) {
+    return cy.findByTestId(`capability-label-${capability}`);
+  }
+
+  openAddCapabilityDropdown() {
+    this.findAddCapabilityButton().click();
+    return this;
+  }
+
+  selectWellKnownCapability(capability: string) {
+    this.openAddCapabilityDropdown();
+    this.findWellKnownCapabilityOption(capability).click();
+    return this;
+  }
+
+  addCustomCapability(capability: string) {
+    this.openAddCapabilityDropdown();
+    this.findCustomCapabilityInput().type(capability);
+    this.findAddCustomCapabilityButton().click();
+    return this;
+  }
+
+  findCustomCapabilityError() {
+    return cy.findByTestId('custom-capability-error');
+  }
+
+  removeCapability(capability: string) {
+    this.findCapabilityLabel(capability).findByLabelText(`Close ${capability}`).click();
+    return this;
+  }
+
+  navigateGenerativeLegacyToAdvancedOptions() {
+    this.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+    this.findModelLocationSelectOption('Existing connection').click();
+    this.findExistingConnectionSelect().click();
+    this.findExistingConnectionSelectOption('Test URI Secret').click();
+    this.findNextButton().click();
+    this.findModelDeploymentNameInput().type('test-model');
+    this.selectDeploymentMethodByKey('legacy');
+    this.findServingRuntimeTemplateSearchSelector().click();
+    this.selectGlobalScopedTemplateOption('vLLM NVIDIA');
+    this.findNextButton().click();
+    return this;
   }
 
   findCPURequestedInput() {
@@ -1389,12 +1550,20 @@ class ModelServingWizard extends Wizard {
     return cy.findByRole('button', { name: 'Discard' });
   }
 
+  findExitDeploymentDiscardButton() {
+    return cy.findByTestId('exit-deployment-discard-button');
+  }
+
   findGatewaySelect() {
     return cy.findByTestId('gateway-select');
   }
 
   findGatewaySelectOption(name: string) {
     return this.findGatewaySelect().findSelectOption(name);
+  }
+
+  findGatewaySelectTooltip() {
+    return cy.findByTestId('gateway-select-tooltip-wrapper');
   }
 
   findDeploymentStrategySection() {

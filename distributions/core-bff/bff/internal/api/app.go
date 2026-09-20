@@ -51,6 +51,8 @@ type App struct {
 	wsProxy http.Handler
 	// modelServingProxy handles /api/service/model-serving/* passthrough
 	modelServingProxy http.Handler
+	// moduleProxies holds proxy handlers for federated module API paths
+	moduleProxies []moduleProxyHandler
 	// devFallbackToken is the kubeconfig bearer token used in dev mode for
 	// proxied requests (Prometheus, model-serving) when the identity has no real token.
 	devFallbackToken string
@@ -120,6 +122,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if err := app.initModelServingProxy(); err != nil {
 		_ = app.Shutdown()
 		return nil, fmt.Errorf("failed to initialize model-serving proxy: %w", err)
+	}
+
+	if err := app.initModuleProxies(); err != nil {
+		_ = app.Shutdown()
+		return nil, fmt.Errorf("failed to initialize module proxies: %w", err)
 	}
 
 	return app, nil

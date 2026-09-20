@@ -53,17 +53,17 @@ type DspaCondition = { type?: string; status?: string; reason?: string; message?
  * Uses oc wait --for=condition=Ready similar to other resource waits in the codebase.
  *
  * @param projectName - The namespace/project containing the DSPA
- * @param timeout - Timeout in seconds (default 600s = 10 minutes)
+ * @param timeout - Cypress/oc wait timeout in milliseconds (default 600s)
  */
 export const waitForDspaReady = (
   projectName: string,
-  timeout = '600s',
+  timeout = 600000,
 ): Cypress.Chainable<CommandLineResult> => {
-  const command = `oc wait --for=condition=Ready dspa/${DSPA_RESOURCE_NAME} -n ${projectName} --timeout=${timeout}`;
+  const command = `oc wait --for=condition=Ready dspa/${DSPA_RESOURCE_NAME} -n ${projectName} --timeout=${timeout}ms`;
   cy.log(`Waiting for DSPA to be ready: ${command}`);
 
   return cy
-    .exec(command, { failOnNonZeroExit: false, timeout: 610000 })
+    .exec(command, { failOnNonZeroExit: false, timeout })
     .then((result: CommandLineResult) => {
       if (result.exitCode !== 0) {
         cy.log(`DSPA wait failed (exit ${result.exitCode}): ${maskSensitiveInfo(result.stderr)}`);

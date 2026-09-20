@@ -141,7 +141,7 @@ const ServerConfigSection: React.FC<ServerConfigSectionProps> = ({
           <FormHelperText>
             <HelperText>
               <HelperTextItem>
-                Expose Prometheus-compatible metrics endpoint for this server.
+                Exposes a Prometheus-compatible metrics endpoint for this server.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>

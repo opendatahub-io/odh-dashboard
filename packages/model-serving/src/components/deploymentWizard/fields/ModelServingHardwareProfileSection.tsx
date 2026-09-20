@@ -8,16 +8,25 @@ import type {
   HardwarePodSpecOptionsState,
   PodSpecOptions,
 } from '@odh-dashboard/hardware-profiles/shared';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 
 type ModelServingHardwareProfileSectionComponentProps = {
   hardwareProfileConfig: UseHardwareProfileConfigResult;
   project?: string;
   isEditing?: boolean;
+  isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
+  isHardwareProfilePreferred?: (profile: HardwareProfileKind) => boolean;
 };
 
 export const ModelServingHardwareProfileSection: React.FC<
   ModelServingHardwareProfileSectionComponentProps
-> = ({ hardwareProfileConfig, project, isEditing = false }) => {
+> = ({
+  hardwareProfileConfig,
+  project,
+  isEditing = false,
+  isHardwareProfileSupported = () => true,
+  isHardwareProfilePreferred,
+}) => {
   const podSpecOptionsState: HardwarePodSpecOptionsState<PodSpecOptions> = React.useMemo(
     () => ({
       hardwareProfile: hardwareProfileConfig,
@@ -35,7 +44,8 @@ export const ModelServingHardwareProfileSection: React.FC<
       project={project}
       podSpecOptionsState={podSpecOptionsState}
       isEditing={isEditing}
-      isHardwareProfileSupported={() => true}
+      isHardwareProfileSupported={isHardwareProfileSupported}
+      isHardwareProfilePreferred={isHardwareProfilePreferred}
       visibleIn={MODEL_SERVING_VISIBILITY}
     />
   );

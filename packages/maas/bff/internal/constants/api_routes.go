@@ -16,9 +16,6 @@ const (
 	SubscriptionsPassthroughPath    = ApiPathPrefix + "/subscriptions"
 	SubscriptionByIDPassthroughPath = ApiPathPrefix + "/subscriptions/:id"
 
-	// General MaaS routes
-	SubscriptionPolicyFormDataPath = ApiPathPrefix + "/subscription-policy-form-data"
-
 	// Subscription routes
 	SubscriptionListPath   = ApiPathPrefix + "/all-subscriptions"
 	SubscriptionInfoPath   = ApiPathPrefix + "/subscription-info/:name"
@@ -34,17 +31,30 @@ const (
 	PolicyDeletePath = ApiPathPrefix + "/delete-policy/:name"
 
 	// MaaSModelRef routes
+	MaaSModelRefListPath   = ApiPathPrefix + "/all-maas-models"
 	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
 	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 
-	// Overview routes
-	ModelsOverviewPath = ApiPathPrefix + "/overview/models"
+	// Groups
+	GroupsListPath = ApiPathPrefix + "/all-groups"
 
 	// YAML export
 	YamlPath = ApiPathPrefix + "/yaml"
 
 	// ExternalModel routes
 	ExternalModelListPath   = ApiPathPrefix + "/externalmodel"
+	ExternalModelCreatePath = ApiPathPrefix + "/externalmodel"
+	ExternalModelUpdatePath = ApiPathPrefix + "/externalmodel/:namespace/:name"
 	ExternalModelDeletePath = ApiPathPrefix + "/externalmodel/:namespace/:name"
+
+	// ExternalProvider routes
+	ExternalProviderListPath   = ApiPathPrefix + "/externalprovider"
+	ExternalProviderCreatePath = ApiPathPrefix + "/externalprovider"
+	ExternalProviderUpdatePath = ApiPathPrefix + "/externalprovider/:namespace/:name"
+	ExternalProviderDeletePath = ApiPathPrefix + "/externalprovider/:namespace/:name"
+
+	// Secret routes
+	SecretListPath   = ApiPathPrefix + "/secrets"
+	SecretCreatePath = ApiPathPrefix + "/secrets"
 )

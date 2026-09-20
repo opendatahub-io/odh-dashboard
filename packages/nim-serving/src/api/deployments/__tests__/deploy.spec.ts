@@ -65,7 +65,7 @@ describe('deployNIMDeployment', () => {
   const wizardState = {} as WizardFormData['state'];
 
   it('should throw when modelResource is missing', async () => {
-    await expect(deployNIMDeployment(wizardState, 'test-ns')).rejects.toThrow(
+    await expect(deployNIMDeployment(wizardState, {}, 'test-ns')).rejects.toThrow(
       'NIMService resource is required',
     );
   });
@@ -84,6 +84,7 @@ describe('deployNIMDeployment', () => {
 
     const result = await deployNIMDeployment(
       wizardState,
+      {},
       'test-ns',
       undefined,
       mockNIMServiceResource,
@@ -116,7 +117,13 @@ describe('deployNIMDeployment', () => {
       model: mockNIMServiceResource,
     };
 
-    await deployNIMDeployment(wizardState, 'test-ns', existingDeployment, mockNIMServiceResource);
+    await deployNIMDeployment(
+      wizardState,
+      {},
+      'test-ns',
+      existingDeployment,
+      mockNIMServiceResource,
+    );
 
     expect(mockUpdate).toHaveBeenCalled();
     expect(mockCreate).not.toHaveBeenCalled();
@@ -135,6 +142,7 @@ describe('deployNIMDeployment', () => {
 
     await deployNIMDeployment(
       wizardState,
+      {},
       'test-ns',
       existingDeployment,
       mockNIMServiceResource,
@@ -154,7 +162,7 @@ describe('deployNIMDeployment', () => {
     mockGetNIMAccount.mockResolvedValue(undefined);
 
     await expect(
-      deployNIMDeployment(wizardState, 'test-ns', undefined, mockNIMServiceResource),
+      deployNIMDeployment(wizardState, {}, 'test-ns', undefined, mockNIMServiceResource),
     ).rejects.toThrow('NIM Account not found');
     expect(mockCreate).not.toHaveBeenCalled();
   });
@@ -169,6 +177,7 @@ describe('deployNIMDeployment', () => {
 
     await deployNIMDeployment(
       wizardState,
+      {},
       'test-ns',
       undefined,
       mockNIMServiceResource,

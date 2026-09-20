@@ -268,65 +268,6 @@ var _ = Describe("PolicyHandlers", Ordered, func() {
 		})
 	})
 
-	var _ = Describe("GetSubscriptionPolicyFormDataHandler (with policies)", Ordered, func() {
-		BeforeAll(func() {
-			// Seed a policy to ensure it appears in form data
-			_, rs, err := setupApiTest[Envelope[models.MaaSAuthPolicy, None]](
-				http.MethodPost,
-				"/api/v1/new-policy",
-				Envelope[models.CreatePolicyRequest, None]{Data: models.CreatePolicyRequest{
-					Name: "formdata-test-policy",
-					ModelRefs: []models.ModelRef{
-						{Name: "granite-3-8b-instruct", Namespace: "maas-models"},
-					},
-					Subjects: models.SubjectSpec{
-						Groups: []models.GroupReference{{Name: "users"}},
-					},
-				}},
-				k8Factory,
-				identity,
-			)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
-		})
-
-		It("returns 200 with groups, model refs, policies, and subscriptions", func() {
-			envelope, rs, err := setupApiTest[Envelope[models.SubscriptionFormDataResponse, None]](
-				http.MethodGet,
-				"/api/v1/subscription-policy-form-data",
-				nil,
-				k8Factory,
-				identity,
-			)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
-			actual := envelope.Data
-
-			// Model refs
-			Expect(len(actual.ModelRefs)).To(BeNumerically(">=", 2))
-			var modelNames []string
-			for _, ref := range actual.ModelRefs {
-				modelNames = append(modelNames, ref.Name)
-			}
-			Expect(modelNames).To(ContainElements("granite-3-8b-instruct", "flan-t5-small"))
-
-			// Groups
-			Expect(actual.Groups).To(ContainElement("system:authenticated"))
-
-			// Policies (NEW - should include our seeded policy)
-			Expect(actual.Policies).NotTo(BeNil())
-			Expect(len(actual.Policies)).To(BeNumerically(">", 0))
-			var policyNames []string
-			for _, policy := range actual.Policies {
-				policyNames = append(policyNames, policy.Name)
-			}
-			Expect(policyNames).To(ContainElement("formdata-test-policy"))
-
-			// Subscriptions (NEW - should be included for priority feature)
-			Expect(actual.Subscriptions).NotTo(BeNil())
-		})
-	})
-
 	var _ = Describe("UpdatePolicyHandler", Ordered, func() {
 		BeforeAll(func() {
 			_, rs, err := setupApiTest[Envelope[models.MaaSAuthPolicy, None]](

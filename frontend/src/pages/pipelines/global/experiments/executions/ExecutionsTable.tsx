@@ -6,6 +6,7 @@ import { executionColumns } from '#~/pages/pipelines/global/experiments/executio
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
 import { initialFilterData } from '#~/pages/pipelines/global/experiments/executions/const';
 import ExecutionsTableToolbar from '#~/pages/pipelines/global/experiments/executions/ExecutionsTableToolbar';
+import useFilters from '#~/utilities/useFilters';
 
 interface ExecutionsTableProps {
   executions: Execution[];
@@ -25,10 +26,8 @@ const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
   } = useMlmdListContext(nextPageToken);
 
   const [page, setPage] = React.useState(1);
-  const [filterData, setFilterData] = React.useState(initialFilterData);
+  const { filterData, onFilterUpdate, onClearFilters } = useFilters(initialFilterData);
   const [pageTokens, setPageTokens] = React.useState<Record<number, string>>({});
-
-  const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), [setFilterData]);
 
   const onNextPageClick = React.useCallback(
     (_: React.SyntheticEvent<HTMLButtonElement>, nextPage: number) => {
@@ -64,7 +63,7 @@ const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
       rowRenderer={(execution) => <ExecutionsTableRow key={execution.getId()} obj={execution} />}
       toggleTemplate={() => <>{maxResultSize} per page </>}
       toolbarContent={
-        <ExecutionsTableToolbar filterData={filterData} setFilterData={setFilterData} />
+        <ExecutionsTableToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
       }
       onClearFilters={onClearFilters}
       page={page}

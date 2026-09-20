@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -323,6 +324,20 @@ func (m *ModelCatalogClientMock) GetCatalogLabels(client httpclient.HTTPClientIn
 }
 
 func (m *ModelCatalogClientMock) CreateCatalogSourcePreview(client httpclient.HTTPClientInterface, sourcePreviewPayload models.CatalogSourcePreviewRequest, pageValues url.Values) (*models.CatalogSourcePreviewResult, error) {
+	if sourcePreviewPayload.Type == "hf" {
+		if org, ok := sourcePreviewPayload.Properties["allowedOrganization"]; ok {
+			if orgStr, isStr := org.(string); isStr && orgStr == "qwen" {
+				return nil, &httpclient.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					ErrorResponse: httpclient.ErrorResponse{
+						Code:    "UNAUTHORIZED",
+						Message: "Invalid credentials: the organization 'qwen' could not be validated with the provided access token",
+					},
+				}
+			}
+		}
+	}
+
 	filterStatus := pageValues.Get("filterStatus")
 	if filterStatus == "" {
 		filterStatus = "all"
@@ -339,6 +354,8 @@ func (m *ModelCatalogClientMock) CreateCatalogSourcePreview(client httpclient.HT
 	var catalogSourcePreview models.CatalogSourcePreviewResult
 	if assetType == "mcp_servers" {
 		catalogSourcePreview = CreateMcpCatalogSourcePreviewMockWithFilter(filterStatus, pageSize, nextPageToken)
+	} else if sourcePreviewPayload.Id == "hugging_face_public_source" {
+		catalogSourcePreview = CreateCatalogSourcePreviewMockWithoutGatedWithFilter(filterStatus, pageSize, nextPageToken)
 	} else {
 		catalogSourcePreview = CreateCatalogSourcePreviewMockWithFilter(filterStatus, pageSize, nextPageToken)
 	}
@@ -460,10 +477,38 @@ func (m *ModelCatalogClientMock) GetMcpServer(client httpclient.HTTPClientInterf
 	return nil, fmt.Errorf("server id doesn't exist: %s", serverId)
 }
 
-func (m *ModelCatalogClientMock) GetMcpServersTools(client httpclient.HTTPClientInterface, serverId string) (*models.McpToolList, error) {
+func (m *ModelCatalogClientMock) GetMcpServersTools(client httpclient.HTTPClientInterface, serverId string, _ url.Values) (*models.McpToolList, error) {
 	mcpServerTools := GetMcpToolListMock()
 
 	return &mcpServerTools, nil
+}
+
+func (m *ModelCatalogClientMock) GetMcpServerLogo(client httpclient.HTTPClientInterface, serverId string) (*httpclient.RawResponse, error) {
+	// Simulate an upstream failure so tests can verify the BFF translates a raw
+	// non-2xx response into a structured JSON error rather than forwarding the
+	// catalog's plaintext body verbatim. GETRaw surfaces such responses without erroring.
+	if serverId == "missing" {
+		return &httpclient.RawResponse{
+			StatusCode: http.StatusNotFound,
+			Header:     http.Header{},
+			Body:       []byte("404 page not found"),
+		}, nil
+	}
+
+	svg := []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"></svg>`)
+	// Mirror the catalog logo handler's protective headers for SVG so tests can
+	// verify they survive the BFF passthrough.
+	header := http.Header{}
+	header.Set("Content-Type", "image/svg+xml")
+	header.Set("Content-Disposition", "inline")
+	header.Set("X-Content-Type-Options", "nosniff")
+	header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+
+	return &httpclient.RawResponse{
+		StatusCode: http.StatusOK,
+		Header:     header,
+		Body:       svg,
+	}, nil
 }
 
 // filterAgentsByQuery parses a simple filterQuery (e.g. "framework='LangGraph' AND category IN ('Web search','MCP')")

@@ -4,6 +4,7 @@ export const ModelLocationSelectOption = {
   S3: 'S3 object storage',
   OCI: 'OCI compliant registry',
   URI: 'URI',
+  NIM: 'NVIDIA NIM',
 } as const;
 
 export const ModelStateLabel = {
@@ -18,6 +19,7 @@ export const ModelStateLabel = {
 export const ModelTypeLabel = {
   PREDICTIVE: 'Predictive model',
   GENERATIVE: 'Generative AI model (Example, LLM)',
+  NIM: 'NVIDIA NIM',
 } as const;
 
 export type ModelTypeLabelValue = (typeof ModelTypeLabel)[keyof typeof ModelTypeLabel];
@@ -34,5 +36,5 @@ export const YAMLViewerToggleOption = {
 
 export const ModelDeploymentType = {
   TYPE1: 'LLM inference service with llm-d',
-  TYPE2: 'Legacy deployment',
+  TYPE2: 'Inference service',
 };

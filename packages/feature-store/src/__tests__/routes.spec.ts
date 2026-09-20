@@ -1,6 +1,16 @@
-import { featureStoreFeaturesListRoute, featureStoreRootRoute } from '../routes';
+import {
+  featureStoreFeaturesListRoute,
+  featureStoreRootRoute,
+  featureStoreManageRoute,
+} from '../routes';
 
 describe('routes', () => {
+  describe('featureStoreManageRoute', () => {
+    it('returns settings environment setup path', () => {
+      expect(featureStoreManageRoute()).toBe('/settings/environment-setup/feature-stores');
+    });
+  });
+
   describe('featureStoreFeaturesListRoute', () => {
     const baseFeaturesPath = `${featureStoreRootRoute()}/features`;
 

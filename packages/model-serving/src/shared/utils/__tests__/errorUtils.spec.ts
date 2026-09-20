@@ -91,4 +91,38 @@ describe('translateModelServingError', () => {
   it('handles string errors as fallback', () => {
     expect(translateModelServingError('something went wrong')).toBe('something went wrong');
   });
+
+  describe('displayName override', () => {
+    it('uses displayName instead of k8s resource name in 409 errors', () => {
+      const error = new K8sStatusError({
+        kind: 'Status',
+        apiVersion: 'v1',
+        status: 'Failure',
+        message: 'inferenceservices.serving.kserve.io "test-model" already exists',
+        reason: 'AlreadyExists',
+        code: 409,
+      });
+      // @ts-expect-error K8s API returns details with name field not modeled in the type
+      error.statusObject.details = { name: 'test-model', kind: 'inferenceservices' };
+      expect(translateModelServingError(error, 'test model')).toBe(
+        'A model deployment with the name "test model" already exists. Please choose a different model deployment name.',
+      );
+    });
+
+    it('falls back to k8s name when displayName is not provided', () => {
+      const error = new K8sStatusError({
+        kind: 'Status',
+        apiVersion: 'v1',
+        status: 'Failure',
+        message: 'inferenceservices.serving.kserve.io "test-model" already exists',
+        reason: 'AlreadyExists',
+        code: 409,
+      });
+      // @ts-expect-error K8s API returns details with name field not modeled in the type
+      error.statusObject.details = { name: 'test-model', kind: 'inferenceservices' };
+      expect(translateModelServingError(error)).toBe(
+        'A model deployment with the name "test-model" already exists. Please choose a different model deployment name.',
+      );
+    });
+  });
 });

@@ -17,12 +17,33 @@ const (
 	pipelinePrefix = "documents-rag-optimization-pipeline"
 )
 
+const (
+	ragPipelineID             = "e7eda8ed-d10c-4ed1-9db7-fef992cdd7a3"
+	ragPipelineVersionID      = "59534d80-7597-4abe-8eda-f33369cd22d7"
+	indexingPipelineID        = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	indexingPipelineVersionID = "b2c3d4e5-f6a7-8901-bcde-f01234567891"
+	defaultExperimentID       = "5942a476-a034-4fcb-9f87-4da694115f50"
+)
+
 // fakePipelineSpec includes a publish-component-stage-map task so the frontend
 // activates the stage-map topology path. Component IDs in the stage map
 // (e.g. "test_data_loader") map to task IDs via componentIdToTaskId() which
 // replaces "_" with "-" (e.g. "test-data-loader").
 var fakePipelineSpec = json.RawMessage(`{
   "root": {
+    "inputDefinitions": {
+      "parameters": {
+        "embedding_model_id": {"parameterType": "STRING"},
+        "input_data_secret_name": {"parameterType": "STRING"},
+        "input_data_bucket_name": {"parameterType": "STRING"},
+        "input_data_key": {"parameterType": "STRING"},
+        "maas_secret_name": {"parameterType": "STRING"},
+        "vector_db_secret_name": {"parameterType": "STRING"},
+        "chunk_size": {"parameterType": "INT"},
+        "chunk_overlap": {"parameterType": "INT"},
+        "chunking_method": {"parameterType": "STRING"}
+      }
+    },
     "dag": {
       "tasks": {
         "publish-component-stage-map": {
@@ -59,12 +80,6 @@ var fakePipelineSpec = json.RawMessage(`{
     }
   }
 }`)
-
-const (
-	ragPipelineID        = "e7eda8ed-d10c-4ed1-9db7-fef992cdd7a3"
-	ragPipelineVersionID = "59534d80-7597-4abe-8eda-f33369cd22d7"
-	defaultExperimentID  = "5942a476-a034-4fcb-9f87-4da694115f50"
-)
 
 // PipelinesClient is a stateful fake implementation of pipelines.Client.
 type PipelinesClient struct {
@@ -196,8 +211,9 @@ func (c *PipelinesClient) ListPipelines(_ context.Context, _ string, _ string) (
 	return &plsvc.PipelinesResponse{
 		Pipelines: []plsvc.Pipeline{
 			{PipelineID: ragPipelineID, DisplayName: "documents-rag-optimization-pipeline"},
+			{PipelineID: indexingPipelineID, DisplayName: "documents-indexing-pipeline"},
 		},
-		TotalSize: 1,
+		TotalSize: 2,
 	}, nil
 }
 
@@ -211,9 +227,14 @@ func (c *PipelinesClient) GetPipelineVersion(_ context.Context, _ string, pipeli
 }
 
 func (c *PipelinesClient) ListPipelineVersions(_ context.Context, _ string, pipelineID string) (*plsvc.PipelineVersionsResponse, error) {
+	versionID := ragPipelineVersionID
+	displayName := "3.5.0"
+	if pipelineID == indexingPipelineID {
+		versionID = indexingPipelineVersionID
+	}
 	return &plsvc.PipelineVersionsResponse{
 		PipelineVersions: []plsvc.PipelineVersion{
-			{PipelineVersionID: ragPipelineVersionID, PipelineID: pipelineID, DisplayName: "latest"},
+			{PipelineVersionID: versionID, PipelineID: pipelineID, DisplayName: displayName},
 		},
 		TotalSize: 1,
 	}, nil
@@ -287,15 +308,15 @@ func (c *PipelinesClient) seedRuns() {
 			"embedding_models":              []any{"vllm-embedding/ibm-granite/granite-embedding-english-r2"},
 			"generation_models":             []any{"vllm-inference/meta-llama/Llama-3.1-8B-Instruct"},
 			"input_data_bucket_name":        "s3-bucket",
-			"input_data_key":                "autorag input data/pdf/bank_policies_pdf/documents",
+			"input_data_keys":               []any{"autorag input data/pdf/bank_policies_pdf/documents"},
 			"input_data_secret_name":        "data-connection",
-			"ogx_secret_name":               "ogx",
-			"optimization_max_rag_patterns": 8,
+			"maas_secret_name":              "maas",
+			"optimization_max_rag_patterns": 5,
 			"optimization_metric":           "faithfulness",
 			"test_data_bucket_name":         "s3-bucket",
 			"test_data_key":                 "autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json",
 			"test_data_secret_name":         "data-connection",
-			"vector_io_provider_id":         "milvus",
+			"vector_db_secret_name":         "vector-db",
 		}
 
 		history := []plsvc.RuntimeStatus{

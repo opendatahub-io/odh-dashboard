@@ -7,7 +7,7 @@ import {
   INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
-import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { useAccessReview } from '@odh-dashboard/plugin-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
@@ -18,10 +18,13 @@ import { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
 import { useNumReplicasField } from './fields/NumReplicasField';
 import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
+import { useHuggingFaceApiKeyField } from './fields/HuggingFaceApiKeyField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
+import { useValidatedConfigurationsField } from './fields/validatedConfigurations/useValidatedConfigurationsField';
+import { buildRuntimeArgsFromValidatedSelections } from './fields/validatedConfigurations/validatedConfigurationUtils';
 import {
   useDeploymentWizardReducer,
   wizardFormReducer,
@@ -33,6 +36,7 @@ import {
   type InitialWizardFormData,
   type WizardField,
   type WizardFormData,
+  type WizardStateOverrides,
 } from '../../shared/types/form-data';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
@@ -47,6 +51,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     isExternalRouteVisible: boolean;
     shouldAutoCheckTokens: boolean;
   };
+  computedOverrides: WizardStateOverrides;
   dispatch: React.Dispatch<WizardFormAction>;
   fields: WizardField<unknown>[];
 };
@@ -141,7 +146,13 @@ export const useModelDeploymentWizard = (
     canCreateRoleBindings,
   );
 
-  const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
+  const runtimeArgs = useRuntimeArgsField(
+    initialData?.runtimeArgs ??
+      buildRuntimeArgsFromValidatedSelections(
+        initialData?.validatedConfigurations,
+        initialData?.selectedValidatedConfigurations,
+      ),
+  );
   const environmentVariables = useEnvironmentVariablesField(
     initialData?.environmentVariables ?? undefined,
   );
@@ -150,6 +161,18 @@ export const useModelDeploymentWizard = (
     modelType,
     formState.modelServer,
     formState.deploymentMethod,
+  );
+  const validatedConfigurationSelection = useValidatedConfigurationsField(
+    initialData?.selectedValidatedConfigurations,
+  );
+  const huggingFaceApiKey = useHuggingFaceApiKeyField(initialData?.huggingFaceApiKey);
+  const requiresHuggingFaceApiKey = React.useMemo(
+    () =>
+      Boolean(
+        initialData?.requiresHuggingFaceApiKey ||
+          initialData?.huggingFaceApiKey?.configuredSecretName,
+      ),
+    [initialData?.requiresHuggingFaceApiKey, initialData?.huggingFaceApiKey?.configuredSecretName],
   );
 
   // Step 4: Summary
@@ -174,6 +197,9 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      validatedConfigurationSelection,
+      huggingFaceApiKey,
+      requiresHuggingFaceApiKey,
       ...formState,
     }),
     [
@@ -192,6 +218,9 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      validatedConfigurationSelection,
+      huggingFaceApiKey,
+      requiresHuggingFaceApiKey,
       formState,
     ],
   );
@@ -200,12 +229,17 @@ export const useModelDeploymentWizard = (
   const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
     useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
 
-  const tokenAuthDisabled = computedOverrides.tokenAuthentication?.isDisabled ?? false;
+  const tokenAuthOverrides = React.useMemo(
+    () => computedOverrides.tokenAuthentication ?? {},
+    [computedOverrides.tokenAuthentication],
+  );
+  const tokenAuthDisabled = tokenAuthOverrides.isDisabled ?? false;
   const stateWithOverrides: WizardFormData['state'] = React.useMemo(
     () => ({
       ...state,
       tokenAuthentication: {
         ...state.tokenAuthentication,
+        ...tokenAuthOverrides,
         isDisabled: tokenAuthDisabled,
         ...(tokenAuthDisabled ? { data: [] } : {}),
       },
@@ -214,12 +248,13 @@ export const useModelDeploymentWizard = (
         ...computedOverrides['llmd-serving/gateway'],
       },
     }),
-    [state, tokenAuthDisabled, computedOverrides],
+    [state, tokenAuthDisabled, tokenAuthOverrides, computedOverrides],
   );
 
   return {
     initialData,
     state: stateWithOverrides,
+    computedOverrides,
     dispatch,
     fields,
     loaded: {

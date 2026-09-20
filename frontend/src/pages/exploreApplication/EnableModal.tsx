@@ -6,15 +6,17 @@ import {
   FormAlert,
   Spinner,
   TextInputTypes,
+  /* eslint-disable @odh-dashboard/no-restricted-imports */
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
+  /* eslint-enable @odh-dashboard/no-restricted-imports */
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { isEmpty, values } from 'lodash-es';
 import { asEnumMember } from '@odh-dashboard/foundation';
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { EnableApplicationStatus, useEnableApplication } from '#~/utilities/useEnableApplication';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
@@ -203,7 +205,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
           </div>
         ) : null}
         {enable.variables ? (
-          <Form>
+          <Form onSubmit={(e) => e.preventDefault()}>
             {postError ? (
               <FormAlert>
                 <Alert

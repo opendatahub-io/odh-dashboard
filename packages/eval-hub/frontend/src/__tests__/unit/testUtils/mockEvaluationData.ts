@@ -14,6 +14,8 @@ type MockEvaluationJobOptions = {
   scorePass?: boolean;
   collectionId?: string;
   metrics?: Record<string, unknown>;
+  /** Override status.benchmarks directly for testing benchmark-level state (started_at, warnings, etc.) */
+  benchmarkStatuses?: EvaluationJob['status']['benchmarks'];
 };
 
 const DEFAULT_BENCHMARK_ID = 'default-benchmark';
@@ -31,6 +33,7 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
     ...(options.statusMessage
       ? { message: { message: options.statusMessage, message_code: 'evaluation_job_updated' } }
       : {}),
+    ...(options.benchmarkStatuses !== undefined ? { benchmarks: options.benchmarkStatuses } : {}),
   },
   results: {
     benchmarks:

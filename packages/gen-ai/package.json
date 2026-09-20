@@ -23,7 +23,9 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@GenAICI"],
+  "e2eCiTags": [
+    "@GenAICI"
+  ],
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client --mock-mlflow-client --mock-bff-clients' odh-ct-bff-consumer --bff-dir bff",
@@ -34,13 +36,14 @@
     "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9102/healthcheck",
     "cypress:server:e2e:wait": "npm run cypress:server:wait",
     "prepare:e2e": "cd bff && go mod download",
-    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9102",
+    "cypress:server:e2e": "LLAMA_STACK_URL=${LLAMA_STACK_URL:-http://localhost:8321} STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9102",
     "lint": "cd frontend && npm run lint",
     "lint:fix": "cd frontend && npm run lint:fix"
   },
   "exports": {
     "./extension-points": "./frontend/src/odh/extension-points/index.ts",
-    "./types": "./frontend/src/types/index.ts"
+    "./types": "./frontend/src/types/index.ts",
+    "./extensions/static": "./frontend/src/odh/extensions.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
@@ -49,6 +52,7 @@
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"

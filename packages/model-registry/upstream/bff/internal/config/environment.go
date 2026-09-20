@@ -114,4 +114,16 @@ type EnvConfig struct {
 	// Use DeploymentMode instead
 	StandaloneMode    bool
 	FederatedPlatform bool
+
+	// ─── INTER-BFF (MLflow) ─────────────────────────────────────
+	// See docs/inter-bff-communication.md. Used to resolve MCP Registry server
+	// details (display name) for deployments created from the MCP Registry.
+	MockBFFClients           bool
+	BFFMLflowServiceName     string
+	BFFMLflowServicePort     int
+	BFFMLflowTLSEnabled      bool
+	BFFMLflowDevURL          string
+	BFFMLflowAuthMethod      string
+	BFFMLflowAuthTokenHeader string
+	BFFMLflowAuthTokenPrefix string
 }

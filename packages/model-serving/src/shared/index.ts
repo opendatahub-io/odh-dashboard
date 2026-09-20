@@ -10,6 +10,7 @@ export {
 export type {
   LabeledConnection,
   ModelStatus,
+  NimServingResponse,
   SupportedModelFormatsInfo,
   ServingRuntimeToken,
   CreatingModelServingObjectCommon,
@@ -68,10 +69,23 @@ export {
   ModelServingToolbarFilterOptions,
   modelServingFilterOptions,
   initialModelServingFilterData,
+  DEPLOY_BUTTON_TOOLTIP,
 } from './const';
 export type { ModelServingFilterDataType } from './const';
 
-export { MODEL_CAPABILITIES_ANNOTATION, WELL_KNOWN_MODEL_CAPABILITIES } from './modelCapabilities';
-export type { WellKnownModelCapability, ModelCapability } from './modelCapabilities';
+export {
+  MODEL_CAPABILITIES_ANNOTATION,
+  WELL_KNOWN_MODEL_CAPABILITIES,
+  parseModelCapabilities,
+  getModelCapabilityLabelColor,
+  resolveWellKnownModelCapability,
+} from './modelCapabilities';
+export type {
+  WellKnownModelCapability,
+  ModelCapability,
+  ModelCapabilityLabelColor,
+} from './modelCapabilities';
+
+export type { ValidatedConfiguration, ValidatedConfigurationOption } from './types/form-data';
 
 export { translateModelServingError } from './utils/errorUtils';

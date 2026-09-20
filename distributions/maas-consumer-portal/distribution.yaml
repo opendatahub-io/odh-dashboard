@@ -1,0 +1,21 @@
+name: maas-consumer-portal
+productName: "MaaS Consumer Portal"
+
+packages:
+  local:
+    - name: maas-consumer-portal
+      extensionsPath: ./extensions
+  bundled:
+    - package: '@odh-dashboard/maas'
+      extensionsPath: './extensions/static'
+      featureFlags:
+        modelAsService: true
+        mySubscriptions: true
+    - package: '@odh-dashboard/gen-ai'
+      extensionsPath: './extensions/static'
+      featureFlags:
+        genAiStudio: true
+        plugin-gen-ai: true
+        chatPlayground: true
+        modelAsService: true
+

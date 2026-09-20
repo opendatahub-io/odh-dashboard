@@ -1,3 +1,5 @@
+export { applyK8sAPIOptions, mergeRequestInit } from './apiMergeUtils';
+
 export {
   ContainerResourceAttributes,
   SchedulingType,
@@ -83,11 +85,16 @@ export type {
   WorkloadCondition,
   CohortKind,
   ResourceFlavorKind,
+  ServiceAccountKind,
   ServiceKind,
   NIMAccountKind,
   ConfigSecretItem,
   K8sWatchResult,
+  RouteKind,
+  OdhApplication,
+  OdhIntegrationApplication,
 } from './k8sTypes';
+export { OdhApplicationCategory } from './k8sTypes';
 
 export {
   isK8sDSGResource,

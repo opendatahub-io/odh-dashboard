@@ -2,10 +2,12 @@
 // https://jestjs.io/docs/en/configuration.html
 
 export default {
-  testMatch: ['**/?(*.)+(spec|test).?([mc])[jt]s?(x)'],
+  testMatch: ['**/?(*.)+(spec|test).?([mc])[cjt]s?(x)'],
+
+  moduleFileExtensions: ['js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx', 'cts', 'json', 'node'],
 
   transform: {
-    '^.+\\.(js|tsx?)$': [
+    '^.+\\.(js|tsx?|cts|cjs)$': [
       'babel-jest',
       { targets: 'current node', envName: 'test', rootMode: 'upward' },
     ],
@@ -41,12 +43,12 @@ export default {
     'extensions/**/*.{ts,tsx}',
     'extension-points.ts',
     'extension-points/**/*.{ts,tsx}',
-    'src/**/*.{ts,tsx}',
+    'src/**/*.{ts,tsx,cts,cjs}',
     '!upstream/**',
     '!src/third_party/**',
     '!**/__tests__/**',
     '!**/__mocks__/**',
-    '!**/*.spec.{ts,tsx}',
+    '!**/*.spec.{ts,tsx,cts,cjs}',
     '!**/*.d.ts',
   ],
 };

@@ -1,4 +1,4 @@
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 
 interface MockComponentsParams {
   extraComponents?: OdhApplication[];

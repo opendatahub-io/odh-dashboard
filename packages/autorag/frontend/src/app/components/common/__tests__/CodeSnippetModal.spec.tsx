@@ -125,6 +125,36 @@ describe('CodeSnippetModal', () => {
     expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:mock-url');
   });
 
+  const mockDownloadUrlApis = () => {
+    Object.defineProperty(global.URL, 'createObjectURL', {
+      value: jest.fn().mockReturnValue('blob:mock-url'),
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(global.URL, 'revokeObjectURL', {
+      value: jest.fn(),
+      writable: true,
+      configurable: true,
+    });
+  };
+
+  it('should call onDownload after the download is triggered', () => {
+    mockDownloadUrlApis();
+    const mockOnDownload = jest.fn();
+    render(<CodeSnippetModal {...defaultProps} onDownload={mockOnDownload} />);
+
+    fireEvent.click(screen.getByTestId('test-snippet-download-button'));
+
+    expect(mockOnDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not throw when onDownload is not provided', () => {
+    mockDownloadUrlApis();
+    render(<CodeSnippetModal {...defaultProps} />);
+
+    expect(() => fireEvent.click(screen.getByTestId('test-snippet-download-button'))).not.toThrow();
+  });
+
   it('should copy code to clipboard when copy button is clicked', async () => {
     render(<CodeSnippetModal {...defaultProps} />);
 

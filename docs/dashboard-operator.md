@@ -9,7 +9,7 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 ## CRD Design
 
 **Kind**: `Dashboard`
-**Group**: `dashboard.opendatahub.io`
+**Group**: `components.platform.opendatahub.io`
 **Version**: `v1alpha1`
 **Scope**: Cluster (not namespaced)
 **Singleton**: Enforced via CEL validation (`metadata.name == 'default-dashboard'`)
@@ -23,16 +23,17 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
-| `deploymentMode` | `Sidecar\|Standalone` | Deployment topology for BFF modules (default: Sidecar) |
+| `maasConsumerPortal` | `MaaSConsumerPortalSpec` | MaaS Consumer Portal (`managementState: Managed`/`Removed`; served below the gateway path) |
 
 ### Status Fields
 
 | Field | Type | Purpose |
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
-| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable` |
+| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSConsumerPortalAvailable` |
 | `observedGeneration` | `int64` | Last processed spec generation |
 | `url` | `string` | Externally-reachable dashboard URL |
+| `maasConsumerPortalUrl` | `string` | Last known good MaaS Consumer Portal URL; cleared when the operand is removed |
 | `moduleStatuses` | `map[string]ModuleStatus` | Per-module deployment state |
 | `releases` | `[]ComponentRelease` | Deployed component versions |
 
@@ -46,26 +47,22 @@ The CRD embeds types from `odh-platform-utilities/api/common`:
 
 ## Reconciliation Pipeline
 
-The controller follows a sequential pipeline on each reconcile, branching based on the `deploymentMode` spec field:
+The controller follows a sequential pipeline on each reconcile:
 
-```
+```text
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
 3. Handle Removed      -> tear down all labeled resources
-4. Branch on deploymentMode:
-   |-- Sidecar path (reconcileSidecar):
-   |   -> Render platform overlay (odh/ or rhoai/) with sidecar patches
-   |   -> Deploy via SSA (single pod with all BFF containers)
-   |   -> Check container readiness per-module
-   +-- Standalone path (reconcileStandalone):
-       -> Render standalone overlay (odh/standalone or rhoai/standalone)
-       -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
-       -> For each enabled module:
-       |   -> Render manifests/modules/<slug>/
-       |   -> Deploy as independent Deployment via SSA
-       -> GC disabled module resources
-       -> Build dynamic federation-config ConfigMap
-       -> Patch main Deployment with config hash annotation (rolling restart)
+4. Deploy:
+   -> Clean up legacy sidecar resources (upgrade path)
+   -> Render overlay (odh or rhoai)
+   -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
+   -> For each enabled module:
+   |   -> Render manifests/modules/<slug>/
+   |   -> Deploy as independent Deployment via SSA
+   -> GC disabled module resources
+   -> Build dynamic federation-config ConfigMap
+   -> Patch main Deployment with config hash annotation (rolling restart)
 5. Extract URL         -> Route admission check
 6. Update status       -> conditions, phase, URL, moduleStatuses, releases
 ```
@@ -76,9 +73,17 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 
 1. All resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings
 2. Cross-namespace resources (e.g., Perses proxy in observability namespace) are cleaned up
-3. Status is updated: `phase: NotReady`, `ProvisioningSucceeded: False` (reason: `Removed`), `Degraded: False` (reason: `Removed`)
-4. `status.url` and `status.moduleStatuses` are cleared
-5. The controller returns without requeuing -- it will reconcile again if the CR is updated
+3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Consumer Portal is managed, status remains `phase: NotReady`; if a MaaS Consumer Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
+4. `status.url` and distribution status are cleared; `status.moduleStatuses` continues to reflect aggregate module demand
+5. The controller requeues while a managed MaaS Consumer Portal is awaiting readiness or retrying a transient failure
+
+**The MaaS Consumer Portal is an independent RHOAI-only operand, decoupled from the core dashboard's `managementState`.** It is gated by `spec.maasConsumerPortal.managementState`, not the core dashboard lifecycle:
+
+- Namespaced resources are rendered into `APPLICATIONS_NAMESPACE`; portal resources carry `platform.opendatahub.io/part-of: maas-consumer-portal`, so core teardown (`part-of: dashboard`) never matches them.
+- The shared MaaS and GenAI BFFs remain aggregate-demand resources. Portal-only operation retains them on RHOAI unless an explicit module disable overrides demand.
+- On non-RHOAI platforms the controller removes stale portal resources and reports an informational `UnsupportedPlatform` condition without creating portal demand.
+
+Consequently, core `managementState: Removed` with `maasConsumerPortal.managementState: Managed` retains the portal operand and its aggregate MaaS/GenAI demand. When the portal is removed, the controller deletes only portal-owned resources, including the serving-certificate Secret that does not use owner-reference garbage collection. Dashboard CR deletion cleans up all portal resources.
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -90,18 +95,16 @@ The finalizer handles a separate concern: cleanup on CR **deletion** (when `Dele
 
 ## Manifest Management
 
-Manifests are stored at a configurable base path (`--manifests-base-path` flag), with platform-specific overlays for each deployment mode:
+Manifests are stored at a configurable base path (`--manifests-base-path` flag), with platform-specific overlays:
 
 ### Overlay Paths
 
-| Platform | Sidecar Overlay | Standalone Overlay |
-|----------|----------------|-------------------|
-| OpenDataHub | `/odh` | `/odh/standalone` |
-| SelfManagedRhoai | `/rhoai` | `/rhoai/standalone` |
+| Platform | Overlay |
+|----------|---------|
+| OpenDataHub | `/odh` |
+| SelfManagedRhoai | `/rhoai` |
 
-**Sidecar overlay** extends `manifests/base/` + `manifests/sidecar/` (injects all BFF containers via JSON6902 patches, includes static federation-config ConfigMap).
-
-**Standalone overlay** extends `manifests/base/` directly (no sidecar patches). Produces a core pod with only 3 containers (odh-dashboard, kube-rbac-proxy, core-bff).
+The overlay extends `manifests/base/` and produces a core pod with 3 containers (odh-dashboard, kube-rbac-proxy, core-bff).
 
 ### Rendering Pipeline
 
@@ -109,7 +112,7 @@ Manifests are stored at a configurable base path (`--manifests-base-path` flag),
 2. **Kustomize engine** renders manifests with namespace injection
 3. **SSA deployer** applies all resources with `dashboard-operator` as field owner
 
-### Standalone Module Manifests
+### Module Manifests
 
 Each module has its own kustomize package under `manifests/modules/<slug>/` containing:
 - `deployment.yaml` -- 2-replica Deployment with TLS, SA isolation
@@ -117,7 +120,7 @@ Each module has its own kustomize package under `manifests/modules/<slug>/` cont
 - `networkpolicy.yaml` -- NetworkPolicy for inter-BFF egress
 - `service-account.yaml` -- Dedicated ServiceAccount
 - `cluster-role.yaml` + `cluster-role-binding.yaml` -- Module-specific RBAC
-- `params.yaml` -- Kustomize parameter defaults
+- `params.env` -- Kustomize parameter defaults
 
 The eight registered modules and their manifest directories:
 
@@ -131,6 +134,19 @@ The eight registered modules and their manifest directories:
 | maas | `manifests/modules/maas/` | `odh-dashboard-maas-ui` |
 | mlflow | `manifests/modules/mlflow/` | `odh-dashboard-mlflow-ui` |
 | modelRegistry | `manifests/modules/model-registry/` | `odh-dashboard-model-registry-ui` |
+
+### MaaS Consumer Portal Operand
+
+When `spec.maasConsumerPortal.managementState` is `Managed` on RHOAI and `spec.gateway.domain` is set, the controller deploys `manifests/distributions/maas-consumer-portal/`: Deployment, Service, ServiceAccount, ClusterRole, ClusterRoleBinding, NetworkPolicy, and HTTPRoute.
+
+- **URL contract**: `https://<spec.gateway.domain>/maas-consumer-portal/`. The portal shares the gateway hostname and its authentication session; it does not require a hostname, DNS record, certificate, listener, or OAuth callback of its own. The URL is retained across transient failures and is only published after the Deployment is Available and the HTTPRoute is accepted with resolved references; it is cleared after successful removal.
+- **Routing**: the portal HTTPRoute redirects the no-slash path to the trailing-slash URL (302), then matches `/maas-consumer-portal` and rewrites only that prefix before forwarding to the portal Service. This makes static assets, deep links, Core-BFF, MaaS, and GenAI APIs work when the core Dashboard HTTPRoute is removed. Gateway path precedence selects this more-specific route ahead of the Dashboard `/` catch-all while both operands are managed.
+- **Gateway prerequisite**: the installed RHOAI Gateway API v1 implementation must merge same-hostname `HTTPRoute`s using Gateway API path precedence, so the portal's more-specific path wins over the Dashboard `/` catch-all. It must also accept and honor `RequestRedirect` and `URLRewrite` filters. The operand intentionally provides no fallback for Gateway implementations that do not support these behaviors.
+- **Authentication and migration**: gateway-owned `/oauth2/sign_out` and `/oauth2/callback` remain unchanged. Login returns to the requested portal deep link. Existing derived-hostname bookmarks are retired and are not redirected, because the operator does not own external hostname exposure. After portal removal, portal-prefixed URLs are handled by the remaining Dashboard catch-all (typically its normal not-found behavior); they no longer serve the portal.
+- **Proxy response paths**: the portal's current Core-BFF handlers and module proxy configuration were inspected for browser-visible redirects. The proxy preserves relative upstream `Location` headers and validates absolute redirect targets for SSRF; no portal-reachable redirect requiring prefix rewriting was found, so no `X-Forwarded-Prefix` contract is configured.
+- **Federation**: the portal-owned `maas-consumer-portal-federation-config` ConfigMap is mounted into the Deployment. Its content hash is patched onto the Deployment template after every successful bundle apply to trigger configuration rollouts.
+- **Availability**: `MaaSConsumerPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
+- **Cleanup**: removal explicitly deletes the serving-certificate Secret `maas-consumer-portal-tls`, HTTPRoute, RBAC, and other portal-owned resources. Core-dashboard removal does not delete them while the portal remains Managed.
 
 ## Module Registry and Dependency Resolution
 
@@ -159,17 +175,13 @@ Module enablement uses a three-pass algorithm implemented in `resolveModuleStatu
 
 3. **Unknown Module Detection**: Any key in `spec.modules` that does not match a registered module is reported as `Phase: NotDeployed`, reason: `UnknownModule`.
 
-### Resolution (Sidecar Mode)
+### Module Health Resolution
 
-In sidecar mode, container readiness is overlaid from pod status after module enablement is resolved. If a module's container is in `ImagePullBackOff`, `CrashLoopBackOff`, or similar waiting state, its status is downgraded to `Degraded`. If the container is not found in any pod, the status is set to `NotDeployed`.
+Module health is checked by inspecting each module's Deployment readiness (replicas vs ready replicas). If the Deployment has fewer ready replicas than desired, the module is marked `Degraded`. If no Deployment is found for the module, it is marked `NotDeployed`.
 
-### Resolution (Standalone Mode)
+## Dynamic Federation ConfigMap
 
-In standalone mode, module health is checked by inspecting each module's standalone Deployment readiness (replicas vs ready replicas), not container readiness within a shared pod. If the Deployment has fewer ready replicas than desired, the module is marked `Degraded`. If no Deployment is found for the module, it is marked `NotDeployed`.
-
-## Dynamic Federation ConfigMap (Standalone Mode)
-
-In standalone mode, the operator dynamically builds a `federation-config` ConfigMap based on which modules are enabled. For each enabled module, it generates a service entry pointing to the module's standalone Service:
+The operator dynamically builds a `federation-config` ConfigMap based on which modules are enabled. For each enabled module, it generates a service entry pointing to the module's Service:
 
 ```json
 {
@@ -192,8 +204,6 @@ The ConfigMap also includes:
 - An `mlflowEmbedded` entry if the mlflow module is deployed (routes to the embedded MLflow UI)
 
 After deploying the ConfigMap, the operator patches the main Deployment with a content hash annotation (`dashboard.opendatahub.io/federation-config-hash`) to trigger a rolling restart whenever the federation configuration changes. The hash is computed as SHA-256 of the ConfigMap data, and the patch is skipped if the hash has not changed.
-
-In sidecar mode, the federation-config ConfigMap is static and included directly in the sidecar overlay manifests.
 
 ## Operator ConfigMap
 
@@ -218,11 +228,11 @@ dashboard-operator/
 |   +-- main.go                     # Entry point: flags, scheme, platform detection
 |-- internal/
 |   |-- controller/
-|   |   |-- dashboard_reconciler.go # Reconcile loop (sidecar + standalone paths)
+|   |   |-- dashboard_reconciler.go # Reconcile loop
 |   |   |-- actions.go              # Manifest sets, kustomize params, URL extraction
 |   |   |-- support.go              # Platform config, image resolution
 |   |   |-- modules.go              # Module registry + dependency resolution
-|   |   |-- module_deploy.go        # Standalone module deployment, federation ConfigMap
+|   |   |-- module_deploy.go        # Module deployment, federation ConfigMap
 |   |   |-- config.go               # Operator ConfigMap reader
 |   |   +-- *_test.go               # Unit tests for each file
 |   +-- webhook/
@@ -281,7 +291,7 @@ The operator controller is distinct from BFF (Backend-for-Frontend) services:
 | Location | `dashboard-operator/` | `packages/*/bff/` |
 | Build | Standalone binary | Per-package binary |
 
-The operator manages the deployment of BFF containers -- in sidecar mode as part of the Dashboard pod, and in standalone mode as independent Deployments -- but does not interact with BFF HTTP APIs at runtime.
+The operator manages the deployment of BFF containers as independent Deployments but does not interact with BFF HTTP APIs at runtime.
 
 ## Zero-Downtime Migration (SSA Adoption)
 
@@ -307,7 +317,7 @@ On Dashboard CR deletion, the controller's finalizer explicitly cleans up cross-
 
 ### Labels
 
-All resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. In standalone mode, individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection.
+Core dashboard resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection. MaaS Consumer Portal resources use `platform.opendatahub.io/part-of: maas-consumer-portal`, so the core teardown selector (`part-of: dashboard`) never matches them (see [MaaS Consumer Portal Operand](#maas-consumer-portal-operand)).
 
 ## Status Aggregation
 
@@ -331,12 +341,13 @@ The Dashboard type provides five methods:
 
 | Condition | True Means | False Means |
 |-----------|-----------|-------------|
-| `Ready` | All sub-conditions healthy | One or more sub-conditions unhealthy |
+| `Ready` | All managed operands are healthy | A managed operand is unhealthy, or neither operand is managed |
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
-| `Degraded` | One or more modules degraded (standalone) | No degradation / route not ready |
+| `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
+| `MaaSConsumerPortalAvailable` | MaaS Consumer Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
 
-The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, and `ObservabilityAvailable`. It is never set explicitly. Conditions set with `severity: Info` (such as `ObservabilityAvailable` when observability is not enabled) are treated as non-blocking by the rollup.
+The `Ready` condition is a rollup derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaaSConsumerPortalAvailable`. Core dashboard removal is informational when MaaS Consumer Portal remains managed, allowing the portal to determine the aggregate result. If both operands are removed, `Ready` is explicitly `False` with reason `Removed`. Informational conditions, such as a disabled portal or unsupported platform, do not block the rollup.
 
 ### Phase Derivation
 
@@ -408,7 +419,7 @@ Each certificate includes DNS names for in-cluster service discovery:
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Go | >= 1.25 | Build and test |
+| Go | >= 1.26 | Build and test |
 | controller-gen | (via Makefile) | CRD/RBAC generation from markers |
 | golangci-lint | v2 | Linting (downloaded by `make lint`) |
 | Helm | >= 3.x | Chart validation and local rendering |
@@ -466,6 +477,9 @@ cd dashboard-operator
 # Full test suite (fmt, vet, race detector, coverage)
 make test
 
+# Integration tests (envtest — real kube-apiserver + etcd)
+make test-integration
+
 # Lint
 make lint
 
@@ -475,6 +489,42 @@ make chart-validate
 # After modifying api/ types
 make generate && make manifests
 ```
+
+For details on envtest integration tests — what they are, how to write them, and how to debug failures — see [envtest Integration Tests](envtest-integration-tests.md). Tests that require a deployed operator and a real cluster use the [dashboard-operator E2E framework](../dashboard-operator/test/e2e/README.md).
+
+## Chaos Validation (operator-chaos)
+
+The operator integrates [operator-chaos](https://github.com/opendatahub-io/operator-chaos) for shift-left resilience validation. The knowledge model (`chaos/knowledge/dashboard.yaml`) describes all managed resources and their steady-state expectations. Experiment files (`chaos/experiments/*.yaml`) define chaos scenarios (pod-kill, network-partition, PDB-block) that run during pre-release qualification.
+
+### Local Usage
+
+```bash
+cd dashboard-operator
+
+# Validate knowledge model + all experiments
+make chaos-validate
+
+# Download the operator-chaos CLI only
+make operator-chaos
+```
+
+### CI
+
+The `Chaos Validation` workflow (`.github/workflows/operator-chaos.yml`) runs on PRs that touch `chaos/`, `manifests/`, `dashboard-operator/{internal,api,config,cmd}/`, or `dashboard-operator/Makefile`. It validates the knowledge model, runs preflight checks, detects breaking changes against the base branch, and simulates upgrades with `--dry-run`. Breaking-change detection and upgrade simulation are skipped when the base branch has no `chaos/knowledge` directory (first-time integration).
+
+### Maintenance
+
+Update `chaos/knowledge/dashboard.yaml` when:
+- A managed resource is added, removed, or renamed (Deployment, Service, ConfigMap, etc.)
+- The expected replica count or labels change
+- The ingress resource kind or apiVersion changes
+
+Update `chaos/experiments/*.yaml` when:
+- A new chaos scenario is needed for a resource type
+- Recovery timeouts or blast radius parameters need adjustment
+- The target workload selector changes
+
+The `operator-chaos` CLI version is pinned in `dashboard-operator/Makefile` (`OPERATOR_CHAOS_VERSION`). The CI workflow reads this value, so bumping the version in the Makefile is sufficient.
 
 ## Cluster Deployment
 
@@ -494,24 +544,9 @@ helm install dashboard charts/dashboard/ \
   --set image.repository=quay.io/<your-registry>/odh-dashboard-operator \
   --set image.tag=dev
 
-# Create the Dashboard CR (sidecar mode, the default)
+# Create the Dashboard CR
 cat <<EOF | oc apply -f -
-apiVersion: dashboard.opendatahub.io/v1alpha1
-kind: Dashboard
-metadata:
-  name: default-dashboard
-spec:
-  managementState: Managed
-  gateway:
-    domain: ""
-  components:
-    modelregistry:
-      managementState: Managed
-EOF
-
-# Or create the Dashboard CR in standalone mode
-cat <<EOF | oc apply -f -
-apiVersion: dashboard.opendatahub.io/v1alpha1
+apiVersion: components.platform.opendatahub.io/v1alpha1
 kind: Dashboard
 metadata:
   name: default-dashboard
@@ -520,6 +555,8 @@ spec:
   deploymentMode: Standalone
   gateway:
     domain: ""
+  maasConsumerPortal:
+    managementState: Removed
   components:
     modelregistry:
       managementState: Managed
@@ -548,11 +585,10 @@ All container images use `RELATED_IMAGE_*` env vars (required by Konflux/operato
 
 | Aspect | ODH | RHOAI |
 |--------|-----|-------|
-| Sidecar overlay | `/odh` | `/rhoai` |
-| Standalone overlay | `/odh/standalone` | `/rhoai/standalone` |
+| Overlay | `/odh` | `/rhoai` |
 | Section title | "OpenShift Open Data Hub" | "OpenShift Self Managed Services" |
 | Image sources | `quay.io/opendatahub/` | `quay.io/redhat-ai-dev/` (via Konflux) |
-| CRD group | `dashboard.opendatahub.io` | Same |
+| CRD group | `components.platform.opendatahub.io` | Same |
 
 ## Troubleshooting
 
@@ -569,7 +605,7 @@ If a CR was created with the wrong name (e.g., `default` instead of `default-das
 
 ```bash
 # Temporarily remove CEL validation from CRD
-oc patch crd dashboards.dashboard.opendatahub.io --type=json \
+oc patch crd dashboards.components.platform.opendatahub.io --type=json \
   -p='[{"op":"remove","path":"/spec/versions/0/schema/openAPIV3Schema/x-kubernetes-validations"}]'
 
 # Remove finalizer and delete
@@ -588,9 +624,9 @@ The `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE` is not yet onboarded to Konflux
 
 The controller requeues every 10 seconds until the OpenShift Route is admitted. Check Route status: `oc get route -n <namespace> -l platform.opendatahub.io/part-of=dashboard`.
 
-**Module stuck in Degraded (standalone mode)**
+**Module stuck in Degraded**
 
-In standalone mode, check the individual module Deployment:
+Check the individual module Deployment:
 ```bash
 oc get deployment -n <namespace> -l app.kubernetes.io/component=<slug>
 oc describe deployment odh-dashboard-<slug>-ui -n <namespace>

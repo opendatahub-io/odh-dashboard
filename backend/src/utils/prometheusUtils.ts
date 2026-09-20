@@ -1,5 +1,11 @@
 import { KubeFastifyInstance, OauthFastifyRequest, QueryType } from '../types';
-import { DEV_MODE, THANOS_INSTANCE_NAME, THANOS_NAMESPACE, THANOS_RBAC_PORT } from './constants';
+import {
+  DEV_MODE,
+  THANOS_INSTANCE_NAME,
+  THANOS_NAMESPACE,
+  THANOS_RBAC_PORT,
+  THANOS_WEB_PORT,
+} from './constants';
 import { createCustomError } from './requestUtils';
 import { proxyCall, ProxyError, ProxyErrorType } from './httpUtils';
 
@@ -95,6 +101,21 @@ export const callPrometheusThanos = <T>(
     request,
     query,
     generatePrometheusHostURL(fastify, THANOS_INSTANCE_NAME, THANOS_NAMESPACE, THANOS_RBAC_PORT),
+    queryType,
+    true,
+  );
+
+export const callPrometheusThanosCluster = <T>(
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  query: string,
+  queryType: QueryType = QueryType.QUERY,
+): Promise<{ code: number; response: T }> =>
+  callPrometheus<T>(
+    fastify,
+    request,
+    query,
+    generatePrometheusHostURL(fastify, THANOS_INSTANCE_NAME, THANOS_NAMESPACE, THANOS_WEB_PORT),
     queryType,
     true,
   );

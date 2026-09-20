@@ -43,15 +43,16 @@ COPY --chown=default:root package.json package-lock.json* ./
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root packages/app-config/ ./packages/app-config/
 COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
 RUN npm cache clean --force
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 RUN npm run build:prod
 
 # BFF build stage
@@ -108,15 +109,16 @@ COPY --chown=default:root package.json package-lock.json* ./
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root packages/app-config/ ./packages/app-config/
 COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
 RUN npm cache clean --force
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 RUN npm run build:prod
 
 # BFF build stage (same as upstream, using SHA-pinned GOLANG_BASE_IMAGE)

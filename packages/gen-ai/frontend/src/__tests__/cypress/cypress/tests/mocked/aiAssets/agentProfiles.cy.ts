@@ -134,7 +134,9 @@ describe('AI Assets - Agent Profiles (empty state)', () => {
     { tags: ['@GenAI', '@AgentProfiles', '@AIAssets'] },
     () => {
       cy.step('Verify empty state is shown');
-      cy.findByTestId('empty-state').should('be.visible').and('contain.text', 'No agents');
+      cy.findByTestId('agent-profiles-empty-state')
+        .should('be.visible')
+        .and('contain.text', 'No agents');
     },
   );
 });

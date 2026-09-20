@@ -47,7 +47,7 @@ See `.env.local.example` for template.
 | Variable | Default | Purpose |
 |---|---|---|
 | `BACKEND_PORT` | `4000` | Backend listen port |
-| `FRONTEND_PORT` | `4010` | Webpack dev server port |
+| `FRONTEND_PORT` | `4010` | Dev server port |
 | `ODH_HOST` | `localhost` | Dev server host |
 | `EXT_CLUSTER` | - | Set `true` to proxy to a real cluster |
 | `MODULE_FEDERATION_CONFIG` | - | Override MF remote discovery |
@@ -59,9 +59,9 @@ For `EXT_CLUSTER=true`, the dev server uses `oc whoami --show-token` and `oc get
 
 Makefile provides `make login` using `OC_URL`, `OC_USER`, `OC_PASSWORD` (or `OC_TOKEN`).
 
-## Webpack dev server
+## Dev server
 
-`frontend/config/webpack.dev.js`:
+`frontend/config/rspack.dev.js`:
 
 - Hot module replacement enabled
 - Proxies `/api`, `/_mf`, and other paths to the backend
@@ -74,7 +74,7 @@ Makefile provides `make login` using `OC_URL`, `OC_USER`, `OC_PASSWORD` (or `OC_
 `frontend/config/moduleFederation.js` runs `npm query .workspace --json` and filters packages with a `module-federation` key in `package.json`. Override with `MODULE_FEDERATION_CONFIG` env var (JSON string).
 
 In dev mode, the backend reads the same config and proxies:
-- `/_mf/{name}/*` → each package's local webpack dev server (static assets + `remoteEntry.js`)
+- `/_mf/{name}/*` → each package's local dev server (static assets + `remoteEntry.js`)
 - API paths (e.g., `/model-registry/api/*`) → each package's BFF
 
 The `local` field in `module-federation` config tells the backend where to proxy:
@@ -88,7 +88,7 @@ The `local` field in `module-federation` config tells the backend where to proxy
 | Component | Port | Role | Has `start:dev`? |
 |---|---|---|---|
 | Backend | 4000 | Node.js/Fastify reverse proxy | Yes |
-| Host frontend | 4010 | Webpack dev server (host) | Yes |
+| Host frontend | 4010 | Dev server (host) | Yes |
 
 To see all current port assignments and detect conflicts:
 
@@ -110,7 +110,7 @@ The source of truth for each package is:
   BACKEND_PORT=4050
   ```
 
-  The frontend's webpack proxy target (`_BACKEND_PORT`) and the backend itself both pick up this override. The model-registry BFF keeps port 4000 (hardcoded in its Makefile). Avoid using 4020 — mlflow's BFF uses that port.
+  The frontend's rspack proxy target (`_BACKEND_PORT`) and the backend itself both pick up this override. The model-registry BFF keeps port 4000 (hardcoded in its Makefile). Avoid using 4020 — mlflow's BFF uses that port.
 
 ### Running multi-component dev
 
@@ -149,7 +149,7 @@ cd packages/gen-ai && make dev-start-mock
 
 ### Makefile targets per package
 
-Each package with a BFF provides Makefile targets that run **both** the Go BFF and the frontend webpack dev server in parallel:
+Each package with a BFF provides Makefile targets that run **both** the Go BFF and the frontend dev server in parallel:
 
 | Target | What it runs |
 |---|---|
@@ -172,7 +172,7 @@ Federated package extensions are gated behind feature flags (e.g., maas requires
 1. Start the host: `npm run dev`
 2. In a separate terminal, start the package: `cd packages/<pkg> && make dev-start-mock-federated`
 3. Enable required feature flags via the Feature Flag Launcher in the dashboard UI
-4. **Frontend changes** — webpack HMR rebuilds `remoteEntry.js` and hot-reloads in the host automatically
+4. **Frontend changes** — rspack HMR rebuilds `remoteEntry.js` and hot-reloads in the host automatically
 5. **BFF (Go) changes** — restart the BFF process (kill and re-run, or restart only the BFF via `make dev-bff-federated`)
 6. The backend is already proxying to the package's local ports based on the `module-federation.local` config
 
@@ -204,7 +204,7 @@ Enables typed imports via `@mf/*` path aliases (e.g., `@mf/modelRegistry`).
 | `DEPLOYMENT_MODE=federated` | Tells a package's frontend to build as a federated remote |
 | `MODULE_FEDERATION_CONFIG` | JSON override for MF remote discovery (backend + frontend) |
 | `MF_UPDATE_TYPES=true` | Generates TypeScript types for remote modules |
-| `MF_DEV` | Enables `MF_REMOTES` injection in webpack (used by Cypress) |
+| `MF_DEV` | Enables `MF_REMOTES` injection in rspack (used by Cypress) |
 | `MOCK_K8S_CLIENT=true` | BFF flag to mock Kubernetes client |
 | `AUTH_METHOD` | BFF auth: `internal`, `user_token`, or `disabled` |
 

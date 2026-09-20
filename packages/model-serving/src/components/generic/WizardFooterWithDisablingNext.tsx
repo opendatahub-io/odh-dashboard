@@ -25,6 +25,7 @@ type DeploymentFooterProps = {
   isLoading?: boolean;
   error?: Error | null;
   clearError?: () => void;
+  deploymentName?: string;
 };
 
 /**
@@ -32,14 +33,16 @@ type DeploymentFooterProps = {
  * `onSave` and `onCancel` are not provided because they are handled by the useWizardContext inside.
  */
 export const ModelDeploymentWizardFooter: React.FC<
-  Omit<DeploymentFooterProps, 'onSave' | 'onCancel' | 'isSubmitDisabled'>
+  Omit<DeploymentFooterProps, 'onSave' | 'onCancel'>
 > = ({
   submitButtonText = 'Deploy model',
+  isSubmitDisabled,
   onOverwrite,
   onRefresh,
   isLoading,
   error,
   clearError,
+  deploymentName,
 }) => {
   const { activeStep, steps, goToNextStep, goToPrevStep, close } = useWizardContext();
 
@@ -54,6 +57,7 @@ export const ModelDeploymentWizardFooter: React.FC<
             clearError={clearError}
             onOverwrite={onOverwrite}
             onRefresh={onRefresh}
+            deploymentName={deploymentName}
           />
         )}
         <StackItem>
@@ -74,7 +78,10 @@ export const ModelDeploymentWizardFooter: React.FC<
                   variant="primary"
                   onClick={goToNextStep}
                   isLoading={isLoading}
-                  isDisabled={isLoading || steps[activeStep.index]?.isDisabled}
+                  isDisabled={
+                    isLoading ||
+                    (isFinalStep ? isSubmitDisabled : steps[activeStep.index]?.isDisabled)
+                  }
                 >
                   {isFinalStep ? submitButtonText : 'Next'}
                 </Button>
@@ -107,6 +114,7 @@ export const ModelDeploymentFooter: React.FC<DeploymentFooterProps> = ({
   isLoading,
   error,
   clearError,
+  deploymentName,
 }) => {
   return (
     // The WizardFooterWrapper basically just adds a <footer> tag to the DOM.
@@ -118,6 +126,7 @@ export const ModelDeploymentFooter: React.FC<DeploymentFooterProps> = ({
             clearError={clearError}
             onOverwrite={onOverwrite}
             onRefresh={onRefresh}
+            deploymentName={deploymentName}
           />
         )}
         <StackItem>
@@ -154,8 +163,9 @@ const DeployErrorAlert: React.FC<{
   onRefresh?: () => void;
   error?: Error | null;
   clearError?: () => void;
-}> = ({ error, clearError, onOverwrite: onOverwrite, onRefresh }) => {
-  const translatedMessage = error ? translateModelServingError(error) : '';
+  deploymentName?: string;
+}> = ({ error, clearError, onOverwrite: onOverwrite, onRefresh, deploymentName }) => {
+  const translatedMessage = error ? translateModelServingError(error, deploymentName) : '';
 
   return (
     <StackItem>

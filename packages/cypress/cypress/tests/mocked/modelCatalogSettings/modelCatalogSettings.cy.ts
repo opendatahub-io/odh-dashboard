@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
-import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
 import { modelCatalogSettings } from '../../../pages/modelCatalogSettings';

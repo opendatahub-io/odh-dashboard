@@ -3,8 +3,8 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as areasModule from '@odh-dashboard/plugin-core/areas';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connections/ManageConnectionsModal';
-import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import * as connectionTestService from '#~/services/connectionTestService';
 

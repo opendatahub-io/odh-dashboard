@@ -1,13 +1,10 @@
 /* eslint-disable camelcase */
 
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-  mockModelVersionList,
-  mockModelArtifactList,
-} from '@odh-dashboard/internal/__mocks__';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockModelVersionList, mockModelArtifactList } from '@odh-dashboard/internal/__mocks__';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockRegisteredModel } from '@odh-dashboard/internal/__mocks__/mockRegisteredModel';
 import { mockModelVersion } from '@odh-dashboard/internal/__mocks__/mockModelVersion';

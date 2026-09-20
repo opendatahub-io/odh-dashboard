@@ -9,6 +9,10 @@ import { ArtifactDetails } from '#~/pages/pipelines/global/experiments/artifacts
 import GlobalPipelineCoreDetails from '#~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import * as useGetArtifactById from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
 import * as useArtifactStorage from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { useGetEventByArtifactId } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventByArtifactId';
+import { useGetExecutionById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
+import { useGetPipelineRunContextByExecution } from '#~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution';
+import usePipelineRunById from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
 
 // Mock the useDispatch hook
 jest.mock('#~/redux/hooks', () => ({
@@ -60,6 +64,10 @@ jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({
 }));
 
 jest.mock('#~/concepts/pipelines/apiHooks/useArtifactStorage');
+jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useGetEventByArtifactId');
+jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById');
+jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution');
+jest.mock('#~/concepts/pipelines/apiHooks/usePipelineRunById');
 
 describe('ArtifactDetails', () => {
   const useGetArtifactByIdSpy = jest.spyOn(useGetArtifactById, 'useGetArtifactById');
@@ -73,6 +81,13 @@ describe('ArtifactDetails', () => {
         .mockResolvedValue('https://example.com/s3-url/download'),
       getStorageObjectSize: jest.fn().mockResolvedValue(1e9), // Mocking 1 GB size
     });
+
+    jest.mocked(useGetEventByArtifactId).mockReturnValue([null, false, undefined, jest.fn()]);
+    jest.mocked(useGetExecutionById).mockReturnValue([null, false, undefined, jest.fn()]);
+    jest
+      .mocked(useGetPipelineRunContextByExecution)
+      .mockReturnValue([null, false, undefined, jest.fn()]);
+    jest.mocked(usePipelineRunById).mockReturnValue([null, false, undefined, jest.fn()]);
 
     useGetArtifactByIdSpy.mockReturnValue([
       {
@@ -265,5 +280,160 @@ describe('ArtifactDetails', () => {
     expect(customPropsDescriptionListValues[0]).toHaveTextContent('vertex_model');
     expect(customPropsDescriptionListTerms[1]).toHaveTextContent('resourceName');
     expect(customPropsDescriptionListValues[1]).toHaveTextContent('12.15');
+  });
+
+  it('should show empty state for properties and custom properties', async () => {
+    useGetArtifactByIdSpy.mockReturnValue([
+      {
+        getId: jest.fn(() => 7),
+        getTypeId: jest.fn(() => 14),
+        getType: jest.fn(() => 'system.Artifact'),
+        getUri: jest.fn(() => 's3://namespace/bucket/path/to/artifact'),
+        getPropertiesMap: jest.fn(() => []),
+        getCustomPropertiesMap: jest.fn(() => new Map()),
+        getState: jest.fn(() => 2),
+        getCreateTimeSinceEpoch: jest.fn(() => 1711113121829),
+        getLastUpdateTimeSinceEpoch: jest.fn(() => 1711113121829),
+        toObject: jest.fn(() => ({
+          id: 7,
+          typeId: 14,
+          type: 'system.Artifact',
+          uri: 's3://namespace/bucket/path/to/artifact',
+          propertiesMap: [],
+          customPropertiesMap: [],
+          state: 2,
+          createTimeSinceEpoch: 1711113121829,
+          lastUpdateTimeSinceEpoch: 1711113121829,
+        })),
+      } as unknown as Artifact,
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <GlobalPipelineCoreDetails
+            pageName="Artifacts"
+            redirectPath={artifactsBaseRoute}
+            BreadcrumbDetailsComponent={ArtifactDetails}
+          />
+        </BrowserRouter>,
+      ),
+    );
+
+    expect(screen.getByTestId('artifact-properties-section')).toHaveTextContent('No properties');
+    expect(screen.getByTestId('artifact-custom-properties-section')).toHaveTextContent(
+      'No custom properties',
+    );
+  });
+
+  it('should show Registered models section', async () => {
+    useGetArtifactByIdSpy.mockReturnValue([
+      {
+        getId: jest.fn(() => 8),
+        getTypeId: jest.fn(() => 14),
+        getType: jest.fn(() => 'system.Artifact'),
+        getUri: jest.fn(() => 's3://namespace/bucket/path/to/artifact'),
+        getPropertiesMap: jest.fn(() => []),
+        getCustomPropertiesMap: jest.fn(
+          () =>
+            new Map([
+              ['display_name', { getStringValue: () => 'test-artifact' }],
+              ['registeredModelName', { getStringValue: () => 'model' }],
+              ['registeredModelId', { getStringValue: () => '1' }],
+              ['modelVersionName', { getStringValue: () => '1' }],
+              ['modelVersionId', { getStringValue: () => '1' }],
+              ['modelRegistryName', { getStringValue: () => 'model-registry' }],
+            ]),
+        ),
+        getState: jest.fn(() => 2),
+        getCreateTimeSinceEpoch: jest.fn(() => 1711113121829),
+        getLastUpdateTimeSinceEpoch: jest.fn(() => 1711113121829),
+        toObject: jest.fn(() => ({
+          id: 8,
+          typeId: 14,
+          type: 'system.Artifact',
+          uri: 's3://namespace/bucket/path/to/artifact',
+          propertiesMap: [],
+          customPropertiesMap: [
+            ['display_name', { stringValue: 'test-artifact' }],
+            ['registeredModelName', { stringValue: 'model' }],
+            ['registeredModelId', { stringValue: '1' }],
+            ['modelVersionName', { stringValue: '1' }],
+            ['modelVersionId', { stringValue: '1' }],
+            ['modelRegistryName', { stringValue: 'model-registry' }],
+          ],
+          state: 2,
+          createTimeSinceEpoch: 1711113121829,
+          lastUpdateTimeSinceEpoch: 1711113121829,
+        })),
+      } as unknown as Artifact,
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <GlobalPipelineCoreDetails
+            pageName="Artifacts"
+            redirectPath={artifactsBaseRoute}
+            BreadcrumbDetailsComponent={ArtifactDetails}
+          />
+        </BrowserRouter>,
+      ),
+    );
+
+    expect(screen.getByTestId('registered-model-details')).toBeInTheDocument();
+    expect(screen.getByTestId('registered-model-details')).toHaveTextContent(
+      'model (1) in model-registry registry',
+    );
+    expect(screen.getByTestId('model-version-link')).toHaveAttribute(
+      'href',
+      '/ai-hub/models/registry/model-registry/registered-models/1/versions/1',
+    );
+  });
+
+  it('should show an error icon when pipeline run fails to load', async () => {
+    jest.mocked(useGetEventByArtifactId).mockReturnValue([
+      {
+        getExecutionId: jest.fn(() => ({ toString: () => '211' })),
+      } as never,
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+    jest.mocked(useGetExecutionById).mockReturnValue([
+      {
+        getId: jest.fn(() => 211),
+        getCustomPropertiesMap: jest.fn(() => new Map()),
+      } as never,
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+    jest
+      .mocked(useGetPipelineRunContextByExecution)
+      .mockReturnValue([null, true, new Error('Run not found'), jest.fn()]);
+    jest
+      .mocked(usePipelineRunById)
+      .mockReturnValue([null, true, new Error('Run not found'), jest.fn()]);
+
+    await act(async () =>
+      render(
+        <BrowserRouter>
+          <GlobalPipelineCoreDetails
+            pageName="Artifacts"
+            redirectPath={artifactsBaseRoute}
+            BreadcrumbDetailsComponent={ArtifactDetails}
+          />
+        </BrowserRouter>,
+      ),
+    );
+
+    expect(screen.getByTestId('error-icon')).toBeInTheDocument();
   });
 });

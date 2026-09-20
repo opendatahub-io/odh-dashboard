@@ -1,6 +1,16 @@
 /* eslint-disable camelcase */
 jest.mock('@patternfly/react-topology', () => ({
   DEFAULT_SPACER_NODE_TYPE: 'DEFAULT_SPACER_NODE',
+  NodeShape: {
+    circle: 'circle',
+  },
+  NodeStatus: {
+    default: 'default',
+    info: 'info',
+    success: 'success',
+    warning: 'warning',
+    danger: 'danger',
+  },
   RunStatus: {
     Succeeded: 'Succeeded',
     Failed: 'Failed',
@@ -119,9 +129,13 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelSelection = nodes.find((node) => node.id === 'training__model_selection');
     expect(modelSelection?.data.stepState).toBe('active');
+    expect(modelSelection?.shape).toBe('circle');
+    expect(modelSelection?.status).toBe('info');
+    expect(modelSelection?.width).toBe(48);
 
     const loadData = nodes.find((node) => node.id === 'training__load_data');
     expect(loadData?.data.stepState).toBe('completed');
+    expect(loadData?.status).toBe('success');
   });
 
   it('includes data-loader linear stages when present in the stage map', () => {
@@ -144,7 +158,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(runStatusToTreeStepState(RunStatus.Succeeded)).toBe('completed');
     expect(runStatusToTreeStepState(RunStatus.InProgress)).toBe('active');
     expect(runStatusToTreeStepState(RunStatus.Failed)).toBe('failed');
-    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('pending');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
   });
 
@@ -275,5 +289,110 @@ describe('transformStageMapNodesToTree', () => {
         target: invalidBranchId,
       }),
     );
+  });
+
+  it('collapses to the winner spine and marks the model terminus', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: false,
+      winnerResolved: true,
+      winnerModelLabel: 'xgboost',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(1);
+    expect(modelNodes[0].data.label).toBe('xgboost');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.showWinnerStar).toBe(true);
+    expect(
+      nodes.find((node) => node.id === 'training__model_selection')?.data.showModelsToggle,
+    ).toBe(true);
+  });
+
+  it('labels the collapsed terminus as Model winner when the winner is unresolved', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: false,
+      winnerResolved: false,
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(1);
+    expect(modelNodes[0].data.label).toBe('Model');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.showWinnerStar).toBe(false);
+  });
+
+  it('labels collapsed spine with winner badge when winnerResolved but no branch matches', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: false,
+      winnerResolved: true,
+      winnerModelLabel: 'unknown_model',
+      winnerModelKey: 'does_not_match_any_branch',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(1);
+    expect(modelNodes[0].data.label).toBe('Model');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.showWinnerStar).toBe(false);
+  });
+
+  it('uses winnerModelLabel on the collapsed spine when the run has succeeded', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: false,
+      winnerResolved: true,
+      winnerModelLabel: 'Best Model Display Name',
+      winnerModelKey: 'xgboost',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(1);
+    expect(modelNodes[0].data.label).toBe('Best Model Display Name');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.showWinnerStar).toBe(true);
+  });
+
+  it('expands all model branches when modelsExpanded is true', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: true,
+      winnerModelLabel: 'lightgbm',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(2);
+    const winner = modelNodes.find((node) => node.data.label === 'lightgbm');
+    expect(winner?.data.labelSubtitle).toBe('Winner');
+    expect(winner?.data.showWinnerStar).toBe(true);
+  });
+
+  it('keeps the winner star when expanded even if the leaderboard key has a suffix', () => {
+    const longNameTraining = makeComponent('training', [
+      makeStage('load_data', { status: 'completed' }),
+      makeStage('model_selection', {
+        status: 'started',
+        selected_models: ['ExtraTreesMSE_BAG_L1', 'LightGBMXT_BAG_L2'],
+        steps: ['feature_engineering', 'model_training', 'stacking', 'model_evaluation'],
+      }),
+      makeStage('refit_full'),
+    ]);
+    const topologyNodes = buildStageMapTopology(makeStageMap([longNameTraining]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: true,
+      winnerModelLabel: 'ExtraTreesMSE_B AG_L1_FULL',
+      winnerModelKey: 'ExtraTreesMSE_BAG_L1_FULL',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(2);
+    const winner = modelNodes.find((node) => node.data.showWinnerStar === true);
+    expect(winner?.data.label).toBe('ExtraTreesMSE_B AG_L1_FULL');
+    expect(winner?.data.labelSubtitle).toBe('Winner');
+    expect(modelNodes.filter((node) => node.data.showWinnerStar).length).toBe(1);
   });
 });

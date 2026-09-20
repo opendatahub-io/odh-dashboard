@@ -1,4 +1,4 @@
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { appChrome } from '../../../pages/appChrome';
 import { argoAlert } from '../../../pages/pipelines/argoAlert';
 

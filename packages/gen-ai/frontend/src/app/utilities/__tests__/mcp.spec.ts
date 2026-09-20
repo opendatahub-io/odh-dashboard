@@ -3,6 +3,7 @@
 import { MCPConnectionStatus, MCPServerFromAPI } from '~/app/types';
 import {
   transformMCPServerData,
+  filterUnavailableMCPServers,
   getStatusErrorMessage,
   processServerStatus,
   getSelectedServersForAPI,
@@ -10,6 +11,77 @@ import {
 } from '~/app/utilities/mcp';
 
 describe('MCP Utilities', () => {
+  describe('filterUnavailableMCPServers', () => {
+    const registryServer: MCPServerFromAPI = {
+      name: 'registry-server',
+      url: 'https://registry.example.com/mcp',
+      transport: 'sse',
+      description: '',
+      logo: null,
+      status: 'healthy',
+      version: '1.0.0',
+      source: 'registry',
+      tools: [],
+      tool_count: 0,
+    };
+
+    it('should exclude unreachable Registry and ConfigMap servers', () => {
+      const unavailableRegistryServer: MCPServerFromAPI = {
+        name: 'unavailable-registry-server',
+        url: 'https://registry.example.com/mcp',
+        transport: 'sse',
+        description: '',
+        logo: null,
+        status: 'healthy',
+        version: '1.0.0',
+        source: 'registry',
+        tools: [],
+        tool_count: 0,
+      };
+      const reachableRegistryServer: MCPServerFromAPI = {
+        ...unavailableRegistryServer,
+        name: 'reachable-registry-server',
+        url: 'https://reachable-registry.example.com/mcp',
+      };
+      const configMapServer: MCPServerFromAPI = {
+        ...unavailableRegistryServer,
+        name: 'manual-server',
+        url: 'https://manual.example.com/mcp',
+        source: 'configmap',
+      };
+
+      const result = filterUnavailableMCPServers(
+        [unavailableRegistryServer, reachableRegistryServer, configMapServer],
+        new Map([
+          [unavailableRegistryServer.url, { status: 'unreachable', message: 'Server unreachable' }],
+          [reachableRegistryServer.url, { status: 'connected', message: 'Connected' }],
+          [configMapServer.url, { status: 'unreachable', message: 'Server unreachable' }],
+        ]),
+      );
+
+      expect(result).toEqual([reachableRegistryServer]);
+    });
+
+    it('should retain a registry server while its status check is in flight', () => {
+      expect(filterUnavailableMCPServers([registryServer], new Map())).toEqual([registryServer]);
+    });
+
+    it('should retain a registry server that requires authentication', () => {
+      expect(
+        filterUnavailableMCPServers(
+          [registryServer],
+          new Map([
+            [registryServer.url, { status: 'auth_required', message: 'Authentication required' }],
+          ]),
+        ),
+      ).toEqual([registryServer]);
+    });
+
+    it('should return an empty array when there are no servers', () => {
+      expect(filterUnavailableMCPServers([], new Map())).toEqual([]);
+    });
+  });
+
   describe('transformMCPServerData', () => {
     it('transforms API server data to table format correctly', () => {
       const apiServer: MCPServerFromAPI = {
@@ -19,6 +91,10 @@ describe('MCP Utilities', () => {
         description: 'A test MCP server',
         logo: 'https://example.com/logo.png',
         status: 'healthy',
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 3,
       };
 
       const result = transformMCPServerData(apiServer);
@@ -30,8 +106,11 @@ describe('MCP Utilities', () => {
         status: 'active',
         endpoint: 'View',
         connectionUrl: 'https://example.com/mcp',
-        tools: 0,
-        version: 'Unknown',
+        tools: 3,
+        version: '1.0.0',
+        logo: 'https://example.com/logo.png',
+        source: 'configmap',
+        toolsList: [],
       });
     });
 
@@ -43,6 +122,10 @@ describe('MCP Utilities', () => {
         description: 'Server without logo',
         logo: null,
         status: 'error',
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
       };
 
       const result = transformMCPServerData(apiServer);
@@ -60,10 +143,53 @@ describe('MCP Utilities', () => {
         description: 'Test description',
         logo: null,
         status: 'healthy',
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
       };
 
       const result = transformMCPServerData(apiServer);
       expect(result.id).toBe(apiServer.url);
+    });
+
+    it('falls back to dash when version is empty', () => {
+      const apiServer: MCPServerFromAPI = {
+        name: 'no-version',
+        url: 'https://example.com/mcp',
+        transport: 'sse',
+        description: '',
+        logo: null,
+        status: 'healthy',
+        version: '',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
+      };
+
+      const result = transformMCPServerData(apiServer);
+      expect(result.version).toBe('-');
+    });
+
+    it('passes through registry source', () => {
+      const apiServer: MCPServerFromAPI = {
+        name: 'registry-server',
+        url: 'https://example.com/mcp',
+        transport: 'sse',
+        description: '',
+        logo: null,
+        status: 'healthy',
+        version: '2.1.0',
+        source: 'registry',
+        tools: [],
+        tool_count: 5,
+      };
+
+      const result = transformMCPServerData(apiServer);
+      expect(result.source).toBe('registry');
+      expect(result.version).toBe('2.1.0');
+      expect(result.tools).toBe(5);
+      expect(result.toolsList).toEqual([]);
     });
   });
 
@@ -392,7 +518,7 @@ describe('MCP Utilities', () => {
   });
 
   describe('getSelectedServersForAPI', () => {
-    const mockServers = [
+    const mockServers: MCPServerFromAPI[] = [
       {
         name: 'Server 1',
         url: 'http://server1.com',
@@ -400,6 +526,10 @@ describe('MCP Utilities', () => {
         description: 'Test server 1',
         logo: null,
         status: 'healthy' as const,
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
       },
       {
         name: 'Server 2',
@@ -408,6 +538,10 @@ describe('MCP Utilities', () => {
         description: 'Test server 2',
         logo: null,
         status: 'healthy' as const,
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
       },
     ];
 
@@ -589,7 +723,7 @@ describe('MCP Utilities', () => {
       });
 
       it('handles multiple servers with different tool configurations', () => {
-        const mockServersMultiple = [
+        const mockServersMultiple: MCPServerFromAPI[] = [
           {
             name: 'Server 1',
             url: 'http://server1.com',
@@ -597,6 +731,10 @@ describe('MCP Utilities', () => {
             description: 'Test server 1',
             logo: null,
             status: 'healthy' as const,
+            version: '1.0.0',
+            source: 'configmap',
+            tools: [],
+            tool_count: 0,
           },
           {
             name: 'Server 2',
@@ -605,6 +743,10 @@ describe('MCP Utilities', () => {
             description: 'Test server 2',
             logo: null,
             status: 'healthy' as const,
+            version: '1.0.0',
+            source: 'configmap',
+            tools: [],
+            tool_count: 0,
           },
         ];
 

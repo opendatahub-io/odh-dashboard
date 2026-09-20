@@ -31,6 +31,16 @@ describe('MLflow API Contract Tests', () => {
     });
   });
 
+  describe('Status Endpoint', () => {
+    it('should return MLflow availability status', async () => {
+      const result = await apiClient.get('/api/v1/status');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/StatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+  });
+
   describe('Namespaces Endpoint', () => {
     it('should successfully retrieve namespaces list', async () => {
       const result = await apiClient.get('/api/v1/namespaces');
@@ -331,8 +341,8 @@ describe('MLflow API Contract Tests', () => {
         value: 'weather',
       });
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/NoContent',
-        status: 204,
+        ref: '#/components/responses/MCPTagResponse/content/application~1json/schema',
+        status: 200,
       });
     });
 
@@ -345,8 +355,8 @@ describe('MLflow API Contract Tests', () => {
         },
       );
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/NoContent',
-        status: 204,
+        ref: '#/components/responses/MCPTagResponse/content/application~1json/schema',
+        status: 200,
       });
     });
 
@@ -615,6 +625,122 @@ describe('MLflow API Contract Tests', () => {
         alias: 'latest',
         version: serverVersion,
       });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should register an MCP server', async () => {
+      const registerName = `ct.example/mcp-register-${Date.now()}`;
+      const registerUrl = `/api/v1/mcp-registry/register?workspace=${workspace}`;
+      try {
+        const result = await apiClient.post(registerUrl, {
+          name: registerName,
+          // eslint-disable-next-line camelcase
+          server_json: { name: registerName, version: '1.0.0' },
+          // eslint-disable-next-line camelcase
+          display_name: 'Contract Register Server',
+          icons: [{ src: 'https://example.com/icon.svg', theme: 'light' }],
+          tags: [{ key: 'category', value: 'weather' }],
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/RegisterMCPServerResponse/content/application~1json/schema',
+          status: 201,
+        });
+        expect(result.success).toBe(true);
+      } finally {
+        await apiClient.delete(serverUrl(registerName));
+      }
+    });
+
+    it('should return 400 when registering without server_json', async () => {
+      const result = await apiClient.post(`/api/v1/mcp-registry/register?workspace=${workspace}`, {
+        name: 'ct.example/mcp-register-missing-json',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 400 when registering with a mismatched server_json name', async () => {
+      const result = await apiClient.post(`/api/v1/mcp-registry/register?workspace=${workspace}`, {
+        name: 'ct.example/mcp-register-mismatch',
+        // eslint-disable-next-line camelcase
+        server_json: { name: 'ct.example/other-server', version: '1.0.0' },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+  });
+
+  describe('MCP catalog proxy', () => {
+    const catalogId = 'server-1';
+    const catalogNamespace = 'default';
+
+    it('should list tools for a catalog server', async () => {
+      const result = await apiClient.get(
+        `/api/v1/mcp-catalog/servers/${catalogId}/tools?namespace=${catalogNamespace}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1api~1v1~1mcp-catalog~1servers~1{id}~1tools/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should convert a catalog server to an MCPServer CR', async () => {
+      const result = await apiClient.get(
+        `/api/v1/mcp-catalog/servers/${catalogId}/mcpserver?namespace=${catalogNamespace}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1api~1v1~1mcp-catalog~1servers~1{id}~1mcpserver/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should return 400 when listing tools without namespace', async () => {
+      const result = await apiClient.get(`/api/v1/mcp-catalog/servers/${catalogId}/tools`);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 400 when converting without namespace', async () => {
+      const result = await apiClient.get(`/api/v1/mcp-catalog/servers/${catalogId}/mcpserver`);
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.status).toBe(400);

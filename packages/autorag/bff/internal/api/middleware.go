@@ -53,6 +53,7 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Adds a unique id to the context to allow tracing of requests
+		// TODO: We may need to respect a transaction id http header to trace logs across APIs too.
 		traceId := uuid.NewString()
 		ctx := context.WithValue(r.Context(), constants.TraceIdKey, traceId)
 

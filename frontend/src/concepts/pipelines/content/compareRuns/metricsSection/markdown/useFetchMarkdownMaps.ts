@@ -7,6 +7,7 @@ import {
   getFullArtifactPaths,
 } from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import { ArtifactType, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { readBoundedText } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 
 const useFetchMarkdownMaps = (
@@ -17,7 +18,7 @@ const useFetchMarkdownMaps = (
   configsLoaded: boolean;
 } => {
   const [configsLoaded, setConfigsLoaded] = React.useState(false);
-  const { getStorageObjectRenderUrl } = useArtifactStorage();
+  const { getStorageObjectRenderUrl, getStorageObjectDownloadUrl } = useArtifactStorage();
 
   const [configMapBuilder, setConfigMapBuilder] = React.useState<
     Record<string, MarkdownAndTitle[]>
@@ -40,22 +41,39 @@ const useFetchMarkdownMaps = (
           const { run } = path;
           let sizeBytes: number | undefined;
           let url: string | undefined;
-          if (
-            path.linkedArtifact.artifact.getType() === ArtifactType.MARKDOWN ||
-            path.linkedArtifact.artifact.getType() === ArtifactType.HTML
-          ) {
+          let markdownContent: string | undefined;
+          const artifactType = path.linkedArtifact.artifact.getType();
+
+          if (artifactType === ArtifactType.MARKDOWN) {
+            try {
+              const downloadUrl = await getStorageObjectDownloadUrl(path.linkedArtifact.artifact);
+              if (downloadUrl) {
+                const response = await fetch(downloadUrl);
+                if (response.ok) {
+                  markdownContent = await readBoundedText(response);
+                }
+              }
+            } catch {
+              // Fall back to render URL for iframe display
+            }
+            if (!markdownContent) {
+              url = await getStorageObjectRenderUrl(path.linkedArtifact.artifact).catch(
+                () => undefined,
+              );
+            }
+          } else if (artifactType === ArtifactType.HTML) {
             url = await getStorageObjectRenderUrl(path.linkedArtifact.artifact).catch(
               () => undefined,
             );
           }
 
-          if (url === undefined) {
+          if (url === undefined && markdownContent === undefined) {
             return null;
           }
-          return { run, sizeBytes, url, path };
+          return { run, sizeBytes, url, markdownContent, path };
         }),
 
-    [fullArtifactPaths, getStorageObjectRenderUrl],
+    [fullArtifactPaths, getStorageObjectRenderUrl, getStorageObjectDownloadUrl],
   );
 
   React.useEffect(() => {
@@ -66,13 +84,14 @@ const useFetchMarkdownMaps = (
     allSettledPromises(fetchStorageObjectPromises).then(([successes]) => {
       successes.forEach((result) => {
         if (result.value) {
-          const { url, sizeBytes, run, path } = result.value;
+          const { url, markdownContent: mdContent, sizeBytes, run, path } = result.value;
           setRunMapBuilder((runMap) => ({ ...runMap, [run.run_id]: run }));
 
-          const config = {
+          const config: MarkdownAndTitle = {
             title: getFullArtifactPathLabel(path),
-            config: url,
+            config: url ?? '',
             fileSize: sizeBytes,
+            markdownContent: mdContent,
           };
 
           setConfigMapBuilder((configMap) => ({

@@ -10,8 +10,9 @@ import {
   chart_color_green_300 as chartColorGreen300,
   chart_color_green_100 as chartColorGreen100,
 } from '@patternfly/react-tokens';
-import type { AutoRAGEvaluationMetricResult } from '~/app/types/autoragPattern';
-import { formatMetricName, getCSSVar } from '~/app/utilities/utils';
+import type { AutoRAGEvaluationMetricResult, MetricReference } from '~/app/types/autoragPattern';
+import { getCSSVar } from '~/app/utilities/utils';
+import { metricLabel } from '~/app/utilities/metricUtils';
 import { formatRadarLabel, metricValues } from './radarChartUtils';
 
 let echartsRegistered = false;
@@ -21,7 +22,7 @@ type ComparisonRadarChartProps = {
   primaryLabel: string;
   comparisonMetrics: AutoRAGEvaluationMetricResult[];
   comparisonLabel: string;
-  allMetricNames: string[];
+  allMetricNames: MetricReference[];
 };
 
 const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
@@ -50,8 +51,8 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
         selectedMode: false,
       },
       radar: {
-        indicator: allMetricNames.map((name) => ({
-          name: formatRadarLabel(formatMetricName(name)),
+        indicator: allMetricNames.map((metric) => ({
+          name: formatRadarLabel(metricLabel(metric)),
           max: 1,
         })),
         radius: 70,

@@ -1,6 +1,6 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { ConfigMapKind, NIMAccountKind } from '@odh-dashboard/k8s-core';
-import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
+import { ConfigMapModel } from '@odh-dashboard/k8s-core/api/models';
 import type { NIMImage } from './types';
 
 export const fetchNIMImages = async (account: NIMAccountKind): Promise<NIMImage[]> => {

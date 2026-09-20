@@ -1,8 +1,8 @@
-import { mockConnection } from '#~/__mocks__/mockConnection';
 import {
   mockConnectionTypeConfigMapObj,
   mockModelServingFields,
-} from '#~/__mocks__/mockConnectionType';
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 import {
   ConnectionTypeFieldType,
   DropdownField,

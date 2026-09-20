@@ -1,12 +1,12 @@
 /* eslint-disable camelcase */
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
 import {
   mockDataSciencePipelineApplicationK8sResource,
-  mockK8sResourceList,
   buildMockPipeline,
   buildMockPipelines,
   buildMockPipelineVersion,
   buildMockPipelineVersions,
-  mockRouteK8sResource,
   mockSuccessGoogleRpcStatus,
 } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';

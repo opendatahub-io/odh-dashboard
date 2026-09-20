@@ -23,6 +23,7 @@ describe('useTreeViewData', () => {
     const { result } = renderHook(() => useTreeViewData(models, [], 'model_b'));
 
     expect(result.current.selectedModel).toBe('model_b');
+    expect(result.current.winnerModelLabel).toBe('Model B');
     expect(result.current.stageMapNodes).toEqual([]);
   });
 

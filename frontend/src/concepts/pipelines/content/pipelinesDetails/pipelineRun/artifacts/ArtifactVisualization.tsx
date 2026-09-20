@@ -1,16 +1,26 @@
 import React from 'react';
 
 import {
+  Button,
   Bullseye,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
   Flex,
+  FlexItem,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- ContentModal adds a constrained body height that causes double scrollbars with the iframe/markdown scroll containers
+  Modal,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+  ModalBody,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+  ModalHeader,
   Spinner,
   Stack,
   StackItem,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
+import { ExpandIcon } from '@patternfly/react-icons';
 import { TableVariant, Td, Tr } from '@patternfly/react-table';
 
 import { Table } from '@odh-dashboard/ui-core';
@@ -27,7 +37,9 @@ import { buildConfusionMatrixConfig } from '#~/concepts/pipelines/content/artifa
 import { isConfusionMatrix } from '#~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { useArtifactStorage } from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
-import { getArtifactProperties } from './utils';
+import MarkdownComponent from '#~/components/markdown/MarkdownComponent';
+import { getArtifactProperties, readBoundedText } from './utils';
+import './ArtifactVisualization.scss';
 
 interface ArtifactVisualizationProps {
   artifact: Artifact;
@@ -35,29 +47,79 @@ interface ArtifactVisualizationProps {
 
 export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ artifact }) => {
   const [renderUrl, setRenderUrl] = React.useState<string>();
+  const [markdownContent, setMarkdownContent] = React.useState<string>();
   const [loading, setLoading] = React.useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
   const { namespace } = usePipelinesAPI();
-  const { getStorageObjectRenderUrl } = useArtifactStorage();
+  const { getStorageObjectRenderUrl, getStorageObjectDownloadUrl } = useArtifactStorage();
   const artifactType = artifact.getType();
 
   const memoizedArtifact = useDeepCompareMemoize(artifact);
 
   React.useEffect(() => {
-    if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
-      const uri = memoizedArtifact.getUri();
-      if (uri) {
-        const renderArtifact = async () => {
-          await getStorageObjectRenderUrl(memoizedArtifact)
-            .then((url) => setRenderUrl(url))
-            .catch(() => null);
-          setLoading(false);
-        };
-        setLoading(true);
-        setRenderUrl(undefined);
-        renderArtifact();
-      }
+    if (artifactType !== ArtifactType.MARKDOWN && artifactType !== ArtifactType.HTML) {
+      return undefined;
     }
-  }, [memoizedArtifact, getStorageObjectRenderUrl, artifactType, namespace]);
+    const uri = memoizedArtifact.getUri();
+    if (!uri) {
+      return undefined;
+    }
+
+    const abortController = new AbortController();
+    const { signal } = abortController;
+
+    setLoading(true);
+    setRenderUrl(undefined);
+    setMarkdownContent(undefined);
+
+    const renderArtifact = async () => {
+      if (artifactType === ArtifactType.MARKDOWN) {
+        let content: string | undefined;
+        try {
+          const url = await getStorageObjectDownloadUrl(memoizedArtifact);
+          if (url && !signal.aborted) {
+            const response = await fetch(url, { signal });
+            if (response.ok) {
+              content = await readBoundedText(response);
+            }
+          }
+        } catch {
+          // Fall through to render URL fallback
+        }
+        if (!signal.aborted) {
+          if (content) {
+            setMarkdownContent(content);
+          } else {
+            const url = await getStorageObjectRenderUrl(memoizedArtifact).catch(() => undefined);
+            setRenderUrl(url);
+          }
+        }
+      } else if (!signal.aborted) {
+        await getStorageObjectRenderUrl(memoizedArtifact)
+          .then((url) => {
+            if (!signal.aborted) {
+              setRenderUrl(url);
+            }
+          })
+          .catch(() => null);
+      }
+      if (!signal.aborted) {
+        setLoading(false);
+      }
+    };
+
+    renderArtifact();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [
+    memoizedArtifact,
+    getStorageObjectRenderUrl,
+    getStorageObjectDownloadUrl,
+    artifactType,
+    namespace,
+  ]);
 
   if (artifactType === ArtifactType.CLASSIFICATION_METRICS) {
     const confusionMatrix = artifact.getCustomPropertiesMap().get('confusionMatrix');
@@ -154,20 +216,73 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
         </Bullseye>
       );
     }
-    if (renderUrl) {
+
+    const hasContent = markdownContent || renderUrl;
+    if (hasContent) {
+      const visualizationContent = markdownContent ? (
+        <MarkdownComponent data={markdownContent} dataTestId="artifact-visualization" />
+      ) : (
+        <iframe
+          className="odh-artifact-visualization__iframe pf-v6-u-w-100"
+          sandbox="allow-scripts"
+          src={renderUrl}
+          data-testid="artifact-visualization"
+          title="Artifact details"
+        />
+      );
+
+      const fullscreenContent = markdownContent ? (
+        <div className="odh-artifact-visualization__markdown--fullscreen">
+          <MarkdownComponent
+            data={markdownContent}
+            dataTestId="artifact-visualization-fullscreen"
+          />
+        </div>
+      ) : (
+        <iframe
+          className="odh-artifact-visualization__iframe--fullscreen pf-v6-u-w-100"
+          sandbox="allow-scripts"
+          src={renderUrl}
+          data-testid="artifact-visualization-fullscreen"
+          title="Artifact details"
+        />
+      );
+
       return (
         <Stack className="pf-v6-u-pt-lg pf-v6-u-pb-lg" hasGutter>
           <StackItem>
-            <Title headingLevel="h3">Artifact details</Title>
+            <Flex
+              justifyContent={{ default: 'justifyContentSpaceBetween' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+            >
+              <FlexItem>
+                <Title headingLevel="h3">Artifact details</Title>
+              </FlexItem>
+              <FlexItem>
+                <Tooltip content="Expand">
+                  <Button
+                    variant="plain"
+                    aria-label="Expand visualization"
+                    onClick={() => setIsFullscreen(true)}
+                    data-testid="artifact-visualization-expand"
+                    icon={<ExpandIcon />}
+                  />
+                </Tooltip>
+              </FlexItem>
+            </Flex>
           </StackItem>
-          <StackItem>
-            <iframe
-              sandbox="allow-scripts"
-              src={renderUrl}
-              data-testid="artifact-visualization"
-              title="Artifact details"
-            />
-          </StackItem>
+          <StackItem>{visualizationContent}</StackItem>
+          {isFullscreen && (
+            <Modal
+              isOpen
+              onClose={() => setIsFullscreen(false)}
+              variant="large"
+              aria-label="Artifact visualization expanded"
+            >
+              <ModalHeader title="Artifact visualization" />
+              <ModalBody>{fullscreenContent}</ModalBody>
+            </Modal>
+          )}
         </Stack>
       );
     }

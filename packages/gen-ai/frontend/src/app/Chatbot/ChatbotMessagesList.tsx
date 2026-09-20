@@ -8,6 +8,7 @@ import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
 import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
 import ChatbotFileSearchResults from '~/app/Chatbot/ChatbotFileSearchResults';
 import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
+import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
 import './ChatbotMessagesList.scss';
 
 type ChatbotMessagesListProps = {
@@ -79,6 +80,10 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
 
         // Build extraContent with metrics and error alerts
         const extraContent: PFMessageProps['extraContent'] = { ...messageExtraContent };
+
+        const isGuardrailViolation =
+          errorClassification?.details.errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION ||
+          errorClassification?.details.errorCode === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION;
 
         // Full-failure errors: render as beforeMainContent (above empty content)
         if (
@@ -154,7 +159,11 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
             <ChatbotErrorAlert
               classifiedError={errorClassification}
               onRetry={onRetryError}
-              data-testid={`chatbot-error-alert-${message.id}`}
+              data-testid={
+                isGuardrailViolation
+                  ? 'guardrail-violation-alert'
+                  : `chatbot-error-alert-${message.id}`
+              }
             />
           );
         }

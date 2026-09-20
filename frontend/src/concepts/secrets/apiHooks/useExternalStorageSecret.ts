@@ -5,7 +5,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { getSecret } from '#~/api';
+import { getSecret } from '@odh-dashboard/k8s-core/api/secrets';
 
 const useExternalStorageSecret = (
   name: string | undefined,

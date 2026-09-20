@@ -39,6 +39,8 @@ const STAGE_DESCRIPTIONS: Record<string, string> = {
   write_outputs: 'Writing intermediate outputs from the data preparation phase.',
   load_data: 'Loading prepared data into the training workspace.',
   model_selection: 'Selecting candidate model architectures to train and evaluate.',
+  refit_and_evaluate:
+    'Retraining top models using the complete dataset and evaluating final performance.',
   refit_full: 'Retraining top models using the complete dataset and evaluating final performance.',
   evaluate_models: 'Evaluating model performance on the holdout test set using configured metrics.',
   build_leaderboard: 'Ranking models by performance and generating the results leaderboard.',
@@ -63,8 +65,8 @@ const extractStageId = (nodeId: string): string | undefined => {
 };
 
 const extractStepId = (nodeId: string): string | undefined => {
-  const match = /^.+__step__(.+)__branch-\d+$/.exec(nodeId);
-  return match?.[1];
+  const parsed = parseStageMapNodeId(nodeId);
+  return parsed?.type === 'branch_step' ? parsed.stepId : undefined;
 };
 
 const getCuratedDescription = (nodeId: string): string | undefined => {

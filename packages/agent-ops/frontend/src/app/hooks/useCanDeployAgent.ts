@@ -1,4 +1,4 @@
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 
 type UseCanDeployAgentResult = {
   canDeploy: boolean;

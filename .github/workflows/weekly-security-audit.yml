@@ -1,0 +1,453 @@
+# yamllint disable rule:line-length
+name: Weekly Security Audit
+
+on:
+  schedule:
+    # Monday 07:23 UTC — off-peak, non-:00 to avoid GitHub cron congestion
+    - cron: '23 7 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-security-audit
+  # Do not cancel mid-upsert — avoids duplicate issues on overlapping runs.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  ISSUE_TITLE: 'Weekly security audit: npm + Go findings'
+  GOVULNCHECK_VERSION: v1.6.0
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      npm_dirs: ${{ steps.dirs.outputs.npm_dirs }}
+      go_dirs: ${{ steps.dirs.outputs.go_dirs }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Discover Dependabot directories
+        id: dirs
+        run: |
+          set -euo pipefail
+          RESULT=$(scripts/security-audit/discover-dependabot-dirs.sh .github/dependabot.yml)
+          echo "npm_dirs=$(echo "$RESULT" | jq -c '.npm')" >> "$GITHUB_OUTPUT"
+          echo "go_dirs=$(echo "$RESULT" | jq -c '.gomod')" >> "$GITHUB_OUTPUT"
+
+  npm-audit:
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        dir: ${{ fromJSON(needs.discover.outputs.npm_dirs) }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Prod npm audit (high/critical)
+        id: prod
+        working-directory: ${{ matrix.dir }}
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high --package-lock-only --json > /tmp/audit-prod.json 2>/tmp/audit-prod.err
+          rc=$?
+          set -e
+          if [ -s /tmp/audit-prod.err ]; then
+            echo "[info] npm audit stderr (prod):" && cat /tmp/audit-prod.err
+          fi
+          SAFE_DIR=$("$GITHUB_WORKSPACE/scripts/security-audit/encode-audit-path.sh" "$AUDIT_DIR")
+          OUT="$GITHUB_WORKSPACE/summary-prod-${SAFE_DIR}.json"
+          # npm: 0 = clean, 1 = vulns found; other / error JSON = scanner failure.
+          if ! jq empty /tmp/audit-prod.json 2>/dev/null; then
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
+              "npm audit produced invalid JSON (exit $rc)" \
+              > "$OUT"
+          elif [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
+              "npm audit failed (exit $rc)" \
+              > "$OUT"
+          else
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
+              > "$OUT"
+          fi
+
+      - name: DevDep npm audit (informational)
+        id: devdep
+        working-directory: ${{ matrix.dir }}
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+        run: |
+          set +e
+          npm audit --audit-level=moderate --package-lock-only --json > /tmp/audit-dev.json 2>/tmp/audit-dev.err
+          rc=$?
+          set -e
+          if [ -s /tmp/audit-dev.err ]; then
+            echo "[info] npm audit stderr (devdep):" && cat /tmp/audit-dev.err
+          fi
+          SAFE_DIR=$("$GITHUB_WORKSPACE/scripts/security-audit/encode-audit-path.sh" "$AUDIT_DIR")
+          OUT="$GITHUB_WORKSPACE/summary-devdep-${SAFE_DIR}.json"
+          if ! jq empty /tmp/audit-dev.json 2>/dev/null; then
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
+              "npm audit (devDep) produced invalid JSON (exit $rc)" \
+              > "$OUT"
+          elif [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
+              "npm audit (devDep) failed (exit $rc)" \
+              > "$OUT"
+          else
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
+              > "$OUT"
+          fi
+
+      - name: Upload summaries
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-summary-${{ strategy.job-index }}-${{ github.run_attempt }}
+          path: summary-*.json
+          retention-days: 30
+          if-no-files-found: warn
+
+  govulncheck:
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        dir: ${{ fromJSON(needs.discover.outputs.go_dirs) }}
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+        with:
+          go-version: stable
+          cache-dependency-path: ${{ matrix.dir }}/go.sum
+
+      - name: Install govulncheck
+        env:
+          GOVULNCHECK_VERSION: ${{ env.GOVULNCHECK_VERSION }}
+        run: go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+
+      - name: Run govulncheck
+        working-directory: ${{ matrix.dir }}
+        env:
+          SCAN_DIR: ${{ matrix.dir }}
+        run: |
+          set +e
+          govulncheck -json ./... > /tmp/vulncheck.json 2>/tmp/vulncheck.err
+          rc=$?
+          set -e
+          if [ -s /tmp/vulncheck.err ]; then
+            echo "[info] govulncheck stderr:" && cat /tmp/vulncheck.err
+          fi
+          SAFE_DIR=$("$GITHUB_WORKSPACE/scripts/security-audit/encode-audit-path.sh" "$SCAN_DIR")
+          OUT="$GITHUB_WORKSPACE/summary-go-${SAFE_DIR}.json"
+          # 0 = clean, 3 = vulns found; other = failure (still parse findings if present).
+          if [ ! -s /tmp/vulncheck.json ]; then
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-govulncheck.sh" "$SCAN_DIR" /tmp/vulncheck.json \
+              "govulncheck produced empty output (exit $rc)" \
+              > "$OUT"
+          elif [ "$rc" -ne 0 ] && [ "$rc" -ne 3 ]; then
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-govulncheck.sh" "$SCAN_DIR" /tmp/vulncheck.json \
+              "govulncheck failed (exit $rc)" \
+              > "$OUT"
+          else
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-govulncheck.sh" "$SCAN_DIR" /tmp/vulncheck.json \
+              > "$OUT"
+          fi
+
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: go-summary-${{ strategy.job-index }}-${{ github.run_attempt }}
+          path: summary-go-*.json
+          retention-days: 30
+          if-no-files-found: warn
+
+  report:
+    needs: [discover, npm-audit, govulncheck]
+    # Always report — including when discover fails — so the issue cannot go stale silently.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      actions: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Download scan artifacts (this attempt only)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        continue-on-error: true
+        with:
+          # Names look like npm-summary-0-1 / go-summary-3-1 — pin run_attempt.
+          pattern: '*-summary-*-${{ github.run_attempt }}'
+          path: artifacts
+          merge-multiple: true
+
+      - name: Ensure required labels exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ensure_label() {
+            local name="$1" desc="$2" color="$3"
+            if gh label list --repo "$REPO" --json name --jq '.[].name' | grep -Fxq "$name"; then
+              echo "label exists: $name"
+            else
+              gh label create "$name" \
+                --repo "$REPO" \
+                --description "$desc" \
+                --color "$color"
+            fi
+          }
+          ensure_label security "Security findings and CVE tracking" E11D48
+          ensure_label dependencies "Dependency updates and CVE inventory" 0366d6
+
+      - name: List open Dependabot PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Prefer app/dependabot; paginate beyond 100 if needed.
+          gh pr list \
+            --repo "$REPO" \
+            --author "app/dependabot" \
+            --state open \
+            --limit 200 \
+            --json number,title,url,labels,author \
+            > dependabot-prs.json
+          echo "Dependabot PRs: $(jq 'length' dependabot-prs.json)"
+
+      - name: Render report
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          NPM_DIRS: ${{ needs.discover.outputs.npm_dirs || '[]' }}
+          GO_DIRS: ${{ needs.discover.outputs.go_dirs || '[]' }}
+          DISCOVER_JOB: ${{ needs.discover.result }}
+          NPM_JOB: ${{ needs.npm-audit.result }}
+          GO_JOB: ${{ needs.govulncheck.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          # If discover or an entire matrix job failed/cancelled, inject a top-level error
+          # so we cannot close clean / leave a stale silent issue.
+          EXTRA_ERRS=()
+          if [ "$DISCOVER_JOB" != "success" ]; then
+            EXTRA_ERRS+=("discover job result=$DISCOVER_JOB")
+          fi
+          # Matrix jobs are "skipped" when discover fails — covered by the discover error above.
+          if [ "$NPM_JOB" != "success" ] && [ "$NPM_JOB" != "skipped" ]; then
+            EXTRA_ERRS+=("npm-audit job result=$NPM_JOB")
+          fi
+          if [ "$GO_JOB" != "success" ] && [ "$GO_JOB" != "skipped" ]; then
+            EXTRA_ERRS+=("govulncheck job result=$GO_JOB")
+          fi
+          if [ "${#EXTRA_ERRS[@]}" -gt 0 ]; then
+            ERR_TEXT=$(printf '%s; ' "${EXTRA_ERRS[@]}")
+            ERR_TEXT=${ERR_TEXT%; }
+            jq -n \
+              --arg dir "." \
+              --arg mode "aggregate" \
+              --arg error "$ERR_TEXT" \
+              '{dir:$dir, mode:$mode, status:"error", error:$error, findings:[]}' \
+              > "artifacts/summary-aggregate-job-status.json"
+          fi
+          node scripts/security-audit/render-security-audit-report.js \
+            --artifacts-dir artifacts \
+            --expected-npm "$NPM_DIRS" \
+            --expected-go "$GO_DIRS" \
+            --dependabot-prs dependabot-prs.json \
+            --run-url "$RUN_URL" \
+            --out-dir report-out \
+            --scanned-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat report-out/step-summary.md >> "$GITHUB_STEP_SUMMARY"
+          # Hard-fail the report job if meta says not clean due to scanner errors only? No —
+          # report-only for vulns; but upsert must run. Fail only if meta.json missing.
+          test -f report-out/meta.json
+
+      - name: Upsert GitHub Issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        env:
+          ISSUE_TITLE: ${{ env.ISSUE_TITLE }}
+        with:
+          script: |
+            const fs = require('fs');
+            const title = process.env.ISSUE_TITLE;
+            const botBody = fs.readFileSync('report-out/bot-body.md', 'utf8');
+            const meta = JSON.parse(fs.readFileSync('report-out/meta.json', 'utf8'));
+
+            const HUMAN_SECTION = [
+              '## Human notes',
+              '<!-- Humans edit below this line; the bot never overwrites this section -->',
+              '',
+              '- [ ] Owner:',
+              '- [ ] Accepted risks / deadlines:',
+              '',
+            ].join('\n');
+
+            const BEGIN = '<!-- security-audit:begin -->';
+            const END = '<!-- security-audit:end -->';
+            const REQUIRED_LABELS = ['security', 'dependencies'];
+
+            function mergeBody(existing, bot) {
+              if (!existing) {
+                return `${bot.trimEnd()}\n\n${HUMAN_SECTION}`;
+              }
+              const beginIdx = existing.indexOf(BEGIN);
+              const endIdx = existing.indexOf(END);
+              if (beginIdx === -1 || endIdx === -1 || endIdx < beginIdx) {
+                const preserved = existing.trim();
+                return `${bot.trimEnd()}\n\n## Human notes\n<!-- Preserved from previous issue body (markers were missing) -->\n\n${preserved}\n`;
+              }
+              const before = existing.slice(0, beginIdx).trim();
+              const after = existing.slice(endIdx + END.length);
+              let merged = bot.trimEnd();
+              if (before) {
+                merged = `${merged}\n\n<!-- preserved-preamble -->\n${before}\n`;
+              }
+              merged = `${merged}\n${after.startsWith('\n') ? after : `\n${after}`}`;
+              if (!merged.includes('## Human notes')) {
+                merged = `${merged.trimEnd()}\n\n${HUMAN_SECTION}`;
+              }
+              return merged;
+            }
+
+            function extractIds(body) {
+              const m = (body || '').match(/<!-- security-audit-ids:([^>]*) -->/);
+              if (!m) return [];
+              return m[1].split(',').map((s) => s.trim()).filter(Boolean);
+            }
+
+            // Prefer Issues list API over Search (eventual consistency / query quirks).
+            async function findIssue() {
+              const states = ['open', 'closed'];
+              const matches = [];
+              for (const state of states) {
+                for (const label of REQUIRED_LABELS) {
+                  const listed = await github.paginate(github.rest.issues.listForRepo, {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    state,
+                    labels: label,
+                    per_page: 100,
+                  });
+                  for (const i of listed) {
+                    if (!i.pull_request && i.title === title) matches.push(i);
+                  }
+                }
+              }
+              // Deduplicate by number
+              const byNum = new Map();
+              for (const i of matches) byNum.set(i.number, i);
+              const uniq = [...byNum.values()];
+              uniq.sort((a, b) => {
+                if (a.state !== b.state) return a.state === 'open' ? -1 : 1;
+                return new Date(b.updated_at) - new Date(a.updated_at);
+              });
+              return uniq[0] || null;
+            }
+
+            let issue = await findIssue();
+            let previousIds = [];
+            let existedBefore = false;
+            let wasOpen = false;
+
+            if (issue) {
+              existedBefore = true;
+              const full = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+              });
+              issue = full.data;
+              previousIds = extractIds(issue.body);
+              wasOpen = issue.state === 'open';
+
+              const existingLabels = (issue.labels || []).map((l) => (typeof l === 'string' ? l : l.name));
+              const mergedLabels = [...new Set([...existingLabels, ...REQUIRED_LABELS])];
+
+              const newBody = mergeBody(issue.body, botBody);
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                title,
+                body: newBody,
+                labels: mergedLabels,
+                state: meta.clean ? 'closed' : 'open',
+                state_reason: meta.clean ? 'completed' : undefined,
+              });
+              core.info(`Updated issue #${issue.number} (clean=${meta.clean})`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: mergeBody(null, botBody),
+                labels: REQUIRED_LABELS,
+              });
+              issue = created.data;
+              if (meta.clean) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                  state_reason: 'completed',
+                });
+              }
+              core.info(`Created issue #${issue.number} (clean=${meta.clean})`);
+            }
+
+            const prevSet = new Set(previousIds);
+            const nextSet = new Set(meta.findingIds || []);
+            const added = [...nextSet].filter((id) => !prevSet.has(id));
+            const removed = [...prevSet].filter((id) => !nextSet.has(id));
+            const nowOpen = !meta.clean;
+            const stateFlip = existedBefore && wasOpen !== nowOpen;
+
+            if (existedBefore && (added.length || removed.length || stateFlip)) {
+              const bits = [];
+              if (added.length) {
+                bits.push(`${added.length} new (${added.slice(0, 5).map((x) => `\`${x}\``).join(', ')}${added.length > 5 ? ', …' : ''})`);
+              }
+              if (removed.length) {
+                bits.push(`${removed.length} cleared (${removed.slice(0, 5).map((x) => `\`${x}\``).join(', ')}${removed.length > 5 ? ', …' : ''})`);
+              }
+              if (stateFlip) bits.push(meta.clean ? 'Issue closed (clean).' : 'Issue reopened.');
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Weekly audit delta: ${bits.join('; ')}`,
+              });
+            }
+
+            core.setOutput('issue_number', String(issue.number));
+            core.setOutput('clean', String(meta.clean));

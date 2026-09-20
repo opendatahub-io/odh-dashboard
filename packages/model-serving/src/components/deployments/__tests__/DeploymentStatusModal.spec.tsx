@@ -41,8 +41,7 @@ describe('DeploymentStatusModal', () => {
 
     render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
 
-    expect(screen.getByText('Deployment status')).toBeInTheDocument();
-    expect(screen.getByText('Test Model')).toBeInTheDocument();
+    expect(screen.getByText('Test Model status')).toBeInTheDocument();
     expect(screen.getByText('Deployment requested')).toBeInTheDocument();
   });
 
@@ -189,6 +188,34 @@ describe('DeploymentStatusModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('should show progress disclaimer on the Progress tab', () => {
+    const deployment = createMockDeployment([
+      {
+        type: 'DeploymentRequested',
+        label: 'Deployment requested',
+        status: 'True',
+        lastTransitionTime: '2026-04-22T15:44:32Z',
+      },
+    ]);
+
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+
+    expect(screen.getByTestId('deployment-status-progress-disclaimer')).toBeInTheDocument();
+    expect(
+      screen.getByText('Steps may occur in any order, depending on the deployment type.'),
+    ).toBeInTheDocument();
+  });
+
+  it('should always show the tab strip with a Progress tab, even when Kueue/Resources is not available', () => {
+    const deployment = createMockDeployment([]);
+
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+
+    expect(screen.getByTestId('deployment-status-tabs')).toBeInTheDocument();
+    expect(screen.getByTestId('deployment-status-progress-tab')).toBeInTheDocument();
+    expect(screen.queryByTestId('deployment-status-resources-tab')).not.toBeInTheDocument();
+  });
+
   it('should handle deployment with no conditions', () => {
     const deployment: Deployment = {
       modelServingPlatformId: 'kserve',
@@ -210,8 +237,7 @@ describe('DeploymentStatusModal', () => {
 
     render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
 
-    expect(screen.getByText('Deployment status')).toBeInTheDocument();
-    expect(screen.getByText('Test Model')).toBeInTheDocument();
+    expect(screen.getByText('Test Model status')).toBeInTheDocument();
     expect(screen.getByTestId('deployment-status-steps')).toBeInTheDocument();
   });
 });

@@ -9,10 +9,10 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { NotebookKind } from '#~/k8sTypes';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
 

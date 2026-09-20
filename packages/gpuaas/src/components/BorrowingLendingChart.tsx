@@ -107,7 +107,11 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
     <>
       {!loaded && !error && <EmptyState icon={Spinner} titleText="Loading" headingLevel="h4" />}
       {error && (
-        <EmptyState titleText="Error loading metrics" headingLevel="h4">
+        <EmptyState
+          titleText="Error loading metrics"
+          headingLevel="h4"
+          data-testid="borrowing-error"
+        >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       )}

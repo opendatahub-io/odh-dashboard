@@ -1,28 +1,24 @@
-// Drives --automl-pulse-progress on the tree container; pulse rings inherit the live value.
-@property --automl-pulse-progress {
-  syntax: '<number>';
-  inherits: true;
-  initial-value: 0;
-}
-
-@keyframes automl-tree-node-pulse-driver {
-  from {
-    --automl-pulse-progress: 0;
+@keyframes automl-tree-node-pulse-ring-expand {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
   }
 
-  to {
-    --automl-pulse-progress: 1;
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
   }
 }
 
-// Pulse cycle duration (2s). Applied only while at least one node uses the pulse icon.
-.automl-tree-topology-container--pulse-active {
-  animation: automl-tree-node-pulse-driver 2s ease-out infinite;
+// Pulse cycle duration (2s). Applied only while at least one branch dot is pulsing.
+.automl-tree-topology-container--pulse-active .automl-tree-node__status-pulse-ring {
+  animation: automl-tree-node-pulse-ring-expand 2s ease-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .automl-tree-topology-container--pulse-active {
+  .automl-tree-topology-container--pulse-active .automl-tree-node__status-pulse-ring {
     animation: none;
-    --automl-pulse-progress: 0;
+    transform: scale(1);
+    opacity: 0.75;
   }
 }

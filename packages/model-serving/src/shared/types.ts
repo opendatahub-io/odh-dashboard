@@ -1,16 +1,24 @@
 import type {
+  ConfigMapKind,
   Connection,
   K8sResourceCommon,
   ContainerResources,
   DisplayNameAnnotations,
   NodeSelector,
   PodAffinity,
+  SecretKind,
   SupportedModelFormats,
   Toleration,
   Volume,
   VolumeMount,
   ImagePullSecret,
 } from '@odh-dashboard/k8s-core';
+
+export type NimServingResponse = {
+  body: {
+    body: ConfigMapKind | SecretKind;
+  };
+};
 
 export type LabeledConnection = {
   connection: Connection;
@@ -240,3 +248,15 @@ export enum PerformanceMetricType {
   SERVER = 'server',
   MODEL = 'model',
 }
+
+type PlatformStatus = {
+  enabled: boolean;
+  installed: boolean;
+};
+
+export type ServingPlatformStatuses = {
+  kServe: PlatformStatus;
+  kServeNIM: PlatformStatus;
+  platformEnabledCount: number;
+  refreshNIMAvailability: () => Promise<boolean | undefined>;
+};

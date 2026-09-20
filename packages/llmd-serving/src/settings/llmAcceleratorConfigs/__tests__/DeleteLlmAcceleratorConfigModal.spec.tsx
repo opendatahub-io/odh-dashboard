@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import type { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import DeleteLlmAcceleratorConfigModal from '../DeleteLlmAcceleratorConfigModal';
 import { deleteLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { HostApiContext } from '../HostApiContext';
+import { HostApiCoreContext } from '../HostApiCoreContext';
 
 export const useDashboardNamespace = (): { dashboardNamespace: string } => {
-  const { dashboardNamespace } = React.useContext(HostApiContext);
+  const { dashboardNamespace } = React.useContext(HostApiCoreContext);
   return React.useMemo(() => ({ dashboardNamespace }), [dashboardNamespace]);
 };

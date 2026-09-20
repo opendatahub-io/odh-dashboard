@@ -60,7 +60,7 @@ describe('translateStageStatus', () => {
     ['completed', RunStatus.Succeeded],
     ['started', RunStatus.InProgress],
     ['failed', RunStatus.Failed],
-    ['skipped', RunStatus.Skipped],
+    ['skipped', RunStatus.Pending],
   ])('should map %s to %s', (status, expected) => {
     expect(translateStageStatus(status)).toBe(expected);
   });
@@ -69,7 +69,7 @@ describe('translateStageStatus', () => {
     [' FAILED ', RunStatus.Failed],
     ['COMPLETED', RunStatus.Succeeded],
     ['  Started  ', RunStatus.InProgress],
-    ['SKIPPED', RunStatus.Skipped],
+    ['SKIPPED', RunStatus.Pending],
   ])('should normalize uppercase/whitespace-padded %j', (status, expected) => {
     expect(translateStageStatus(status)).toBe(expected);
   });
@@ -213,8 +213,12 @@ describe('resolveStageRunStatus', () => {
       RunStatus.Failed,
     );
     expect(resolveStageRunStatus(stage({ status: 'skipped' }), undefined, 'CANCELED')).toBe(
-      RunStatus.Skipped,
+      RunStatus.Pending,
     );
+  });
+
+  it('should map coarse skipped component status to pending', () => {
+    expect(resolveStageRunStatus(stage(), RunStatus.Skipped, 'CANCELED')).toBe(RunStatus.Pending);
   });
 
   it('should map stale component InProgress to terminal run failure when no inline status exists', () => {
@@ -239,7 +243,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     const statuses = resolveSequentialStageRunStatuses(stages, componentStatus, 'FAILED', false);
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
-    expect(statuses.get('load_data')).toBe(RunStatus.Failed);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
   });
 
   it('should not leave running-task-backed stages active on a canceled run', () => {
@@ -252,7 +256,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     const statuses = resolveSequentialStageRunStatuses(stages, componentStatus, 'CANCELED', false);
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Cancelled);
-    expect(statuses.get('load_data')).toBe(RunStatus.Cancelled);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
   });
 
   it('should not leave inline started stages active on a failed run', () => {
@@ -264,7 +268,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
-    expect(statuses.get('load_data')).toBe(RunStatus.Failed);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
   });
 
   it('should mark unresolved stages failed when a partial inline map uses terminal run fallback', () => {
@@ -288,6 +292,36 @@ describe('resolveSequentialStageRunStatuses', () => {
     expect(statuses.get('load_data')).toBe(RunStatus.Failed);
   });
 
+  it('should keep later inline failures pending after the first failed stage', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate', status: 'failed' },
+        { id: 'load_data', description: 'Load data', status: 'failed' },
+      ],
+      RunStatus.InProgress,
+      'FAILED',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
+  });
+
+  it('should advance the branching coarse frontier to model selection without inline status', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'load_data', description: 'Load data' },
+        { id: 'model_selection', description: 'Select models' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+      false,
+    );
+
+    expect(statuses.get('load_data')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('model_selection')).toBe(RunStatus.InProgress);
+  });
+
   it('should advance only the next unresolved stage while a component is in progress', () => {
     const statuses = resolveSequentialStageRunStatuses(
       [
@@ -302,10 +336,10 @@ describe('resolveSequentialStageRunStatuses', () => {
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
-    expect(statuses.get('split_data')).toBe(RunStatus.Pending);
+    expect(statuses.get('split_data')).toBe(RunStatus.InProgress);
   });
 
-  it('should show all stages in progress when the component has no inline stage statuses', () => {
+  it('should show unresolved stages in progress together when inline statuses are absent', () => {
     const statuses = resolveSequentialStageRunStatuses(
       [
         { id: 'validate_inputs', description: 'Validate' },
@@ -322,7 +356,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     expect(statuses.get('split_data')).toBe(RunStatus.InProgress);
   });
 
-  it('should keep later stages pending when an earlier stage is already started', () => {
+  it('should keep later stages in progress when an earlier stage is already started', () => {
     const statuses = resolveSequentialStageRunStatuses(
       [
         { id: 'load_data', description: 'Load data', status: 'started' },
@@ -335,8 +369,72 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
-    expect(statuses.get('model_selection')).toBe(RunStatus.Pending);
-    expect(statuses.get('build_leaderboard')).toBe(RunStatus.Pending);
+    expect(statuses.get('model_selection')).toBe(RunStatus.InProgress);
+    expect(statuses.get('build_leaderboard')).toBe(RunStatus.InProgress);
+  });
+
+  it('should backfill earlier coarse stages when a later stage has started', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'load_data', description: 'Load data' },
+        { id: 'model_selection', description: 'Select models', status: 'started' },
+        { id: 'build_leaderboard', description: 'Build leaderboard' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+      false,
+    );
+
+    expect(statuses.get('load_data')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('model_selection')).toBe(RunStatus.InProgress);
+    expect(statuses.get('build_leaderboard')).toBe(RunStatus.InProgress);
+  });
+
+  it('should advance the active stage when multiple inline started statuses arrive together', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate', status: 'started' },
+        { id: 'load_data', description: 'Load data', status: 'started' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
+  });
+
+  it('should keep inline skipped and later unresolved stages pending while component is in progress', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate', status: 'completed' },
+        { id: 'load_data', description: 'Load data', status: 'skipped' },
+        { id: 'split_data', description: 'Split data' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
+    expect(statuses.get('split_data')).toBe(RunStatus.Pending);
+  });
+
+  it('should keep later stages pending when coarse component status is skipped', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate' },
+        { id: 'load_data', description: 'Load data' },
+      ],
+      RunStatus.Skipped,
+      'CANCELED',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Pending);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
   });
 });
 
@@ -355,7 +453,7 @@ describe('promoteWaitingFrontierToInProgress', () => {
     },
   });
 
-  it('promotes the entire waiting chain after a completed predecessor while the run is active', () => {
+  it('promotes only the next waiting frontier after a completed predecessor while the run is active', () => {
     const nodes = [
       makeNode('comp__a', RunStatus.Succeeded),
       makeNode('comp__b', RunStatus.Pending, ['comp__a']),
@@ -367,8 +465,8 @@ describe('promoteWaitingFrontierToInProgress', () => {
     expect(promoted[0].data?.runStatus).toBe(RunStatus.Succeeded);
     expect(promoted[1].data?.runStatus).toBe(RunStatus.InProgress);
     expect(promoted[1].data?.activeIconVariant).toBe('sync');
-    expect(promoted[2].data?.runStatus).toBe(RunStatus.InProgress);
-    expect(promoted[2].data?.activeIconVariant).toBe('pulse');
+    expect(promoted[2].data?.runStatus).toBe(RunStatus.Pending);
+    expect(promoted[2].data?.activeIconVariant).toBeUndefined();
   });
 
   it('does not expand promotion into a later component', () => {

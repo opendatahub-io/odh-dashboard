@@ -53,6 +53,7 @@ import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { getInferredPredictionType } from '~/app/utilities/predictionTypeUtils';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
@@ -94,6 +95,11 @@ import {
   TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
 } from '~/app/utilities/automlTrainingDataFile';
 import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
+import {
+  fireAutomlTargetColumnConfigured,
+  fireAutomlTrainingDataConfigured,
+  type AutomlFunnelStep,
+} from '~/app/utilities/tracking';
 import LoadingFormField from './LoadingFormField';
 import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
 import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
@@ -101,14 +107,22 @@ import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import OptimizationMetricModal from './OptimizationMetricModal';
 import './AutomlConfigure.scss';
 
+const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
+
 type AutomlConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: SecretSelection;
+  /** Reports whether the currently selected prediction type matches the recommendation derived from the target column. */
+  onRecommendationChange?: (isRecommended: boolean) => void;
+  /** Reports the furthest configure-step section the user has reached, for funnel exit tracking. */
+  onFunnelStepChange?: (step: AutomlFunnelStep) => void;
 };
 
 function AutomlConfigure({
   initialValues,
   initialInputDataSecret,
+  onRecommendationChange,
+  onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const queryClient = useQueryClient();
@@ -281,6 +295,14 @@ function AutomlConfigure({
   );
   const filteredNonASCIIColumnCount = schemaColumns.length - columns.length;
 
+  // Synchronize dataset metadata with the form resolver, including after file changes.
+  useEffect(() => {
+    setValue('training_data_column_count', schemaColumns.length, { shouldValidate: true });
+    if (schemaColumns.length === 2) {
+      setValue('id_column', '', { shouldValidate: true });
+    }
+  }, [schemaColumns.length, setValue]);
+
   const selectedColumn = columns.find((c) => c.name === targetColumn);
 
   useEffect(() => {
@@ -288,6 +310,32 @@ function AutomlConfigure({
       notification.warning('Column schema error', columnsError.message);
     }
   }, [columnsError, notification]);
+
+  // Report whether the selected prediction type matches the target column's recommended type
+  useEffect(() => {
+    const inferred = getInferredPredictionType(selectedColumn, columns);
+    onRecommendationChange?.(!inferred || taskType === inferred);
+  }, [selectedColumn, columns, taskType, onRecommendationChange]);
+
+  // Funnel milestone tracking — fires once per configure-step visit, the first time each
+  // section is completed via an actual user selection, to measure retention through the
+  // multi-section configure flow. These refs always start false (even in reconfigure flows
+  // where the value is pre-populated): the milestones and funnel-step progress below are
+  // fired directly from the training-data and target-column *selection handlers*, not from
+  // effects watching the resulting form value. A generic effect can't tell a pre-populated
+  // reconfigure value apart from a real selection, and doesn't reset when the value is later
+  // cleared (e.g. by the file-change reset effect) — so replacing a pre-populated value would
+  // silently never fire again. Firing from the handlers sidesteps both problems, since those
+  // handlers only ever run in response to a user action.
+  const hasFiredTrainingDataMilestoneRef = useRef(false);
+  const hasFiredTargetColumnMilestoneRef = useRef(false);
+
+  const fireTrainingDataMilestoneOnce = useCallback((mode: 'select' | 'upload') => {
+    if (!hasFiredTrainingDataMilestoneRef.current) {
+      hasFiredTrainingDataMilestoneRef.current = true;
+      fireAutomlTrainingDataConfigured(mode);
+    }
+  }, []);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -424,6 +472,7 @@ function AutomlConfigure({
           return;
         }
         setValue('train_data_file_key', uploadResult.key, { shouldValidate: true });
+        fireTrainingDataMilestoneOnce('upload');
       } catch (err) {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
           const errorMessage = err instanceof Error ? err.message : String(err);
@@ -442,7 +491,15 @@ function AutomlConfigure({
         }
       }
     },
-    [namespace, notification, setValue, trainDataBucketName, trainDataSecretName, uploadFileToS3],
+    [
+      namespace,
+      notification,
+      setValue,
+      trainDataBucketName,
+      trainDataSecretName,
+      uploadFileToS3,
+      fireTrainingDataMilestoneOnce,
+    ],
   );
 
   const handleTrainingDataDropRejected = useCallback(
@@ -854,15 +911,24 @@ function AutomlConfigure({
                                   setIsTargetColumnOpen(false);
                                   if (typeof value === 'string') {
                                     const selected = columns.find((c) => c.name === value);
-                                    if (timestampColumn && selected?.type !== 'string') {
-                                      setValue('task_type', TASK_TYPE_TIMESERIES, {
-                                        shouldValidate: true,
-                                      });
-                                    } else if (selected?.task_type) {
-                                      setValue('task_type', selected.task_type, {
-                                        shouldValidate: true,
-                                      });
+                                    const inferred = getInferredPredictionType(selected, columns);
+                                    if (inferred) {
+                                      setValue('task_type', inferred, { shouldValidate: true });
                                     }
+                                    // Fired here, from the actual selection, rather than from an
+                                    // effect watching target_column — a pre-populated reconfigure
+                                    // value must not be mistaken for a user action, and this handler
+                                    // only ever runs in response to one.
+                                    if (!hasFiredTargetColumnMilestoneRef.current) {
+                                      hasFiredTargetColumnMilestoneRef.current = true;
+                                      fireAutomlTargetColumnConfigured();
+                                    }
+                                    // Surface configure-step progress to the page so exit tracking
+                                    // (cancel/abandon/breadcrumb) reports how far the user actually
+                                    // got. Selecting the target column unlocks the prediction type
+                                    // section, so it's the signal that the user has moved past
+                                    // 'trainingData' into 'predictionType'.
+                                    onFunnelStepChange?.('predictionType');
                                   }
                                 }}
                                 selected={field.value}
@@ -951,6 +1017,7 @@ function AutomlConfigure({
                             name="task_type"
                             render={({ field }) => (
                               <AutomlPredictionTypeSelector
+                                columnCount={schemaColumns.length}
                                 value={field.value}
                                 onChange={field.onChange}
                                 onClearTimeseriesTimestamp={() =>
@@ -968,6 +1035,7 @@ function AutomlConfigure({
 
                     {isTaskTypeSelected && isTimeseries && (
                       <ConfigureTimeseriesForm
+                        columnCount={schemaColumns.length}
                         columns={columns}
                         isLoadingColumns={isLoadingColumns}
                         isFetchingColumns={isFetchingColumns}
@@ -1074,9 +1142,12 @@ function AutomlConfigure({
                         <Divider />
                         <StackItem>
                           <Card data-testid="optimization-metric-card">
-                            <CardHeader
-                              actions={{
-                                actions: (
+                            <CardHeader>
+                              <Split hasGutter className="pf-v6-u-w-100">
+                                <SplitItem isFilled>
+                                  <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                                <SplitItem>
                                   <Button
                                     variant="secondary"
                                     isDisabled={formIsSubmitting}
@@ -1085,10 +1156,8 @@ function AutomlConfigure({
                                   >
                                     Edit
                                   </Button>
-                                ),
-                              }}
-                            >
-                              <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                              </Split>
                             </CardHeader>
                             <CardBody>
                               <Content component="p" data-testid="optimization-metric-value">
@@ -1155,15 +1224,16 @@ function AutomlConfigure({
             const filePath = file.path.replace(/^\//, '');
             setValue('train_data_file_key', filePath, { shouldValidate: true });
             setSelectedTrainingDataFile(file);
+            fireTrainingDataMilestoneOnce('select');
           }
         }}
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
-        disabledPaths={[
-          '/autogluon-tabular-training-pipeline',
-          '/autogluon-timeseries-training-pipeline',
-        ]}
+        disabledPaths={{
+          '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+          '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+        }}
       />
       <OptimizationMetricModal
         isOpen={isMetricModalOpen}

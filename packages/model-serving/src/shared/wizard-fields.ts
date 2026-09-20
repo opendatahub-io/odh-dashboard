@@ -56,6 +56,7 @@ export {
   RuntimeArgsField,
   runtimeArgsFieldSchema,
   isValidRuntimeArgs,
+  filterRuntimeArgsForContainer,
   useRuntimeArgsField,
   type RuntimeArgsFieldData,
   type RuntimeArgsFieldHook,
@@ -111,3 +112,13 @@ export {
   NIMModelLocationKey,
   NIMModelLocationOption,
 } from '../components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+
+export {
+  HuggingFaceApiKeyField,
+  huggingFaceApiKeyFieldSchema,
+  isHuggingFaceApiKeyConfigured,
+  requiredHuggingFaceApiKeySchema,
+  useHuggingFaceApiKeyField,
+  type HuggingFaceApiKeyFieldData,
+  type HuggingFaceApiKeyFieldHook,
+} from '../components/deploymentWizard/fields/HuggingFaceApiKeyField';

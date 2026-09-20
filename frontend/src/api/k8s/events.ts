@@ -3,7 +3,7 @@ import { EventKind } from '#~/k8sTypes';
 import { EventModel } from '#~/api/models';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '#~/types';
-import { groupVersionKind } from '..';
+import { groupVersionKind } from '#~/api/k8sUtils';
 
 export const getNotebookEvents = async (
   namespace: string,

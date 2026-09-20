@@ -24,8 +24,6 @@ const defaultParams = {
   sourceMode: 'model' as const,
   endpointUrl: 'http://example.com/api',
   apiKeySecretRef: 'my-secret',
-  datasetUrl: '',
-  accessToken: '',
   modelName: 'test-model',
   agentName: '',
 };
@@ -72,29 +70,6 @@ describe('useConnectionValidation - Tracking Events', () => {
         expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
           outcome: 'success',
           endpointType: 'agent',
-        });
-      });
-    });
-
-    it('should fire success tracking event for prerecorded source mode', async () => {
-      mockVerifyConnection.mockReturnValue(() => Promise.resolve());
-
-      const { result } = renderHook(() =>
-        useConnectionValidation({
-          ...defaultParams,
-          sourceMode: 'prerecorded',
-          datasetUrl: 'http://data.example.com/dataset',
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleVerifyConnection();
-      });
-
-      await waitFor(() => {
-        expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
-          outcome: 'success',
-          endpointType: 'prerecorded',
         });
       });
     });

@@ -80,6 +80,8 @@ func overrideMcpDeploymentList(app *api.App, buildDefault func() httprouter.Hand
 			return
 		}
 
+		enrichMcpDeploymentsWithRegistryDisplayNames(r.Context(), app, result.Items)
+
 		resp := McpDeploymentListEnvelope{Data: result}
 		if err := app.WriteJSON(w, http.StatusOK, resp, nil); err != nil {
 			app.ServerError(w, r, err)
@@ -120,6 +122,8 @@ func overrideMcpDeploymentGet(app *api.App, buildDefault func() httprouter.Handl
 			handleMcpDeploymentError(app, w, r, err)
 			return
 		}
+
+		enrichMcpDeploymentWithRegistryDisplayName(r.Context(), app, &result)
 
 		resp := McpDeploymentEnvelope{Data: result}
 		if err := app.WriteJSON(w, http.StatusOK, resp, nil); err != nil {
@@ -259,9 +263,19 @@ func overrideMcpDeploymentDelete(app *api.App, buildDefault func() httprouter.Ha
 			return
 		}
 
+		// Best-effort: read RegistryServer before deleting so the registry access
+		// endpoint cascade below knows whether (and what) to clean up. A failure here
+		// (including not-found) just skips the cascade -- Delete still runs and reports
+		// the real error/outcome.
+		deployment, getErr := repo.Get(r.Context(), client, namespace, name)
+
 		if err := repo.Delete(r.Context(), client, namespace, name); err != nil {
 			handleMcpDeploymentError(app, w, r, err)
 			return
+		}
+
+		if getErr == nil {
+			scheduleRegistryAccessEndpointCascadeDelete(r.Context(), app, deployment)
 		}
 
 		w.WriteHeader(http.StatusNoContent)

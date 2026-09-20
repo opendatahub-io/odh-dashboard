@@ -1,0 +1,26 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/analytics",
+  "description": "Shared Segment analytics implementation",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@odh-dashboard/ui-core": "*",
+    "@segment/analytics-next": "^1.84.0"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "@types/node": "^22.0.0"
+  }
+}

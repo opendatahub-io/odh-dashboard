@@ -19,6 +19,11 @@ type MockEvaluationJobOptions = Partial<{
   threshold: number;
   benchmarkResults: EvaluationJob['results']['benchmarks'];
   mlflowExperimentId: string;
+  /** Override status.benchmarks to test benchmark-level state (started_at, warnings, errors). */
+  benchmarkStatuses: EvaluationJob['status']['benchmarks'];
+  statusMessage: string;
+  statusMessageCode: string;
+  statusMessageOrigin: 'server' | 'runtime' | 'adapter' | 'sdk';
 }>;
 
 export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): EvaluationJob => ({
@@ -34,6 +39,14 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
   },
   status: {
     state: options.state ?? 'completed',
+    ...(options.benchmarkStatuses !== undefined && { benchmarks: options.benchmarkStatuses }),
+    ...(options.statusMessage && {
+      message: {
+        message: options.statusMessage,
+        ...(options.statusMessageCode && { message_code: options.statusMessageCode }),
+        ...(options.statusMessageOrigin && { message_origin: options.statusMessageOrigin }),
+      },
+    }),
   },
   results: {
     benchmarks: options.benchmarkResults ?? [],

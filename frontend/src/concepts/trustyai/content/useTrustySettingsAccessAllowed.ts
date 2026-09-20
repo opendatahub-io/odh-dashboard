@@ -1,5 +1,5 @@
+import { TrustyAIApplicationsModel } from '@odh-dashboard/trustyai/api/model';
 import { useAccessAllowed } from '#~/concepts/userSSAR';
-import { TrustyAIApplicationsModel } from '#~/api/models/odh';
 
 type UseTrustySettingsAccessAllowedResult = {
   loaded: boolean;

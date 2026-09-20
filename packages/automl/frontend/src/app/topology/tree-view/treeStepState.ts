@@ -1,7 +1,23 @@
-import { RunStatus } from '@patternfly/react-topology';
+import { NodeStatus, RunStatus } from '@patternfly/react-topology';
 import type { TreeNodeData } from './TreeNode';
 
 export type TreeStepState = TreeNodeData['stepState'];
+
+/** Maps pipeline step state to PatternFly topology NodeStatus (custom-nodes status decorator). */
+export const treeStepStateToNodeStatus = (stepState: TreeStepState): NodeStatus => {
+  switch (stepState) {
+    case 'completed':
+      return NodeStatus.success;
+    case 'failed':
+      return NodeStatus.danger;
+    case 'active':
+      return NodeStatus.info;
+    case 'unreached':
+    case 'pending':
+    default:
+      return NodeStatus.default;
+  }
+};
 
 const TREE_STEP_STATES: readonly TreeStepState[] = [
   'completed',
@@ -35,6 +51,30 @@ export const isTreeNodeData = (data: unknown): data is TreeNodeData => {
     return false;
   }
 
+  if (
+    'labelSubtitle' in data &&
+    data.labelSubtitle !== undefined &&
+    typeof data.labelSubtitle !== 'string'
+  ) {
+    return false;
+  }
+
+  if (
+    'showWinnerStar' in data &&
+    data.showWinnerStar !== undefined &&
+    typeof data.showWinnerStar !== 'boolean'
+  ) {
+    return false;
+  }
+
+  if (
+    'showModelsToggle' in data &&
+    data.showModelsToggle !== undefined &&
+    typeof data.showModelsToggle !== 'boolean'
+  ) {
+    return false;
+  }
+
   if ('activeIconVariant' in data && !isActiveIconVariant(data.activeIconVariant)) {
     return false;
   }
@@ -52,7 +92,7 @@ export const runStatusToTreeStepState = (status?: RunStatus): TreeStepState => {
     case RunStatus.Cancelled:
       return 'failed';
     case RunStatus.Skipped:
-      return 'unreached';
+      return 'pending';
     case RunStatus.Pending:
     default:
       return 'pending';

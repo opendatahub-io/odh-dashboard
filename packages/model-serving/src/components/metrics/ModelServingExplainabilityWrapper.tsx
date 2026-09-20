@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, useParams } from 'react-router-dom';
-import { TrustyAIContextProvider } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
+import { TrustyAIContextProvider } from '@odh-dashboard/trustyai/context';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 
 const ModelServingExplainabilityWrapper: React.FC = () => {

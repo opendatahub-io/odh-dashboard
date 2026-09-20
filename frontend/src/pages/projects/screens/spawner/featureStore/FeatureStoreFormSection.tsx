@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Bullseye,
   EmptyState,
   EmptyStateBody,
@@ -29,6 +30,7 @@ import {
   FEATURE_STORE_CODE_DESCRIPTION,
   FEATURE_STORE_EMPTY_STATE_BODY,
   FEATURE_STORE_EMPTY_STATE_TITLE,
+  FEATURE_STORE_UNAVAILABLE_TOOLTIP,
   generateFeatureStoreCode,
   removeFeatureStoreProjectById,
 } from './utils';
@@ -63,6 +65,7 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
 
   const codeContent = React.useMemo(() => generateFeatureStoreCode(), []);
   const hasSelectedFeatureStores = selectedFeatureStores.length > 0;
+  const hasUnavailableFeatureStores = selectedFeatureStores.some((fs) => fs.isUnavailable);
 
   if (!isFeastOperatorAvailable) {
     return null;
@@ -102,6 +105,16 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
       aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.FEATURE_STORE]}
     >
       <Stack hasGutter>
+        {hasSelectedFeatureStores && hasUnavailableFeatureStores && (
+          <StackItem>
+            <Alert
+              data-testid="feature-store-unavailable-alert"
+              variant="info"
+              isInline
+              title={FEATURE_STORE_UNAVAILABLE_TOOLTIP}
+            />
+          </StackItem>
+        )}
         {hasSelectedFeatureStores ? (
           <StackItem>
             <FeatureStoreConnectedTable

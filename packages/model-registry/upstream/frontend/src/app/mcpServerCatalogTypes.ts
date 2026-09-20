@@ -170,6 +170,7 @@ export type McpServer = {
   deploymentMode?: McpDeploymentMode;
   endpoints?: McpEndpoints;
   runtimeMetadata?: McpRuntimeMetadata;
+  serverJson?: Record<string, unknown>;
   customProperties?: McpCustomProperties;
 };
 

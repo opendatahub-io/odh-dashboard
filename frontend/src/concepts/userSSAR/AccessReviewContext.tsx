@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 
 type AccessReviewCacheData = {
@@ -25,7 +25,7 @@ export const AccessReviewContext = React.createContext<AccessReviewContextType>(
 export const AccessReviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accessReviewCache, setAccessReviewCache] = React.useState<AccessReviewCacheType>({});
   const keysRef = React.useRef(new Set());
-  const { checkAccess } = useHostApi();
+  const { checkAccess } = useHostApiCore();
   // If namespace is not provided in the data, assume it means the dashboard deployment namespace
   const { dashboardNamespace } = useNamespaces();
 

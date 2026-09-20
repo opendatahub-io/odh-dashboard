@@ -30,7 +30,10 @@ import NewProjectButton from './NewProjectButton';
 type ProjectsToolbarProps = {
   allowCreate: boolean;
   filterData: ProjectsFilterDataType;
-  onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
+  onFilterUpdate: (
+    key: ProjectsFilterOptions,
+    value?: string | { label: string; value: string },
+  ) => void;
   aiProjectNum: number;
   fullProjectNum: number;
   projectFilter: string;

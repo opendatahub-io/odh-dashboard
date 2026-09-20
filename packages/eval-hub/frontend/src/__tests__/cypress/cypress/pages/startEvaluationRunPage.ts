@@ -93,6 +93,10 @@ class StartEvaluationRunPage {
     return cy.findByTestId('primary-scorer-metric-toggle');
   }
 
+  findPrimaryScorerMetricOption(metric: string) {
+    return cy.findByTestId(`primary-scorer-metric-option-${metric}`);
+  }
+
   findShowAdditionalArgsCheckbox() {
     return cy.findByTestId('show-additional-args');
   }

@@ -24,16 +24,36 @@ class EvaluationResultsPage {
     return cy.findByTestId('evaluation-metadata');
   }
 
+  findViewLogButton() {
+    return cy.findByTestId('view-log-button');
+  }
+
+  findEventLogModal() {
+    return cy.findByTestId('evaluation-event-log-modal');
+  }
+
+  findDownloadLogsButton() {
+    return cy.findByTestId('download-logs-button');
+  }
+
+  findBenchmarkLogSelector() {
+    return cy.findByTestId('benchmark-log-selector');
+  }
+
+  findBenchmarkLogOption(name: string) {
+    return cy.findByTestId(`benchmark-log-option-${name}`);
+  }
+
   findBenchmarksGrid() {
     return cy.findByTestId('benchmarks-grid');
   }
 
-  findBenchmarkCard(benchmarkId: string) {
-    return cy.findByTestId(`benchmark-result-card-${benchmarkId}`);
+  findBenchmarkCard(benchmarkId: string, index: number) {
+    return cy.findByTestId(`benchmark-result-card-${benchmarkId}-${index}`);
   }
 
-  findBenchmarkPassLabel(benchmarkId: string) {
-    return cy.findByTestId(`benchmark-pass-label-${benchmarkId}`);
+  findBenchmarkPassLabel(benchmarkId: string, index: number) {
+    return cy.findByTestId(`benchmark-pass-label-${benchmarkId}-${index}`);
   }
 
   findViewMoreButton() {

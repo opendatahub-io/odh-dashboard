@@ -8,7 +8,6 @@ import { mockGroup } from '#~/__mocks__/mockGroup';
 import { fetchAuthGroups } from '#~/concepts/userConfigs/utils';
 
 jest.mock('#~/api', () => ({
-  ...jest.requireActual('#~/api'),
   useGroups: jest.fn(),
 }));
 jest.mock('#~/concepts/userConfigs/utils', () => ({

@@ -2,10 +2,10 @@ import {
   mockProjectK8sResource,
   mockProjectsK8sList,
 } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { incrementResourceVersion } from '@odh-dashboard/internal/__mocks__/mockUtils';
-import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { asProjectAdminUser } from '../../../utils/mockUsers';
 import { testPagination } from '../../../utils/pagination';

@@ -1,8 +1,8 @@
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
-  mockDashboardConfig,
   mockDscStatus,
   dataScienceStackComponentMap,
-} from '@odh-dashboard/internal/__mocks__';
+} from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import {
   mockConsoleLinks,
   mockMLflowLink,

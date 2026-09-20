@@ -56,6 +56,8 @@ type TreeTopologyProps = {
   loadingMode?: PipelineTreeLoadingMode;
   selectedIds?: string[];
   onSelectionChange?: (selectionIds: string[]) => void;
+  /** When this value changes, reset pan/zoom and fit the graph (e.g. expand/collapse toggles). */
+  layoutResetKey?: boolean;
 };
 
 const TreeTopology: React.FC<TreeTopologyProps> = ({
@@ -64,6 +66,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   loadingMode,
   selectedIds,
   onSelectionChange,
+  layoutResetKey,
 }) => {
   const isLoading = loadingMode != null;
   const [controller, setController] = React.useState<Visualization | null>(null);
@@ -162,6 +165,19 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     }
     return undefined;
   }, [controller, isLoading]);
+
+  React.useEffect(() => {
+    if (controller && !isLoading && layoutResetKey !== undefined) {
+      const frameId = requestAnimationFrame(() => {
+        controller.getGraph().reset();
+        controller.getGraph().fit(TREE_FIT_PADDING);
+      });
+      return () => {
+        cancelAnimationFrame(frameId);
+      };
+    }
+    return undefined;
+  }, [controller, isLoading, layoutResetKey]);
 
   if (loadingMode) {
     return <PipelinePreparingState className={className} mode={loadingMode} />;

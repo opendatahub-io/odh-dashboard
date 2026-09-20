@@ -30,7 +30,11 @@ const WorkloadResourceMetricsTableRow: React.FC<WorkloadResourceMetricsTableRowP
   return (
     <Tr key={workload.metadata?.uid}>
       <Td dataLabel="Name">{getWorkloadName(workload)}</Td>
-      <Td dataLabel="CPU usage (cores)" style={{ paddingRight: 'var(--pf-t--global--spacer--xl)' }}>
+      <Td
+        dataLabel="CPU usage (cores)"
+        data-testid="workload-cpu-usage-cell"
+        style={{ paddingRight: 'var(--pf-t--global--spacer--xl)' }}
+      >
         {' '}
         <WorkloadResourceUsageBar
           showData={inActiveState || (usage.cpuCoresUsed || 0) > 0}
@@ -43,6 +47,7 @@ const WorkloadResourceMetricsTableRow: React.FC<WorkloadResourceMetricsTableRowP
       </Td>
       <Td
         dataLabel="Memory usage (GiB)"
+        data-testid="workload-memory-usage-cell"
         style={{ paddingRight: 'var(--pf-t--global--spacer--xl)' }}
       >
         {' '}

@@ -377,14 +377,14 @@ describe('buildFormSpec', () => {
       expect(spec.authz).toEqual({ oidc: { secretRef: { name: 'oidc-secret' } } });
     });
 
-    it('should not include authz when AuthzType is NONE', () => {
+    it('should set noAuth when AuthzType is NONE', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
         authzType: AuthzType.NONE,
       });
       const spec = buildFormSpec(data, false);
-      expect(spec.authz).toBeUndefined();
+      expect(spec.authz).toEqual({ noAuth: true });
     });
 
     it('should include cronJob when provided', () => {
@@ -395,6 +395,16 @@ describe('buildFormSpec', () => {
       });
       const spec = buildFormSpec(data, false);
       expect(spec.cronJob).toEqual({ schedule: '*/5 * * * *' });
+    });
+
+    it('should strip cronJob draft when schedule is empty', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        cronJob: { timeZone: 'US/Eastern', concurrencyPolicy: 'Forbid' },
+      });
+      const spec = buildFormSpec(data, false);
+      expect(spec.cronJob).toBeUndefined();
     });
 
     it('should include batch engine when enabled with configMap', () => {

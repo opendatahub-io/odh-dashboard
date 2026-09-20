@@ -85,6 +85,7 @@ const ProjectsSection: React.FC = () => {
               titleText="Error loading projects"
               variant={EmptyStateVariant.lg}
               data-id="error-empty-state"
+              data-testid="error-empty-state"
             >
               <EmptyStateBody>{loadError.message}</EmptyStateBody>
             </EmptyState>

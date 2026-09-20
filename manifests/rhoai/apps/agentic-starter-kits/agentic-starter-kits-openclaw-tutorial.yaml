@@ -1,0 +1,15 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-openclaw-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Use the OpenClaw agent harness with platform services'
+  description: >-
+    Run the OpenClaw coding assistant on OpenShift AI with the RH AI Inference
+    stack. Covers containerized coding workflows with a web coding interface
+    and optional MLflow tracing via an OTel sidecar.
+  url: 'https://red.ht/3UqX4RN'
+  appName: agentic-starter-kits

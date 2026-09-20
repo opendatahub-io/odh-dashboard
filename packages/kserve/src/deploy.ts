@@ -3,13 +3,20 @@ import type {
   WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import { KServeDeployment } from './deployments';
-import { setUpTokenAuth } from './deployUtils';
-import { createServingRuntime } from './deployServer';
-import { deployInferenceService, type CreatingInferenceServiceObject } from './deployModel';
+import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
+import { KServeDeployment } from './types';
+import { assembleServingRuntime, createServingRuntime, updateServingRuntime } from './deployServer';
+import {
+  assembleInferenceService,
+  deployInferenceService,
+  type CreatingInferenceServiceObject,
+} from './deployModel';
+import { resolveHfTokenSecretName } from './hfTokenSecret';
+import { KSERVE_ID } from '../extensions';
 
 export const deployKServeDeployment = async (
   wizardData: WizardFormData['state'],
+  externalData: Record<string, { loaded: boolean; loadError?: Error; data: unknown }>,
   projectName: string,
   existingDeployment?: KServeDeployment,
   modelResource?: KServeDeployment['model'],
@@ -20,7 +27,14 @@ export const deployKServeDeployment = async (
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
+  updateExistingServingRuntime?: boolean,
 ): Promise<KServeDeployment> => {
+  const hfTokenSecretName = await resolveHfTokenSecretName(
+    projectName,
+    wizardData.huggingFaceApiKey.data,
+    { dryRun },
+  );
+
   const inferenceServiceData: CreatingInferenceServiceObject = {
     project: projectName,
     name: wizardData.k8sNameDesc.data.name,
@@ -37,28 +51,46 @@ export const deployKServeDeployment = async (
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
     modelAvailability: wizardData.modelAvailability.data,
-    deploymentStrategy: wizardData.deploymentStrategy.data,
+    deploymentStrategy: wizardData.deploymentStrategy,
+    hfTokenSecretName,
   };
 
-  const servingRuntime =
-    serverResource && !existingDeployment?.server
-      ? await createServingRuntime(
-          {
-            project: projectName,
-            name: wizardData.k8sNameDesc.data.k8sName.value,
-            servingRuntime: serverResource,
-            scope: wizardData.modelServer?.data?.selection?.scope,
-            templateName: serverResourceTemplateName,
-          },
-          dryRun,
-        )
-      : undefined;
+  const servingRuntime = existingDeployment?.server ?? serverResource;
+  let assembledDeployment: KServeDeployment = {
+    modelServingPlatformId: KSERVE_ID,
+    model: assembleInferenceService(
+      inferenceServiceData,
+      existingDeployment?.model,
+      dryRun,
+      secretName,
+    ),
+    server: servingRuntime
+      ? assembleServingRuntime({
+          project: projectName,
+          name: wizardData.k8sNameDesc.data.k8sName.value,
+          servingRuntime,
+          scope: wizardData.modelServer?.data?.selection?.scope,
+          templateName:
+            serverResourceTemplateName ||
+            existingDeployment?.server?.metadata.annotations?.['opendatahub.io/template-name'],
+        })
+      : undefined,
+  };
 
-  const inferenceService = await deployInferenceService(
-    inferenceServiceData,
+  if (applyFieldData) {
+    assembledDeployment = applyFieldData(assembledDeployment);
+  }
+
+  let servingRuntimeResult = existingDeployment?.server;
+  if (!servingRuntimeResult && assembledDeployment.server) {
+    servingRuntimeResult = await createServingRuntime(assembledDeployment.server, { dryRun });
+  } else if (updateExistingServingRuntime && assembledDeployment.server) {
+    servingRuntimeResult = await updateServingRuntime(assembledDeployment.server, { dryRun });
+  }
+
+  const inferenceServiceResult = await deployInferenceService(
+    assembledDeployment.model,
     existingDeployment?.model,
-    secretName,
-    applyFieldData,
     {
       dryRun,
       overwrite,
@@ -70,19 +102,20 @@ export const deployKServeDeployment = async (
 
   if (wizardData.canCreateRoleBindings) {
     await setUpTokenAuth(
-      inferenceServiceData,
-      inferenceServiceData.k8sName,
-      projectName,
+      inferenceServiceData.tokenAuth,
+      inferenceServiceResult.metadata.name,
+      inferenceServiceResult.metadata.namespace,
       createTokenAuth,
-      inferenceService,
+      inferenceServiceResult,
+      'inferenceservices',
       initialWizardData?.existingAuthTokens,
       { dryRun: dryRun ?? false },
     );
   }
 
-  return Promise.resolve({
-    modelServingPlatformId: 'kserve',
-    model: inferenceService,
-    server: servingRuntime,
-  });
+  return {
+    modelServingPlatformId: KSERVE_ID,
+    model: inferenceServiceResult,
+    server: servingRuntimeResult,
+  };
 };

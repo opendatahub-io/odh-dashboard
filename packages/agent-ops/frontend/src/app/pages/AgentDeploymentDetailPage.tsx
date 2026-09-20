@@ -20,7 +20,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { BanIcon, ExclamationCircleIcon, SearchIcon } from '@patternfly/react-icons';
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import MarkdownComponent from '@odh-dashboard/internal/components/markdown/MarkdownComponent';

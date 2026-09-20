@@ -1,14 +1,11 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { ConnectionsDeleteModal } from '#~/pages/projects/screens/detail/connections/ConnectionsDeleteModal';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import { useRelatedNotebooks } from '#~/pages/projects/notebook/useRelatedNotebooks';
-import {
-  mockInferenceServiceK8sResource,
-  mockNotebookK8sResource,
-  mockNotebookState,
-} from '#~/__mocks__';
+import { mockNotebookK8sResource, mockNotebookState } from '#~/__mocks__';
 import { useNotebooksStates } from '#~/pages/projects/notebook/useNotebooksStates';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 

@@ -8,9 +8,12 @@ import {
 } from '@odh-dashboard/k8s-core';
 import type { SecretKind, K8sNameDescriptionType, Connection } from '@odh-dashboard/k8s-core';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
+import type { SecretOps } from '@odh-dashboard/plugin-core';
 import type { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
 import { ModelLocationData, ModelLocationType } from '../shared/types/form-data';
+
+const hasConnectionFieldValues = (modelLocationData: ModelLocationData): boolean =>
+  Object.keys(modelLocationData.fieldValues).length > 0;
 
 export const handleConnectionCreation = async (
   ops: SecretOps,
@@ -45,6 +48,10 @@ export const handleConnectionCreation = async (
           console.warn('Failed to get secret for protocol annotation:', err);
         });
     }
+    return Promise.resolve(undefined);
+  }
+
+  if (!hasConnectionFieldValues(modelLocationData)) {
     return Promise.resolve(undefined);
   }
 

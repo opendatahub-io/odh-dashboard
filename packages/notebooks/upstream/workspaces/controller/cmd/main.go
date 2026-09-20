@@ -17,10 +17,15 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -31,13 +36,19 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+
+	pkgtls "github.com/kubeflow/notebooks/workspaces/controller/pkg/tls"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -59,6 +70,9 @@ func init() {
 
 	utilruntime.Must(istiov1.AddToScheme(scheme))
 
+	utilruntime.Must(gatewayv1.Install(scheme))
+	utilruntime.Must(gatewayv1beta1.Install(scheme))
+
 	utilruntime.Must(kubefloworgv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
@@ -69,6 +83,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var maxConcurrentReconciles int
 
 	// Define command line flags
 	cfg := &config.EnvConfig{}
@@ -78,7 +93,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&secureMetrics, "metrics-secure", false,
+	flag.BoolVar(&secureMetrics, "metrics-secure", true,
 		"If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
@@ -90,6 +105,20 @@ func main() {
 		"The domain to use for the Istio VirtualService")
 	flag.BoolVar(&cfg.UseIstio, "use-istio", getEnvAsBool("USE_ISTIO", false),
 		"If set, Istio will be used")
+	flag.BoolVar(&cfg.UseKubeGateway, "use-kube-gateway", getEnvAsBool("USE_KUBE_GATEWAY", false),
+		"If set, Kubernetes Gateway API will be used for workspace access")
+	flag.StringVar(&cfg.KubeGatewayName, "kube-gateway-name", getEnvAsStr("KUBE_GATEWAY_NAME", "kubeflow-gateway"),
+		"The name of the Kubernetes Gateway to use")
+	flag.StringVar(&cfg.KubeGatewayNamespace, "kube-gateway-namespace", getEnvAsStr("KUBE_GATEWAY_NAMESPACE", "kubeflow"),
+		"The namespace of the Kubernetes Gateway")
+	flag.StringVar(&cfg.KubeRbacProxyImage, "kube-rbac-proxy-image", getEnvAsStr("KUBE_RBAC_PROXY_IMAGE", ""),
+		"The image to use for the kube-rbac-proxy sidecar")
+	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", getEnvAsInt("MAX_CONCURRENT_RECONCILES", 10),
+		"The maximum number of Workspaces reconciled (and probed) concurrently. "+
+			"Higher values prevent a slow activity probe from blocking other Workspaces' reconciliation.")
+
+	// Get controller namespace (from service account file or POD_NAMESPACE env var)
+	cfg.ControllerNamespace = getControllerNamespace("kubeflow-workspaces")
 
 	opts := zap.Options{
 		Development: true,
@@ -99,20 +128,39 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	// if the enable-http2 flag is false (the default), http/2 should be disabled
-	// due to its vulnerabilities. More specifically, disabling http/2 will
-	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
-	// Rapid Reset CVEs. For more information see:
-	// - https://github.com/advisories/GHSA-qppj-fm5r-hxr3
-	// - https://github.com/advisories/GHSA-4374-p667-p6c8
-	disableHTTP2 := func(c *tls.Config) {
-		setupLog.Info("disabling http/2")
-		c.NextProtos = []string{"http/1.1"}
+	if cfg.UseIstio && cfg.UseKubeGateway {
+		setupLog.Error(nil, "use-istio and use-kube-gateway cannot both be enabled")
+		os.Exit(1)
+	}
+	if cfg.UseKubeGateway && cfg.KubeRbacProxyImage == "" {
+		setupLog.Error(nil, "kube-rbac-proxy-image is required when use-kube-gateway is enabled")
+		os.Exit(1)
 	}
 
-	tlsOpts := []func(*tls.Config){}
+	// Log configuration values for debugging
+	setupLog.Info("Configuration loaded",
+		"UseIstio", cfg.UseIstio,
+		"UseKubeGateway", cfg.UseKubeGateway,
+		"KubeGatewayName", cfg.KubeGatewayName,
+		"KubeGatewayNamespace", cfg.KubeGatewayNamespace,
+		"ControllerNamespace", cfg.ControllerNamespace,
+		"ClusterDomain", cfg.ClusterDomain,
+		"IstioGateway", cfg.IstioGateway,
+		"IstioHosts", cfg.IstioHosts,
+		"KubeRbacProxyImage", sanitizeImageReference(cfg.KubeRbacProxyImage))
+
+	restCfg := ctrl.GetConfigOrDie()
+	tlsResult, err := pkgtls.Resolve(context.Background(), restCfg)
+	if err != nil {
+		setupLog.Error(err, "unable to resolve TLS configuration")
+		os.Exit(1)
+	}
+	tlsOpts := tlsResult.TLSOpts
 	if !enableHTTP2 {
-		tlsOpts = append(tlsOpts, disableHTTP2)
+		tlsOpts = append(tlsOpts, func(c *tls.Config) {
+			setupLog.Info("disabling http/2")
+			c.NextProtos = []string{"http/1.1"}
+		})
 	}
 
 	webhookServer := webhook.NewServer(webhook.Options{
@@ -120,7 +168,15 @@ func main() {
 		TLSOpts: tlsOpts,
 	})
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	// build the REST config and a clientset for the activity probe pod-exec subresource
+	// (the controller-runtime cached client cannot perform exec, so we use a raw clientset)
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		setupLog.Error(err, "unable to create Kubernetes clientset")
+		os.Exit(1)
+	}
+
+	mgr, err := ctrl.NewManager(restCfg, ctrl.Options{
 		Scheme: scheme,
 		Client: client.Options{
 			Cache: &client.CacheOptions{
@@ -134,9 +190,11 @@ func main() {
 			},
 		},
 		Metrics: metricsserver.Options{
-			BindAddress:   metricsAddr,
-			SecureServing: secureMetrics,
-			TLSOpts:       tlsOpts,
+			BindAddress:    metricsAddr,
+			SecureServing:  secureMetrics,
+			CertDir:        "/tmp/k8s-metrics-server/metrics-certs",
+			TLSOpts:        tlsOpts,
+			FilterProvider: filters.WithAuthenticationAndAuthorization,
 		},
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,
@@ -163,8 +221,22 @@ func main() {
 
 	// setup field indexers on the manager cache. we use these indexes to efficiently
 	// query the cache for things like which Workspaces are using a particular WorkspaceKind
-	if err := helper.SetupManagerFieldIndexers(mgr, cfg); err != nil {
-		setupLog.Error(err, "unable to setup field indexers")
+	// NOTE: We use retry logic here because OpenShift uses bound service account tokens
+	// (projected volumes) which may take a few seconds to become available after pod startup.
+	// This is different from standard Kubernetes which uses pre-created token secrets.
+	var indexerErr error
+	maxRetries := 5
+	for i := range maxRetries {
+		indexerErr = helper.SetupManagerFieldIndexers(mgr, cfg)
+		if indexerErr == nil {
+			break
+		}
+		setupLog.Info("failed to setup field indexers, retrying...",
+			"attempt", i+1, "maxRetries", maxRetries, "error", indexerErr)
+		time.Sleep(time.Duration(i+1) * time.Second) // exponential-ish backoff: 1s, 2s, 3s, 4s, 5s
+	}
+	if indexerErr != nil {
+		setupLog.Error(indexerErr, "unable to setup field indexers after retries")
 		os.Exit(1)
 	}
 
@@ -172,8 +244,18 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Config: cfg,
+		PodExecutor: &helper.RemoteCommandExecutor{
+			Clientset:  clientset,
+			RestConfig: restCfg,
+		},
+		HTTPProber: &helper.DefaultHTTPProber{
+			Client: &http.Client{},
+		},
 	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
+		// allow multiple Workspaces to be reconciled (and probed) in parallel so that a
+		// slow activity probe does not block other Workspaces' reconciliation
+		MaxConcurrentReconciles: maxConcurrentReconciles,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Workspace")
 		os.Exit(1)
@@ -223,11 +305,43 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
+
+	if tlsResult.APIAvailable {
+		watcher := &pkgtls.ProfileWatcher{
+			Client:         mgr.GetClient(),
+			InitialProfile: tlsResult.Profile,
+			OnProfileChange: func(_ context.Context) {
+				setupLog.Info("TLS profile changed, initiating shutdown to reload")
+				cancel()
+			},
+		}
+		if err := watcher.SetupWithManager(mgr); err != nil {
+			cancel()
+			setupLog.Error(err, "unable to set up TLS profile watcher")
+			os.Exit(1)
+		}
+	}
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
+		cancel()
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+	cancel()
+}
+
+func sanitizeImageReference(image string) string {
+	if image == "" {
+		return ""
+	}
+	parsed, err := url.Parse(image)
+	if err != nil || parsed.User == nil {
+		return image
+	}
+	parsed.User = url.UserPassword("REDACTED", "REDACTED")
+	return parsed.String()
 }
 
 func getEnvAsStr(name string, defaultVal string) string {
@@ -241,6 +355,38 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 	if value, exists := os.LookupEnv(name); exists {
 		if boolValue, err := strconv.ParseBool(value); err == nil {
 			return boolValue
+		}
+	}
+	return defaultVal
+}
+
+// getControllerNamespace returns the namespace the controller is running in.
+// It first checks the standard Kubernetes service account namespace file,
+// then falls back to the POD_NAMESPACE environment variable.
+func getControllerNamespace(defaultVal string) string {
+	// First, try to read from the service account namespace file
+	// This works in both OpenShift and standard Kubernetes
+	const namespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	if data, err := os.ReadFile(namespaceFile); err == nil {
+		if namespace := strings.TrimSpace(string(data)); namespace != "" {
+			return namespace
+		}
+	}
+
+	// Fallback to environment variable (useful for local development or custom setups)
+	if value, exists := os.LookupEnv("POD_NAMESPACE"); exists {
+		if namespace := strings.TrimSpace(value); namespace != "" {
+			return namespace
+		}
+	}
+
+	return defaultVal
+}
+
+func getEnvAsInt(name string, defaultVal int) int {
+	if value, exists := os.LookupEnv(name); exists {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
 		}
 	}
 	return defaultVal

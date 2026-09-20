@@ -15,7 +15,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
-import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
+import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import { getConnectionTypeRef } from '#~/concepts/connectionTypes/utils';
 import { connectionEnvVarConflicts, DuplicateEnvVarWarning } from './DuplicateEnvVarsWarning';

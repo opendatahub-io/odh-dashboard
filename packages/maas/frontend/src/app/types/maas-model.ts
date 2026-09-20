@@ -62,3 +62,11 @@ export type UpdateMaaSModelRefRequest = {
 export type DeleteMaaSModelRefResponse = {
   message: string;
 };
+
+export type AffectedModel = {
+  name: string;
+  namespace?: string;
+  displayName?: string;
+  phase?: string;
+  statusMessage?: string;
+};

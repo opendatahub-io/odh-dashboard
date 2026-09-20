@@ -1,0 +1,211 @@
+# Syncs commits from a source branch into a target branch (e.g. main -> stable).
+# Adapted from https://github.com/opendatahub-io/workbenches-operator/blob/main/.github/workflows/sync-branches.yaml
+name: Sync Branches
+
+on:
+  workflow_dispatch:
+    inputs:
+      direction:
+        description: "Preset sync direction (ignored when source/target overrides are set)"
+        required: true
+        type: choice
+        options:
+          - main -> stable
+          - stable -> v2.x
+        default: main -> stable
+      source:
+        description: "Optional source branch override for ad-hoc testing (requires target)"
+        required: false
+        type: string
+      target:
+        description: "Optional target branch override for ad-hoc testing (requires source)"
+        required: false
+        type: string
+      dry_run:
+        description: "Merge and commit locally but do not push (recommended for testing)"
+        required: true
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      direction:
+        description: "Preset sync direction (ignored when source/target overrides are set)"
+        required: false
+        type: string
+        default: main -> stable
+      source:
+        description: "Optional source branch override for ad-hoc testing (requires target)"
+        required: false
+        type: string
+        default: ""
+      target:
+        description: "Optional target branch override for ad-hoc testing (requires source)"
+        required: false
+        type: string
+        default: ""
+      dry_run:
+        description: "Merge and commit locally but do not push"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  sync-branches:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Pass inputs via env so they are not interpolated into the shell script text.
+    env:
+      DIRECTION: ${{ inputs.direction }}
+      SOURCE_OVERRIDE: ${{ inputs.source }}
+      TARGET_OVERRIDE: ${{ inputs.target }}
+      DRY_RUN: ${{ inputs.dry_run }}
+
+    steps:
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and validate branches
+        run: |
+          set -euo pipefail
+
+          is_valid_branch_name() {
+            # Restrict to safe ref name characters; blocks shell metacharacters.
+            [[ "$1" =~ ^[A-Za-z0-9._/-]+$ ]] && git check-ref-format --branch "$1"
+          }
+
+          if [[ -n "${SOURCE_OVERRIDE}" || -n "${TARGET_OVERRIDE}" ]]; then
+            if [[ -z "${SOURCE_OVERRIDE}" || -z "${TARGET_OVERRIDE}" ]]; then
+              echo "Both source and target overrides must be set together for ad-hoc sync."
+              exit 1
+            fi
+            SOURCE_BRANCH="${SOURCE_OVERRIDE}"
+            TARGET_BRANCH="${TARGET_OVERRIDE}"
+            echo "Using ad-hoc overrides: ${SOURCE_BRANCH} -> ${TARGET_BRANCH}"
+          else
+            case "${DIRECTION}" in
+              "main -> stable")
+                SOURCE_BRANCH="main"
+                TARGET_BRANCH="stable"
+                ;;
+              "stable -> v2.x")
+                SOURCE_BRANCH="stable"
+                TARGET_BRANCH="v2.x"
+                ;;
+              *)
+                echo "Invalid direction: '${DIRECTION}' (expected 'main -> stable' or 'stable -> v2.x')"
+                exit 1
+                ;;
+            esac
+            echo "Using preset direction: ${SOURCE_BRANCH} -> ${TARGET_BRANCH}"
+          fi
+
+          if ! is_valid_branch_name "${SOURCE_BRANCH}"; then
+            echo "Invalid source branch name: '${SOURCE_BRANCH}'"
+            exit 1
+          fi
+          if ! is_valid_branch_name "${TARGET_BRANCH}"; then
+            echo "Invalid target branch name: '${TARGET_BRANCH}'"
+            exit 1
+          fi
+          if [[ "${SOURCE_BRANCH}" == "${TARGET_BRANCH}" ]]; then
+            echo "Source and target branches must differ."
+            exit 1
+          fi
+
+          {
+            echo "SOURCE_BRANCH=${SOURCE_BRANCH}"
+            echo "TARGET_BRANCH=${TARGET_BRANCH}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Merge source branch into target
+        run: |
+          set -euo pipefail
+
+          # Fetch into remote-tracking refs (never update a checked-out local branch).
+          git fetch origin "+refs/heads/${SOURCE_BRANCH}:refs/remotes/origin/${SOURCE_BRANCH}"
+          git fetch origin "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}"
+          git switch -C "$TARGET_BRANCH" "refs/remotes/origin/${TARGET_BRANCH}"
+
+          # Force a merge commit even when source is a fast-forward of target.
+          if ! git merge --no-ff --no-commit "refs/remotes/origin/${SOURCE_BRANCH}"; then
+            if [[ -z "$(git ls-files -u)" ]]; then
+              echo "Merge failed without file conflicts."
+              exit 1
+            fi
+          fi
+
+          #########################################################################
+          # Always keep target branch state for .tekton
+          # (do not propagate Konflux pipeline config from source branch).
+          # Caveats:
+          # - This applies to any source/target pair using this workflow.
+          # - If target does not contain a guarded directory, any merged content
+          #   from source will be removed.
+          # - This guard exists only in this workflow; manual merges can still
+          #   propagate these directories unless handled similarly.
+
+          for DIR in .tekton; do
+            git rm -r -f --cached --ignore-unmatch -- ":/$(echo "${DIR}")"
+            rm -rf -- "$(git rev-parse --show-toplevel)/${DIR}"
+
+            if git rev-parse --verify "HEAD:${DIR}" >/dev/null 2>&1; then
+              echo "Keeping target branch version of ${DIR}."
+              git checkout HEAD -- ":/$(echo "${DIR}")"
+              git add -A -- ":/$(echo "${DIR}")"
+            fi
+          done
+          #########################################################################
+
+          # Known files to resolve conflicts by keeping the target branch version
+          # (typically branch-specific image tags / params).
+          FILES=(
+          )
+
+          # Resolve only genuine unmerged conflicts for known files
+          for FILE in "${FILES[@]}"; do
+            if [[ -n "$(git ls-files -u -- "$FILE")" ]]; then
+              echo "Resolving conflict for $FILE by keeping target branch version."
+              if git cat-file -e "HEAD:$FILE" 2>/dev/null; then
+                git checkout HEAD -- "$FILE"
+                git add -- "$FILE"
+              else
+                git rm -f --ignore-unmatch -- "$FILE"
+              fi
+            fi
+          done
+
+          # Check for potential unresolved conflicts
+          if [[ -n "$(git ls-files -u)" ]]; then
+            echo "Unresolved conflicts detected in the following files:"
+            git ls-files -u
+            echo "Aborting merge due to unexpected conflicts."
+            exit 1
+          fi
+
+          # Commit when a merge is in progress (including empty fast-forward cases).
+          if git rev-parse --verify -q MERGE_HEAD >/dev/null; then
+            git commit -m "Merge ${SOURCE_BRANCH} into ${TARGET_BRANCH} with known resolved conflicts"
+          else
+            echo "No merge in progress. Nothing to push."
+            exit 0
+          fi
+
+          echo "Merge commit ready:"
+          git log -1 --stat
+          git status --short --branch
+
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            echo "Dry run enabled — skipping push to origin/${TARGET_BRANCH}."
+            exit 0
+          fi
+
+          # Push changes directly to target branch
+          git push origin "refs/heads/${TARGET_BRANCH}"

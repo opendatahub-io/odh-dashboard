@@ -34,7 +34,7 @@ class ChooseCollectionPage {
   }
 
   findCategoryToggle() {
-    return cy.findByTestId('collections-category-toggle');
+    return cy.findByTestId('collections-category-filter');
   }
 
   findCollectionsEmptyState() {
@@ -46,11 +46,42 @@ class ChooseCollectionPage {
   }
 
   findCategoryOption(name: string) {
-    return cy.findByRole('option', { name });
+    return cy.findByTestId(`collections-category-option-${name}`);
   }
 
   findNextPageButton() {
     return cy.findAllByLabelText('Go to next page').first();
+  }
+
+  findSortToggle() {
+    return cy.findByTestId('collections-sort-toggle');
+  }
+
+  findSortSelect() {
+    return cy.findByTestId('collections-sort-select');
+  }
+
+  selectSortOption(value: string) {
+    this.findSortToggle().click();
+    cy.findByTestId(`collections-sort-option-${value}`).click();
+  }
+
+  findClearAllFiltersButton() {
+    return cy.findByRole('button', { name: 'Clear all filters' });
+  }
+
+  selectCategoryOption(category: string) {
+    this.findCategoryToggle().click();
+    this.findCategoryOption(category).click();
+    this.findCategoryToggle().click();
+  }
+
+  findCategorySearchInput() {
+    return cy.findByTestId('collections-category-search-input');
+  }
+
+  findCategoryFilterBadge() {
+    return cy.findByTestId('collections-category-filter-badge');
   }
 }
 

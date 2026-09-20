@@ -34,6 +34,7 @@ describe('useTreeViewData', () => {
     const { result } = renderHook(() => useTreeViewData(patterns, [], 'pattern_b'));
 
     expect(result.current.selectedPattern).toBe('pattern_b');
+    expect(result.current.winnerPatternLabel).toBe('Pattern B');
     expect(result.current.stageMapNodes).toEqual([]);
   });
 
@@ -107,5 +108,30 @@ describe('useTreeViewData', () => {
     const { result } = renderHook(() => useTreeViewData(patterns, [], 'pattern_b'));
 
     expect(result.current.selectedPattern).toBe('pattern_b');
+  });
+
+  it('should leave winnerPatternLabel undefined when the selected pattern record is invalid', () => {
+    const patterns = {
+      pattern_b: null as unknown as AutoragPattern,
+    };
+
+    const { result } = renderHook(() => useTreeViewData(patterns, [], 'pattern_b'));
+
+    expect(result.current.selectedPattern).toBe('pattern_b');
+    expect(result.current.winnerPatternLabel).toBeUndefined();
+  });
+
+  it('should leave winnerPatternLabel undefined when the selected pattern name is not a string', () => {
+    const patterns = {
+      pattern_b: {
+        ...createPattern('Pattern B'),
+        name: 42 as unknown as string,
+      },
+    };
+
+    const { result } = renderHook(() => useTreeViewData(patterns, [], 'pattern_b'));
+
+    expect(result.current.selectedPattern).toBe('pattern_b');
+    expect(result.current.winnerPatternLabel).toBeUndefined();
   });
 });

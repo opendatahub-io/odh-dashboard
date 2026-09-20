@@ -1,6 +1,9 @@
 import React from 'react';
 import { Link, matchPath, useLocation, useMatch } from 'react-router-dom';
 import {
+  Flex,
+  FlexItem,
+  Label,
   Nav,
   NavExpandable,
   NavItem,
@@ -77,9 +80,33 @@ const getTopLevelExtensions = <E extends NavLikeExtension>(extensions: E[]): E[]
   return [...topLevel, ...sortedOrphaned];
 };
 
+const NavItemContent: React.FC<{ title: string; label?: string }> = ({ title, label }) => {
+  if (!label) {
+    return title;
+  }
+
+  return (
+    <Flex
+      component="span"
+      className="pf-v6-u-w-100"
+      alignItems={{ default: 'alignItemsCenter' }}
+      spaceItems={{ default: 'spaceItemsSm' }}
+    >
+      <FlexItem component="span" flex={{ default: 'flex_1' }}>
+        {title}
+      </FlexItem>
+      <FlexItem component="span" alignSelf={{ default: 'alignSelfFlexStart' }}>
+        <Label color="orange" variant="outline" isCompact>
+          {label}
+        </Label>
+      </FlexItem>
+    </Flex>
+  );
+};
+
 const NavHrefItem: React.FC<{ extension: LoadedExtension<HrefNavItemExtension> }> = ({
   extension: {
-    properties: { href, path, dataAttributes, title },
+    properties: { href, path, dataAttributes, title, label },
   },
 }) => {
   const isMatch = !!useMatch(path ?? href);
@@ -87,7 +114,7 @@ const NavHrefItem: React.FC<{ extension: LoadedExtension<HrefNavItemExtension> }
   return (
     <NavItem isActive={isMatch}>
       <Link {...dataAttributes} to={href}>
-        {title}
+        <NavItemContent title={title} label={label} />
       </Link>
     </NavItem>
   );
@@ -95,7 +122,7 @@ const NavHrefItem: React.FC<{ extension: LoadedExtension<HrefNavItemExtension> }
 
 const NavTabRouteItem: React.FC<{ extension: LoadedExtension<TabRoutePageExtension> }> = ({
   extension: {
-    properties: { id, href, path, dataAttributes, title },
+    properties: { id, href, path, dataAttributes, title, label },
   },
 }) => {
   const allTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
@@ -112,7 +139,7 @@ const NavTabRouteItem: React.FC<{ extension: LoadedExtension<TabRoutePageExtensi
   return (
     <NavItem isActive={isMatch}>
       <Link {...dataAttributes} to={href}>
-        {title}
+        <NavItemContent title={title} label={label} />
       </Link>
     </NavItem>
   );
@@ -120,7 +147,7 @@ const NavTabRouteItem: React.FC<{ extension: LoadedExtension<TabRoutePageExtensi
 
 const NavSectionItem: React.FC<{ extension: LoadedExtension<NavSectionExtension> }> = ({
   extension: {
-    properties: { id, title },
+    properties: { id, title, label },
   },
 }) => {
   const { pathname } = useLocation();
@@ -175,7 +202,7 @@ const NavSectionItem: React.FC<{ extension: LoadedExtension<NavSectionExtension>
 
   return (
     <NavExpandable
-      title={title}
+      title={<NavItemContent title={title} label={label} />}
       isActive={isActive}
       isExpanded={isExpanded}
       onExpand={(_e, expanded) => setIsExpanded(expanded)}

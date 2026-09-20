@@ -31,7 +31,8 @@ export const translateStageStatus = (status?: string): RunStatus | undefined => 
     case 'failed':
       return RunStatus.Failed;
     case 'skipped':
-      return RunStatus.Skipped;
+      // Stage-map "skipped" means never ran due to upstream failure — show as pending in UI.
+      return RunStatus.Pending;
     default:
       return undefined;
   }
@@ -79,6 +80,16 @@ export const createActiveIconVariantResolver = (): ActiveIconVariantResolver => 
     return 'pulse';
   };
 };
+
+/** Branch fan-out dots always pulse together while the branch phase is running. */
+export const resolveBranchStepActiveIconVariant = (
+  runStatus: RunStatus | undefined,
+): ActiveIconVariant | undefined => (runStatus === RunStatus.InProgress ? 'pulse' : undefined);
+
+/** Select models keeps the sync badge while its branch section runs. */
+export const resolveModelSelectionActiveIconVariant = (
+  runStatus: RunStatus | undefined,
+): ActiveIconVariant | undefined => (runStatus === RunStatus.InProgress ? 'sync' : undefined);
 
 const getTerminalRunFailureStatus = (
   runState?: string,
@@ -129,7 +140,7 @@ export const resolveStageRunStatus = (
   }
 
   if (componentStatus === RunStatus.Skipped) {
-    return RunStatus.Skipped;
+    return RunStatus.Pending;
   }
 
   return RunStatus.Pending;
@@ -142,21 +153,21 @@ export const isStageTerminalFailure = (status: RunStatus | undefined): boolean =
 export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
   translateStageStatus(stage?.status) === RunStatus.Failed;
 
+/** True when the stage map marks a stage skipped (never ran due to upstream barrier). */
+export const isInlineStageSkipped = (stage?: ComponentStageMapStage): boolean =>
+  stage?.status?.trim().toLowerCase() === 'skipped';
+
 /** True when a pre-branch stage (before model_selection) failed inline. */
 export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStage[]): boolean =>
   preBranchStages.some((stage) => stage.id !== BRANCHING_STAGE_ID && isInlineStageFailure(stage));
 
 /**
- * Branch fan-out steps are not run when model selection explicitly failed inline — keep them
- * pending. When the component failed without granular stage status, branches inherit Failed.
+ * Branch fan-out inherits model_selection status. When model selection fails, the whole
+ * section (select models, branch steps, and model winner nodes) fails together.
  */
 export const resolveBranchPhaseStatus = (
   modelSelectionStatus: RunStatus | undefined,
-  modelSelectionStage?: ComponentStageMapStage,
-): RunStatus | undefined =>
-  modelSelectionStatus === RunStatus.Failed && isInlineStageFailure(modelSelectionStage)
-    ? RunStatus.Pending
-    : modelSelectionStatus;
+): RunStatus | undefined => modelSelectionStatus;
 
 export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;
@@ -164,13 +175,76 @@ export const isStageFinished = (status: RunStatus | undefined): boolean =>
 const hasAnyInlineStageStatus = (stages: ComponentStageMapStage[]): boolean =>
   stages.some((stage) => translateStageStatus(stage.status) != null);
 
+/** True when model selection published selected models via a status merge. */
+const hasBranchingStatusEvidence = (stage: ComponentStageMapStage): boolean =>
+  stage.id === BRANCHING_STAGE_ID &&
+  Array.isArray(stage.selected_models) &&
+  stage.selected_models.length > 0 &&
+  translateStageStatus(stage.status) != null;
+
+/**
+ * Index of the latest stage that published inline progress. Used to backfill earlier
+ * coarse InProgress stages once a later stage has started/completed.
+ */
+export const findLatestInlineActivityIndex = (stages: ComponentStageMapStage[]): number => {
+  let latest = -1;
+  stages.forEach((stage, index) => {
+    if (translateStageStatus(stage.status) != null) {
+      latest = index;
+      return;
+    }
+    if (hasBranchingStatusEvidence(stage)) {
+      latest = index;
+    }
+  });
+  return latest;
+};
+
+const shouldBackfillEarlierStageAsSucceeded = (
+  stageIndex: number,
+  latestActivityIndex: number,
+  inlineStatus: RunStatus | undefined,
+  resolved: RunStatus | undefined,
+  stage?: ComponentStageMapStage,
+): boolean => {
+  if (isInlineStageSkipped(stage)) {
+    return false;
+  }
+  if (latestActivityIndex < 0 || stageIndex >= latestActivityIndex) {
+    return false;
+  }
+  if (inlineStatus === RunStatus.Failed || inlineStatus === RunStatus.Cancelled) {
+    return false;
+  }
+  if (resolved === RunStatus.Failed || resolved === RunStatus.Cancelled) {
+    return false;
+  }
+  return true;
+};
+
+const applyEarlierStageBackfill = (
+  stageIndex: number,
+  latestActivityIndex: number,
+  inlineStatus: RunStatus | undefined,
+  resolved: RunStatus | undefined,
+  stage?: ComponentStageMapStage,
+): RunStatus | undefined =>
+  shouldBackfillEarlierStageAsSucceeded(
+    stageIndex,
+    latestActivityIndex,
+    inlineStatus,
+    resolved,
+    stage,
+  )
+    ? RunStatus.Succeeded
+    : resolved;
+
 /**
  * Resolves per-stage statuses in pipeline order.
  *
  * Stages with inline status use that status. When the component is in progress,
- * only the next unresolved stage gets InProgress — later stages stay pending so
- * the tree advances one frontier at a time between status polls. Failures still
- * block later stages (pending after inline failure; terminal run failure propagates).
+ * unresolved stages without inline status all show InProgress together (less jarring
+ * than a single-stage frontier between polls). Failures still block later stages.
  */
 export const resolveSequentialStageRunStatuses = (
   stages: ComponentStageMapStage[],
@@ -180,32 +254,71 @@ export const resolveSequentialStageRunStatuses = (
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
   const hasInlineStatuses = hasAnyInlineStageStatus(stages);
+  const latestActivityIndex = findLatestInlineActivityIndex(stages);
   let blockSubsequent = false;
   let blockedByInlineFailure = false;
-  let assignedActiveSlot = false;
   let propagatedTerminal: RunStatus | undefined;
+  let coarseTerminalAssigned = false;
 
   const resolveUnresolved = (stage: ComponentStageMapStage): RunStatus | undefined =>
     resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline);
 
-  for (const stage of stages) {
+  const branchingStageIndex = stages.findIndex((stage) => stage.id === BRANCHING_STAGE_ID);
+
+  // Training components publish component_status only when stages finish. Until then the
+  // coarse resolver would pin load_data as InProgress for the entire model-selection
+  // window. Fast pre-branch stages are treated as done; model_selection carries running.
+  if (componentStatus === RunStatus.InProgress && !hasInlineStatuses && branchingStageIndex > 0) {
+    for (let stageIndex = 0; stageIndex < stages.length; stageIndex++) {
+      const stage = stages[stageIndex];
+      if (stageIndex < branchingStageIndex) {
+        statusById.set(stage.id, RunStatus.Succeeded);
+      } else if (stageIndex === branchingStageIndex) {
+        statusById.set(stage.id, RunStatus.InProgress);
+      } else {
+        statusById.set(stage.id, RunStatus.Pending);
+      }
+    }
+    return statusById;
+  }
+
+  for (let stageIndex = 0; stageIndex < stages.length; stageIndex++) {
+    const stage = stages[stageIndex];
     const inlineStatus = translateStageStatus(stage.status);
 
     if (inlineStatus != null) {
-      const resolved = resolveUnresolved(stage);
+      let resolved = applyEarlierStageBackfill(
+        stageIndex,
+        latestActivityIndex,
+        inlineStatus,
+        resolveUnresolved(stage),
+        stage,
+      );
+      if (isInlineStageSkipped(stage)) {
+        resolved = RunStatus.Pending;
+      }
+      if (
+        blockSubsequent &&
+        (blockedByInlineFailure || propagatedTerminal != null || coarseTerminalAssigned)
+      ) {
+        resolved = RunStatus.Pending;
+      }
       statusById.set(stage.id, resolved);
-      if (isStageTerminalFailure(inlineStatus) || isStageTerminalFailure(resolved)) {
+      if (isInlineStageSkipped(stage)) {
+        blockSubsequent = true;
+        blockedByInlineFailure = true;
+        propagatedTerminal = undefined;
+      } else if (isStageTerminalFailure(inlineStatus) || isStageTerminalFailure(resolved)) {
         blockSubsequent = true;
         blockedByInlineFailure = isInlineStageFailure(stage);
         if (isStageTerminalFailure(resolved) && !blockedByInlineFailure) {
           propagatedTerminal = resolved;
         }
-      } else if (isStageFinished(inlineStatus)) {
+      } else if (isStageFinished(inlineStatus) || isStageFinished(resolved)) {
         blockSubsequent = true;
         blockedByInlineFailure = false;
         propagatedTerminal = undefined;
-      } else if (inlineStatus === RunStatus.InProgress || resolved === RunStatus.InProgress) {
-        assignedActiveSlot = true;
+      } else if (resolved === RunStatus.InProgress) {
         blockSubsequent = true;
         blockedByInlineFailure = false;
         propagatedTerminal = undefined;
@@ -215,30 +328,49 @@ export const resolveSequentialStageRunStatuses = (
 
     if (blockSubsequent) {
       if (propagatedTerminal != null) {
-        statusById.set(stage.id, propagatedTerminal);
+        statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
       if (blockedByInlineFailure) {
         statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
-      if (componentStatus === RunStatus.InProgress && !assignedActiveSlot) {
-        const resolved = resolveUnresolved(stage);
-        statusById.set(stage.id, resolved);
-        if (isStageTerminalFailure(resolved)) {
+      if (componentStatus === RunStatus.InProgress) {
+        const resolved = applyEarlierStageBackfill(
+          stageIndex,
+          latestActivityIndex,
+          inlineStatus,
+          resolveUnresolved(stage),
+          stage,
+        );
+        if (isStageFinished(resolved)) {
+          statusById.set(stage.id, resolved);
+        } else if (isStageTerminalFailure(resolved)) {
+          statusById.set(stage.id, resolved);
           propagatedTerminal = resolved;
         } else {
-          assignedActiveSlot = true;
+          statusById.set(stage.id, RunStatus.InProgress);
         }
-        // Keep blockSubsequent so later unresolved stages stay pending / terminal.
-      } else if (componentStatus === RunStatus.Failed) {
-        statusById.set(stage.id, RunStatus.Failed);
+        continue;
+      }
+      if (componentStatus === RunStatus.Failed) {
+        if (!coarseTerminalAssigned) {
+          statusById.set(stage.id, RunStatus.Failed);
+          coarseTerminalAssigned = true;
+        } else {
+          statusById.set(stage.id, RunStatus.Pending);
+        }
       } else if (componentStatus === RunStatus.Cancelled) {
-        statusById.set(stage.id, RunStatus.Cancelled);
+        if (!coarseTerminalAssigned) {
+          statusById.set(stage.id, RunStatus.Cancelled);
+          coarseTerminalAssigned = true;
+        } else {
+          statusById.set(stage.id, RunStatus.Pending);
+        }
       } else if (componentStatus === RunStatus.Succeeded) {
         statusById.set(stage.id, RunStatus.Succeeded);
       } else if (componentStatus === RunStatus.Skipped) {
-        statusById.set(stage.id, RunStatus.Skipped);
+        statusById.set(stage.id, RunStatus.Pending);
       } else {
         statusById.set(stage.id, RunStatus.Pending);
       }
@@ -247,39 +379,65 @@ export const resolveSequentialStageRunStatuses = (
 
     if (componentStatus === RunStatus.InProgress) {
       if (!hasInlineStatuses) {
-        statusById.set(stage.id, resolveUnresolved(stage));
+        if (coarseTerminalAssigned) {
+          statusById.set(stage.id, RunStatus.Pending);
+          continue;
+        }
+        const resolved = applyEarlierStageBackfill(
+          stageIndex,
+          latestActivityIndex,
+          inlineStatus,
+          resolveUnresolved(stage),
+          stage,
+        );
+        if (isStageFinished(resolved)) {
+          statusById.set(stage.id, resolved);
+        } else if (isStageTerminalFailure(resolved)) {
+          statusById.set(stage.id, resolved);
+          coarseTerminalAssigned = true;
+        } else {
+          statusById.set(stage.id, RunStatus.InProgress);
+        }
         continue;
       }
-      if (!assignedActiveSlot) {
-        const resolved = resolveUnresolved(stage);
+      const resolved = applyEarlierStageBackfill(
+        stageIndex,
+        latestActivityIndex,
+        inlineStatus,
+        resolveUnresolved(stage),
+        stage,
+      );
+      if (isStageFinished(resolved)) {
+        statusById.set(stage.id, resolved);
+      } else if (isStageTerminalFailure(resolved)) {
         statusById.set(stage.id, resolved);
         blockSubsequent = true;
-        if (isStageTerminalFailure(resolved)) {
-          propagatedTerminal = resolved;
-        } else {
-          assignedActiveSlot = true;
-        }
+        propagatedTerminal = resolved;
       } else {
-        statusById.set(stage.id, RunStatus.Pending);
+        statusById.set(stage.id, RunStatus.InProgress);
       }
+      blockSubsequent = true;
       continue;
     }
 
     if (componentStatus === RunStatus.Failed) {
       statusById.set(stage.id, RunStatus.Failed);
       blockSubsequent = true;
+      coarseTerminalAssigned = true;
       continue;
     }
 
     if (componentStatus === RunStatus.Cancelled) {
       statusById.set(stage.id, RunStatus.Cancelled);
       blockSubsequent = true;
+      coarseTerminalAssigned = true;
       continue;
     }
 
     if (componentStatus === RunStatus.Skipped) {
-      statusById.set(stage.id, RunStatus.Skipped);
+      statusById.set(stage.id, RunStatus.Pending);
       blockSubsequent = true;
+      coarseTerminalAssigned = true;
       continue;
     }
 
@@ -377,7 +535,8 @@ export const promoteWaitingFrontierToInProgress = (
     visiting: Set<string> = new Set(),
   ): boolean => {
     if (promoted.has(depId)) {
-      return true;
+      const promotedNode = nodeById.get(depId);
+      return promotedNode != null && isStageFinished(promotedNode.data?.runStatus);
     }
     if (visiting.has(depId)) {
       return false;
@@ -448,12 +607,19 @@ export const promoteWaitingFrontierToInProgress = (
       return node;
     }
     const runStatus = RunStatus.InProgress;
+    const activeIconVariant = node.id.includes('__step__')
+      ? resolveBranchStepActiveIconVariant(runStatus)
+      : node.id.endsWith(`__${BRANCHING_STAGE_ID}`)
+        ? resolveModelSelectionActiveIconVariant(runStatus)
+        : node.id.includes('__model__')
+          ? undefined
+          : resolveActiveIconVariant(runStatus);
     return {
       ...node,
       data: {
         ...node.data,
         runStatus,
-        activeIconVariant: resolveActiveIconVariant(runStatus),
+        activeIconVariant,
       },
     };
   });

@@ -211,6 +211,7 @@ export type FeastAuthzConfig = {
   oidc?: {
     secretRef?: { name: string };
   };
+  noAuth?: boolean;
 };
 
 export type FeastCronJobContainerConfigs = FeastContainerConfigs & {

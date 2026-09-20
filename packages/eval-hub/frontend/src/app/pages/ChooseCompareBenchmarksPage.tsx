@@ -161,7 +161,7 @@ const ChooseCompareBenchmarksPage: React.FC = () => {
           <BreadcrumbItem
             render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
           />
-          <BreadcrumbItem isActive>Choose benchmarks</BreadcrumbItem>
+          <BreadcrumbItem isActive>Compare evaluation runs</BreadcrumbItem>
         </Breadcrumb>
       }
       loaded={loaded}

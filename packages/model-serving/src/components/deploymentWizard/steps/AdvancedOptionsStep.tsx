@@ -184,9 +184,16 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   shouldAutoCheck={shouldAutoCheckTokens}
                   isExternalRouteVisible={isExternalRouteVisible}
                   externalRouteData={externalRouteData}
+                  disabledHelperText={wizardState.state.tokenAuthentication.disabledHelperText}
                 />
               </FormGroup>
             </StackItem>
+
+            <GenericFieldRenderer
+              fieldId="modelCapabilities"
+              wizardState={wizardState}
+              externalData={externalData}
+            />
 
             <StackItem>
               <FormGroup

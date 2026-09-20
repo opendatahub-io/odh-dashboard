@@ -1,0 +1,94 @@
+import * as React from 'react';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { useNavigate } from 'react-router-dom';
+import { Label, LabelGroup } from '@patternfly/react-core';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import {
+  getServingRuntimeDisplayNameFromTemplate,
+  getServingRuntimeNameFromTemplate,
+} from '@odh-dashboard/model-serving/shared';
+import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
+import { isOOTB, PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
+import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
+import CustomServingRuntimeAPIProtocolLabel from './CustomServingRuntimeAPIProtocolLabel';
+
+type CustomServingRuntimeTableRowProps = {
+  obj: TemplateKind;
+  rowIndex: number;
+  onDeleteTemplate: (obj: TemplateKind) => void;
+};
+
+const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> = ({
+  obj: template,
+  rowIndex,
+  onDeleteTemplate,
+  ...props
+}) => {
+  const navigate = useNavigate();
+  const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
+  const templateOOTB = isOOTB(template);
+  return (
+    <Tr
+      key={rowIndex}
+      id={servingRuntimeName}
+      data-testid={`serving-runtime ${servingRuntimeName}`}
+      draggable
+      {...props}
+    >
+      <Td
+        draggableRow={{
+          id: `draggable-row-${servingRuntimeName}`,
+        }}
+      />
+      <Td dataLabel="Name" width={70} className="pf-v6-u-text-break-word">
+        <ResourceNameTooltip resource={template}>
+          {getServingRuntimeDisplayNameFromTemplate(template)}
+        </ResourceNameTooltip>
+        <LabelGroup numLabels={5}>
+          {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
+          {renderDeploymentResourceVersionLabels(template)}
+        </LabelGroup>
+      </Td>
+      <Td dataLabel="Enabled">
+        <CustomServingRuntimeEnabledToggle template={template} />
+      </Td>
+      <Td dataLabel="API protocol">
+        <CustomServingRuntimeAPIProtocolLabel template={template} />
+      </Td>
+      <Td isActionCell>
+        <ActionsColumn
+          items={
+            templateOOTB
+              ? [
+                  {
+                    title: 'Duplicate',
+                    onClick: () => navigate(`duplicate/${servingRuntimeName}`),
+                  },
+                ]
+              : [
+                  {
+                    title: 'Edit',
+                    onClick: () => navigate(`edit/${servingRuntimeName}`),
+                  },
+                  {
+                    title: 'Duplicate',
+                    onClick: () => navigate(`duplicate/${servingRuntimeName}`),
+                  },
+                  {
+                    isSeparator: true,
+                  },
+                  {
+                    title: 'Delete',
+                    onClick: () => onDeleteTemplate(template),
+                    isDanger: true,
+                  },
+                ]
+          }
+        />
+      </Td>
+    </Tr>
+  );
+};
+
+export default CustomServingRuntimeTableRow;

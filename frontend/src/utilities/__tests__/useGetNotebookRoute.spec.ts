@@ -1,8 +1,8 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
 import { getRoute } from '#~/services/routeService';
 import { listRoutes } from '#~/api/k8s/routes';
 import { getRoutePathForWorkbench } from '#~/concepts/notebooks/utils';
-import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
 import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import { Route } from '#~/types';
 

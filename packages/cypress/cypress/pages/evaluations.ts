@@ -39,8 +39,8 @@ class EvaluationsPage {
     this.findPageTitle().should('be.visible', { timeout: 30000 });
     this.findEvaluationsTable({ timeout: 30000 })
       .contains('tr', evaluationName, { timeout: 30000 })
-      .find('[data-testid="status-label-completed"]')
-      .should('exist');
+      .find('[data-testid="evaluation-status-button"]')
+      .should('contain.text', 'Complete');
   }
 }
 

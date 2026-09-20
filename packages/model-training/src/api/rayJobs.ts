@@ -4,8 +4,7 @@ import {
   K8sStatus,
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { applyK8sAPIOptions, K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { RayJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';

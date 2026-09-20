@@ -83,11 +83,48 @@ const useWatchFeatureStoreDeployment = (namespace: string, name: string): Deploy
     refreshRate: isTerminal(phaseRef.current) ? 0 : FAST_POLL_INTERVAL,
   });
 
-  const { featureStore, pods } = data;
+  const { featureStore } = data;
   const phase = resolvePhase(featureStore);
   phaseRef.current = phase;
   const isComplete = phase === 'Ready';
   const isFailed = phase === 'Failed';
+
+  const conditions = React.useMemo(
+    () =>
+      (Array.isArray(featureStore?.status?.conditions)
+        ? featureStore.status.conditions
+        : []
+      ).filter((c) => {
+        /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+        return (
+          c != null &&
+          typeof c.type === 'string' &&
+          (c.status === undefined || typeof c.status === 'string') &&
+          (c.message === undefined || typeof c.message === 'string') &&
+          (c.reason === undefined || typeof c.reason === 'string')
+        );
+        /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+      }),
+    [featureStore?.status?.conditions],
+  );
+
+  const pods = React.useMemo(
+    () =>
+      /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+      (Array.isArray(data.pods) ? data.pods : []).filter((p) => {
+        return (
+          p != null &&
+          typeof p.metadata?.name === 'string' &&
+          Array.isArray(p.spec?.containers) &&
+          p.spec.containers.every((ct) => typeof ct?.name === 'string') &&
+          (!Array.isArray(p.spec?.initContainers) ||
+            p.spec.initContainers.every((ct) => typeof ct?.name === 'string')) &&
+          (p.status?.phase === undefined || typeof p.status.phase === 'string')
+        );
+      }),
+    /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+    [data.pods],
+  );
 
   const fetchLogs = React.useCallback(() => {
     if (!namespace || pods.length === 0) {
@@ -146,7 +183,7 @@ const useWatchFeatureStoreDeployment = (namespace: string, name: string): Deploy
   return {
     featureStore,
     phase,
-    conditions: featureStore?.status?.conditions ?? [],
+    conditions,
     pods,
     podLogs,
     isComplete,

@@ -15,7 +15,8 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sPatchResource: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/api/apiMergeUtils', () => ({
+jest.mock('@odh-dashboard/k8s-core', () => ({
+  ...jest.requireActual('@odh-dashboard/k8s-core'),
   applyK8sAPIOptions: jest.fn((opts, apiOpts) => ({
     ...opts,
     ...(apiOpts?.dryRun && { queryOptions: { queryParams: { dryRun: 'All' } } }),

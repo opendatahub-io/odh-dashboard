@@ -1,5 +1,4 @@
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Drawer,
@@ -15,6 +14,7 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
+import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
@@ -31,15 +31,17 @@ import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import {
-  formatMetricName,
-  getOptimizedMetricForRAG,
-  isRunTerminatable,
-  isRunRetryable,
-  parseErrorStatus,
-} from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import {
+  fireAutoragCodeSnippetsExported,
+  fireAutoragPlaygroundOpened,
+  fireAutoragResultsViewed,
+  isAutoragResultsNavigationState,
+} from '~/app/utilities/tracking';
+import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -70,6 +72,10 @@ function AutoragResultsPage(): React.JSX.Element {
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
+  const projectDisplayName = React.useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const notification = useNotification();
 
@@ -85,6 +91,7 @@ function AutoragResultsPage(): React.JSX.Element {
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
     runId ?? '',
+    'resultsPage',
   );
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
@@ -106,6 +113,17 @@ function AutoragResultsPage(): React.JSX.Element {
     isInitialLoadError &&
     pipelineRunLoadError instanceof Error &&
     parseErrorStatus(pipelineRunLoadError) === 404;
+
+  const resultsViewedTrackedRunId = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    if (!pipelineRun?.run_id || resultsViewedTrackedRunId.current === pipelineRun.run_id) {
+      return;
+    }
+    resultsViewedTrackedRunId.current = pipelineRun.run_id;
+
+    const navState = isAutoragResultsNavigationState(location.state) ? location.state : undefined;
+    fireAutoragResultsViewed(navState?.entrySource ?? 'other');
+  }, [pipelineRun?.run_id, location.state]);
 
   // Fetch and process AutoRAG results using custom hook
   const {
@@ -236,38 +254,48 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-  const handleTryPattern = React.useCallback(
-    (patternName: string) => {
+  // Opens (or switches the pattern within) the playground drawer. Returns whether a pattern was
+  // actually opened, so callers can decide whether to fire tracking — this function itself never
+  // fires tracking, since it's also used to switch patterns from within an already-open drawer
+  // (see `onSelectPattern` below), which is not a new "open".
+  const openPlaygroundForPattern = React.useCallback(
+    (patternName: string): boolean => {
       const pattern = patterns?.[patternName];
       if (!pattern) {
-        return;
+        return false;
       }
       const responsesTemplate = pattern.inference?.responses_template;
       if (!responsesTemplate) {
-        return;
+        return false;
       }
 
-      const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
-      const scoreLookup = Object.fromEntries(
-        pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
-      );
-      const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
+      const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
         type: 'playground',
         responsesTemplate,
         patternInfo: {
           patternName,
           modelId: pattern.settings?.generation?.model_id || 'N/A',
-          optimizedMetricName: formatMetricName(optimizedMetric),
+          optimizedMetricName: metricLabel(contextValue.optimizationMetric),
           optimizedMetricValue:
             metricMean != null && Number.isFinite(metricMean) ? metricMean : 'N/A',
           chunkMethod: pattern.settings?.chunking?.method || 'N/A',
         },
       });
+      return true;
     },
-    [patterns, pipelineRun],
+    [contextValue.optimizationMetric, patterns],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+
+  const handleTryPattern = React.useCallback(
+    (patternName: string, source: PlaygroundOpenedSource) => {
+      if (openPlaygroundForPattern(patternName)) {
+        fireAutoragPlaygroundOpened(source);
+      }
+    },
+    [openPlaygroundForPattern],
+  );
 
   const [viewCodePattern, setViewCodePattern] = React.useState<{
     patternName: string;
@@ -275,11 +303,12 @@ function AutoragResultsPage(): React.JSX.Element {
   } | null>(null);
 
   const handleViewCode = React.useCallback(
-    (patternName: string) => {
+    (patternName: string, source: ViewCodeEntrySource) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const responsesTemplate = patterns?.[patternName]?.inference?.responses_template;
       if (responsesTemplate) {
         setViewCodePattern({ patternName, responsesTemplate });
+        fireAutoragCodeSnippetsExported('viewed', source);
       }
     },
     [patterns],
@@ -302,8 +331,8 @@ function AutoragResultsPage(): React.JSX.Element {
                 responsesTemplate={drawerContent.responsesTemplate}
                 patternInfo={drawerContent.patternInfo}
                 onClose={handleDrawerClose}
-                onSelectPattern={handleTryPattern}
-                onViewCode={handleViewCode}
+                onSelectPattern={openPlaygroundForPattern}
+                onViewCode={(patternName) => handleViewCode(patternName, 'playground')}
               />
             ) : undefined
           }
@@ -382,14 +411,24 @@ function AutoragResultsPage(): React.JSX.Element {
                 </Split>
               }
               breadcrumb={
-                <Breadcrumb>
-                  <BreadcrumbItem>
-                    <Link to={getRedirectPath(namespace ?? '')}>AutoRAG: {namespace}</Link>
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isActive>
-                    <Truncate content={pipelineRun?.display_name || ''} />
-                  </BreadcrumbItem>
-                </Breadcrumb>
+                namespace ? (
+                  <ExperimentContextBreadcrumb
+                    pageName="AutoRAG"
+                    namespace={namespace}
+                    projectDisplayName={projectDisplayName}
+                    homePath={getRedirectPath(namespace)}
+                  >
+                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                      <Link
+                        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
+                        state={{ from: 'results' }}
+                      >
+                        Run configurations
+                      </Link>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
+                  </ExperimentContextBreadcrumb>
+                ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
@@ -415,6 +454,7 @@ function AutoragResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
+        source="resultsPage"
       />
       {viewCodePattern && (
         <ViewCodeModal

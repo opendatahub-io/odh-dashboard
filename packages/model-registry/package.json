@@ -27,7 +27,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "75219019dc988af4a0247d1cb108079461ee7d01"
+    "commit": "50057ba0308e071be5370bf3cf933cffeccf0a9d"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -50,14 +50,12 @@
     }
   },
   "e2eCiTags": [
-    "@ModelRegistryCI"
+    "@ModelRegistryCI",
+    "@ModelCatalogCI"
   ],
   "exports": {
     "./extensions": "./extensions.ts",
     "./shared": "./shared/index.ts",
-    "./model-catalog-deploy": {
-      "types": "./upstream/frontend/src/odh/extension-points/model-catalog-deploy.ts"
-    },
     "./mocks/*": [
       "./upstream/frontend/src/__mocks__/*",
       "./upstream/frontend/src/__mocks__/*.ts"
@@ -70,10 +68,12 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",

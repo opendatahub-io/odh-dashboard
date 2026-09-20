@@ -1,6 +1,5 @@
 import {
   MetadataAnnotation,
-  getGeneratedSecretName,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
   getConnectionTypeRef,
@@ -14,9 +13,10 @@ import type {
   ConnectionTypeConfigMapObj,
   ProjectKind,
 } from '@odh-dashboard/k8s-core';
-import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
+import type { SecretOps } from '@odh-dashboard/plugin-core';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import { DeployExtension } from './deploying/useDeployMethod';
+import { ExternalDataMap } from './ExternalDataLoader';
 import { RunPreDeployFns } from './deploying/useWizardFieldPreDeploy';
 import { RunPostDeployFns } from './deploying/useWizardFieldPostDeploy';
 import {
@@ -30,7 +30,13 @@ import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
-import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import { patchHfTokenSecretOwnerReference } from '../../concepts/hfTokenSecretUtils';
+import type { HuggingFaceApiKeyFieldData } from '../../shared/wizard-fields';
+import type {
+  Deployment,
+  DeploymentEndpoint,
+  DeploymentHookPayload,
+} from '../../../extension-points';
 import { DeploymentAssemblyFn } from '../../../extension-points/deployment-wizard';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
@@ -68,8 +74,19 @@ export const getTokenAuthenticationFromDeployment = (
   return [];
 };
 
+// Deploy paths that assemble the model internally (e.g. KServe) don't provide
+// a pre-assembled model resource, so `model` may be undefined here. The
+// preDeploy/postDeploy hooks still need to run — they create side-effect
+// resources (PVCs, secrets, etc.) that don't depend on the model resource.
+const toDeploymentHookPayload = (
+  platform: string,
+  model?: Deployment['model'],
+  server?: Deployment['server'],
+): DeploymentHookPayload => ({ modelServingPlatformId: platform, model, server });
+
 export const deployModel = async (
   wizardState: WizardFormData['state'],
+  externalData: ExternalDataMap,
   secretOps: SecretOps,
   secretName?: string,
   deployMethod?: DeployExtension,
@@ -79,9 +96,10 @@ export const deployModel = async (
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
-  applyFieldData?: DeploymentAssemblyFn,
+  applyAllFieldDataFn?: DeploymentAssemblyFn,
   runPreDeploy?: RunPreDeployFns,
   runPostDeploy?: RunPostDeployFns,
+  extractHuggingFaceApiKey?: (deployment: Deployment) => HuggingFaceApiKeyFieldData | null,
 ): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
@@ -117,14 +135,10 @@ export const deployModel = async (
       wizardState.modelLocationData.selectedConnection,
     ),
   );
-  if (runPreDeploy && dryRunModelResource) {
+  if (runPreDeploy) {
     dryRuns.push(
       runPreDeploy(
-        {
-          modelServingPlatformId: deployMethod.platform,
-          model: dryRunModelResource,
-          server: serverResource,
-        },
+        toDeploymentHookPayload(deployMethod.platform, dryRunModelResource, serverResource),
         existingDeployment,
         true,
       ),
@@ -135,6 +149,7 @@ export const deployModel = async (
     dryRuns.push(
       deployMethod.deploy(
         wizardState,
+        externalData,
         projectName,
         existingDeployment,
         dryRunModelResource,
@@ -144,18 +159,14 @@ export const deployModel = async (
         undefined,
         undefined,
         initialWizardData,
-        applyFieldData,
+        applyAllFieldDataFn,
       ),
     );
   }
-  if (runPostDeploy && dryRunModelResource) {
+  if (runPostDeploy) {
     dryRuns.push(
       runPostDeploy(
-        {
-          modelServingPlatformId: deployMethod.platform,
-          model: dryRunModelResource,
-          server: serverResource,
-        },
+        toDeploymentHookPayload(deployMethod.platform, dryRunModelResource, serverResource),
         existingDeployment,
         true,
       ),
@@ -177,26 +188,23 @@ export const deployModel = async (
   );
 
   // newSecret.metadata.name is the name of the secret created during secret creation,
-  const createdSecretName = newSecret?.metadata.name ?? secretName ?? getGeneratedSecretName();
+  const createdSecretName = newSecret?.metadata.name ?? secretName;
 
   // Create deployment
   const modelResourceWithConnection = structuredClone(modelResourceWithNamespace);
-  if (modelResourceWithConnection?.metadata.annotations) {
+  if (createdSecretName && modelResourceWithConnection?.metadata.annotations) {
     modelResourceWithConnection.metadata.annotations[MetadataAnnotation.ConnectionName] =
       createdSecretName;
   }
-  if (runPreDeploy && modelResourceWithConnection) {
+  if (runPreDeploy) {
     await runPreDeploy(
-      {
-        modelServingPlatformId: deployMethod.platform,
-        model: modelResourceWithConnection,
-        server: serverResource,
-      },
+      toDeploymentHookPayload(deployMethod.platform, modelResourceWithConnection, serverResource),
       existingDeployment,
     );
   }
   const deploymentResult = await deployMethod.deploy(
     wizardState,
+    externalData,
     projectName,
     existingDeployment,
     modelResourceWithConnection,
@@ -206,7 +214,7 @@ export const deployModel = async (
     createdSecretName,
     overwrite,
     initialWizardData,
-    applyFieldData,
+    applyAllFieldDataFn,
   );
 
   // Potentially skip this if YAML is used and model location is set directly in the YAML
@@ -221,6 +229,15 @@ export const deployModel = async (
       false,
     );
   }
+  const hfSecretName = extractHuggingFaceApiKey?.(deploymentResult)?.configuredSecretName;
+  await patchHfTokenSecretOwnerReference(
+    secretOps,
+    projectName,
+    deploymentResult.model,
+    hfSecretName,
+    deploymentResult.model.metadata.uid ?? '',
+    false,
+  );
   if (runPostDeploy) {
     await runPostDeploy(deploymentResult, existingDeployment);
   }

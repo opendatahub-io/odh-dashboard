@@ -12,14 +12,18 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-arch-core';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
+import { createEvalHubQueryClient } from '~/app/utilities/queryClient';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
 import NavBar from '~/app/standalone/NavBar';
 import AppNavSidebar from '~/app/standalone/AppNavSidebar';
 import { evalHubRootPath } from '~/app/utilities/routes';
+
+const queryClient = createEvalHubQueryClient();
 
 const App: React.FC = () => {
   const {
@@ -93,24 +97,26 @@ const App: React.FC = () => {
     </Bullseye>
   ) : (
     <AppContext.Provider value={contextValue}>
-      <Page
-        mainContainerId="primary-app-container"
-        isManagedSidebar={isStandalone}
-        masthead={
-          isStandalone ? (
-            <NavBar
-              username={userSettings.userId}
-              onLogout={() => logout().then(() => window.location.reload())}
-            />
-          ) : undefined
-        }
-        sidebar={isStandalone ? <AppNavSidebar /> : undefined}
-      >
-        <Routes>
-          <Route path={`${evalHubRootPath}/*`} element={<AppRoutes />} />
-          <Route path="*" element={<Navigate to={evalHubRootPath} replace />} />
-        </Routes>
-      </Page>
+      <QueryClientProvider client={queryClient}>
+        <Page
+          mainContainerId="primary-app-container"
+          isManagedSidebar={isStandalone}
+          masthead={
+            isStandalone ? (
+              <NavBar
+                username={userSettings.userId}
+                onLogout={() => logout().then(() => window.location.reload())}
+              />
+            ) : undefined
+          }
+          sidebar={isStandalone ? <AppNavSidebar /> : undefined}
+        >
+          <Routes>
+            <Route path={`${evalHubRootPath}/*`} element={<AppRoutes />} />
+            <Route path="*" element={<Navigate to={evalHubRootPath} replace />} />
+          </Routes>
+        </Page>
+      </QueryClientProvider>
     </AppContext.Provider>
   );
 };

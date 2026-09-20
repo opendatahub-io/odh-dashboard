@@ -24,7 +24,7 @@ import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionFi
 import { MAX_K8S_NAME_LENGTH } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { createMcpDeployment, updateMcpDeployment } from '~/odh/api/mcpCatalogDeployment/service';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
-import { McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
+import { McpDeployment, McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
 
 type McpDeployModalProps = {
   isOpen?: boolean;
@@ -32,6 +32,11 @@ type McpDeployModalProps = {
   data?: McpDeployModalData;
   isLoading?: boolean;
   loadError?: Error;
+  /**
+   * Called after the CR is created, before `onClose`, for caller-specific follow-up.
+   * Should catch and report its own errors — a rejection here doesn't fail the deploy itself.
+   */
+  onDeployed?: (deployment: McpDeployment) => void | Promise<void>;
 };
 
 const McpDeployModal: React.FC<McpDeployModalProps> = ({
@@ -40,8 +45,14 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   data,
   isLoading,
   loadError,
+  onDeployed,
 }) => {
   const isEdit = !!data?.name;
+  // Sole discriminator between the "registry" prefill flow (image editable, project fixed)
+  // and the "catalog" flow (image read-only, project selectable) -- see the doc comment on
+  // McpDeployModalData.registryServer. Centralized here so the three usages below can't drift
+  // from each other or from this convention.
+  const isRegistryPrefill = !!data?.registryServer;
   const navigate = useNavigate();
   const { theme } = useThemeContext();
 
@@ -91,10 +102,27 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   const [selectedNamespace, setSelectedNamespace] = React.useState(data?.namespace ?? '');
   const queryParams = React.useMemo(() => ({ namespace: selectedNamespace }), [selectedNamespace]);
   const [yamlContent, setYamlContent] = React.useState(data?.yaml ?? '');
-  const ociImageValue = data?.image ?? '';
+  const [ociImageValue, setOciImageValue] = React.useState(data?.image ?? '');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error>();
   const abortControllerRef = React.useRef<AbortController>();
+
+  // `data` can arrive after this modal has already mounted (e.g. the catalog flow opens the
+  // modal immediately on click, before its CR-to-YAML converter resolves). useState's initial
+  // value only applies once, so without these the image/YAML fields would stay stuck at their
+  // initial (possibly empty) values forever. `!== undefined` (rather than truthiness) so a
+  // field that resolves to an empty value still overwrites a stale non-empty one.
+  React.useEffect(() => {
+    if (data?.image !== undefined) {
+      setOciImageValue(data.image);
+    }
+  }, [data?.image]);
+
+  React.useEffect(() => {
+    if (data?.yaml !== undefined) {
+      setYamlContent(data.yaml);
+    }
+  }, [data?.yaml]);
 
   React.useEffect(
     () => () => {
@@ -133,13 +161,26 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
         );
         onClose(true);
       } else {
-        await createMcpDeployment('', { ...queryParams, namespace: selectedNamespace })(opts, {
+        const created = await createMcpDeployment('', {
+          ...queryParams,
+          namespace: selectedNamespace,
+        })(opts, {
           name: effectiveK8sName,
           displayName: displayNameValue,
           serverName: data?.serverName,
+          registryServer: data?.registryServer,
+          registryVersion: data?.registryVersion,
           image: ociImageValue,
           yaml: yamlContent,
         });
+        // The CR is already created at this point. `onDeployed`'s contract requires
+        // implementations to handle their own errors, but don't let a caller that breaks that
+        // contract report a deploy failure when the deployment actually succeeded.
+        try {
+          await onDeployed?.(created);
+        } catch {
+          // Intentionally swallowed — see comment above.
+        }
         onClose(true);
         navigate(mcpDeploymentsUrl(selectedNamespace));
       }
@@ -160,6 +201,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
     isEdit,
     queryParams,
     onClose,
+    onDeployed,
     navigate,
   ]);
 
@@ -216,32 +258,41 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
               isRequired
               fieldId="mcp-deploy-oci-image"
               labelHelp={
-                <FieldGroupHelpLabelIcon content="This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited." />
+                <FieldGroupHelpLabelIcon
+                  content={
+                    isRegistryPrefill
+                      ? "Prefilled from the selected MCP server when available. If it's missing, enter the container image to deploy."
+                      : 'This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited.'
+                  }
+                />
               }
             >
               <TextInput
                 id="mcp-deploy-oci-image"
                 value={ociImageValue}
-                isDisabled
+                isDisabled={!isRegistryPrefill}
+                onChange={(_event, value) => setOciImageValue(value)}
+                placeholder="e.g. quay.io/mcp/weather:1.2.0"
                 data-testid="mcp-deploy-oci-image-input"
               />
             </FormGroup>
 
-            {isEdit ? (
-              <FormGroup label="Project" isRequired fieldId="mcp-deploy-project">
-                <TextInput
-                  id="mcp-deploy-project"
-                  value={selectedNamespace}
-                  isDisabled
-                  data-testid="mcp-deploy-project-selector"
-                />
-              </FormGroup>
-            ) : (
+            <FormGroup
+              label="Project"
+              isRequired
+              fieldId="mcp-deploy-project"
+              labelHelp={
+                <FieldGroupHelpLabelIcon content="Select the project to deploy this MCP server to." />
+              }
+            >
               <NamespaceSelectorFieldWrapper
                 selectedNamespace={selectedNamespace}
                 onSelect={handleNamespaceSelect}
+                isDisabled={isEdit || isRegistryPrefill}
+                selectorOnly
+                isFullWidth
               />
-            )}
+            </FormGroup>
 
             <FormGroup
               label="YAML configuration"

@@ -3,10 +3,17 @@ import {
   getEvaluationName,
   getBenchmarkName,
   getAllBenchmarkNames,
+  getBenchmarkDisplayName,
   getBenchmarkResultScore,
+  getFailedBenchmarkCount,
   getJobBenchmarks,
   getResultScore,
+  formatAsPercentage,
+  formatBenchmarkScore,
   formatDate,
+  formatDurationCompact,
+  isTerminalState,
+  normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
 
 describe('getEvaluationName', () => {
@@ -228,6 +235,106 @@ describe('getJobBenchmarks', () => {
   });
 });
 
+describe('getBenchmarkDisplayName', () => {
+  it('should replace underscores with spaces and capitalize each word', () => {
+    expect(getBenchmarkDisplayName('arc_easy')).toBe('Arc Easy');
+  });
+
+  it('should capitalize a single word', () => {
+    expect(getBenchmarkDisplayName('mmlu')).toBe('Mmlu');
+  });
+
+  it('should handle an already formatted string', () => {
+    expect(getBenchmarkDisplayName('TinyTruthfulQA')).toBe('TinyTruthfulQA');
+  });
+
+  it('should handle an empty string', () => {
+    expect(getBenchmarkDisplayName('')).toBe('');
+  });
+});
+
+describe('formatAsPercentage', () => {
+  it('should format a decimal as a percentage', () => {
+    expect(formatAsPercentage(0.85)).toBe('85%');
+  });
+
+  it('should round to the nearest integer', () => {
+    expect(formatAsPercentage(0.466)).toBe('47%');
+  });
+
+  it('should handle 0', () => {
+    expect(formatAsPercentage(0)).toBe('0%');
+  });
+
+  it('should handle 1', () => {
+    expect(formatAsPercentage(1)).toBe('100%');
+  });
+
+  it('should handle values greater than 1', () => {
+    expect(formatAsPercentage(1.5)).toBe('150%');
+  });
+
+  it('should handle negative values', () => {
+    expect(formatAsPercentage(-0.1)).toBe('-10%');
+  });
+
+  it('should return dash for NaN', () => {
+    expect(formatAsPercentage(NaN)).toBe('-');
+  });
+
+  it('should return dash for Infinity', () => {
+    expect(formatAsPercentage(Infinity)).toBe('-');
+  });
+
+  it('should return dash for negative Infinity', () => {
+    expect(formatAsPercentage(-Infinity)).toBe('-');
+  });
+});
+
+describe('formatBenchmarkScore', () => {
+  /* eslint-disable camelcase */
+  it('should prefer test.primary_score over metrics', () => {
+    expect(
+      formatBenchmarkScore({ id: 'b1', test: { primary_score: 0.8 }, metrics: { acc: 0.5 } }),
+    ).toBe('80%');
+  });
+
+  it('should use primaryMetric parameter when test is absent', () => {
+    expect(
+      formatBenchmarkScore(
+        { id: 'b1', metrics: { attack_success_rate: 0.1, acc: 0.9 } },
+        'attack_success_rate',
+      ),
+    ).toBe('10%');
+  });
+
+  it('should fall back to acc_norm/acc when primaryMetric is not provided', () => {
+    expect(formatBenchmarkScore({ id: 'b1', metrics: { acc_norm: 0.85, acc: 0.7 } })).toBe('85%');
+  });
+
+  it('should fall back to attack_success_rate when acc metrics are absent', () => {
+    expect(formatBenchmarkScore({ id: 'b1', metrics: { attack_success_rate: 0 } })).toBe('0%');
+  });
+
+  it('should return null when no recognized metrics are present', () => {
+    expect(formatBenchmarkScore({ id: 'b1', metrics: { unknown_metric: 0.5 } })).toBeNull();
+  });
+
+  it('should return null when metrics is undefined', () => {
+    expect(formatBenchmarkScore({ id: 'b1' })).toBeNull();
+  });
+
+  it('should skip primaryMetric when its value is not a number', () => {
+    expect(
+      formatBenchmarkScore(
+        { id: 'b1', metrics: { bad_metric: 'not-a-number', acc: 0.6 } },
+        'bad_metric',
+      ),
+    ).toBe('60%');
+  });
+  /* eslint-enable camelcase */
+});
+
 describe('getResultScore', () => {
   it('should return percentage from top-level test score', () => {
     const job = mockEvaluationJob({ score: 0.85 });
@@ -265,10 +372,133 @@ describe('getResultScore', () => {
     expect(getResultScore(job)).toBe('85%');
   });
 
-  it('should return dash when metrics has neither acc_norm nor acc', () => {
+  it('should fall back to acc when acc_norm is NaN', () => {
+    const job = mockEvaluationJob();
+    job.results = { benchmarks: [{ id: 'b1', metrics: { acc: 0.85, acc_norm: NaN } }] };
+    expect(getResultScore(job)).toBe('85%');
+  });
+
+  it('should return dash when metrics has no recognized metric names', () => {
     const job = mockEvaluationJob();
     job.results = { benchmarks: [{ id: 'b1', metrics: { f1_score: 0.9 } }] };
     expect(getResultScore(job)).toBe('-');
+  });
+
+  it('should fall back to attack_success_rate for garak benchmarks without test object', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [{ id: 'quick', provider_id: 'garak' }];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'quick',
+          provider_id: 'garak',
+          metrics: { attack_success_rate: 0, 'dan.Dan_11_0_asr': 0 },
+        },
+      ],
+    };
+    expect(getResultScore(job)).toBe('0%');
+  });
+
+  it('should fall back to attack_success_rate with non-zero value', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [{ id: 'quick', provider_id: 'garak' }];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'quick',
+          provider_id: 'garak',
+          metrics: { attack_success_rate: 0.25 },
+        },
+      ],
+    };
+    expect(getResultScore(job)).toBe('25%');
+  });
+
+  it('should use configured primary_score.metric from benchmark config', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'custom_bench',
+        provider_id: 'custom',
+        primary_score: { metric: 'custom_metric', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'custom_bench',
+          provider_id: 'custom',
+          metrics: { custom_metric: 0.42, other_metric: 0.99 },
+        },
+      ],
+    };
+    expect(getResultScore(job)).toBe('42%');
+  });
+
+  it('should match first result benchmark by resolved index when duplicate IDs have explicit benchmark_index', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 0,
+        primary_score: { metric: 'acc_norm', lower_is_better: false },
+      },
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 1,
+        primary_score: { metric: 'f1_score', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          benchmark_index: 0,
+          metrics: { acc_norm: 0.85, f1_score: 0.6 },
+        },
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          benchmark_index: 1,
+          metrics: { acc_norm: 0.4, f1_score: 0.92 },
+        },
+      ],
+    };
+    expect(getResultScore(job)).toBe('85%');
+  });
+
+  it('should match first result benchmark by position when duplicate IDs omit benchmark_index', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'acc_norm', lower_is_better: false },
+      },
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'f1_score', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          metrics: { acc_norm: 0.85, f1_score: 0.6 },
+        },
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          metrics: { acc_norm: 0.4, f1_score: 0.92 },
+        },
+      ],
+    };
+    expect(getResultScore(job)).toBe('85%');
   });
   /* eslint-enable camelcase */
 
@@ -286,6 +516,30 @@ describe('getResultScore', () => {
   it('should handle 100% result', () => {
     const job = mockEvaluationJob({ score: 1.0 });
     expect(getResultScore(job)).toBe('100%');
+  });
+
+  it('should return dash when score is NaN', () => {
+    const job = mockEvaluationJob();
+    job.results = { test: { score: NaN } };
+    expect(getResultScore(job)).toBe('-');
+  });
+
+  it('should return dash when score is Infinity', () => {
+    const job = mockEvaluationJob();
+    job.results = { test: { score: Infinity } };
+    expect(getResultScore(job)).toBe('-');
+  });
+
+  it('should return aggregate score for collection job with finite test score', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection', score: 0.75 });
+    expect(getResultScore(job)).toBe('75%');
+  });
+
+  it('should return dash for collection job without aggregate test score', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    // eslint-disable-next-line camelcase
+    job.results = { benchmarks: [{ id: 'b1', test: { primary_score: 0.9 } }] };
+    expect(getResultScore(job)).toBe('-');
   });
 });
 
@@ -327,6 +581,171 @@ describe('getBenchmarkResultScore', () => {
     job.results = { benchmarks: [] };
     expect(getBenchmarkResultScore(job, 'missing')).toBe('-');
   });
+
+  /* eslint-disable camelcase */
+  it('should fall back to attack_success_rate for garak benchmarks', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [{ id: 'quick', provider_id: 'garak' }];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'quick',
+          provider_id: 'garak',
+          metrics: { attack_success_rate: 0, 'dan.Dan_11_0_asr': 0 },
+        },
+      ],
+    };
+    expect(getBenchmarkResultScore(job, 'quick')).toBe('0%');
+  });
+
+  it('should use configured primary_score.metric from benchmark config', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'custom_bench',
+        provider_id: 'custom',
+        primary_score: { metric: 'custom_metric', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'custom_bench',
+          provider_id: 'custom',
+          metrics: { custom_metric: 0.65 },
+        },
+      ],
+    };
+    expect(getBenchmarkResultScore(job, 'custom_bench')).toBe('65%');
+  });
+
+  it('should select correct config when duplicate IDs have explicit benchmark_index', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 0,
+        primary_score: { metric: 'acc_norm', lower_is_better: false },
+      },
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 1,
+        primary_score: { metric: 'f1_score', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          benchmark_index: 0,
+          metrics: { acc_norm: 0.85, f1_score: 0.6 },
+        },
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          benchmark_index: 1,
+          metrics: { acc_norm: 0.4, f1_score: 0.92 },
+        },
+      ],
+    };
+    expect(getBenchmarkResultScore(job, 'arc_easy', 0)).toBe('85%');
+    expect(getBenchmarkResultScore(job, 'arc_easy', 1)).toBe('92%');
+  });
+
+  it('should select correct config when duplicate IDs omit benchmark_index', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'acc_norm', lower_is_better: false },
+      },
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'f1_score', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          metrics: { acc_norm: 0.85, f1_score: 0.6 },
+        },
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          metrics: { acc_norm: 0.4, f1_score: 0.92 },
+        },
+      ],
+    };
+    expect(getBenchmarkResultScore(job, 'arc_easy', 0)).toBe('85%');
+    expect(getBenchmarkResultScore(job, 'arc_easy', 1)).toBe('92%');
+  });
+  /* eslint-enable camelcase */
+});
+
+describe('formatDurationCompact', () => {
+  it('should return null for missing inputs', () => {
+    expect(formatDurationCompact(undefined, undefined)).toBeNull();
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', undefined)).toBeNull();
+    expect(formatDurationCompact(undefined, '2026-01-01T00:05:00Z')).toBeNull();
+  });
+
+  it('should return null for zero or negative duration', () => {
+    expect(formatDurationCompact('2026-01-01T00:05:00Z', '2026-01-01T00:05:00Z')).toBeNull();
+    expect(formatDurationCompact('2026-01-01T00:05:00Z', '2026-01-01T00:00:00Z')).toBeNull();
+  });
+
+  it('should return null for unparseable timestamp', () => {
+    expect(formatDurationCompact('not-a-date', '2026-01-01T00:05:00Z')).toBeNull();
+  });
+
+  it('should format seconds only', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T00:00:45Z')).toBe('45s');
+  });
+
+  it('should format minutes and seconds', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T00:05:12Z')).toBe('5m 12s');
+  });
+
+  it('should format minutes with no seconds', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T00:03:00Z')).toBe('3m');
+  });
+
+  it('should format hours and minutes', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T01:23:00Z')).toBe('1h 23m');
+  });
+
+  it('should format hours with no minutes', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T02:00:00Z')).toBe('2h');
+  });
+
+  it('should return "< 1s" for sub-second durations', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.500Z')).toBe(
+      '< 1s',
+    );
+  });
+});
+
+describe('isTerminalState', () => {
+  it.each(['completed', 'failed', 'cancelled', 'stopped', 'partially_failed'] as const)(
+    'should return true for terminal state "%s"',
+    (state) => {
+      expect(isTerminalState(state)).toBe(true);
+    },
+  );
+
+  it.each(['pending', 'running', 'stopping'] as const)(
+    'should return false for non-terminal state "%s"',
+    (state) => {
+      expect(isTerminalState(state)).toBe(false);
+    },
+  );
 });
 
 describe('formatDate', () => {
@@ -349,5 +768,56 @@ describe('formatDate', () => {
   it('should return the original string for an invalid date', () => {
     const result = formatDate('not-a-date');
     expect(typeof result).toBe('string');
+  });
+});
+
+describe('getFailedBenchmarkCount', () => {
+  it('should return 0 for an empty array', () => {
+    expect(getFailedBenchmarkCount([])).toBe(0);
+  });
+
+  it('should return 0 when no benchmarks have failed', () => {
+    expect(getFailedBenchmarkCount([{ status: 'completed' }, { status: 'running' }])).toBe(0);
+  });
+
+  it('should count only failed benchmarks', () => {
+    expect(
+      getFailedBenchmarkCount([
+        { status: 'completed' },
+        { status: 'failed' },
+        { status: 'running' },
+        { status: 'failed' },
+      ]),
+    ).toBe(2);
+  });
+
+  it('should count all when every benchmark has failed', () => {
+    expect(getFailedBenchmarkCount([{ status: 'failed' }, { status: 'failed' }])).toBe(2);
+  });
+});
+
+describe('normalizeThreshold', () => {
+  it('should convert 0–1 decimal to percentage', () => {
+    expect(normalizeThreshold(0.38)).toBe(38);
+  });
+
+  it('should convert 0.5 to 50', () => {
+    expect(normalizeThreshold(0.5)).toBe(50);
+  });
+
+  it('should use value as-is when already a percentage scale', () => {
+    expect(normalizeThreshold(38)).toBe(38);
+  });
+
+  it('should use value as-is for large percentage values', () => {
+    expect(normalizeThreshold(80)).toBe(80);
+  });
+
+  it('should handle 0', () => {
+    expect(normalizeThreshold(0)).toBe(0);
+  });
+
+  it('should round fractional results', () => {
+    expect(normalizeThreshold(0.333)).toBe(33);
   });
 });

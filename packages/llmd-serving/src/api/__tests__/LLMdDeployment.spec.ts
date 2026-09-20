@@ -1,11 +1,12 @@
 import { k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
-import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import { deleteDeployment } from '../LLMdDeployment';
 import {
   LLMInferenceServiceConfigModel,
   LLMInferenceServiceModel,
   TOPOLOGY_CONFIG_REF_ANNOTATION,
+  ACCELERATOR_CONFIG_REF_ANNOTATION,
   type LLMdDeployment,
   type LLMInferenceServiceKind,
 } from '../../types';
@@ -119,6 +120,25 @@ describe('deleteDeployment', () => {
     );
 
     expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([DEPLOYMENT_NAME]);
+  });
+
+  it('should delete the local accelerator config copy named by the annotation', async () => {
+    const localConfigName = `${DEPLOYMENT_NAME}-rocm`;
+    await deleteDeployment(
+      makeDeployment({
+        baseRefs: [{ name: localConfigName }],
+        annotations: { [ACCELERATOR_CONFIG_REF_ANNOTATION]: localConfigName },
+      }),
+    );
+
+    expect(deletedNames(LLMInferenceServiceModel)).toEqual([DEPLOYMENT_NAME]);
+    expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([localConfigName]);
+    expect(mockK8sDeleteResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: LLMInferenceServiceConfigModel,
+        queryOptions: expect.objectContaining({ name: localConfigName, ns: NAMESPACE }),
+      }),
+    );
   });
 
   it('should not block deletion when the topology config is not found', async () => {

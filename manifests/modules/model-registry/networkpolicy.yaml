@@ -20,6 +20,9 @@ spec:
         - podSelector:
             matchLabels:
               deployment: eval-hub-ui
+        - podSelector:
+            matchLabels:
+              deployment: mlflow-ui
   egress:
     - to:
         - namespaceSelector:
@@ -29,6 +32,15 @@ spec:
         - port: 5353
           protocol: UDP
         - port: 5353
+          protocol: TCP
+    # Inter-BFF communication with the MLflow BFF (see docs/inter-bff-communication.md),
+    # used to resolve MCP Registry server details for the deployments table.
+    - to:
+        - podSelector:
+            matchLabels:
+              deployment: mlflow-ui
+      ports:
+        - port: 8343
           protocol: TCP
     - to:
         - ipBlock:

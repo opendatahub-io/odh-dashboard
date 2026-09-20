@@ -16,7 +16,7 @@ func (app *App) handleMLflowClientError(w http.ResponseWriter, r *http.Request, 
 		httpError := &HTTPError{
 			StatusCode: http.StatusServiceUnavailable,
 			Error: ErrorPayload{
-				Code:    "service_unavailable",
+				Code:    apiErrorCodeForStatus(http.StatusServiceUnavailable),
 				Message: "MLflow is not configured on this deployment",
 			},
 		}
@@ -37,7 +37,7 @@ func (app *App) handleMLflowClientError(w http.ResponseWriter, r *http.Request, 
 		httpError := &HTTPError{
 			StatusCode: http.StatusServiceUnavailable,
 			Error: ErrorPayload{
-				Code:    "service_unavailable",
+				Code:    apiErrorCodeForStatus(http.StatusServiceUnavailable),
 				Message: "MLflow server is not reachable",
 			},
 		}
@@ -49,11 +49,22 @@ func (app *App) handleMLflowClientError(w http.ResponseWriter, r *http.Request, 
 }
 
 var knownHTTPStatusCodes = map[int]string{
-	http.StatusBadRequest:   "bad_request",
-	http.StatusUnauthorized: "unauthorized",
-	http.StatusForbidden:    "forbidden",
-	http.StatusNotFound:     "not_found",
-	http.StatusConflict:     "conflict",
+	http.StatusBadRequest:         "bad_request",
+	http.StatusUnauthorized:       "unauthorized",
+	http.StatusForbidden:          "forbidden",
+	http.StatusNotFound:           "not_found",
+	http.StatusConflict:           "conflict",
+	http.StatusServiceUnavailable: "service_unavailable",
+}
+
+func apiErrorCodeForStatus(status int) string {
+	if code, ok := knownHTTPStatusCodes[status]; ok {
+		return code
+	}
+	if status >= 500 {
+		return knownHTTPStatusCodes[http.StatusServiceUnavailable]
+	}
+	return knownHTTPStatusCodes[http.StatusBadRequest]
 }
 
 // mapMLflowAPIErrorToHTTPError converts an MLflow SDK APIError to an HTTP error
@@ -66,13 +77,13 @@ func (app *App) mapMLflowAPIErrorToHTTPError(apiErr *sdkmlflow.APIError) *HTTPEr
 
 	var code, message string
 
-	if c, ok := knownHTTPStatusCodes[statusCode]; ok {
-		code = c
-		message = apiErr.Message
-	} else if statusCode >= 500 {
-		code = "service_unavailable"
+	if statusCode >= 500 {
+		code = apiErrorCodeForStatus(statusCode)
 		app.logger.Error("MLflow upstream error", "statusCode", statusCode, "error", apiErr.Message)
 		message = "MLflow server error"
+	} else if c, ok := knownHTTPStatusCodes[statusCode]; ok {
+		code = c
+		message = apiErr.Message
 	} else {
 		code = "mlflow_error"
 		app.logger.Error("MLflow unexpected status", "statusCode", statusCode, "error", apiErr.Message)

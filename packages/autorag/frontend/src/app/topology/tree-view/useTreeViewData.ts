@@ -20,9 +20,15 @@ export const useTreeViewData = (
         : stageMapBestPattern && Object.hasOwn(safePatterns, stageMapBestPattern)
           ? stageMapBestPattern
           : undefined;
+    const selectedRecord = selectedPattern ? safePatterns[selectedPattern] : undefined;
+    const winnerPatternLabel =
+      selectedRecord != null && typeof selectedRecord.name === 'string'
+        ? selectedRecord.name
+        : undefined;
 
     return {
       selectedPattern,
+      winnerPatternLabel,
       stageMapNodes,
     };
   }, [patterns, stageMapNodes, bestPatternKey, stageMapBestPattern]);

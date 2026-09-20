@@ -9,19 +9,16 @@ import {
 
 interface StorageClassFilterToolbarProps {
   filterData: StorageClassFilterData;
-  setFilterData: React.Dispatch<React.SetStateAction<StorageClassFilterData>>;
+  onFilterUpdate: (
+    key: StorageClassFilterOption,
+    value: string | { label: string; value: string } | undefined,
+  ) => void;
 }
 
 export const StorageClassFilterToolbar: React.FC<StorageClassFilterToolbarProps> = ({
   filterData,
-  setFilterData,
+  onFilterUpdate,
 }) => {
-  const onFilterUpdate = React.useCallback(
-    (key: string, value: string | { label: string; value: string } | undefined) =>
-      setFilterData((prevValues: StorageClassFilterData) => ({ ...prevValues, [key]: value })),
-    [setFilterData],
-  );
-
   return (
     <FilterToolbar<keyof typeof storageClassFilterOptions>
       data-testid="sc-table-toolbar"

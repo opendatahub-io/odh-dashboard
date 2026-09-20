@@ -17,8 +17,8 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
-  # automl is an API-only BFF — it only needs DNS, K8s API, and
-  # namespace-scoped DSPA (8443) + MinIO (9000). No external HTTP(S) required.
+  # automl needs DNS, K8s API, namespace-scoped DSPA (8443) + MinIO (9000),
+  # and external HTTP(S) for S3-compatible storage endpoints.
   egress:
     - to:
         - namespaceSelector:
@@ -41,4 +41,12 @@ spec:
         - port: 8443
           protocol: TCP
         - port: 9000
+          protocol: TCP
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 80
           protocol: TCP

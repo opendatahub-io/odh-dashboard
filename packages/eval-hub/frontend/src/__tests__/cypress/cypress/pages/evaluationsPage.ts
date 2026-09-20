@@ -95,6 +95,34 @@ class EvaluationsPage {
   findEvaluationCheckbox(rowIndex: number) {
     return cy.findByTestId(`evaluation-select-checkbox-${rowIndex}`);
   }
+
+  findStatusCell(rowIndex: number) {
+    return this.findEvaluationRow(rowIndex).findByTestId('evaluation-status');
+  }
+
+  findStatusLabel(rowIndex: number) {
+    return this.findStatusCell(rowIndex).findByTestId('evaluation-status-button');
+  }
+
+  clickStatusBadge(rowIndex: number) {
+    this.findStatusCell(rowIndex).findByTestId('evaluation-status-button').click();
+  }
+
+  findStatusModal() {
+    return cy.findByTestId('evaluation-status-modal');
+  }
+
+  findStatusModalBadge(state: string) {
+    return this.findStatusModal().findByTestId(`status-label-${state}`);
+  }
+
+  findStatusDetailHeader() {
+    return cy.findByTestId('status-detail-header');
+  }
+
+  findBenchmarkWarning(benchmarkId: string) {
+    return cy.findByTestId(`benchmark-warning-${benchmarkId}`);
+  }
 }
 
 export const evaluationsPage = new EvaluationsPage();

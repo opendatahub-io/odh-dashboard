@@ -7,11 +7,13 @@ import {
   BRANCHING_STAGE_ID,
   getSelectedPatterns,
   createActiveIconVariantResolver,
+  resolveBranchStepActiveIconVariant,
+  resolveOptimizeTemplatesActiveIconVariant,
+  resolvePatternTerminusActiveIconVariant,
   hasPreBranchInlineFailure,
   isStageFinished,
   isStageTerminalFailure,
   isInlineStageFailure,
-  resolveBranchPhaseStatus,
   hasExplicitComponentFailureEvidence,
   resolveComponentStatus,
   resolveSequentialStageRunStatuses,
@@ -121,19 +123,34 @@ export const buildStageMapTopology = (
           hasExplicitFailureInPipeline,
         );
     const patternSelectionRunStatus = preBranchStatuses.get(BRANCHING_STAGE_ID);
-    const patternSelectionHasInlineStatus = patternSelectionStage?.status != null;
     const preBranchInlineFailure = hasPreBranchInlineFailure(preBranchStages);
-    const branchPhaseStatus =
-      pipelineState.blocked || preBranchInlineFailure
-        ? RunStatus.Pending
-        : resolveBranchPhaseStatus(patternSelectionRunStatus, patternSelectionStage);
+    const componentEndedWithoutInlineBranchFailure =
+      (componentStatus === RunStatus.Failed || componentStatus === RunStatus.Cancelled) &&
+      !isInlineStageFailure(patternSelectionStage);
+    const branchPendingAfterExplicitComponentFailure =
+      preBranchStages.some((stage) => stage.id !== BRANCHING_STAGE_ID) &&
+      componentStatus === RunStatus.Failed &&
+      hasExplicitFailureInPipeline &&
+      !isInlineStageFailure(patternSelectionStage);
+    const branchPhaseStatus = ((): RunStatus | undefined => {
+      if (pipelineState.blocked || preBranchInlineFailure) {
+        return RunStatus.Pending;
+      }
+      if (branchPendingAfterExplicitComponentFailure) {
+        return RunStatus.Pending;
+      }
+      return patternSelectionRunStatus;
+    })();
 
     // Emit pre-branch stages linearly (validate_inputs, optimize_templates)
     for (const stage of preBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
       const runStatus = preBranchStatuses.get(stage.id);
-      const activeIconVariant = resolveActiveIconVariant(runStatus);
+      const activeIconVariant =
+        stage.id === BRANCHING_STAGE_ID
+          ? resolveOptimizeTemplatesActiveIconVariant(runStatus)
+          : resolveActiveIconVariant(runStatus);
 
       nodes.push(
         createNode({
@@ -165,8 +182,8 @@ export const buildStageMapTopology = (
 
     const steps = capPatternSelectionSteps(patternSelectionStage?.steps ?? []);
 
-    // Branch children share branchPhaseStatus. The pipeline-wide resolver assigns
-    // sync to the first in-progress node and pulse to every subsequent one.
+    // Branch children share branchPhaseStatus. Optimize templates syncs; branch dots pulse;
+    // pattern terminus nodes sync while the branch phase runs.
     for (let patternIdx = 0; patternIdx < patterns.length; patternIdx++) {
       const patternId = patterns[patternIdx];
       const patternLabel = isPlaceholder
@@ -180,28 +197,23 @@ export const buildStageMapTopology = (
       for (const stepId of steps) {
         const stepNodeId = `${component.id}__step__${stepId}__${branchKey}`;
         const stepLabel = resolveStepLabel(stepId);
-        const stepStatus = branchPhaseStatus;
-        const activeIconVariant = resolveActiveIconVariant(stepStatus);
-
         nodes.push(
           createNode({
             id: stepNodeId,
             label: stepLabel,
             pipelineTask: { type: 'task', name: stepLabel },
             runAfterTasks: [branchPreviousNodeId],
-            runStatus: stepStatus,
-            activeIconVariant,
+            runStatus: branchPhaseStatus,
+            activeIconVariant: resolveBranchStepActiveIconVariant(branchPhaseStatus),
           }),
         );
 
-        markPipelineBlockedIfFailed(stepStatus);
+        markPipelineBlockedIfFailed(branchPhaseStatus);
         branchPreviousNodeId = stepNodeId;
       }
 
       // Pattern name nodes mirror optimize_templates — they label the branch terminus, not
       // downstream write_patterns/build_leaderboard work still in flight on the component.
-      const branchStatus = branchPhaseStatus;
-      const patternActiveIconVariant = resolveActiveIconVariant(branchStatus);
       const patternNodeId = `${component.id}__pattern__${branchKey}`;
       nodes.push(
         createNode({
@@ -209,12 +221,12 @@ export const buildStageMapTopology = (
           label: patternLabel,
           pipelineTask: { type: 'task', name: patternLabel },
           runAfterTasks: [branchPreviousNodeId],
-          runStatus: branchStatus,
-          activeIconVariant: patternActiveIconVariant,
+          runStatus: branchPhaseStatus,
+          activeIconVariant: resolvePatternTerminusActiveIconVariant(branchPhaseStatus),
         }),
       );
 
-      markPipelineBlockedIfFailed(branchStatus);
+      markPipelineBlockedIfFailed(branchPhaseStatus);
       branchTailNodeIds.push(patternNodeId);
     }
 
@@ -235,18 +247,10 @@ export const buildStageMapTopology = (
       pendingRunAfter = branchTailNodeIds;
     }
 
-    const componentEndedWithoutInlineBranchFailure =
-      (componentStatus === RunStatus.Failed || componentStatus === RunStatus.Cancelled) &&
-      !isInlineStageFailure(patternSelectionStage);
     const shouldKeepPostBranchPending =
       preBranchInlineFailure ||
-      (patternSelectionRunStatus === RunStatus.Failed &&
-        isInlineStageFailure(patternSelectionStage)) ||
-      // Keep post-branch pending until pattern selection finishes, even while the component
-      // task is already RUNNING, but only when pattern selection itself has explicit stage status.
-      (!isStageFinished(patternSelectionRunStatus) &&
-        patternSelectionHasInlineStatus &&
-        !componentEndedWithoutInlineBranchFailure);
+      patternSelectionRunStatus === RunStatus.Failed ||
+      (!isStageFinished(patternSelectionRunStatus) && !componentEndedWithoutInlineBranchFailure);
     const postBranchStatuses = shouldKeepPostBranchPending
       ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
       : resolveSequentialStageRunStatuses(

@@ -22,6 +22,7 @@ import ApiKeysTableRow from '~/app/pages/keys-and-subs/apiKeys/allKeys/ApiKeysTa
 import { ApiKeyColumn } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal';
 import RevokeApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/RevokeApiKeyModal';
+import { ApiKeyCreateInitiatedFrom, ApiKeyRevokeInitiatedFrom } from '~/app/types/event-tracking';
 
 const subscriptionApiKeyColumns: ApiKeyColumn[] = [
   {
@@ -120,6 +121,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
       {isModalOpen && (
         <CreateApiKeyModal
           initialSubscription={subscription}
+          initiatedFrom={ApiKeyCreateInitiatedFrom.SUBSCRIPTION_DETAIL}
           onClose={(created?: boolean) => {
             setIsModalOpen(false);
             if (created) {
@@ -131,6 +133,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
       {revokeApiKey && (
         <RevokeApiKeyModal
           apiKey={revokeApiKey}
+          initiatedFrom={ApiKeyRevokeInitiatedFrom.SUBSCRIPTION_DETAIL}
           onClose={(revoked?: boolean) => {
             setRevokeApiKey(undefined);
             if (revoked) {

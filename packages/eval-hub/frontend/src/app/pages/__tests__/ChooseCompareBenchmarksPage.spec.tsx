@@ -115,7 +115,7 @@ describe('ChooseCompareBenchmarksPage', () => {
     );
     expect(
       screen.getByTestId('compare-benchmark-row-job-collection|truthfulqa_mc1|0'),
-    ).toHaveTextContent('Benchmark run');
+    ).toHaveTextContent('Benchmark');
     expect(
       screen.getByTestId('compare-benchmark-row-job-collection|toxicity_detection|1'),
     ).toBeInTheDocument();

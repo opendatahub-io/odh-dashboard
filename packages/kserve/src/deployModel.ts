@@ -1,13 +1,13 @@
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
-import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions, SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import {
-  DeploymentStrategyFieldData,
   type ModelLocationData,
   ModelLocationType,
+  WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type {
   ModelAvailabilityFieldsData,
@@ -22,7 +22,6 @@ import {
   applyHardwareProfileConfig,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
 } from '@odh-dashboard/hardware-profiles/shared';
-import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -35,6 +34,7 @@ import {
   applyModelType,
   applyDeploymentStrategy,
 } from './deployUtils';
+import { applyHfTokenEnvVar } from './hfTokenSecret';
 import { applyReplicas } from './hardware';
 import {
   createInferenceService,
@@ -42,8 +42,6 @@ import {
   updateInferenceService,
 } from './api/inferenceService';
 import { applyModelRuntime } from './deployServer';
-import { KServeDeployment } from './deployments';
-import { KSERVE_ID } from '../extensions';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -61,10 +59,11 @@ export type CreatingInferenceServiceObject = {
   environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
-  deploymentStrategy?: DeploymentStrategyFieldData;
+  deploymentStrategy?: WizardFormData['state']['deploymentStrategy'];
+  hfTokenSecretName?: string;
 };
 
-const assembleInferenceService = (
+export const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
   dryRun?: boolean,
@@ -87,6 +86,7 @@ const assembleInferenceService = (
     runtimeArgs,
     environmentVariables,
     deploymentStrategy,
+    hfTokenSecretName,
   } = data;
   let inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -157,7 +157,11 @@ const assembleInferenceService = (
     environmentVariables ?? { variables: [], enabled: false },
   );
 
-  inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
+  if (deploymentStrategy?.isVisible) {
+    inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy.data);
+  }
+
+  inferenceService = applyHfTokenEnvVar(inferenceService, hfTokenSecretName);
 
   return inferenceService;
 };
@@ -167,36 +171,15 @@ const assembleInferenceService = (
  * Hides the complexity of the different methods from the caller.
  */
 export const deployInferenceService = (
-  data: CreatingInferenceServiceObject,
+  inferenceService: InferenceServiceKind,
   existingInferenceService?: InferenceServiceKind,
-  connectionSecretName?: string,
-  applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
-  opts?: {
-    dryRun?: boolean;
-    overwrite?: boolean;
-  },
+  opts?: K8sAPIOptions & { overwrite?: boolean },
 ): Promise<InferenceServiceKind> => {
-  let newInferenceService = assembleInferenceService(
-    data,
-    existingInferenceService,
-    opts?.dryRun,
-    connectionSecretName,
-  );
-
-  // Apply field data from wizard field extensions during assembly
-  if (applyFieldData) {
-    const assembledDeployment = applyFieldData({
-      modelServingPlatformId: KSERVE_ID,
-      model: newInferenceService,
-    });
-    newInferenceService = assembledDeployment.model;
-  }
-
   if (!existingInferenceService) {
-    return createInferenceService(newInferenceService, opts);
+    return createInferenceService(inferenceService, opts);
   }
   if (opts?.overwrite) {
-    return patchInferenceService(existingInferenceService, newInferenceService, opts);
+    return patchInferenceService(existingInferenceService, inferenceService, opts);
   }
-  return updateInferenceService(newInferenceService, opts);
+  return updateInferenceService(inferenceService, opts);
 };

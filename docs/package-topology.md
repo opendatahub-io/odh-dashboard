@@ -19,7 +19,7 @@ The distributions architecture organizes code into the following groups:
 | **App shell** | Shared framework (masthead, sidebar, routing, error boundary) that distributions extend. | `distributions/base/` |
 | **Feature packages** | Domain-specific frontend functionality. Depend on core shared libraries. | `model-serving`, `kserve`, `gen-ai`, `maas`, `model-registry`, etc. |
 | **Core shared libraries** | Extension framework, shared UI, K8s types, pure utilities. | `plugin-core`, `ui-core`, `k8s-core`, `openshift-core` (future), `foundation` |
-| **Dev tooling** | Build-time tooling: webpack configuration, Module Federation setup, dev server infrastructure. | `app-config` |
+| **Dev tooling** | Build-time tooling: rspack configuration, Module Federation setup, dev server infrastructure. | `app-config` |
 
 The diagram below shows how these groups relate — arrows point from consumer to
 dependency, and runtime dependencies flow downward:
@@ -140,7 +140,7 @@ effort. PR reviewers enforce these rules using this document as reference.
 | **openshift-core** | "Is it an OpenShift-specific type or runtime behavior?" | OpenShift-specific types and utilities that layer on top of `k8s-core`. |
 | **plugin-core** | "Does it need to know how the plugin system works?" | Extension points, plugin store, discovery hooks (`useExtensions`, `useResolvedExtensions`), code ref resolution (`LazyCodeRefComponent`), feature areas (`SupportedArea`, `useIsAreaAvailable`). |
 | **ui-core** | "Does it just render data using shared UI patterns?" | Shared React components (tables, resource display, form helpers), shared utilities (formatting, validation), and extension renderers (`ExtensibleDetailTabs`, `ExtensibleActions`). |
-| **app-config** | "Does it run only at build time?" | Build-time tooling: webpack configuration, Module Federation setup, dev server infrastructure. If it runs in the browser at runtime, it does not belong here. |
+| **app-config** | "Does it run only at build time?" | Build-time tooling: rspack configuration, Module Federation setup, dev server infrastructure. If it runs in the browser at runtime, it does not belong here. |
 
 ### Where does this code go?
 
@@ -174,7 +174,7 @@ flowchart TD
     q9 -->|"Runtime behavior"| occore3["openshift-core"]
     q9 -->|No| uicore["ui-core"]
 
-    q7 -->|No| q10{"Build/config tooling?\n(webpack, MF, dev server)"}
+    q7 -->|No| q10{"Build/config tooling?\n(rspack, MF, dev server)"}
     q10 -->|Yes| appconfig["app-config"]
     q10 -->|No| review["⚠ needs architectural review"]
 ```

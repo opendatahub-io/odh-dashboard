@@ -1,10 +1,10 @@
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   mock200Status,
   mock403Error,
   mock404Error,
-  mockDashboardConfig,
-  mockK8sResourceList,
-} from '@odh-dashboard/internal/__mocks__';
+} from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { HardwareProfileFeatureVisibility, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import {

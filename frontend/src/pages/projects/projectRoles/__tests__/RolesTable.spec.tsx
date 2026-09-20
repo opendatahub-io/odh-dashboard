@@ -1,9 +1,23 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { mockRoleK8sResource, mockClusterRoleK8sResource } from '#~/__mocks__';
 import RolesTable from '#~/pages/projects/projectRoles/RolesTable';
 import type { RoleListRow } from '#~/pages/projects/projectRoles/types';
+
+jest.mock('@odh-dashboard/plugin-core/host-api');
+const mockUseAccessReview = jest.mocked(useAccessReview);
+
+jest.mock('#~/concepts/permissions/PermissionsContext', () => ({
+  usePermissionsContext: () => ({
+    roles: { data: [], loaded: true, error: undefined, refresh: jest.fn() },
+    roleBindings: { data: [], loaded: true, error: undefined, refresh: jest.fn() },
+    clusterRoles: { data: [], loaded: true, error: undefined, refresh: jest.fn() },
+    loaded: true,
+    error: undefined,
+  }),
+}));
 
 jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireLinkTrackingEvent: jest.fn(),
@@ -18,6 +32,12 @@ jest.mock('#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal', (
 jest.mock('../PreviewYAMLModal', () => {
   const Mock = () => null;
   Mock.displayName = 'MockPreviewYAMLModal';
+  return Mock;
+});
+
+jest.mock('../DeleteRoleModal', () => {
+  const Mock = () => null;
+  Mock.displayName = 'MockDeleteRoleModal';
   return Mock;
 });
 
@@ -83,6 +103,10 @@ const renderTable = (props: Partial<React.ComponentProps<typeof RolesTable>> = {
   );
 
 describe('RolesTable', () => {
+  beforeEach(() => {
+    mockUseAccessReview.mockReturnValue([true, true]);
+  });
+
   it('should render rows for all provided roles', () => {
     renderTable();
     expect(screen.getByTestId('roles-table')).toBeInTheDocument();

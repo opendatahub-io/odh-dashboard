@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
@@ -52,6 +53,12 @@ jest.mock('mod-arch-core', () => ({
   isModArchResponse: jest.fn(() => true),
 }));
 
+jest.mock('~/app/components/EvaluationStatusModal', () => ({
+  __esModule: true,
+  default: ({ job, namespace }: { job: unknown; namespace: string }) =>
+    job ? <div data-testid="evaluation-status-modal" data-namespace={namespace} /> : null,
+}));
+
 jest.mock('~/app/context/CollectionsContext', () => ({
   useCollectionsContext: jest.fn().mockReturnValue({
     response: { items: [] },
@@ -73,18 +80,25 @@ jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', (
   require('~/__tests__/unit/testUtils/mocks').mockProjectSelectorModule(),
 );
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
 describe('EvaluationsPage', () => {
   const renderPage = (namespace: string) =>
     render(
-      <MemoryRouter initialEntries={[`/${namespace}`]}>
-        <Routes>
-          <Route path="/:namespace" element={<EvaluationsPage />} />
-        </Routes>
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/${namespace}`]}>
+          <Routes>
+            <Route path="/:namespace" element={<EvaluationsPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
 
   beforeEach(() => {
     jest.clearAllMocks();
+    queryClient.clear();
     mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
     mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
@@ -177,6 +191,46 @@ describe('EvaluationsPage', () => {
 
       expect(screen.queryByTestId('eval-hub-empty-state')).not.toBeInTheDocument();
       expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
+    });
+
+    it('should clear the selected job when navigating to a different namespace', async () => {
+      const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'failed' })];
+      mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+
+      const NavigateHelper: React.FC = () => {
+        const navigate = useNavigate();
+        return (
+          <button data-testid="navigate-ns-b" onClick={() => navigate('/ns-b')}>
+            Go to ns-b
+          </button>
+        );
+      };
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/ns-a']}>
+            <NavigateHelper />
+            <Routes>
+              <Route path="/:namespace" element={<EvaluationsPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+
+      const statusLabel = screen.getByTestId('evaluation-status-button');
+      fireEvent.click(within(statusLabel).getByRole('button'));
+      await waitFor(() => {
+        expect(screen.getByTestId('evaluation-status-modal')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('evaluation-status-modal')).toHaveAttribute(
+        'data-namespace',
+        'ns-a',
+      );
+
+      fireEvent.click(screen.getByTestId('navigate-ns-b'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('evaluation-status-modal')).not.toBeInTheDocument();
+      });
     });
   });
 });

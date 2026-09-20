@@ -7,8 +7,8 @@ import {
   ServingRuntimePlatform,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
-import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
-import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   assembleServingRuntimeTemplate,
   deleteTemplate,

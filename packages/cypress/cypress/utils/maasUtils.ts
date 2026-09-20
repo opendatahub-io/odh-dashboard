@@ -4,17 +4,28 @@ import type {
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
-import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
+import type {
+  ExternalModel,
+  ExternalProvider,
+  SecretSummary,
+} from '@odh-dashboard/maas/types/external-models';
 import type {
   MaaSSubscription,
   ModelOverviewItem,
   SubscriptionInfoResponse,
   UserSubscription,
   MaaSModelRefSummary,
-  SubscriptionPolicyFormDataResponse,
   CreateSubscriptionResponse,
   MaaSAuthPolicy,
 } from '@odh-dashboard/maas/types/subscriptions';
+
+/** Shared shape for governance fixture data (formerly SubscriptionPolicyFormDataResponse). */
+export type MaasGovernanceFormData = {
+  groups: string[];
+  modelRefs: MaaSModelRefSummary[];
+  subscriptions: MaaSSubscription[];
+  policies: MaaSAuthPolicy[];
+};
 
 export const mockAPIKeys = (): APIKey[] => [
   {
@@ -96,6 +107,29 @@ export const mockFailedSubscription = (): MaaSSubscription => ({
     {
       name: 'granite-3-8b-instruct',
       namespace: 'maas-models',
+      tokenRateLimits: [{ limit: 9999999, window: '24h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-01T12:00:00Z',
+});
+
+export const mockDegradedSubscription = (): MaaSSubscription => ({
+  name: 'degraded-sub',
+  namespace: 'maas-system',
+  phase: 'Degraded',
+  reason: 'ModelRefsNotReady',
+  status: 'False',
+  conditionType: 'Ready',
+  statusMessage: 'some model references are invalid or missing',
+  lastTransitionTime: '2025-04-01T12:30:00Z',
+  priority: 99,
+  owner: {
+    groups: [{ name: 'system:authenticated' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models123',
       tokenRateLimits: [{ limit: 9999999, window: '24h' }],
     },
   ],
@@ -262,6 +296,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   mockFailedSubscription(),
   mockPendingSubscription(),
   mockDeletingSubscription(),
+  mockDegradedSubscription(),
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
@@ -360,16 +395,26 @@ export const mockSubscriptionInfoMissingModelSummaries = (): SubscriptionInfoRes
 
 export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
   const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];
+  const catalog = mockModelRefSummaries();
+  // Only include MaaSModelRefs that actually exist — missing refs (e.g. wrong namespace on
+  // degraded subscriptions) stay out of the catalog so the UI can show "Model not found".
+  const modelRefs = subscription.modelRefs.flatMap((ref) => {
+    const match = catalog.find((c) => c.name === ref.name && c.namespace === ref.namespace);
+    if (!match) {
+      return [];
+    }
+    return [
+      {
+        ...match,
+        displayName: `${ref.name} Display`,
+        description: ref.description ?? match.description,
+      },
+    ];
+  });
+
   return {
     subscription,
-    modelRefs: subscription.modelRefs.map((ref) => ({
-      name: ref.name,
-      namespace: ref.namespace,
-      displayName: `${ref.name} Display`,
-      modelRef: { kind: 'LLMInferenceService', name: ref.name },
-      phase: 'Ready',
-      endpoint: `https://${ref.name}.example.com`,
-    })),
+    modelRefs,
     authPolicies: [
       {
         name: `${name}-policy`,
@@ -392,7 +437,7 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     name: 'granite-3-8b-instruct',
     namespace: 'maas-models',
     displayName: 'Granite 3 8B Instruct',
-    description: 'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+    description: 'Granite 3 8B Instruct is a large language model for instruction following.',
     modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
     phase: 'Ready',
     endpoint: 'https://granite-3-8b-instruct.maas-models.svc.cluster.local',
@@ -433,11 +478,55 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     phase: 'Ready',
     endpoint: 'https://granite-3-8b-instruct.team-sandbox.svc.cluster.local',
   },
+  {
+    name: 'failed-model',
+    namespace: 'maas-models',
+    displayName: 'Failed Model',
+    description: 'A failed model',
+    modelRef: { kind: 'InferenceService', name: 'failed-model' },
+    phase: 'Failed',
+    reason: 'ReconcileFailed',
+    statusMessage:
+      'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
+  },
 ];
 
+export const mockSandboxGraniteSubscription = (): MaaSSubscription => ({
+  name: 'sandbox-granite-sub',
+  displayName: 'Sandbox Granite Subscription',
+  description: 'Sandbox access for cross-namespace granite model',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  priority: 1,
+  owner: {
+    groups: [{ name: 'sandbox-users' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'team-sandbox',
+      displayName: 'Granite 3 8B Instruct (sandbox)',
+      description: 'Same model ID in a different namespace for cross-namespace regression coverage',
+      tokenRateLimits: [{ limit: 1000, window: '1h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-02T10:00:00Z',
+});
+
+export const mockSandboxGranitePolicy = (): MaaSAuthPolicy => ({
+  name: 'sandbox-granite-policy',
+  displayName: 'Sandbox Granite Policy',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'team-sandbox' }],
+  subjects: { groups: [{ name: 'sandbox-users' }] },
+});
+
 export const mockSubscriptionFormData = (
-  overrides?: Partial<SubscriptionPolicyFormDataResponse>,
-): SubscriptionPolicyFormDataResponse => ({
+  overrides?: Partial<MaasGovernanceFormData>,
+): MaasGovernanceFormData => ({
   groups: [
     'system:authenticated',
     'premium-users',
@@ -455,12 +544,24 @@ export const mockSubscriptionFormData = (
     'frontend-devs',
     'backend-devs',
     'interns',
+    'sandbox-users',
   ],
   modelRefs: mockModelRefSummaries(),
-  subscriptions: mockSubscriptions(),
-  policies: mockAuthPolicies(),
+  // Include sandbox fixtures so client-side overview join matches former mockModelsOverview.
+  subscriptions: [...mockSubscriptions(), mockSandboxGraniteSubscription()],
+  policies: [...mockAuthPolicies(), mockSandboxGranitePolicy()],
   ...overrides,
 });
+
+/** Intercept the four governance list endpoints used by MaaSGovernanceContext. */
+export const interceptMaasGovernanceData = (
+  data: MaasGovernanceFormData = mockSubscriptionFormData(),
+): void => {
+  cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: data.subscriptions });
+  cy.interceptOdh('GET /maas/api/v1/all-policies', { data: data.policies });
+  cy.interceptOdh('GET /maas/api/v1/all-maas-models', { data: data.modelRefs });
+  cy.interceptOdh('GET /maas/api/v1/all-groups', { data: data.groups });
+};
 
 export const mockModelsOverview = (): ModelOverviewItem[] => [
   {
@@ -723,6 +824,19 @@ export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
   subjects: { groups: [{ name: 'system:authenticated' }] },
 });
 
+export const mockDegradedAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'degraded-policy',
+  namespace: 'maas-system',
+  phase: 'Degraded',
+  reason: 'ModelRefsNotReady',
+  status: 'False',
+  conditionType: 'Ready',
+  statusMessage: 'some model references are invalid or missing',
+  lastTransitionTime: '2025-04-01T12:30:00Z',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models123' }],
+  subjects: { groups: [{ name: 'system:authenticated' }] },
+});
+
 export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
   name: 'pending-policy',
   namespace: 'maas-system',
@@ -820,6 +934,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     },
   },
   mockFailedAuthPolicy(),
+  mockDegradedAuthPolicy(),
   mockPendingAuthPolicy(),
   mockDeletingAuthPolicy(),
 ];
@@ -827,22 +942,31 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
   const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];
   const resolvedName = policy.name;
+  const catalog = mockModelRefSummaries();
+  // Only include MaaSModelRefs that actually exist — missing refs (e.g. wrong namespace on
+  // degraded policies) stay out of the catalog so the UI can show "Model not found".
+  const modelRefs = policy.modelRefs.flatMap((ref) => {
+    const match = catalog.find((c) => c.name === ref.name && c.namespace === ref.namespace);
+    if (!match) {
+      return [];
+    }
+    return [
+      {
+        ...match,
+        displayName: `${ref.name} Display`,
+        description: ref.description ?? match.description ?? `Description for ${ref.name}`,
+      },
+    ];
+  });
+
   return {
     policy: {
       ...policy,
       displayName: policy.displayName ?? `${resolvedName} Display`,
       description: `Description for ${resolvedName}`,
-      creationTimestamp: '2025-03-01T10:00:00Z',
+      creationTimestamp: policy.creationTimestamp ?? '2025-03-01T10:00:00Z',
     },
-    modelRefs: policy.modelRefs.map((ref) => ({
-      name: ref.name,
-      namespace: ref.namespace,
-      displayName: `${ref.name} Display`,
-      description: `Description for ${ref.name}`,
-      modelRef: { kind: 'LLMInferenceService', name: ref.name },
-      phase: 'Ready' as const,
-      endpoint: `https://${ref.name}.example.com`,
-    })),
+    modelRefs,
   };
 };
 
@@ -878,11 +1002,11 @@ export const mockExternalModel = (options: Partial<ExternalModel> = {}): Externa
   namespace: 'test-project',
   displayName: 'GPT-4o External',
   description: 'External GPT-4o model routed through OpenAI provider.',
-  modelName: 'gpt-4o',
+  modelName: 'gpt-4o-external',
   providerRefs: [
     {
       providerName: 'openai-prod',
-      weight: 100,
+      weight: 1,
       apiFormat: 'openai-chat',
       path: '/v1/chat/completions',
       targetModel: 'gpt-4o',
@@ -913,11 +1037,11 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'claude-split',
     displayName: 'Claude A/B Split',
     description: 'Weighted routing across Anthropic and Bedrock providers.',
-    modelName: 'claude-sonnet',
+    modelName: 'claude-split',
     providerRefs: [
       {
         providerName: 'anthropic-dev',
-        weight: 60,
+        weight: 6,
         apiFormat: 'anthropic',
         path: '/v1/messages',
         targetModel: 'claude-sonnet-4-5-20241022',
@@ -933,7 +1057,7 @@ export const mockExternalModels = (): ExternalModel[] => [
       },
       {
         providerName: 'bedrock-us-east',
-        weight: 40,
+        weight: 4,
         apiFormat: 'anthropic',
         path: '/v1/messages',
         targetModel: 'anthropic.claude-3-sonnet',
@@ -960,7 +1084,7 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'awaiting-pairing-model',
     displayName: 'Awaiting Pairing Model',
     description: 'Model waiting for subscription and auth pairing.',
-    modelName: 'awaiting-model',
+    modelName: 'awaiting-pairing-model',
     phase: 'Pending',
     statusMessage: 'External model is pending',
     maaSModelRef: {
@@ -972,9 +1096,154 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'missing-ref-model',
     displayName: 'Missing Ref Model',
     description: 'External model without a MaaS model reference.',
-    modelName: 'missing-ref',
+    modelName: 'missing-ref-model',
     phase: 'Ready',
     statusMessage: 'External model is ready',
     maaSModelRef: undefined,
   }),
 ];
+
+export const mockExternalProvidersForCreateFlow = (): ExternalProvider[] => [
+  mockExternalProvider({
+    name: 'anthropic-dev',
+    displayName: 'Anthropic Provider',
+    description: 'Anthropic provider for create flow tests.',
+    provider: 'anthropic',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.anthropic.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'anthropic-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+    config: {
+      project: 'my-project',
+      location: 'us-east1',
+      region: 'us-east-1',
+    },
+  }),
+  mockExternalProvider({
+    name: 'openai-prod',
+    displayName: 'OpenAI Production',
+    description: 'OpenAI production provider for create flow tests.',
+    provider: 'openai',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.openai.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'openai-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+    config: {
+      project: 'my-project',
+    },
+  }),
+];
+
+export const mockMaasSecrets = (): SecretSummary[] => [
+  { name: 'openai-api-key' },
+  { name: 'anthropic-api-key', displayName: 'Anthropic API key' },
+];
+
+export const mockExternalProviders = (): ExternalProvider[] => [
+  mockFailedExternalProvider(),
+  mockInvalidExternalProvider(),
+  mockPendingExternalProvider(),
+  mockExternalProvider({
+    name: 'anthropic-dev',
+    displayName: 'Anthropic Provider',
+    description: 'Anthropic provider.',
+    provider: 'anthropic',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.anthropic.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'anthropic-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+  }),
+  mockExternalProvider({
+    name: 'bedrock-us-east',
+    displayName: 'AWS Bedrock US East',
+    description: 'AWS Bedrock US East provider.',
+    provider: 'aws-bedrock',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'bedrock.us-east-1.amazonaws.com',
+    authMechanism: 'sigv4',
+    credentialSecretRef: 'bedrock-credentials-us-east',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+  }),
+];
+
+export const mockExternalProvider = (
+  options: Partial<ExternalProvider> = {},
+): ExternalProvider => ({
+  name: 'generic-anthropic-dev',
+  displayName: 'Generic Anthropic Development',
+  description: 'Generic Anthropic development provider.',
+  namespace: 'test-project',
+  provider: 'anthropic',
+  phase: 'Ready',
+  statusMessage: 'External provider is ready',
+  endpointUrl: 'api.anthropic.com',
+  authMechanism: 'apikey',
+  credentialSecretRef: 'generic-provider-secret',
+  lastTransitionTime: '2025-03-01T10:00:00Z',
+  conditionType: 'Ready',
+  reason: 'ready',
+  ...options,
+});
+
+export const mockFailedExternalProvider = (): ExternalProvider => ({
+  name: 'failed-anthropic-dev',
+  displayName: 'Failed Anthropic Development',
+  description: 'Failed Anthropic development provider.',
+  namespace: 'test-project',
+  provider: 'anthropic',
+  phase: 'Failed',
+  statusMessage: 'External provider is failed',
+  endpointUrl: 'api.anthropic.com',
+  authMechanism: 'oauth2',
+  credentialSecretRef: 'failed-provider-secret',
+  lastTransitionTime: '2025-03-01T10:00:00Z',
+  conditionType: 'Ready',
+  reason: 'failed to connect',
+});
+
+export const mockInvalidExternalProvider = (): ExternalProvider => ({
+  name: 'invalid-aws-bedrock-us-west',
+  displayName: 'Invalid AWS Bedrock US West',
+  description: 'Invalid AWS Bedrock US West provider.',
+  namespace: 'test-project',
+  provider: 'aws-bedrock',
+  phase: 'Invalid',
+  statusMessage: 'External provider is invalid',
+  endpointUrl: 'bedrock.us-west-2.amazonaws.com',
+  authMechanism: 'apikey',
+  credentialSecretRef: 'invalid-provider-secret',
+  lastTransitionTime: '2025-03-01T10:00:00Z',
+  conditionType: 'Ready',
+  reason: 'invalid configuration',
+});
+
+export const mockPendingExternalProvider = (): ExternalProvider => ({
+  name: 'pending-anthropic-dev',
+  displayName: 'Pending Anthropic Development',
+  description: 'Pending Anthropic development provider.',
+  namespace: 'test-project',
+  provider: 'anthropic',
+  phase: 'Pending',
+  statusMessage: 'External provider is pending',
+  endpointUrl: 'api.anthropic.com',
+  authMechanism: 'sigv4',
+  credentialSecretRef: 'pending-provider-secret',
+  lastTransitionTime: '2025-03-01T10:00:00Z',
+  conditionType: 'Ready',
+  reason: 'pending',
+});

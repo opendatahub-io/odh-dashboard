@@ -139,7 +139,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                 <div className="pf-u-min-width-0">
                   <div
                     className="pf-u-font-weight-bold pf-u-word-break-word pf-u-font-size-md"
-                    data-testid={`uploaded-file-name-${file.id}`}
+                    data-testid={`uploaded-file-name-${file.filename}`}
                     title={file.filename}
                   >
                     {file.filename}

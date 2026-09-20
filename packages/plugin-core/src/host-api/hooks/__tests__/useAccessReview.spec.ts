@@ -1,14 +1,14 @@
 import React, { act } from 'react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import type { HostApiServices } from '../../types';
-import { HostApiContext } from '../../HostApiContext';
+import type { HostApiCoreServices } from '../../types';
+import { HostApiCoreContext } from '../../HostApiCoreContext';
 import { useAccessReview } from '../useAccessReview';
 
 function createWrapper(checkAccess: jest.Mock): React.FC<{ children: React.ReactNode }> {
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     React.createElement(
-      HostApiContext.Provider,
-      { value: { checkAccess } as unknown as HostApiServices },
+      HostApiCoreContext.Provider,
+      { value: { checkAccess } as unknown as HostApiCoreServices },
       children,
     );
   Wrapper.displayName = 'Wrapper';

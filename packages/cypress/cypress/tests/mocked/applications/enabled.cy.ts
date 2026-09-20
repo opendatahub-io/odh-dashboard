@@ -1,8 +1,9 @@
 import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
-import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import { enabledPage } from '../../../pages/enabled';
 import { jupyterCard } from '../../../pages/components/JupyterCard';

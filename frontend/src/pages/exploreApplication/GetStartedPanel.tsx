@@ -17,7 +17,7 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import MarkdownView from '#~/components/MarkdownView';
 import { markdownConverter } from '#~/utilities/markdown';
 import { useAppContext } from '#~/app/AppContext';

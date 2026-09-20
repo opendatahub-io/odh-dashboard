@@ -5,8 +5,7 @@ const { discoverPluginPackages } = require('./discoverPluginPackages');
 /**
  * Rspack plugin that virtually overrides plugin-extensions.ts with imports for
  * all discovered plugin packages. Uses rspack's built-in VirtualModulesPlugin
- * so nothing is written to disk (webpack-virtual-modules does not reliably
- * override real files under rspack).
+ * so nothing is written to disk.
  */
 class GenerateExtensionsPlugin {
   /**

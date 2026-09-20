@@ -85,13 +85,6 @@ export type SubjectSpec = {
   groups?: GroupReference[];
 };
 
-export type SubscriptionPolicyFormDataResponse = {
-  groups: string[];
-  modelRefs: MaaSModelRefSummary[];
-  subscriptions: MaaSSubscription[];
-  policies: MaaSAuthPolicy[];
-};
-
 export type CreateSubscriptionRequest = {
   name: string;
   displayName?: string;

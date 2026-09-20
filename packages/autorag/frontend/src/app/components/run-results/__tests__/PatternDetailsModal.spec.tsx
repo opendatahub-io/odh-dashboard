@@ -3,13 +3,22 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { AutoRAGEvaluationResult, AutoragPattern } from '~/app/types/autoragPattern';
 import PatternDetailsModal from '~/app/components/run-results/PatternDetailsModal/PatternDetailsModal';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 
 const mockUsePatternEvaluationResults = jest.fn();
 jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
   usePatternEvaluationResults: (...args: unknown[]) => mockUsePatternEvaluationResults(...args),
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockPattern: AutoragPattern = {
   name: 'pattern0',
@@ -18,9 +27,8 @@ const mockPattern: AutoragPattern = {
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
@@ -76,7 +84,7 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     correct_answers: ['Model A is available.', 'Model B is also available.'],
     question_id: 'q0',
     answer: 'Several models are available.',
-    answer_contexts: [{ text: 'Models include A and B.', document_id: 'doc0' }],
+    answer_contexts: [{ text: 'Models include A and B.', document_key: 'doc0' }],
     metrics: [
       { name: 'answer_correctness', evaluator: 'unitxt', score: 0.75 },
       { name: 'faithfulness', evaluator: 'unitxt', score: 0.5 },
@@ -90,7 +98,7 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     correct_answers: ['RAG retrieves documents and generates answers.'],
     question_id: 'q1',
     answer: 'RAG uses retrieval and generation.',
-    answer_contexts: [{ text: 'RAG is a pattern.', document_id: 'doc1' }],
+    answer_contexts: [{ text: 'RAG is a pattern.', document_key: 'doc1' }],
     metrics: [
       { name: 'answer_correctness', evaluator: 'unitxt', score: 0.6 },
       { name: 'faithfulness', evaluator: 'unitxt', score: 0.8 },
@@ -137,9 +145,53 @@ describe('PatternDetailsModal', () => {
     expect(screen.getByTestId('pattern-rank')).toHaveTextContent('3');
   });
 
+  it('should display an invalid objective pattern as unranked while keeping details available', () => {
+    const invalidPattern = {
+      ...mockPattern,
+      evaluation: {
+        metrics: mockPattern.evaluation.metrics.filter((metric) => metric.name !== 'overall_score'),
+      },
+    };
+
+    render(
+      <PatternDetailsModal
+        {...defaultProps}
+        patterns={[invalidPattern]}
+        rank={undefined}
+        optimizationMetric={{ name: 'overall_score' }}
+      />,
+    );
+
+    expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('pattern-rank')).toHaveTextContent('Unranked');
+    expect(screen.getByTestId('pattern-details-content')).toBeInTheDocument();
+  });
+
   it('should display final score in the header', () => {
     render(<PatternDetailsModal {...defaultProps} />);
     expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.660');
+  });
+
+  it('should display the run objective for a non-winning canonical pattern without an optimization flag', () => {
+    const nonWinningCanonicalPattern = {
+      ...mockPattern,
+      evaluation: {
+        metrics: mockPattern.evaluation.metrics.map((metric) =>
+          metric.name === 'overall_score' ? { ...metric, optimization_metric: false } : metric,
+        ),
+      },
+    };
+
+    render(
+      <PatternDetailsModal
+        {...defaultProps}
+        patterns={[nonWinningCanonicalPattern]}
+        optimizationMetric={{ name: 'faithfulness' }}
+        rank={2}
+      />,
+    );
+
+    expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.420');
   });
 
   it('should show plain text when only one pattern exists', () => {
@@ -201,9 +253,9 @@ describe('PatternDetailsModal', () => {
     it('should render a track for each score metric', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
-      expect(screen.getByTestId('ci-track-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-answer_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-context_correctness-unitxt')).toBeInTheDocument();
     });
 
     it('should render x-axis labels', () => {
@@ -249,10 +301,10 @@ describe('PatternDetailsModal', () => {
 
       await user.click(screen.getByTestId('tab-vector_store_binding'));
 
-      expect(screen.getByText('Provider ID')).toBeInTheDocument();
-      expect(screen.getByText('milvus')).toBeInTheDocument();
       expect(screen.getByText('Provider Type')).toBeInTheDocument();
-      expect(screen.getByText('remote::milvus')).toBeInTheDocument();
+      expect(screen.getByText('milvus')).toBeInTheDocument();
+      expect(screen.getByText('Collection Name')).toBeInTheDocument();
+      expect(screen.getByText('vs_collection0')).toBeInTheDocument();
     });
 
     it('should show generation settings when Generation tab is clicked', async () => {
@@ -342,6 +394,49 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...defaultProps} />);
       expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
     });
+
+    it('should keep Sample Q&A tab visible and close button accessible when evaluation results fail', async () => {
+      // Use two patterns so the compare toggle is rendered
+      const twoPatternProps = {
+        ...defaultProps,
+        patterns: [mockPattern, { ...mockPattern, name: 'pattern1', iteration: 1 }],
+      };
+
+      // Start in loading state — tab is visible, simulating the window Cypress finds it in CI
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      });
+
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      const { rerender } = render(<PatternDetailsModal {...twoPatternProps} onClose={onClose} />);
+
+      expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
+      await user.click(screen.getByTestId('tab-sample_qa'));
+
+      // Evaluation results fetch fails (e.g. malformed JSON from S3)
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+      rerender(<PatternDetailsModal {...twoPatternProps} onClose={onClose} />);
+
+      // Tab must remain in DOM — removing it while active caused the CI crash
+      expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
+
+      // Error state must be shown inside the tab
+      expect(screen.getByTestId('sample-qa-error-state')).toBeInTheDocument();
+
+      // Compare toggle must be disabled on the Sample Q&A tab with an error
+      expect(screen.getByTestId('compare-patterns-toggle')).toBeDisabled();
+
+      // Close button must still work — this is the regression assertion from the CI failure
+      await user.click(screen.getByLabelText('Close'));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Tab reset behavior', () => {
@@ -416,6 +511,12 @@ describe('PatternDetailsModal', () => {
   });
 
   describe('onClose callback', () => {
+    it('should render Close as a link-style footer button', () => {
+      render(<PatternDetailsModal {...defaultProps} />);
+      const closeButton = screen.getByTestId('pattern-details-close');
+      expect(closeButton).toHaveClass('pf-m-link');
+    });
+
     it('should call onClose when the modal close button is clicked', async () => {
       const user = userEvent.setup();
       const onClose = jest.fn();
@@ -447,11 +548,29 @@ describe('PatternDetailsModal', () => {
       }
     });
 
-    it('should render print-only container with all sections when printing', async () => {
+    it('should fire AutoRAG Pattern Details Download Initiated when Download is clicked', async () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
         render(<PatternDetailsModal {...defaultProps} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED,
+          { downloadType: 'patternDetails' },
+        );
+      } finally {
+        printSpy.mockRestore();
+      }
+    });
+
+    it('should render print-only container with all sections when printing', async () => {
+      const user = userEvent.setup();
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      try {
+        render(
+          <PatternDetailsModal {...defaultProps} optimizationMetric={{ name: 'faithfulness' }} />,
+        );
         await user.click(screen.getByTestId('pattern-details-download'));
 
         // Print container should be portalled to document.body
@@ -461,6 +580,14 @@ describe('PatternDetailsModal', () => {
         expect(printContainer).toHaveTextContent('Pattern information');
         expect(printContainer).toHaveTextContent('Chunking');
         expect(printContainer).toHaveTextContent('Embedding');
+        expect(within(printContainer).getByText('0.42', { exact: true })).toBeInTheDocument();
+
+        const ciPage = Array.from(printContainer.querySelectorAll('.autorag-print-page')).find(
+          (page) => page.querySelector('[data-testid="ci-scores-chart"]'),
+        );
+        const ciHeader = ciPage?.querySelector('.autorag-print-header');
+        expect(ciHeader).not.toBeNull();
+        expect(ciHeader).toHaveTextContent('pattern 0');
       } finally {
         printSpy.mockRestore();
       }
@@ -478,6 +605,32 @@ describe('PatternDetailsModal', () => {
       expect(screen.queryByTestId('ci-scores-chart')).not.toBeInTheDocument();
     });
 
+    it('should omit the confidence interval print page when all scores are unavailable', async () => {
+      const user = userEvent.setup();
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      const patternWithoutChartData: AutoragPattern = {
+        ...mockPattern,
+        evaluation: {
+          ...mockPattern.evaluation,
+          metrics: mockPattern.evaluation.metrics.map((metric) => ({
+            ...metric,
+            scores: { mean: null, ci_low: null, ci_high: null },
+          })),
+        },
+      };
+
+      try {
+        render(<PatternDetailsModal {...defaultProps} patterns={[patternWithoutChartData]} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+
+        expect(
+          within(screen.getByTestId('print-container')).queryByTestId('ci-scores-chart'),
+        ).not.toBeInTheDocument();
+      } finally {
+        printSpy.mockRestore();
+      }
+    });
+
     it('should not show Sample Q&A tab when evaluationResults is empty', () => {
       mockUsePatternEvaluationResults.mockReturnValue({
         data: [],
@@ -486,6 +639,75 @@ describe('PatternDetailsModal', () => {
       });
       render(<PatternDetailsModal {...defaultProps} />);
       expect(screen.queryByText('Sample Q&A')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('compare patterns toggle', () => {
+    const twoPatternProps = {
+      ...defaultProps,
+      patterns: [mockPattern, { ...mockPattern, name: 'pattern1', iteration: 1 }],
+    };
+
+    it('should disable compare toggle when on Sample Q&A tab and evaluation results fail', async () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Navigate to Sample Q&A tab (stays visible because isEvaluationError keeps it shown)
+      await user.click(screen.getByTestId('tab-sample_qa'));
+
+      expect(screen.getByTestId('compare-patterns-toggle')).toBeDisabled();
+    });
+
+    it('should not disable compare toggle on settings tabs even when evaluation results fail', () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+      render(<PatternDetailsModal {...twoPatternProps} />);
+      // Default tab is pattern_information — toggle should not be disabled
+      expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
+    });
+
+    it('should enable compare toggle when evaluation results load successfully', async () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: mockEvaluationResults,
+        isLoading: false,
+        isError: false,
+      });
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+      await user.click(screen.getByTestId('tab-sample_qa'));
+      expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
+    });
+
+    it('should show error state when comparison results fail but primary succeeds', async () => {
+      mockUsePatternEvaluationResults.mockImplementation((_namespace, _basePath, patternName) => {
+        if (patternName === 'pattern1') {
+          return { data: undefined, isLoading: false, isError: true };
+        }
+        return { data: mockEvaluationResults, isLoading: false, isError: false };
+      });
+
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Navigate to Sample Q&A tab — visible because primary data exists
+      await user.click(screen.getByTestId('tab-sample_qa'));
+
+      // Enable comparison mode — toggle is not disabled (no errors yet)
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      // Comparison fetch errors — error state must be shown
+      expect(screen.getByTestId('sample-qa-error-state')).toBeInTheDocument();
     });
   });
 
@@ -639,6 +861,25 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByTestId('comparison-column-header-comparison')).toBeInTheDocument();
     });
 
+    it('should display an unranked comparison pattern as Unranked', async () => {
+      const user = userEvent.setup();
+      const invalidComparisonPattern = {
+        ...comparisonPattern,
+        evaluation: { metrics: [] },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[mockPattern, invalidComparisonPattern]}
+        />,
+      );
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+
+      expect(screen.getByTestId('comparison-pattern-rank-1')).toHaveTextContent('Unranked');
+    });
+
     it('should disable confirm button when the already-compared pattern is still selected', async () => {
       const user = userEvent.setup();
       const thirdPattern: AutoragPattern = {
@@ -683,6 +924,180 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('comparison-modal-cancel'));
 
       expect(screen.queryByTestId('comparison-column-header-comparison')).not.toBeInTheDocument();
+    });
+
+    describe('AutoRAG Patterns Compared tracking', () => {
+      it('should fire with interactionType: initial, rankDifference: 1, scoreDifference: -0.21 for the first selection', async () => {
+        // mockPattern (primary, rank 1, score 0.66) vs comparisonPattern (rank 2, score 0.45):
+        // rankDifference = 2 - 1 = 1, scoreDifference = 0.45 - 0.66 = -0.21 (comparison scores
+        // lower).
+        const user = userEvent.setup();
+        render(<PatternDetailsModal {...twoPatternProps} />);
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+          interactionType: 'initial',
+          rankDifference: 1,
+          scoreDifference: -0.21,
+        });
+      });
+
+      it('should fire with interactionType: changed when swapping to a different comparison pattern', async () => {
+        // thirdPattern is a same-score clone of mockPattern (primary): scoreDifference = 0, and
+        // rankDifference is 1 (rank 2 - rank 1) once comparisonPattern (the lowest score) sorts
+        // to the bottom.
+        const user = userEvent.setup();
+        const thirdPattern: AutoragPattern = {
+          ...mockPattern,
+          name: 'pattern2',
+          iteration: 2,
+        };
+        const threePatternProps = {
+          ...defaultProps,
+          patterns: [mockPattern, comparisonPattern, thirdPattern],
+        };
+        render(<PatternDetailsModal {...threePatternProps} />);
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('change-comparison-pattern'));
+        await user.click(screen.getByTestId('comparison-pattern-row-2'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+          interactionType: 'changed',
+          rankDifference: 1,
+          scoreDifference: 0,
+        });
+      });
+
+      it('should fire with a negative rankDifference and a positive scoreDifference when comparing against a higher-ranked pattern', async () => {
+        // mockPattern (primary, score 0.66) ends up rank 4 once three higher-scoring patterns
+        // are added; comparing against the top-scoring one (rank 1, score 0.95) gives
+        // rankDifference = 1 - 4 = -3 (negative = comparison outranks primary) and
+        // scoreDifference = 0.95 - 0.66 = 0.29 (positive = comparison scores higher).
+        const withOptimizedScore = (name: string, score: number): AutoragPattern => ({
+          ...mockPattern,
+          name,
+          evaluation: {
+            metrics: mockPattern.evaluation.metrics.map((m) =>
+              m.optimization_metric ? { ...m, scores: { ...m.scores, mean: score } } : m,
+            ),
+          },
+        });
+        const higherA = withOptimizedScore('higherA', 0.75);
+        const higherB = withOptimizedScore('higherB', 0.85);
+        const topPattern = withOptimizedScore('topPattern', 0.95);
+        const fourPatternProps = {
+          ...defaultProps,
+          patterns: [mockPattern, higherA, higherB, topPattern],
+        };
+        const user = userEvent.setup();
+        render(<PatternDetailsModal {...fourPatternProps} />);
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-3'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+          interactionType: 'initial',
+          rankDifference: -3,
+          scoreDifference: 0.29,
+        });
+      });
+
+      it('should not fire when the comparison pattern is unranked', async () => {
+        const user = userEvent.setup();
+        const unrankedPattern = {
+          ...comparisonPattern,
+          evaluation: { metrics: [] },
+        };
+        render(
+          <PatternDetailsModal
+            {...defaultProps}
+            patterns={[mockPattern, unrankedPattern]}
+            optimizationMetric={{ name: 'overall_score' }}
+          />,
+        );
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
+
+      it('should not fire when the primary pattern is unranked', async () => {
+        const user = userEvent.setup();
+        const unrankedPattern = {
+          ...mockPattern,
+          evaluation: { metrics: [] },
+        };
+        render(
+          <PatternDetailsModal
+            {...defaultProps}
+            patterns={[unrankedPattern, comparisonPattern]}
+            selectedIndex={0}
+            rank={undefined}
+            optimizationMetric={{ name: 'overall_score' }}
+          />,
+        );
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
+
+      it('should not fire when the comparison select modal is cancelled', async () => {
+        const user = userEvent.setup();
+        render(<PatternDetailsModal {...twoPatternProps} />);
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-modal-cancel'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
+
+      it('should not fire when comparison mode is turned off', async () => {
+        const user = userEvent.setup();
+        render(<PatternDetailsModal {...twoPatternProps} />);
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+        fireMiscTrackingEventMock.mockClear();
+
+        // Disable comparison
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
     });
 
     it('should reset comparison state when modal reopens', async () => {
@@ -739,131 +1154,12 @@ describe('PatternDetailsModal', () => {
       expect(onSaveNotebook).toHaveBeenCalledWith('pattern0', 'inference');
     });
 
-    it('should show "Try this pattern" when pattern has responses_template and onTryPattern is provided', async () => {
+    it('should not show OGX actions', async () => {
       const user = userEvent.setup();
-      const patternWithTemplate: AutoragPattern = {
-        ...mockPattern,
-        inference: {
-          responses_template: {
-            model: 'test-model',
-            stream: false,
-            store: true,
-            input: [
-              {
-                type: 'message' as const,
-                role: 'user' as const,
-                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
-              },
-            ],
-            metadata: { autorag_run_id: '123', rag_pattern_name: 'pattern0' },
-            instructions: 'Answer from file_search results.',
-            tools: [
-              {
-                type: 'file_search' as const,
-                vector_store_ids: ['vs-1'],
-                max_num_results: 5,
-                ranking_options: {
-                  search_mode: 'hybrid',
-                  ranker_strategy: 'rrf',
-                  ranker_k: 60,
-                  ranker_alpha: 0.5,
-                },
-              },
-            ],
-            tool_choice: { type: 'file_search' },
-            include: ['file_search_call.results'],
-          },
-        },
-      };
-
-      const onTryPattern = jest.fn();
-      const onClose = jest.fn();
-      render(
-        <PatternDetailsModal
-          {...defaultProps}
-          patterns={[patternWithTemplate]}
-          onTryPattern={onTryPattern}
-          onClose={onClose}
-        />,
-      );
-
-      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
-      expect(screen.getByText('Try this pattern')).toBeInTheDocument();
-
-      await user.click(screen.getByText('Try this pattern'));
-      expect(onClose).toHaveBeenCalled();
-      expect(onTryPattern).toHaveBeenCalledWith('pattern0');
-    });
-
-    it('should not show "Try this pattern" when pattern lacks responses_template', async () => {
-      const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} onTryPattern={jest.fn()} />);
+      render(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    });
-
-    it('should show "View code" when pattern has responses_template and onViewCode is provided', async () => {
-      const user = userEvent.setup();
-      const patternWithTemplate: AutoragPattern = {
-        ...mockPattern,
-        inference: {
-          responses_template: {
-            model: 'test-model',
-            stream: false,
-            store: true,
-            input: [
-              {
-                type: 'message' as const,
-                role: 'user' as const,
-                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
-              },
-            ],
-            metadata: { autorag_run_id: '123', rag_pattern_name: 'pattern0' },
-            instructions: 'Answer from file_search results.',
-            tools: [
-              {
-                type: 'file_search' as const,
-                vector_store_ids: ['vs-1'],
-                max_num_results: 5,
-                ranking_options: {
-                  search_mode: 'hybrid',
-                  ranker_strategy: 'rrf',
-                  ranker_k: 60,
-                  ranker_alpha: 0.5,
-                },
-              },
-            ],
-            tool_choice: { type: 'file_search' },
-            include: ['file_search_call.results'],
-          },
-        },
-      };
-
-      const onViewCode = jest.fn();
-      const onClose = jest.fn();
-      render(
-        <PatternDetailsModal
-          {...defaultProps}
-          patterns={[patternWithTemplate]}
-          onViewCode={onViewCode}
-          onClose={onClose}
-        />,
-      );
-
-      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
-      expect(screen.getByText('View code')).toBeInTheDocument();
-
-      await user.click(screen.getByText('View code'));
-      expect(onClose).toHaveBeenCalled();
-      expect(onViewCode).toHaveBeenCalledWith('pattern0');
-    });
-
-    it('should not show "View code" when pattern lacks responses_template', async () => {
-      const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} onViewCode={jest.fn()} />);
-
-      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
   });

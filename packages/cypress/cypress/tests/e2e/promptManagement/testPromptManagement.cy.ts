@@ -56,7 +56,14 @@ describe('Verify Prompt Management page', () => {
   it(
     'Create a prompt and verify it appears in the prompts table',
     {
-      tags: ['@Sanity', '@SanitySet1', '@PromptManagement', '@MLflow', '@NonConcurrent'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@PromptManagement',
+        '@MLflow',
+        '@NonConcurrent',
+        '@MLflowEmbeddedCI',
+      ],
     },
     () => {
       const prompt = testData.prompts[0];

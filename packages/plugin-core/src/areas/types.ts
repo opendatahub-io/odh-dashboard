@@ -50,7 +50,6 @@ export enum SupportedArea {
 
   /* Model Serving areas */
   MODEL_SERVING = 'model-serving-shell',
-  MODEL_DEPLOYMENT_SETTINGS = 'model-deployment-settings',
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
   K_SERVE = 'kserve',
   K_SERVE_AUTH = 'kserve-auth',
@@ -70,7 +69,6 @@ export enum SupportedArea {
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
-  EXTERNAL_MODELS = 'external-models',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -89,6 +87,8 @@ export enum SupportedArea {
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
   PLUGIN_GEN_AI = 'plugin-gen-ai',
   PLUGIN_NOTEBOOKS = 'plugin-notebooks',
+  PLUGIN_DATA_REGISTRY = 'plugin-data-registry',
+  PLUGIN_DATA_CONNECT_HUB = 'plugin-data-connect-hub',
 
   /* LM Eval */
   LM_EVAL = 'lm-eval',
@@ -129,6 +129,9 @@ export enum SupportedArea {
 
   /* Model Capabilities */
   MODEL_CAPABILITIES = 'model-capabilities',
+
+  /* Guided tour (What's New) — hidden until tour content matches the installed version */
+  GUIDED_TOUR = 'guided-tour',
 }
 
 export type SupportedAreaType = SupportedArea | string;
@@ -217,4 +220,20 @@ export type SupportedComponentFlagValue = {
  */
 export type SupportedAreasState = {
   [key in SupportedAreaType]: SupportedComponentFlagValue;
+};
+
+/** Maps each DataScienceStackComponent to its human-readable name **/
+export const DataScienceStackComponentMap: Record<string, string> = {
+  [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
+  [DataScienceStackComponent.DS_PIPELINES]: 'Pipelines',
+  [DataScienceStackComponent.KUEUE]: 'Kueue',
+  [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
+  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
+  [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
+  [DataScienceStackComponent.RAY]: 'Ray',
+  [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
+  [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
+  [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
+  [DataScienceStackComponent.TRAINER]: 'Trainer',
+  [DataScienceStackComponent.MLFLOW]: 'MLflow',
 };

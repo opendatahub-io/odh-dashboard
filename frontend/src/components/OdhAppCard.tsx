@@ -8,6 +8,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -19,7 +20,7 @@ import {
 import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { getLaunchStatus, launchQuickStart } from '#~/utilities/quickStartUtils';
 import EnableModal from '#~/pages/exploreApplication/EnableModal';
 import { removeComponent } from '#~/services/componentsServices';
@@ -130,6 +131,20 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     dropdownItems.push(
       <DropdownItem key="quick-start" onClick={onQuickStart}>
         {`${getLaunchStatus(odhApp.spec.quickStart || '', qsContext)} quick start`}
+      </DropdownItem>,
+    );
+  }
+
+  if (isAdmin && isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
+    dropdownItems.push(
+      <Divider key="uninstall-divider" component="li" />,
+      <DropdownItem
+        key="uninstall"
+        data-testid="uninstall-app"
+        isDanger
+        onClick={removeApplication}
+      >
+        Uninstall
       </DropdownItem>,
     );
   }
@@ -269,6 +284,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
                   <MenuToggle
                     variant="plain"
                     aria-label="Actions"
+                    data-testid="app-actions-toggle"
                     ref={toggleRef}
                     onClick={() => setIsOpen(!isOpen)}
                     isExpanded={isOpen}

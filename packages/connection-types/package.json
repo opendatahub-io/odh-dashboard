@@ -11,6 +11,9 @@
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit"
   },
+  "e2eCiTags": [
+    "@ConnectionTypesCI"
+  ],
   "dependencies": {
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",

@@ -4,10 +4,10 @@ import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-confi
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 
 const mockInferenceServices = [
   mockInferenceServiceK8sResource({ name: 'item-1' }),

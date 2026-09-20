@@ -8,7 +8,7 @@ import {
   restUPDATE,
   assembleModArchBody,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
 import {
   CreateSubscriptionRequest,
   CreateSubscriptionResponse,
@@ -20,7 +20,6 @@ import {
   ModelSubscriptionRef,
   OwnerSpec,
   SubjectSpec,
-  SubscriptionPolicyFormDataResponse,
   SubscriptionInfoResponse,
   TokenMetadata,
   TokenRateLimit,
@@ -28,7 +27,6 @@ import {
   UserSubscription,
   ModelRefInfo,
   TokenRateLimitInfo,
-  ModelOverviewItem,
 } from '~/app/types/subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
@@ -144,19 +142,6 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
   Array.isArray(v.model_refs) &&
   v.model_refs.every(isModelRefInfo);
 
-const isSubscriptionPolicyFormDataResponse = (
-  v: unknown,
-): v is SubscriptionPolicyFormDataResponse =>
-  isRecord(v) &&
-  Array.isArray(v.groups) &&
-  v.groups.every((g: unknown) => typeof g === 'string') &&
-  Array.isArray(v.modelRefs) &&
-  v.modelRefs.every(isMaaSModelRefSummary) &&
-  Array.isArray(v.subscriptions) &&
-  v.subscriptions.every(isMaaSSubscription) &&
-  Array.isArray(v.policies) &&
-  v.policies.every(isMaaSAuthPolicy);
-
 const isCreateSubscriptionResponse = (v: unknown): v is CreateSubscriptionResponse =>
   isRecord(v) &&
   isMaaSSubscription(v.subscription) &&
@@ -167,7 +152,7 @@ export const listSubscriptions =
   (hostPath = '') =>
   (opts: APIOptions): Promise<MaaSSubscription[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-subscriptions`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-subscriptions`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isMaaSSubscription).map(normalizeSubscription);
@@ -181,7 +166,7 @@ export const deleteSubscription =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/subscription/${encodeURIComponent(name)}`,
         {},
         {},
         opts,
@@ -202,7 +187,7 @@ export const getSubscriptionInfo =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription-info/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/subscription-info/${encodeURIComponent(name)}`,
         {},
         opts,
       ),
@@ -216,25 +201,36 @@ export const getSubscriptionInfo =
       throw new Error('Invalid response format');
     });
 
-export const getSubscriptionPolicyFormData =
+/** GET /api/v1/all-groups - List available group names */
+export const listAllGroups =
   (hostPath = '') =>
-  (opts: APIOptions): Promise<SubscriptionPolicyFormDataResponse> =>
+  (opts: APIOptions): Promise<string[]> =>
     handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription-policy-form-data`,
-        {},
-        opts,
-      ),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-groups`, {}, opts),
     ).then((response) => {
       if (
         isModArchResponse<unknown>(response) &&
-        isSubscriptionPolicyFormDataResponse(response.data)
+        Array.isArray(response.data) &&
+        response.data.every((g: unknown) => typeof g === 'string')
       ) {
-        return {
-          ...response.data,
-          subscriptions: response.data.subscriptions.map(normalizeSubscription),
-        };
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+/** GET /api/v1/all-maas-models - List all MaaSModelRef summaries */
+export const listAllMaasModels =
+  (hostPath = '') =>
+  (opts: APIOptions): Promise<MaaSModelRefSummary[]> =>
+    handleRestFailures(
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-maas-models`, {}, opts),
+    ).then((response) => {
+      if (
+        isModArchResponse<unknown>(response) &&
+        Array.isArray(response.data) &&
+        response.data.every(isMaaSModelRefSummary)
+      ) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });
@@ -245,7 +241,7 @@ export const createSubscription =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/new-subscription`,
         assembleModArchBody(request),
         {},
         opts,
@@ -270,7 +266,7 @@ export const updateSubscription =
     handleRestFailures(
       restUPDATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/update-subscription/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/update-subscription/${encodeURIComponent(name)}`,
         assembleModArchBody(request),
         {},
         opts,
@@ -289,7 +285,7 @@ export const listUserSubscriptions =
   (hostPath = '') =>
   (opts: APIOptions): Promise<UserSubscription[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isUserSubscription);
@@ -304,7 +300,7 @@ export const getUserSubscription =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions/${encodeURIComponent(id)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions/${encodeURIComponent(id)}`,
         {},
         opts,
       ),
@@ -321,25 +317,13 @@ export const getResourceYaml =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/yaml`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/yaml`,
         { name, type: resourceType },
         opts,
       ),
     ).then((response) => {
       if (isYamlResponse(response)) {
         return response.content;
-      }
-      throw new Error('Invalid response format');
-    });
-
-export const getModelsOverview =
-  (hostPath = '') =>
-  (opts: APIOptions): Promise<ModelOverviewItem[]> =>
-    handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/overview/models`, {}, opts),
-    ).then((response) => {
-      if (isModArchResponse<ModelOverviewItem[]>(response) && Array.isArray(response.data)) {
-        return response.data;
       }
       throw new Error('Invalid response format');
     });

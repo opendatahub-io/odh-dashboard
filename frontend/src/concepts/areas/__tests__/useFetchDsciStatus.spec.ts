@@ -1,10 +1,10 @@
 import { act } from 'react';
 import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
-import axios from '#~/utilities/axios';
-import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
 
-jest.mock('#~/utilities/axios', () => ({
+jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
   get: jest.fn(),
 }));
 

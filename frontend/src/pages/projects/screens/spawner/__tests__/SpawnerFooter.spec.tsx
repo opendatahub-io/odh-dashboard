@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PersistentVolumeClaimKind, SecretKind } from '@odh-dashboard/k8s-core';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { useUser } from '#~/redux/selectors';
 import SpawnerFooter from '#~/pages/projects/screens/spawner/SpawnerFooter';
 import {
@@ -12,9 +14,9 @@ import {
   mockStorageData,
 } from '#~/__mocks__/mockStartNotebookData';
 import { useAppContext } from '#~/app/AppContext';
-import { mockDashboardConfig, mockNotebookK8sResource } from '#~/__mocks__';
+import { mockNotebookK8sResource } from '#~/__mocks__';
 import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
-import { ConfigMapModel, NotebookModel, PVCModel, SecretModel } from '#~/api';
+import { NotebookModel, PVCModel } from '#~/api';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 
 const mockNavigate = jest.fn();
@@ -146,5 +148,21 @@ describe('EmptyProjects', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       `/projects/${startNotebookDataMock.projectName}?section=workbenches`,
     );
+  });
+
+  it('should disable submit while feature stores are loading', () => {
+    const result = render(
+      <SpawnerFooter
+        startNotebookData={startNotebookDataMock}
+        storageData={mockStorageData}
+        canEnablePipelines
+        envVariables={mockEnvVariables}
+        connections={[mockConnection({})]}
+        existingSecretsData={{ secrets: [], loaded: true, canList: true }}
+        featureStoresLoading
+      />,
+    );
+
+    expect(result.getByTestId('submit-button')).toBeDisabled();
   });
 });

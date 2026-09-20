@@ -1,7 +1,8 @@
 import type { DashboardResource } from '@perses-dev/core';
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
-import { mockDashboardConfig, mockStatus } from '@odh-dashboard/internal/__mocks__';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { SelfSubjectAccessReviewModel } from '@odh-dashboard/internal/api/models';
 import { observabilityDashboardPage } from '../../pages/observabilityDashboard';

@@ -60,21 +60,6 @@ export type NotebookTolerationFormSettings = TolerationSettings & {
   error?: string;
 };
 
-export type ClusterSettingsType = {
-  userTrackingEnabled: boolean;
-  pvcSize: number;
-  cullerTimeout: number;
-  modelServingPlatformEnabled: ModelServingPlatformEnabled;
-  isDistributedInferencingDefault?: boolean;
-  defaultDeploymentStrategy?: string;
-  globalMLflowNamespaces?: string[];
-};
-
-export type ModelServingPlatformEnabled = {
-  kServe: boolean;
-  LLMd: boolean;
-};
-
 /** @deprecated -- use SDK type */
 export type Secret = {
   data?: Record<string, string>;
@@ -90,77 +75,6 @@ export type ConfigMap = {
 export enum EnvVarResourceType {
   Secret = 'Secret',
   ConfigMap = 'ConfigMap',
-}
-
-export type OdhApplication = {
-  metadata: {
-    name: string;
-    annotations?: { [key: string]: string };
-  };
-  spec: {
-    displayName: string;
-    provider: string;
-    description: string;
-    route?: string | null;
-    routeNamespace?: string | null;
-    routeSuffix?: string | null;
-    serviceName?: string | null;
-    endpoint?: string | null;
-    link?: string | null;
-    img: string;
-    docsLink: string;
-    hidden?: boolean | null;
-    getStartedLink: string;
-    getStartedMarkDown: string;
-    category?: OdhApplicationCategory | string; // unbound by the CRD today -- should be the enum;
-    support?: string;
-    quickStart: string | null;
-    comingSoon?: boolean | null;
-    beta?: boolean | null;
-    betaTitle?: string | null;
-    betaText?: string | null;
-    shownOnEnabledPage: boolean | null;
-    isEnabled: boolean | null;
-    csvName?: string;
-    enable?: {
-      title: string;
-      actionLabel: string;
-      description?: string;
-      linkPreface?: string;
-      link?: string;
-      variables?: { [key: string]: string };
-      variableDisplayText?: { [key: string]: string };
-      variableHelpText?: { [key: string]: string };
-      validationSecret: string;
-      validationJob: string;
-      validationConfigMap?: string;
-      inProgressText?: string;
-      warningValidation?: {
-        field: string;
-        validationRegex?: string;
-        message: string;
-      };
-    };
-    featureFlag?: string;
-    internalRoute?: string;
-    error?: string;
-  };
-};
-
-/**
- * An OdhApplication that uses integration api to determine status.
- * @see isIntegrationApp
- */
-export type OdhIntegrationApplication = OdhApplication & {
-  spec: {
-    internalRoute: string; // starts with `/api/`
-  };
-};
-
-export enum OdhApplicationCategory {
-  RedHatManaged = 'Red Hat managed',
-  PartnerManaged = 'Partner managed',
-  SelfManaged = 'Self-managed',
 }
 
 export enum OdhDocumentType {
@@ -230,15 +144,13 @@ type K8sMetadata = {
 /** Used for Telemetry */
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    analytics?: any;
     clusterID?: string;
     POLL_INTERVAL?: number;
     FAST_POLL_INTERVAL?: number;
     WS_HOSTNAME?: string;
   }
 
-  // Webpack injected global variables
+  // Injected global variables
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const __COMMIT_HASH__: string | undefined;
 }

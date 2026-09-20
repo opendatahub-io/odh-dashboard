@@ -17,6 +17,28 @@ import (
 var _ = Describe("MaaSModelRefHandlers", Ordered, func() {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 
+	var _ = Describe("ListMaaSModelRefsHandler", Ordered, func() {
+		It("returns 200 and a list of model refs", func() {
+			actual, rs, err := setupApiTest[Envelope[[]models.MaaSModelRefSummary, None]](
+				http.MethodGet,
+				"/api/v1/all-maas-models",
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(len(actual.Data)).To(BeNumerically(">=", 2))
+
+			var names []string
+			for _, ref := range actual.Data {
+				names = append(names, ref.Name)
+			}
+			Expect(names).To(ContainElements("granite-3-8b-instruct", "flan-t5-small"))
+		})
+	})
+
 	var _ = Describe("CreateMaaSModelRefHandler", Ordered, func() {
 		It("returns 201 and the created model ref", func() {
 			refName := fmt.Sprintf("test-model-%d", GinkgoRandomSeed())

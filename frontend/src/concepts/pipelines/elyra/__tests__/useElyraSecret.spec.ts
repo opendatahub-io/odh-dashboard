@@ -2,8 +2,8 @@ import { act } from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import useElyraSecret from '#~/concepts/pipelines/elyra/useElyraSecret';
-import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

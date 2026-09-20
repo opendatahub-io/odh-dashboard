@@ -8,21 +8,34 @@
   }
 }
 
-.automl-tree-node__spinner {
+.automl-tree-node__status-spinner {
   animation: automl-tree-node-spin 1.5s linear infinite;
   transform-origin: center;
   transform-box: fill-box;
 }
 
-.automl-tree-node__pulse-ring {
-  transform: scale(calc(1 + var(--automl-pulse-progress) * 0.8));
-  opacity: calc(0.75 * (1 - var(--automl-pulse-progress)));
+.automl-tree-node__status-pulse-ring {
   transform-origin: center;
   transform-box: fill-box;
 }
 
-.automl-tree-node__label {
+.automl-tree-node__caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
   width: 100%;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.automl-tree-node__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+  width: 100%;
+  min-width: 0;
   text-align: center;
   color: var(--pf-t--global--text--color--subtle);
   font-size: var(--pf-t--global--font--size--body--sm);
@@ -30,17 +43,212 @@
   line-height: 1.3;
   overflow-wrap: break-word;
 
+  > div:first-child {
+    width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   &--selected {
     font-weight: 600;
   }
 }
 
+/* PF non-status grey label — winner designation under model/pattern name. */
+.automl-tree-node__winner-label {
+  text-transform: capitalize;
+}
+
+.automl-tree-node__models-toggle {
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+
+  /* Neutral pill — override PF secondary brand tokens to match design gray. */
+  .pf-v6-c-button.pf-m-secondary {
+    --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--sm);
+    --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
+    --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+    --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+    --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+    --pf-v6-c-button--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
+    --pf-v6-c-button--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
+    --pf-v6-c-button--m-clicked--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+    --pf-v6-c-button--m-secondary--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--BorderColor: var(--pf-t--global--border--color--default);
+    --pf-v6-c-button--m-secondary--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
+    --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+
+    white-space: nowrap;
+  }
+}
+
+/* Design: saturated brand-blue star + ring on white (not pale nonstatus blue). */
+.automl-tree-node__winner-star {
+  --pf-topology__node__decorator__bg--Fill: var(--pf-t--global--background--color--primary--default);
+  --pf-topology__node__decorator__bg--Stroke: var(--pf-t--global--border--color--brand--default);
+  --pf-topology__node_decorator--Color: var(--pf-t--global--icon--color--brand--default);
+
+  .pf-topology__node__decorator__bg {
+    fill: var(--pf-topology__node__decorator__bg--Fill);
+    stroke: var(--pf-topology__node__decorator__bg--Stroke);
+    stroke-width: 1;
+  }
+}
+
+.automl-tree-node__winner-star-icon {
+  color: var(--pf-t--global--icon--color--brand--default);
+  fill: currentcolor;
+}
+
+/* Active stage decorator: outlined badge + spinning sync icon. */
+.automl-tree-node__status-decorator-active {
+  --pf-topology__node__decorator__bg--Fill: var(--pf-t--global--background--color--primary--default);
+  --pf-topology__node__decorator__bg--Stroke: var(--pf-t--global--border--color--brand--default);
+  --pf-topology__node_decorator--Color: var(--pf-t--global--icon--color--brand--default);
+
+  .pf-topology__node__decorator__bg {
+    fill: var(--pf-topology__node__decorator__bg--Fill);
+    stroke: var(--pf-topology__node__decorator__bg--Stroke);
+  }
+}
+
+.automl-tree-node__status-decorator-active-icon {
+  color: var(--pf-t--global--icon--color--brand--default);
+  fill: currentcolor;
+}
+
+/*
+ * Topology sets --pf-topology__node--Color to regular (black). Icons use
+ * fill: currentColor, so completed/failed/active must override that token.
+ */
+.automl-tree-node {
+  cursor: pointer;
+
+  .pf-topology__node__background {
+    cursor: pointer;
+  }
+
+  &.pf-m-success {
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
+
+    .pf-topology__node__background {
+      stroke: var(--pf-t--global--border--color--status--success--default);
+      stroke-width: 1;
+    }
+  }
+
+  &.pf-m-danger {
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--danger--default);
+
+    .pf-topology__node__background {
+      stroke: var(--pf-t--global--color--status--danger--default);
+      stroke-width: 1;
+    }
+  }
+
+  &.pf-m-info {
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--brand--default);
+
+    .pf-topology__node__background {
+      stroke: var(--pf-t--global--border--color--nonstatus--blue--default);
+      stroke-width: 1;
+    }
+  }
+
+  /*
+   * Status-only badge draws its own ring. Must beat &.pf-m-success|danger|info
+   * (.automl-tree-node.pf-m-* is more specific than &--status-only alone).
+   */
+  &--status-only.pf-m-success,
+  &--status-only.pf-m-danger,
+  &--status-only.pf-m-info,
+  &--status-only {
+    .pf-topology__node__background {
+      fill: transparent;
+      stroke: transparent;
+    }
+  }
+}
+
+.automl-tree-node__task-icon {
+  color: inherit;
+  fill: currentcolor;
+
+  svg {
+    color: inherit;
+    fill: currentcolor;
+  }
+}
+
+/* Pending hourglass — sand/caps filled; outline paths keep inline fill/stroke from PendingHourglassGlyph. */
+.automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass path:not(.automl-tree-node__pending-hourglass-outline),
+.automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass rect {
+  fill: var(--pf-t--global--icon--color--disabled);
+}
+
+/* Running sync in branch-step badge. */
+.automl-tree-node--status-only .automl-tree-node__status-badge--active svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--active svg path {
+  color: var(--pf-t--global--icon--color--brand--default);
+  fill: var(--pf-t--global--icon--color--brand--default);
+}
+
+/* Failed exclamation in branch-step badge. */
+.automl-tree-node--status-only .automl-tree-node__status-badge--failed svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--failed svg path {
+  color: var(--pf-t--global--icon--color--status--on-danger--default);
+  fill: var(--pf-t--global--icon--color--status--on-danger--default);
+}
+
+/* Completed check in branch corridor spine dots. */
+.automl-tree-node__status-badge--completed-dot svg,
+.automl-tree-node__status-badge--completed-dot svg path {
+  color: var(--pf-t--global--icon--color--status--on-success--default);
+  fill: var(--pf-t--global--icon--color--status--on-success--default);
+}
+
+/* Running pulse/sync in branch corridor spine dots. */
+.automl-tree-node--status-only .automl-tree-node__status-badge--active-dot svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--active-dot svg path {
+  color: var(--pf-t--global--icon--color--brand--default);
+  fill: var(--pf-t--global--icon--color--brand--default);
+}
+
+/*
+ * Completed check in stage/branch decorator badge — beat topology
+ * `.pf-topology__node__decorator svg { fill: regular }` (black check on green disk).
+ */
+.pf-topology__node__decorator .automl-tree-node__status-badge--completed svg,
+.pf-topology__node__decorator .automl-tree-node__status-badge--completed svg path {
+  color: var(--pf-t--global--icon--color--status--on-success--default);
+  fill: var(--pf-t--global--icon--color--status--on-success--default);
+}
+
+/* Failed exclamation in stage/branch decorator badge. */
+.pf-topology__node__decorator .automl-tree-node__status-badge--failed svg,
+.pf-topology__node__decorator .automl-tree-node__status-badge--failed svg path {
+  color: var(--pf-t--global--icon--color--status--on-danger--default);
+  fill: var(--pf-t--global--icon--color--status--on-danger--default);
+}
+
+/* Failed section corridor — soft red glow around outer ring (design). */
+.automl-tree-node__status-badge--failed-section {
+  filter: drop-shadow(0 0 2px var(--pf-t--global--color--status--danger--default));
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .automl-tree-node__pulse-ring {
+  .automl-tree-node__status-spinner {
+    animation: none;
+  }
+
+  .automl-tree-node__status-pulse-ring {
     transform: scale(1);
     opacity: 0.75;
-  }
-  .automl-tree-node__spinner {
-    animation: none;
   }
 }

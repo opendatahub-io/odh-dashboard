@@ -20,7 +20,7 @@ function isExtensionFile(resource, pluginPackageDetails) {
 }
 
 /**
- * Returns a webpack splitChunks `chunks` function that only includes
+ * Returns a rspack splitChunks `chunks` function that only includes
  * async chunks originating from dynamic imports in extension files.
  *
  * This prevents route-level or other code-splitting chunks within a plugin
@@ -50,7 +50,7 @@ function getExtensionChunksFilter(pluginPackageDetails) {
 }
 
 /**
- * Returns a webpack splitChunks `name` function that groups plugin modules
+ * Returns a rspack splitChunks `name` function that groups plugin modules
  * into a single chunk per plugin package.
  *
  * - If all async chunks containing the module have the same explicit

@@ -1,0 +1,14 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-ci-failure-summarizer-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build a CI Failure Summarizer with LangGraph'
+  description: >-
+    Build a daily CI failure summarizer that groups GitHub workflow failures,
+    persists incidents in PostgreSQL, and posts triage summaries to Slack.
+  url: 'https://red.ht/4hrNBn0'
+  appName: agentic-starter-kits

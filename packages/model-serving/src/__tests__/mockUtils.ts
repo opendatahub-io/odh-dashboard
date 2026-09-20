@@ -229,7 +229,17 @@ export const mockDeploymentWizardState = (
           setData: jest.fn(),
           isVisible: true,
         },
+        huggingFaceApiKey: {
+          data: { token: '' },
+          setData: jest.fn(),
+        },
+        requiresHuggingFaceApiKey: false,
         canCreateRoleBindings: true,
+        validatedConfigurationSelection: {
+          selectedValidatedConfigurations: {},
+          toggleOption: jest.fn(),
+          isOptionSelected: jest.fn().mockReturnValue(false),
+        },
       },
       loaded: {
         modelSourceLoaded: true,
@@ -242,6 +252,7 @@ export const mockDeploymentWizardState = (
         isExternalRouteVisible: true,
         shouldAutoCheckTokens: false,
       },
+      computedOverrides: {},
       dispatch: jest.fn(),
       fields: [] as WizardField[],
     } as UseModelDeploymentWizardState,

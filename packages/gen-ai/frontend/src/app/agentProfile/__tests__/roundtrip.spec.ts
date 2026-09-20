@@ -49,6 +49,10 @@ const makeMcpServer = (overrides: Partial<MCPServerFromAPI> = {}): MCPServerFrom
   description: '',
   logo: null,
   status: 'healthy',
+  version: '1.0.0',
+  source: 'configmap',
+  tools: [],
+  tool_count: 0,
   ...overrides,
 });
 

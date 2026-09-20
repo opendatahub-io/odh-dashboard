@@ -6,7 +6,7 @@ import {
   PrometheusQueryResponse,
   QueryType,
 } from '../../../types';
-import { callPrometheusThanos } from '../../../utils/prometheusUtils';
+import { callPrometheusThanos, callPrometheusThanosCluster } from '../../../utils/prometheusUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
@@ -52,6 +52,39 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       logRequestDetails(fastify, request);
       const { query } = request.body;
       return callPrometheusThanos<PrometheusQueryRangeResponse>(
+        fastify,
+        request,
+        query,
+        QueryType.QUERY_RANGE,
+      ).catch(handleError);
+    },
+  );
+
+  fastify.post(
+    '/cluster/query',
+    async (
+      request: OauthFastifyRequest<{
+        Body: { query: string };
+      }>,
+    ): Promise<{ code: number; response: PrometheusQueryResponse }> => {
+      logRequestDetails(fastify, request);
+      const { query } = request.body;
+      return callPrometheusThanosCluster<PrometheusQueryResponse>(fastify, request, query).catch(
+        handleError,
+      );
+    },
+  );
+
+  fastify.post(
+    '/cluster/queryRange',
+    async (
+      request: OauthFastifyRequest<{
+        Body: { query: string };
+      }>,
+    ): Promise<{ code: number; response: PrometheusQueryRangeResponse }> => {
+      logRequestDetails(fastify, request);
+      const { query } = request.body;
+      return callPrometheusThanosCluster<PrometheusQueryRangeResponse>(
         fastify,
         request,
         query,

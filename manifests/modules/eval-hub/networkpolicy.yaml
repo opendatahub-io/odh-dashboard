@@ -41,6 +41,8 @@ spec:
         - port: 8043
           protocol: TCP
     - to:
+        - namespaceSelector: {}
+    - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:

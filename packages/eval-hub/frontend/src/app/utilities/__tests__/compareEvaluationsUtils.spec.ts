@@ -1,8 +1,10 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
   buildMlflowCompareSearchParams,
+  COMPARE_CHILD_RUN_TYPE,
   filterComparableRunsForCompareBenchmarkSearch,
   filterJobsForCompareBenchmarkSearch,
+  getCompareParentResultScore,
   getSelectionKeysCheckedState,
   jobMatchesCompareBenchmarkSearch,
   parseBenchmarkSelectionKey,
@@ -159,6 +161,74 @@ describe('filterComparableRunsForCompareBenchmarkSearch', () => {
 
     expect(filteredRuns).toHaveLength(1);
     expect(filteredRuns[0].benchmarkId).toBe('toxicity_detection');
+  });
+});
+
+describe('COMPARE_CHILD_RUN_TYPE', () => {
+  it('should be "Benchmark"', () => {
+    expect(COMPARE_CHILD_RUN_TYPE).toBe('Benchmark');
+  });
+});
+
+describe('getCompareParentResultScore', () => {
+  it('should return the score for a single benchmark run', () => {
+    const job = mockEvaluationJob({ score: 0.85 });
+    expect(getCompareParentResultScore(job)).toBe('85%');
+  });
+
+  /* eslint-disable camelcase */
+  it('should return the score for a benchmark suite run', () => {
+    const job = mockEvaluationJob({ score: 0.72, collectionId: 'my-suite' });
+    job.collection = {
+      id: 'my-suite',
+      benchmarks: [
+        { id: 'bench-a', provider_id: 'lm', benchmark_index: 0 },
+        { id: 'bench-b', provider_id: 'lm', benchmark_index: 1 },
+      ],
+    };
+    job.results.benchmarks = [
+      { id: 'bench-a', benchmark_index: 0, test: { primary_score: 0.8 } },
+      { id: 'bench-b', benchmark_index: 1, test: { primary_score: 0.6 } },
+    ];
+    expect(getCompareParentResultScore(job)).toBe('72%');
+  });
+  /* eslint-enable camelcase */
+
+  /* eslint-disable camelcase */
+  it('should return dash for a suite without an aggregate test score', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-suite' });
+    job.collection = {
+      id: 'my-suite',
+      benchmarks: [
+        { id: 'bench-a', provider_id: 'lm', benchmark_index: 0 },
+        { id: 'bench-b', provider_id: 'lm', benchmark_index: 1 },
+      ],
+    };
+    job.results.benchmarks = [
+      { id: 'bench-a', benchmark_index: 0, test: { primary_score: 0.8 } },
+      { id: 'bench-b', benchmark_index: 1, test: { primary_score: 0.6 } },
+    ];
+    job.results.test = undefined;
+    expect(getCompareParentResultScore(job)).toBe('-');
+  });
+  /* eslint-enable camelcase */
+
+  it('should return dash when no score is available', () => {
+    const job = mockEvaluationJob();
+    job.results = {};
+    expect(getCompareParentResultScore(job)).toBe('-');
+  });
+
+  it('should return dash when score is NaN', () => {
+    const job = mockEvaluationJob({ score: 0.5 });
+    job.results.test = { score: NaN };
+    expect(getCompareParentResultScore(job)).toBe('-');
+  });
+
+  it('should return dash when score is Infinity', () => {
+    const job = mockEvaluationJob({ score: 0.5 });
+    job.results.test = { score: Infinity };
+    expect(getCompareParentResultScore(job)).toBe('-');
   });
 });
 

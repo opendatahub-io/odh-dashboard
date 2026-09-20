@@ -1,22 +1,22 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockRouteK8sResource,
   mockRouteK8sResourceModelServing,
-} from '@odh-dashboard/internal/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+} from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
-} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
+} from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+} from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   type DataScienceClusterKindStatus,
   NamespaceApplicationCase,
@@ -27,20 +27,21 @@ import {
   ServingRuntimePlatform,
 } from '@odh-dashboard/model-serving/shared';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
-import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
-import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
+import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/model-serving/concepts/useStopModalPreference';
+import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
+import { mockNimServingRuntimeTemplate } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import {
   modelServingGlobal,
   modelServingSection,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import { projectDetails } from '@odh-dashboard/cypress/cypress/pages/projects';
 import { be } from '@odh-dashboard/cypress/cypress/utils/should';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -48,7 +49,6 @@ import {
   PodModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
@@ -78,6 +78,7 @@ type HandlersProps = {
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
   templates?: boolean;
+  nimWizard?: boolean;
 };
 
 const initIntercepts = ({
@@ -119,6 +120,7 @@ const initIntercepts = ({
   disableNIMConfig = true,
   projectEnableNIM: enableNIM = false,
   DscComponents,
+  nimWizard = false,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -140,6 +142,7 @@ const initIntercepts = ({
       disableProjectScoped,
       disableKServeMetrics,
       disableNIMModelServing: disableNIMConfig,
+      nimWizard,
     }),
   );
   cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));
@@ -294,7 +297,8 @@ describe('Serving Runtime List', () => {
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visit('test-project');
       projectDetails.shouldBeEmptyState('Deployments', 'model-server', true);
-      projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
+      // When only the model serving refactor is enabled and the only platform, don't show the platform label
+      projectDetails.findServingPlatformLabel().should('not.exist');
     });
 
     it('Shows KServe metrics only when available', () => {

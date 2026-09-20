@@ -33,7 +33,7 @@ spec:
             - containerPort: 8080
           env:
             - name: GATEWAY_DOMAIN
-              value: ""
+              value: ''
             - name: MODULE_FEDERATION_CONFIG
               valueFrom:
                 configMapKeyRef:
@@ -47,6 +47,22 @@ spec:
               ephemeral-storage: 50Mi
             limits:
               memory: 1Gi
+          # The dashboard app binds to 127.0.0.1 (loopback) only and is reached
+          # in-pod via the kube-rbac-proxy sidecar, so probes MUST use `exec: curl`
+          # against loopback — a tcpSocket/httpGet probe on the pod IP is refused.
+          startupProbe:
+            exec:
+              command:
+                - curl
+                - -f
+                - -s
+                - --max-time
+                - '10'
+                - http://127.0.0.1:8080/api/health
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 3
+            failureThreshold: 20
           livenessProbe:
             exec:
               command:
@@ -54,11 +70,10 @@ spec:
                 - -f
                 - -s
                 - --max-time
-                - "10"
+                - '10'
                 - http://127.0.0.1:8080/
-            initialDelaySeconds: 30
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
           readinessProbe:
@@ -68,11 +83,10 @@ spec:
                 - -f
                 - -s
                 - --max-time
-                - "10"
+                - '10'
                 - http://127.0.0.1:8080/api/health
-            initialDelaySeconds: 30
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 5
             successThreshold: 1
             failureThreshold: 3
           volumeMounts:
@@ -100,21 +114,29 @@ spec:
             - --auth-header-user-field-name=X-Auth-Request-User
             - --auth-header-groups-field-name=X-Auth-Request-Groups
             - --proxy-endpoints-port=8444
-            - --v=10
+            - --v=0
           image: kube-rbac-proxy
           ports:
             - containerPort: 8443
               name: dashboard-ui
             - containerPort: 8444
               name: proxy-health
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8444
+              scheme: HTTPS
+            initialDelaySeconds: 1
+            timeoutSeconds: 1
+            periodSeconds: 2
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8444
               scheme: HTTPS
-            initialDelaySeconds: 30
             timeoutSeconds: 1
-            periodSeconds: 5
+            periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
           readinessProbe:
@@ -122,7 +144,6 @@ spec:
               path: /healthz
               port: 8444
               scheme: HTTPS
-            initialDelaySeconds: 5
             timeoutSeconds: 1
             periodSeconds: 5
             successThreshold: 1
@@ -169,14 +190,22 @@ spec:
               ephemeral-storage: 10Mi
             limits:
               memory: 256Mi
+          startupProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8943
+              scheme: HTTPS
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            periodSeconds: 2
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /healthcheck
               port: 8943
               scheme: HTTPS
-            initialDelaySeconds: 30
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
           readinessProbe:
@@ -184,9 +213,8 @@ spec:
               path: /healthcheck
               port: 8943
               scheme: HTTPS
-            initialDelaySeconds: 15
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 5
             successThreshold: 1
             failureThreshold: 3
           volumeMounts:
@@ -236,13 +264,13 @@ spec:
           configMap:
             name: odh-trusted-ca-bundle
             items:
-            - key: ca-bundle.crt
-              path: odh-trusted-ca-bundle.crt
+              - key: ca-bundle.crt
+                path: odh-trusted-ca-bundle.crt
             optional: true
         - name: odh-ca-cert
           configMap:
             name: odh-trusted-ca-bundle
             items:
-            - key: odh-ca-bundle.crt
-              path: odh-ca-bundle.crt
+              - key: odh-ca-bundle.crt
+                path: odh-ca-bundle.crt
             optional: true

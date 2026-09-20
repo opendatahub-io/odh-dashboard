@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
@@ -10,11 +10,13 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import {
   ClusterQueueModel,
   LocalQueueModel,
-  TrainJobModel,
   WorkloadModel,
-} from '@odh-dashboard/internal/api/models';
+} from '@odh-dashboard/k8s-core/api/models';
+import { TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
+import { toastNotifications } from '../../../pages/components/ToastNotifications';
+import { getK8sAPIResourceURL } from '../../../utils/k8s';
 import {
   modelTrainingGlobal,
   trainingJobTable,
@@ -255,41 +257,7 @@ describe('Model Training Pause/Resume', () => {
     asClusterAdminUser();
   });
 
-  describe('Pause/Resume Column in Table', () => {
-    it('should display Pause button for running jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('running-job');
-      row.findPauseResumeToggle().should('be.visible');
-      row.findPauseResumeToggle().should('contain', 'Pause');
-    });
-
-    it('should display Resume button for paused jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('paused-job');
-      row.findPauseResumeToggle().should('be.visible');
-      row.findPauseResumeToggle().should('contain', 'Resume');
-    });
-
-    it('should not display pause/resume button for completed jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('completed-job');
-      row.findPauseResumeToggle().should('not.exist');
-    });
-
-    it('should not display pause/resume button for failed jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('failed-job');
-      row.findPauseResumeToggle().should('not.exist');
-    });
-  });
+  // CONVERTED to Jest: StateActionToggle.spec.tsx
 
   describe('Pause Confirmation Modal', () => {
     it('should open pause modal when clicking Pause button', () => {
@@ -349,6 +317,58 @@ describe('Model Training Pause/Resume', () => {
 
       cy.wait('@pauseWorkload');
       pauseTrainingJobModal.shouldBeOpen(false);
+    });
+  });
+
+  describe('Pause failure', () => {
+    it('should report the failure and keep the job running when the pause request is rejected', () => {
+      initIntercepts();
+
+      cy.intercept(
+        {
+          method: 'PATCH',
+          pathname: getK8sAPIResourceURL(WorkloadModel, undefined, {
+            ns: projectName,
+            name: 'workload-running-job',
+          }),
+        },
+        {
+          statusCode: 415,
+          body: {
+            kind: 'Status',
+            apiVersion: 'v1',
+            status: 'Failure',
+            code: 415,
+            reason: 'DashboardProxyError',
+            message: 'Unsupported Media Type: application/json-patch+json',
+            details: {
+              causes: [
+                {
+                  reason: 'FST_ERR_CTP_INVALID_MEDIA_TYPE',
+                  message: 'Unsupported Media Type: application/json-patch+json',
+                },
+              ],
+            },
+          },
+        },
+      ).as('pauseWorkloadRejected');
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('running-job');
+      row.findStatus().should('contain.text', 'Running');
+      row.findPauseResumeToggle().click();
+
+      pauseTrainingJobModal.shouldBeOpen();
+      pauseTrainingJobModal.pause();
+
+      cy.wait('@pauseWorkloadRejected');
+      toastNotifications
+        .findToastNotification(0)
+        .should('contain.text', 'Failed to pause job')
+        .and('contain.text', 'Unsupported Media Type: application/json-patch+json');
+      row.findStatus().should('contain.text', 'Running');
+      row.findStatus().should('not.contain.text', 'Paused');
     });
   });
 

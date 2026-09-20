@@ -32,9 +32,30 @@ func validateModelCapabilities(caps []string) error {
 
 // attachMaaSModelRefHandlers registers the MaaSModelRef routes.
 func attachMaaSModelRefHandlers(apiRouter *httprouter.Router, app *App) {
+	apiRouter.GET(constants.MaaSModelRefListPath, handlerWithApp(app, ListMaaSModelRefsHandler))
 	apiRouter.POST(constants.MaaSModelRefCreatePath, handlerWithApp(app, CreateMaaSModelRefHandler))
 	apiRouter.PUT(constants.MaaSModelRefUpdatePath, handlerWithApp(app, UpdateMaaSModelRefHandler))
 	apiRouter.DELETE(constants.MaaSModelRefDeletePath, handlerWithApp(app, DeleteMaaSModelRefHandler))
+}
+
+// ListMaaSModelRefsHandler handles GET /api/v1/all-maas-models
+// K8s calls: GET /k8s/v1/maasmodelref
+func ListMaaSModelRefsHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	modelRefs, err := app.repositories.MaaSModelRefs.ListMaaSModelRefs(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	response := Envelope[[]models.MaaSModelRefSummary, None]{
+		Data: modelRefs,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 // CreateMaaSModelRefHandler handles POST /api/v1/maasmodel

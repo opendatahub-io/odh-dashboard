@@ -348,6 +348,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 
 	tests := []struct {
 		name           string
+		namespace      string
 		body           string
 		repoResult     *models.PipelineRun
 		repoErr        error
@@ -355,8 +356,9 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 		wantBodySubstr string
 	}{
 		{
-			name: "success",
-			body: validBody,
+			name:      "success",
+			namespace: ns,
+			body:      validBody,
 			repoResult: &models.PipelineRun{
 				RunID:       "new-run-id",
 				DisplayName: "new-run",
@@ -367,31 +369,62 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: `"run_id": "new-run-id"`,
 		},
 		{
+			name:           "missing namespace",
+			namespace:      "",
+			body:           validBody,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "missing_namespace",
+		},
+		{
 			name:           "invalid JSON body",
+			namespace:      ns,
 			body:           `{invalid json`,
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid request body",
+			wantBodySubstr: "invalid_request_body",
 		},
 		{
 			name:           "empty body",
+			namespace:      ns,
 			body:           "",
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: `"code": "400"`,
+			wantBodySubstr: "invalid_request_body",
 		},
 		{
 			name:           "unknown field in body",
+			namespace:      ns,
 			body:           `{"display_name":"x","unknown_field":"y"}`,
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid request body",
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
+			name:           "legacy create field in body",
+			namespace:      ns,
+			body:           `{"display_name":"x","input_data_key":"docs/"}`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
+			name:           "oversized body",
+			namespace:      ns,
+			body:           `{"display_name":"` + strings.Repeat("x", 10<<20) + `"}`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusRequestEntityTooLarge,
+			wantBodySubstr: "request_body_too_large",
 		},
 		{
 			name:           "multiple JSON objects in body",
+			namespace:      ns,
 			body:           validBody + `{"extra": true}`,
 			repoResult:     nil,
 			repoErr:        nil,
@@ -399,7 +432,17 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "single JSON object",
 		},
 		{
+			name:           "malformed trailing JSON in body",
+			namespace:      ns,
+			body:           validBody + `{`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
 			name:           "repo validation error",
+			namespace:      ns,
 			body:           validBody,
 			repoResult:     nil,
 			repoErr:        fmt.Errorf("missing field: %w", repositories.ErrValidation),
@@ -408,6 +451,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 		},
 		{
 			name:           "repo server error",
+			namespace:      ns,
 			body:           validBody,
 			repoResult:     nil,
 			repoErr:        errors.New("pipeline creation failed"),
@@ -416,6 +460,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 		},
 		{
 			name:           "repo no DSPA found",
+			namespace:      ns,
 			body:           validBody,
 			repoResult:     nil,
 			repoErr:        pipelines.ErrNoDSPAFound,
@@ -429,12 +474,12 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			h, repo := newTestPipelinesHandler()
 
 			// Only set up repo expectation for cases where we expect the handler to call CreateRun
-			if tt.body == validBody {
-				repo.On("CreateRun", mock.Anything, ns, mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
+			if tt.namespace != "" && tt.body == validBody {
+				repo.On("CreateRun", mock.Anything, tt.namespace, mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
 					Return(tt.repoResult, tt.repoErr)
 			}
 
-			req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", ns, tt.body)
+			req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", tt.namespace, tt.body)
 			rr := httptest.NewRecorder()
 
 			h.CreatePipelineRunHandler(rr, req, httprouter.Params{})
@@ -444,6 +489,22 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			repo.AssertExpectations(t)
 		})
 	}
+}
+
+func TestCreatePipelineRunHandlerReturnsModelOverlapValidationError(t *testing.T) {
+	h, repo := newTestPipelinesHandler()
+	repo.On("CreateRun", mock.Anything, "test-ns", mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
+		Return(nil, repositories.NewValidationError(`model "shared-model" cannot be selected in both embedding_models and generation_models`))
+
+	body := `{"display_name":"overlapping-model-run","test_data_secret_name":"secret","test_data_bucket_name":"bucket","test_data_key":"eval.json","input_data_secret_name":"secret","input_data_bucket_name":"bucket","input_data_keys":["docs"],"maas_secret_name":"maas","vector_db_secret_name":"vector-db","embedding_models":["shared-model"],"generation_models":["shared-model"]}`
+	req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", "test-ns", body)
+	rr := httptest.NewRecorder()
+
+	h.CreatePipelineRunHandler(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Contains(t, rr.Body.String(), "shared-model")
+	repo.AssertExpectations(t)
 }
 
 // ---------- TerminatePipelineRunHandler ----------
@@ -759,6 +820,228 @@ func TestEnableManagedPipelinesHandler(t *testing.T) {
 			if tt.wantBodySubstr != "" {
 				assert.Contains(t, rr.Body.String(), tt.wantBodySubstr)
 			}
+			repo.AssertExpectations(t)
+		})
+	}
+}
+
+// ---------- CreateIndexingPipelineRunHandler ----------
+
+func TestCreateIndexingPipelineRunHandler(t *testing.T) {
+	ns := "test-ns"
+
+	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","vector_db_secret_name":"vector-db"}}`
+
+	tests := []struct {
+		name           string
+		namespace      string
+		body           string
+		setupRepo      bool
+		repoResult     *models.PipelineRun
+		repoErr        error
+		wantStatusCode int
+		wantBodySubstr string
+	}{
+		{
+			name:      "success",
+			namespace: ns,
+			body:      validBody,
+			setupRepo: true,
+			repoResult: &models.PipelineRun{
+				RunID:        "idx-run-id",
+				DisplayName:  "index-run",
+				State:        "PENDING",
+				PipelineType: "indexing",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"run_id": "idx-run-id"`,
+		},
+		{
+			name:           "missing namespace",
+			namespace:      "",
+			body:           validBody,
+			setupRepo:      false,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "missing namespace",
+		},
+		{
+			name:           "invalid JSON body",
+			namespace:      ns,
+			body:           `{invalid json`,
+			setupRepo:      false,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid request body",
+		},
+		{
+			name:           "empty body",
+			namespace:      ns,
+			body:           "",
+			setupRepo:      false,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: `"code": "400"`,
+		},
+		{
+			name:           "unknown field in body",
+			namespace:      ns,
+			body:           `{"display_name":"x","parameters":{"a":1},"unknown_field":"y"}`,
+			setupRepo:      false,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid request body",
+		},
+		{
+			name:           "multiple JSON objects in body",
+			namespace:      ns,
+			body:           validBody + `{"extra": true}`,
+			setupRepo:      false,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "single JSON object",
+		},
+		{
+			name:           "repo validation error",
+			namespace:      ns,
+			body:           validBody,
+			setupRepo:      true,
+			repoErr:        repositories.NewValidationError("display_name must be at most 250 characters"),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: `"code": "400"`,
+		},
+		{
+			name:           "indexing pipeline not discovered",
+			namespace:      ns,
+			body:           validBody,
+			setupRepo:      true,
+			repoErr:        repositories.ErrManagedPipelinesNotFound,
+			wantStatusCode: http.StatusNotFound,
+			wantBodySubstr: `"code": "404"`,
+		},
+		{
+			name:           "indexing pipeline schema unavailable",
+			namespace:      ns,
+			body:           validBody,
+			setupRepo:      true,
+			repoErr:        repositories.ErrIndexingPipelineUnavailable,
+			wantStatusCode: http.StatusServiceUnavailable,
+			wantBodySubstr: "input schema could not be loaded",
+		},
+		{
+			name:           "repo no DSPA found",
+			namespace:      ns,
+			body:           validBody,
+			setupRepo:      true,
+			repoErr:        pipelines.ErrNoDSPAFound,
+			wantStatusCode: http.StatusNotFound,
+			wantBodySubstr: "Pipeline Server",
+		},
+		{
+			name:           "repo server error",
+			namespace:      ns,
+			body:           validBody,
+			setupRepo:      true,
+			repoErr:        errors.New("pipeline creation failed"),
+			wantStatusCode: http.StatusInternalServerError,
+			wantBodySubstr: `"code": "500"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, repo := newTestPipelinesHandler()
+
+			if tt.setupRepo {
+				repo.On("CreateIndexingRun", mock.Anything, tt.namespace, mock.AnythingOfType("models.CreateIndexingPipelineRunRequest")).
+					Return(tt.repoResult, tt.repoErr)
+			}
+
+			req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/indexing-pipeline-runs", tt.namespace, tt.body)
+			rr := httptest.NewRecorder()
+
+			h.CreateIndexingPipelineRunHandler(rr, req, httprouter.Params{})
+
+			assert.Equal(t, tt.wantStatusCode, rr.Code)
+			assert.Contains(t, rr.Body.String(), tt.wantBodySubstr)
+			repo.AssertExpectations(t)
+		})
+	}
+}
+
+// ---------- ListManagedPipelinesHandler ----------
+
+func TestListManagedPipelinesHandler(t *testing.T) {
+	ns := "test-ns"
+
+	tests := []struct {
+		name           string
+		namespace      string
+		setupRepo      bool
+		repoResult     *models.ManagedPipelinesData
+		repoErr        error
+		wantStatusCode int
+		wantBodySubstr string
+	}{
+		{
+			name:      "success",
+			namespace: ns,
+			setupRepo: true,
+			repoResult: &models.ManagedPipelinesData{
+				Pipelines: []models.ManagedPipeline{
+					{
+						PipelineType:      "autorag",
+						PipelineID:        "rag-id",
+						PipelineVersionID: "rag-ver",
+						DisplayName:       "documents-rag-optimization-pipeline",
+					},
+					{
+						PipelineType:      "indexing",
+						PipelineID:        "idx-id",
+						PipelineVersionID: "idx-ver",
+						DisplayName:       "documents-indexing-pipeline",
+					},
+				},
+			},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"pipeline_type": "indexing"`,
+		},
+		{
+			name:           "missing namespace",
+			namespace:      "",
+			setupRepo:      false,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "missing namespace",
+		},
+		{
+			name:           "repo no DSPA found",
+			namespace:      ns,
+			setupRepo:      true,
+			repoErr:        pipelines.ErrNoDSPAFound,
+			wantStatusCode: http.StatusNotFound,
+			wantBodySubstr: "Pipeline Server",
+		},
+		{
+			name:           "repo server error",
+			namespace:      ns,
+			setupRepo:      true,
+			repoErr:        errors.New("discovery failed"),
+			wantStatusCode: http.StatusInternalServerError,
+			wantBodySubstr: `"code": "500"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, repo := newTestPipelinesHandler()
+
+			if tt.setupRepo {
+				repo.On("ListManagedPipelines", mock.Anything, tt.namespace).
+					Return(tt.repoResult, tt.repoErr)
+			}
+
+			req := pipelineRequestWithNamespace(http.MethodGet, "/api/v1/managed-pipelines", tt.namespace, "")
+			rr := httptest.NewRecorder()
+
+			h.ListManagedPipelinesHandler(rr, req, httprouter.Params{})
+
+			assert.Equal(t, tt.wantStatusCode, rr.Code)
+			assert.Contains(t, rr.Body.String(), tt.wantBodySubstr)
 			repo.AssertExpectations(t)
 		})
 	}

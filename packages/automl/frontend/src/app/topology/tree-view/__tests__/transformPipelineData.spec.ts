@@ -61,7 +61,33 @@ describe('transformPipelineData', () => {
       status: 'ok',
       topology,
     });
-    expect(transformStageMapNodesToTreeMock).toHaveBeenCalledWith(stageMapNodes);
+    expect(transformStageMapNodesToTreeMock).toHaveBeenCalledWith(stageMapNodes, {
+      modelsExpanded: false,
+      winnerResolved: false,
+      winnerModelLabel: undefined,
+      winnerModelKey: undefined,
+    });
+  });
+
+  it('should pass expand and winner options through to the layout transform', () => {
+    transformStageMapNodesToTreeMock.mockReturnValue({ nodes: [], edges: [] });
+    const stageMapNodes = [makeNode('a')];
+
+    transformPipelineData(
+      {
+        stageMapNodes,
+        selectedModel: 'xgboost',
+        winnerModelLabel: 'XGBoost',
+      },
+      { modelsExpanded: true, winnerResolved: true },
+    );
+
+    expect(transformStageMapNodesToTreeMock).toHaveBeenCalledWith(stageMapNodes, {
+      modelsExpanded: true,
+      winnerResolved: true,
+      winnerModelLabel: 'XGBoost',
+      winnerModelKey: 'xgboost',
+    });
   });
 
   it('should return error status when transform throws instead of empty topology', () => {

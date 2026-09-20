@@ -1,13 +1,12 @@
 import {
-  k8sCreateResource,
-  k8sGetResource,
+  k8sDeleteResource,
   k8sListResourceItems,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { RoleModel } from '@odh-dashboard/k8s-core/api/models';
 import { K8sAPIOptions, RoleKind } from '#~/k8sTypes';
-import { RoleModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const generateRoleInferenceService = (
   roleName: string,
@@ -36,17 +35,23 @@ export const generateRoleInferenceService = (
   return role;
 };
 
-export const getRole = (namespace: string, roleName: string): Promise<RoleKind> =>
-  k8sGetResource({
-    model: RoleModel,
-    queryOptions: { name: roleName, ns: namespace },
-  });
-
-export const createRole = (data: RoleKind, opts?: K8sAPIOptions): Promise<RoleKind> =>
-  k8sCreateResource(applyK8sAPIOptions({ model: RoleModel, resource: data }, opts));
-
 export const updateRole = (data: RoleKind, opts?: K8sAPIOptions): Promise<RoleKind> =>
   k8sUpdateResource(applyK8sAPIOptions({ model: RoleModel, resource: data }, opts));
+
+export const deleteRole = (
+  roleName: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<RoleKind, K8sStatus>(
+    applyK8sAPIOptions(
+      {
+        model: RoleModel,
+        queryOptions: { name: roleName, ns: namespace },
+      },
+      opts,
+    ),
+  );
 
 export const listRoles = (namespace?: string, labelSelector?: string): Promise<RoleKind[]> => {
   const queryOptions = {

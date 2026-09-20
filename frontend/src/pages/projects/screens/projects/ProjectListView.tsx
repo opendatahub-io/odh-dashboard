@@ -13,6 +13,7 @@ import {
   initialProjectsFilterData,
   ProjectsFilterDataType,
 } from '#~/pages/projects/screens/projects/const';
+import useFilters from '#~/utilities/useFilters';
 import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';
@@ -39,8 +40,8 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     true,
   );
 
-  const [filterData, setFilterData] =
-    React.useState<ProjectsFilterDataType>(initialProjectsFilterData);
+  const { filterData, onFilterUpdate, onClearFilters } =
+    useFilters<ProjectsFilterDataType>(initialProjectsFilterData);
 
   const aiProjectNum = getAiProjects(projects).length;
   const fullProjectNum = projects.length;
@@ -67,16 +68,6 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
     [projects, filterData, projectFilter],
   );
 
-  const resetFilters = () => {
-    setFilterData(initialProjectsFilterData);
-  };
-
-  const onFilterUpdate = React.useCallback(
-    (key: string, value: string | { label: string; value: string } | undefined) =>
-      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
-    [setFilterData],
-  );
-
   const [deleteData, setDeleteData] = React.useState<ProjectKind | undefined>();
   const [editData, setEditData] = React.useState<ProjectKind | undefined>();
   const [refreshIds, setRefreshIds] = React.useState<string[]>([]);
@@ -89,7 +80,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
         defaultSortColumn={0}
         data={filteredProjects}
         columns={columns}
-        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
         data-testid="project-view-table"
         rowRenderer={(project) => (
           <ProjectTableRow
@@ -101,7 +92,7 @@ const ProjectListView: React.FC<ProjectListViewProps> = ({ allowCreate }) => {
             currentProjectFilterType={projectFilter}
           />
         )}
-        onClearFilters={resetFilters}
+        onClearFilters={onClearFilters}
         toolbarContent={
           <ProjectsToolbar
             setProjectFilter={setProjectFilter}

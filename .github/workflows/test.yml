@@ -10,6 +10,8 @@ concurrency:
 env:
   NODE_VERSION: 22
   DO_NOT_TRACK: 1
+  # Check if the PR is a draft to disable coverage reporting/upload
+  IS_DRAFT: ${{ github.event.pull_request.draft }}
 jobs:
   Setup:
     runs-on: ubuntu-latest
@@ -34,9 +36,13 @@ jobs:
       - name: Check for uncommitted changes
         run: git diff --exit-code
 
-  Type-Check:
-    needs: Setup
+  Quality-Gate:
+    needs: [Setup]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        check: [lint, type-check]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -49,44 +55,27 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
       - name: Cache turbo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-type-check-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-type-check-
-      - name: Run type checks
-        run: npm run type-check
-
-  Lint:
-    needs: Setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
-      - name: Cache turbo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-lint-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-lint-
-      - name: Run linting and formatting checks
-        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-
+      - name: Run ${{ matrix.check }}
+        run: |
+          if [ "${{ matrix.check }}" = "lint" ]; then
+            NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+          else
+            npm run type-check
+          fi
 
   Unit-Tests:
-    needs: [Setup, Lint, Type-Check]
+    needs: [Setup]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -98,17 +87,40 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Cache turbo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             **/.turbo
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
+      - name: Abort if quality gate already failed
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data } = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id: context.runId,
+            });
+            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const failed = gates.filter(j =>
+              j.conclusion === 'failure' || j.conclusion === 'cancelled'
+            );
+            if (failed.length > 0) {
+              core.setFailed(
+                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+              );
+              return;
+            }
+            const status = gates.map(j =>
+              `${j.name}=${j.conclusion || 'in_progress'}`
+            );
+            core.info(`Quality gates: ${status.join(', ')}`);
       - name: Unit tests with coverage
         run: |
           npm run test-unit-coverage
       - name: Upload unit test coverage
+        if: env.IS_DRAFT != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: unit-coverage
@@ -146,8 +158,11 @@ jobs:
           echo "$TEST_GROUPS" | jq .
 
   Contract-Tests:
-    needs: [Setup, Lint, Type-Check]
+    needs: [Setup]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -164,11 +179,33 @@ jobs:
             packages/mlflow/bff/go.sum
             distributions/core-bff/bff/go.sum
       - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - name: Module caches
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - name: Abort if quality gate already failed
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data } = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id: context.runId,
+            });
+            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const failed = gates.filter(j =>
+              j.conclusion === 'failure' || j.conclusion === 'cancelled'
+            );
+            if (failed.length > 0) {
+              core.setFailed(
+                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+              );
+              return;
+            }
+            const status = gates.map(j =>
+              `${j.name}=${j.conclusion || 'in_progress'}`
+            );
+            core.info(`Quality gates: ${status.join(', ')}`);
       - name: Run contract tests
         run: |
           export GITHUB_RUN_ID="$GITHUB_RUN_ID"
@@ -244,7 +281,7 @@ jobs:
           github-token: ${{ github.token }}
 
   Cypress-Mock-Tests:
-    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
+    needs: [Setup, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -272,6 +309,28 @@ jobs:
           mode: restore
           packages: ${{ needs.Get-Cypress-Packages.outputs.packages }}
           github-token: ${{ github.token }}
+      - name: Abort if quality gate already failed
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data } = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id: context.runId,
+            });
+            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const failed = gates.filter(j =>
+              j.conclusion === 'failure' || j.conclusion === 'cancelled'
+            );
+            if (failed.length > 0) {
+              core.setFailed(
+                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+              );
+              return;
+            }
+            const status = gates.map(j =>
+              `${j.name}=${j.conclusion || 'in_progress'}`
+            );
+            core.info(`Quality gates: ${status.join(', ')}`);
       - name: Run Cypress Mock tests
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}
@@ -290,6 +349,7 @@ jobs:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
           path: ./packages/cypress/results/mocked
       - name: Upload Cypress coverage
+        if: env.IS_DRAFT != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
@@ -298,6 +358,9 @@ jobs:
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -305,17 +368,21 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
+        if: env.IS_DRAFT != 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: all-artifacts
       - name: Install dependencies
+        if: env.IS_DRAFT != 'true'
         run: npm install nyc --no-save
 
       - name: Prepare unit coverage
+        if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./unit-coverage
           cp all-artifacts/unit-coverage/coverage-final.json ./unit-coverage/coverage-final.json || true
       - name: Upload unit coverage to Codecov
+        if: env.IS_DRAFT != 'true'
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -327,6 +394,7 @@ jobs:
           verbose: true
 
       - name: Merge Cypress coverage reports
+        if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./cypress-coverage
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
@@ -339,6 +407,7 @@ jobs:
           ls -la ./cypress-coverage/
           npx nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
       - name: Upload Cypress mock coverage to Codecov
+        if: env.IS_DRAFT != 'true'
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -350,6 +419,7 @@ jobs:
           verbose: true
 
       - name: Combine all coverage reports
+        if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./coverage
           cp ./unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
@@ -358,10 +428,12 @@ jobs:
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
+        if: env.IS_DRAFT != 'true'
         run: |
           mkdir -p ./coverage/report
           npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
       - name: Upload combined results
+        if: env.IS_DRAFT != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: combined-coverage-results
@@ -371,8 +443,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     needs:
-      - Lint
-      - Type-Check
+      - Quality-Gate
       - Unit-Tests
       - Contract-Tests
       - Cypress-Mock-Tests

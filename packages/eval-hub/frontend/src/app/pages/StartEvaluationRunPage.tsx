@@ -45,6 +45,7 @@ import {
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import FormGroupLabel from '~/app/components/FormGroupLabel';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
@@ -52,6 +53,7 @@ import SourceModelFields from '~/app/components/SourceModelFields';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import type { SourceMode } from '~/app/types';
+import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import {
   useStartEvaluationRunForm,
@@ -67,11 +69,27 @@ const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
   { value: 'prerecorded', label: 'Pre-recorded responses' },
 ];
 
-const StartEvaluationRunPage: React.FC = () => {
-  const { namespace } = useParams<{ namespace: string }>();
+type StartEvaluationRunPageProps = {
+  initialValues?: ReconfigureFormData;
+  sourceJobId?: string;
+};
 
-  const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
-    useEvaluationSelection(namespace);
+const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
+  initialValues,
+  sourceJobId,
+}) => {
+  const { namespace } = useParams<{ namespace: string }>();
+  const isReconfigure = !!sourceJobId;
+
+  const selectionResult = useEvaluationSelection(namespace, isReconfigure);
+
+  const benchmark = isReconfigure ? initialValues?.benchmark : selectionResult.benchmark;
+  const collection = isReconfigure ? initialValues?.collection : selectionResult.collection;
+  const isCollectionFlow = isReconfigure
+    ? (initialValues?.isCollectionFlow ?? false)
+    : selectionResult.isCollectionFlow;
+  const dataLoaded = isReconfigure ? true : selectionResult.dataLoaded;
+  const loadError = isReconfigure ? undefined : selectionResult.loadError;
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',
@@ -91,9 +109,51 @@ const StartEvaluationRunPage: React.FC = () => {
     isCollectionFlow,
     experiments,
     experimentsLoaded,
+    initialValues,
   });
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
+
+  const getBreadcrumbItems = (): React.ReactElement[] => {
+    const items: React.ReactElement[] = [
+      <BreadcrumbItem
+        key="evaluations"
+        render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
+      />,
+    ];
+    if (isReconfigure) {
+      items.push(
+        <BreadcrumbItem key="active" isActive>
+          Reconfigure evaluation
+        </BreadcrumbItem>,
+      );
+    } else {
+      items.push(
+        <BreadcrumbItem
+          key="type"
+          render={() => <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>}
+        />,
+        <BreadcrumbItem
+          key="suite"
+          render={() => (
+            <Link
+              to={
+                isCollectionFlow
+                  ? evaluationCollectionsRoute(namespace)
+                  : evaluationBenchmarksRoute(namespace)
+              }
+            >
+              {breadcrumbFlowLabel}
+            </Link>
+          )}
+        />,
+        <BreadcrumbItem key="active" isActive>
+          Start evaluation run
+        </BreadcrumbItem>,
+      );
+    }
+    return items;
+  };
 
   // ── Source dropdown state ────────────────────────────────────────────
 
@@ -169,30 +229,7 @@ const StartEvaluationRunPage: React.FC = () => {
   return (
     <ApplicationsPage
       noHeader
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-          />
-          <BreadcrumbItem
-            render={() => <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>}
-          />
-          <BreadcrumbItem
-            render={() => (
-              <Link
-                to={
-                  isCollectionFlow
-                    ? evaluationCollectionsRoute(namespace)
-                    : evaluationBenchmarksRoute(namespace)
-                }
-              >
-                {breadcrumbFlowLabel}
-              </Link>
-            )}
-          />
-          <BreadcrumbItem isActive>Start evaluation run</BreadcrumbItem>
-        </Breadcrumb>
-      }
+      breadcrumb={<Breadcrumb>{getBreadcrumbItems()}</Breadcrumb>}
       loaded
       empty={false}
     >
@@ -202,7 +239,7 @@ const StartEvaluationRunPage: React.FC = () => {
           data-testid="app-page-title"
           style={{ marginBlockStart: 0, marginBlockEnd: 0 }}
         >
-          Start evaluation run
+          {isReconfigure ? 'Reconfigure evaluation' : 'Start evaluation run'}
         </Content>
         <Form style={{ maxWidth: 700 }} data-testid="start-evaluation-form">
           {/* ── Evaluation name ─────────────────────────────────── */}
@@ -279,9 +316,19 @@ const StartEvaluationRunPage: React.FC = () => {
           </FormGroup>
 
           {/* ── Source dropdown ─────────────────────────────────── */}
-          <FormGroup label="Source" isRequired fieldId="source-mode">
+          <FormGroup
+            className="evalhub-form-group--with-description"
+            label={
+              <FormGroupLabel
+                label="Evaluating"
+                description="Select the model, agent, or dataset to evaluate."
+                isRequired
+              />
+            }
+            fieldId="source-mode"
+          >
             <Select
-              id="source-mode"
+              id="source-mode-menu"
               data-testid="source-mode-select"
               isOpen={isSourceOpen}
               selected={form.sourceMode}
@@ -289,6 +336,7 @@ const StartEvaluationRunPage: React.FC = () => {
               onOpenChange={setIsSourceOpen}
               toggle={(toggleRef) => (
                 <MenuToggle
+                  id="source-mode"
                   ref={toggleRef}
                   onClick={() => setIsSourceOpen((prev) => !prev)}
                   isExpanded={isSourceOpen}
@@ -317,18 +365,23 @@ const StartEvaluationRunPage: React.FC = () => {
           {/* ── Model mode: model picker ───────────────────────── */}
           {form.sourceMode === 'model' && (
             <FormGroup
-              label="Model"
-              isRequired
-              fieldId="model-picker"
-              labelHelp={
-                <LabelHelpPopover
-                  ariaLabel="More info for model selection"
-                  content="Select a deployed model from your namespace, or choose 'Other (External endpoint)' to enter an external model URL."
+              className="evalhub-form-group--with-description"
+              label={
+                <FormGroupLabel
+                  label="Model"
+                  description="Select a model from your project's AI asset endpoints, or specify an external endpoint."
+                  isRequired
+                  helpPopover={{
+                    ariaLabel: 'More info for model selection',
+                    content:
+                      'The list contains models that have been published as AI asset endpoints in this project.',
+                  }}
                 />
               }
+              fieldId="model-picker"
             >
               <Select
-                id="model-picker"
+                id="model-picker-menu"
                 data-testid="model-picker-select"
                 isOpen={isModelOpen}
                 selected={
@@ -340,6 +393,7 @@ const StartEvaluationRunPage: React.FC = () => {
                 onOpenChange={setIsModelOpen}
                 toggle={(toggleRef) => (
                   <MenuToggle
+                    id="model-picker"
                     ref={toggleRef}
                     onClick={() => setIsModelOpen((prev) => !prev)}
                     isExpanded={isModelOpen}
@@ -463,9 +517,6 @@ const StartEvaluationRunPage: React.FC = () => {
               datasetUrlError={form.datasetUrlError}
               touched={form.touched}
               markTouched={form.markTouched}
-              connectionValidation={form.connectionValidation}
-              canVerifyConnection={form.canVerifyConnection}
-              onVerifyConnection={form.handleVerifyConnection}
             />
           )}
 

@@ -1,6 +1,8 @@
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
-import { deletePvc, deleteSecret, listNIMAccounts, listServingRuntimes, getPvc } from '#~/api';
+import { deletePvc, listNIMAccounts, listServingRuntimes, getPvc } from '#~/api';
 import {
   checkPVCUsage,
   fetchNIMAccountTemplateName,
@@ -8,14 +10,15 @@ import {
   updateServingRuntimeTemplate,
 } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
-import { mockServingRuntimeK8sResource } from '#~/__mocks__';
 
 jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   fetchInferenceServiceCount: jest.fn(),
 }));
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
+  deleteSecret: jest.fn(),
+}));
 jest.mock('#~/api', () => ({
   deletePvc: jest.fn(),
-  deleteSecret: jest.fn(),
   listNIMAccounts: jest.fn(),
   listServingRuntimes: jest.fn(),
   getPvc: jest.fn(),

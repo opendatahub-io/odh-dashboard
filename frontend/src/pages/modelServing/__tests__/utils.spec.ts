@@ -6,6 +6,18 @@ import type {
   CreatingServingRuntimeObject,
 } from '@odh-dashboard/model-serving/shared';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import {
+  createServiceAccount,
+  getServiceAccount,
+} from '@odh-dashboard/k8s-core/api/serviceAccounts';
+import { createRole, getRole } from '@odh-dashboard/k8s-core/api/roles';
+import { createRoleBinding, getRoleBinding } from '@odh-dashboard/k8s-core/api/roleBindings';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
+import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import {
   getInferenceServiceSizeOrReturnEmpty,
   getServingRuntimeOrReturnEmpty,
@@ -19,33 +31,46 @@ import {
   getServingRuntimeVersionStatus,
   isModelServerEditInfoChanged,
 } from '#~/pages/modelServing/utils';
-import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
-import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
-import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
-import {
-  createRole,
-  createRoleBinding,
-  createSecret,
-  createServiceAccount,
-  getRole,
-  getRoleBinding,
-  getServiceAccount,
-} from '#~/api';
-import { mock404Error } from '#~/__mocks__/mockK8sStatus';
-import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 import { ServingRuntimeVersionStatusLabel } from '#~/pages/modelServing/screens/const';
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 
-jest.mock('#~/api', () => ({
-  ...jest.requireActual('#~/api'),
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
+  assembleSecretSA: jest.fn(),
+  deleteSecret: jest.fn(),
+  replaceSecret: jest.fn(),
+  createSecret: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/k8s-core/api/serviceAccounts', () => ({
+  assembleServiceAccount: jest.fn((name: string, namespace: string) => ({
+    metadata: { name, namespace },
+  })),
   getServiceAccount: jest.fn(),
   createServiceAccount: jest.fn(),
-  getRoleBinding: jest.fn(),
-  createRoleBinding: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/k8s-core/api/roles', () => ({
   getRole: jest.fn(),
   createRole: jest.fn(),
-  createSecret: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/k8s-core/api/roleBindings', () => ({
+  generateRoleBindingServiceAccount: jest.fn((name: string, namespace: string) => ({
+    metadata: { name, namespace },
+  })),
+  getRoleBinding: jest.fn(),
+  createRoleBinding: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/k8s-core/api/k8sUtils', () => ({
+  addOwnerReference: jest.fn((resource: unknown) => resource),
+}));
+
+jest.mock('#~/api', () => ({
+  generateRoleInferenceService: jest.fn((name: string, namespace: string) => ({
+    metadata: { name, namespace },
+  })),
 }));
 
 describe('resourcesArePositive', () => {

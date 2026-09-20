@@ -32,4 +32,12 @@ describe('Home page Resources section', () => {
     homeResourceSection.findGoToResourceLink().click();
     verifyRelativeURL('/learning-resources');
   });
+  it('should keep the section header visibile when an error occurs', () => {
+    cy.interceptOdh('GET /api/docs', { statusCode: 500 });
+    homePage.visit();
+
+    const homeResourceSection = homePage.getHomeResourceSection();
+    homeResourceSection.findErrorState().should('be.visible');
+    homeResourceSection.findSectionHeading().should('be.visible');
+  });
 });

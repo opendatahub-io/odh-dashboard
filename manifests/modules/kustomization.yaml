@@ -9,3 +9,5 @@ resources:
   - automl
   - autorag
   - agent-ops
+  - notebooks
+  - data-registry

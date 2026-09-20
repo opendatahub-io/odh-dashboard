@@ -1,7 +1,7 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { PodModel } from '@odh-dashboard/internal/api/models/index';
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { getPodsForTrainJob } from '../pods';
 import { mockTrainJobK8sResource } from '../../__mocks__/mockTrainJobK8sResource';
 

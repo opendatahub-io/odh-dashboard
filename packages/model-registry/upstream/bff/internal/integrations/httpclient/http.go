@@ -16,9 +16,19 @@ import (
 
 type HTTPClientInterface interface {
 	GET(url string) ([]byte, error)
+	GETRaw(url string) (*RawResponse, error)
 	POST(url string, body io.Reader) ([]byte, error)
 	POSTWithContentType(url string, body io.Reader, contentType string) ([]byte, error)
 	PATCH(url string, body io.Reader) ([]byte, error)
+}
+
+// RawResponse is an unprocessed upstream response. Unlike GET, it preserves the
+// status code and headers and does not treat non-200 responses as errors, so
+// callers can faithfully proxy binary payloads (e.g. logo images) and redirects.
+type RawResponse struct {
+	StatusCode int
+	Header     http.Header
+	Body       []byte
 }
 
 type HTTPClient struct {
@@ -115,6 +125,50 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func (c *HTTPClient) GETRaw(url string) (*RawResponse, error) {
+	requestId := uuid.NewString()
+
+	fullURL := c.baseURL + url
+	req, err := http.NewRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	c.applyHeaders(req)
+
+	logUpstreamReq(c.logger, requestId, req)
+
+	// Use a redirect-disabled client so upstream 3xx responses are returned as-is
+	// (ErrUseLastResponse yields the redirect response instead of following it). This
+	// lets us proxy the catalog logo endpoint faithfully: image bytes for inline
+	// data-URI logos, or a pass-through redirect for plain external URLs. It reuses the
+	// shared Transport without mutating the shared client's redirect policy.
+	noRedirectClient := &http.Client{
+		Transport: c.client.Transport,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	response, err := noRedirectClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	logUpstreamResp(c.logger, requestId, response, body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	return &RawResponse{
+		StatusCode: response.StatusCode,
+		Header:     response.Header,
+		Body:       body,
+	}, nil
 }
 
 func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {

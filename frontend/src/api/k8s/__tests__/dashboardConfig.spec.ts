@@ -1,6 +1,6 @@
 import { k8sGetResource, k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
   getDashboardConfig,
   getDashboardConfigTemplateDisablement,

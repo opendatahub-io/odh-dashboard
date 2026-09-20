@@ -120,13 +120,9 @@ func (r *MockSubscriptionsRepository) DeleteSubscription(_ context.Context, name
 	return k8sErrors.NewNotFound(constants.MaaSSubscriptionGvr.GroupResource(), name)
 }
 
-func (r *MockSubscriptionsRepository) GetFormData(_ context.Context) (*models.SubscriptionFormDataResponse, error) {
-	r.logger.Debug("Getting subscription form data (mock)")
-	return &models.SubscriptionFormDataResponse{
-		Groups:        mocks.GetMockGroups(),
-		ModelRefs:     mocks.GetMockMaaSModelRefSummaries(),
-		Subscriptions: mocks.GetMockMaaSSubscriptions(),
-	}, nil
+func (r *MockSubscriptionsRepository) ListGroups(_ context.Context) ([]string, error) {
+	r.logger.Debug("Listing groups (mock)")
+	return mocks.GetMockGroups(), nil
 }
 
 func (r *MockSubscriptionsRepository) GetAuthPoliciesForSubscription(_ context.Context, subscriptionName string) ([]models.MaaSAuthPolicy, error) {

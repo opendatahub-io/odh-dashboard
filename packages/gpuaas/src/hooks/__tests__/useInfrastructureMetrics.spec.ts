@@ -4,6 +4,7 @@ import { PrometheusQueryResponse } from '@odh-dashboard/internal/types';
 import useInfrastructureMetrics from '../useInfrastructureMetrics';
 import {
   INFRASTRUCTURE_REFRESH_INTERVAL,
+  PROMETHEUS_CLUSTER_QUERY_PATH,
   PROMQL_ACCELERATOR_ALLOCATABLE,
   PROMQL_ACCELERATOR_IN_USE,
   PROMQL_COMPUTE_UTILIZATION,
@@ -91,43 +92,43 @@ describe('useInfrastructureMetrics', () => {
     expect(usePrometheusQueryMock).toHaveBeenCalledTimes(QUERY_COUNT);
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
       1,
-      '/api/prometheus/query',
+      PROMETHEUS_CLUSTER_QUERY_PATH,
       PROMQL_ACCELERATOR_ALLOCATABLE,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
       2,
-      '/api/prometheus/query',
+      PROMETHEUS_CLUSTER_QUERY_PATH,
       PROMQL_ACCELERATOR_IN_USE,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
       3,
-      '/api/prometheus/query',
+      PROMETHEUS_CLUSTER_QUERY_PATH,
       PROMQL_COMPUTE_UTILIZATION,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
       4,
-      '/api/prometheus/query',
+      PROMETHEUS_CLUSTER_QUERY_PATH,
       PROMQL_MEMORY_UTILIZATION,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
       5,
-      '/api/prometheus/query',
+      PROMETHEUS_CLUSTER_QUERY_PATH,
       PROMQL_HARDWARE_TOTAL,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
       6,
-      '/api/prometheus/query',
+      PROMETHEUS_CLUSTER_QUERY_PATH,
       PROMQL_HARDWARE_IN_USE,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
       7,
-      '/api/prometheus/query',
+      PROMETHEUS_CLUSTER_QUERY_PATH,
       PROMQL_HARDWARE_NODE_LABELS,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
@@ -137,6 +138,21 @@ describe('useInfrastructureMetrics', () => {
     expect(renderResult.result.current.computeUtilization).toBeNull();
     expect(renderResult.result.current.memoryUtilization).toBeNull();
     expect(renderResult.result.current.hardwareUsage).toBeNull();
+  });
+
+  it('should set lastRefreshed once after initial load and preserve it during polling', () => {
+    const initialState = loadedState(EMPTY_PROM_RESPONSE);
+    const polledState = loadedState(EMPTY_PROM_RESPONSE);
+    setupMocks([...Array(QUERY_COUNT).fill(initialState), ...Array(QUERY_COUNT).fill(polledState)]);
+
+    const renderResult = testHook(useInfrastructureMetrics)();
+    const initialLastRefreshed = renderResult.result.current.lastRefreshed;
+
+    expect(initialLastRefreshed).toEqual(expect.any(Date));
+
+    renderResult.rerender();
+
+    expect(renderResult.result.current.lastRefreshed).toBe(initialLastRefreshed);
   });
 
   it.each([

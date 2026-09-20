@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, CardTitle, Tooltip } from '@patternfly/react-core';
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { isRedHatSupported } from '#~/utilities/utils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { FeatureStoreKind } from '../k8sTypes';
 import { listFeatureStores } from '../api/featureStores';
 import {
@@ -21,7 +22,14 @@ type UseExistingFeatureStoresReturn = {
   refresh: () => void;
 };
 
-const useExistingFeatureStores = (): UseExistingFeatureStoresReturn => {
+type UseExistingFeatureStoresOptions = {
+  poll?: boolean;
+};
+
+const useExistingFeatureStores = (
+  options?: UseExistingFeatureStoresOptions,
+): UseExistingFeatureStoresReturn => {
+  const enablePolling = options?.poll ?? false;
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const [featureStores, setFeatureStores] = React.useState<FeatureStoreKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
@@ -35,7 +43,7 @@ const useExistingFeatureStores = (): UseExistingFeatureStoresReturn => {
       return;
     }
     let cancelled = false;
-    setLoaded(false);
+    let pollTimeout: ReturnType<typeof setTimeout> | undefined;
     setError(undefined);
 
     const fetchAll = async () => {
@@ -78,14 +86,21 @@ const useExistingFeatureStores = (): UseExistingFeatureStoresReturn => {
           setError(e instanceof Error ? e : new Error(String(e)));
           setLoaded(true);
         }
+      } finally {
+        if (!cancelled && enablePolling) {
+          pollTimeout = setTimeout(() => setRefreshKey((k) => k + 1), POLL_INTERVAL);
+        }
       }
     };
 
     fetchAll();
     return () => {
       cancelled = true;
+      if (pollTimeout) {
+        clearTimeout(pollTimeout);
+      }
     };
-  }, [projects, projectsLoaded, refreshKey]);
+  }, [projects, projectsLoaded, refreshKey, enablePolling]);
 
   const existingProjectNames = React.useMemo(
     () => featureStores.map((fs) => fs.spec.feastProject),

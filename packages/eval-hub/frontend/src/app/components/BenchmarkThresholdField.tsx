@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { FormGroup, Slider, type SliderOnChangeEvent } from '@patternfly/react-core';
-import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import FormGroupLabel from '~/app/components/FormGroupLabel';
+import './BenchmarkThresholdField.scss';
 
 type BenchmarkThresholdFieldProps = {
   value: number;
   onChange: (value: number) => void;
   label?: string;
+  description?: string;
   helpText?: string;
   fieldId?: string;
 };
@@ -14,7 +16,8 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
   value,
   onChange,
   label = 'Benchmark threshold',
-  helpText = 'Set the minimum passing score for this evaluation. Results below this threshold will be marked as failing.',
+  helpText,
+  description = 'Set the minimum passing score for this evaluation. Results below this threshold will be marked as failing.',
   fieldId = 'benchmark-threshold',
 }) => {
   const [sliderValue, setSliderValue] = React.useState(value);
@@ -55,11 +58,19 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
 
   return (
     <FormGroup
-      label={label}
-      fieldId={fieldId}
-      labelHelp={
-        <LabelHelpPopover ariaLabel={`More info for ${label.toLowerCase()}`} content={helpText} />
+      className="evalhub-form-group--with-description"
+      label={
+        <FormGroupLabel
+          label={label}
+          description={description}
+          helpPopover={
+            helpText
+              ? { ariaLabel: `More info for ${label.toLowerCase()}`, content: helpText }
+              : undefined
+          }
+        />
       }
+      fieldId={fieldId}
     >
       <Slider
         data-testid={fieldId}

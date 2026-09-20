@@ -1,14 +1,14 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockServingRuntimeTemplateK8sResource,
   mockStandardModelServingTemplateK8sResources,
-} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+} from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   IdentifierResourceType,
   KnownLabels,
@@ -23,29 +23,31 @@ import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
-} from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   mockCustomSecretK8sResource,
   mockURISecretK8sResource,
   mockSecretK8sResource,
-} from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+} from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,
 } from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
+import {
+  RoleBindingModel,
+  RoleModel,
+  SecretModel,
+  ServiceAccountModel,
+} from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
   LLMInferenceServiceModel,
   ProjectModel,
   PVCModel,
-  RoleBindingModel,
-  RoleModel,
-  SecretModel,
-  ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
@@ -724,7 +726,6 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenWarningAlert().should('exist');
 
     //Configuration Parameters
-    modelServingWizard.findRuntimeArgsCheckbox().should('exist').click();
     modelServingWizard.findRuntimeArgsTextBox().type('--arg=value1');
     modelServingWizard.findEnvVariablesCheckbox().should('exist').click();
     modelServingWizard.findAddVariableButton().should('exist').click();

@@ -3,7 +3,9 @@
   "name": "@odh-dashboard/kserve",
   "description": "KServe model serving platform extension",
   "version": "0.0.0",
-  "e2eCiTags": ["@KServeCI"],
+  "e2eCiTags": [
+    "@KServeCI"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -14,8 +16,13 @@
   },
   "exports": {
     "./extensions": "./extensions.ts",
+    "./deploy": "./src/deploy.ts",
+    "./deployments": "./src/deployments.ts",
     "./deployUtils": "./src/deployUtils.ts",
-    "./deploymentEndpoints": "./src/deploymentEndpoints.ts"
+    "./pvcDependents": "./src/clusterStorage/connectedResources.tsx",
+    "./deploymentEndpoints": "./src/deploymentEndpoints.ts",
+    "./types": "./src/types.ts",
+    "./hfTokenSecret": "./src/hfTokenSecret.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",
@@ -23,7 +30,6 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-serving": "*",
-
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*",
     "zod": "^3.25.76"

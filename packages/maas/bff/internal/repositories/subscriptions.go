@@ -224,9 +224,10 @@ func (r *SubscriptionsRepository) DeleteSubscription(ctx context.Context, name s
 	return nil
 }
 
-// GetFormData returns groups, model refs, and all subscriptions for the subscription creation form.
-func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.SubscriptionFormDataResponse, error) {
-	r.logger.Debug("Getting subscription form data")
+// ListGroups returns OpenShift group names for form dropdowns.
+// Falls back to system:authenticated when the groups API is unavailable (e.g. BYOOIDC).
+func (r *SubscriptionsRepository) ListGroups(ctx context.Context) ([]string, error) {
+	r.logger.Debug("Listing groups")
 
 	client, err := r.k8sFactory.GetClient(ctx)
 	if err != nil {
@@ -235,23 +236,13 @@ func (r *SubscriptionsRepository) GetFormData(ctx context.Context) (*models.Subs
 
 	kubeClient := client.GetDynamicClient()
 
-	// Fetch groups from OpenShift (may not exist with BYOOIDC)
 	groups, err := r.listGroups(ctx, kubeClient)
 	if err != nil {
 		r.logger.Warn("Failed to list groups, falling back to system:authenticated", slog.Any("error", err))
-		groups = []string{"system:authenticated"}
+		return []string{"system:authenticated"}, nil
 	}
 
-	// Fetch model refs
-	modelRefs, err := listAllModelRefSummaries(ctx, r.logger, kubeClient)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MaaSModelRefs: %w", err)
-	}
-
-	return &models.SubscriptionFormDataResponse{
-		Groups:    groups,
-		ModelRefs: modelRefs,
-	}, nil
+	return groups, nil
 }
 
 // GetAuthPoliciesForSubscription returns MaaSAuthPolicy resources associated with a subscription.

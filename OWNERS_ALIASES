@@ -21,6 +21,7 @@ aliases:
     - nickmazzi
     - paulovmr
     - caponetto
+    - danreed-rh
 
   # Backup alias for managers to help with unblocking during PTO
   managers-backup-approvers:
@@ -65,6 +66,7 @@ aliases:
   model-registry-catalog-approvers:
     - mturley
     - YuliaKrimerman
+    - ppadti
   model-registry-catalog-reviewers:
     - manaswinidas
     - mturley
@@ -123,6 +125,8 @@ aliases:
     - nikhils-2
     - jefho-rh
     - tamdavid-git
+    - ikeola13
+    - NickGagan
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
@@ -132,6 +136,8 @@ aliases:
     - jefho-rh
     - tamdavid-git
     - zahra-j6
+    - ikeola13
+    - NickGagan
 
   # Workbenches (formerly Notebooks)
   workbenches-approvers:
@@ -184,6 +190,9 @@ aliases:
     - ederign
     - harshad16
     - paulovmr
+    - thaorell
+    - jesuino
+    - bobbravo2 
   notebooks-reviewers:
     - andyatmiami
     - ederign
@@ -192,6 +201,8 @@ aliases:
     - caponetto
     - jenny-s51
     - thaorell
+    - jesuino
+    - bobbravo2
 
   # NIM / Ecosystem Engineering
   nim-serving-approvers:
@@ -247,15 +258,12 @@ aliases:
 
   # Eval Hub
   eval-hub-approvers:
-    - ikeola13
-    - pnaik1
     - ederign
     - chrjones-rh
     - nickmazzi
+    - jefho-rh
 
   eval-hub-reviewers:
-    - ikeola13
-    - pnaik1
     - ederign
     - chrjones-rh
     - nickmazzi
@@ -276,6 +284,29 @@ aliases:
     - paulovmr
   distributions-reviewers:
     - jenny-s51
+
+  # Data Registry
+  data-registry-approvers:
+    - briangallagher
+    - Fiona-Waters
+    - MStokluska
+  data-registry-reviewers:
+    - briangallagher
+    - Fiona-Waters
+    - MStokluska
+    - Slowlybomb
+
+  # Data Connect Hub
+  data-connect-hub-approvers:
+    - chrjones-rh
+    - tamdavid-git
+    - GAUNSD
+    - MatthewAThompson
+  data-connect-hub-reviewers:
+    - chrjones-rh
+    - tamdavid-git
+    - GAUNSD
+    - MatthewAThompson
 
   # MLflow
   mlflow-approvers:

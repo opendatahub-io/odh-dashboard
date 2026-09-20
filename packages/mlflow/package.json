@@ -23,10 +23,15 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@MLflowCI"],
+  "e2eCiTags": [
+    "@MLflowCI"
+  ],
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
   "scripts": {
     "install:module": "npm install --prefix frontend",
-    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --auth-method=disabled' odh-ct-bff-consumer --bff-dir bff",
+    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --mock-bff-clients --auth-method=disabled' odh-ct-bff-consumer --bff-dir bff",
     "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9110 -s -L",
@@ -44,6 +49,7 @@
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"

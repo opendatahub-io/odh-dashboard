@@ -1,11 +1,10 @@
 /* eslint-disable camelcase */
-import {
-  mockDataSciencePipelineApplicationK8sResource,
-  mockK8sResourceList,
-  mockSecretK8sResource,
-  mockDashboardConfig,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockDataSciencePipelineApplicationK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { DSPipelineAPIServerStore } from '@odh-dashboard/internal/k8sTypes.ts';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { projectName, initIntercepts } from './pipelinesTestUtils';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import {
@@ -14,7 +13,7 @@ import {
   managePipelineServerModal,
 } from '../../../pages/pipelines';
 import { deleteModal } from '../../../pages/components/DeleteModal';
-import { DataSciencePipelineApplicationModel, SecretModel } from '../../../utils/models';
+import { DataSciencePipelineApplicationModel } from '../../../utils/models';
 import { toastNotifications } from '../../../pages/components/ToastNotifications';
 
 describe('Pipeline Server', () => {

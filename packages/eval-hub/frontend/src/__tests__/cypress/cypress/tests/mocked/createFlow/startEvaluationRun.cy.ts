@@ -18,7 +18,7 @@ const API_VERSION = { apiVersion: CLIENT_API_VERSION };
 const mockMlflowExperiments = (experiments: { id: string; name: string }[] = []) => {
   cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
     body: { data: { experiments } },
-  });
+  }).as('mlflowExperiments');
 };
 
 const mockInferenceServices = (
@@ -27,7 +27,7 @@ const mockInferenceServices = (
     url?: string;
     ready: boolean;
     model_format_name?: string;
-    api_protocol?: string;
+    api_protocol?: 'REST' | 'gRPC';
   }[] = [],
 ) => {
   cy.interceptApi('GET /api/:apiVersion/inferenceservices', { path: API_VERSION }, { items });
@@ -257,15 +257,15 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('exist');
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'accuracy');
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'Accuracy');
   });
 
   it('should allow changing the primary scorer metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'f1' }).click();
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'f1');
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'F1');
   });
 
   it('should include pass_criteria in submission when threshold is set from metadata', () => {
@@ -341,7 +341,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'f1' }).click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
@@ -525,12 +525,71 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     mockMlflowExperiments([{ id: 'exp-1', name: 'EvalHub' }]);
 
     navigateToBenchmarkStart();
+    cy.wait('@mlflowExperiments');
 
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
     startEvaluationRunPage.findExperimentModeNew().click();
     startEvaluationRunPage.findNewExperimentNameInput().should('exist');
     startEvaluationRunPage.findNewExperimentNameInput().clear().type('My New Experiment');
     startEvaluationRunPage.findNewExperimentNameInput().should('have.value', 'My New Experiment');
+  });
+
+  it('should keep new mode selected when experiments arrive after user switches', () => {
+    let resolveExperiments: ((value: unknown) => void) | undefined;
+    const delayed = new Promise((resolve) => {
+      resolveExperiments = resolve;
+    });
+
+    cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+      return delayed.then(() => {
+        req.reply({
+          body: { data: { experiments: [{ id: 'exp-1', name: 'EvalHub' }] } },
+        });
+      });
+    }).as('mlflowExperimentsDelayed');
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findExperimentModeNew().click();
+    startEvaluationRunPage.findExperimentModeNew().should('be.checked');
+
+    cy.then(() => {
+      resolveExperiments!(undefined);
+    });
+
+    cy.wait('@mlflowExperimentsDelayed');
+
+    startEvaluationRunPage.findExperimentModeNew().should('be.checked');
+    startEvaluationRunPage.findExperimentModeExisting().should('not.be.checked');
+  });
+
+  it('should select an existing experiment when switching back while experiments load', () => {
+    let resolveExperiments: ((value: unknown) => void) | undefined;
+    const delayed = new Promise((resolve) => {
+      resolveExperiments = resolve;
+    });
+
+    cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+      return delayed.then(() => {
+        req.reply({
+          body: { data: { experiments: [{ id: 'exp-1', name: 'EvalHub' }] } },
+        });
+      });
+    }).as('mlflowExperimentsDelayed');
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findExperimentModeNew().click();
+    startEvaluationRunPage.findExperimentModeExisting().click();
+    startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
+
+    cy.then(() => {
+      resolveExperiments!(undefined);
+    });
+
+    cy.wait('@mlflowExperimentsDelayed');
+
+    cy.findByTestId('mlflow-experiment-selector-toggle').should('contain.text', 'EvalHub');
   });
 });
 
@@ -556,8 +615,6 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
     selectSourceMode('Pre-recorded responses');
     startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
     startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
-    startEvaluationRunPage.findValidateConnectionButton().click();
-    cy.wait('@verifyConnection');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     startEvaluationRunPage.findSubmitButton().click();
 
@@ -693,6 +750,27 @@ describe('Start Evaluation Run - Connection Validation', () => {
 
     startEvaluationRunPage.findModelPickerToggle().click();
     cy.findByTestId('model-option-llama-3.2-1b-instruct').click();
+
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
+  it('should not show validate connection button for pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectSourceMode('Pre-recorded responses');
+
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
+  it('should not show validate connection button after switching from external model to pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectExternalEndpoint();
+    startEvaluationRunPage.findModelNameInput().type('my-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    startEvaluationRunPage.findValidateConnectionButton().should('exist');
+
+    selectSourceMode('Pre-recorded responses');
 
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });

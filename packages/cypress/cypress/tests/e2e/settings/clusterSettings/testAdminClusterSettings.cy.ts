@@ -9,7 +9,7 @@ import { storageClassesPage } from '../../../../pages/storageClasses';
 import { notebookImageSettings } from '../../../../pages/notebookImageSettings';
 import { hardwareProfile } from '../../../../pages/hardwareProfile';
 import { connectionTypesPage } from '../../../../pages/connectionTypes';
-import { servingRuntimes } from '../../../../pages/servingRuntimes';
+import { servingRuntimeTemplates } from '../../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
 import { modelRegistrySettings } from '../../../../pages/modelRegistrySettings';
 import type {
   CommandLineResult,
@@ -18,7 +18,6 @@ import type {
   NotebookControllerCullerConfig,
 } from '../../../../types';
 import {
-  validateModelServingPlatforms,
   validatePVCSize,
   validateStopIdleNotebooks,
   checkUserNotInRHODSUserGroups,
@@ -182,10 +181,6 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
       cy.step('Navigate to Cluster Settings');
       clusterSettings.visit();
 
-      // Validate model serving displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
-      cy.step('Validate Model Serving Platforms display and are checked');
-      validateModelServingPlatforms(dashboardConfig);
-
       // Validate pvc size based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
       cy.step('Validate PVC Size displays and default displays');
       validatePVCSize(dashboardConfig);
@@ -262,8 +257,8 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
       connectionTypesPage.findPageTitle().should('exist');
 
       cy.step('Access Settings -> Model resources and operations -> Serving runtimes');
-      servingRuntimes.visit();
-      servingRuntimes.findAppTitle().should('exist');
+      servingRuntimeTemplates.visit();
+      servingRuntimeTemplates.findTabPageTitle().should('exist');
 
       cy.step('Access Settings -> Model resources and operations -> Model registry settings');
       modelRegistrySettings.visit();

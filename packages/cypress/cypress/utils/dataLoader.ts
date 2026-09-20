@@ -22,10 +22,13 @@ import type {
   WorkloadMetricsTestData,
   KueueWorkbenchTestData,
   KueueWorkbenchLifecycleTestData,
+  KueueQuotaUsageNavigationTestData,
   PromptManagementTestData,
   MlflowExperimentsTestData,
   ModelAsAServiceTestData,
   FileMapping,
+  MlflowPipelineIntegrationTestData,
+  NIMProjectScopedTestData,
 } from '../types';
 
 export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> => {
@@ -46,6 +49,14 @@ export const loadYamlFixture = (fixturePath: string): Cypress.Chainable<string> 
 export const loadDSPFixture = (fixturePath: string): Cypress.Chainable<DataScienceProjectData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as DataScienceProjectData;
+    return data;
+  });
+
+export const loadNIMProjectScopedFixture = (
+  fixturePath: string,
+): Cypress.Chainable<NIMProjectScopedTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as NIMProjectScopedTestData;
     return data;
   });
 
@@ -223,6 +234,14 @@ export const loadKueueWorkbenchLifecycleFixture = (
     return data;
   });
 
+export const loadKueueQuotaUsageNavigationFixture = (
+  fixturePath: string,
+): Cypress.Chainable<KueueQuotaUsageNavigationTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as KueueQuotaUsageNavigationTestData;
+    return data;
+  });
+
 export const loadPromptManagementFixture = (
   fixturePath: string,
 ): Cypress.Chainable<PromptManagementTestData> =>
@@ -244,6 +263,15 @@ export const loadMlflowExperimentsFixture = (
 export const loadMaaSFixture = (fixturePath: string): Cypress.Chainable<ModelAsAServiceTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelAsAServiceTestData;
+
+    return data;
+  });
+
+export const loadMlflowPipelineIntegrationFixture = (
+  fixturePath: string,
+): Cypress.Chainable<MlflowPipelineIntegrationTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as MlflowPipelineIntegrationTestData;
 
     return data;
   });

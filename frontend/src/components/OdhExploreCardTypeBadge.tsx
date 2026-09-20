@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Tooltip, Label } from '@patternfly/react-core';
-import { OdhApplicationCategory } from '#~/types';
+import { OdhApplicationCategory } from '@odh-dashboard/k8s-core';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 
 type OdhExploreCardTypeBadgeProps = {

@@ -330,21 +330,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      id: 'settings-custom-serving-runtimes',
-      title: 'Serving runtimes',
-      href: '/settings/model-resources-operations/serving-runtimes',
-      section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/serving-runtimes/*',
-      group: '1_model-resources',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
       required: [SupportedArea.MODEL_REGISTRY, ADMIN_USER],
     },
     properties: {

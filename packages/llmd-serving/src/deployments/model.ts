@@ -10,7 +10,10 @@ import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/model-serving/shared';
-import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import {
+  filterRuntimeArgsForContainer,
+  type ModelTypeFieldData,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import {
   ModelLocationData,
   ModelLocationType,
@@ -18,6 +21,7 @@ import {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
+import { isDashboardManagedHfTokenEnvVar } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import { VLLM_ADDITIONAL_ARGS } from '../const';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 import {
@@ -127,7 +131,10 @@ export const applyModelEnvVarsAndArgs = (
     envHolder.push(...modelEnvVars.variables);
   }
   if (modelArgs?.enabled) {
-    envHolder.push({ name: VLLM_ADDITIONAL_ARGS, value: modelArgs.args.join(' ') });
+    const containerArgs = filterRuntimeArgsForContainer(modelArgs.args);
+    if (containerArgs.length > 0) {
+      envHolder.push({ name: VLLM_ADDITIONAL_ARGS, value: containerArgs.join(' ') });
+    }
   }
   mainContainer.env = envHolder;
   return result;
@@ -153,7 +160,9 @@ export const extractEnvironmentVariables = (
   const envVars =
     llmdDeployment.model.spec.template?.containers
       ?.find((container) => container.name === 'main')
-      ?.env?.filter((env) => env.name !== VLLM_ADDITIONAL_ARGS) || [];
+      ?.env?.filter(
+        (env) => env.name !== VLLM_ADDITIONAL_ARGS && !isDashboardManagedHfTokenEnvVar(env),
+      ) || [];
   return {
     enabled: envVars.length > 0,
     variables: envVars.map((envVar) => ({

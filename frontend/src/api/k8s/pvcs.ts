@@ -6,13 +6,17 @@ import {
   k8sListResourceItems,
   K8sStatus,
   k8sUpdateResource,
+  QueryParams,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { KnownLabels, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import {
+  KnownLabels,
+  translateDisplayNameForK8s,
+  applyK8sAPIOptions,
+} from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { PVCModel } from '#~/api/models';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { StorageData } from '#~/pages/projects/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { PvcModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types';
@@ -33,6 +37,7 @@ export const assemblePvc = (
     accessMode,
     modelName,
     modelPath,
+    contextTypeAnnotations,
   } = data;
   const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
 
@@ -41,6 +46,7 @@ export const assemblePvc = (
     ...(description && { 'openshift.io/description': description }),
     ...(modelName && { [PvcModelAnnotation.MODEL_NAME]: modelName }),
     ...(modelPath && { [PvcModelAnnotation.MODEL_PATH]: modelPath }),
+    ...(contextTypeAnnotations || {}),
     ...(additionalAnnotations || {}),
   };
 
@@ -78,12 +84,15 @@ export const assemblePvc = (
   };
 };
 
-export const getDashboardPvcs = (projectName: string): Promise<PersistentVolumeClaimKind[]> =>
+export const getDashboardPvcs = (
+  projectName: string,
+  queryParams: null | QueryParams = { labelSelector: LABEL_SELECTOR_DASHBOARD_RESOURCE },
+): Promise<PersistentVolumeClaimKind[]> =>
   k8sListResourceItems<PersistentVolumeClaimKind>({
     model: PVCModel,
     queryOptions: {
       ns: projectName,
-      queryParams: { labelSelector: LABEL_SELECTOR_DASHBOARD_RESOURCE },
+      queryParams: queryParams ?? undefined,
     },
   });
 
@@ -145,24 +154,40 @@ export const updatePvc = (
     pvcResource.metadata.annotations['openshift.io/description'] = undefined;
   }
 
-  if (pvcResource.metadata.annotations) {
+  const { annotations } = pvcResource.metadata;
+  if (annotations) {
     if (!data.modelName) {
-      delete pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_NAME];
+      delete annotations[PvcModelAnnotation.MODEL_NAME];
     }
     if (!data.modelPath) {
-      delete pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_PATH];
+      delete annotations[PvcModelAnnotation.MODEL_PATH];
     }
+
+    Object.entries(data.contextTypeAnnotations ?? {}).forEach(([key, value]) => {
+      if (value === '') {
+        delete annotations[key];
+      }
+    });
   }
   return k8sUpdateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvcResource }, opts),
   );
 };
 
-export const deletePvc = (pvcName: string, namespace: string): Promise<K8sStatus> =>
-  k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>({
-    model: PVCModel,
-    queryOptions: { name: pvcName, ns: namespace },
-  });
+export const deletePvc = (
+  pvcName: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<PersistentVolumeClaimKind, K8sStatus>(
+    applyK8sAPIOptions(
+      {
+        model: PVCModel,
+        queryOptions: { name: pvcName, ns: namespace },
+      },
+      opts,
+    ),
+  );
 
 export const getPvc = (
   projectName: string,

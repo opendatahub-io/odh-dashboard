@@ -43,4 +43,44 @@ describe('BenchmarkThresholdField', () => {
     rerender(<BenchmarkThresholdField value={80} onChange={jest.fn()} />);
     expect(input).toHaveValue(80);
   });
+
+  it('should render the default description text', () => {
+    render(<BenchmarkThresholdField value={50} onChange={jest.fn()} />);
+
+    expect(
+      screen.getByText(
+        'Set the minimum passing score for this evaluation. Results below this threshold will be marked as failing.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('should render a custom description', () => {
+    render(
+      <BenchmarkThresholdField
+        value={50}
+        onChange={jest.fn()}
+        description="Custom description text"
+      />,
+    );
+
+    expect(screen.getByText('Custom description text')).toBeInTheDocument();
+  });
+
+  it('should not render a help popover when helpText is not provided', () => {
+    render(<BenchmarkThresholdField value={50} onChange={jest.fn()} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'More info for benchmark threshold' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should render a help popover when helpText is provided', () => {
+    render(
+      <BenchmarkThresholdField value={50} onChange={jest.fn()} helpText="Some help content" />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'More info for benchmark threshold' }),
+    ).toBeInTheDocument();
+  });
 });

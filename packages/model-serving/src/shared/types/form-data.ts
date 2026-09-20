@@ -28,11 +28,16 @@ import type { useNumReplicasField } from '../../components/deploymentWizard/fiel
 import type { useRuntimeArgsField } from '../../components/deploymentWizard/fields/RuntimeArgsField';
 import type { useTokenAuthenticationField } from '../../components/deploymentWizard/fields/TokenAuthenticationField';
 import type { useDeploymentStrategyField } from '../../components/deploymentWizard/fields/DeploymentStrategyField';
+import type {
+  HuggingFaceApiKeyFieldData,
+  useHuggingFaceApiKeyField,
+} from '../../components/deploymentWizard/fields/HuggingFaceApiKeyField';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
 } from '../../components/deploymentWizard/fields/CreateConnectionInputFields';
 import { useProjectSection } from '../../components/deploymentWizard/fields/ProjectSection';
+import type { ValidatedConfigurationsFieldHook } from '../../components/deploymentWizard/fields/validatedConfigurations/useValidatedConfigurationsField';
 import { NIMModelLocationKey } from '../../components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
 import { getStateKey } from '../../components/deploymentWizard/dynamicFormUtils';
 import type { DeploymentMethodFieldData } from '../../components/deploymentWizard/fields/DeploymentMethodSelectField';
@@ -156,6 +161,10 @@ export type InitialWizardFormData = {
   // deploying — serializable metadata merged onto the deployment during assembly
   navSourceMetadata?: K8sResourceCommon['metadata'];
   validatedConfigurations?: ValidatedConfiguration[];
+  selectedValidatedConfigurations?: Record<string, string[]>;
+  requiresHuggingFaceApiKey?: boolean;
+  huggingFaceApiKeyAlertText?: string;
+  huggingFaceApiKey?: HuggingFaceApiKeyFieldData;
 } & Record<string, unknown>;
 
 export type WizardFormData = {
@@ -177,8 +186,10 @@ export type WizardFormData = {
     modelServer?: ModelServerSelectField;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
+    huggingFaceApiKey: ReturnType<typeof useHuggingFaceApiKeyField>;
+    requiresHuggingFaceApiKey: boolean;
     canCreateRoleBindings: boolean;
-    selectedValidatedConfigurations?: Record<string, string[]>;
+    validatedConfigurationSelection: ValidatedConfigurationsFieldHook;
     devFeatureFlags?: {
       vLLMDeploymentOnMaaS: boolean;
     };
@@ -187,6 +198,8 @@ export type WizardFormData = {
 
 export type WizardReviewItem = {
   key: string;
+  /** Optional key of an existing review item to replace within the same section. */
+  replaces?: string;
   label: string;
   value: (wizardState: WizardFormData['state']) => React.ReactNode;
   optional?: boolean;
@@ -218,6 +231,7 @@ export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStr
 
 export type DeploymentWizardFieldId =
   | 'modelType'
+  | 'modelLocation'
   | 'modelServerTemplate'
   | 'modelAvailability'
   | 'externalRoute'
@@ -237,12 +251,31 @@ export type GenericFieldProps = {
   isDisabled?: boolean;
 };
 
+export type WizardFieldHelpPopover = {
+  title?: string;
+  content: string;
+};
+
 export type WizardStateOverrides = {
-  tokenAuthentication?: { isDisabled?: boolean };
+  tokenAuthentication?: {
+    isDisabled?: boolean;
+    disabledHelperText?: string;
+  };
   'llmd-serving/gateway'?: {
     isDisabled?: boolean;
     selection?: { name: string; namespace?: string };
     hiddenOptions?: { name: string; namespace?: string }[];
+    disabledTooltip?: string;
+    labelHelpPopover?: WizardFieldHelpPopover;
+    /**
+     * Optional per-option label overrides, keyed by the gateway key:
+     * `${name} | ${namespace}`.
+     */
+    labelOverrides?: Record<string, string>;
+  };
+  hardwareProfile?: {
+    /** Accelerator identifier prefix used to prioritize matching hardware profiles. */
+    preferredAccelerator?: string;
   };
 };
 
@@ -340,6 +373,15 @@ export type ModelTypeFieldOverride = DeploymentWizardFieldBase<'modelType'> & {
   extraOption: SimpleSelectOption;
   forced?: boolean;
 };
+export type ModelLocationFieldOverride = DeploymentWizardFieldBase<'modelLocation'> & {
+  /** Model location option key this override applies to (e.g. nvidia-nim). */
+  locationKey: string;
+  /** Disable the location select when editing a deployment with this location. */
+  disableWhenEditing?: boolean;
+  disabledTooltip?: string;
+  /** Hide this location option when editing a deployment with a different location. */
+  hideOptionWhenEditingOtherLocation?: boolean;
+};
 export type ModelServerTemplateFieldOverride = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];
   suggestion?: (
@@ -361,6 +403,7 @@ export type TokenAuthFieldOverride = DeploymentWizardFieldBase<'tokenAuth'> & {
 
 export type DeploymentWizardFieldOverride =
   | ModelTypeFieldOverride
+  | ModelLocationFieldOverride
   | ModelServerTemplateFieldOverride
   | ModelAvailabilityFieldOverride
   | ExternalRouteFieldOverride
@@ -372,6 +415,11 @@ export const isModelTypeFieldOverride = (
   field: DeploymentWizardFieldOverride,
 ): field is ModelTypeFieldOverride => {
   return field.id === 'modelType';
+};
+export const isModelLocationFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is ModelLocationFieldOverride => {
+  return field.id === 'modelLocation';
 };
 export const isModelServerTemplateFieldOverride = (
   field: DeploymentWizardFieldOverride,
