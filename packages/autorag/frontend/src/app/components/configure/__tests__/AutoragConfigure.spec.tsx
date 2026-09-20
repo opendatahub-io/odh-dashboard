@@ -1200,6 +1200,20 @@ describe('AutoragConfigure', () => {
       expect(betterQualityRadio).not.toBeChecked();
     });
 
+    it('should render the run preset before the optimization metric', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const runPresetLabel = screen.getByTestId('configure-form-group-label-run-preset');
+      const optimizationMetricLabel = screen.getByTestId(
+        'configure-form-group-label-optimization-metric',
+      );
+
+      expect(runPresetLabel.compareDocumentPosition(optimizationMetricLabel)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+
     it('should display human-readable labels for presets', () => {
       renderComponent();
       selectSecretAndFile();

@@ -886,6 +886,84 @@ function AutoragConfigure({
 
                     <FlexItem>
                       <ConfigureFormGroup
+                        label="Run preset"
+                        description="Choose a predefined resource allocation and optimization strategy for this run."
+                        labelHelp={{
+                          header: 'Run preset',
+                          body: (
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Content component="p">
+                                  Select how to balance ingestion speed and retrieval quality.
+                                </Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content component="p">
+                                  <strong>Faster:</strong> Recursive chunking only on exported text,
+                                  no table-structure parsing, no LLM contextual enrichment.
+                                </Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content component="p">
+                                  <strong>Better quality:</strong> Explores recursive and hybrid
+                                  chunking with Docling contextualization, table layout parsing, and
+                                  LLM contextual enrichment.
+                                </Content>
+                              </StackItem>
+                            </Stack>
+                          ),
+                        }}
+                      >
+                        <Controller
+                          control={form.control}
+                          name="preset"
+                          render={({ field }) => (
+                            <Flex direction={{ default: 'column' }}>
+                              {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((presetValue) => (
+                                <Radio
+                                  key={presetValue}
+                                  id={`preset-${presetValue}`}
+                                  name="preset"
+                                  label={PRESET_LABELS[presetValue]}
+                                  description={
+                                    presetValue === PRESET_FASTER ? (
+                                      <>
+                                        4 vCPU, 16 GiB
+                                        <br />
+                                        Recursive chunking only. A good default for most datasets.
+                                      </>
+                                    ) : (
+                                      <>
+                                        8 vCPU, 32 GiB
+                                        <br />
+                                        Explores recursive and hybrid chunking with table parsing
+                                        and contextual enrichment.
+                                      </>
+                                    )
+                                  }
+                                  isChecked={field.value === presetValue}
+                                  isDisabled={isSubmitting}
+                                  onChange={() => {
+                                    field.onChange(presetValue);
+                                    if (
+                                      !getOptimizationMetricsForPreset(presetValue).includes(
+                                        optimizationMetric,
+                                      )
+                                    ) {
+                                      setValue('optimization_metric', 'custom:overall_score');
+                                    }
+                                  }}
+                                  data-testid={`preset-radio-${presetValue}`}
+                                />
+                              ))}
+                            </Flex>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
                         label="Optimization metric"
                         labelHelp={{
                           header: 'Optimization metric',
@@ -1010,84 +1088,6 @@ function AutoragConfigure({
                                 </FormHelperText>
                               )}
                             </>
-                          )}
-                        />
-                      </ConfigureFormGroup>
-                    </FlexItem>
-
-                    <FlexItem>
-                      <ConfigureFormGroup
-                        label="Run preset"
-                        description="Choose a predefined resource allocation and optimization strategy for this run."
-                        labelHelp={{
-                          header: 'Run preset',
-                          body: (
-                            <Stack hasGutter>
-                              <StackItem>
-                                <Content component="p">
-                                  Select how to balance ingestion speed and retrieval quality.
-                                </Content>
-                              </StackItem>
-                              <StackItem>
-                                <Content component="p">
-                                  <strong>Faster:</strong> Recursive chunking only on exported text,
-                                  no table-structure parsing, no LLM contextual enrichment.
-                                </Content>
-                              </StackItem>
-                              <StackItem>
-                                <Content component="p">
-                                  <strong>Better quality:</strong> Explores recursive and hybrid
-                                  chunking with Docling contextualization, table layout parsing, and
-                                  LLM contextual enrichment.
-                                </Content>
-                              </StackItem>
-                            </Stack>
-                          ),
-                        }}
-                      >
-                        <Controller
-                          control={form.control}
-                          name="preset"
-                          render={({ field }) => (
-                            <Flex direction={{ default: 'column' }}>
-                              {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((presetValue) => (
-                                <Radio
-                                  key={presetValue}
-                                  id={`preset-${presetValue}`}
-                                  name="preset"
-                                  label={PRESET_LABELS[presetValue]}
-                                  description={
-                                    presetValue === PRESET_FASTER ? (
-                                      <>
-                                        4 vCPU, 16 GiB
-                                        <br />
-                                        Recursive chunking only. A good default for most datasets.
-                                      </>
-                                    ) : (
-                                      <>
-                                        8 vCPU, 32 GiB
-                                        <br />
-                                        Explores recursive and hybrid chunking with table parsing
-                                        and contextual enrichment.
-                                      </>
-                                    )
-                                  }
-                                  isChecked={field.value === presetValue}
-                                  isDisabled={isSubmitting}
-                                  onChange={() => {
-                                    field.onChange(presetValue);
-                                    if (
-                                      !getOptimizationMetricsForPreset(presetValue).includes(
-                                        optimizationMetric,
-                                      )
-                                    ) {
-                                      setValue('optimization_metric', 'custom:overall_score');
-                                    }
-                                  }}
-                                  data-testid={`preset-radio-${presetValue}`}
-                                />
-                              ))}
-                            </Flex>
                           )}
                         />
                       </ConfigureFormGroup>
