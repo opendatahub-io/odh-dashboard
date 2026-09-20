@@ -161,7 +161,9 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
       <FormHelperText>
         <HelperText>
           {pathError ? (
-            <HelperTextItem variant="error">{pathError}</HelperTextItem>
+            <HelperTextItem variant="error" data-testid="provider-ref-path-error">
+              {pathError}
+            </HelperTextItem>
           ) : pathHelperVariant === 'add' ? (
             <>
               <HelperTextItem>{apiFormatConfig.pathHelper}</HelperTextItem>
