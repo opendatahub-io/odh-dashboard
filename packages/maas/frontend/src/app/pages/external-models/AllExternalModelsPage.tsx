@@ -1,9 +1,12 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalModel } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
+import { ExternalModelDeletedProperties, MaaSEvents } from '~/app/types/event-tracking';
+import { convertStringToPhaseStatus } from '~/app/utilities/phaseLabelUtils';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -90,7 +93,7 @@ const AllExternalModelsPage: React.FC = () => {
             }
             emptyTableView={
               filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
-                <EmptyExternalModelsPage />
+                <EmptyExternalModelsPage namespace={resolvedNamespace} />
               )
             }
           />
@@ -99,10 +102,23 @@ const AllExternalModelsPage: React.FC = () => {
           <DeleteExternalModelModal
             externalModel={deleteExternalModel}
             onClose={(deleted) => {
-              setDeleteExternalModel(undefined);
               if (deleted) {
                 refreshExternalModels();
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_DELETED, {
+                  outcome: TrackingOutcome.submit,
+                  success: true,
+                  modelStatus: convertStringToPhaseStatus(deleteExternalModel.phase),
+                  providerCount: deleteExternalModel.providerRefs.length,
+                } satisfies ExternalModelDeletedProperties);
+              } else {
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_DELETED, {
+                  outcome: TrackingOutcome.cancel,
+                  success: false,
+                  modelStatus: convertStringToPhaseStatus(deleteExternalModel.phase),
+                  providerCount: deleteExternalModel.providerRefs.length,
+                } satisfies ExternalModelDeletedProperties);
               }
+              setDeleteExternalModel(undefined);
             }}
           />
         )}

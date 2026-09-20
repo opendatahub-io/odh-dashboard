@@ -1,16 +1,22 @@
 import React from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
+import { AddProviderReferenceSource } from '~/app/types/event-tracking';
 import CreateExternalModelForm from './CreateExternalModel/CreateExternalModelForm';
-import { deploymentsExternalPath } from './const';
+import { deploymentsExternalPath, getAddProviderReferenceSourceFromLocationState } from './const';
 
 const CreateExternalModelPage: React.FC = () => {
+  const location = useLocation();
   const { externalProvidersLoaded, externalProvidersError } = useExternalModelsContext();
   const { resolvedNamespace, namespacesLoaded, namespacesLoadError, shouldRedirect } =
     useExternalModelsNamespace();
+
+  const addProviderReferenceSource =
+    getAddProviderReferenceSourceFromLocationState(location.state) ??
+    AddProviderReferenceSource.TOOLBAR;
 
   if (shouldRedirect && resolvedNamespace) {
     return <Navigate to={deploymentsExternalPath(resolvedNamespace)} replace />;
@@ -40,7 +46,11 @@ const CreateExternalModelPage: React.FC = () => {
       loadError={namespacesLoadError || externalProvidersError}
     >
       {resolvedNamespace && (
-        <CreateExternalModelForm namespace={resolvedNamespace} returnTo={returnTo} />
+        <CreateExternalModelForm
+          namespace={resolvedNamespace}
+          returnTo={returnTo}
+          addProviderReferenceSource={addProviderReferenceSource}
+        />
       )}
     </ApplicationsPage>
   );

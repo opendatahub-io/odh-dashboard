@@ -5,6 +5,9 @@
 # See https://fullsend.sh/docs/guides/infrastructure/layered-config-reference
 version: "1"
 runtime: claude
+# Replace sticky comment bodies in-place (no collapsed "Previous run" history).
+# https://github.com/fullsend-ai/fullsend/pull/6930
+keep_history: false
 roles:
     - review
 agents:

@@ -2,6 +2,8 @@ import * as React from 'react';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalProvider } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useCreateSecret } from '~/app/hooks/useCreateSecret';
@@ -17,6 +19,12 @@ import {
   isAuthMechanism,
 } from '~/app/pages/external-providers/validation';
 import { ConfigPair, countNonEmptyConfigPairs } from '~/app/utilities/configPairs';
+import {
+  convertStringToExternalModelProviderType,
+  ExternalProviderUpdatedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
+import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
 import {
   CreateExternalProviderFormFields,
   UseCreateExternalProviderFormReturn,
@@ -141,6 +149,15 @@ export const useEditExternalProviderForm = (
           secretValue: '',
         }));
       }
+      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_UPDATED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        providerType: convertStringToExternalModelProviderType(formData.provider),
+        authMechanism: convertStringToAuthMechanism(formData.authMechanism),
+        hasDescription: nameDescData.description.trim() !== '',
+        countOfConfigPairs: countNonEmptyConfigPairs(configPairs),
+        hasCreatedSecret: formData.isNewSecret,
+      } satisfies ExternalProviderUpdatedProperties);
 
       return externalProvider.name;
     } catch (err) {
@@ -150,6 +167,15 @@ export const useEditExternalProviderForm = (
           ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'update')
           : message,
       );
+      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_UPDATED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        providerType: convertStringToExternalModelProviderType(formData.provider),
+        authMechanism: convertStringToAuthMechanism(formData.authMechanism),
+        hasDescription: nameDescData.description.trim() !== '',
+        countOfConfigPairs: countNonEmptyConfigPairs(configPairs),
+        hasCreatedSecret: formData.isNewSecret,
+      } satisfies ExternalProviderUpdatedProperties);
       return undefined;
     }
   }, [

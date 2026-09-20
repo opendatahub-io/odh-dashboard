@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalProvider } from '~/app/types/external-models';
 import {
   ADD_PATH_PLACEHOLDER_HELPER,
@@ -32,6 +33,15 @@ import {
   ProviderReferenceHelperVariant,
 } from '~/app/pages/external-models/validations';
 import { isProviderReferenceApiFormat } from '~/app/pages/external-models/providerReferenceUtils';
+import {
+  convertStringToExternalModelProviderType,
+  convertStringToExternalProviderRefApiFormat,
+  ExternalModelWizardAdvancedSettingsExpandedProperties,
+  ExternalModelWizardPathResetProperties,
+  ExternalModelProviderContext,
+  ExternalModelProviderSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import ModelConfigPairsEditor from './ModelConfigPairsEditor';
 import InheritedProviderConfig from './InheritedProviderConfig';
 
@@ -134,6 +144,8 @@ type ProviderReferencePathFieldProps = ProviderReferenceValidatedFieldProps & {
   showResetButton?: boolean;
   pathHelperVariant: ProviderReferenceHelperVariant;
   onBlur?: () => void;
+  providerType: string;
+  context: ExternalModelProviderContext;
 };
 
 export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProps> = ({
@@ -143,6 +155,8 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
   showResetButton = false,
   pathHelperVariant,
   onBlur,
+  providerType,
+  context,
 }) => {
   const pathError = fieldErrors?.path;
   const apiFormatConfig = PROVIDER_REFERENCE_API_FORMATS[form.apiFormat];
@@ -179,7 +193,14 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
           variant="link"
           isInline
           style={{ textDecoration: 'underline' }}
-          onClick={() => onChange({ path: apiFormatConfig.defaultPath })}
+          onClick={() => {
+            onChange({ path: apiFormatConfig.defaultPath });
+            fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PATH_RESET, {
+              apiFormat: convertStringToExternalProviderRefApiFormat(form.apiFormat),
+              providerType: convertStringToExternalModelProviderType(providerType),
+              context,
+            } satisfies ExternalModelWizardPathResetProperties);
+          }}
           data-testid="provider-ref-path-reset"
         >
           Reset to default
@@ -195,6 +216,8 @@ type ProviderReferenceConfigSectionProps = {
   selectedProvider?: ExternalProvider;
   variant: 'advanced' | 'edit';
   helperVariant?: ProviderReferenceHelperVariant;
+  providerSource: ExternalModelProviderSource;
+  context: ExternalModelProviderContext;
 };
 
 export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSectionProps> = ({
@@ -203,6 +226,8 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
   selectedProvider,
   variant,
   helperVariant = 'add',
+  providerSource,
+  context,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const inheritedConfig = selectedProvider?.config ?? {};
@@ -224,6 +249,7 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
       <InheritedProviderConfig
         config={inheritedConfig}
         previewCount={variant === 'advanced' ? INHERITED_CONFIG_PREVIEW_COUNT : undefined}
+        providerType={selectedProvider?.provider ?? ''}
       />
     </>
   );
@@ -296,7 +322,16 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
     return (
       <ExpandableSection
         isExpanded={isExpanded}
-        onToggle={(_event, expanded) => setIsExpanded(expanded)}
+        onToggle={(_event, expanded) => {
+          setIsExpanded(expanded);
+          fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_ADVANCED_SETTINGS_EXPANDED, {
+            isExpanded: expanded,
+            inheritedCount: inheritedConfigCount,
+            overrideCount,
+            providerSource,
+            context,
+          } satisfies ExternalModelWizardAdvancedSettingsExpandedProperties);
+        }}
         hasToggleIcon={false}
         toggleContent={(expanded) => (
           <>

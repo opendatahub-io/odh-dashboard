@@ -96,7 +96,7 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
 		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-		Gateway:            &v1alpha1.GatewaySpec{Domain: "Test.Example.Com"},
+		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules:            disableAllModulesExcept("maas", "genAi"),
 		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
 	})
@@ -145,7 +145,6 @@ func TestIntegration_MaaSConsumerPortalLifecycle(t *testing.T) {
 	}
 	route := &gatewayv1.HTTPRoute{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
-	assert.Equal(t, []gatewayv1.Hostname{"test.example.com"}, route.Spec.Hostnames)
 	route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
 		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},

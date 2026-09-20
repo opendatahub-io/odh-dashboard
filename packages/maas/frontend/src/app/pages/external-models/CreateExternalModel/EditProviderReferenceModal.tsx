@@ -25,6 +25,10 @@ import {
   recordToConfigPairs,
 } from '~/app/pages/external-models/providerReferenceUtils';
 import { configPairsToRecord } from '~/app/utilities/configPairs';
+import {
+  ExternalModelProviderContext,
+  ExternalModelProviderSource,
+} from '~/app/types/event-tracking';
 import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
 
 type EditProviderReferenceModalProps = {
@@ -152,6 +156,8 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
               wrapInForm={false}
               onTargetModelBlur={() => handleFieldTouch('targetModel')}
               onPathBlur={() => handleFieldTouch('path')}
+              providerSource={ExternalModelProviderSource.EXISTING}
+              context={ExternalModelProviderContext.EDIT}
             />
           </FormSection>
         </Form>
