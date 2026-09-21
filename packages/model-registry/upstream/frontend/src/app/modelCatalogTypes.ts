@@ -497,6 +497,7 @@ export type CatalogSourcePreviewSummary = {
   totalModels: number;
   includedModels: number;
   excludedModels: number;
+  hasGatedAccessDeniedModels: boolean;
 };
 
 export type CatalogSourcePreviewResult = {

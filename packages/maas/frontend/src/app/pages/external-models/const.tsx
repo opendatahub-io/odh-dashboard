@@ -3,11 +3,32 @@ import { Popover, Button, Label } from '@patternfly/react-core';
 import { PendingIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AddProviderReferenceSource,
   ExternalModelsInfoPopoverLocation,
   ExternalModelsInfoPopoverTarget,
   ExternalModelsInfoPopoverViewedProperties,
   MaaSEvents,
 } from '~/app/types/event-tracking';
+
+export type CreateExternalModelLocationState = {
+  addProviderReferenceSource: AddProviderReferenceSource;
+};
+
+export const getAddProviderReferenceSourceFromLocationState = (
+  state: unknown,
+): AddProviderReferenceSource | undefined => {
+  if (typeof state !== 'object' || state === null || !('addProviderReferenceSource' in state)) {
+    return undefined;
+  }
+  const { addProviderReferenceSource } = state;
+  if (
+    addProviderReferenceSource === AddProviderReferenceSource.TOOLBAR ||
+    addProviderReferenceSource === AddProviderReferenceSource.EMPTY_LIST
+  ) {
+    return addProviderReferenceSource;
+  }
+  return undefined;
+};
 
 export enum ExternalModelsFilterOptions {
   keyword = 'keyword',

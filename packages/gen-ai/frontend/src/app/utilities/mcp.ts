@@ -44,6 +44,16 @@ export const transformMCPServerData = (apiServer: MCPServerFromAPI): MCPServer =
 });
 
 /**
+ * A server that cannot be reached by the Dashboard cannot be used in the Playground, regardless
+ * of whether it was discovered from the Registry or configured through a ConfigMap.
+ */
+export const filterUnavailableMCPServers = (
+  servers: MCPServerFromAPI[],
+  serverStatuses: Map<string, ServerStatusInfo>,
+): MCPServerFromAPI[] =>
+  servers.filter((server) => serverStatuses.get(server.url)?.status !== 'unreachable');
+
+/**
  * Get user-friendly error message from MCP connection status
  * @param statusResponse - The status response from getMCPServerStatus API
  * @returns string - User-friendly error message for tooltip
