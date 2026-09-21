@@ -176,12 +176,12 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
 
       cy.step('Wait for and verify model response to image');
       genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
+      genAiPlayground.findChatbotErrorAlerts().should('not.exist');
       genAiPlayground
         .findAllAssistantMessages({ timeout: 60000 })
         .last()
         .invoke('text')
         .should('match', /\S/)
-        .and('not.contain', 'Sorry, I encountered an error')
         .and((response) => {
           testData.inference.expectedResponseKeywords.forEach((keyword) => {
             expect(response.toLowerCase()).to.contain(keyword.toLowerCase());

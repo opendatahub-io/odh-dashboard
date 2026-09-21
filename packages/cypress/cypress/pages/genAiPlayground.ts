@@ -145,6 +145,10 @@ class GenAiPlayground {
     return cy.findAllByTestId('chatbot-message-bot', options);
   }
 
+  findChatbotErrorAlerts() {
+    return cy.get('[data-testid^="chatbot-error-alert-"]');
+  }
+
   sendMessage(message: string) {
     this.findMessageInput().should('be.visible').and('be.enabled').clear().type(message);
     this.findMessageInput().type('{enter}');
