@@ -14,7 +14,10 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
+import {
+  getAuthMechanismDescription,
+  mapAuthMechanismToHumanReadable,
+} from '~/app/pages/external-models/utils';
 import { AUTH_MECHANISM_VALUES, isAuthMechanism } from '~/app/pages/external-providers/validation';
 import CredentialSecretField from './CredentialSecretField';
 import ProviderTypeField from './ProviderTypeField';
@@ -75,8 +78,7 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
 
       <K8sNameDescriptionField
         dataTestId="external-provider-name-desc"
-        nameLabel="Display name"
-        descriptionHelperText="e.g. Production OpenAI API endpoint for team use"
+        nameLabel="Name"
         data={nameDescData}
         onDataChange={onNameDescChange}
       />
@@ -88,6 +90,14 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
       />
 
       <FormGroup label="Endpoint" isRequired fieldId="external-provider-endpoint">
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              The fully qualified domain name of the provider API. For example,{' '}
+              <em>api.openai.com</em> or <em>us-central1-aiplatform.googleapis.com</em>.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
         <TextInput
           isRequired
           id="external-provider-endpoint"
@@ -96,17 +106,12 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
           onChange={(_event, value) =>
             setFormData((current) => ({ ...current, endpointUrl: value }))
           }
-          placeholder="api.openai.com"
           data-testid="external-provider-endpoint-input"
           {...getFieldValidationProps(['endpointUrl'])}
         />
         <FormHelperText>
           <HelperText>
-            <HelperTextItem>
-              The fully qualified domain name (FQDN) of the provider API — for example,
-              api.openai.com or us-central1-aiplatform.googleapis.com. Do not include https:// or a
-              path; the path is configured per model.
-            </HelperTextItem>
+            <HelperTextItem>Do not include https:// or a path to a specific model.</HelperTextItem>
           </HelperText>
         </FormHelperText>
         {getFieldValidation(['endpointUrl']).map((validation) => (
@@ -158,7 +163,7 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
         secretValueValidationMessage={getFieldValidation(['secretValue'])[0]?.message}
       />
 
-      <FormGroup label="Authentication" isRequired fieldId="external-provider-auth">
+      <FormGroup label="Authentication type" isRequired fieldId="external-provider-auth">
         <Select
           id="external-provider-auth"
           isOpen={isAuthOpen}
@@ -184,7 +189,7 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
             >
               {formData.authMechanism
                 ? mapAuthMechanismToHumanReadable(formData.authMechanism)
-                : 'Select authentication'}
+                : 'Select authentication type'}
             </MenuToggle>
           )}
         >
@@ -194,17 +199,13 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
                 key={option}
                 value={option}
                 data-testid={`external-provider-auth-option-${option}`}
+                description={getAuthMechanismDescription(option)}
               >
                 {mapAuthMechanismToHumanReadable(option)}
               </SelectOption>
             ))}
           </SelectList>
         </Select>
-        <FormHelperText>
-          <HelperText>
-            <HelperTextItem>API key or bearer token authentication.</HelperTextItem>
-          </HelperText>
-        </FormHelperText>
         {getFieldValidation(['authMechanism']).map((validation) => (
           <FormHelperText key={validation.path.join('.')}>
             <HelperText>

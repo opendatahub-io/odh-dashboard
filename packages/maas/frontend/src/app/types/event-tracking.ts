@@ -6,6 +6,7 @@ import {
   normalizePhase,
 } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModelsFilterOptions } from '~/app/pages/external-models/const';
+import { AuthMechanism } from './external-models';
 
 export const MaaSEvents = {
   MAAS_RESOURCE_DELETED: 'MaaS Settings Resource Deleted',
@@ -42,7 +43,204 @@ export const MaaSEvents = {
   MY_SUBSCRIPTIONS_ROW_EXPANDED: 'My Subscriptions Row Expanded',
   API_KEYS_STATUS_FILTER_APPLIED: 'API Keys Status Filter Applied',
   API_KEYS_SEARCH_APPLIED: 'API Keys Search Applied',
+  // External models events
+  EXTERNAL_MODELS_ADD_CLICKED: 'External Models Add Clicked',
+  EXTERNAL_MODELS_MANAGE_PROVIDERS_CLICKED: 'External Models Manage Providers Clicked',
+  EXTERNAL_MODEL_EDIT_CLICKED: 'External Model Edit Clicked',
+  EXTERNAL_MODEL_DELETED: 'External Model Deleted',
+  EXTERNAL_MODEL_ADDED: 'External Model Added',
+  EXTERNAL_MODEL_UPDATED: 'External Model Updated',
+  EXTERNAL_MODEL_PROVIDER_REFERENCE_REMOVED: 'External Model Provider Reference Removed',
+  EXTERNAL_MODEL_WEIGHTS_DISTRIBUTED: 'External Model Weights Distributed',
+  EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED: 'External Model Provider Reference Added',
+  EXTERNAL_MODEL_WIZARD_INHERITED_CONFIG_SHOW_MORE_CLICKED:
+    'External Model Wizard Inherited Config Show More Clicked',
+  ADD_PROVIDER_REFERENCE_CLICKED: 'Add Provider Reference Clicked',
+  EXTERNAL_MODEL_WIZARD_PROVIDER_SOURCE_SELECTED: 'External Model Wizard Provider Source Selected',
+  EXTERNAL_MODEL_WIZARD_STEP_CONTINUED: 'External Model Wizard Step Continued',
+  EXTERNAL_MODEL_WIZARD_ADVANCED_SETTINGS_EXPANDED:
+    'External Model Wizard Advanced Settings Expanded',
+  EXTERNAL_MODEL_WIZARD_PATH_RESET: 'External Model Wizard Path Reset',
+  // External providers events
+  EXTERNAL_PROVIDERS_ADD_CLICKED: 'External Providers Add Clicked',
+  EXTERNAL_PROVIDER_EDIT_CLICKED: 'External Provider Edit Clicked',
+  EXTERNAL_PROVIDER_DELETED: 'External Provider Deleted',
+  EXTERNAL_PROVIDER_ADDED: 'External Provider Added',
+  EXTERNAL_PROVIDER_UPDATED: 'External Provider Updated',
 };
+
+export type ExternalProviderUpdatedProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  providerType: ExternalModelProviderType;
+  authMechanism: AuthMechanism;
+  hasCreatedSecret: boolean;
+  hasDescription: boolean;
+  countOfConfigPairs: number;
+};
+
+export type ExternalProviderAddedProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  providerType: ExternalModelProviderType;
+  authMechanism: AuthMechanism;
+  hasCreatedSecret: boolean;
+  hasDescription: boolean;
+  countOfConfigPairs: number;
+};
+
+export type ExternalModelWizardPathResetProperties = {
+  apiFormat: ExternalProviderRefApiFormat;
+  providerType: ExternalModelProviderType;
+  context: ExternalModelProviderContext;
+};
+
+export type ExternalModelWizardAdvancedSettingsExpandedProperties = {
+  isExpanded: boolean;
+  inheritedCount: number;
+  overrideCount: number;
+  providerSource: ExternalModelProviderSource;
+  context: ExternalModelProviderContext;
+};
+
+export type ExternalModelWizardStepContinuedProperties = {
+  providerSource: ExternalModelProviderSource;
+  providerType: ExternalModelProviderType;
+  hasCreatedSecret: boolean;
+  context: ExternalModelProviderContext;
+};
+
+export type ExternalModelWizardProviderSourceSelectedProperties = {
+  providerSource: ExternalModelProviderSource;
+  hasExistingProviders: boolean;
+  context: ExternalModelProviderContext;
+};
+
+export type AddProviderReferenceClickedProperties = {
+  source: AddProviderReferenceSource;
+  hasExistingProviders: boolean;
+  context: ExternalModelProviderContext;
+};
+
+export enum AddProviderReferenceSource {
+  EMPTY_LIST = 'empty-list',
+  TOOLBAR = 'toolbar',
+}
+
+export type ExternalModelWizardInheritedConfigShowMoreClickedProperties = {
+  inheritedCount: number;
+  isExpanded: boolean;
+  providerType: ExternalModelProviderType;
+};
+
+export type ExternalModelProviderReferenceAddedProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  providerSource: ExternalModelProviderSource;
+  providerType: ExternalModelProviderType;
+  apiFormat: ExternalProviderRefApiFormat;
+  authMechanism: AuthMechanism;
+  hasCreatedSecret: boolean;
+  hasPathOverride: boolean;
+  countOfConfigOverrides: number;
+  context: ExternalModelProviderContext;
+};
+
+export enum ExternalProviderRefApiFormat {
+  OPENAI_CHAT = 'openai-chat',
+  MESSAGES = 'messages',
+}
+
+export enum ExternalModelProviderSource {
+  EXISTING = 'existing',
+  CREATE = 'create',
+}
+
+export type ExternalModelWeightsDistributedProperties = {
+  providerRefCount: number;
+  context: ExternalModelProviderContext;
+};
+
+export type ExternalModelProviderReferenceRemovedProperties = {
+  remainingProviderCount: number;
+  context: ExternalModelProviderContext;
+};
+
+export enum ExternalModelProviderContext {
+  CREATE = 'create',
+  EDIT = 'edit',
+}
+
+export type ExternalModelUpdatedProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  providerRefCount: number;
+  hasDescription: boolean;
+};
+
+export type ExternalModelAddedProperties = {
+  outcome: TrackingOutcome;
+  providerRefCount: number;
+  hasDescription: boolean;
+  success: boolean;
+};
+
+export type ExternalProviderDeletedProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  source: ExternalProviderDeletedSource;
+  providerType: ExternalModelProviderType;
+  authMechanism: AuthMechanism;
+};
+
+export enum ExternalProviderDeletedSource {
+  PROVIDERS_TABLE = 'providers_table',
+}
+
+export type ExternalProviderEditClickedProperties = {
+  providerType: ExternalModelProviderType;
+  authMechanism: AuthMechanism;
+  providerStatus: PhaseStatus;
+};
+
+export type ExternalProvidersAddClickedProperties = {
+  source: ExternalProvidersAddSource;
+};
+
+export enum ExternalProvidersAddSource {
+  TOOLBAR = 'toolbar',
+  EMPTY_STATE = 'empty-state',
+}
+
+export type ExternalModelDeletedProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  modelStatus: PhaseStatus;
+  providerCount: number;
+};
+
+export type ExternalModelEditClickedProperties = {
+  modelStatus: PhaseStatus;
+  providerCount: number;
+};
+
+export type ExternalModelsAddClickedProperties = {
+  source: ExternalModelsAddSource;
+};
+
+export type ExternalModelsManageProvidersClickedProperties = {
+  source: ExternalModelsManageProvidersSource;
+};
+
+export enum ExternalModelsManageProvidersSource {
+  TOOLBAR = 'toolbar',
+  EMPTY_STATE = 'empty-state',
+}
+
+export enum ExternalModelsAddSource {
+  TOOLBAR = 'toolbar',
+  EMPTY_STATE = 'empty-state',
+}
 
 export type ModelAsMaasPublishedProperties = {
   outcome: TrackingOutcome;
@@ -340,7 +538,7 @@ export const convertStringToExternalModelProviderType = (
       return ExternalModelProviderType.ANTHROPIC;
     case 'azure':
       return ExternalModelProviderType.AZURE;
-    case 'bedrock':
+    case 'aws-bedrock':
       return ExternalModelProviderType.BEDROCK;
     case 'vertex':
       return ExternalModelProviderType.VERTEX;
@@ -348,6 +546,31 @@ export const convertStringToExternalModelProviderType = (
       return ExternalModelProviderType.OTHER;
   }
   return ExternalModelProviderType.OTHER;
+};
+
+export const convertStringToExternalProviderRefApiFormat = (
+  apiFormat: string,
+): ExternalProviderRefApiFormat => {
+  switch (apiFormat) {
+    case 'openai-chat':
+      return ExternalProviderRefApiFormat.OPENAI_CHAT;
+    case 'messages':
+      return ExternalProviderRefApiFormat.MESSAGES;
+  }
+  return ExternalProviderRefApiFormat.OPENAI_CHAT;
+};
+
+export const convertStringToExternalModelProviderSource = (
+  source: string,
+): ExternalModelProviderSource => {
+  switch (source) {
+    case 'existing':
+      return ExternalModelProviderSource.EXISTING;
+    case 'create-new':
+    case 'create':
+      return ExternalModelProviderSource.CREATE;
+  }
+  return ExternalModelProviderSource.EXISTING;
 };
 
 export const enum ExternalModelsInfoPopoverTarget {

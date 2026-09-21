@@ -9,8 +9,10 @@ export const KUEUE_HELP_POPOVER_BODY =
   "This page shows data from projects managed by Kueue. Projects without a local queue aren't part of queue-based resource management.";
 export const KUEUE_HELP_VIEW_PROJECTS_LINK = 'View projects not managed by Kueue';
 export const NON_KUEUE_PROJECTS_MODAL_TITLE = 'Projects not managed by Kueue';
-export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION =
-  'Data from the following projects is not displayed on the Infrastructure page because they do not use Kueue for workload admission.';
+export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_PREFIX =
+  'Data from the following projects is not displayed on the';
+export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_SUFFIX =
+  'page because they do not use Kueue for workload admission.';
 export const NON_KUEUE_PROJECT_STATUS_LABEL = 'not Kueue-managed';
 
 export const CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE = 'Workloads';
@@ -81,7 +83,7 @@ export const QUOTA_USAGE_SUMMARY = {
   title: 'Summary',
   workloads: 'Workloads',
   acceleratorTableTitle: 'Accelerator usage',
-  viewKueueProjects: 'View Kueue projects',
+  viewKueueProjects: 'View projects',
   capacity: 'Accelerators allocated',
   compute: 'Accelerator compute',
   memory: 'Accelerator memory',
@@ -159,8 +161,8 @@ export const QUOTA_USAGE_BORROWING = {
   popoverSinceLabel: (count: number): string =>
     `Borrowing accelerator${count === 1 ? '' : 's'} since:`,
   popoverModelLine: (count: number, model: string): string => `${count} x ${model}`,
-  cohortCalloutSuffix: (count: number, cohortName: string): string =>
-    ` is borrowing ${cohortName} accelerator${count === 1 ? '' : 's'}`,
+  cohortCalloutPrefix: (count: number): string =>
+    ` is borrowing ${count} accelerator${count === 1 ? '' : 's'} from `,
 } as const;
 
 export const INFRASTRUCTURE_SECTIONS = [
