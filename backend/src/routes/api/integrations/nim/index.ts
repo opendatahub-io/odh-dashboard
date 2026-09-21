@@ -13,7 +13,7 @@ import {
   manageNIMSecret,
 } from './nimUtils';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   const PAGE_NOT_FOUND_MESSAGE = '404 page not found';
 
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
