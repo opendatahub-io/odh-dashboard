@@ -222,6 +222,7 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableNIMModelServing: false,
+          nimWizard: false,
         });
         projectDetailsOverviewTab.visit('test-project');
         projectDetailsOverviewTab.findSelectPlatformButton('nvidia-nim').should('be.enabled');
@@ -245,6 +246,7 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableNIMModelServing: false,
+          nimWizard: false,
         });
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails.findSelectPlatformButton('nvidia-nim').should('be.enabled');
@@ -282,6 +284,7 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: true,
           disableNIMModelServing: true,
+          nimWizard: false,
         });
         projectDetails.visitSection('test-project', 'model-server');
         cy.get('button[data-testid=deploy-button]').should('not.exist');
@@ -329,6 +332,7 @@ describe('NIM Model Serving', () => {
           {
             disableKServe: false,
             disableNIMModelServing: false,
+            nimWizard: false,
           },
           true,
         );

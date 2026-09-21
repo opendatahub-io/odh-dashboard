@@ -162,7 +162,7 @@ export const useModelDeploymentSubmit = (
         setSubmitError(error instanceof Error ? error : new Error(errorMessage));
 
         try {
-          await fireModelDeployedTracking('submit', false, errorMessage);
+          await fireModelDeployedTracking('submit', false);
         } catch {
           // Telemetry must not mask the deploy failure shown to the user.
         }

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import { MCPServerFromAPI } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
 import { serializeToAgentProfileSpec } from './serialize';
@@ -49,12 +50,20 @@ const normalizeSpec = (spec: AgentProfileSpec) => ({
  * stored snapshot. This means "dirty" is defined as "saving now would produce a
  * different profile" — the same fields, the same normalization.
  *
- * Only meaningful when a profile is loaded (profileApplied === true). Returns false
- * when no profile is active or no snapshot is stored.
+ * Callers that already resolved MCP statuses can supply their filtered MCP list to
+ * ensure dirty state uses the same serialization input as saving. Returns false when
+ * no profile is active or no snapshot is stored.
  */
-const useIsProfileDirty = (configId: string): boolean => {
+const useIsProfileDirty = (
+  configId: string,
+  resolvedMcpServers?: MCPServerFromAPI[],
+  resolvedMcpConfigMapName?: string | null,
+): boolean => {
   const { aiModels, maasModels, models: playgroundModels } = React.useContext(ChatbotContext);
-  const { data: mcpServers = [], configMapName: mcpConfigMapName } = useFetchMCPServers();
+  const { data: fetchedMcpServers = [], configMapName: fetchedMcpConfigMapName } =
+    useFetchMCPServers();
+  const mcpServers = resolvedMcpServers ?? fetchedMcpServers;
+  const mcpConfigMapName = resolvedMcpConfigMapName ?? fetchedMcpConfigMapName;
 
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
