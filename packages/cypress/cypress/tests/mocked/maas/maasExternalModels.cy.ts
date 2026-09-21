@@ -599,7 +599,11 @@ describe('External Models Page', () => {
       createExternalModelPage.visit();
 
       createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.addProviderReference('Anthropic Provider', 'claude-sonnet-4');
+      addProviderReferenceWizard.addProviderReference(
+        'Anthropic Provider',
+        'claude-sonnet-4',
+        'openai-chat',
+      );
       createExternalModelPage.findProviderRefsRequiredInfo().should('not.exist');
 
       createExternalModelPage.findProviderRefRow(0).findRemoveButton().click();

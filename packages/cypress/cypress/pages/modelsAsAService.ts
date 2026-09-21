@@ -1954,7 +1954,10 @@ class CreateExternalModelPage {
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('cancel-external-model-button');
-    return cy.findByTestId('cancel-external-model-button');
+  }
+
+  findProviderRefsRequiredInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-refs-required-info');
   }
 
   findProviderRefRow(index: number): ProviderRefTableRow {
