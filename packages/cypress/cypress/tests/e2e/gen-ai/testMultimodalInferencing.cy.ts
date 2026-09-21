@@ -16,9 +16,29 @@ import {
 } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { MultimodalTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
+
+type MultimodalTestData = {
+  image: {
+    fileName: string;
+    base64Content: string;
+    mimeType: string;
+  };
+  inference: {
+    visionTestMessage: string;
+    expectedResponseKeywords: string[];
+  };
+  model: {
+    modelId: string;
+    displayName: string;
+    endpointUrl: string;
+    configMapName: string;
+    lsdServiceName: string;
+    lsdPodPrefix: string;
+    lsdPodReadyTimeout: string;
+  };
+};
 
 describe('Verify multimodal inferencing in playground', { testIsolation: false }, () => {
   let testData: MultimodalTestData;

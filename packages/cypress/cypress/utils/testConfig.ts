@@ -91,7 +91,6 @@ const PRODUCT_NAME = testConfig?.ODH_DASHBOARD_PROJECT_NAME;
 const PIP_INDEX_URL = testConfig?.PIP_INDEX_URL;
 const PIP_TRUSTED_HOST = testConfig?.PIP_TRUSTED_HOST;
 const NGC_API_KEY = testConfig?.NGC_API_KEY;
-const OPENAI_API_KEY = testConfig?.OPENAI_API_KEY;
 const GEMINI_API_KEY = testConfig?.GEMINI_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
@@ -122,7 +121,6 @@ export const cypressEnv = {
   PIP_INDEX_URL,
   PIP_TRUSTED_HOST,
   NGC_API_KEY,
-  OPENAI_API_KEY,
   GEMINI_API_KEY,
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,

@@ -105,28 +105,6 @@ class GenAiPlayground {
     return cy.findByTestId('vision-file-input');
   }
 
-  // Simulates selecting an oversized file without transferring megabytes of
-  // synthetic content through Cypress (cy.selectFile with large `contents`
-  // hangs the browser). Only `file.size` needs to be large for the app's
-  // client-side size validation to trigger.
-  selectOversizedImageFile(fileName: string, mimeType: string, size: number) {
-    return this.findImageFileInput().then(($input) => {
-      cy.window().then((win) => {
-        const file = new win.File(['x'], fileName, { type: mimeType });
-        Object.defineProperty(file, 'size', { value: size });
-        const dataTransfer = new win.DataTransfer();
-        dataTransfer.items.add(file);
-        const inputEl = $input[0] as HTMLInputElement;
-        inputEl.files = dataTransfer.files;
-        inputEl.dispatchEvent(new win.Event('change', { bubbles: true }));
-      });
-    });
-  }
-
-  findAudioFileInput() {
-    return cy.findByTestId('audio-file-input');
-  }
-
   findImagePreview(options?: { timeout?: number }) {
     return cy.findByTestId('vision-file-preview', options);
   }
@@ -139,24 +117,12 @@ class GenAiPlayground {
     return cy.findByRole('img', { name: fileName });
   }
 
-  findAudioFileChip(options?: { timeout?: number }) {
-    return cy.findByTestId('audio-file-chip', options);
-  }
-
-  findMediaValidationError(options?: { timeout?: number }) {
-    return cy.findByTestId('vision-validation-error', options);
-  }
-
   findAttachmentButton() {
     return cy.findByRole('button', { name: /^attach$/i });
   }
 
   findImageUploadMenuItem() {
     return cy.findByTestId('upload-image-menu-item');
-  }
-
-  findAudioUploadMenuItem() {
-    return cy.findByTestId('upload-audio-menu-item');
   }
 
   findSendButton() {
