@@ -43,6 +43,36 @@ export const FILE_UPLOAD_CONFIG = {
   ACCEPTED_EXTENSIONS: '.pdf,.csv,.txt',
 } as const;
 
+// Text-based documents attached directly to a Playground conversation. Unlike
+// FILE_UPLOAD_CONFIG, these files are extracted and sent as text input rather
+// than ingested into a vector store.
+export const DOCUMENT_ATTACHMENT_CONFIG = {
+  MAX_FILE_SIZE: 10 * 1024 * 1024,
+  ALLOWED_MIME_TYPES: [
+    'application/pdf',
+    'text/plain',
+    'text/markdown',
+    'text/csv',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/octet-stream',
+  ],
+  ACCEPTED_EXTENSIONS: '.pdf,.txt,.md,.csv,.docx,.pptx',
+  // Keep the picker contract local to direct Playground attachments. Including
+  // both extensions and MIME types makes the native picker consistently expose
+  // Office formats across browsers and operating systems.
+  ACCEPTED_TYPES:
+    '.pdf,.txt,.md,.csv,.docx,.pptx,application/pdf,text/plain,text/markdown,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  EXTENSION_TO_MIME: {
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain',
+    '.md': 'text/markdown',
+    '.csv': 'text/csv',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  } satisfies Record<string, string>,
+} as const;
+
 // Vision image upload constants (separate from RAG documents)
 export const VISION_UPLOAD_ALLOWED_MIME_TYPES: readonly string[] = ['image/jpeg', 'image/png'];
 export const VISION_UPLOAD_CONFIG = {

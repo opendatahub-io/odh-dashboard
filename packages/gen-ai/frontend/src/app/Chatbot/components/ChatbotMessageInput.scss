@@ -1,0 +1,58 @@
+.gen-ai-document-attachments {
+  padding-top: var(--pf-t--global--spacer--md);
+  position: relative;
+
+  &::before {
+    border-top: 1px solid var(--pf-t--global--border--color--default);
+    content: '';
+    inline-size: calc(100% + var(--pf-t--global--spacer--2xl));
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    position: absolute;
+  }
+}
+
+.gen-ai-document-attachment.pf-v6-c-label {
+  --pf-v6-c-label--BackgroundColor: var(--pf-t--global--background--color--primary--default);
+  --pf-v6-c-label--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-label--BorderRadius: var(--pf-t--global--border--radius--small);
+  --pf-v6-c-label--Gap: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-label--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-label--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-label--PaddingInlineEnd: var(--pf-t--global--spacer--md);
+  --pf-v6-c-label--PaddingInlineStart: var(--pf-t--global--spacer--md);
+  max-inline-size: calc(var(--pf-t--global--spacer--2xl) * 6.625);
+}
+
+.gen-ai-document-attachment__icon {
+  align-items: center;
+  background-color: var(--pf-t--global--icon--color--status--custom--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  color: var(--pf-t--global--background--color--primary--default);
+  display: inline-flex;
+  inline-size: var(--pf-t--global--spacer--lg);
+  justify-content: center;
+  block-size: var(--pf-t--global--spacer--lg);
+  flex: none;
+
+  img {
+    block-size: var(--pf-t--global--icon--size--font--body--default);
+    inline-size: var(--pf-t--global--icon--size--font--body--default);
+  }
+}
+
+.gen-ai-document-attachment__details {
+  display: grid;
+  gap: var(--pf-t--global--spacer--xs);
+  text-align: left;
+}
+
+.gen-ai-document-attachment__filename {
+  font-size: var(--pf-t--global--font--size--sm);
+}
+
+.gen-ai-document-attachment__type {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--xs);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}

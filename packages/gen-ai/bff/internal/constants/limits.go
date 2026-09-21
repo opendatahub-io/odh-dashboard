@@ -16,6 +16,10 @@ const (
 	// Matches frontend FILE_UPLOAD_CONFIG.MAX_FILE_SIZE.
 	FileUploadMaxBodySize = 10 << 20 // 10MB
 
+	// DocumentExtractionTimeout bounds the OGX file-processors call after a
+	// document is uploaded. The user can retry after a timeout.
+	DocumentExtractionTimeout = 30 * time.Second
+
 	// VisionUploadMaxBodySize caps multipart uploads for vision image files.
 	// Matches frontend VISION_UPLOAD_CONFIG.MAX_FILE_SIZE.
 	VisionUploadMaxBodySize = 10 << 20 // 10MB

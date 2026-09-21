@@ -3,6 +3,8 @@ import {
   Alert,
   AlertActionCloseButton,
   DropEvent,
+  Flex,
+  Label,
   MenuItem,
   MenuList,
   Tooltip,
@@ -13,13 +15,16 @@ import { OutlinedFileImageIcon, VolumeUpIcon, OutlinedFileAltIcon } from '@patte
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   VISION_UPLOAD_CONFIG,
-  FILE_UPLOAD_CONFIG,
+  DOCUMENT_ATTACHMENT_CONFIG,
   ERROR_MESSAGES,
   ALERT_TIMEOUT_MS,
   AUDIO_UPLOAD_CONFIG,
 } from '~/app/Chatbot/const';
+import { DocumentAttachment } from '~/app/types';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
+import './ChatbotMessageInput.scss';
 
 export interface ImageUploadState {
   uploading: boolean;
@@ -57,6 +62,11 @@ interface ChatbotMessageInputProps {
   onMessageBarValueChange?: (value: string) => void;
   configIndex?: number;
   isCompareMode?: boolean;
+  documentAttachments?: DocumentAttachment[];
+  onRemoveDocument?: (fileID: string) => void;
+  onViewDocument?: (attachment: DocumentAttachment) => void;
+  isDocumentUploadDisabled?: boolean;
+  shouldShowPdfTextExtractionNotice?: boolean;
 }
 
 const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
@@ -83,6 +93,11 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   onMessageBarValueChange,
   configIndex,
   isCompareMode,
+  documentAttachments = [],
+  onRemoveDocument,
+  onViewDocument,
+  isDocumentUploadDisabled = false,
+  shouldShowPdfTextExtractionNotice = false,
 }) => {
   const [isAttachMenuOpen, setIsAttachMenuOpen] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
@@ -94,6 +109,19 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   const audioPhase = audioTranscriptionState?.phase || 'idle';
   const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
   const showAudioChip = isAudioActive || audioPhase === 'ready';
+
+  const documentTypeLabel = (filename: string) => {
+    const extension = filename.slice(filename.lastIndexOf('.') + 1).toLowerCase();
+    const labels: Record<string, string> = {
+      pdf: 'PDF',
+      txt: 'TXT',
+      md: 'MD',
+      csv: 'CSV',
+      docx: 'DOC',
+      pptx: 'PPT',
+    };
+    return labels[extension] ?? 'DOCUMENT';
+  };
 
   // PatternFly MessageBar only reads the `value` prop at mount time (internal useState).
   // When messageBarValue changes programmatically (e.g. from transcription), we must
@@ -212,16 +240,22 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       // eslint-disable-next-line no-param-reassign
       event.target.value = '';
 
-      const allowedMimes = Object.keys(FILE_UPLOAD_CONFIG.ALLOWED_FILE_TYPES);
+      const allowedExtensions = Object.keys(DOCUMENT_ATTACHMENT_CONFIG.EXTENSION_TO_MIME);
+      const allowedMimes: readonly string[] = DOCUMENT_ATTACHMENT_CONFIG.ALLOWED_MIME_TYPES;
       const errors: string[] = [];
       const accepted: File[] = [];
 
       for (const file of files) {
-        if (file.size > FILE_UPLOAD_CONFIG.MAX_FILE_SIZE) {
+        const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        const extensionMime = Object.entries(DOCUMENT_ATTACHMENT_CONFIG.EXTENSION_TO_MIME).find(
+          ([candidateExtension]) => candidateExtension === extension,
+        )?.[1];
+        const resolvedMime = file.type || extensionMime || '';
+        if (file.size > DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE) {
           errors.push(`${file.name}: ${ERROR_MESSAGES.FILE_TOO_LARGE}`);
-        } else if (!allowedMimes.includes(file.type)) {
+        } else if (!allowedExtensions.includes(extension) || !allowedMimes.includes(resolvedMime)) {
           errors.push(
-            `${file.name}: File type not supported. Accepted types: ${FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}`,
+            `${file.name}: File type not supported. Accepted types: ${DOCUMENT_ATTACHMENT_CONFIG.ACCEPTED_EXTENSIONS}`,
           );
         } else {
           accepted.push(file);
@@ -297,7 +331,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         )}
         <MenuItem
           icon={<OutlinedFileAltIcon />}
+          isDisabled={isDocumentUploadDisabled}
           onClick={() => handleMenuSelect('upload-documents')}
+          data-testid="upload-document-menu-item"
         >
           Upload documents
         </MenuItem>
@@ -308,6 +344,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       imageDisabledTooltip,
       isAudioUploadDisabled,
       audioDisabledTooltip,
+      isDocumentUploadDisabled,
       handleMenuSelect,
     ],
   );
@@ -316,7 +353,10 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
     <div
       style={{
         flexShrink: 0,
-        padding: '1rem',
+        padding:
+          documentAttachments.length > 0
+            ? `0 var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md)`
+            : 'var(--pf-t--global--spacer--md)',
         backgroundColor: isDarkMode
           ? 'var(--pf-t--global--dark--background--color--100)'
           : 'var(--pf-t--global--background--color--100)',
@@ -391,6 +431,54 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             />
           )}
         </div>
+      )}
+      {documentAttachments.length > 0 && (
+        <>
+          <Flex
+            className="gen-ai-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm pf-v6-u-pl-lg"
+            flexWrap={{ default: 'wrap' }}
+            gap={{ default: 'gapSm' }}
+            aria-busy={isAudioActive}
+          >
+            {documentAttachments.map((attachment) => (
+              <Label
+                key={attachment.file_id}
+                className="gen-ai-document-attachment"
+                icon={
+                  <span className="gen-ai-document-attachment__icon">
+                    <img src={RhUiResourceIcon} alt="" />
+                  </span>
+                }
+                onClick={() => onViewDocument?.(attachment)}
+                onClose={() => onRemoveDocument?.(attachment.file_id)}
+                variant="outline"
+                data-testid={`document-attachment-${attachment.file_id}`}
+              >
+                <span className="gen-ai-document-attachment__details">
+                  <span className="gen-ai-document-attachment__filename">
+                    {attachment.filename}
+                  </span>
+                  <span className="gen-ai-document-attachment__type">
+                    {documentTypeLabel(attachment.filename)}
+                  </span>
+                </span>
+              </Label>
+            ))}
+          </Flex>
+          {shouldShowPdfTextExtractionNotice &&
+            documentAttachments.some((attachment) =>
+              attachment.filename.toLowerCase().endsWith('.pdf'),
+            ) && (
+              <Alert
+                className="pf-v6-u-ml-lg pf-v6-u-mb-sm"
+                variant="info"
+                isInline
+                isPlain
+                title="This model is optimized to process text. Images might not extract correctly."
+                data-testid="pdf-text-extraction-notice"
+              />
+            )}
+        </>
       )}
       <div
         style={{
@@ -476,11 +564,12 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       <input
         ref={documentInputRef}
         type="file"
-        accept={FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS}
+        accept={DOCUMENT_ATTACHMENT_CONFIG.ACCEPTED_TYPES}
         multiple
         style={{ display: 'none' }}
         onChange={handleDocumentFileSelect}
         data-testid="document-file-input"
+        disabled={isDocumentUploadDisabled}
       />
       <div style={{ paddingTop: '1rem', textAlign: 'center' }}>
         <ChatbotFootnote label="This chatbot uses AI. Check for mistakes." />

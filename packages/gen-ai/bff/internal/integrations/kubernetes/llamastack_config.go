@@ -183,7 +183,9 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				}),
 			},
 			FileProcessors: []Provider{
-				NewProvider("pypdf", "inline::pypdf", EmptyConfig()),
+				// inline::auto dispatches PDF/text files to pypdf and Office files
+				// to MarkItDown. Both are shipped by the RHOAI OGX image.
+				NewProvider("auto", "inline::auto", EmptyConfig()),
 			},
 			Files: []Provider{
 				NewProvider("localfs-files", "inline::localfs", map[string]interface{}{

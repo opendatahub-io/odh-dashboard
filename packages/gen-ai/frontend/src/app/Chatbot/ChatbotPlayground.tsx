@@ -8,7 +8,6 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
-  DropEvent,
   Modal,
   ModalBody,
   ModalFooter,
@@ -43,7 +42,8 @@ import {
 } from '~/app/utilities/utils';
 import useCapabilityOnboarding from '~/app/hooks/useCapabilityOnboarding';
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
-import { TokenInfo, MCPServerFromAPI } from '~/app/types';
+import { DocumentAttachment, TokenInfo, ResponseMetrics, MCPServerFromAPI } from '~/app/types';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import type { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -75,6 +75,62 @@ import {
   getConfigDisplayLabel,
 } from './store';
 import { useIsEmbeddedPlayground } from './context/EmbeddedMessagesContext';
+
+const documentAttachmentsStorageKey = (namespace: string) =>
+  `gen-ai-playground-document-cache:${namespace}`;
+
+type CachedDocumentAttachment = DocumentAttachment & {
+  fingerprint: string;
+};
+
+const documentFingerprint = (file: File) => `${file.name}:${file.size}:${file.lastModified}`;
+
+const hasValueType = (value: object, property: string, type: 'string' | 'number') =>
+  Object.hasOwn(value, property) && typeof Reflect.get(value, property) === type;
+
+const isDocumentAttachment = (value: unknown): value is DocumentAttachment => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  return (
+    hasValueType(value, 'file_id', 'string') &&
+    hasValueType(value, 'filename', 'string') &&
+    hasValueType(value, 'text', 'string') &&
+    hasValueType(value, 'content_type', 'string') &&
+    hasValueType(value, 'size', 'number')
+  );
+};
+
+const loadDocumentCache = (storageKey: string): CachedDocumentAttachment[] => {
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    if (!stored) {
+      return [];
+    }
+    const parsed: unknown = JSON.parse(stored);
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (entry): entry is CachedDocumentAttachment =>
+            isDocumentAttachment(entry) && hasValueType(entry, 'fingerprint', 'string'),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const persistDocumentCache = (storageKey: string, attachments: CachedDocumentAttachment[]) => {
+  try {
+    if (attachments.length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+    window.localStorage.setItem(storageKey, JSON.stringify(attachments));
+  } catch {
+    // Storage can be disabled or full. Attachments remain available in memory
+    // for the current Playground session in that case.
+  }
+};
 
 /**
  * Wrapper for compare mode panes that subscribes to Zustand store for reactive model updates.
@@ -192,6 +248,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   } = React.useContext(ChatbotContext);
 
   const { data: bffConfig } = useFetchBFFConfig();
+  const { api, apiAvailable } = useGenAiAPI();
   const isDarkMode = useDarkMode();
 
   // Store state
@@ -387,6 +444,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const audioUploadLatchRef = React.useRef(false);
   const [showAudioPerMessageModal, setShowAudioPerMessageModal] = React.useState(false);
   const [messageBarValue, setMessageBarValue] = React.useState<string>('');
+  const documentStorageKey = React.useMemo(
+    () => documentAttachmentsStorageKey(namespace?.name ?? 'default'),
+    [namespace?.name],
+  );
+  const [documentAttachments, setDocumentAttachments] = React.useState<DocumentAttachment[]>([]);
+  const [isDocumentUploading, setIsDocumentUploading] = React.useState(false);
+  const [viewedDocument, setViewedDocument] = React.useState<DocumentAttachment | null>(null);
 
   // Revoke unsent image preview blob URL on unmount
   React.useEffect(
@@ -528,6 +592,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       if (pendingTranscription) {
         audioTranscription.discard();
       }
+      setDocumentAttachments([]);
       audioUploadLatchRef.current = false;
       setHasAudioInCurrentMessage(false);
       setMessageBarValue('');
@@ -548,18 +613,55 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     messageHooksRef.current.forEach((hook) => hook.handleStopStreaming());
   }, []);
 
-  const handleAttach = React.useCallback(
-    <T extends File>(acceptedFiles: T[], _fileRejections: unknown, event: DropEvent) => {
-      sourceManagement.handleSourceDrop(event, acceptedFiles).catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        alertManagement.onShowErrorAlert(
-          `Failed to process files: ${errorMessage}`,
-          'File Upload Error',
+  const handleDocumentAttach = React.useCallback(
+    async <T extends File>(acceptedFiles: T[]) => {
+      if (!apiAvailable) {
+        alertManagement.onShowErrorAlert('API is not available', 'Document upload error');
+        return;
+      }
+      setIsDocumentUploading(true);
+      try {
+        const uploaded: DocumentAttachment[] = [];
+        const cachedDocuments = new Map(
+          loadDocumentCache(documentStorageKey).map((attachment) => [
+            attachment.fingerprint,
+            attachment,
+          ]),
         );
-      });
+        for (const file of acceptedFiles) {
+          const cached = cachedDocuments.get(documentFingerprint(file));
+          if (cached) {
+            uploaded.push(cached);
+            continue;
+          }
+          const formData = new FormData();
+          formData.append('file', file);
+          const result = await api.uploadDocument(formData);
+          // eslint-disable-next-line camelcase
+          const attachment = { ...result, file_id: result.id, size: file.size };
+          uploaded.push(attachment);
+          cachedDocuments.set(documentFingerprint(file), {
+            ...attachment,
+            fingerprint: documentFingerprint(file),
+          });
+        }
+        persistDocumentCache(documentStorageKey, Array.from(cachedDocuments.values()));
+        setDocumentAttachments((current) => [...current, ...uploaded]);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Document extraction failed.';
+        alertManagement.onShowErrorAlert(message, 'Document upload error');
+      } finally {
+        setIsDocumentUploading(false);
+      }
     },
-    [sourceManagement, alertManagement],
+    [api, apiAvailable, alertManagement, documentStorageKey],
   );
+
+  const handleRemoveDocument = React.useCallback((fileID: string) => {
+    setDocumentAttachments((current) =>
+      current.filter((attachment) => attachment.file_id !== fileID),
+    );
+  }, []);
 
   const performImageUpload = React.useCallback(
     (file: File) => {
@@ -895,6 +997,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         audioUploadLatchRef.current = false;
         setHasAudioInCurrentMessage(false);
         setMessageBarValue('');
+        setDocumentAttachments([]);
+        setViewedDocument(null);
       };
     }
     return () => {
@@ -974,6 +1078,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerStatuses={mcpServerStatuses}
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
+          documentAttachments={documentAttachments}
           showWelcomePrompt
           welcomeContent={
             !isCompareMode &&
@@ -1082,6 +1187,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               }
             });
             setMessageBarValue('');
+            setDocumentAttachments([]);
+            setViewedDocument(null);
             if (isCompareMode) {
               fireMiscTrackingEvent('Playground Compare Chat Cleared', {
                 success: true,
@@ -1198,10 +1305,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     Array.from(disabledStates.values()).some(Boolean) ||
                     imageUploadState.uploading ||
                     audioTranscription.state.phase === 'uploading' ||
-                    audioTranscription.state.phase === 'transcribing'
+                    audioTranscription.state.phase === 'transcribing' ||
+                    isDocumentUploading
                   }
                   showAttachButton={!isEmbedded}
-                  onDocumentAttach={handleAttach}
+                  onDocumentAttach={handleDocumentAttach}
+                  documentAttachments={documentAttachments}
+                  onRemoveDocument={handleRemoveDocument}
+                  onViewDocument={setViewedDocument}
+                  isDocumentUploadDisabled={isDocumentUploading}
+                  shouldShowPdfTextExtractionNotice={
+                    capabilitiesReady &&
+                    !capabilitiesError &&
+                    (!hasVisionModel || !allModelsHaveVision)
+                  }
                   isDarkMode={isDarkMode}
                   onImageUpload={handleImageUpload}
                   imageUploadState={imageUploadState}
@@ -1241,6 +1358,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           }}
           onCancel={() => setPendingCloseConfigId(null)}
         />
+      )}
+
+      {viewedDocument && (
+        <Modal
+          isOpen
+          onClose={() => setViewedDocument(null)}
+          variant="large"
+          data-testid="document-extracted-text-modal"
+        >
+          <ModalHeader title={viewedDocument.filename} />
+          <ModalBody>
+            <pre>{viewedDocument.text}</pre>
+          </ModalBody>
+        </Modal>
       )}
 
       {showReplaceMediaModal && (

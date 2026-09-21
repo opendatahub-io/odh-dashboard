@@ -27,6 +27,9 @@ type MockLlamaStackClient struct {
 	getResponseResults map[string]*MockResponse
 	getResponseErrors  map[string]error
 	UploadFileError    error
+	ProcessFileResult  *llamastack.ProcessedDocument
+	ProcessFileError   error
+	DeletedFileIDs     []string
 }
 
 // NewMockLlamaStackClient creates a new mock client
@@ -213,6 +216,16 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack
 	}
 
 	return result, nil
+}
+
+func (m *MockLlamaStackClient) ProcessFile(_ context.Context, _ string) (*llamastack.ProcessedDocument, error) {
+	if m.ProcessFileError != nil {
+		return nil, m.ProcessFileError
+	}
+	if m.ProcessFileResult != nil {
+		return m.ProcessFileResult, nil
+	}
+	return &llamastack.ProcessedDocument{Text: "Mock document text"}, nil
 }
 
 // CreateResponse returns a mock response with comprehensive parameter support
@@ -649,6 +662,7 @@ func (m *MockLlamaStackClient) DeleteFile(ctx context.Context, fileID string) er
 	if fileID == "" {
 		return fmt.Errorf("fileID is required")
 	}
+	m.DeletedFileIDs = append(m.DeletedFileIDs, fileID)
 	// Mock deletion always succeeds
 	return nil
 }

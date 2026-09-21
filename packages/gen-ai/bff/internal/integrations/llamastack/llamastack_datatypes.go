@@ -12,6 +12,13 @@ type APIResponse struct {
 	Metadata *ResponseMetadata `json:"metadata,omitempty"`
 }
 
+// ProcessedDocument is the normalized result of an OGX file-processors call.
+// OGX returns document chunks; the BFF reassembles them in document order so
+// callers can send the text to any model as an input_text content part.
+type ProcessedDocument struct {
+	Text string `json:"text"`
+}
+
 // ResponseMetadata contains metadata about the API response
 type ResponseMetadata struct {
 	RequestID string `json:"request_id,omitempty"`

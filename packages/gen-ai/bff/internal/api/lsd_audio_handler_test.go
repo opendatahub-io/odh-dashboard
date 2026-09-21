@@ -116,6 +116,9 @@ func (m *mockLSClientForASR) DeleteVectorStore(_ context.Context, _ string) erro
 func (m *mockLSClientForASR) UploadFile(_ context.Context, _ llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
 	return nil, nil
 }
+func (m *mockLSClientForASR) ProcessFile(_ context.Context, _ string) (*llamastack.ProcessedDocument, error) {
+	return nil, nil
+}
 func (m *mockLSClientForASR) ListFiles(_ context.Context, _ llamastack.ListFilesParams) ([]openai.FileObject, error) {
 	return nil, nil
 }

@@ -2638,3 +2638,34 @@ func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
 		assert.Contains(t, err.Error(), "already exists", "stale URL must fall through to legacy error, not zero-restart")
 	})
 }
+
+func TestOfficeMIMETypesWorkloadOverrides(t *testing.T) {
+	env, volumes, mounts := officeMIMETypesWorkloadOverrides()
+
+	require.Len(t, env, 1)
+	assert.Equal(t, "PYTHONPATH", env[0].Name)
+	assert.Equal(t, constants.OfficeMIMETypesMountPath, env[0].Value)
+
+	require.Len(t, volumes, 1)
+	assert.Equal(t, constants.OfficeMIMETypesConfigMapName, volumes[0].Name)
+	require.NotNil(t, volumes[0].ConfigMap)
+	assert.Equal(t, constants.OfficeMIMETypesConfigMapName, volumes[0].ConfigMap.Name)
+	require.Len(t, volumes[0].ConfigMap.Items, 1)
+	assert.Equal(t, constants.OfficeMIMETypesConfigMapKey, volumes[0].ConfigMap.Items[0].Key)
+
+	require.Len(t, mounts, 1)
+	assert.Equal(t, constants.OfficeMIMETypesConfigMapName, mounts[0].Name)
+	assert.Equal(t, constants.OfficeMIMETypesMountPath, mounts[0].MountPath)
+	assert.True(t, mounts[0].ReadOnly)
+}
+
+func TestNewOfficeMIMETypesConfigMap(t *testing.T) {
+	configMap := newOfficeMIMETypesConfigMap("test-namespace")
+
+	assert.Equal(t, constants.OfficeMIMETypesConfigMapName, configMap.Name)
+	assert.Equal(t, "test-namespace", configMap.Namespace)
+	assert.Equal(t, "true", configMap.Labels[OpenDataHubDashboardLabelKey])
+	assert.Equal(t, lsdName, configMap.Labels["ogx.io/server"])
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `".docx"`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `".pptx"`)
+}

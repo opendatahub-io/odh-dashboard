@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Alert, Button, Flex, FlexItem, Stack, StackItem } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
@@ -83,11 +83,33 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           citationMap,
           toolCalls,
           isTextStreaming,
+          attachmentWarning,
           ...messageProps
         } = message;
 
         // Build extraContent with metrics and error alerts
         const extraContent: PFMessageProps['extraContent'] = { ...messageExtraContent };
+
+        if (message.role === 'user' && attachmentWarning) {
+          extraContent.endContent = (
+            <Alert
+              variant={attachmentWarning === 'context-exceeded' ? 'danger' : 'warning'}
+              isInline
+              isPlain
+              title={
+                attachmentWarning === 'context-exceeded'
+                  ? 'Model context window exceeded'
+                  : 'Document attachment warning'
+              }
+            >
+              {attachmentWarning === 'context-exceeded'
+                ? 'Model’s context window exceeded. Instead upload files to Settings → RAG.'
+                : attachmentWarning === 'near-limit'
+                  ? 'Model accuracy may be reduced because attached files use most of the model context window. Upload them to Settings → RAG instead.'
+                  : 'Attached files use the model context window. Upload large files to Settings → RAG instead.'}
+            </Alert>
+          );
+        }
 
         const isGuardrailViolation =
           errorClassification?.details.errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION ||
@@ -328,6 +350,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
               {...messageProps}
               {...citationProps}
               extraContent={Object.keys(extraContent).length > 0 ? extraContent : undefined}
+              isPrimary={message.role === 'user'}
               data-testid={`chatbot-message-${message.role}`}
               {...(hasImagesInConversation && { hasNoImagesInUserMessages: false })}
             />

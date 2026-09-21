@@ -2709,3 +2709,36 @@ func TestLlamaStackCreateResponseHandler_PayloadTooLarge(t *testing.T) {
 	assert.Equal(t, "413", errorObj["code"])
 	assert.Contains(t, errorObj["message"], "20MB")
 }
+
+func TestAppendDocumentAttachments(t *testing.T) {
+	result, err := appendDocumentAttachments(llamastack.InputUnion{Text: "Summarize this"}, []DocumentAttachment{{
+		FileID:   "file-123",
+		Filename: "notes.txt",
+		Text:     "The attached notes contain the agenda.",
+	}})
+
+	require.NoError(t, err)
+	require.Len(t, result.Parts, 2)
+	assert.Equal(t, "Summarize this", result.Parts[0].Text)
+	assert.Equal(t, "Document: notes.txt\n---\nThe attached notes contain the agenda.", result.Parts[1].Text)
+
+	_, err = appendDocumentAttachments(llamastack.InputUnion{Text: "Summarize this"}, []DocumentAttachment{{
+		FileID:   "file-123",
+		Filename: "notes.txt",
+	}})
+	require.EqualError(t, err, `document attachment "notes.txt" has no extracted text`)
+
+	multimodalInput := llamastack.InputUnion{Parts: []llamastack.InputContentPart{
+		{Type: "input_text", Text: "Describe this image"},
+		{Type: "input_image", FileID: "file-image"},
+	}}
+	result, err = appendDocumentAttachments(multimodalInput, []DocumentAttachment{{
+		FileID:   "file-456",
+		Filename: "caption.txt",
+		Text:     "The image shows a red bicycle.",
+	}})
+	require.NoError(t, err)
+	require.Len(t, result.Parts, 3)
+	assert.Equal(t, multimodalInput.Parts[1], result.Parts[1])
+	assert.Equal(t, "Document: caption.txt\n---\nThe image shows a red bicycle.", result.Parts[2].Text)
+}

@@ -24,8 +24,8 @@ providers:
         namespace: vector_io::milvus
         backend: kv_default
   file_processors:
-  - provider_id: pypdf
-    provider_type: inline::pypdf
+  - provider_id: auto
+    provider_type: inline::auto
     config: {}
   files:
   - provider_id: localfs-files
