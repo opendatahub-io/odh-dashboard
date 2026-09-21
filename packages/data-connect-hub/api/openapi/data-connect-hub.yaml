@@ -107,6 +107,34 @@ paths:
       operationId: getConnectionTypes
       summary: Get connection types
       description: Returns the connection types available to the selected project.
+  /api/v1/connection-types/{id}:
+    summary: Path used to retrieve a connection type for a project.
+    get:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionTypeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: getConnectionType
+      summary: Get a connection type
+      description: Returns a connection type available to the selected project.
   /api/v1/connections/{id}/readiness:
     summary: Path used to verify a data connection.
     post:
@@ -468,6 +496,19 @@ components:
                 items:
                   $ref: '#/components/schemas/ConnectionType'
       description: List of connection types for a project.
+    ConnectionTypeResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+              data:
+                $ref: '#/components/schemas/ConnectionType'
+      description: A connection type for a project.
     ConflictResponse:
       content:
         application/json:

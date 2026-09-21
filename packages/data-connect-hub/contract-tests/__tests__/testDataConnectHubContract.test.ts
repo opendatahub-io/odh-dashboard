@@ -64,6 +64,16 @@ describe('Data Connect Hub BFF Contract Tests', () => {
     });
   });
 
+  describe('Connection Type Endpoint', () => {
+    it('should retrieve a connection type for a project', async () => {
+      const result = await apiClient.get('/api/v1/connection-types/postgresql?namespace=default');
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionTypeResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+  });
+
   describe('Connection Readiness Endpoint', () => {
     it('should verify a connection', async () => {
       const result = await apiClient.post(

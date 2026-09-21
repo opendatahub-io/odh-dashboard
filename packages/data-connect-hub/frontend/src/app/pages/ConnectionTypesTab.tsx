@@ -290,6 +290,8 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
     </Sidebar>
   );
 
+  // TODO [ Gustavo ] We should make this the only way we render the groups - since we have it now
+  //  + we need to consider search filter and empty state for the group title rendering + search
   const connectionTypesCatalogWithGroups = (
     <Sidebar hasBorder hasGutter>
       {localFeatureFlags.filters && sidebarPanel}

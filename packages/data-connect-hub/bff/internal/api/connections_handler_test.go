@@ -98,6 +98,29 @@ func TestGetConnectionTypesHandlerReturnsMockTypes(t *testing.T) {
 	require.Equal(t, "PostgreSQL", envelope.Data[0].Resource.Name)
 }
 
+func TestGetConnectionTypeHandlerReturnsMockType(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/postgresql?namespace=test-project")
+
+	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionTypeEnvelope
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, "postgresql", envelope.Data.Metadata.ID)
+	require.Equal(t, "test-project", envelope.Data.Metadata.TenantID)
+	require.Equal(t, "PostgreSQL", envelope.Data.Resource.Name)
+}
+
+func TestGetConnectionTypeHandlerReturnsNotFoundForUnknownMockType(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/unknown?namespace=test-project")
+
+	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "unknown"}})
+
+	require.Equal(t, http.StatusNotFound, response.Code)
+}
+
 func TestMutationHandlersReturnNoContentInMockMode(t *testing.T) {
 	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
 
@@ -159,6 +182,18 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 			expectedStatus:   http.StatusOK,
 			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
 				app.GetConnectionTypesHandler(w, r, p)
+			},
+		},
+		{
+			name:             "connection type",
+			method:           http.MethodGet,
+			path:             "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440000?namespace=test-project",
+			params:           httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440000"}},
+			expectedVerb:     "get",
+			expectedResource: "data-connection-types",
+			expectedStatus:   http.StatusOK,
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.GetConnectionTypeHandler(w, r, p)
 			},
 		},
 		{

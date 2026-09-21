@@ -15,7 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
-import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
+import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import { ConnectionTypeIcon } from '~/app/components/ConnectionType.tsx';
 import type { Identified, Labelled, Valued, ConnectionType } from '~/app/types';
@@ -24,7 +24,11 @@ import type { Identified, Labelled, Valued, ConnectionType } from '~/app/types';
 
 type ValueRenderer = (c: ConnectionType) => React.ReactNode;
 
-type RenderedConnectionTypeValue = Identified<string> & Labelled<string> & Valued<ValueRenderer>;
+type RenderedConnectionTypeValue = Identified<string> &
+  Labelled<string> &
+  Valued<ValueRenderer> & {
+    shouldRender?: boolean;
+  };
 
 // Globals -------------------------------------------------------------------->
 
@@ -33,21 +37,25 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
     id: 'category',
     label: 'Category',
     value: () => null,
+    shouldRender: false,
   },
   license: {
     id: 'license',
     label: 'License',
     value: () => null,
+    shouldRender: false,
   },
   source: {
     id: 'source',
     label: 'Source',
     value: () => null,
+    shouldRender: false,
   },
   tags: {
     id: 'tags',
     label: 'Tags',
     value: () => null,
+    shouldRender: false,
   },
   provider: {
     id: 'provider',
@@ -89,9 +97,7 @@ const ConnectionTypeDetails: React.FC = () => {
   const { search } = useLocation();
   const [searchParams] = useSearchParams();
   const namespace = searchParams.get('project') ?? '';
-  // TODO [ Gustavo ] Although this works for now - we should really be using a `useConnectionType(namespace, connectionId)` with a dedicated use of GET /api/v1alpha1/data/connection-types/{id}
-  const [connectionTypes, loaded, loadError] = useConnectionTypes(namespace);
-  const connectionType = connectionTypes.find((item) => item.metadata.id === connectionTypeId);
+  const [connectionType, loaded, loadError] = useConnectionType(namespace, connectionTypeId);
 
   const loadingSkeleton = <Skeleton screenreaderText="Loading connection type" />;
 
@@ -139,14 +145,16 @@ const ConnectionTypeDetails: React.FC = () => {
       <PageSection data-connection-type-id={connectionType?.metadata.id}>
         {connectionType && (
           <DescriptionList>
-            {Object.values(renderedConnectionTypeValues).map((renderedValue) => (
-              <DescriptionListGroup key={renderedValue.id}>
-                <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {renderedValue.value(connectionType)}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            ))}
+            {Object.values(renderedConnectionTypeValues)
+              .filter((v) => v.shouldRender !== false)
+              .map((renderedValue) => (
+                <DescriptionListGroup key={renderedValue.id}>
+                  <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {renderedValue.value(connectionType)}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ))}
           </DescriptionList>
         )}
       </PageSection>
