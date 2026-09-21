@@ -3,11 +3,20 @@ import { ResourceTr } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, Tbody, Td } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label } from '@patternfly/react-core';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { PhaseResourceType, convertStringToPhaseStatus } from '~/app/utilities/phaseLabelUtils';
 import { ExternalProvider } from '~/app/types/external-models';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
-import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
+import {
+  convertStringToAuthMechanism,
+  mapAuthMechanismToHumanReadable,
+} from '~/app/pages/external-models/utils';
 import PathModal from '~/app/pages/external-models/modals/ExternalModelsPathModal';
+import {
+  convertStringToExternalModelProviderType,
+  MaaSEvents,
+  ExternalProviderEditClickedProperties,
+} from '~/app/types/event-tracking';
 import { externalProvidersColumns } from './columns';
 import { convertStringToProviderType, getExternalProviderResource } from './utils';
 
@@ -109,7 +118,14 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
         items={[
           {
             title: 'Edit',
-            onClick: () => setEditExternalProvider(externalProvider),
+            onClick: () => {
+              setEditExternalProvider(externalProvider);
+              fireMiscTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_EDIT_CLICKED, {
+                providerType: convertStringToExternalModelProviderType(externalProvider.provider),
+                authMechanism: convertStringToAuthMechanism(externalProvider.authMechanism),
+                providerStatus: convertStringToPhaseStatus(externalProvider.phase),
+              } satisfies ExternalProviderEditClickedProperties);
+            },
           },
           {
             title: 'Delete',
@@ -135,14 +151,14 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
       </Tbody>
       <PathModal
         title="Endpoints"
-        description="Use the following URL endpoint to connect this provider to your application."
-        inputTitle="External API endpoint"
+        description="Use this endpoint to connect to the provider."
+        inputTitle="API endpoint"
         path={externalProvider.endpointUrl}
         isOpen={!!endpointURLModalRef}
         onClose={() => {
           setEndpointURLModalRef(null);
         }}
-        subContentTitle="Authentication"
+        subContentTitle="Authentication type"
         subContent={mapAuthMechanismToHumanReadable(externalProvider.authMechanism)}
       />
     </>

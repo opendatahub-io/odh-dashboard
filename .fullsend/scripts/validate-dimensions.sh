@@ -37,9 +37,6 @@ while IFS=$'\t' read -r id kind output definition meta result_fields inline_skil
     check:*)
       jq -e '."$defs".readiness_check != null' "${SCHEMA}" >/dev/null || fail "${id}: result schema lacks readiness_check"
       ;;
-    classifier:*)
-      jq -e '."$defs".classifier_result != null' "${SCHEMA}" >/dev/null || fail "${id}: result schema lacks classifier_result"
-      ;;
     *) fail "${id}: unsupported output ${output}" ;;
   esac
 

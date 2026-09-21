@@ -124,7 +124,7 @@ describe('Verify a model can be deployed from model catalog', () => {
       modelServingWizard.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify redirection to the global page');
-      cy.location('pathname').should('eq', `/ai-hub/models/deployments/${projectName}`);
+      cy.location('pathname').should('eq', `/ai-hub/models/deployments/internal/${projectName}`);
       modelServingGlobal.getDeploymentRow(modelName);
     },
   );

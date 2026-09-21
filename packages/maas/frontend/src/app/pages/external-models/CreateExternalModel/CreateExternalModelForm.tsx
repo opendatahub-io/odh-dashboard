@@ -25,6 +25,11 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { createExternalModel, updateExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import {
@@ -43,6 +48,16 @@ import {
   setProviderRefWeightsEqually,
 } from '~/app/pages/external-models/providerReferenceUtils';
 import { createExternalModelFormSchema } from '~/app/pages/external-models/validations';
+import {
+  ExternalModelAddedProperties,
+  ExternalModelProviderContext,
+  ExternalModelProviderReferenceRemovedProperties,
+  ExternalModelWeightsDistributedProperties,
+  MaaSEvents,
+  AddProviderReferenceClickedProperties,
+  AddProviderReferenceSource,
+  ExternalModelUpdatedProperties,
+} from '~/app/types/event-tracking';
 import AddProviderReferenceWizard from './AddProviderReferenceWizard';
 import EditProviderReferenceModal from './EditProviderReferenceModal';
 import ProviderReferencesTable from './ProviderReferencesTable';
@@ -51,12 +66,14 @@ type CreateExternalModelFormProps = {
   namespace: string;
   returnTo: string;
   externalModel?: ExternalModel;
+  addProviderReferenceSource?: AddProviderReferenceSource;
 };
 
 const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   namespace,
   returnTo,
   externalModel,
+  addProviderReferenceSource = AddProviderReferenceSource.TOOLBAR,
 }) => {
   const navigate = useNavigate();
   const { externalProviders, refreshExternalModels } = useExternalModelsContext();
@@ -135,6 +152,13 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           providerRefs,
         };
         await updateExternalModel()(apiOpts, namespace, externalModel.name, request);
+
+        fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_UPDATED, {
+          outcome: TrackingOutcome.submit,
+          providerRefCount: providerRefs.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          success: true,
+        } satisfies ExternalModelUpdatedProperties);
       } else {
         const request: CreateExternalModelRequest = {
           name: nameDescData.k8sName.value,
@@ -145,6 +169,13 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           providerRefs,
         };
         await createExternalModel()(apiOpts, request);
+
+        fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_ADDED, {
+          outcome: TrackingOutcome.submit,
+          providerRefCount: providerRefs.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          success: true,
+        } satisfies ExternalModelAddedProperties);
       }
 
       refreshExternalModels();
@@ -156,6 +187,21 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           : `Failed to ${isEditing ? 'update' : 'create'} external model`,
       );
       setIsSubmitting(false);
+      if (externalModel) {
+        fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_UPDATED, {
+          outcome: TrackingOutcome.submit,
+          providerRefCount: providerRefs.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          success: false,
+        } satisfies ExternalModelUpdatedProperties);
+      } else {
+        fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_ADDED, {
+          outcome: TrackingOutcome.submit,
+          providerRefCount: providerRefs.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          success: false,
+        } satisfies ExternalModelAddedProperties);
+      }
     }
   };
 
@@ -177,6 +223,12 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   const handleRemoveProviderRef = (index: number) => {
     setProviderRefsTouched(true);
     setProviderRefs((prev) => prev.filter((_, i) => i !== index));
+    fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_REMOVED, {
+      remainingProviderCount: providerRefs.length - 1,
+      context: externalModel
+        ? ExternalModelProviderContext.EDIT
+        : ExternalModelProviderContext.CREATE,
+    } satisfies ExternalModelProviderReferenceRemovedProperties);
   };
 
   const handleProviderRefWeightChange = (index: number, weight: number) => {
@@ -203,17 +255,30 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   const handleOpenAddProviderModal = () => {
     setProviderRefsTouched(true);
     setIsAddProviderModalOpen(true);
+    fireMiscTrackingEvent(MaaSEvents.ADD_PROVIDER_REFERENCE_CLICKED, {
+      source: addProviderReferenceSource,
+      hasExistingProviders: formData.providerRefs.length > 0,
+      context: externalModel
+        ? ExternalModelProviderContext.EDIT
+        : ExternalModelProviderContext.CREATE,
+    } satisfies AddProviderReferenceClickedProperties);
   };
 
   const handleDistributeEqually = () => {
     setProviderRefsTouched(true);
     setProviderRefs((prev) => setProviderRefWeightsEqually(prev));
+    fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WEIGHTS_DISTRIBUTED, {
+      providerRefCount: providerRefs.length,
+      context: externalModel
+        ? ExternalModelProviderContext.EDIT
+        : ExternalModelProviderContext.CREATE,
+    } satisfies ExternalModelWeightsDistributedProperties);
   };
 
   return (
     <PageSection hasBodyWrapper={false}>
       <Form maxWidth="750px">
-        <FormSection title="Model details" titleElement="h2">
+        <FormSection>
           <FormGroup label="Project" fieldId="external-model-project" isRequired>
             <TextInput
               id="external-model-project"
@@ -228,18 +293,18 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
             onDataChange={onNameDescChange}
             dataTestId="external-model-name-desc"
             nameLabel="Name"
-            nameHelperText="The client-facing model name. Consumers use this to identify the model in API requests."
             maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
           />
         </FormSection>
 
-        <FormSection title="Provider reference configuration" titleElement="h2">
+        <FormSection title="Provider references" titleElement="h2">
           <FormHelperText>
             <HelperText>
               <HelperTextItem>
-                Configure which external providers serve this model and how traffic is distributed.
-                A provider reference links this model to an existing provider connection and
-                specifies the target model ID, API format, and traffic weight.
+                Configure references to the providers that serve this model. A provider reference
+                defines a model&apos;s relationship to a provider, and includes the provider&apos;s
+                model ID, API format, and request path. If a model references multiple providers,
+                requests are distributed based on each reference&apos;s routing weight.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -281,18 +346,6 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
               </Flex>
             </StackItem>
 
-            {providerRefs.length === 0 && (
-              <StackItem>
-                <Alert
-                  variant="info"
-                  isInline
-                  isPlain
-                  title="Add at least one provider reference to configure how this model routes inference traffic."
-                  data-testid="provider-refs-required-info"
-                />
-              </StackItem>
-            )}
-
             {providerRefs.length > 0 && (
               <StackItem>
                 <ProviderReferencesTable
@@ -329,12 +382,12 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           </Stack>
         </FormSection>
 
-        <FormSection title="Availability" titleElement="h2">
+        <FormSection title="Model availability" titleElement="h2">
           <Checkbox
             id="external-model-maas-availability"
             data-testid="external-model-maas-availability"
             label="Available as a Model as a Service (MaaS)"
-            description="External models are served through the MaaS gateway. This model will be available cluster-wide once a subscription and authorization policy are configured in MaaS governance."
+            description="External models are served through the MaaS gateway. This model will be available to select users in the cluster after an administrator configures a subscription and authorization policy."
             isChecked
             isDisabled
           />
@@ -344,7 +397,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           <Alert
             variant="danger"
             isInline
-            title={`Failed to ${isEditing ? 'update' : 'create'} external model`}
+            title={`Failed to ${isEditing ? 'update' : 'add'} external model`}
           >
             {submitError}
           </Alert>
@@ -370,9 +423,26 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(returnTo)}
             isDisabled={isSubmitting}
             data-testid="cancel-external-model-button"
+            onClick={() => {
+              if (externalModel) {
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_UPDATED, {
+                  outcome: TrackingOutcome.cancel,
+                  success: false,
+                  providerRefCount: providerRefs.length,
+                  hasDescription: nameDescData.description.trim() !== '',
+                } satisfies ExternalModelUpdatedProperties);
+              } else {
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_ADDED, {
+                  outcome: TrackingOutcome.cancel,
+                  success: false,
+                  providerRefCount: providerRefs.length,
+                  hasDescription: nameDescData.description.trim() !== '',
+                } satisfies ExternalModelAddedProperties);
+              }
+              navigate(returnTo);
+            }}
           >
             Cancel
           </Button>
@@ -385,6 +455,9 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
         externalProviders={externalProviders}
         onClose={handleCloseAddProviderModal}
         onAdd={handleAddProviderRef}
+        eventContext={
+          externalModel ? ExternalModelProviderContext.EDIT : ExternalModelProviderContext.CREATE
+        }
       />
 
       {editingProviderRefIndex !== null && (

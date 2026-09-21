@@ -71,7 +71,7 @@ describe('Verify NIM enable flow', () => {
       }
 
       cy.step('Login to the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=nimWizard=false', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to the Explore page');
       explorePage.visit();

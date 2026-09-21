@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSecretOps } from '@odh-dashboard/plugin-core';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
@@ -51,6 +52,8 @@ export const useModelDeploymentSubmit = (
     deployMethod?.properties.platform,
     !!existingDeployment,
     externalData,
+    resources.model?.kind === 'LLMInferenceService' ? 'llmInferenceService' : 'inferenceService',
+    resources.model?.metadata.labels?.[KUEUE_QUEUE_LABEL],
   );
   const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
