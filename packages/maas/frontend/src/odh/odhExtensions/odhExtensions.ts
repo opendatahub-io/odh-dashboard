@@ -7,6 +7,7 @@ import {
 } from '@odh-dashboard/plugin-core/extension-points';
 
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
+export const EXTERNAL_MODELS_ID = 'external-models';
 export const MAAS_MY_SUBSCRIPTIONS = 'mySubscriptions';
 
 /** Keep in sync with model-serving GlobalModelsPage GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP. */
@@ -98,12 +99,13 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'core.detail/tab',
     flags: {
-      required: [MODEL_AS_SERVICE_ID],
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
     reliantArea: [MODEL_AS_SERVICE_ID],
     properties: {
       id: 'external-models',
       title: 'External models',
+      label: 'Tech Preview',
       group: GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP,
       component: () => import('./ExternalModelsWrapper'),
     },
@@ -111,7 +113,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID],
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
     properties: {
       path: '/ai-hub/models/deployments/external-providers/*',
@@ -121,7 +123,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID],
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
     properties: {
       path: '/ai-hub/models/deployments/external/:namespace/register',
@@ -141,7 +143,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID],
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
     properties: {
       path: '/maas/tokens/*',

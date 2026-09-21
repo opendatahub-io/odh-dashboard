@@ -12,6 +12,7 @@ export const techPreviewFlags = {
   autorag: false,
   guardrails: false,
   modelAsService: true,
+  externalModels: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   mcpRegistry: false,
@@ -287,6 +288,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_GEN_AI]: {
     featureFlags: ['genAiStudio'],
+  },
+  [SupportedArea.EXTERNAL_MODELS]: {
+    featureFlags: ['externalModels'],
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],

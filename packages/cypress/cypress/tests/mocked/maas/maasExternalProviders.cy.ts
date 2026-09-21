@@ -25,7 +25,10 @@ const TEST_PROJECT = 'test-project';
 
 const setupCommonIntercepts = () => {
   asProductAdminUser();
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ modelAsService: true, externalModels: true }),
+  );
   cy.interceptOdh('GET /maas/api/v1/user', {
     data: { userId: 'test-user', clusterAdmin: false },
   });
@@ -80,8 +83,20 @@ describe('External providers', () => {
     setupCommonIntercepts();
   });
 
+  it('should not show the external providers page when the external models feature flag is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ modelAsService: true, externalModels: false }),
+    );
+    externalProvidersPage.visit();
+    externalProvidersPage.findPage().should('not.exist');
+  });
+
   it('should not show the external providers page when MaaS is disabled', () => {
-    cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: false }));
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ modelAsService: false, externalModels: true }),
+    );
     externalProvidersPage.visit();
     externalProvidersPage.findPage().should('not.exist');
   });
