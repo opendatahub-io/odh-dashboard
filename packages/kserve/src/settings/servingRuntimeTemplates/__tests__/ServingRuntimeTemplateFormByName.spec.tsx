@@ -45,7 +45,7 @@ const renderByName = (mode: 'edit' | 'duplicate', name: string, templates: Templ
         <Routes>
           <Route
             path={`${LIST_PATH}/${mode}/:servingRuntimeName`}
-            element={<ServingRuntimeTemplateFormByName mode={mode} listPath={LIST_PATH} />}
+            element={<ServingRuntimeTemplateFormByName mode={mode} />}
           />
         </Routes>
       </MemoryRouter>

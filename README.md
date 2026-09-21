@@ -27,9 +27,9 @@ A dashboard for Open Data Hub components, featuring user flows to navigate and i
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.9.2
-- **Go**: >= 1.26 (for packages with Backend-for-Frontend services)
+- **Node.js**: >= 22.18.0
+- **npm**: 11.8.0 (pinned in `package.json` `packageManager`)
+- **Go**: >= 1.26 (for packages with Backend-for-Frontend services; see each package's `go.mod`)
 
 For detailed development setup requirements, see [Dev setup & Requirements].
 
@@ -113,7 +113,7 @@ This is a **monorepo** using npm workspaces and Turbo for orchestration:
 
 ```
 odh-dashboard/
-├── frontend/           # Main dashboard frontend (React + Webpack Module Federation)
+├── frontend/           # Main dashboard frontend (React + Module Federation)
 ├── backend/            # Main dashboard backend (Node.js/Express)
 ├── packages/           # Feature packages (~25 packages)
 │   ├── gen-ai/        # Generative AI features (has BFF)
@@ -130,7 +130,7 @@ Key technologies:
 - **React 18** - Frontend framework
 - **TypeScript** - Type safety
 - **PatternFly v6** - UI components
-- **Webpack Module Federation** - Runtime code sharing
+- **Module Federation** - Runtime code sharing
 - **Turbo** - Monorepo task orchestration
 - **Cypress** - E2E testing
 - **Jest** - Unit testing

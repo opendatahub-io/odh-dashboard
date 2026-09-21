@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { handleRestFailures, restGET, restCREATE, isModArchResponse } from 'mod-arch-core';
 import {
+  getCollection,
   getCollections,
   getEvalHubCRStatus,
   getEvaluationJob,
@@ -177,6 +178,134 @@ describe('getEvaluationJob', () => {
   });
 });
 
+describe('getCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should return the collection when response is valid', async () => {
+    const collection: Collection = {
+      resource: { id: 'col-1' },
+      name: 'Open LLM Leaderboard v2',
+      category: 'General',
+    };
+    mockRestGET.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollection('', 'test-ns', 'col-1')({});
+
+    expect(result).toEqual(collection);
+  });
+
+  it('should throw when data is null inside a valid envelope', async () => {
+    mockRestGET.mockResolvedValue({ data: null });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: expected an object',
+    );
+  });
+
+  it('should throw when data is missing required Collection fields', async () => {
+    mockRestGET.mockResolvedValue({ data: { category: 'General' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: missing or empty name',
+    );
+  });
+
+  it('should throw when data has name but no resource', async () => {
+    mockRestGET.mockResolvedValue({ data: { name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: missing resource',
+    );
+  });
+
+  it('should throw when resource is missing id', async () => {
+    mockRestGET.mockResolvedValue({ data: { name: 'Test', resource: {} } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: missing resource.id',
+    );
+  });
+
+  it('should throw when benchmarks is not an array', async () => {
+    mockRestGET.mockResolvedValue({
+      data: { name: 'Test', resource: { id: 'col-1' }, benchmarks: 'not-an-array' },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: benchmarks is not an array',
+    );
+  });
+
+  it('should reject with an error when collectionId is empty', async () => {
+    await expect(getCollection('', 'test-ns', '')({})).rejects.toThrow(
+      'collectionId must not be empty',
+    );
+
+    expect(mockRestGET).not.toHaveBeenCalled();
+  });
+
+  it('should throw when response is not a valid mod-arch response', async () => {
+    mockRestGET.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid response format',
+    );
+  });
+
+  it('should call restGET with the correct URL and namespace query param', async () => {
+    mockRestGET.mockResolvedValue({ data: { resource: { id: 'col-1' }, name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const opts = {};
+    await getCollection('', 'my-ns', 'col-1')(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1',
+      { namespace: 'my-ns' },
+      opts,
+    );
+  });
+
+  it('should encode the collection ID in the URL', async () => {
+    mockRestGET.mockResolvedValue({ data: { resource: { id: 'col/special' }, name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollection('', 'ns', 'col/special')({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col%2Fspecial',
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  it('should pass the hostPath to restGET', async () => {
+    mockRestGET.mockResolvedValue({ data: { resource: { id: 'col-1' }, name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollection('http://my-host', 'ns', 'col-1')({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      'http://my-host',
+      expect.any(String),
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+});
+
 describe('getCollections', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -267,6 +396,70 @@ describe('getCollections', () => {
       expect.any(Object),
     );
   });
+
+  it('should filter out collection items missing resource.id', async () => {
+    const items = [
+      { resource: { id: 'col-valid' }, name: 'Valid' },
+      { name: 'No resource' },
+      { resource: {}, name: 'No id' },
+      { resource: { id: 'col-also-valid' }, name: 'Also Valid' },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items).toHaveLength(2);
+    expect(result.items.map((c) => c.resource.id)).toEqual(['col-valid', 'col-also-valid']);
+  });
+
+  it('should filter out collection items missing name', async () => {
+    const items = [{ resource: { id: 'col-1' }, name: 'Has Name' }, { resource: { id: 'col-2' } }];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].name).toBe('Has Name');
+  });
+
+  it('should filter out invalid benchmarks within valid collection items', async () => {
+    const items = [
+      {
+        resource: { id: 'col-1' },
+        name: 'Collection',
+        benchmarks: [
+          { id: 'bench-valid' },
+          { notAnId: true },
+          { id: 123 },
+          { id: 'bench-also-valid', provider_id: 'prov' },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].benchmarks).toHaveLength(2);
+    expect(result.items[0].benchmarks?.map((b) => b.id)).toEqual([
+      'bench-valid',
+      'bench-also-valid',
+    ]);
+  });
+
+  it('should sanitize array response the same as object response', async () => {
+    const items = [{ resource: { id: 'col-valid' }, name: 'Valid' }, { name: 'Missing resource' }];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].resource.id).toBe('col-valid');
+  });
 });
 
 describe('getProviders', () => {
@@ -329,6 +522,87 @@ describe('getProviders', () => {
       expect.any(Object),
       expect.any(Object),
     );
+  });
+
+  it('should filter out providers missing resource.id', async () => {
+    const items = [
+      { resource: { id: 'prov-valid' }, name: 'Valid Provider' },
+      { name: 'No resource' },
+      { resource: {}, name: 'No id' },
+    ];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].resource.id).toBe('prov-valid');
+  });
+
+  it('should filter out providers missing name', async () => {
+    const items = [
+      { resource: { id: 'prov-1' }, name: 'Has Name' },
+      { resource: { id: 'prov-2' } },
+    ];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Has Name');
+  });
+
+  it('should filter out invalid benchmarks within valid providers', async () => {
+    const items = [
+      {
+        resource: { id: 'prov-1' },
+        name: 'Provider',
+        benchmarks: [
+          { id: 'bench-good', name: 'Good Bench' },
+          { id: 'bench-no-name' },
+          { name: 'No ID' },
+          { id: 'bench-also-good', name: 'Also Good' },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].benchmarks).toHaveLength(2);
+    expect(result[0].benchmarks?.map((b) => b.id)).toEqual(['bench-good', 'bench-also-good']);
+  });
+
+  it('should filter out non-string metrics from provider benchmarks', async () => {
+    const items = [
+      {
+        resource: { id: 'prov-1' },
+        name: 'Provider',
+        benchmarks: [
+          { id: 'bench-1', name: 'Bench', metrics: ['accuracy', 42, 'f1', null, 'bleu'] },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result[0].benchmarks?.[0].metrics).toEqual(['accuracy', 'f1', 'bleu']);
+  });
+
+  it('should preserve providers with no benchmarks field', async () => {
+    const items = [{ resource: { id: 'prov-1' }, name: 'Plain Provider' }];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].benchmarks).toBeUndefined();
   });
 });
 
@@ -467,7 +741,7 @@ describe('getEvaluationJobLogs', () => {
 
     const result = await getEvaluationJobLogs('', 'test-ns', 'job-1')();
 
-    expect(result).toBe('log line 1\nlog line 2');
+    expect(result).toEqual({ logs: 'log line 1\nlog line 2', truncated: false });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/evaluations/jobs/job-1/logs?'),
       expect.objectContaining({}),
@@ -503,7 +777,21 @@ describe('getEvaluationJobLogs', () => {
 
     const result = await getEvaluationJobLogs('', 'ns', 'j1')();
 
-    expect(result).toBe('log output');
+    expect(result).toEqual({ logs: 'log output', truncated: false });
+  });
+
+  it('should expose the truncation response header', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: {
+        get: (name: string) => (name === 'X-Log-Truncated' ? 'true' : 'text/plain'),
+      },
+      text: () => Promise.resolve('partial log output'),
+    });
+
+    const result = await getEvaluationJobLogs('', 'ns', 'j1')();
+
+    expect(result).toEqual({ logs: 'partial log output', truncated: true });
   });
 
   it('should throw LogFetchError when Content-Type is not text/plain', async () => {
@@ -644,7 +932,7 @@ describe('getEvaluationJobBenchmarkLogs', () => {
 
     const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 2)();
 
-    expect(result).toBe('benchmark log output');
+    expect(result).toEqual({ logs: 'benchmark log output', truncated: false });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/evaluations/jobs/j1/benchmarks/2/logs?'),
       expect.objectContaining({}),
@@ -660,7 +948,21 @@ describe('getEvaluationJobBenchmarkLogs', () => {
 
     const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)();
 
-    expect(result).toBe('output');
+    expect(result).toEqual({ logs: 'output', truncated: false });
+  });
+
+  it('should expose an explicit false truncation response header', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: {
+        get: (name: string) => (name === 'X-Log-Truncated' ? 'false' : 'text/plain'),
+      },
+      text: () => Promise.resolve('complete log output'),
+    });
+
+    const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)();
+
+    expect(result).toEqual({ logs: 'complete log output', truncated: false });
   });
 
   it('should throw LogFetchError when Content-Type is not text/plain', async () => {

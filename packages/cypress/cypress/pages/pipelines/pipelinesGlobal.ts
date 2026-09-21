@@ -6,12 +6,12 @@ import { SearchSelector } from '../components/subComponents/SearchSelector';
 class PipelinesGlobal {
   projectDropdown = new SearchSelector('project-selector');
 
-  visit(projectName: string) {
+  visit(projectName: string, timeout?: number) {
     cy.visitWithLogin(`/develop-train/pipelines/definitions/${projectName}`);
-    this.wait();
+    this.wait(timeout);
   }
 
-  navigate() {
+  navigate(timeout?: number) {
     appChrome
       .findNavItem({
         name: 'Pipeline definitions',
@@ -19,11 +19,11 @@ class PipelinesGlobal {
         subSection: 'Pipelines',
       })
       .click();
-    this.wait();
+    this.wait(timeout);
   }
 
-  private wait() {
-    cy.findByTestId('app-page-title').contains('Pipeline definitions');
+  private wait(timeout?: number) {
+    cy.findByTestId('app-page-title', { timeout }).contains('Pipeline definitions');
     cy.testA11y();
   }
 
@@ -48,8 +48,8 @@ class PipelinesGlobal {
     cy.findByRole('menuitem', { name }).click();
   }
 
-  findImportPipelineButton() {
-    return cy.findByTestId('import-pipeline-button');
+  findImportPipelineButton(timeout?: number) {
+    return cy.findByTestId('import-pipeline-button', { timeout });
   }
 
   findUploadVersionButton() {

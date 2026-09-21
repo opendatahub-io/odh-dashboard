@@ -5,8 +5,8 @@ import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-point
 import { ModelCatalogContextProvider } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { ModelDetailsTab } from '~/concepts/modelCatalog/const';
 import OdhModelCatalogCoreLoader from '~/odh/components/OdhModelCatalogCoreLoader';
+import OdhModelDetailsPage from '~/odh/components/OdhModelDetailsPage';
 import { MODEL_CATALOG_DETAILS_GROUP } from './screens/ModelDetailsTabs';
-import ModelDetailsPage from './screens/ModelDetailsPage';
 import RegisterCatalogModelPage from './screens/RegisterCatalogModelPage';
 import ModelCatalog from './screens/ModelCatalog';
 
@@ -22,16 +22,16 @@ const ModelCatalogRoutes: React.FC = () => {
             <Route index element={<Navigate to={ModelDetailsTab.OVERVIEW} replace />} />
             <Route
               path={ModelDetailsTab.OVERVIEW}
-              element={<ModelDetailsPage tab={ModelDetailsTab.OVERVIEW} />}
+              element={<OdhModelDetailsPage tab={ModelDetailsTab.OVERVIEW} />}
             />
             <Route
               path={ModelDetailsTab.PERFORMANCE_INSIGHTS}
-              element={<ModelDetailsPage tab={ModelDetailsTab.PERFORMANCE_INSIGHTS} />}
+              element={<OdhModelDetailsPage tab={ModelDetailsTab.PERFORMANCE_INSIGHTS} />}
             />
             {generateExtensionTabRoutes({
               tabExtensions: allTabExtensions,
               group: MODEL_CATALOG_DETAILS_GROUP,
-              renderElement: (tabId) => <ModelDetailsPage tab={tabId} />,
+              renderElement: (tabId) => <OdhModelDetailsPage tab={tabId} />,
             })}
             <Route path="register" element={<RegisterCatalogModelPage />} />
             <Route path="*" element={<Navigate to="." />} />

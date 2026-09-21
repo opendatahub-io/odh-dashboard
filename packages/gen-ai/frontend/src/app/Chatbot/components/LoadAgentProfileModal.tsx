@@ -106,7 +106,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
     }
     if (filtered.length === 0) {
       return (
-        <EmptyState>
+        <EmptyState data-testid="load-agent-profile-empty-state">
           <EmptyStateBody>
             {profiles.length === 0 ? 'No agents found.' : 'No agents match your search.'}
           </EmptyStateBody>

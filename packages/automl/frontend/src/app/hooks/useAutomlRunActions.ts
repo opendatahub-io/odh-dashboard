@@ -6,6 +6,14 @@ import {
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import {
+  AUTOML_FAILURE_CATEGORY,
+  fireAutomlRunDeleted,
+  fireAutomlRunRetried,
+  fireAutomlRunStopped,
+  TrackingOutcome,
+  type RunActionSource,
+} from '~/app/utilities/tracking';
 
 type AutomlRunActions = {
   handleRetry: () => Promise<void>;
@@ -23,6 +31,7 @@ type AutomlRunActions = {
 export const useAutomlRunActions = (
   namespace: string,
   runId: string,
+  source: RunActionSource,
   onActionComplete?: () => void | Promise<void>,
 ): AutomlRunActions => {
   const queryClient = useQueryClient();
@@ -39,11 +48,16 @@ export const useAutomlRunActions = (
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
+      fireAutomlRunRetried({ outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
-      notification.error(
-        'Failed to retry run',
-        error instanceof Error ? error.message : 'An unknown error occurred',
-      );
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      notification.error('Failed to retry run', errorMessage);
+      fireAutomlRunRetried({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: AUTOML_FAILURE_CATEGORY,
+        source,
+      });
       throw error;
     }
     try {
@@ -51,7 +65,7 @@ export const useAutomlRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful retry.
     }
-  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
 
   const handleConfirmStop = React.useCallback(async () => {
     try {
@@ -61,11 +75,16 @@ export const useAutomlRunActions = (
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
+      fireAutomlRunStopped({ outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
-      notification.error(
-        'Failed to stop run',
-        error instanceof Error ? error.message : 'An unknown error occurred',
-      );
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      notification.error('Failed to stop run', errorMessage);
+      fireAutomlRunStopped({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: AUTOML_FAILURE_CATEGORY,
+        source,
+      });
       throw error;
     }
     try {
@@ -73,7 +92,7 @@ export const useAutomlRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful stop.
     }
-  }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
 
   const handleDelete = React.useCallback(async () => {
     try {
@@ -83,11 +102,16 @@ export const useAutomlRunActions = (
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
       );
+      fireAutomlRunDeleted({ outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
-      notification.error(
-        'Failed to delete run',
-        error instanceof Error ? error.message : 'An unknown error occurred',
-      );
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      notification.error('Failed to delete run', errorMessage);
+      fireAutomlRunDeleted({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: AUTOML_FAILURE_CATEGORY,
+        source,
+      });
       throw error;
     }
     try {
@@ -95,7 +119,7 @@ export const useAutomlRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful delete.
     }
-  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
 
   return {
     handleRetry,

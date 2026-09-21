@@ -73,6 +73,8 @@ updates:
         applies-to: version-updates
         patterns:
           - "webpack*"
+          - "@rspack/*"
+          - "rspack*"
         update-types:
           - "minor"
           - "patch"

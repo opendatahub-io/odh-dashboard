@@ -59,9 +59,6 @@ type PipelinesRepositoryConfig struct {
 }
 
 func NewPipelinesRepository(logger *slog.Logger, core pipelines.Service, cfg PipelinesRepositoryConfig) *PipelinesRepository {
-	if cfg.DefaultPipelineVersion == "" {
-		cfg.DefaultPipelineVersion = constants.DefaultPipelineVersionSuffix
-	}
 	return &PipelinesRepository{core: core, config: cfg, logger: logger}
 }
 
@@ -288,7 +285,7 @@ var pipelineSpecificFields = map[string][]fieldCheck{
 	constants.PipelineTypeTimeSeries: {
 		{"task_type", func(r models.CreateAutoMLRunRequest) bool { return r.TaskType != nil && *r.TaskType != "" }, true},
 		{"target", func(r models.CreateAutoMLRunRequest) bool { return r.Target != nil && *r.Target != "" }, true},
-		{"id_column", func(r models.CreateAutoMLRunRequest) bool { return r.IDColumn != nil && *r.IDColumn != "" }, true},
+		{"id_column", func(r models.CreateAutoMLRunRequest) bool { return r.IDColumn != nil && *r.IDColumn != "" }, false},
 		{"timestamp_column", func(r models.CreateAutoMLRunRequest) bool {
 			return r.TimestampColumn != nil && *r.TimestampColumn != ""
 		}, true},

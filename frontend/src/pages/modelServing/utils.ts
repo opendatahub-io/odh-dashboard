@@ -18,20 +18,23 @@ import {
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import {
   assembleSecretSA,
-  createRoleBinding,
   createSecret,
   deleteSecret,
-  generateRoleInferenceService,
-  generateRoleBindingServiceAccount,
   replaceSecret,
+} from '@odh-dashboard/k8s-core/api/secrets';
+import {
   assembleServiceAccount,
   createServiceAccount,
-  getRoleBinding,
-  addOwnerReference,
   getServiceAccount,
-  getRole,
-  createRole,
-} from '#~/api';
+} from '@odh-dashboard/k8s-core/api/serviceAccounts';
+import { createRole, getRole } from '@odh-dashboard/k8s-core/api/roles';
+import {
+  createRoleBinding,
+  getRoleBinding,
+  generateRoleBindingServiceAccount,
+} from '@odh-dashboard/k8s-core/api/roleBindings';
+import { addOwnerReference } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import { generateRoleInferenceService } from '#~/api';
 import { K8sAPIOptions, RoleBindingKind, ServiceAccountKind, RoleKind } from '#~/k8sTypes';
 import {
   CreatingInferenceServiceObject,
@@ -376,7 +379,7 @@ export const getInferenceServiceStoppedStatus = (
 export const getServingRuntimeVersionStatus = (
   servingRuntimeVersion: string | undefined,
   templateVersion: string | undefined,
-): string | undefined => {
+): ServingRuntimeVersionStatusLabel | undefined => {
   if (!servingRuntimeVersion || !templateVersion) {
     return undefined;
   }

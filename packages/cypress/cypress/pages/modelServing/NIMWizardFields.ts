@@ -10,7 +10,16 @@ export class NIMWizardFields extends SubComponentBase {
     // Escape regex special characters to match literal text
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     this.findImageSelect().click();
+    this.findImageSelect().find('input').type(name);
     cy.findByRole('option', { name: new RegExp(escapedName) }).click();
+  }
+
+  findImageNotFoundWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findScope().findByTestId('nim-image-not-found-warning');
+  }
+
+  findImageSelectOptions(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('listbox').findAllByRole('option');
   }
 
   findStorageModeSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -33,7 +42,22 @@ export class NIMWizardFields extends SubComponentBase {
     return this.findScope().findByTestId('nim-storage-size-input').find('input');
   }
 
+  /** PF NumberInput is controlled — use select-all instead of clear().type() to avoid stale values. */
+  setStorageSizeGi(sizeGi: number): void {
+    this.findStorageSizeInput().type(`{selectall}${sizeGi}`);
+    this.findStorageSizeInput().should('have.value', String(sizeGi));
+  }
+
   findExistingPVCSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findScope().findByTestId('nim-existing-pvc-select');
+  }
+
+  findExistingPVCInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findExistingPVCSelect().find('input');
+  }
+
+  selectExistingPVC(name: string): void {
+    this.findExistingPVCInput().click();
+    cy.findByRole('option', { name }).click();
   }
 }

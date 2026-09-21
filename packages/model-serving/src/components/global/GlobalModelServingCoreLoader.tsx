@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { byName } from '@odh-dashboard/k8s-core';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ProjectsContext, ApplicationsPage } from '@odh-dashboard/ui-core';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
-import ModelServingContextProvider from '@odh-dashboard/internal/pages/modelServing/ModelServingContext';
-import ModelServingNoProjects from '@odh-dashboard/internal/pages/modelServing/screens/global/ModelServingNoProjects';
+import { useHostApi } from '@odh-dashboard/plugin-core';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
+import NoProjectsPage from './NoProjectsPage';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
@@ -21,6 +20,9 @@ type ApplicationPageRenderState = Pick<ApplicationPageProps, EmptyStateProps>;
 const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> = ({
   getInvalidRedirectPath,
 }) => {
+  const {
+    contexts: { ModelServingContextProvider },
+  } = useHostApi();
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
   const storedProject = getStoredPreferredProject(projects);
@@ -29,7 +31,7 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
   if (projects.length === 0) {
     renderStateProps = {
       empty: true,
-      emptyStatePage: <ModelServingNoProjects />,
+      emptyStatePage: <NoProjectsPage />,
     };
   } else if (namespace) {
     const foundProject = projects.find(byName(namespace));

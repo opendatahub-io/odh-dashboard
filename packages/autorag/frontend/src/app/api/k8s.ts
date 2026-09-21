@@ -5,13 +5,18 @@ import {
   isModArchResponse,
   restGET,
 } from 'mod-arch-core';
+import * as z from 'zod';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import {
-  OgxModelsResponse,
-  OgxVectorStoreProvidersResponse,
-  NamespaceKind,
-  SecretListItem,
-} from '~/app/types';
+import { MaaSModelsResponse, NamespaceKind, SecretListItem } from '~/app/types';
+
+const SecretListItemSchema = z.object({
+  uuid: z.string(),
+  name: z.string(),
+  type: z.string().optional(),
+  data: z.record(z.string(), z.string()),
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+});
 
 export const getUser =
   (hostPath: string) =>
@@ -39,7 +44,7 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'ogx') =>
+  (namespace: string, type?: 'storage' | 'maas' | 'vector-db') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { namespace };
     if (type) {
@@ -49,7 +54,11 @@ export const getSecrets =
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/secrets`, queryParams, opts),
     ).then((response) => {
       if (isModArchResponse<SecretListItem[]>(response)) {
-        return response.data;
+        try {
+          return SecretListItemSchema.array().parse(response.data);
+        } catch {
+          throw new Error('Invalid response format');
+        }
       }
       throw new Error('Invalid response format');
     });
@@ -73,37 +82,22 @@ export const getSecretByName =
       throw new Error('Invalid response format');
     });
 
-export const getOgxModels =
+export const getMaaSModels =
   (hostPath: string) =>
   (namespace: string, secretName: string) =>
-  (opts: APIOptions): Promise<OgxModelsResponse> =>
+  (opts: APIOptions): Promise<MaaSModelsResponse> =>
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/ogx/models`,
-        { namespace, secretName },
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/models`,
+        {
+          namespace,
+          secretName,
+        },
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<OgxModelsResponse>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-
-export const getOgxVectorStores =
-  (hostPath: string) =>
-  (namespace: string, secretName: string) =>
-  (opts: APIOptions): Promise<OgxVectorStoreProvidersResponse> =>
-    handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/ogx/vector-stores`,
-        { namespace, secretName },
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<OgxVectorStoreProvidersResponse>(response)) {
+      if (isModArchResponse<MaaSModelsResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

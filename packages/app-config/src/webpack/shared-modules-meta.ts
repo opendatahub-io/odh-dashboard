@@ -4,9 +4,6 @@ export type SharedModuleMetadata = {
   eager: boolean;
 };
 
-/** Deep import used by RHDS vendored icons; not covered by `@patternfly/react-icons` root sharing. */
-const PF_REACT_ICONS_CREATE_ICON_MODULE = '@patternfly/react-icons/dist/esm/createIcon';
-
 const defaultMeta: SharedModuleMetadata = {
   singleton: true,
   allowFallback: true,
@@ -53,27 +50,7 @@ const getSharedModuleMetadata = (moduleName: string): SharedModuleMetadata => {
   return { ...defaultMeta, ...overrides };
 };
 
-/** Shared MF config for the createIcon deep import when `@patternfly/react-icons` is a dependency. */
-const getPfReactIconsCreateIconSharedConfig = (
-  pfReactIconsRequiredVersion: string,
-): Record<string, unknown> => {
-  let version: string | undefined;
-  try {
-    const installed = require('@patternfly/react-icons/package.json').version;
-    version = typeof installed === 'string' ? installed : undefined;
-  } catch {
-    // Metadata unavailable; do not derive version from the requiredVersion range.
-  }
-  return {
-    singleton: true,
-    requiredVersion: pfReactIconsRequiredVersion,
-    ...(version && { version }),
-  };
-};
-
 module.exports = {
   sharedPluginModules,
   getSharedModuleMetadata,
-  PF_REACT_ICONS_CREATE_ICON_MODULE,
-  getPfReactIconsCreateIconSharedConfig,
 };

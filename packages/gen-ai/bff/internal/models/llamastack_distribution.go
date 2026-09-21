@@ -166,5 +166,6 @@ type OGXServerDeleteResponse struct {
 
 // BFFConfigModel represents BFF application-level configuration
 type BFFConfigModel struct {
-	IsCustomLSD bool `json:"isCustomLSD"`
+	IsCustomLSD        bool `json:"isCustomLSD"`
+	SandboxesAvailable bool `json:"sandboxesAvailable"`
 }

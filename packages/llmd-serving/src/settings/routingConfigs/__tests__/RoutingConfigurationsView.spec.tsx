@@ -17,11 +17,11 @@ jest.mock('../EmptyRoutingConfigurations', () => ({
   default: () => <div data-testid="empty-routing-configurations">Empty</div>,
 }));
 
-const renderView = (configs: LLMInferenceServiceConfigKind[], noTitle?: boolean) =>
+const renderView = (configs: LLMInferenceServiceConfigKind[]) =>
   render(
     <MemoryRouter>
       <RoutingConfigContext.Provider value={{ configs }}>
-        <RoutingConfigurationsView noTitle={noTitle} />
+        <RoutingConfigurationsView />
       </RoutingConfigContext.Provider>
     </MemoryRouter>,
   );
@@ -41,14 +41,8 @@ describe('RoutingConfigurationsView', () => {
     expect(screen.queryByTestId('routing-configurations-table')).not.toBeInTheDocument();
   });
 
-  it('should render the page title by default', () => {
+  it('should suppress the page title (rendered as a tab, title is not needed)', () => {
     renderView([]);
-
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('llm-d routing configurations');
-  });
-
-  it('should hide the page title when rendered as tab content', () => {
-    renderView([], true);
 
     expect(screen.queryByTestId('app-page-title')).not.toBeInTheDocument();
     // The description is still shown so the tab explains itself.

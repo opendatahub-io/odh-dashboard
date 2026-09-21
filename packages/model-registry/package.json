@@ -27,7 +27,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "a08ada1ec146a812f4ec6a175b8ee1a7aa155cea"
+    "commit": "50057ba0308e071be5370bf3cf933cffeccf0a9d"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -50,14 +50,12 @@
     }
   },
   "e2eCiTags": [
-    "@ModelRegistryCI"
+    "@ModelRegistryCI",
+    "@ModelCatalogCI"
   ],
   "exports": {
     "./extensions": "./extensions.ts",
     "./shared": "./shared/index.ts",
-    "./model-catalog-deploy": {
-      "types": "./upstream/frontend/src/odh/extension-points/model-catalog-deploy.ts"
-    },
     "./mocks/*": [
       "./upstream/frontend/src/__mocks__/*",
       "./upstream/frontend/src/__mocks__/*.ts"
@@ -70,6 +68,7 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*"
   },

@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-claude-code-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Use the Claude Code agent harness with platform services'
+  description: >-
+    Run Anthropic's Claude Code CLI on OpenShift AI with the RH AI Inference
+    stack for model serving. Covers containerized coding workflows with
+    multi-file editing, debugging, and git-aware operations, plus optional
+    MLflow tracing.
+  url: 'https://red.ht/4hrKMCi'
+  appName: agentic-starter-kits

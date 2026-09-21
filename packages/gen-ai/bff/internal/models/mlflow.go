@@ -89,3 +89,47 @@ type MLflowPromptVersionsResponse struct {
 	Versions      []MLflowPromptVersionMeta `json:"versions"`
 	NextPageToken string                    `json:"next_page_token,omitempty"`
 }
+
+// MLflowMCPTool is a tool entry from the MLflow MCP Registry (metadata only).
+type MLflowMCPTool struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// MLflowMCPServerVersion is a resolved MCP server version from the registry.
+type MLflowMCPServerVersion struct {
+	Version string          `json:"version"`
+	Tools   []MLflowMCPTool `json:"tools,omitempty"`
+}
+
+// MLflowMCPEndpointSummary is an access endpoint embedded in an MCP server list entry.
+type MLflowMCPEndpointSummary struct {
+	EndpointURL     string                  `json:"endpoint_url"`
+	TransportType   string                  `json:"transport_type,omitempty"`
+	ResolvedVersion *MLflowMCPServerVersion `json:"resolved_version,omitempty"`
+}
+
+// MLflowMCPServer is an MCP Registry server entry from the MLflow BFF.
+type MLflowMCPServer struct {
+	Name            string                     `json:"name"`
+	Description     string                     `json:"description,omitempty"`
+	Status          string                     `json:"status,omitempty"`
+	LatestVersion   string                     `json:"latest_version,omitempty"`
+	AccessEndpoints []MLflowMCPEndpointSummary `json:"access_endpoints,omitempty"`
+}
+
+// MLflowMCPServersData is the list payload from GET /mcp-registry/servers.
+type MLflowMCPServersData struct {
+	Servers       []MLflowMCPServer `json:"servers"`
+	NextPageToken string            `json:"next_page_token,omitempty"`
+}
+
+// MLflowMCPServersEnvelope wraps the MCP servers list response from MLflow BFF.
+type MLflowMCPServersEnvelope struct {
+	Data MLflowMCPServersData `json:"data"`
+}
+
+// MLflowMCPServerEnvelope wraps a single MCP server response from MLflow BFF.
+type MLflowMCPServerEnvelope struct {
+	Data MLflowMCPServer `json:"data"`
+}

@@ -44,6 +44,22 @@ export type PipelineDefinition = {
   description?: string;
 };
 
+export type ManagedPipelineType = 'autorag' | 'indexing';
+
+export type ManagedPipeline = {
+  pipeline_type: ManagedPipelineType;
+  pipeline_id: string;
+  pipeline_version_id: string;
+  display_name: string;
+};
+
+export type CreateIndexingPipelineRunRequest = {
+  display_name: string;
+  description?: string;
+  /** Runtime parameters from pattern.indexing.pipeline_spec.parameters */
+  parameters: Record<string, unknown>;
+};
+
 /** Pipeline reference embedded in a run (API schema). */
 export type PipelineVersionReference = {
   pipeline_id: string;
@@ -54,6 +70,9 @@ export type PipelineRunRuntimeConfig = {
   parameters?: Record<string, unknown>;
   pipeline_root?: string;
 };
+
+/** Runtime parameters are displayed read-only and may come from historical or current runs. */
+export type AutoragRuntimeParameters = Record<string, unknown>;
 
 export type PipelineRunErrorDetail = {
   '@type'?: string;
@@ -112,30 +131,16 @@ export type PipelineRun = {
   state_history?: PipelineRunStateHistoryEntry[];
 };
 
-export type OgxModelType = 'llm' | 'embedding';
-
-export type OgxModel = {
+export type MaaSModel = {
   id: string;
-  type: OgxModelType;
-  provider: string;
-  resource_path: string;
+  display_name?: string;
+  description?: string;
+  owned_by?: string;
+  ready: boolean;
 };
 
-export type OgxModelsResponse = {
-  models: OgxModel[];
-};
-
-export type OgxVectorStoreProvider = {
-  provider_id: string;
-  provider_type: string;
-};
-
-export type OgxVectorStoreProvidersResponse = {
-  vector_store_providers: OgxVectorStoreProvider[];
-};
-
-export type OgxFilteredVectorStoreProvidersResponse = OgxVectorStoreProvidersResponse & {
-  totalProviderCount: number;
+export type MaaSModelsResponse = {
+  models: MaaSModel[];
 };
 
 export type SecretListItem = {
@@ -177,7 +182,7 @@ export type Envelope<M, D> = {
   data: D;
 };
 
-export type OgxCredentials = {
+export type LegacyRunCredentials = {
   baseUrl: string;
   apiKey: string;
 };
@@ -185,5 +190,5 @@ export type OgxCredentials = {
 export type EvaluationFileEntry = {
   question: string;
   correct_answers: string[];
-  correct_answer_document_ids: string[];
+  correct_answer_document_keys: string[];
 };

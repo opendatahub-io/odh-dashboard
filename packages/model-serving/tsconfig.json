@@ -1,4 +1,4 @@
 {
   "extends": "@odh-dashboard/tsconfig/tsconfig.json",
-  "exclude": ["cypress"]
+  "exclude": ["cypress", "frontend"]
 }

@@ -15,11 +15,11 @@ import {
   checkModelRegistry,
   checkModelRegistryAvailable,
   checkModelTransferJobPodStarted,
-  cleanupRegisteredModelsFromDatabase,
-  createAndVerifyDatabase,
-  createModelRegistryViaYAML,
+  cleanupRegisteredModelsFromPostgresDatabase,
+  createAndVerifyPostgresDatabase,
+  createPostgresModelRegistryViaYAML,
   deleteModelRegistry,
-  deleteModelRegistryDatabase,
+  deletePostgresDatabase,
   ensureOperatorMemoryLimit,
   grantProjectAccessToModelRegistry,
 } from '../../../utils/oc_commands/modelRegistry';
@@ -37,6 +37,8 @@ describe('Verify models can be registered in a model registry', () => {
   let objectStorageModelName: string;
   let ociModelName: string;
   let ociUriModelName: string;
+  let ociJobName: string;
+  let ociUriJobName: string;
   let deploymentName: string;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -50,19 +52,21 @@ describe('Verify models can be registered in a model registry', () => {
       objectStorageModelName = `${testData.objectStorageModelName}-${uuid}`;
       ociModelName = `${testData.ociModelName}-${uuid}`;
       ociUriModelName = `${testData.ociUriModelName}-${uuid}`;
+      ociJobName = `${testData.ociJobName}-${uuid}`;
+      ociUriJobName = `${testData.ociUriJobName}-${uuid}`;
       deploymentName = testData.operatorDeploymentName;
 
       // ensure operator has optimal memory
       cy.step('Ensure operator has optimal memory for testing');
       ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
-      // create and verify SQL database for the model registry
-      cy.step('Create and verify SQL database for model registry');
-      createAndVerifyDatabase(databaseName).should('be.true');
+      // create and verify PostgreSQL database for the model registry
+      cy.step('Create and verify PostgreSQL database for model registry');
+      createAndVerifyPostgresDatabase(databaseName).should('be.true');
 
       // creates a model registry
-      cy.step('Create a model registry using YAML');
-      createModelRegistryViaYAML(registryName, databaseName);
+      cy.step('Create a PostgreSQL-backed model registry using YAML');
+      createPostgresModelRegistryViaYAML(registryName, databaseName);
 
       cy.step('Verify model registry is created');
       checkModelRegistry(registryName).should('be.true');
@@ -94,7 +98,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Clean up test models from any previous retry attempts');
-      cleanupRegisteredModelsFromDatabase(
+      cleanupRegisteredModelsFromPostgresDatabase(
         [objectStorageModelName, testData.uriModelName],
         databaseName,
       );
@@ -298,7 +302,7 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociModelFormatVersion);
 
       cy.step('Fill in transfer job name');
-      registerModelPage.findFormField(FormFieldSelector.JOB_NAME).type(testData.ociJobName);
+      registerModelPage.findFormField(FormFieldSelector.JOB_NAME).type(ociJobName);
 
       cy.step('Fill in origin S3 location and credentials');
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
@@ -344,13 +348,17 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().click();
 
       cy.step('Verify transfer job started notification appears');
-      cy.contains(testData.ociTransferJobStartedNotification, { timeout: 15000 }).should(
-        'be.visible',
-      );
+      toastNotifications
+        .findToastNotificationList(60000)
+        .should('contain.text', testData.ociTransferJobStartedNotification);
+
+      cy.step('Verify transfer job and pod started in the backend');
+      checkModelTransferJobPodStarted(ociJobName, projectName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
-      cy.url().should('include', `/ai-hub/models/registry/${registryName}`);
-      cy.url().should('not.include', '/register');
+      cy.url({ timeout: 30000 })
+        .should('include', `/ai-hub/models/registry/${registryName}`)
+        .and('not.include', '/register');
 
       // Terminal state of the transfer job (success/failure) is environment-dependent
       // and not validated here. A dedicated test with a controlled backend is more appropriate.
@@ -415,7 +423,7 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.ociModelFormatVersion);
 
       cy.step('Fill in transfer job name');
-      registerModelPage.findFormField(FormFieldSelector.JOB_NAME).type(testData.ociUriJobName);
+      registerModelPage.findFormField(FormFieldSelector.JOB_NAME).type(ociUriJobName);
 
       cy.step('Select URI as origin location type and fill in URI');
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
@@ -446,15 +454,16 @@ describe('Verify models can be registered in a model registry', () => {
 
       cy.step('Verify transfer job started notification appears');
       toastNotifications
-        .findToastNotificationList()
+        .findToastNotificationList(60000)
         .should('contain.text', testData.ociTransferJobStartedNotification);
 
       cy.step('Verify transfer job and pod started in the backend');
-      checkModelTransferJobPodStarted(testData.ociUriJobName, projectName).should('be.true');
+      checkModelTransferJobPodStarted(ociUriJobName, projectName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
-      cy.url().should('include', `/ai-hub/models/registry/${registryName}`);
-      cy.url().should('not.include', '/register');
+      cy.url({ timeout: 30000 })
+        .should('include', `/ai-hub/models/registry/${registryName}`)
+        .and('not.include', '/register');
     },
   );
 
@@ -466,7 +475,7 @@ describe('Verify models can be registered in a model registry', () => {
     cy.visit('/');
 
     cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase(
+    cleanupRegisteredModelsFromPostgresDatabase(
       [objectStorageModelName, testData.uriModelName, ociModelName, ociUriModelName],
       databaseName,
     );
@@ -477,8 +486,8 @@ describe('Verify models can be registered in a model registry', () => {
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
 
-    cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase(databaseName).should('be.true');
+    cy.step('Delete the PostgreSQL database');
+    deletePostgresDatabase(databaseName).should('be.true');
 
     cy.step('Delete the test project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });

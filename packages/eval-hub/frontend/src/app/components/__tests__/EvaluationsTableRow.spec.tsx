@@ -6,6 +6,12 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
+
 jest.mock('~/app/api/k8s', () => ({
   cancelEvaluationJob: jest.fn(),
   deleteEvaluationJob: jest.fn(),
@@ -263,29 +269,19 @@ describe('EvaluationsTableRow', () => {
       });
     });
 
-    it('should show stopping status while cancel request is in flight', async () => {
-      let resolveCancel: () => void;
-      const cancelPromise = new Promise<void>((resolve) => {
-        resolveCancel = resolve;
-      });
-      mockCancelEvaluationJob.mockReturnValue(() => cancelPromise);
-
+    it('should show stopping status after cancel request succeeds', async () => {
       renderRow({ state: 'running', id: 'eval-job-004' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Stop'));
       fireEvent.click(screen.getByTestId('evaluation-stop-confirm'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Canceling');
-      });
-
-      resolveCancel!();
-      await waitFor(() => {
         expect(mockOnActionComplete).toHaveBeenCalled();
+        expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Canceling');
       });
     });
 
-    it('should revert to original state and reopen modal when cancel API fails', async () => {
+    it('should show error in stop modal when cancel API fails', async () => {
       mockCancelEvaluationJob.mockReturnValue(() => Promise.reject(new Error('Cancel failed')));
 
       renderRow({ state: 'running', id: 'eval-job-005' });
@@ -296,7 +292,6 @@ describe('EvaluationsTableRow', () => {
       await waitFor(() => {
         expect(screen.getByText('Cancel failed')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Running');
       expect(mockOnActionComplete).not.toHaveBeenCalled();
     });
 
@@ -313,6 +308,57 @@ describe('EvaluationsTableRow', () => {
         expect(screen.getByText('Network error')).toBeInTheDocument();
       });
       expect(mockOnActionComplete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('retry action', () => {
+    it('should show Reconfigure action for failed jobs', () => {
+      renderRow({ state: 'failed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
+    });
+
+    it('should show Reconfigure action for partially_failed jobs', () => {
+      renderRow({ state: 'partially_failed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
+    });
+
+    it('should show Reconfigure action for cancelled jobs', () => {
+      renderRow({ state: 'cancelled' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
+    });
+
+    it('should show Reconfigure action for stopped jobs', () => {
+      renderRow({ state: 'stopped' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
+    });
+
+    it('should show Reconfigure action for completed jobs', () => {
+      renderRow({ state: 'completed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
+    });
+
+    it('should not show Reconfigure action for running jobs', () => {
+      renderRow({ state: 'running' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.queryByText('Reconfigure')).not.toBeInTheDocument();
+    });
+
+    it('should not show Reconfigure action for pending jobs', () => {
+      renderRow({ state: 'pending' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.queryByText('Reconfigure')).not.toBeInTheDocument();
+    });
+
+    it('should navigate to reconfigure page when Retry is clicked', () => {
+      renderRow({ state: 'failed', id: 'eval-job-retry' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Reconfigure'));
+      expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-ns/reconfigure/eval-job-retry');
     });
   });
 });

@@ -1,36 +1,50 @@
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
-import { fetchS3File } from '~/app/hooks/queries';
+import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/mutations';
+import { useNotification } from '~/app/hooks/useNotification';
+import { fetchS3File, useManagedPipelinesQuery } from '~/app/hooks/queries';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import {
-  computePatternRankMap,
   downloadBlob,
-  getOptimizedMetricForRAG,
   isRunInTerminalState,
   normalizePipelineRunState,
   sanitizeFilename,
 } from '~/app/utilities/utils';
-import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
+import { computePatternRankMap } from '~/app/utilities/metricUtils';
+import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
+import {
+  fireAutoragNotebookDownloaded,
+  fireAutoragPatternDetailsViewed,
+  type PlaygroundOpenedSource,
+  type ViewCodeEntrySource,
+} from '~/app/utilities/tracking';
+import {
+  shouldShowStageMapUnavailableNotice,
+  type PipelineTreeLoadingMode,
+} from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import AutoragPipelineVisualization from './AutoragPipelineVisualization';
+import RunIndexingPipelineModal from './RunIndexingPipelineModal';
 import './AutoragResults.scss';
 
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
 type AutoragResultsProps = {
-  onTryPattern?: (patternName: string) => void;
-  onViewCode?: (patternName: string) => void;
+  onTryPattern?: (patternName: string, source: PlaygroundOpenedSource) => void;
+  onViewCode?: (patternName: string, source: ViewCodeEntrySource) => void;
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
+  const navigate = useNavigate();
+  const notification = useNotification();
   const {
     pipelineRun,
     patterns,
@@ -41,8 +55,34 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     componentStageMapError,
     parameters,
     bestPatternKey,
+    optimizationMetric,
   } = useAutoragResultsContext();
-  const [selectedPatternName, setSelectedPatternName] = React.useState<string | null>(null);
+  const [selectedPatternKey, setSelectedPatternKey] = React.useState<string | null>(null);
+  const [runIndexingPatternName, setRunIndexingPatternName] = React.useState<string | null>(null);
+  const [runIndexingError, setRunIndexingError] = React.useState<string | null>(null);
+
+  const {
+    data: managedPipelines,
+    isError: managedPipelinesQueryFailed,
+    error: managedPipelinesQueryError,
+  } = useManagedPipelinesQuery(namespace);
+  const indexingPipelineAvailable = React.useMemo(
+    () => managedPipelines?.some((pipeline) => pipeline.pipeline_type === 'indexing') ?? false,
+    [managedPipelines],
+  );
+
+  React.useEffect(() => {
+    if (!managedPipelinesQueryFailed) {
+      return;
+    }
+    notification.warning(
+      'Unable to check managed pipelines',
+      managedPipelinesQueryError instanceof Error
+        ? `Some features may not be available. ${managedPipelinesQueryError.message}`
+        : 'Some features may not be available.',
+    );
+  }, [managedPipelinesQueryFailed, managedPipelinesQueryError, notification]);
+  const createIndexingRunMutation = useCreateIndexingPipelineRunMutation(namespace ?? '');
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
@@ -61,7 +101,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             componentStageMap,
             runDetails,
             runState,
-            parameters?.optimization_max_rag_patterns,
+            typeof parameters?.optimization_max_rag_patterns === 'number'
+              ? parameters.optimization_max_rag_patterns
+              : undefined,
             leaderboardPatternNames.length > 0 ? leaderboardPatternNames : undefined,
             patterns,
           )
@@ -148,31 +190,92 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     runId,
   ]);
 
-  const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
+  const rankMap = React.useMemo(
+    () => computePatternRankMap(patterns, optimizationMetric),
+    [patterns, optimizationMetric],
+  );
 
-  const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
-
-  const rankMap = React.useMemo(() => computePatternRankMap(patternsArray), [patternsArray]);
+  const patternKeys = React.useMemo(() => Object.keys(patterns), [patterns]);
+  const patternsArray = React.useMemo(
+    () => patternKeys.map((key) => patterns[key]),
+    [patternKeys, patterns],
+  );
 
   const selectedIndex = React.useMemo(
-    () =>
-      selectedPatternName !== null
-        ? Math.max(
-            0,
-            patternsArray.findIndex((p) => p.name === selectedPatternName),
-          )
-        : 0,
-    [selectedPatternName, patternsArray],
+    () => (selectedPatternKey !== null ? patternKeys.indexOf(selectedPatternKey) : -1),
+    [selectedPatternKey, patternKeys],
   );
+
+  React.useEffect(() => {
+    if (selectedPatternKey !== null && selectedIndex < 0) {
+      setSelectedPatternKey(null);
+    }
+  }, [selectedIndex, selectedPatternKey]);
+
+  const runIndexingPattern = runIndexingPatternName ? patterns[runIndexingPatternName] : undefined;
 
   const [downloadError, setDownloadError] = React.useState<{
     patternName: string;
     message: string;
   } | null>(null);
 
-  const handleViewDetails = React.useCallback((patternName: string) => {
-    setSelectedPatternName(patternName);
+  const handleViewDetails = React.useCallback((patternKey: string) => {
+    setSelectedPatternKey(patternKey);
+    fireAutoragPatternDetailsViewed('resultsTable');
   }, []);
+
+  const handleOpenRunIndexing = React.useCallback(
+    (patternName: string) => {
+      setRunIndexingError(null);
+      createIndexingRunMutation.reset();
+      setRunIndexingPatternName(patternName);
+    },
+    [createIndexingRunMutation],
+  );
+
+  const handleCloseRunIndexing = React.useCallback(() => {
+    if (createIndexingRunMutation.isPending) {
+      return;
+    }
+    setRunIndexingPatternName(null);
+    setRunIndexingError(null);
+  }, [createIndexingRunMutation.isPending]);
+
+  const handleConfirmRunIndexing = React.useCallback(
+    async ({ runName, description }: { runName: string; description?: string }) => {
+      if (!namespace || !runIndexingPattern) {
+        setRunIndexingError('Pattern or namespace is not available. Please try again.');
+        return;
+      }
+
+      const requestOrError = buildIndexingPipelineRunRequest(
+        runIndexingPattern,
+        runName,
+        description,
+      );
+      if ('error' in requestOrError) {
+        setRunIndexingError(requestOrError.error);
+        return;
+      }
+
+      setRunIndexingError(null);
+      try {
+        const run = await createIndexingRunMutation.mutateAsync(requestOrError);
+        setRunIndexingPatternName(null);
+        const runPath = `/develop-train/pipelines/runs/${namespace}/runs/${run.run_id}`;
+        notification.success('Indexing pipeline run has been started', undefined, [
+          {
+            title: 'View run',
+            onClick: () => navigate(runPath),
+          },
+        ]);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        setRunIndexingError(errorMessage);
+      }
+    },
+    [namespace, runIndexingPattern, createIndexingRunMutation, notification, navigate],
+  );
 
   const handleSaveNotebook = React.useCallback(
     async (patternName: string, notebookType: 'indexing' | 'inference') => {
@@ -206,6 +309,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         const safePatternName = sanitizeFilename(patternName);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
+        fireAutoragNotebookDownloaded(notebookType);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         setDownloadError({
@@ -216,6 +320,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     },
     [namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
+
+  const runIndexingHandler = indexingPipelineAvailable ? handleOpenRunIndexing : undefined;
 
   return (
     <>
@@ -242,35 +348,64 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
+              hasStageMapTask,
+              hasComponentStageMap: Boolean(componentStageMap),
+              componentStageMapLoading: Boolean(componentStageMapLoading),
+              treeLoadingMode,
+              runIsTerminal,
+            })}
           />
         </StackItem>
         <StackItem>
           <AutoragLeaderboard
             onViewDetails={handleViewDetails}
             onSaveNotebook={handleSaveNotebook}
-            onTryPattern={onTryPattern}
-            onViewCode={onViewCode}
+            onTryPattern={
+              onTryPattern ? (patternName) => onTryPattern(patternName, 'resultsTable') : undefined
+            }
+            onViewCode={
+              onViewCode ? (patternName) => onViewCode(patternName, 'resultsTable') : undefined
+            }
+            onRunIndexingPipeline={runIndexingHandler}
           />
         </StackItem>
       </Stack>
-      {selectedPatternName !== null && patternsArray.length > 0 && (
+      {selectedPatternKey !== null && selectedIndex >= 0 && (
         <React.Suspense fallback={null}>
           <PatternDetailsModal
             isOpen
-            onClose={() => setSelectedPatternName(null)}
+            onClose={() => setSelectedPatternKey(null)}
             patterns={patternsArray}
+            patternKeys={patternKeys}
             selectedIndex={selectedIndex}
-            rank={rankMap[patternsArray[selectedIndex]?.name] ?? 0}
-            optimizedMetric={optimizedMetric}
-            onPatternChange={(index) => setSelectedPatternName(patternsArray[index]?.name ?? null)}
+            rank={rankMap[patternKeys[selectedIndex]]}
+            optimizationMetric={optimizationMetric}
+            onPatternChange={(index) => setSelectedPatternKey(patternKeys[index] ?? null)}
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
             onSaveNotebook={handleSaveNotebook}
-            onTryPattern={onTryPattern}
-            onViewCode={onViewCode}
+            onTryPattern={
+              onTryPattern
+                ? (patternName) => onTryPattern(patternName, 'patternDetails')
+                : undefined
+            }
+            onViewCode={
+              onViewCode ? (patternName) => onViewCode(patternName, 'patternDetails') : undefined
+            }
+            onRunIndexingPipeline={runIndexingHandler}
           />
         </React.Suspense>
       )}
+      <RunIndexingPipelineModal
+        isOpen={runIndexingPatternName !== null}
+        onClose={handleCloseRunIndexing}
+        onConfirm={handleConfirmRunIndexing}
+        isSubmitting={createIndexingRunMutation.isPending}
+        pattern={runIndexingPattern}
+        sourceRunName={pipelineRun?.display_name}
+        errorMessage={runIndexingError}
+      />
     </>
   );
 }

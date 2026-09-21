@@ -1,15 +1,15 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { WizardFormData } from '../../../shared/types/form-data';
-import { type Deployment } from '../../../../extension-points';
+import { type Deployment, type DeploymentHookPayload } from '../../../../extension-points';
 import { isWizardFieldDeploymentFunctionsExtension } from '../../../../extension-points/deployment-wizard';
 import { useActiveFields } from '../dynamicFormUtils';
 
 export type RunPreDeployFns = (
-  deployment: Deployment,
+  deployment: DeploymentHookPayload,
   existingDeployment?: Deployment,
   dryRun?: boolean,
-) => Promise<Deployment>;
+) => Promise<DeploymentHookPayload>;
 
 /**
  * Hook that returns an async function to dry-run all active pre-deploy extensions before
@@ -44,10 +44,10 @@ export const useWizardFieldPreDeploy = (
 
   const runPreDeploy = React.useCallback<RunPreDeployFns>(
     async (
-      deployment: Deployment,
+      deployment: DeploymentHookPayload,
       existingDeployment?: Deployment,
       dryRun?: boolean,
-    ): Promise<Deployment> => {
+    ): Promise<DeploymentHookPayload> => {
       let current = deployment;
       for (const ext of activePreDeployExtensions) {
         const { fieldId } = ext.properties;

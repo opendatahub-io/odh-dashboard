@@ -28,6 +28,6 @@ export const NoModelsView: React.FC<{
         <StackItem>{platform.properties.deployedModelsView.startHintDescription}</StackItem>
       </Stack>
     }
-    createButton={<DeployButton project={project} />}
+    createButton={<DeployButton project={project} fromProject />}
   />
 );

@@ -7,7 +7,7 @@ class ModelCatalog {
   }
 
   visit() {
-    cy.visitWithLogin(`/ai-hub/models/catalog`);
+    cy.visitWithLogin('/ai-hub/models/catalog');
     this.wait();
   }
 
@@ -38,8 +38,17 @@ class ModelCatalog {
     return this;
   }
 
-  findModelCatalogEmptyState() {
-    return cy.findByTestId('empty-model-catalog-state');
+  findSearchInput() {
+    return cy.findByTestId('search-input').find('input');
+  }
+
+  findSourceCategoryBlock(blockId: string) {
+    return cy.findByTestId(blockId);
+  }
+
+  searchByName(name: string) {
+    this.findSearchInput().clear().type(`${name}{enter}`);
+    return this;
   }
 
   findModelCatalogModelDetailLink() {
@@ -54,6 +63,10 @@ class ModelCatalog {
     return cy
       .findAllByTestId('model-catalog-card')
       .contains('[data-testid~=model-catalog-card]', modelName);
+  }
+
+  findModelCatalogCardLink(modelName: string) {
+    return this.findModelCatalogCard(modelName).findByTestId('model-catalog-detail-link');
   }
 
   findFirstModelCatalogCard() {
@@ -111,8 +124,8 @@ class ModelCatalog {
     return this.findFirstModelCatalogCard().contains('[data-testid="model-catalog-label"]', text);
   }
 
-  findValidatedTaskIcon() {
-    return this.findFirstModelCatalogCard().findByTestId('validated-task-icon');
+  findValidatedTaskIcon(modelName: string) {
+    return this.findModelCatalogCard(modelName).findByTestId('validated-task-icon');
   }
 
   findCardLabelByIndex(modelName: string, index: number) {
@@ -212,6 +225,10 @@ class ModelCatalog {
 
   findValidatedArgumentsFilterCheckbox() {
     return cy.findByTestId('Validated arguments-tool-calling-checkbox');
+  }
+
+  findSearchInputContainer() {
+    return cy.findByTestId('search-input');
   }
 }
 

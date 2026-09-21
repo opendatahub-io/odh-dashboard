@@ -8,6 +8,7 @@ import type {
 } from '@odh-dashboard/model-serving/shared';
 import { initialModelServingFilterData } from '@odh-dashboard/model-serving/shared';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import useFilters from '#~/utilities/useFilters';
 import { getInferenceServiceProjectDisplayName } from './utils';
 import InferenceServiceTable from './InferenceServiceTable';
 import ModelServingToolbar from './ModelServingToolbar';
@@ -26,12 +27,8 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
   filterTokens,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
-  const [filterData, setFilterData] = React.useState<ModelServingFilterDataType>(
+  const { filterData, onFilterUpdate, onClearFilters } = useFilters<ModelServingFilterDataType>(
     initialModelServingFilterData,
-  );
-  const onClearFilters = React.useCallback(
-    () => setFilterData(initialModelServingFilterData),
-    [setFilterData],
   );
 
   const filteredInferenceServices = React.useMemo(
@@ -55,12 +52,6 @@ const InferenceServiceListView: React.FC<InferenceServiceListViewProps> = ({
         );
       }),
     [projects, filterData, unfilteredInferenceServices],
-  );
-
-  const onFilterUpdate = React.useCallback(
-    (key: string, value: string | { label: string; value: string } | undefined) =>
-      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
-    [setFilterData],
   );
 
   return (

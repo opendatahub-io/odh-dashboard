@@ -49,13 +49,17 @@ import {
   formatModelTypeDisplay,
   getModelSizeFromCustomProperties,
   getMinimumVramFromCustomProperties,
+  getModelName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import {
   CatalogModelCustomPropertyKey,
   CATALOG_VALUE_LABEL_KEYS,
+  MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING,
+  ValidatedConfiguration,
 } from '~/concepts/modelCatalog/const';
-import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
+import { useUserInteraction } from '~/concepts/userInteraction';
 import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
+import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;
@@ -75,11 +79,37 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
     ? getValueLabels(model.customProperties, CATALOG_VALUE_LABEL_KEYS)
     : [];
   const isValidated = isModelValidated(model);
-  const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
-  const isToolCallingValidated = isToolCallingEnabled && hasValidatedToolCalling(model);
+  const { trackSimpleEvent } = useUserInteraction();
+  const isToolCallingValidated = hasValidatedToolCalling(model);
 
   const validatedOnPlatforms = getValidatedOnPlatforms(model.customProperties);
   const validatedDeploymentResources = getValidatedDeploymentResources(model.customProperties);
+  const [isToolCallingExpanded, setIsToolCallingExpanded] = React.useState(false);
+
+  const toolCallingArgumentName =
+    MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING[ValidatedConfiguration.TOOL_CALLING];
+
+  const handleToolCallingArgsCopied = React.useCallback(() => {
+    trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_ARGUMENTS_COPIED, {
+      argumentName: toolCallingArgumentName,
+      modelName: getModelName(model.name),
+      validatedDeploymentResource: validatedDeploymentResources.join(', '),
+    });
+  }, [model.name, toolCallingArgumentName, trackSimpleEvent, validatedDeploymentResources]);
+
+  const handleToolCallingExpand = React.useCallback(() => {
+    setIsToolCallingExpanded((prev) => {
+      const next = !prev;
+      if (next) {
+        trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_ARGUMENTS_EXPANDED, {
+          argumentName: toolCallingArgumentName,
+          modelName: getModelName(model.name),
+          validatedDeploymentResource: validatedDeploymentResources.join(', '),
+        });
+      }
+      return next;
+    });
+  }, [model.name, toolCallingArgumentName, trackSimpleEvent, validatedDeploymentResources]);
 
   const modelTypeRaw = model.customProperties
     ? getCustomPropString(model.customProperties, CatalogModelCustomPropertyKey.MODEL_TYPE)
@@ -103,8 +133,6 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
     () => (artifactLoaded ? getArchitecturesFromArtifacts(artifacts.items) : []),
     [artifactLoaded, artifacts.items],
   );
-
-  const [isToolCallingExpanded, setIsToolCallingExpanded] = React.useState(false);
 
   return (
     <PageSection hasBodyWrapper={false} isFilled padding={{ default: 'noPadding' }}>
@@ -173,7 +201,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       data-testid="tool-calling-card"
                     >
                       <CardHeader
-                        onExpand={() => setIsToolCallingExpanded((prev) => !prev)}
+                        onExpand={handleToolCallingExpand}
                         toggleButtonProps={{
                           id: 'tool-calling-toggle',
                           'aria-label': 'Tool Calling',
@@ -198,7 +226,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                         <CardBody>
                           <Stack hasGutter>
                             <StackItem>
-                              <CodeBlockComponent>
+                              <CodeBlockComponent onCopy={handleToolCallingArgsCopied}>
                                 {getToolCallingArgs(model.servingConfig?.toolCalling)}
                               </CodeBlockComponent>
                             </StackItem>
@@ -243,7 +271,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       <DescriptionListDescription>
                         <ModelCatalogLabels
                           tasks={model.tasks ?? []}
-                          validatedTasks={isToolCallingEnabled ? model.validatedTasks : undefined}
+                          validatedTasks={model.validatedTasks}
                           labels={[
                             ...allLabels.filter((label) => label !== 'validated'),
                             ...valueLabels,

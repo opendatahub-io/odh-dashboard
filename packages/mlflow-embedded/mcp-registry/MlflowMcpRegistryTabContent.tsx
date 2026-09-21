@@ -21,11 +21,25 @@ import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/
 import { MCP_REGISTRY_BASENAME, mcpRegistryBaseRoute } from './const';
 import useHostRouteSync from './useHostRouteSync';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
+import NoProjectsEmptyState from '../shared/NoProjectsEmptyState';
+
+const LoadingState: React.FC = () => (
+  <PageSection hasBodyWrapper={false}>
+    <Bullseye>
+      <Spinner />
+    </Bullseye>
+  </PageSection>
+);
 
 const MlflowMcpRegistryTabContent: React.FC = () => {
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const {
+    projects,
+    preferredProject,
+    loaded: projectsLoaded,
+    loadError: projectsLoadError,
+  } = React.useContext(ProjectsContext);
   const storedProject = getStoredPreferredProject(projects);
   const syncHostRoute = useHostRouteSync();
 
@@ -36,6 +50,22 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
         .catch(() => ({ default: MLflowUnavailable })),
     [],
   );
+
+  if (!projectsLoaded && !projectsLoadError) {
+    return <LoadingState />;
+  }
+
+  if (projects.length === 0) {
+    return (
+      <PageSection hasBodyWrapper={false}>
+        <NoProjectsEmptyState
+          message="To register an MCP server, first create a project."
+          testId="mcp-registry-no-projects-empty-state"
+          getRedirectPath={mcpRegistryBaseRoute}
+        />
+      </PageSection>
+    );
+  }
 
   if (!workspace && projects.length > 0) {
     const defaultProject = storedProject ?? preferredProject ?? projects[0];
@@ -79,13 +109,7 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
         key={workspace}
         component={loadWrapper}
         props={{ basename: MCP_REGISTRY_BASENAME, onBreadcrumbChange: syncHostRoute }}
-        fallback={
-          <PageSection hasBodyWrapper={false}>
-            <Bullseye>
-              <Spinner />
-            </Bullseye>
-          </PageSection>
-        }
+        fallback={<LoadingState />}
       />
     </>
   );

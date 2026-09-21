@@ -4,10 +4,12 @@ metadata:
   labels:
     app.kubernetes.io/component: metrics
   name: workspaces-controller-metrics-service
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: workspaces-controller-metrics-tls
 spec:
   ports:
-  - name: metrics
-    port: 8080
+  - name: https
+    port: 8443
     protocol: TCP
     targetPort: metrics
   selector:

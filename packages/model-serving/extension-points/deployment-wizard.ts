@@ -4,7 +4,7 @@ import type {
   useHardwareProfileConfig,
 } from '@odh-dashboard/hardware-profiles/shared';
 import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import type { Deployment, ExtractionResult } from './index';
+import type { Deployment, DeploymentHookPayloadFor, ExtractionResult } from './index';
 import type {
   InitialWizardFormData,
   WizardFormData,
@@ -12,13 +12,27 @@ import type {
   WizardField,
   ModelLocationData,
 } from '../src/shared/types/form-data';
-import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type {
+  HuggingFaceApiKeyFieldData,
+  ModelTypeFieldData,
+  ModelServerSelectFieldData,
+} from '../src/shared/wizard-fields';
 import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
+    /**
+     * Whether this extension is active for the given deployment. When multiple form-data
+     * extensions share a `platform`, the active one with the highest `priority` wins.
+     * Evaluated at extraction time from an existing deployment, so it must not rely on wizard state.
+     */
+    isActive: CodeRef<(deployment: D) => boolean> | true;
+    /**
+     * Priority among active extensions WITH the same `platform`. Higher number wins.
+     */
+    priority: number | 0;
     hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
       (deployment: D) => ExtractionResult<Parameters<typeof useHardwareProfileConfig> | null>
@@ -40,6 +54,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelServerTemplate: CodeRef<
       (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
     >;
+    extractHuggingFaceApiKey?: CodeRef<(deployment: D) => HuggingFaceApiKeyFieldData | null>;
     validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
 >;
@@ -257,10 +272,10 @@ export type WizardFieldDeploymentFunctionsExtension<
       (
         fieldData: T,
         wizardState: WizardFormData['state'],
-        deployment: D,
+        deployment: DeploymentHookPayloadFor<D>,
         existingDeployment?: D,
         dryRun?: boolean,
-      ) => Promise<D>
+      ) => Promise<DeploymentHookPayloadFor<D>>
     >;
     /**
      * Async function that runs after the deployment is saved.
@@ -276,7 +291,12 @@ export type WizardFieldDeploymentFunctionsExtension<
      * @param dryRun - True for the validation pass, falsy for the real pass
      */
     postDeploy: null | CodeRef<
-      (fieldData: T, deployedModel: D, existingDeployment?: D, dryRun?: boolean) => Promise<void>
+      (
+        fieldData: T,
+        deployedModel: DeploymentHookPayloadFor<D>,
+        existingDeployment?: D,
+        dryRun?: boolean,
+      ) => Promise<void>
     >;
   }
 >;
@@ -287,3 +307,29 @@ export const isWizardFieldDeploymentFunctionsExtension = <
   extension: Extension,
 ): extension is WizardFieldDeploymentFunctionsExtension<T, D> =>
   extension.type === 'model-serving.deployment/wizard-field-deployment-functions';
+
+/**
+ * Extension for contributing per-platform tracking properties to the Model Deployed event.
+ * Spokes register this extension so the hub can collect platform-specific analytics data
+ * without importing from spoke packages.
+ */
+export type WizardTrackingPropertiesExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/tracking-properties',
+  {
+    platform: D['modelServingPlatformId'];
+    /**
+     * Extract platform-specific tracking properties from the wizard form state.
+     * These are merged into the base Model Deployed / Model Updated event properties.
+     */
+    getProperties: CodeRef<
+      (
+        wizardState: WizardFormData['state'],
+        externalData?: ExternalDataMap,
+      ) => Record<string, string | number | boolean | undefined>
+    >;
+  }
+>;
+export const isWizardTrackingPropertiesExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is WizardTrackingPropertiesExtension<D> =>
+  extension.type === 'model-serving.deployment/tracking-properties';

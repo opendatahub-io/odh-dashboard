@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationStatusModal from '~/app/components/EvaluationStatusModal';
 import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs, LogFetchError } from '~/app/api/k8s';
@@ -19,8 +20,14 @@ const mockUseEvaluationJobLogs = jest.fn().mockReturnValue({
   refresh: jest.fn(),
 });
 
+const mockNotificationWarning = jest.fn();
+
 jest.mock('~/app/hooks/useEvaluationJobLogs', () => ({
   useEvaluationJobLogs: (...args: unknown[]) => mockUseEvaluationJobLogs(...args),
+}));
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({ warning: mockNotificationWarning }),
 }));
 
 const mockGetEvaluationJobLogs = jest.mocked(getEvaluationJobLogs);
@@ -37,12 +44,14 @@ const renderModal = (
   polledJobData?: EvaluationJob,
 ) =>
   render(
-    <EvaluationStatusModal
-      job={job}
-      namespace="test-ns"
-      polledJobData={polledJobData}
-      onClose={mockOnClose}
-    />,
+    <MemoryRouter>
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        polledJobData={polledJobData}
+        onClose={mockOnClose}
+      />
+    </MemoryRouter>,
   );
 
 const switchToEventsLog = () => fireEvent.click(screen.getByTestId('events-log-tab'));
@@ -76,6 +85,18 @@ describe('EvaluationStatusModal tab defaults', () => {
   it('should show the progress tab by default for a completed job', () => {
     renderModal(mockEvaluationJob({ state: 'completed' }));
     expect(screen.getByTestId('progress-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('should only apply full-height on the events-log tab', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+    expect(screen.getByTestId('evaluation-status-modal')).not.toHaveClass(
+      'evalhub-status-modal--full-height',
+    );
+
+    switchToEventsLog();
+    expect(screen.getByTestId('evaluation-status-modal')).toHaveClass(
+      'evalhub-status-modal--full-height',
+    );
   });
 
   it('should not show the failure-info tab for a failed job', () => {
@@ -182,7 +203,9 @@ describe('EvaluationStatusModal download', () => {
 
   it('should download full logs when the download button is clicked', async () => {
     const fullLogs = 'Full log content line 1\nFull log content line 2';
-    mockGetEvaluationJobLogs.mockReturnValue(jest.fn().mockResolvedValue(fullLogs));
+    mockGetEvaluationJobLogs.mockReturnValue(
+      jest.fn().mockResolvedValue({ logs: fullLogs, truncated: false }),
+    );
 
     renderModal(mockEvaluationJob({ state: 'running', name: 'my-eval' }));
     switchToEventsLog();
@@ -190,17 +213,22 @@ describe('EvaluationStatusModal download', () => {
     fireEvent.click(screen.getByTestId('download-logs-button'));
 
     await waitFor(() => {
-      expect(mockGetEvaluationJobLogs).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001');
+      expect(mockGetEvaluationJobLogs).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001', {
+        tail_lines: -1,
+      });
     });
   });
 
   it('should use benchmark-specific endpoint when a benchmark is selected', async () => {
     const fullLogs = 'Benchmark log content';
-    mockGetEvaluationJobBenchmarkLogs.mockReturnValue(jest.fn().mockResolvedValue(fullLogs));
+    mockGetEvaluationJobBenchmarkLogs.mockReturnValue(
+      jest.fn().mockResolvedValue({ logs: fullLogs, truncated: false }),
+    );
 
     const job = mockEvaluationJob({ state: 'running' });
     job.status.benchmarks = makeBenchmarks([
       { id: 'bm-a', benchmark_index: 0, status: 'completed' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
     ]);
 
     renderModal(job);
@@ -216,6 +244,7 @@ describe('EvaluationStatusModal download', () => {
         'test-ns',
         'eval-job-001',
         0,
+        { tail_lines: -1 },
       );
     });
   });
@@ -276,11 +305,9 @@ describe('EvaluationStatusModal benchmark summary', () => {
 
   it('should not show benchmark summary for single-benchmark jobs', () => {
     const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Job failed' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err' } },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -379,7 +406,6 @@ describe('EvaluationStatusModal failure detail labels', () => {
     const job = mockEvaluationJob({ state: 'failed' });
     job.status.message = {
       message: 'Error occurred',
-      // eslint-disable-next-line camelcase
       message_origin: 'runtime',
     };
 
@@ -392,7 +418,6 @@ describe('EvaluationStatusModal failure detail labels', () => {
     const job = mockEvaluationJob({ state: 'failed' });
     job.status.message = {
       message: 'Error occurred',
-      // eslint-disable-next-line camelcase
       message_code: 'quota_exceeded',
     };
 
@@ -405,7 +430,6 @@ describe('EvaluationStatusModal failure detail labels', () => {
     const job = mockEvaluationJob({ state: 'failed' });
     job.status.message = {
       message: 'Error occurred',
-      // eslint-disable-next-line camelcase
       message_code: 'some_new_code',
     };
 
@@ -433,6 +457,11 @@ describe('EvaluationStatusModal running state header', () => {
     expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
   });
 
+  it('should truncate the benchmark name on the header paragraph', () => {
+    renderModal();
+    expect(screen.getByTestId('benchmark-name-header')).toHaveClass('pf-v6-u-text-truncate');
+  });
+
   it('should show "Evaluation job is running." in description', () => {
     renderModal(mockEvaluationJob({ state: 'running' }));
 
@@ -442,13 +471,11 @@ describe('EvaluationStatusModal running state header', () => {
 
   it('should show benchmark progress count', () => {
     const job = mockEvaluationJob({ state: 'running' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'completed' },
       { id: 'bm-b', benchmark_index: 1, status: 'running' },
       { id: 'bm-c', benchmark_index: 2, status: 'pending' },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -472,12 +499,14 @@ describe('EvaluationStatusModal running state header', () => {
 describe('EvaluationStatusModal description text', () => {
   it('should show success message with total time for completed jobs', () => {
     const job = mockEvaluationJob({ state: 'completed' });
-    /* eslint-disable camelcase */
     job.resource.created_at = '2026-02-20T10:00:00Z';
     job.resource.updated_at = '2026-02-20T10:05:12Z';
-    /* eslint-enable camelcase */
 
-    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    render(
+      <MemoryRouter>
+        <EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />
+      </MemoryRouter>,
+    );
 
     const description = screen.getByTestId('status-description');
     expect(description).toHaveTextContent('Evaluation completed successfully. Total time: 5m 12s');
@@ -493,10 +522,8 @@ describe('EvaluationStatusModal description text', () => {
 
   it('should show elapsed time for failed jobs', () => {
     const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something went wrong' });
-    /* eslint-disable camelcase */
     job.resource.created_at = '2026-02-20T10:00:00Z';
     job.resource.updated_at = '2026-02-20T10:17:23Z';
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -508,13 +535,11 @@ describe('EvaluationStatusModal description text', () => {
 describe('EvaluationStatusModal failure summary alert', () => {
   it('should show failure summary alert for multi-benchmark failed jobs', () => {
     const job = mockEvaluationJob({ state: 'partially_failed' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err-a' } },
       { id: 'bm-b', benchmark_index: 1, status: 'completed' },
       { id: 'bm-c', benchmark_index: 2, status: 'failed', error_message: { message: 'err-c' } },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -526,11 +551,9 @@ describe('EvaluationStatusModal failure summary alert', () => {
 
   it('should show job error message for single-benchmark failed jobs', () => {
     const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Job crashed' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err' } },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -562,7 +585,6 @@ describe('EvaluationStatusModal failure summary alert', () => {
 
     try {
       const job = mockEvaluationJob({ state: 'partially_failed' });
-      /* eslint-disable camelcase */
       job.status.benchmarks = [
         {
           id: 'bm-a',
@@ -578,7 +600,6 @@ describe('EvaluationStatusModal failure summary alert', () => {
           error_message: { message: 'err-c' },
         },
       ];
-      /* eslint-enable camelcase */
 
       render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -631,7 +652,12 @@ describe('EvaluationStatusModal log parsing', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'running' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     const logContent = screen.getByTestId('log-content');
@@ -646,7 +672,12 @@ describe('EvaluationStatusModal log parsing', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'running' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     const logContent = screen.getByTestId('log-content');
@@ -689,7 +720,6 @@ describe('EvaluationStatusModal log parsing', () => {
 describe('EvaluationStatusModal view benchmark logs', () => {
   it('should switch to events-log tab when "View logs" is clicked for a failed benchmark', () => {
     const job = mockEvaluationJob({ state: 'failed' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       {
         id: 'bm-a',
@@ -698,7 +728,6 @@ describe('EvaluationStatusModal view benchmark logs', () => {
         error_message: { message: 'err' },
       },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -797,7 +826,12 @@ describe('EvaluationStatusModal log level filter', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'running' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
@@ -822,7 +856,12 @@ describe('EvaluationStatusModal log level filter', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'toxigen', benchmark_index: 0, status: 'running' },
+      { id: 'arc_easy', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
@@ -830,8 +869,8 @@ describe('EvaluationStatusModal log level filter', () => {
 
     const notices = screen.getAllByTestId('log-filter-empty-notice');
     expect(notices).toHaveLength(2);
-    expect(notices[0]).toHaveTextContent('No error logs in this section.');
-    expect(notices[1]).toHaveTextContent('No error logs in this section.');
+    expect(notices[0]).toHaveTextContent('No messages match the specified filter in this section.');
+    expect(notices[1]).toHaveTextContent('No messages match the specified filter in this section.');
   });
 
   it('should show empty notice when no section headers and filter removes all entries', () => {
@@ -849,10 +888,10 @@ describe('EvaluationStatusModal log level filter', () => {
     fireEvent.click(screen.getByText('Errors only'));
 
     const notice = screen.getByTestId('log-filter-empty-notice');
-    expect(notice).toHaveTextContent('No error logs in this section.');
+    expect(notice).toHaveTextContent('No messages match the specified filter.');
   });
 
-  it('should use correct empty notice message for warnings filter', () => {
+  it('should use same empty notice message for warnings filter', () => {
     mockUseEvaluationJobLogs.mockReturnValue({
       logs: '2026-01-15 09:30:00,123 - main - INFO - All good here',
       loaded: true,
@@ -867,7 +906,7 @@ describe('EvaluationStatusModal log level filter', () => {
     fireEvent.click(screen.getByText('Warnings and errors'));
 
     const notice = screen.getByTestId('log-filter-empty-notice');
-    expect(notice).toHaveTextContent('No warning or error logs in this section.');
+    expect(notice).toHaveTextContent('No messages match the specified filter.');
   });
 
   it('should not show empty notice for sections that have matching entries', () => {
@@ -883,7 +922,12 @@ describe('EvaluationStatusModal log level filter', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'toxigen', benchmark_index: 0, status: 'running' },
+      { id: 'arc_easy', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
@@ -897,6 +941,60 @@ describe('EvaluationStatusModal log level filter', () => {
   });
 });
 
+describe('EvaluationStatusModal tail notice', () => {
+  it('should render tail notice when log entries are displayed', () => {
+    renderModal();
+    switchToEventsLog();
+
+    expect(screen.getByTestId('log-tail-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('log-tail-notice')).toHaveTextContent(
+      'Only the 500 most recent messages are displayed',
+    );
+  });
+
+  it('should show download action link in tail notice', () => {
+    renderModal();
+    switchToEventsLog();
+
+    const tailNotice = screen.getByTestId('log-tail-notice');
+    expect(tailNotice).toHaveTextContent('Download full log (server limits may apply)');
+  });
+
+  it('should show refresh action link in tail notice for in-progress jobs', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+    switchToEventsLog();
+
+    const tailNotice = screen.getByTestId('log-tail-notice');
+    expect(tailNotice).toHaveTextContent('Refresh for newer messages');
+  });
+
+  it('should not show refresh action link in tail notice for completed jobs', () => {
+    renderModal(mockEvaluationJob({ state: 'completed' }));
+    switchToEventsLog();
+
+    const tailNotice = screen.getByTestId('log-tail-notice');
+    expect(tailNotice).not.toHaveTextContent('Refresh for newer messages');
+  });
+
+  it('should still render tail notice when filter removes all entries', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '2026-01-15 09:30:00,123 - main - INFO - All good here',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+    switchToEventsLog();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Errors only'));
+
+    expect(screen.getByTestId('log-filter-empty-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('log-tail-notice')).toBeInTheDocument();
+  });
+});
+
 describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
   it('should pass namespace and job ID on the events-log tab', () => {
     renderModal(mockEvaluationJob({ state: 'running' }));
@@ -906,26 +1004,24 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
       'test-ns',
       'eval-job-001',
       undefined,
-      1000,
+      500,
     );
   });
 
-  it('should pass undefined namespace and job ID on the progress tab', () => {
+  it('should not call useEvaluationJobLogs on the progress tab', () => {
+    mockUseEvaluationJobLogs.mockClear();
     renderModal(mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' }));
 
     expect(screen.getByTestId('progress-tab')).toHaveAttribute('aria-selected', 'true');
-    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith(
-      undefined,
-      undefined,
-      undefined,
-      1000,
-    );
+    expect(mockUseEvaluationJobLogs).not.toHaveBeenCalled();
   });
 
   it('should pass benchmark index after selecting a benchmark', () => {
     const job = mockEvaluationJob({ state: 'running' });
-    // eslint-disable-next-line camelcase
-    job.status.benchmarks = [{ id: 'bm-a', benchmark_index: 0, status: 'completed' }];
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'completed' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+    ]);
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
     switchToEventsLog();
@@ -933,12 +1029,23 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
     fireEvent.click(screen.getByTestId('benchmark-log-selector'));
     fireEvent.click(screen.getByText('bm-a'));
 
-    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 1000);
+    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 500);
+  });
+
+  it('should hide the benchmark selector when there is only one benchmark', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'completed' },
+    ]);
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    switchToEventsLog();
+
+    expect(screen.queryByTestId('benchmark-log-selector')).not.toBeInTheDocument();
   });
 });
 
 describe('EvaluationStatusModal pre-start failure', () => {
-  /* eslint-disable camelcase */
   it('should show "Not started" when no benchmark has started_at or error_message', () => {
     const job = mockEvaluationJob({
       state: 'failed',
@@ -974,7 +1081,6 @@ describe('EvaluationStatusModal pre-start failure', () => {
   });
 
   it('should prefer polledJobData benchmarks for pre-start detection when provided', () => {
-    // List data shows no benchmarks (would be pre-start), but polled data has started_at → runtime failure
     const job = mockEvaluationJob({ state: 'failed', benchmarkStatuses: [] });
     const polledJob = mockEvaluationJob({
       state: 'failed',
@@ -1019,7 +1125,6 @@ describe('EvaluationStatusModal pre-start failure', () => {
   });
 
   it('should show "Failed" when a benchmark has error_message but no started_at — runner reached the benchmark', () => {
-    // Real-cluster scenario: runner starts, fails on model load, reports error_message but no started_at
     const job = mockEvaluationJob({
       state: 'failed',
       benchmarkStatuses: [
@@ -1038,5 +1143,163 @@ describe('EvaluationStatusModal pre-start failure', () => {
     expect(screen.getByTestId('status-label-failed')).not.toHaveTextContent('Not started');
     expect(screen.getByTestId('status-detail-header')).not.toHaveTextContent('Not started');
   });
-  /* eslint-enable camelcase */
+});
+
+describe('EvaluationStatusModal stop button', () => {
+  const mockOnRequestStop = jest.fn();
+
+  const renderModalWithStop = (jobOverrides = {}) => {
+    const job = mockEvaluationJob({ state: 'running', ...jobOverrides });
+    return render(
+      <MemoryRouter>
+        <EvaluationStatusModal
+          job={job}
+          namespace="test-ns"
+          onClose={mockOnClose}
+          onRequestStop={mockOnRequestStop}
+        />
+      </MemoryRouter>,
+    );
+  };
+
+  beforeEach(() => {
+    mockOnRequestStop.mockReset();
+  });
+
+  it('should show stop button for running jobs when onRequestStop is provided', () => {
+    renderModalWithStop({ state: 'running' });
+    expect(screen.getByTestId('status-modal-stop-button')).toBeInTheDocument();
+  });
+
+  it('should show stop button for pending jobs when onRequestStop is provided', () => {
+    renderModalWithStop({ state: 'pending' });
+    expect(screen.getByTestId('status-modal-stop-button')).toBeInTheDocument();
+  });
+
+  it('should not show stop button for completed jobs', () => {
+    renderModalWithStop({ state: 'completed' });
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show stop button for failed jobs', () => {
+    renderModalWithStop({ state: 'failed' });
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show stop button for stopping jobs', () => {
+    renderModalWithStop({ state: 'stopping' });
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show stop button for stopped jobs', () => {
+    renderModalWithStop({ state: 'stopped' });
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show stop button when onRequestStop is not provided', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should call onRequestStop with the job when stop button is clicked', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    render(
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        onClose={mockOnClose}
+        onRequestStop={mockOnRequestStop}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('status-modal-stop-button'));
+    expect(mockOnRequestStop).toHaveBeenCalledWith(job);
+  });
+});
+
+describe('EvaluationStatusModal reconfigure button', () => {
+  const mockOnReconfigure = jest.fn();
+
+  const renderModalWithReconfigure = (jobOverrides = {}) => {
+    const job = mockEvaluationJob({ ...jobOverrides });
+    return render(
+      <MemoryRouter>
+        <EvaluationStatusModal
+          job={job}
+          namespace="test-ns"
+          onClose={mockOnClose}
+          onRequestReconfigure={mockOnReconfigure}
+        />
+      </MemoryRouter>,
+    );
+  };
+
+  beforeEach(() => {
+    mockOnReconfigure.mockReset();
+  });
+
+  it('should show reconfigure button for failed jobs when onRequestReconfigure is provided', () => {
+    renderModalWithReconfigure({ state: 'failed', statusMessage: 'Something failed' });
+    expect(screen.getByTestId('status-modal-reconfigure-button')).toBeInTheDocument();
+  });
+
+  it('should show reconfigure button for partially_failed jobs when onRequestReconfigure is provided', () => {
+    renderModalWithReconfigure({ state: 'partially_failed' });
+    expect(screen.getByTestId('status-modal-reconfigure-button')).toBeInTheDocument();
+  });
+
+  it('should show reconfigure button for cancelled jobs when onRequestReconfigure is provided', () => {
+    renderModalWithReconfigure({ state: 'cancelled' });
+    expect(screen.getByTestId('status-modal-reconfigure-button')).toBeInTheDocument();
+  });
+
+  it('should show reconfigure button for stopped jobs when onRequestReconfigure is provided', () => {
+    renderModalWithReconfigure({ state: 'stopped' });
+    expect(screen.getByTestId('status-modal-reconfigure-button')).toBeInTheDocument();
+  });
+
+  it('should show view results button instead of reconfigure for completed jobs', () => {
+    renderModalWithReconfigure({ state: 'completed' });
+    expect(screen.getByTestId('status-modal-view-results-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
+  });
+
+  it('should show view results button for completed jobs without onRequestReconfigure', () => {
+    const job = mockEvaluationJob({ state: 'completed' });
+    render(
+      <MemoryRouter>
+        <EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('status-modal-view-results-button')).toBeInTheDocument();
+  });
+
+  it('should not show reconfigure button for running jobs', () => {
+    renderModalWithReconfigure({ state: 'running' });
+    expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show reconfigure button when onRequestReconfigure is not provided', () => {
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' });
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
+  });
+
+  it('should call onRequestReconfigure with the job when reconfigure button is clicked', () => {
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' });
+    render(
+      <MemoryRouter>
+        <EvaluationStatusModal
+          job={job}
+          namespace="test-ns"
+          onClose={mockOnClose}
+          onRequestReconfigure={mockOnReconfigure}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('status-modal-reconfigure-button'));
+    expect(mockOnReconfigure).toHaveBeenCalledWith(job);
+  });
 });

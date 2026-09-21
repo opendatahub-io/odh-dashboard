@@ -45,7 +45,7 @@ const renderAtRoute = (
   configs: LLMInferenceServiceConfigKind[],
   registeredPath: string,
   url: string,
-  props: { listPath: string; isDuplicate?: boolean },
+  props: { isDuplicate?: boolean } = {},
 ) =>
   render(
     <MemoryRouter initialEntries={[url]}>
@@ -53,12 +53,7 @@ const renderAtRoute = (
         <Routes>
           <Route
             path={registeredPath}
-            element={
-              <RoutingConfigurationCreateEdit
-                listPath={props.listPath}
-                isDuplicate={props.isDuplicate}
-              />
-            }
+            element={<RoutingConfigurationCreateEdit isDuplicate={props.isDuplicate} />}
           />
         </Routes>
       </RoutingConfigContext.Provider>
@@ -87,9 +82,7 @@ describe('RoutingConfigurationCreateEdit', () => {
 
   describe('create mode', () => {
     it('should not disable the topology type select', () => {
-      renderAtRoute([], '/routing-configs/add', '/routing-configs/add', {
-        listPath: '/routing-configs',
-      });
+      renderAtRoute([], '/routing-configs/add', '/routing-configs/add');
 
       const topologySelect = screen.getByTestId('topology-type-select');
       expect(topologySelect).not.toBeDisabled();
@@ -109,7 +102,7 @@ describe('RoutingConfigurationCreateEdit', () => {
         [sourceConfig],
         '/routing-configs/duplicate/:configName',
         '/routing-configs/duplicate/source-router',
-        { listPath: '/routing-configs', isDuplicate: true },
+        { isDuplicate: true },
       );
 
       const nameInput = screen.getByTestId('routing-config-name');
@@ -132,7 +125,6 @@ describe('RoutingConfigurationCreateEdit', () => {
         [existingConfig],
         '/routing-configs/edit/:configName',
         '/routing-configs/edit/test-router',
-        { listPath: '/routing-configs' },
       );
 
       const topologySelect = screen.getByTestId('topology-type-select');
@@ -146,9 +138,6 @@ describe('RoutingConfigurationCreateEdit', () => {
         [],
         '/routing-configs/edit/:configName',
         '/routing-configs/edit/does-not-exist',
-        {
-          listPath: '/routing-configs',
-        },
       );
 
       expect(screen.getByText('Unable to edit routing configuration')).toBeInTheDocument();
@@ -163,10 +152,7 @@ describe('RoutingConfigurationCreateEdit', () => {
         [],
         '/routing-configs/duplicate/:configName',
         '/routing-configs/duplicate/does-not-exist',
-        {
-          listPath: '/routing-configs',
-          isDuplicate: true,
-        },
+        { isDuplicate: true },
       );
 
       // Copy reflects the duplicate operation, not "edit".

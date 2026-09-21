@@ -1,24 +1,24 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
 import { createPvc } from '@odh-dashboard/internal/api';
+import { NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
+import type { NIMDeployment } from '../../../api/nimservices/types';
 import {
   NIM_PVC_ANNOTATION,
   NIM_PVC_SUBPATH_ANNOTATION,
-  NIMPVCStorageMode,
-  type NIMPVCFieldValue,
-} from './NIMPVCField';
-import type { NIMDeployment } from '../../../api/nimservices/types';
+} from '../../clusterStorage/clusterStorage';
 
 export const nimPVCPreDeploy = async (
   fieldData: NIMPVCFieldValue,
   wizardState: WizardFormData['state'],
-  deployment: NIMDeployment,
-): Promise<NIMDeployment> => {
+  deployment: DeploymentHookPayloadFor<NIMDeployment>,
+): Promise<DeploymentHookPayloadFor<NIMDeployment>> => {
   const { projectName } = wizardState.project;
   if (!projectName) {
     throw new Error('Project is required to create PVC storage');
   }
 
-  if (fieldData.storageMode !== NIMPVCStorageMode.NEW) {
+  if (fieldData.storageMode !== NIMPVCStorageMode.NEW || !deployment.model) {
     return deployment;
   }
 

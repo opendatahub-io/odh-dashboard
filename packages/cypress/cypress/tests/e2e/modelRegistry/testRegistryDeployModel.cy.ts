@@ -281,8 +281,7 @@ describe('Verify models can be deployed from model registry', () => {
       modelServingWizard.findNextButton().click();
 
       cy.step('Advanced settings');
-      // Enable and fill serving runtime arguments
-      modelServingWizard.findRuntimeArgsCheckbox().click();
+      // Fill serving runtime arguments (textarea is always visible)
       modelServingWizard.findRuntimeArgsTextBox().type(servingRuntimeArgs);
 
       // Enable and fill environment variables (one row per entry)

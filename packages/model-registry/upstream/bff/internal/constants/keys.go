@@ -23,3 +23,13 @@ const (
 	TraceLoggerKey                 contextKey = "TraceLoggerKey"
 	ServiceAuthorizationContextKey contextKey = "ServiceAuthorizationContextKey"
 )
+
+// BFFTarget represents a target BFF service (re-exported from the bffclient package
+// so context keys can be built without an import cycle).
+type BFFTarget string
+
+// BFFClientKey returns a context key for storing an inter-BFF client by target.
+// Usage: ctx.Value(constants.BFFClientKey(bffclient.BFFTargetMLflow))
+func BFFClientKey(target BFFTarget) contextKey {
+	return contextKey("BFFClientKey_" + string(target))
+}

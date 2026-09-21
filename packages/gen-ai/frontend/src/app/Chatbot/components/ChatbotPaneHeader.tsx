@@ -123,7 +123,12 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                   </span>
                 </FlexItem>
                 <FlexItem>
-                  <Title headingLevel="h4" size="md" style={{ whiteSpace: 'nowrap' }}>
+                  <Title
+                    headingLevel="h4"
+                    size="md"
+                    style={{ whiteSpace: 'nowrap' }}
+                    data-testid="agent-name-title"
+                  >
                     {agentName}
                   </Title>
                 </FlexItem>
@@ -142,7 +147,11 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                 </FlexItem>
                 {isProfileDirty && (
                   <FlexItem>
-                    <Content component="small" className="pf-v6-u-color-200">
+                    <Content
+                      component="small"
+                      className="pf-v6-u-color-200"
+                      data-testid="agent-unsaved-indicator"
+                    >
                       <i>(Unsaved)</i>
                     </Content>
                   </FlexItem>

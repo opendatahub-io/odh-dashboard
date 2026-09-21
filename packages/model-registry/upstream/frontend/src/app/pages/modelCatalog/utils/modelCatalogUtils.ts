@@ -1,5 +1,5 @@
 import { capitalize } from '@patternfly/react-core';
-import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
+import type { DeployPrefillData } from '@odh-dashboard/model-serving/shared/types/deploy-prefill';
 import {
   CatalogArtifacts,
   CatalogArtifactType,
@@ -32,9 +32,11 @@ import {
   SortOrder,
   SortField,
   CatalogModelCustomPropertyKey,
+  HfAccessType,
   ModelType,
   ModelCatalogTask,
   MATCH_ALL_FILTER_KEYS,
+  HUGGING_FACE_BASE_URL,
 } from '~/concepts/modelCatalog/const';
 import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
 import { ModelRegistryCustomProperties, ModelRegistryMetadataType } from '~/app/types';
@@ -177,6 +179,89 @@ export const hasPerformanceArtifacts = (artifacts: CatalogArtifacts[]): boolean 
       artifact.metricsType === MetricsType.performanceMetrics,
   );
 
+export type HfAccessLabelVariant = 'private' | 'gated' | 'gated-denied';
+
+export const isGatedAccessType = (accessType: string): boolean => accessType.startsWith('gated');
+
+export const isHfGatedAccessDeniedFromFields = (
+  accessType?: string | null,
+  gatedAccessGranted?: boolean | null,
+): boolean => {
+  if (!accessType || !isGatedAccessType(accessType)) {
+    return false;
+  }
+
+  return gatedAccessGranted !== true;
+};
+
+export const getHfGatedAccessGranted = (model: CatalogModel): boolean => {
+  if (!model.customProperties) {
+    return false;
+  }
+
+  const gatedAccessKey = CatalogModelCustomPropertyKey.HF_GATED_ACCESS_GRANTED;
+  if (!(gatedAccessKey in model.customProperties)) {
+    return false;
+  }
+
+  const prop = model.customProperties[gatedAccessKey];
+
+  if (prop.metadataType === ModelRegistryMetadataType.BOOL) {
+    return prop.bool_value === true;
+  }
+
+  if (prop.metadataType === ModelRegistryMetadataType.STRING) {
+    return prop.string_value === 'true';
+  }
+
+  return false;
+};
+
+export const getHfAccessType = (model: CatalogModel): string | null => {
+  if (!model.customProperties) {
+    return null;
+  }
+  const accessType = getCustomPropString(
+    model.customProperties,
+    CatalogModelCustomPropertyKey.HF_ACCESS_TYPE,
+  );
+  return accessType || null;
+};
+
+export const getHfAccessLabelVariant = (model: CatalogModel): HfAccessLabelVariant | null => {
+  const accessType = getHfAccessType(model);
+  if (!accessType) {
+    return null;
+  }
+
+  if (accessType === HfAccessType.PRIVATE) {
+    return 'private';
+  }
+
+  if (isHfGatedAccessDeniedFromFields(accessType, getHfGatedAccessGranted(model))) {
+    return 'gated-denied';
+  }
+
+  if (isGatedAccessType(accessType)) {
+    return 'gated';
+  }
+
+  return null;
+};
+
+export const isHfGatedAccessDenied = (model: CatalogModel): boolean => {
+  const accessType = getHfAccessType(model);
+  if (!accessType) {
+    return false;
+  }
+
+  return isHfGatedAccessDeniedFromFields(accessType, getHfGatedAccessGranted(model));
+};
+
+// TODO: this needs to be updated with the customProperties of the model, where we will have the HF link
+export const getHuggingFaceModelUrl = (model: CatalogModel): string =>
+  `${HUGGING_FACE_BASE_URL}/${model.name}`;
+
 // Utility function to check if a model is validated
 export const isModelValidated = (model: CatalogModel): boolean => {
   if (!model.customProperties) {
@@ -225,9 +310,9 @@ export const getToolCallingArgs = (config?: ToolCallingConfig): string => {
 
 /**
  * Builds the `validatedConfigurations` entries to prefill into the deployment wizard for a
- * catalog model. Each supported validated configuration (currently just tool calling) is
- * responsible for its own gating here — the wizard itself renders whatever it receives, with
- * no knowledge of individual feature flags or model fields.
+ * catalog model. Catalog UI (labels, filters, details card) is always on. Wizard prefill is
+ * gated here — currently tool calling is included only when the `toolCalling` flag is on and
+ * the model has validated tool-calling args. The wizard renders whatever it receives.
  *
  * Returns both the available configurations and a pre-selection record so that validated
  * options are checked by default when the wizard opens.

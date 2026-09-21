@@ -17,7 +17,7 @@ const LlmAcceleratorConfigTabRoutes: React.FC = () => (
   <LlmInferenceServiceConfigAccessGate>
     <Routes>
       <Route path="/" element={<LlmAcceleratorConfigContextProvider />}>
-        <Route index element={<LlmAcceleratorConfigView noTitle />} />
+        <Route index element={<LlmAcceleratorConfigView />} />
         <Route path="*" element={<Navigate to="." replace />} />
       </Route>
     </Routes>

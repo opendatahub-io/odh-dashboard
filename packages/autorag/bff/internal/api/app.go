@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
@@ -28,20 +28,21 @@ import (
 )
 
 const (
-	Version              = "1.0.0"
-	PathPrefix           = "/autorag"
-	ApiPathPrefix        = "/api/v1"
-	HealthCheckPath      = "/healthcheck"
-	UserPath             = ApiPathPrefix + "/user"
-	NamespacePath        = ApiPathPrefix + "/namespaces"
-	SecretsPath          = ApiPathPrefix + "/secrets"
-	SecretPath           = ApiPathPrefix + "/secret/:name"
-	S3FilePath           = ApiPathPrefix + "/s3/files/:key"
-	S3FilesPath          = ApiPathPrefix + "/s3/files"
-	OGXModelsPath        = ApiPathPrefix + "/ogx/models"
-	OGXVectorStoresPath  = ApiPathPrefix + "/ogx/vector-stores"
-	PipelineRunsPath     = ApiPathPrefix + "/pipeline-runs"
-	ManagedPipelinesPath = ApiPathPrefix + "/managed-pipelines/enable"
+	Version                  = "1.0.0"
+	PathPrefix               = "/autorag"
+	ApiPathPrefix            = "/api/v1"
+	HealthCheckPath          = "/healthcheck"
+	UserPath                 = ApiPathPrefix + "/user"
+	NamespacePath            = ApiPathPrefix + "/namespaces"
+	SecretsPath              = ApiPathPrefix + "/secrets"
+	SecretPath               = ApiPathPrefix + "/secret/:name"
+	S3FilePath               = ApiPathPrefix + "/s3/files/:key"
+	S3FilesPath              = ApiPathPrefix + "/s3/files"
+	MaaSModelsPath           = ApiPathPrefix + "/maas/models"
+	PipelineRunsPath         = ApiPathPrefix + "/pipeline-runs"
+	IndexingPipelineRunsPath = ApiPathPrefix + "/indexing-pipeline-runs"
+	ManagedPipelinesListPath = ApiPathPrefix + "/managed-pipelines"
+	ManagedPipelinesPath     = ApiPathPrefix + "/managed-pipelines/enable"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -84,7 +85,7 @@ type App struct {
 	k8s         *K8sHandler
 	s3          *S3Handler
 	pipelines   *PipelinesHandler
-	ogx         *OGXHandler
+	maas        *MaaSHandler
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -206,19 +207,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	s3Service := s3.NewService(s3.ServiceConfig{Logger: logger}, s3Client)
 
-	// Initialize Open GenAI Stack client (single shared instance).
-	var ogxClient ogx.OGXClientInterface
-	if cfg.MockOGXClient {
-		ogxClient = &fake.OGXClient{}
+	var maasClient maas.MaaSClientInterface
+	if cfg.MockMaaSClient {
+		maasClient = &fake.MaaSClient{}
 	} else {
-		ogxCfg := ogx.OGXClientConfig{
+		maasCfg := maas.MaaSClientConfig{
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
 			RootCAs:            rootCAs,
 		}
 		if pfManager != nil {
-			ogxCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+			maasCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
 		}
-		ogxClient = ogx.NewDefaultOGXClient(ogxCfg)
+		maasClient = maas.NewDefaultMaaSClient(maasCfg)
 	}
 
 	app := &App{
@@ -249,12 +249,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			logger: logger,
 			repo: repositories.NewPipelinesRepository(logger, pipelinesService, repositories.PipelinesRepositoryConfig{
 				AutoRAGPipelineName:    cfg.AutoRAGPipelineNamePrefix,
+				IndexingPipelineName:   cfg.IndexingPipelineNamePrefix,
 				DefaultPipelineVersion: cfg.PipelineVersionSuffix,
 			}),
 		},
-		ogx: &OGXHandler{
+		maas: &MaaSHandler{
 			logger: logger,
-			repo:   repositories.NewOGXRepository(logger, ogxClient, k8sService),
+			repo:   repositories.NewMaaSRepository(logger, maasClient, k8sService),
 		},
 	}
 	return app, nil
@@ -295,17 +296,19 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.RetryPipelineRunHandler)))
 	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.DeletePipelineRunHandler)))
 
+	// Indexing pipeline runs
+	apiRouter.POST(IndexingPipelineRunsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.CreateIndexingPipelineRunHandler)))
+
 	// S3 operations — credentials resolved from explicit secretName query parameter.
 	apiRouter.GET(S3FilePath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.s3.GetS3FileHandler)))
 	apiRouter.GET(S3FilesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.s3.GetS3FilesHandler)))
 	// POST /s3/files/:key: secretName is required; there is no DSPA fallback.
 	apiRouter.POST(S3FilePath, app.mw.AttachNamespace(app.s3.rejectDeclaredOversizedS3Post(app.mw.RequireAccessToService(app.s3.PostS3FileHandler))))
 
-	// Open GenAI Stack — credentials are resolved by the repository from the secretName query param
-	apiRouter.GET(OGXModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXModelsHandler)))
-	apiRouter.GET(OGXVectorStoresPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXVectorStoresHandler)))
+	apiRouter.GET(MaaSModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.maas.MaaSModelsHandler)))
 
-	// Managed pipelines — enable AutoRAG pipeline definitions on an existing DSPA
+	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
+	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))
 	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
 
 	// App Router

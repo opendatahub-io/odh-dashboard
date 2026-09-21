@@ -12,19 +12,17 @@ import { useMlmdListContext } from '#~/concepts/pipelines/context';
 
 type ExecutionsTableToolbarProps = {
   filterData: Record<FilterOptions, string | undefined>;
-  setFilterData: React.Dispatch<React.SetStateAction<Record<FilterOptions, string | undefined>>>;
+  onFilterUpdate: (
+    key: FilterOptions,
+    value: string | { label: string; value: string } | undefined,
+  ) => void;
 };
 
 const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
   filterData,
-  setFilterData,
+  onFilterUpdate,
 }) => {
   const { setFilterQuery } = useMlmdListContext();
-  const onFilterUpdate = React.useCallback(
-    (key: string, value: string | { label: string; value: string } | undefined) =>
-      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
-    [setFilterData],
-  );
 
   React.useEffect(() => {
     if (Object.values(filterData).some((filterOption) => !!filterOption)) {

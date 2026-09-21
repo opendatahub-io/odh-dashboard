@@ -22,6 +22,13 @@ const (
 	// DefaultAuthTokenPrefix is the prefix used in the Authorization header.
 	// note: the space here is intentional, as the prefix is "Bearer " (with a space).
 	DefaultAuthTokenPrefix = "Bearer "
+
+	// DefaultDataRegistryConfigMapName is the ConfigMap expected to hold the upstream
+	// Data Registry API base URL, read from the pod's own namespace at startup.
+	DefaultDataRegistryConfigMapName = "data-registry-config"
+
+	// DefaultDataRegistryConfigMapKey is the key within the ConfigMap holding the URL value.
+	DefaultDataRegistryConfigMapKey = "apiURL"
 )
 
 // DeploymentMode represents the deployment mode enum
@@ -102,6 +109,19 @@ type EnvConfig struct {
 	// MockBFFClients enables mock mode for BFF inter-communication clients.
 	// When true, BFF clients return mock responses instead of making real HTTP calls.
 	MockBFFClients bool
+
+	// ─── DATA REGISTRY API ────────────────────────────────────────
+	// DataRegistryAPIURL is the base URL of the upstream Data Registry API
+	// (Iceberg REST Catalog-compatible). When set via flag/env, it takes precedence over
+	// the ConfigMap lookup below — primarily useful for local dev and tests.
+	DataRegistryAPIURL string
+
+	// DataRegistryConfigMapName is the ConfigMap (in the pod's own namespace) read at
+	// startup to resolve DataRegistryAPIURL when it isn't provided via flag/env.
+	DataRegistryConfigMapName string
+
+	// DataRegistryConfigMapKey is the key within DataRegistryConfigMapName holding the URL.
+	DataRegistryConfigMapKey string
 
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility

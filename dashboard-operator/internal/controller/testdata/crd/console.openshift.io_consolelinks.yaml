@@ -1,0 +1,29 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: consolelinks.console.openshift.io
+spec:
+  group: console.openshift.io
+  names:
+    kind: ConsoleLink
+    listKind: ConsoleLinkList
+    plural: consolelinks
+    singular: consolelink
+  scope: Cluster
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          description: |-
+            Minimal ConsoleLink CRD used only for envtest integration tests.
+            The real CRD is provided by OpenShift; the operator manages
+            ConsoleLinks as unstructured objects, so only a permissive schema
+            is required here.
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources: {}

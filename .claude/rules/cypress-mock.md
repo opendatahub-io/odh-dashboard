@@ -95,7 +95,7 @@ Some modules like `gen-ai`, `model-registry`, etc. have a **BFF (Backend For Fro
 
 1. **Pure Mock Tests (Default for Mock Tests)** - NO BFF Running
    - All network requests are intercepted with Cypress `cy.intercept*` commands
-   - Frontend runs standalone with webpack dev server
+   - Frontend runs standalone with dev server
    - BFF is NOT started
    - Fastest approach, true component isolation
    - **Commands:**
@@ -145,7 +145,7 @@ packages/gen-ai/
 │   ├── src/__tests__/cypress/     # Cypress tests
 │   └── package.json               # Test scripts
 │       ├── cypress:server         # Runs BFF: "cd ../bff && make run PORT=9001"
-│       ├── cypress:server:dev     # Runs frontend only: webpack dev server
+│       ├── cypress:server:dev     # Runs frontend only: dev server
 │       ├── cypress:run:mock       # Mock tests (CY_MOCK=1, no BFF)
 │       ├── cypress:run:e2e        # E2E tests (with BFF)
 │       └── test:cypress-ci        # CI: "npm run cypress:server:dev" + mock tests
@@ -163,7 +163,7 @@ cd packages/gen-ai/frontend
 npm run test:cypress-ci            # Same as above
 
 # Development mode (separate terminals)
-npm run cypress:server:dev         # Terminal 1: Start webpack dev server
+npm run cypress:server:dev         # Terminal 1: Start dev server
 npm run cypress:run:mock           # Terminal 2: Run mock tests
 npm run cypress:open               # Terminal 2: Or open Cypress GUI
 ```

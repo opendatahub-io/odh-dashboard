@@ -1,0 +1,6 @@
+// Keep icon+text crumbs looking like the rest of the breadcrumb (no standing
+// underline). A letter-spacing / text-decoration ::after was leaking a
+// full-width blue line in production federated CSS (RHOAIENG-93572).
+.autorag-breadcrumb-link-with-icon {
+  text-decoration: none;
+}

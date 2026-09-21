@@ -1,7 +1,5 @@
 import * as React from 'react';
-import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
-import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
-import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { byName } from '@odh-dashboard/k8s-core';
@@ -9,9 +7,8 @@ import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import NewProjectButton from '@odh-dashboard/internal/pages/projects/screens/projects/NewProjectButton';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
+import NoProjectsEmptyState from './NoProjectsEmptyState';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 type ApplicationPageRenderState = Pick<ApplicationPageProps, 'emptyStatePage' | 'empty'>;
@@ -23,25 +20,6 @@ interface WorkspaceRouteLoaderProps {
   noProjectsTestId: string;
   PageComponent: React.ComponentType;
 }
-
-const NoProjectsEmptyState: React.FC<{
-  message: string;
-  testId: string;
-  getRedirectPath: (namespace: string) => string;
-}> = ({ message, testId, getRedirectPath }) => {
-  const navigate = useNavigate();
-  return (
-    <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No projects" data-testid={testId}>
-      <EmptyStateBody>{message}</EmptyStateBody>
-      <EmptyStateFooter>
-        <NewProjectButton
-          closeOnCreate
-          onProjectCreated={(projectName) => navigate(getRedirectPath(projectName))}
-        />
-      </EmptyStateFooter>
-    </EmptyState>
-  );
-};
 
 const WorkspaceRouteLoader: React.FC<WorkspaceRouteLoaderProps> = ({
   title,

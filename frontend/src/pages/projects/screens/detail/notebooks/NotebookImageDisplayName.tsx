@@ -25,6 +25,7 @@ import {
 } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
+import UnderlinedTruncateButton from '@odh-dashboard/ui-core/components/UnderlinedTruncateButton';
 import {
   NotebookImageAvailability,
   NotebookImageStatus,
@@ -37,7 +38,6 @@ import {
   getMatchingImageStreamStatusTag,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { NotebookState } from '#~/pages/projects/notebook/types';
-import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookKind } from '#~/k8sTypes';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 

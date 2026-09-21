@@ -19,12 +19,8 @@ jest.mock('../TopologyConfigContext', () => ({
 
 jest.mock('../TopologyConfigurationCreateEdit', () => ({
   __esModule: true,
-  default: ({ listPath, isDuplicate }: { listPath: string; isDuplicate?: boolean }) => (
-    <div
-      data-testid="create-edit"
-      data-list-path={listPath}
-      data-is-duplicate={String(!!isDuplicate)}
-    />
+  default: ({ isDuplicate }: { isDuplicate?: boolean }) => (
+    <div data-testid="create-edit" data-is-duplicate={String(!!isDuplicate)} />
   ),
 }));
 
@@ -50,7 +46,6 @@ describe('TopologyConfigFormRoutes', () => {
       `${TOPOLOGY_CONFIGS_TAB_PATH}/add/workload-single-node`,
     );
     const form = screen.getByTestId('create-edit');
-    expect(form).toHaveAttribute('data-list-path', TOPOLOGY_CONFIGS_TAB_PATH);
     expect(form).toHaveAttribute('data-is-duplicate', 'false');
   });
 

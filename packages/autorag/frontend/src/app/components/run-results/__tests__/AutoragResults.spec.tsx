@@ -1,10 +1,12 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 import {
   AutoragResultsContext,
   type AutoragResultsContextProps,
@@ -18,6 +20,8 @@ import * as transformPipelineDataModule from '~/app/topology/tree-view/transform
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutoragTaskTopologyModule from '~/app/topology/useAutoragTaskTopology';
 import * as utils from '~/app/utilities/utils';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
+import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
 
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedPattern: undefined, stageMapNodes: [] }),
@@ -41,16 +45,19 @@ jest.mock('~/app/components/run-results/AutoragPipelineVisualization', () => ({
     runTitle,
     runState,
     treeLoadingMode,
+    showStageMapUnavailableNotice,
   }: {
     runTitle: string;
     runState?: string;
     treeLoadingMode?: string;
+    showStageMapUnavailableNotice?: boolean;
   }) => (
     <div
       data-testid="autorag-pipeline-visualization"
       data-run-title={runTitle}
       data-run-state={runState}
       data-tree-loading-mode={treeLoadingMode ?? 'none'}
+      data-stage-map-unavailable={showStageMapUnavailableNotice ? 'true' : 'false'}
     />
   ),
 }));
@@ -71,6 +78,52 @@ jest.mock('~/app/utilities/utils', () => ({
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
   fetchS3File: jest.fn(),
+  useManagedPipelinesQuery: jest.fn().mockReturnValue({
+    data: [
+      {
+        pipeline_type: 'indexing',
+        pipeline_id: 'idx',
+        pipeline_version_id: 'v',
+        display_name: 'documents-indexing-pipeline',
+      },
+    ],
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+}));
+
+jest.mock('~/app/hooks/mutations', () => ({
+  useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+    reset: jest.fn(),
+  }),
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+
+jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
+  usePatternEvaluationResults: jest.fn().mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+  }),
+}));
+
+const mockNotificationWarning = jest.fn();
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(() => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warning: mockNotificationWarning,
+  })),
 }));
 
 const mockPipelineRun: PipelineRun = {
@@ -87,9 +140,8 @@ const createMockPattern = (name: string): AutoragPattern => ({
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: {
       method: 'fixed',
@@ -134,6 +186,22 @@ const createMockPattern = (name: string): AutoragPattern => ({
       },
     ],
   },
+  indexing: {
+    pipeline_spec: {
+      pipeline_name: 'documents-indexing-pipeline',
+      parameters: {
+        embedding_model_id: 'test-model',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        chunk_size: 512,
+        chunk_overlap: 50,
+        chunking_method: 'fixed',
+      },
+      overrides_allowed: [],
+    },
+  },
 });
 
 const fetchS3FileMock = jest.mocked(queries.fetchS3File);
@@ -156,34 +224,48 @@ describe('AutoragResults', () => {
     });
   });
 
+  const createResultsElement = (
+    pipelineRun?: PipelineRun,
+    patterns: Record<string, AutoragPattern> = {},
+    namespace = 'test-namespace',
+    contextOverrides?: Partial<AutoragResultsContextProps>,
+    props?: React.ComponentProps<typeof AutoragResults>,
+  ) => (
+    <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
+      <Routes>
+        <Route
+          path="/autorag/:namespace/results"
+          element={
+            <AutoragResultsContext.Provider
+              value={{
+                pipelineRun,
+                patterns,
+                parameters: {},
+                ragPatternsBasePath: 'rag_patterns',
+                optimizationMetric: resolveObjectiveReference(
+                  patterns,
+                  typeof pipelineRun?.runtime_config?.parameters?.optimization_metric === 'string'
+                    ? pipelineRun.runtime_config.parameters.optimization_metric
+                    : DEFAULT_OPTIMIZATION_METRIC,
+                ),
+                ...contextOverrides,
+              }}
+            >
+              <AutoragResults {...props} />
+            </AutoragResultsContext.Provider>
+          }
+        />
+      </Routes>
+    </MemoryRouter>
+  );
+
   const renderWithContext = (
     pipelineRun?: PipelineRun,
     patterns: Record<string, AutoragPattern> = {},
     namespace = 'test-namespace',
     contextOverrides?: Partial<AutoragResultsContextProps>,
-  ) =>
-    render(
-      <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
-        <Routes>
-          <Route
-            path="/autorag/:namespace/results"
-            element={
-              <AutoragResultsContext.Provider
-                value={{
-                  pipelineRun,
-                  patterns,
-                  parameters: {},
-                  ragPatternsBasePath: 'rag_patterns',
-                  ...contextOverrides,
-                }}
-              >
-                <AutoragResults />
-              </AutoragResultsContext.Provider>
-            }
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
+    props?: React.ComponentProps<typeof AutoragResults>,
+  ) => render(createResultsElement(pipelineRun, patterns, namespace, contextOverrides, props));
 
   it('should render the pipeline visualization component', () => {
     renderWithContext(mockPipelineRun);
@@ -207,6 +289,23 @@ describe('AutoragResults', () => {
     renderWithContext();
     expect(getPipelineVisualization()).toBeInTheDocument();
     expect(getPipelineVisualization()).not.toHaveAttribute('data-run-state');
+  });
+
+  it('should toast a warning when managed pipelines query fails', () => {
+    jest.mocked(queries.useManagedPipelinesQuery).mockReturnValueOnce({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error('Network Error'),
+    } as ReturnType<typeof queries.useManagedPipelinesQuery>);
+
+    renderWithContext(mockPipelineRun);
+
+    expect(mockNotificationWarning).toHaveBeenCalledWith(
+      'Unable to check managed pipelines',
+      'Some features may not be available. Network Error',
+    );
+    expect(screen.queryByTestId('managed-pipelines-query-warning')).not.toBeInTheDocument();
   });
 
   it('should render when pipelineRun.state is a non-string runtime value', () => {
@@ -268,6 +367,7 @@ describe('AutoragResults', () => {
                     patterns,
                     parameters: {},
                     ragPatternsBasePath: 'rag_patterns',
+                    optimizationMetric: { name: 'overall_score', evaluator: 'custom' },
                   }}
                 >
                   <AutoragResults />
@@ -413,6 +513,9 @@ describe('AutoragResults', () => {
       });
 
       expect(screen.queryByText('Notebook download failed')).not.toBeInTheDocument();
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        notebookType: 'indexing',
+      });
     });
 
     it('should successfully download inference notebook when all data is valid', async () => {
@@ -443,6 +546,36 @@ describe('AutoragResults', () => {
           'My AutoRAG Run_Pattern1_inference_notebook.ipynb',
         );
       });
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        notebookType: 'inference',
+      });
+    });
+
+    it('should not fire AutoRAG Notebook Downloaded when the download fails', async () => {
+      const testPattern = createMockPattern('Pattern1');
+      const patterns = { Pattern1: testPattern };
+
+      fetchS3FileMock.mockRejectedValueOnce(new Error('boom'));
+
+      renderWithContext(mockPipelineRun, patterns);
+
+      const leaderboard = screen.getByTestId('leaderboard-table');
+      const firstRow = within(leaderboard).getByTestId('leaderboard-row-1');
+      const kebabButton = within(firstRow).getByRole('button', { name: 'Kebab toggle' });
+
+      await userEvent.click(kebabButton);
+
+      const saveNotebookAction = screen.getByText('Save as indexing notebook');
+      await userEvent.click(saveNotebookAction);
+
+      await waitFor(() => {
+        expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
+      });
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
+        expect.anything(),
+      );
     });
   });
 
@@ -573,7 +706,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -626,7 +759,7 @@ describe('AutoragResults', () => {
       expect(buildStageMapTopologyMock).toHaveBeenCalled();
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -658,7 +791,7 @@ describe('AutoragResults', () => {
 
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -671,7 +804,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -685,7 +818,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
       );
     });
@@ -701,6 +834,277 @@ describe('AutoragResults', () => {
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should show a pipeline view notice when a failed run has no stage map', () => {
+      const failedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'FAILED',
+      };
+      renderWithContext(failedStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should not show a pipeline view notice while the run is still preparing', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice when the stage map is available', () => {
+      renderWithContext({ ...stageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice for pipelines without a stage map task', () => {
+      renderWithContext({ ...noStageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+  });
+
+  describe('onTryPattern source', () => {
+    const patternWithTemplate: AutoragPattern = {
+      ...createMockPattern('Pattern1'),
+      inference: {
+        responses_template: {
+          model: 'vllm/llama-3',
+          stream: false,
+          store: true,
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+            },
+          ],
+          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          instructions: 'Answer from file_search results.',
+          tools: [
+            {
+              type: 'file_search',
+              vector_store_ids: ['vs-1'],
+              max_num_results: 5,
+              ranking_options: {
+                search_mode: 'hybrid',
+                ranker_strategy: 'rrf',
+                ranker_k: 60,
+                ranker_alpha: 0.5,
+              },
+            },
+          ],
+          tool_choice: { type: 'file_search' },
+          include: ['file_search_call.results'],
+        },
+      },
+    };
+    const patterns = { Pattern1: patternWithTemplate };
+
+    it('should not expose Try this pattern from the leaderboard action', () => {
+      const onTryPattern = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+    });
+
+    it('should not expose Try this pattern from the pattern details modal action', async () => {
+      const user = userEvent.setup();
+      const onTryPattern = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, {
+        onTryPattern,
+      });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
+      await user.click(actionsToggle);
+
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+    }, 15_000);
+  });
+
+  describe('onViewCode source', () => {
+    const patternWithTemplate: AutoragPattern = {
+      ...createMockPattern('Pattern1'),
+      inference: {
+        responses_template: {
+          model: 'vllm/llama-3',
+          stream: false,
+          store: true,
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+            },
+          ],
+          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          instructions: 'Answer from file_search results.',
+          tools: [
+            {
+              type: 'file_search',
+              vector_store_ids: ['vs-1'],
+              max_num_results: 5,
+              ranking_options: {
+                search_mode: 'hybrid',
+                ranker_strategy: 'rrf',
+                ranker_k: 60,
+                ranker_alpha: 0.5,
+              },
+            },
+          ],
+          tool_choice: { type: 'file_search' },
+          include: ['file_search_call.results'],
+        },
+      },
+    };
+    const patterns = { Pattern1: patternWithTemplate };
+
+    it('should not expose View code from the leaderboard action', () => {
+      const onViewCode = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
+    });
+
+    it('should not expose View code from the pattern details modal action', async () => {
+      const user = userEvent.setup();
+      const onViewCode = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
+      await user.click(actionsToggle);
+
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
+    }, 15_000);
+  });
+
+  describe('AutoRAG Pattern Details Viewed tracking', () => {
+    const patterns = {
+      Pattern1: createMockPattern('Pattern1'),
+      Pattern2: createMockPattern('Pattern2'),
+    };
+
+    it('should fire with source: resultsTable when opening via the pattern name link', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        { source: 'resultsTable' },
+      );
+    });
+
+    it('should select a pattern by record key when its display name differs', async () => {
+      const firstPattern = createMockPattern('First display name');
+      firstPattern.evaluation.metrics[1].scores.mean = 0.95;
+      const secondPattern = createMockPattern('Second display name');
+      secondPattern.evaluation.metrics[1].scores.mean = 0.8;
+
+      renderWithContext(mockPipelineRun, {
+        firstKey: firstPattern,
+        secondKey: secondPattern,
+      });
+
+      fireEvent.click(screen.getByTestId('pattern-link-2'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pattern-details-header')).toHaveTextContent(
+          'Second display name',
+        );
+      });
+    });
+
+    it('should fire with source: resultsTable when opening via the row kebab "View details" action', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        { source: 'resultsTable' },
+      );
+    });
+
+    it('should select a pattern by record key from the row kebab action', async () => {
+      const firstPattern = createMockPattern('First display name');
+      firstPattern.evaluation.metrics[1].scores.mean = 0.95;
+      const secondPattern = createMockPattern('Second display name');
+      secondPattern.evaluation.metrics[1].scores.mean = 0.8;
+
+      renderWithContext(mockPipelineRun, {
+        firstKey: firstPattern,
+        secondKey: secondPattern,
+      });
+
+      const secondRow = screen.getByTestId('leaderboard-row-2');
+      fireEvent.click(within(secondRow).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pattern-details-header')).toHaveTextContent(
+          'Second display name',
+        );
+      });
+    });
+
+    it('should close the details modal when the selected pattern is removed', async () => {
+      const selectedPatterns: Record<string, AutoragPattern> = {
+        stableKey: createMockPattern('Display name'),
+      };
+      const view = renderWithContext(mockPipelineRun, selectedPatterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+      expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
+
+      view.rerender(createResultsElement(mockPipelineRun, {}));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('pattern-details-modal')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should not fire again when switching patterns via the in-modal pattern selector', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+      fireMiscTrackingEventMock.mockClear();
+
+      fireEvent.change(screen.getByTestId('pattern-selector-dropdown'), {
+        target: { value: '1' },
+      });
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        expect.anything(),
+      );
     });
   });
 });

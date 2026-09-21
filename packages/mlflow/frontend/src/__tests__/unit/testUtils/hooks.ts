@@ -7,8 +7,9 @@ import {
 } from '@testing-library/react';
 import { queries, Queries } from '@testing-library/dom';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-export type BooleanValues<T> = T extends boolean | number | null | undefined | Function
+type AnyCallable = (...args: never[]) => unknown;
+
+export type BooleanValues<T> = T extends boolean | number | null | undefined | AnyCallable
   ? boolean | undefined
   : boolean | undefined | { [K in keyof T]?: BooleanValues<T[K]> };
 
@@ -168,8 +169,7 @@ export const createComparativeValue = <T>(source: T, booleanTarget: BooleanValue
 
 const createComparativeValueRecursive = <T>(
   source: unknown,
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  booleanTarget: boolean | string | number | Function | BooleanValues<T>,
+  booleanTarget: boolean | string | number | AnyCallable | BooleanValues<T>,
 ) => {
   if (typeof booleanTarget === 'boolean') {
     return booleanTarget ? expect.isIdentityEqual(source) : everything();

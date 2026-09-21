@@ -18,10 +18,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
@@ -47,9 +50,21 @@ import (
 //	@consumes	application/json
 //	@produces	application/json
 
+// NOTE: the security definition for the user id header is not declared here, but injected at
+//       runtime by the Swagger UI handler (see `api/swagger_handler.go`), because the name of
+//       the header is configurable with the `--userid-header` flag.
+
 func main() {
+	os.Exit(run())
+}
+
+// run returns the process exit status. It is a named return so the deferred
+// envtest cleanup below can surface a stop failure as a non-zero exit code
+// even though the server already returned successfully.
+func run() (status int) {
 	// Define command line flags
 	cfg := &config.EnvConfig{}
+	var certFile, keyFile string
 	flag.IntVar(&cfg.Port,
 		"port",
 		getEnvAsInt("PORT", 4000),
@@ -66,6 +81,28 @@ func main() {
 		"client-burst",
 		getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to rest.Client",
+	)
+	// ODH Dashboard contract-test harness flags (RHOAIENG-58841); see odh_contract_harness.go.
+	odhFlags := registerODHContractHarnessFlags(cfg)
+	flag.StringVar(
+		&cfg.AuthMethod,
+		"auth-method",
+		getEnvAsStr("AUTH_METHOD", "internal"),
+		"Method used to resolve the request identity: \"internal\" (kubeflow-userid/kubeflow-groups "+
+			"request headers) or \"user_token\" (Authorization: Bearer token, validated via TokenReview)",
+	)
+	flag.StringVar(
+		&cfg.AuthTokenHeader,
+		"auth-token-header",
+		getEnvAsStr("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader),
+		"Header used to extract the token when --auth-method=user_token (e.g. Authorization or x-forwarded-access-token)",
+	)
+	flag.StringVar(
+		&cfg.AuthTokenPrefix,
+		"auth-token-prefix",
+		getEnvAsStr("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix),
+		`Prefix stripped from the auth token header's value when --auth-method=user_token (e.g. \"Bearer \");
+		leave empty for a raw token`,
 	)
 	flag.BoolVar(
 		// TODO: remove before GA
@@ -124,7 +161,18 @@ func main() {
 		"Scheme used in the Swagger UI (http or https)",
 	)
 
-	// Override Swagger metadata with runtime config
+	flag.StringVar(
+		&cfg.StaticAssetsDir,
+		"static-assets-dir",
+		getEnvAsStr("STATIC_ASSETS_DIR", "/static"),
+		"Directory containing frontend static assets",
+	)
+	flag.StringVar(&certFile, "cert-file", getEnvAsStr("CERT_FILE", ""), "Path to TLS certificate file")
+	flag.StringVar(&keyFile, "key-file", getEnvAsStr("KEY_FILE", ""), "Path to TLS key file")
+
+	flag.Parse()
+
+	// Override Swagger metadata with runtime config (must be after flag.Parse)
 	if cfg.SwaggerEnabled {
 		openapi.SwaggerInfo.Host = cfg.SwaggerHost
 		openapi.SwaggerInfo.BasePath = cfg.SwaggerBasePath
@@ -133,13 +181,14 @@ func main() {
 
 	// Initialize the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	odhFlags.warn(logger)
 
-	// Build the Kubernetes client configuration
-	kubeconfig, err := ctrl.GetConfig()
+	kubeconfig, stopMockK8s, err := resolveKubeconfig(cfg, logger)
 	if err != nil {
-		logger.Error("failed to get Kubernetes config", "error", err)
-		os.Exit(1)
+		logger.Error(err.Error())
+		return 1
 	}
+	defer deferMockK8sStop(stopMockK8s, &status, logger)
 	kubeconfig.QPS = float32(cfg.ClientQPS)
 	kubeconfig.Burst = cfg.ClientBurst
 
@@ -147,28 +196,46 @@ func main() {
 	scheme, err := helper.BuildScheme()
 	if err != nil {
 		logger.Error("failed to build Kubernetes scheme", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create the controller manager
 	mgr, err := helper.NewManager(kubeconfig, scheme)
 	if err != nil {
 		logger.Error("unable to create manager", "error", err)
-		os.Exit(1)
+		return 1
+	}
+
+	clientset, err := kubernetes.NewForConfig(kubeconfig)
+	if err != nil {
+		logger.Error("failed to create Kubernetes clientset", "error", err)
+		return 1
 	}
 
 	// Create the request authenticator
-	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
+	var reqAuthN authenticator.Request
+	switch cfg.AuthMethod {
+	case "user_token":
+		reqAuthN, err = auth.NewBearerTokenAuthenticator(
+			clientset.AuthenticationV1().TokenReviews(),
+			cfg.AuthTokenHeader,
+			cfg.AuthTokenPrefix,
+		)
+	case "internal":
+		reqAuthN, err = auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
+	default:
+		err = fmt.Errorf("unsupported auth method %q: must be \"internal\" or \"user_token\"", cfg.AuthMethod)
+	}
 	if err != nil {
 		logger.Error("failed to create request authenticator", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create the request authorizer
 	reqAuthZ, err := auth.NewRequestAuthorizer(mgr.GetConfig(), mgr.GetHTTPClient())
 	if err != nil {
 		logger.Error("failed to create request authorizer", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create a filtered cache client for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
@@ -176,7 +243,7 @@ func main() {
 	if err != nil {
 		logger.Error("failed to create 'notebooks.kubeflow.org/image-source=true' label "+
 			"filtered ConfigMap client", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Create the application and server
@@ -188,27 +255,29 @@ func main() {
 		mgr.GetScheme(),
 		reqAuthN,
 		reqAuthZ,
+		clientset,
 	)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)
-		os.Exit(1)
+		return 1
 	}
-	svr, err := server.NewServer(app, logger)
+	svr, err := server.NewServer(app, logger, certFile, keyFile)
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	if err := svr.SetupWithManager(mgr); err != nil {
 		logger.Error("failed to setup server with manager", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Start the controller manager
 	logger.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		logger.Error("problem running manager", "error", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 func getEnvAsInt(name string, defaultVal int) int {

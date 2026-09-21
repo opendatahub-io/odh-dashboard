@@ -1,16 +1,41 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { APIKey } from '~/app/types/api-key';
 import DeleteModal from '~/app/shared/DeleteModal';
 import useRevokeApiKey from '~/app/hooks/useRevokeApiKey';
+import {
+  ApiKeyRevokeInitiatedFrom,
+  ApiKeyRevokedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 type RevokeApiKeyModalProps = {
   apiKey: APIKey;
   onClose: (deleted?: boolean) => void;
+  initiatedFrom: ApiKeyRevokeInitiatedFrom;
 };
 
-const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({ apiKey, onClose }) => {
+const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({
+  apiKey,
+  onClose,
+  initiatedFrom,
+}) => {
   const { isRevoking, error, revokeApiKeyCallback } = useRevokeApiKey();
+
+  const handleClose = React.useCallback(
+    (deleted?: boolean) => {
+      if (!deleted) {
+        fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
+          outcome: TrackingOutcome.cancel,
+          initiatedFrom,
+        } satisfies ApiKeyRevokedProperties);
+      }
+      onClose(deleted);
+    },
+    [initiatedFrom, onClose],
+  );
 
   const handleRevoke = React.useCallback(async () => {
     if (!apiKey.id) {
@@ -18,11 +43,22 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({ apiKey, onClose }
     }
     try {
       await revokeApiKeyCallback(apiKey.id);
+      fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        initiatedFrom,
+      } satisfies ApiKeyRevokedProperties);
       onClose(true);
-    } catch {
+    } catch (err) {
+      fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to revoke API key',
+        initiatedFrom,
+      } satisfies ApiKeyRevokedProperties);
       // Error is handled by the hook and displayed in the modal
     }
-  }, [revokeApiKeyCallback, apiKey.id, onClose]);
+  }, [revokeApiKeyCallback, apiKey.id, onClose, initiatedFrom]);
 
   if (!apiKey.id) {
     return null;
@@ -32,7 +68,7 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({ apiKey, onClose }
     <DeleteModal
       title="Revoke API key?"
       onClose={() => {
-        onClose();
+        handleClose();
       }}
       deleting={isRevoking}
       onDelete={handleRevoke}

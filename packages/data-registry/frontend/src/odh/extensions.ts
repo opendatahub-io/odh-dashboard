@@ -1,12 +1,8 @@
-import type {
-  NavExtension,
-  RouteExtension,
-  AreaExtension,
-} from '@odh-dashboard/plugin-core/extension-points';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 
 const PLUGIN_DATA_REGISTRY = 'plugin-data-registry';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+const extensions: Extension[] = [
   {
     type: 'app.area',
     properties: {
@@ -15,38 +11,32 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
   },
   {
-    type: 'app.navigation/section',
+    type: 'app.tab-route/page',
     flags: {
       required: [PLUGIN_DATA_REGISTRY],
     },
     properties: {
-      id: 'data-registry',
-      title: 'Data Registry',
-      group: '7_data_registry_studio',
-      iconRef: () => import('./DataRegistryNavIcon'),
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [PLUGIN_DATA_REGISTRY],
-    },
-    properties: {
-      id: 'data-registry-view',
-      title: 'Data Registry',
-      href: '/data-registry/main-view',
-      section: 'data-registry',
-      path: '/data-registry/main-view/*',
+      id: 'data-tab-page',
+      title: 'Data',
+      href: '/ai-hub/data',
+      path: '/ai-hub/data/*',
+      group: '4_data',
+      section: 'ai-hub',
+      objectType: 'data-registry',
       label: 'Tech Preview',
     },
   },
   {
-    type: 'app.route',
+    type: 'app.tab-route/tab',
     flags: {
       required: [PLUGIN_DATA_REGISTRY],
     },
     properties: {
-      path: '/data-registry/main-view/*',
+      pageId: 'data-tab-page',
+      id: 'browse',
+      title: 'Browse',
+      singleTabTitle: 'Data',
+      objectType: 'data-registry',
       component: () => import('./DataRegistryWrapper'),
     },
   },

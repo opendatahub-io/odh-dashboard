@@ -9,8 +9,6 @@ import {
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import ConnectionValidationButton from '~/app/components/ConnectionValidationButton';
-import type { ConnectionValidationState } from '~/app/types';
 
 type SourcePrerecordedFieldsProps = {
   sourceName: string;
@@ -22,9 +20,6 @@ type SourcePrerecordedFieldsProps = {
   datasetUrlError: string | undefined;
   touched: Record<string, boolean>;
   markTouched: (field: string) => void;
-  connectionValidation: ConnectionValidationState;
-  canVerifyConnection: boolean;
-  onVerifyConnection: () => void;
 };
 
 const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
@@ -37,9 +32,6 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
   datasetUrlError,
   touched,
   markTouched,
-  connectionValidation,
-  canVerifyConnection,
-  onVerifyConnection,
 }) => {
   const datasetUrlValidated =
     touched.datasetUrl && datasetUrlError ? ValidatedOptions.error : ValidatedOptions.default;
@@ -88,14 +80,6 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
             onChange={(_e, val) => onAccessTokenChange(val)}
           />
         </FormGroup>
-      </StackItem>
-      <StackItem>
-        <ConnectionValidationButton
-          connectionValidation={connectionValidation}
-          canVerify={canVerifyConnection}
-          onVerify={onVerifyConnection}
-          isValidating={connectionValidation.status === 'validating'}
-        />
       </StackItem>
     </Stack>
   );

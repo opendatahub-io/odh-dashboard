@@ -17,7 +17,7 @@ const RoutingConfigTabRoutes: React.FC = () => (
   <LlmInferenceServiceConfigAccessGate>
     <Routes>
       <Route path="/" element={<RoutingConfigContextProvider />}>
-        <Route index element={<RoutingConfigurationsView noTitle />} />
+        <Route index element={<RoutingConfigurationsView />} />
         <Route path="*" element={<Navigate to="." replace />} />
       </Route>
     </Routes>

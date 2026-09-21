@@ -713,8 +713,15 @@ class CreateSpawnerPage {
   }
 
   selectHardwareProfile(name: string) {
-    this.findHardwareProfileSelect().click();
-    cy.findByRole('option', { name: new RegExp(name) }).click();
+    this.findHardwareProfileSelect().then(($el) => {
+      if ($el.prop('disabled')) {
+        cy.wrap($el).contains(name).should('exist');
+        cy.log(`Hardware profile dropdown is disabled with: ${name}`);
+        return;
+      }
+      cy.wrap($el).click();
+      cy.findByRole('option', { name: new RegExp(name) }).click();
+    });
   }
 
   shouldHaveClusterStorageAlert() {
@@ -995,6 +1002,10 @@ class WorkbenchStatusModal extends Modal {
 
   findModalTitle() {
     return cy.findByTestId('notebook-status-modal-header').find('h1,h2,h3,h4,h5,h6').first();
+  }
+
+  findModalDescription() {
+    return cy.findByTestId('notebook-status-modal-description');
   }
 
   findEventlogTab() {

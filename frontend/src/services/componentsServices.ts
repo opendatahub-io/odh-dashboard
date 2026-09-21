@@ -1,5 +1,5 @@
 import type { OdhApplication } from '@odh-dashboard/k8s-core';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 export const fetchComponents = (installed: boolean): Promise<OdhApplication[]> => {
   const url = '/api/components';

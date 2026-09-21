@@ -16,11 +16,11 @@ jest.mock('../EmptyTopologyConfigurations', () => ({
   default: () => <div data-testid="empty-state" />,
 }));
 
-const renderView = (configs: LLMInferenceServiceConfigKind[], noTitle?: boolean) =>
+const renderView = (configs: LLMInferenceServiceConfigKind[]) =>
   render(
     <MemoryRouter>
       <TopologyConfigContext.Provider value={{ configs }}>
-        <TopologyConfigurationsView noTitle={noTitle} />
+        <TopologyConfigurationsView />
       </TopologyConfigContext.Provider>
     </MemoryRouter>,
   );
@@ -37,13 +37,8 @@ describe('TopologyConfigurationsView', () => {
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('should render the page title by default', () => {
+  it('should suppress the page title (rendered as a tab, title is not needed)', () => {
     renderView([]);
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('llm-d topology configurations');
-  });
-
-  it('should hide the page title when rendered as tab content', () => {
-    renderView([], true);
     expect(screen.queryByTestId('app-page-title')).not.toBeInTheDocument();
   });
 });

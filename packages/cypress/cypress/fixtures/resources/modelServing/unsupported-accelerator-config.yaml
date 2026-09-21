@@ -1,0 +1,11 @@
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceServiceConfig
+metadata:
+  name: e2e-accelerator-config
+  labels:
+    opendatahub.io/config-type: accelerator
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    openshift.io/display-name: e2e-accelerator-config
+    opendatahub.io/runtime-version: v1.10.2
+    opendatahub.io/support-status: unsupported

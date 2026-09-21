@@ -59,3 +59,41 @@ describe('serving runtime templates extensions', () => {
     expect(paths.toSorted()).toEqual(formPaths.toSorted());
   });
 });
+
+describe('serving runtime legacy URL redirects', () => {
+  it('should redirect the former standalone and v2 base URLs to the tab', () => {
+    const paths = routeExtensions.map((extension) => extension.properties.path);
+
+    expect(paths).toContain('/settings/model-resources-operations/serving-runtimes/*');
+    expect(paths).toContain('/servingRuntimes/*');
+  });
+
+  it('should register the legacy v2 add and edit sub-path aliases', () => {
+    const paths = routeExtensions.map((extension) => extension.properties.path);
+
+    expect(paths).toContain('/servingRuntimes/addServingRuntime');
+    // The edit alias must stay in the `/*` wildcard form: buildV2RedirectElement
+    // resolves a wildcard `to` via WildcardRedirect, preserving the captured runtime
+    // name. A `:servingRuntimeName` param path would resolve to AbsoluteRedirect and
+    // drop the name — guard against reintroducing that.
+    expect(paths).toContain('/servingRuntimes/editServingRuntime/*');
+    expect(paths).not.toContain('/servingRuntimes/editServingRuntime/:servingRuntimeName');
+  });
+
+  it('should gate the legacy redirects like the tab', () => {
+    const redirectPaths = [
+      '/settings/model-resources-operations/serving-runtimes/*',
+      '/servingRuntimes/*',
+      '/servingRuntimes/addServingRuntime',
+      '/servingRuntimes/editServingRuntime/*',
+    ];
+    const redirects = routeExtensions.filter((extension) =>
+      redirectPaths.includes(extension.properties.path),
+    );
+
+    expect(redirects).toHaveLength(redirectPaths.length);
+    redirects.forEach((route) => {
+      expect(route.flags).toEqual(servingRuntimeTemplatesTab?.flags);
+    });
+  });
+});

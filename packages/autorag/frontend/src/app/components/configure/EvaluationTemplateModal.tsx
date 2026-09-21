@@ -1,5 +1,6 @@
 import React from 'react';
 import CodeSnippetModal from '~/app/components/common/CodeSnippetModal';
+import { fireAutoragEvaluationTemplateDownloaded } from '~/app/utilities/tracking';
 
 const EVALUATION_TEMPLATE = `[
   {
@@ -9,9 +10,9 @@ const EVALUATION_TEMPLATE = `[
       "<second answer for question 1>",
       "..."
     ],
-    "correct_answer_document_ids": [
-      "<name of first document used to determine answers>",
-      "<name of second document used to determine answers>",
+    "correct_answer_document_keys": [
+      "<S3 object key of first document used to determine answers>",
+      "<S3 object key of second document used to determine answers>",
       "..."
     ]
   },
@@ -20,7 +21,7 @@ const EVALUATION_TEMPLATE = `[
     "correct_answers": [
       "..."
     ],
-    "correct_answer_document_ids": [
+    "correct_answer_document_keys": [
       "..."
     ]
   }
@@ -36,11 +37,12 @@ function EvaluationTemplateModal(props: EvaluationTemplateModalProps): React.JSX
       id="evaluation-template"
       variant="small"
       title="Evaluation data template"
-      description="Use this JSON template to create an evaluation dataset. Each entry should include a question, the correct answers, and names of the documents that were used to determine the answers."
+      description="Use this JSON template to create an evaluation dataset. Each entry should include a question, the correct answers, and the S3 object keys of the documents that were used to determine the answers."
       code={EVALUATION_TEMPLATE}
       downloadText="Download template"
       downloadFileName="evaluation-template.json"
       onClose={props.onClose}
+      onDownload={fireAutoragEvaluationTemplateDownloaded}
     />
   );
 }

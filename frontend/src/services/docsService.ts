@@ -1,4 +1,4 @@
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { OdhDocument } from '#~/types';
 
 export const fetchDocs = (docType?: string): Promise<OdhDocument[]> => {

@@ -39,6 +39,7 @@ const (
 	EvaluationJobsPath             = ApiPathPrefix + "/evaluations/jobs"
 	EvaluationJobByIDPath          = ApiPathPrefix + "/evaluations/jobs/:id"
 	CollectionsPath                = ApiPathPrefix + "/evaluations/collections"
+	CollectionByIDPath             = ApiPathPrefix + "/evaluations/collections/*id"
 	ProvidersPath                  = ApiPathPrefix + "/evaluations/providers"
 	EvaluationJobLogsPath          = ApiPathPrefix + "/evaluations/jobs/:id/logs"
 	EvaluationJobBenchmarkLogsPath = ApiPathPrefix + "/evaluations/jobs/:id/benchmarks/:benchmark_index/logs"
@@ -258,6 +259,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(EvaluationJobLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobLogsHandler))))
 	apiRouter.GET(EvaluationJobBenchmarkLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobBenchmarkLogsHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
+	apiRouter.GET(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetCollectionHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
 
 	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)

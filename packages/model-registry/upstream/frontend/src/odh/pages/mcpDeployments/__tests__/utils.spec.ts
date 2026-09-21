@@ -10,6 +10,8 @@ import {
   isConditionTrue,
   getConnectionUrl,
   getDeploymentDisplayName,
+  getMcpServerSortKey,
+  getRegisteredVersionSortKey,
   getStatusInfo,
   getStatusSortWeight,
 } from '~/odh/pages/mcpDeployments/utils';
@@ -213,6 +215,52 @@ describe('getStatusInfo', () => {
     const result = getStatusInfo(conditions);
     expect(result.label).toBe('Configuration invalid');
     expect(result.popoverBody).toBe('Bad config.');
+  });
+});
+
+describe('getMcpServerSortKey', () => {
+  it('should prefer the resolved registry display name', () => {
+    const deployment = createMockDeployment({
+      registryServer: 'io.github.example/kubernetes-mcp',
+      registryServerDisplayName: 'Kubernetes MCP',
+      serverName: 'should-be-ignored',
+    });
+    expect(getMcpServerSortKey(deployment)).toBe('Kubernetes MCP');
+  });
+
+  it('should fall back to the raw registry server name when no display name is resolved', () => {
+    const deployment = createMockDeployment({
+      registryServer: 'io.github.example/kubernetes-mcp',
+    });
+    expect(getMcpServerSortKey(deployment)).toBe('io.github.example/kubernetes-mcp');
+  });
+
+  it('should fall back to the catalog serverName when no registry server is set', () => {
+    const deployment = createMockDeployment({ serverName: 'kubernetes-mcp-server' });
+    expect(getMcpServerSortKey(deployment)).toBe('kubernetes-mcp-server');
+  });
+
+  it('should return an empty string when neither registry nor catalog server is set', () => {
+    expect(getMcpServerSortKey(createMockDeployment())).toBe('');
+  });
+});
+
+describe('getRegisteredVersionSortKey', () => {
+  it('should return the registry version when a registry server is set', () => {
+    const deployment = createMockDeployment({
+      registryServer: 'io.github.example/kubernetes-mcp',
+      registryVersion: '1.0.0',
+    });
+    expect(getRegisteredVersionSortKey(deployment)).toBe('1.0.0');
+  });
+
+  it('should return an empty string for a catalog-sourced deployment', () => {
+    const deployment = createMockDeployment({ serverName: 'kubernetes-mcp-server' });
+    expect(getRegisteredVersionSortKey(deployment)).toBe('');
+  });
+
+  it('should return an empty string when neither registry nor catalog server is set', () => {
+    expect(getRegisteredVersionSortKey(createMockDeployment())).toBe('');
   });
 });
 

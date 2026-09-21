@@ -16,12 +16,16 @@ jest.mock('../useHostRouteSync', () => ({
   default: () => mockSyncHostRoute,
 }));
 
-// McpRegistryDeployAction pulls in ./api, which imports the ESM-only
-// mod-arch-core package that Jest can't transform -- stub it out, matching
-// McpRegistryDeployAction.spec.tsx's own approach of mocking that boundary.
-jest.mock('../McpRegistryDeployAction', () => ({
-  __esModule: true,
-  default: () => null,
+jest.mock('../api', () => ({
+  createMcpAccessEndpoint: jest.fn(),
+}));
+
+jest.mock('../buildMcpAccessEndpointUrl', () => ({
+  buildMcpAccessEndpointUrl: jest.fn(() => 'http://mock-endpoint'),
+}));
+
+jest.mock('@odh-dashboard/ui-core/contexts/NotificationContext', () => ({
+  useNotification: () => ({ success: jest.fn(), warning: jest.fn(), error: jest.fn() }),
 }));
 
 let mockSearchParams = new URLSearchParams();
@@ -48,6 +52,15 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
     capturedWrapperProps = p.props;
     return <div data-testid="lazy-wrapper" />;
   },
+  useExtensions: () => [],
+}));
+
+jest.mock('@odh-dashboard/plugin-core/extension-points', () => ({
+  isActionExtension: () => true,
+}));
+
+jest.mock('@odh-dashboard/plugin-core/helpers/ui', () => ({
+  ExtensibleActions: () => <div data-testid="extensible-actions" />,
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({

@@ -30,25 +30,25 @@ describe('ModelEvaluationTab', () => {
     expect(screen.getByText('Precision')).toBeInTheDocument();
   });
 
-  it('should format metric values to three decimal places', () => {
+  it('should format metric values to four decimal places', () => {
     const model = buildModel({ accuracy: 0.65832 });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
-    expect(screen.getByText('0.658')).toBeInTheDocument();
+    expect(screen.getByText('0.6583')).toBeInTheDocument();
   });
 
   it('should display negated error metric values as-is', () => {
     const model = buildModel({ mse: -12.45 });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
-    expect(screen.getByText('-12.450')).toBeInTheDocument();
+    expect(screen.getByText('-12.4500')).toBeInTheDocument();
   });
 
   it('should display negative values for non-error metrics like r2', () => {
     const model = buildModel({ r2: -0.123 });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
-    expect(screen.getByText('-0.123')).toBeInTheDocument();
+    expect(screen.getByText('-0.1230')).toBeInTheDocument();
   });
 
   it('should format snake_case metric names as Title Case', () => {
@@ -74,19 +74,27 @@ describe('ModelEvaluationTab', () => {
     expect(screen.getByText('Holdout score')).toBeInTheDocument();
   });
 
+  it('should not truncate evaluation table headers', () => {
+    const model = buildModel({ accuracy: 0.8 });
+    render(<ModelEvaluationTab {...defaultProps} model={model} />);
+
+    expect(screen.getByRole('columnheader', { name: 'Measures' })).toHaveClass('pf-m-nowrap');
+    expect(screen.getByRole('columnheader', { name: 'Holdout score' })).toHaveClass('pf-m-nowrap');
+  });
+
   it('should handle string metric values', () => {
     const model = buildModel({ accuracy: '0.750' });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
-    expect(screen.getByText('0.750')).toBeInTheDocument();
+    expect(screen.getByText('0.7500')).toBeInTheDocument();
   });
 
   it('should handle non-numeric metric values gracefully', () => {
     const model = buildModel({ accuracy: null });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);
 
-    // toNumericMetric returns 0 for null, displayed as 0.000
-    expect(screen.getByText('0.000')).toBeInTheDocument();
+    // toNumericMetric returns 0 for null, displayed as 0.0000
+    expect(screen.getByText('0.0000')).toBeInTheDocument();
   });
 
   it('should display empty state when no metrics are available', () => {
@@ -95,5 +103,12 @@ describe('ModelEvaluationTab', () => {
 
     expect(screen.getByText('No evaluation metrics available for this model.')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('should use native table layout so print/download can render metrics', () => {
+    const model = buildModel({ accuracy: 0.8 });
+    render(<ModelEvaluationTab {...defaultProps} model={model} />);
+
+    expect(screen.getByLabelText('Evaluation metrics')).not.toHaveClass('pf-m-grid-md');
   });
 });

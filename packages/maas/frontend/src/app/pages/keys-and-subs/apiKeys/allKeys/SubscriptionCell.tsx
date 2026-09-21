@@ -1,7 +1,14 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { SubscriptionDetail } from '~/app/types/api-key';
+import {
+  MaaSEvents,
+  MySubscriptionsGrouping,
+  SubscriptionDetailNavLocation,
+  SubscriptionDetailNavigatedProperties,
+} from '~/app/types/event-tracking';
 
 type SubscriptionCellProps = {
   subscriptionName?: string;
@@ -29,6 +36,12 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
     <Link
       to={`${URL_PREFIX}/keys-and-subs/subscriptions/${encodeURIComponent(subscriptionName)}`}
       data-testid="subscription-detail-link"
+      onClick={() => {
+        fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
+          currentView: MySubscriptionsGrouping.SUBSCRIPTION,
+          location: SubscriptionDetailNavLocation.API_KEYS_TABLE,
+        } satisfies SubscriptionDetailNavigatedProperties);
+      }}
     >
       <span data-testid="api-key-subscription">{displayLabel}</span>
     </Link>

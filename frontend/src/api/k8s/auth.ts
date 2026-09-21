@@ -1,5 +1,5 @@
 import { k8sGetResource, k8sPatchResource, Patch } from '@openshift/dynamic-plugin-sdk-utils';
-import { AuthModel } from '#~/api';
+import { AuthModel } from '#~/api/models';
 import { AuthKind } from '#~/k8sTypes';
 
 export const AUTH_SINGLETON_NAME = 'auth';

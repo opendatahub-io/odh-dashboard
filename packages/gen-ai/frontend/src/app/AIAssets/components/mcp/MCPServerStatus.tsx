@@ -23,25 +23,25 @@ const MCPServerStatus: React.FC<MCPServerStatusProps> = ({
     switch (status) {
       case 'connected':
         return (
-          <Label status="success" icon={<CheckCircleIcon />}>
-            Active
+          <Label status="success" icon={<CheckCircleIcon />} variant="outline">
+            Ready
           </Label>
         );
       case 'auth_required':
         return (
-          <Label status="warning" icon={<InfoCircleIcon />}>
+          <Label status="warning" icon={<InfoCircleIcon />} variant="outline">
             Token Required
           </Label>
         );
       case 'unreachable':
         return (
-          <Label status="danger" icon={<ExclamationCircleIcon />}>
+          <Label status="danger" icon={<ExclamationCircleIcon />} variant="outline">
             Error
           </Label>
         );
       default:
         return (
-          <Label color="grey" icon={<QuestionCircleIcon />}>
+          <Label color="grey" icon={<QuestionCircleIcon />} variant="outline">
             Unknown
           </Label>
         );

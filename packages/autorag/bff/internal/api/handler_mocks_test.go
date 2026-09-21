@@ -186,6 +186,14 @@ func (m *mockPipelinesRepo) CreateRun(ctx context.Context, namespace string, req
 	return args.Get(0).(*models.PipelineRun), args.Error(1)
 }
 
+func (m *mockPipelinesRepo) CreateIndexingRun(ctx context.Context, namespace string, req models.CreateIndexingPipelineRunRequest) (*models.PipelineRun, error) {
+	args := m.Called(ctx, namespace, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.PipelineRun), args.Error(1)
+}
+
 func (m *mockPipelinesRepo) TerminateRun(ctx context.Context, namespace, runID string) error {
 	args := m.Called(ctx, namespace, runID)
 	return args.Error(0)
@@ -201,32 +209,18 @@ func (m *mockPipelinesRepo) DeleteRun(ctx context.Context, namespace, runID stri
 	return args.Error(0)
 }
 
+func (m *mockPipelinesRepo) ListManagedPipelines(ctx context.Context, namespace string) (*models.ManagedPipelinesData, error) {
+	args := m.Called(ctx, namespace)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ManagedPipelinesData), args.Error(1)
+}
+
 func (m *mockPipelinesRepo) EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error) {
 	args := m.Called(ctx, namespace)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*pipelines.EnableManagedPipelinesResult), args.Error(1)
-}
-
-// --- Mock OGX Repository ---
-
-type mockOGXRepo struct {
-	mock.Mock
-}
-
-func (m *mockOGXRepo) GetOGXModels(ctx context.Context, namespace, secretName string) (*models.OGXModelsData, error) {
-	args := m.Called(ctx, namespace, secretName)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.OGXModelsData), args.Error(1)
-}
-
-func (m *mockOGXRepo) GetOGXVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.OGXVectorStoreProvidersData, error) {
-	args := m.Called(ctx, namespace, secretName)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.OGXVectorStoreProvidersData), args.Error(1)
 }

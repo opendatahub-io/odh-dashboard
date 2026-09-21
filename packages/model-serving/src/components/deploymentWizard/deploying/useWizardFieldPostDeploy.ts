@@ -1,12 +1,12 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { WizardFormData } from '../../../shared/types/form-data';
-import { type Deployment } from '../../../../extension-points';
+import { type Deployment, type DeploymentHookPayload } from '../../../../extension-points';
 import { isWizardFieldDeploymentFunctionsExtension } from '../../../../extension-points/deployment-wizard';
 import { useActiveFields } from '../dynamicFormUtils';
 
 export type RunPostDeployFns = (
-  deployedModel: Deployment,
+  deployedModel: DeploymentHookPayload,
   existingDeployment?: Deployment,
   dryRun?: boolean,
 ) => Promise<void>;
@@ -45,7 +45,7 @@ export const useWizardFieldPostDeploy = (
 
   const runPostDeploy = React.useCallback<RunPostDeployFns>(
     async (
-      deployedModel: Deployment,
+      deployedModel: DeploymentHookPayload,
       existingDeployment?: Deployment,
       dryRun?: boolean,
     ): Promise<void> => {

@@ -8,6 +8,7 @@ KSERVE_VERSION="v0.19.0"
 # Pinned manifest URLs
 CERT_MANAGER_URL="https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml"
 KSERVE_URL="https://github.com/kserve/kserve/releases/download/${KSERVE_VERSION}/kserve.yaml"
+KSERVE_RESOURCES_URL="https://github.com/kserve/kserve/releases/download/${KSERVE_VERSION}/kserve-cluster-resources.yaml"
 
 EXPECTED_CONTEXT="kind-rhaii-tilt"
 WAIT_TIMEOUT="120s"
@@ -70,15 +71,19 @@ else
   kubectl apply --server-side --force-conflicts -f "$KSERVE_URL"
 fi
 
-info "Waiting for kserve-controller-manager to be ready..."
-kubectl wait deployment kserve-controller-manager \
-  -n kserve \
-  --for=condition=Available \
-  --timeout="$WAIT_TIMEOUT"
+# --- KServe serving runtimes -------------------------------------------------
+# The controller manifest does not include the ClusterServingRuntime
+# definitions. Install them separately so model formats such as sklearn have
+# a runtime available for automatic selection.
+
+info "Installing KServe ${KSERVE_VERSION} cluster serving runtimes..."
+kubectl apply --server-side --force-conflicts -f "$KSERVE_RESOURCES_URL"
 
 # --- Configure RawDeployment mode ---------------------------------------------
 # KServe defaults to serverless (Knative) mode. We run without Knative/Istio,
-# so switch to RawDeployment mode and disable ingress creation.
+# so switch to RawDeployment mode and disable ingress creation. Configure this
+# before waiting for the controller: on cluster restart, KServe v0.19 validates
+# the persisted ingress object during startup.
 
 info "Configuring KServe for RawDeployment mode..."
 kubectl patch configmap inferenceservice-config \
@@ -87,9 +92,15 @@ kubectl patch configmap inferenceservice-config \
   -p '{
     "data": {
       "deploy": "{\"defaultDeploymentMode\": \"RawDeployment\"}",
-      "ingress": "{\"disableIngressCreation\": true}"
+      "ingress": "{\"enableGatewayApi\": false, \"kserveIngressGateway\": \"kserve/kserve-ingress-gateway\", \"ingressGateway\": \"knative-serving/knative-ingress-gateway\", \"localGateway\": \"knative-serving/knative-local-gateway\", \"localGatewayService\": \"knative-local-gateway.istio-system.svc.cluster.local\", \"ingressDomain\": \"example.com\", \"ingressClassName\": \"istio\", \"domainTemplate\": \"{{ .Name }}-{{ .Namespace }}.{{ .IngressDomain }}\", \"urlScheme\": \"http\", \"disableIstioVirtualHost\": false, \"disableIngressCreation\": true, \"disableHTTPRouteTimeout\": false}"
     }
   }'
+
+info "Waiting for kserve-controller-manager to be ready..."
+kubectl wait deployment kserve-controller-manager \
+  -n kserve \
+  --for=condition=Available \
+  --timeout="$WAIT_TIMEOUT"
 
 # --- Summary ------------------------------------------------------------------
 

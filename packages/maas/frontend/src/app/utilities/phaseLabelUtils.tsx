@@ -31,6 +31,7 @@ export enum PhaseResourceType {
   SUBSCRIPTION = 'Subscription',
   EXTERNAL_MODEL = 'External Model',
   AUTHPOLICY = 'Policy',
+  EXTERNAL_PROVIDER = 'External Provider',
 }
 
 export enum PhaseStatus {
@@ -44,6 +45,31 @@ export enum PhaseStatus {
   UNHEALTHY = 'Unhealthy',
   UNKNOWN = 'Unknown',
 }
+
+export const convertStringToPhaseStatus = (status: string | undefined): PhaseStatus => {
+  switch (status) {
+    case PhaseStatus.UNHEALTHY:
+      return PhaseStatus.UNAVAILABLE;
+    case PhaseStatus.ACTIVE:
+      return PhaseStatus.READY;
+    case PhaseStatus.READY:
+      return PhaseStatus.READY;
+    case PhaseStatus.PENDING:
+      return PhaseStatus.PENDING;
+    case PhaseStatus.FAILED:
+      return PhaseStatus.FAILED;
+    case PhaseStatus.INVALID:
+      return PhaseStatus.INVALID;
+    case PhaseStatus.DEGRADED:
+      return PhaseStatus.DEGRADED;
+    case PhaseStatus.UNAVAILABLE:
+      return PhaseStatus.UNAVAILABLE;
+    case PhaseStatus.UNKNOWN:
+      return PhaseStatus.UNKNOWN;
+    default:
+      return PhaseStatus.UNKNOWN;
+  }
+};
 
 export const getPhaseProps = (
   phase: string | undefined,
@@ -125,6 +151,32 @@ export const getAffectedModelsFromRefs = (
 ): AffectedModel[] => getAffectedModels(modelRefsToSummaries(refs, summaries));
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
+  [PhaseResourceType.EXTERNAL_PROVIDER]: {
+    [PhaseStatus.READY]: {
+      headerIcon: <CheckCircleIcon />,
+      headerContent: 'Ready',
+    },
+    [PhaseStatus.INVALID]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Invalid external provider configuration',
+    },
+    [PhaseStatus.FAILED]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'External provider failed',
+    },
+    [PhaseStatus.PENDING]: {
+      headerIcon: <PendingIcon />,
+      headerContent: 'External provider pending',
+    },
+  },
   [PhaseResourceType.MODEL]: {
     [PhaseStatus.READY]: {
       headerIcon: <CheckCircleIcon />,
@@ -144,13 +196,17 @@ const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverC
     },
   },
   [PhaseResourceType.EXTERNAL_MODEL]: {
-    [PhaseStatus.READY]: {
-      headerIcon: <CheckCircleIcon />,
-      headerContent: 'Ready',
-    },
     [PhaseStatus.PENDING]: {
       headerIcon: <PendingIcon />,
-      headerContent: 'Pending',
+      headerContent: 'External model pending',
+    },
+    [PhaseStatus.INVALID]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Invalid external model configuration',
     },
     [PhaseStatus.FAILED]: {
       headerIcon: (
@@ -247,6 +303,7 @@ export enum PhaseLabelLocation {
   POLICIES_TAB = 'policies-tab',
   DETAIL_PAGE = 'detail-page',
   EXTERNAL_MODELS = 'external-models',
+  EXTERNAL_PROVIDERS = 'external-providers',
 }
 
 export const getStatusSubtext = (
@@ -260,6 +317,10 @@ export const getStatusSubtext = (
       return getStatusSubtextForSubscription(phase);
     case PhaseResourceType.AUTHPOLICY:
       return getStatusSubtextForAuthPolicy(phase);
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return getStatusSubtextForExternalModel(phase);
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return getStatusSubtextForExternalProvider(phase);
     default:
       return undefined;
   }
@@ -271,9 +332,11 @@ const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined =>
     case PhaseStatus.UNAVAILABLE:
       return 'Inference not serving';
     case PhaseStatus.FAILED:
-      return 'Gateway not found';
+      return 'Model setup failed';
     case PhaseStatus.PENDING:
-      return 'Awaiting subscription';
+      return 'Awaiting governance pairing';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -282,9 +345,13 @@ const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined =>
 const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.FAILED:
-      return 'All rate limits or models unavailable';
+      return 'All models unavailable or setup failed';
     case PhaseStatus.DEGRADED:
-      return 'Rate limits or models unavailable';
+      return 'Models unavailable';
+    case PhaseStatus.PENDING:
+      return 'Setting up subscription';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -293,9 +360,39 @@ const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undef
 const getStatusSubtextForAuthPolicy = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.DEGRADED:
-      return 'Rate limits or models unavailable';
+      return 'Models unavailable';
     case PhaseStatus.FAILED:
-      return 'All rate limits or models unavailable';
+      return 'All models unavailable or setup failed';
+    case PhaseStatus.PENDING:
+      return 'Setting up policy';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
+    default:
+      return undefined;
+  }
+};
+
+const getStatusSubtextForExternalModel = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return 'Setting up external model';
+    case PhaseStatus.INVALID:
+      return 'Invalid configuration';
+    case PhaseStatus.FAILED:
+      return 'External model setup failed';
+    default:
+      return undefined;
+  }
+};
+
+const getStatusSubtextForExternalProvider = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return 'Setting up external provider';
+    case PhaseStatus.INVALID:
+      return 'Invalid configuration';
+    case PhaseStatus.FAILED:
+      return 'External provider setup failed';
     default:
       return undefined;
   }
@@ -309,6 +406,10 @@ export const getModalSubtitle = (resourceType: PhaseResourceType): string | unde
       return 'Authorization policy status';
     case PhaseResourceType.MODEL:
       return 'Model status';
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return 'External model status';
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return 'External provider status';
     default:
       return undefined;
   }
@@ -326,11 +427,16 @@ export const getModalAlertProps = (
   const phaseProps = getPhaseProps(phase);
   const alertContent = getModalTitleAndChildren(phase, resourceType);
   const hasAlertBody = !!alertContent?.children;
+  // Pending models (overview tab only) use the same Ready-condition JSON as
+  // degraded/failed so operators can inspect governance pairing status.
   const showApiDetails =
     (phase === PhaseStatus.FAILED ||
       phase === PhaseStatus.INVALID ||
       phase === PhaseStatus.UNAVAILABLE ||
-      phase === PhaseStatus.DEGRADED) &&
+      phase === PhaseStatus.DEGRADED ||
+      (phase === PhaseStatus.PENDING &&
+        (resourceType === PhaseResourceType.MODEL ||
+          resourceType === PhaseResourceType.EXTERNAL_MODEL))) &&
     (!!reason || !!statusMessage);
 
   return {
@@ -383,6 +489,10 @@ const getModalTitleAndChildren = (
       return getAlertContentForSubscription(phase);
     case PhaseResourceType.AUTHPOLICY:
       return getAlertContentForAuthPolicy(phase);
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return getAlertContentForExternalModel(phase);
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return getAlertContentForExternalProvider(phase);
     default:
       return undefined;
   }
@@ -461,7 +571,7 @@ const getAlertContentForAuthPolicy = (
       return {
         title: 'Policy degraded',
         children:
-          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced',
+          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced.',
       };
     case PhaseStatus.FAILED:
       return {
@@ -479,6 +589,50 @@ const getAlertContentForAuthPolicy = (
         title: 'Invalid policy configuration',
         children:
           'The policy configuration is invalid or missing required fields. Edit the policy and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
+const getAlertContentForExternalModel = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return { title: 'Pending', children: 'External model setup is in progress.' };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'External model setup failed',
+        children: 'The external model could not be configured.',
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid external model configuration',
+        children:
+          'The external model configuration is invalid or missing required fields. Edit the external model and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
+const getAlertContentForExternalProvider = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return { title: 'Pending', children: 'External provider setup is in progress.' };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'External provider setup failed',
+        children: 'The external provider could not be configured.',
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid external provider configuration',
+        children:
+          'The external provider configuration is invalid or missing required fields. Edit the external provider and ensure its configuration is correct.',
       };
     default:
       return undefined;
@@ -514,6 +668,7 @@ export const getSubtextProps = (phase: string): ContentProps | undefined => {
         style: sharedStyle,
       };
     case PhaseStatus.FAILED:
+    case PhaseStatus.INVALID:
       return {
         className: 'pf-v6-u-text-color-status-danger',
         style: sharedStyle,

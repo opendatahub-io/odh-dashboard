@@ -40,6 +40,7 @@ const AIAssetsAgentProfilesTab: React.FC = () => {
   if (profiles.length === 0) {
     return (
       <NoData
+        data-testid="agent-profiles-empty-state"
         title="No agents"
         description="Save a playground configuration as an agent to see it listed here."
       />

@@ -1,5 +1,16 @@
 import { Contextual } from './Contextual';
 
+type MonacoModel = {
+  getValue: () => string;
+  setValue: (value: string) => void;
+};
+
+type MonacoGlobal = {
+  editor: {
+    getModels: () => MonacoModel[];
+  };
+};
+
 export class DashboardCodeEditor extends Contextual<HTMLElement> {
   waitForReady(): this {
     this.find().find('.monaco-editor .view-lines', { timeout: 30000 }).should('be.visible');
@@ -39,23 +50,33 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
   }
 
   replaceInEditor(oldText: string, newText: string): void {
-    this.find()
-      .find('.view-lines .view-line')
-      .then(($lines) => {
-        const currentContent = Array.from($lines)
-          .map((line) => line.textContent.replace(/\u00a0/g, ' '))
-          .join('\n');
-        expect(currentContent).to.include(oldText);
-        const newContent = currentContent.replace(oldText, newText);
-        this.findUpload().selectFile(
-          {
-            contents: Cypress.Buffer.from(newContent),
-            fileName: 'editor-content.yaml',
-            mimeType: 'text/yaml',
-          },
-          { force: true },
-        );
-      });
+    // Monaco virtualizes lines; read/write via Monaco model instead of DOM.
+    this.waitForReady();
+    cy.window().then((win) => {
+      const { monaco } = win as unknown as { monaco?: MonacoGlobal };
+      if (!monaco) {
+        throw new Error('Monaco editor was not found on window');
+      }
+
+      const models = monaco.editor.getModels();
+      expect(models.length, 'Monaco editor models').to.be.greaterThan(0);
+
+      const matchingModels = models.filter((m) =>
+        m
+          .getValue()
+          .replace(/\u00a0/g, ' ')
+          .includes(oldText),
+      );
+      expect(
+        matchingModels.length,
+        `Expected exactly one Monaco model containing: "${oldText}"`,
+      ).to.equal(1);
+
+      const model = matchingModels[0];
+      const currentContent = model.getValue().replace(/\u00a0/g, ' ');
+      const updated = currentContent.replace(oldText, newText);
+      model.setValue(updated);
+    });
   }
 
   copyToClipboard(): Cypress.Chainable<JQuery<HTMLElement>> {

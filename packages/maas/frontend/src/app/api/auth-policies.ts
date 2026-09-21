@@ -8,7 +8,7 @@ import {
   restGET,
   restUPDATE,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
 import type {
   CreatePolicyRequest,
   PolicyInfoResponse,
@@ -33,7 +33,7 @@ export const listAuthPolicies =
   (hostPath = '') =>
   (opts: APIOptions): Promise<MaaSAuthPolicy[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-policies`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-policies`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<MaaSAuthPolicy[]>(response) && response.data.every(isMaaSAuthPolicy)) {
         return response.data;
@@ -48,7 +48,7 @@ export const getPolicyInfo =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/view-policy/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/view-policy/${encodeURIComponent(name)}`,
         {},
         opts,
       ),
@@ -66,7 +66,7 @@ export const createAuthPolicy =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/new-policy`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/new-policy`,
         assembleModArchBody(request),
         {},
         opts,
@@ -85,7 +85,7 @@ export const updateAuthPolicy =
     handleRestFailures(
       restUPDATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/update-policy/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/update-policy/${encodeURIComponent(name)}`,
         assembleModArchBody(request),
         {},
         opts,
@@ -104,7 +104,7 @@ export const deleteAuthPolicy =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/delete-policy/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/delete-policy/${encodeURIComponent(name)}`,
         {},
         {},
         opts,

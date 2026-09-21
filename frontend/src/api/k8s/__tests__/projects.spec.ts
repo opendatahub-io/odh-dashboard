@@ -7,7 +7,7 @@ import {
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { mockAxiosError } from '#~/__mocks__/mockAxiosError';
 import {
   addSupportServingPlatformProject,
@@ -40,7 +40,7 @@ jest.mock('#~/api/k8s/servingRuntimes.ts', () => ({
   listServingRuntimes: jest.fn(),
 }));
 
-jest.mock('#~/utilities/axios');
+jest.mock('@odh-dashboard/ui-core/utilities/axios');
 
 const mockedAxios = jest.mocked(axios);
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);

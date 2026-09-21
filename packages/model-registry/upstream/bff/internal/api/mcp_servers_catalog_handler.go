@@ -129,7 +129,7 @@ func (app *App) GetMcpServersToolsHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	mcpServerTools, err := app.repositories.ModelCatalogClient.GetMcpServersTools(client, serverId)
+	mcpServerTools, err := app.repositories.ModelCatalogClient.GetMcpServersTools(client, serverId, r.URL.Query())
 
 	if err != nil {
 		var httpErr *httpclient.HTTPError

@@ -148,6 +148,22 @@ describe('useEvaluationSelection', () => {
 
       expect(mockNavigate).not.toHaveBeenCalled();
     });
+
+    it('should not redirect when skipRedirect is true', () => {
+      setupSearchParams({});
+
+      testHook(useEvaluationSelection)('test-ns', true);
+
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('should still redirect when skipRedirect is false', () => {
+      setupSearchParams({});
+
+      testHook(useEvaluationSelection)('test-ns', false);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/test-ns/create', { replace: true });
+    });
   });
 
   describe('dataLoaded and loadError', () => {

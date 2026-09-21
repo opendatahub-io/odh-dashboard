@@ -30,7 +30,7 @@ import {
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
 } from '@odh-dashboard/model-serving/shared';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import DashboardCodeEditor from '@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor';
 import {
@@ -40,28 +40,22 @@ import {
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';
 import CustomServingRuntimeModelTypeSelector from './CustomServingRuntimeModelTypeSelector';
+import { SERVING_RUNTIME_TEMPLATES_TAB_PATH } from './paths';
+import {
+  fireServingRuntimeTemplateCreated,
+  fireServingRuntimeTemplateUpdated,
+} from './tracking/servingRuntimeTemplateTracking';
 
 type CustomServingRuntimeAddTemplateProps = {
   mode: 'add' | 'edit' | 'duplicate';
   sourceTemplate?: TemplateKind;
-  /**
-   * Absolute path of the templates list this form returns to. Passed explicitly
-   * because the form mounts both as a child of the standalone list route and as
-   * a top-level breakout route beside the tabbed page, and a route-relative `..`
-   * resolves differently in the two.
-   *
-   * After RHOAIENG-80077 removes the standalone page the breakout route is the
-   * only mount, so this could collapse to SERVING_RUNTIME_TEMPLATES_TAB_PATH.
-   * https://issues.redhat.com/browse/RHOAIENG-80077
-   */
-  listPath: string;
 };
 
 const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateProps> = ({
   mode,
   sourceTemplate,
-  listPath,
 }) => {
+  const listPath = SERVING_RUNTIME_TEMPLATES_TAB_PATH;
   const { dashboardNamespace } = useDashboardNamespace();
   const { refreshData } = React.useContext(CustomServingRuntimeContext);
   const isEdit = mode === 'edit';
@@ -232,6 +226,22 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                     if (e instanceof Error) {
                       setError(e);
                     }
+                    if (isEdit) {
+                      fireServingRuntimeTemplateUpdated({
+                        outcome: TrackingOutcome.submit,
+                        success: false,
+                        apiProtocol: selectedAPIProtocol,
+                        modelTypes: selectedModelTypes.join(','),
+                      });
+                    } else {
+                      fireServingRuntimeTemplateCreated({
+                        outcome: TrackingOutcome.submit,
+                        success: false,
+                        mode: isDuplicate ? 'duplicate' : 'create',
+                        apiProtocol: selectedAPIProtocol,
+                        modelTypes: selectedModelTypes.join(','),
+                      });
+                    }
                     return;
                   }
                   setIsLoading(true);
@@ -251,12 +261,45 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                           selectedAPIProtocol,
                           selectedModelTypes,
                         );
+                  const selectedModelTypesStr = selectedModelTypes.join(',');
                   onClickFunc
                     .then(() => {
+                      if (isEdit) {
+                        fireServingRuntimeTemplateUpdated({
+                          outcome: TrackingOutcome.submit,
+                          success: true,
+                          apiProtocol: selectedAPIProtocol,
+                          modelTypes: selectedModelTypesStr,
+                        });
+                      } else {
+                        fireServingRuntimeTemplateCreated({
+                          outcome: TrackingOutcome.submit,
+                          success: true,
+                          mode: isDuplicate ? 'duplicate' : 'create',
+                          apiProtocol: selectedAPIProtocol,
+                          modelTypes: selectedModelTypesStr,
+                        });
+                      }
                       refreshData();
                       navigate(listPath);
                     })
                     .catch((err) => {
+                      if (isEdit) {
+                        fireServingRuntimeTemplateUpdated({
+                          outcome: TrackingOutcome.submit,
+                          success: false,
+                          apiProtocol: selectedAPIProtocol,
+                          modelTypes: selectedModelTypesStr,
+                        });
+                      } else {
+                        fireServingRuntimeTemplateCreated({
+                          outcome: TrackingOutcome.submit,
+                          success: false,
+                          mode: isDuplicate ? 'duplicate' : 'create',
+                          apiProtocol: selectedAPIProtocol,
+                          modelTypes: selectedModelTypesStr,
+                        });
+                      }
                       setError(err);
                     })
                     .finally(() => {
@@ -270,7 +313,17 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                 isDisabled={loading}
                 variant="link"
                 id="cancel-button"
-                onClick={() => navigate(listPath)}
+                onClick={() => {
+                  if (isEdit) {
+                    fireServingRuntimeTemplateUpdated({ outcome: TrackingOutcome.cancel });
+                  } else {
+                    fireServingRuntimeTemplateCreated({
+                      outcome: TrackingOutcome.cancel,
+                      mode: isDuplicate ? 'duplicate' : 'create',
+                    });
+                  }
+                  navigate(listPath);
+                }}
               >
                 Cancel
               </Button>
@@ -285,8 +338,8 @@ export default CustomServingRuntimeAddTemplate;
 
 export const ServingRuntimeTemplateFormByName: React.FC<{
   mode: 'edit' | 'duplicate';
-  listPath: string;
-}> = ({ mode, listPath }) => {
+}> = ({ mode }) => {
+  const listPath = SERVING_RUNTIME_TEMPLATES_TAB_PATH;
   const { servingRuntimeName } = useParams<{ servingRuntimeName: string }>();
   const {
     servingRuntimeTemplates: [templates],
@@ -346,7 +399,6 @@ export const ServingRuntimeTemplateFormByName: React.FC<{
       key={sourceTemplate.metadata.name}
       mode={mode}
       sourceTemplate={sourceTemplate}
-      listPath={listPath}
     />
   );
 };

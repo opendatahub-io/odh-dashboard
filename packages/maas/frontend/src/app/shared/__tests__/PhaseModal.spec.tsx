@@ -72,15 +72,49 @@ describe('PhaseModal', () => {
       },
     );
 
-    it('should not show expandable API details for pending', () => {
+    it.each([PhaseResourceType.SUBSCRIPTION, PhaseResourceType.AUTHPOLICY])(
+      'should not show expandable API details for pending %s',
+      (resourceType) => {
+        renderPhaseModal({
+          phase: PhaseStatus.PENDING,
+          resourceType,
+          reason: 'TestReason',
+          statusMessage: 'Test status message',
+        });
+
+        expect(screen.queryByTestId('phase-api-details')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('phase-api-details-code-block')).not.toBeInTheDocument();
+      },
+    );
+
+    it('should show expandable API details for pending models', async () => {
+      const user = userEvent.setup();
       renderPhaseModal({
         phase: PhaseStatus.PENDING,
-        reason: 'TestReason',
-        statusMessage: 'Test status message',
+        resourceType: PhaseResourceType.MODEL,
+        reason: 'NoPairingFound',
+        statusMessage: 'Awaiting governance pairing',
+      });
+
+      const apiDetails = screen.getByTestId('phase-api-details');
+      expect(apiDetails).toBeInTheDocument();
+      expect(screen.getByTestId('phase-api-details-code-block')).not.toBeVisible();
+
+      await user.click(within(apiDetails).getByRole('button'));
+
+      expect(screen.getByTestId('phase-api-details-code-block')).toBeVisible();
+      expect(screen.getByTestId('phase-api-details-code-block')).toHaveTextContent(
+        'NoPairingFound',
+      );
+    });
+
+    it('should not show expandable API details for pending models without reason or status message', () => {
+      renderPhaseModal({
+        phase: PhaseStatus.PENDING,
+        resourceType: PhaseResourceType.MODEL,
       });
 
       expect(screen.queryByTestId('phase-api-details')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('phase-api-details-code-block')).not.toBeInTheDocument();
     });
   });
 

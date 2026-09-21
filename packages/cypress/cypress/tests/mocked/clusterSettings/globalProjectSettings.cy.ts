@@ -55,7 +55,7 @@ describe('Global Project Settings', () => {
     globalProjectSettings.findSelectorToggle().should('contain.text', 'MLflow Workspace');
   });
 
-  it('should enable page-level save and submit when a project is selected', () => {
+  it('should enable page-level save and submit when a project is selected for the first time', () => {
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ globalProjectPrompts: true }));
     cy.interceptOdh('PUT /api/cluster-settings', { success: true, error: '' }).as(
       'saveClusterSettings',
@@ -63,6 +63,7 @@ describe('Global Project Settings', () => {
 
     clusterSettings.visit();
     globalProjectSettings.selectProject('Project Alpha');
+    globalProjectSettings.findWarningModal().should('not.exist');
     clusterSettings.findSubmitButton().should('be.enabled');
     clusterSettings.findSubmitButton().click();
 
@@ -71,29 +72,102 @@ describe('Global Project Settings', () => {
     });
   });
 
-  it('should send empty array when None is selected', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        globalProjectPrompts: true,
-        globalMLflowNamespaces: ['mlflow-workspace'],
-      }),
-    );
-    cy.interceptOdh(
-      'GET /api/cluster-settings',
-      mockClusterSettings({ globalMLflowNamespaces: ['mlflow-workspace'] }),
-    );
-    cy.interceptOdh('PUT /api/cluster-settings', { success: true, error: '' }).as(
-      'saveClusterSettings',
-    );
+  describe('clear warning modal', () => {
+    beforeEach(() => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          globalProjectPrompts: true,
+          globalMLflowNamespaces: ['mlflow-workspace'],
+        }),
+      );
+      cy.interceptOdh(
+        'GET /api/cluster-settings',
+        mockClusterSettings({ globalMLflowNamespaces: ['mlflow-workspace'] }),
+      );
+    });
 
-    clusterSettings.visit();
-    globalProjectSettings.selectNone();
-    clusterSettings.findSubmitButton().should('be.enabled');
-    clusterSettings.findSubmitButton().click();
+    it('should show the clear warning modal when clearing a configured project', () => {
+      clusterSettings.visit();
+      globalProjectSettings.selectClearSelection();
+      globalProjectSettings.findWarningModal().should('exist');
+      globalProjectSettings.findWarningModal().should('contain.text', 'Clear the global project?');
+    });
 
-    cy.wait('@saveClusterSettings').then((interception) => {
-      expect(interception.request.body.globalMLflowNamespaces).to.eql([]);
+    it('should send empty array when clear is confirmed', () => {
+      cy.interceptOdh('PUT /api/cluster-settings', { success: true, error: '' }).as(
+        'saveClusterSettings',
+      );
+
+      clusterSettings.visit();
+      globalProjectSettings.selectClearSelection();
+      globalProjectSettings.findWarningConfirmButton().click();
+      globalProjectSettings.findWarningModal().should('not.exist');
+      clusterSettings.findSubmitButton().should('be.enabled');
+      clusterSettings.findSubmitButton().click();
+
+      cy.wait('@saveClusterSettings').then((interception) => {
+        expect(interception.request.body.globalMLflowNamespaces).to.eql([]);
+      });
+    });
+
+    it('should revert when clear is cancelled', () => {
+      clusterSettings.visit();
+      globalProjectSettings.selectClearSelection();
+      globalProjectSettings.findWarningCancelButton().click();
+      globalProjectSettings.findWarningModal().should('not.exist');
+      globalProjectSettings.findSelectorToggle().should('contain.text', 'MLflow Workspace');
+      clusterSettings.findSubmitButton().should('be.disabled');
+    });
+  });
+
+  describe('switch warning modal', () => {
+    beforeEach(() => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          globalProjectPrompts: true,
+          globalMLflowNamespaces: ['mlflow-workspace'],
+        }),
+      );
+      cy.interceptOdh(
+        'GET /api/cluster-settings',
+        mockClusterSettings({ globalMLflowNamespaces: ['mlflow-workspace'] }),
+      );
+    });
+
+    it('should show the switch warning modal when changing to a different project', () => {
+      clusterSettings.visit();
+      globalProjectSettings.selectProject('Project Alpha');
+      globalProjectSettings.findWarningModal().should('exist');
+      globalProjectSettings.findWarningModal().should('contain.text', 'Change the global project?');
+    });
+
+    it('should update the selection when switch is confirmed', () => {
+      cy.interceptOdh('PUT /api/cluster-settings', { success: true, error: '' }).as(
+        'saveClusterSettings',
+      );
+
+      clusterSettings.visit();
+      globalProjectSettings.selectProject('Project Alpha');
+      globalProjectSettings.findWarningConfirmButton().click();
+      globalProjectSettings.findWarningModal().should('not.exist');
+      globalProjectSettings.findSelectorToggle().should('contain.text', 'Project Alpha');
+      clusterSettings.findSubmitButton().should('be.enabled');
+      clusterSettings.findSubmitButton().click();
+
+      cy.wait('@saveClusterSettings').then((interception) => {
+        expect(interception.request.body.globalMLflowNamespaces).to.eql(['project-alpha']);
+      });
+    });
+
+    it('should revert when switch is cancelled', () => {
+      clusterSettings.visit();
+      globalProjectSettings.selectProject('Project Alpha');
+      globalProjectSettings.findWarningCancelButton().click();
+      globalProjectSettings.findWarningModal().should('not.exist');
+      globalProjectSettings.findSelectorToggle().should('contain.text', 'MLflow Workspace');
+      clusterSettings.findSubmitButton().should('be.disabled');
     });
   });
 });

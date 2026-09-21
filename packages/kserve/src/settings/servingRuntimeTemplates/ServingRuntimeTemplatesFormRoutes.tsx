@@ -28,12 +28,9 @@ const ServingRuntimeTemplatesFormRoutes: React.FC = () => {
   return (
     <CustomServingRuntimeContextProvider>
       {isEdit || isDuplicate ? (
-        <ServingRuntimeTemplateFormByName
-          mode={isEdit ? 'edit' : 'duplicate'}
-          listPath={SERVING_RUNTIME_TEMPLATES_TAB_PATH}
-        />
+        <ServingRuntimeTemplateFormByName mode={isEdit ? 'edit' : 'duplicate'} />
       ) : (
-        <CustomServingRuntimeAddTemplate mode="add" listPath={SERVING_RUNTIME_TEMPLATES_TAB_PATH} />
+        <CustomServingRuntimeAddTemplate mode="add" />
       )}
     </CustomServingRuntimeContextProvider>
   );

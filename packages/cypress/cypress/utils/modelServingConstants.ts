@@ -36,5 +36,5 @@ export const YAMLViewerToggleOption = {
 
 export const ModelDeploymentType = {
   TYPE1: 'LLM inference service with llm-d',
-  TYPE2: 'Legacy deployment',
+  TYPE2: 'Inference service',
 };

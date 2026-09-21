@@ -1,15 +1,11 @@
 import * as React from 'react';
-import {
-  ProjectsContext,
-  type ProjectsContextType,
-} from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext, type ProjectsContextType } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import fetchNamespaces, { FETCH_TIMEOUT_MS } from './fetchNamespaces';
-/** Dashboard install namespace — excluded from the selectable project list. */
-const DASHBOARD_NAMESPACE = 'opendatahub';
+import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
 const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
 const WAIT_FOR_PROJECT_POLL_MS = 2_000;
@@ -25,6 +21,7 @@ type ProjectsContextProviderProps = {
  * the OpenShift Project watch used by the main ODH frontend.
  */
 const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ children }) => {
+  const dashboardNamespace = React.useContext(DashboardNamespaceContext);
   const [projectData, setProjectData] = React.useState<ProjectKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
@@ -86,7 +83,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     const active: ProjectKind[] = [];
     const terminating: ProjectKind[] = [];
     for (const project of projectData) {
-      if (!isAvailableProject(project.metadata.name, DASHBOARD_NAMESPACE)) {
+      if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
         continue;
       }
       if (project.status?.phase === 'Active') {
@@ -104,7 +101,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         a.metadata.name.localeCompare(b.metadata.name),
       ),
     };
-  }, [projectData]);
+  }, [dashboardNamespace, projectData]);
 
   React.useEffect(() => {
     if (!loaded || projects.length === 0 || initializedFromStorage.current) {

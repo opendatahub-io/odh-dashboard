@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
@@ -397,6 +398,64 @@ func EmptyConfig() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
+// NewPassthroughProvider creates a remote::passthrough provider entry.
+// OGX's Responses API resolves models per-request via this provider — no
+// model registration in registered_resources is needed. The BFF proxy at
+// baseURL handles routing to the actual upstream endpoint and credentials.
+//
+// forward_headers maps X-OGX-Provider-Data JSON keys to outbound HTTP headers.
+// OGX reads these keys from the provider data and forwards them as headers to the
+// passthrough endpoint. This allows per-request credentials (e.g. MaaS tokens)
+// to flow through OGX without OGX needing to understand them.
+func NewPassthroughProvider(providerID, baseURL string) Provider {
+	return Provider{
+		ProviderID:   providerID,
+		ProviderType: constants.PassthroughProviderType,
+		Config: map[string]interface{}{
+			"base_url": baseURL,
+			"api_key":  "",
+			"forward_headers": map[string]interface{}{
+				"maas_subscription":           constants.MaaSSubscriptionHeader,
+				"inference_model_source_type": constants.InferenceModelSourceTypeHeader,
+			},
+		},
+	}
+}
+
+// HasPassthroughProvider returns true if the config already contains a
+// remote::passthrough inference provider registered by the BFF, AND the
+// provider's base_url and forward-header configuration match the current BFF
+// requirements.
+//
+// Requiring the URL guards against stale configs written under a previous
+// GATEWAY_DOMAIN value: if the domain or path prefix changes, the existing
+// provider points at the wrong host and must NOT be reused for zero-restart.
+func (c *LlamaStackConfig) HasPassthroughProvider(expectedBaseURL string) bool {
+	for _, p := range c.Providers.Inference {
+		if p.ProviderType == constants.PassthroughProviderType &&
+			p.ProviderID == constants.PassthroughProviderID {
+			baseURL, _ := p.Config["base_url"].(string)
+			return baseURL == expectedBaseURL &&
+				hasExpectedPassthroughForwardHeaders(p.Config["forward_headers"])
+		}
+	}
+	return false
+}
+
+func hasExpectedPassthroughForwardHeaders(forwardHeaders interface{}) bool {
+	var maasSubscription, inferenceModelSourceType string
+	switch headers := forwardHeaders.(type) {
+	case map[string]interface{}:
+		maasSubscription, _ = headers["maas_subscription"].(string)
+		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
+	case map[interface{}]interface{}:
+		maasSubscription, _ = headers["maas_subscription"].(string)
+		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
+	}
+	return maasSubscription == constants.MaaSSubscriptionHeader &&
+		inferenceModelSourceType == constants.InferenceModelSourceTypeHeader
+}
+
 // NewSentenceTransformerProvider creates a new sentence transformer provider
 func NewSentenceTransformerProvider() Provider {
 	return Provider{
@@ -419,13 +478,18 @@ func NewVLLMProvider(providerID string, url string) Provider {
 	}
 }
 
-// AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config
-// This is a helper for building LlamaStack configurations with vLLM providers
-func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int) {
+// AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config.
+// When skipProviderMaxTokens is true, the provider-level max_tokens default is omitted from
+// the generated config. This is used for MaaS models where external providers enforce their
+// own generation limits, and including max_tokens causes errors with models that only accept
+// the newer max_completion_tokens parameter.
+func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, skipProviderMaxTokens bool) {
 	// Create provider config
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
-	providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=4096}", index+1)
+	if !skipProviderMaxTokens {
+		providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=4096}", index+1)
+	}
 	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
 
 	// Add provider

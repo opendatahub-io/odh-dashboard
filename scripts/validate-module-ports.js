@@ -7,7 +7,7 @@
  *    Must be unique so multiple federated modules can run simultaneously.
  *
  * 2. Production service ports (federation-configmap.yaml "service.port")
- *    Must be unique because all BFF sidecars run in the same pod.
+ *    Must be unique across all module services.
  */
 
 const { execSync } = require('child_process');
@@ -34,7 +34,7 @@ function getWorkspacePackages() {
 
 /**
  * Extracts all local dev ports from a module-federation config.
- * A single package may define multiple ports (e.g. webpack dev server + proxy target).
+ * A single package may define multiple ports (e.g. dev server + proxy target).
  * Returns an array of { port, source } objects.
  */
 function extractLocalPorts(mfConfig) {

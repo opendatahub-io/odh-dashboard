@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
@@ -60,6 +61,7 @@ func (app *App) newServiceMux() *http.ServeMux {
 		mux.Handle(PathPrefix+proxy.WssProxyPrefix, http.StripPrefix(PathPrefix, app.wsProxy))
 	}
 	app.registerModelServingProxy(mux)
+	app.registerModuleProxies(mux)
 
 	return mux
 }
@@ -70,6 +72,11 @@ func (app *App) newStaticHandler() http.Handler {
 	fileServer := http.FileServer(staticDir)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helpers.GetContextLoggerFromReq(r)
+		if r.URL.Path == "/" || r.URL.Path == "/"+constants.IndexHTMLFileName {
+			// The SPA entry point must revalidate after gateway logout so a cached
+			// document cannot render with an expired authentication session.
+			w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
+		}
 		if f, err := staticDir.Open(r.URL.Path); err == nil {
 			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
@@ -77,7 +84,8 @@ func (app *App) newStaticHandler() http.Handler {
 			return
 		}
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
-		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, "index.html"))
+		w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
+		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, constants.IndexHTMLFileName))
 	})
 }
 
@@ -97,6 +105,13 @@ func (app *App) newCombinedMux(serviceMux *http.ServeMux, staticHandler http.Han
 	mux.Handle(APIPathPrefix+"/", authedHandler)
 	mux.Handle(PathPrefix+"/", authedHandler)
 	mux.Handle(proxy.WssProxyPrefix, authedHandler)
+
+	// Bare module paths (e.g. /gen-ai/api/) need explicit auth routing to avoid the SPA catch-all.
+	// Register both the subtree and exact root to prevent ServeMux 307 redirects.
+	for _, mp := range app.moduleProxies {
+		mux.Handle(mp.path+"/", authedHandler)
+		mux.HandleFunc(mp.path, app.notFoundResponse)
+	}
 
 	// Exact-path handlers prevent ServeMux from 307-redirecting bare roots to subtree patterns.
 	mux.HandleFunc(APIPathPrefix, app.notFoundResponse)

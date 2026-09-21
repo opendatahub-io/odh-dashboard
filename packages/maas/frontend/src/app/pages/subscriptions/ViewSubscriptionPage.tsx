@@ -25,15 +25,18 @@ import {
   getBreadcrumbLabelFromState,
   getSectionUrl,
   getSubscriptionEditUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
-import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import MaaSGovernanceYamlTab from '~/app/pages/maas-governance/MaaSGovernanceYamlTab';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
+  EventTrackingEditSource,
   MaaSEvents,
   EventTrackingContext,
+  MaaSResourceDeletedProperties,
+  MaaSGovernanceYamlViewedProperties,
 } from '~/app/types/event-tracking';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
@@ -48,7 +51,12 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const backUrl = returnTo ?? getSectionUrl('subscriptions');
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = {
+    state: {
+      ...(returnTo ? { returnTo } : {}),
+      editSource: EventTrackingEditSource.DETAIL_KEBAB,
+    },
+  };
 
   return (
     <>
@@ -81,7 +89,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: subscription.phase ?? '',
                 outcome: TrackingOutcome.submit,
-              });
+              } satisfies MaaSResourceDeletedProperties);
               navigate(backUrl);
             } else {
               fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
@@ -89,7 +97,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: subscription.phase ?? '',
                 outcome: TrackingOutcome.cancel,
-              });
+              } satisfies MaaSResourceDeletedProperties);
             }
           }}
         />
@@ -148,10 +156,10 @@ const ViewSubscriptionPage: React.FC = () => {
           onSelect={(_event, key) => {
             setActiveTab(key);
             if (key === 'yaml') {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 context: EventTrackingContext.DETAILS,
-              });
+              } satisfies MaaSGovernanceYamlViewedProperties);
             }
           }}
         >
@@ -184,10 +192,7 @@ const ViewSubscriptionPage: React.FC = () => {
             aria-label="YAML tab"
             data-testid="subscription-yaml-tab"
           >
-            <SubscriptionManagementYamlTab
-              resourceName={subscriptionName}
-              resourceType="subscription"
-            />
+            <MaaSGovernanceYamlTab resourceName={subscriptionName} resourceType="subscription" />
           </Tab>
         </Tabs>
       )}

@@ -3,9 +3,14 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { FeatureStoreModel, ProjectModel } from '../../../utils/models';
-import { asClusterAdminUser } from '../../../utils/mockUsers';
+import {
+  FeatureStoreModel,
+  ProjectModel,
+  SelfSubjectAccessReviewModel,
+} from '../../../utils/models';
+import { asClusterAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import {
   featureStoreManagePage,
   deleteFeatureStoreModal,
@@ -32,7 +37,7 @@ const mockFeatureStoreCR = (
     metadata: {
       name,
       namespace: ns,
-      uid: `uid-${name}`,
+      uid: `uid-${ns}-${name}`,
       creationTimestamp: overrides.creationTimestamp ?? '2026-01-15T10:30:00Z',
       labels: {
         ...(overrides.uiLabel !== false && { 'feature-store-ui': 'enabled' }),
@@ -322,6 +327,192 @@ describe('Feature Store Manage Page', () => {
         'contain.text',
         'and all of its associated resources will be permanently deleted',
       );
+    });
+  });
+
+  describe('status badge colors', () => {
+    it('should render correct badge colors for Ready, Failed, and Installing phases', () => {
+      const readyStore = mockFeatureStoreCR({
+        name: 'store-ready',
+        feastProject: 'ready_project',
+        phase: 'Ready',
+      });
+      const failedStore = mockFeatureStoreCR({
+        name: 'store-failed',
+        feastProject: 'failed_project',
+        phase: 'Failed',
+        uiLabel: false,
+      });
+      const installingStore = mockFeatureStoreCR({
+        name: 'store-installing',
+        feastProject: 'installing_project',
+        phase: 'Installing',
+        uiLabel: false,
+      });
+
+      asClusterAdminUser();
+      initIntercepts({
+        featureStores: [readyStore, failedStore, installingStore],
+      });
+
+      featureStoreManagePage.visit();
+
+      featureStoreManagePage
+        .findRowByName(NAMESPACE, 'store-ready')
+        .findByTestId('status-badge-ready')
+        .should('have.text', 'Ready')
+        .and('have.class', 'pf-m-green');
+
+      featureStoreManagePage
+        .findRowByName(NAMESPACE, 'store-failed')
+        .findByTestId('status-badge-failed')
+        .should('have.text', 'Failed')
+        .and('have.class', 'pf-m-red');
+
+      featureStoreManagePage
+        .findRowByName(NAMESPACE, 'store-installing')
+        .findByTestId('status-badge-installing')
+        .should('have.text', 'Installing')
+        .and('have.class', 'pf-m-blue');
+    });
+  });
+
+  describe('cross-namespace same name', () => {
+    it('should display two stores with the same name in different namespaces', () => {
+      const ns2 = 'other-ns';
+      const project2 = mockProjectK8sResource({
+        k8sName: ns2,
+        displayName: 'Other Project',
+      });
+      project2.metadata.labels = {
+        ...project2.metadata.labels,
+        'opendatahub.io/feast': 'true',
+      };
+
+      const store1 = mockFeatureStoreCR({
+        name: 'my-store',
+        namespace: NAMESPACE,
+        feastProject: 'my_store_ns1',
+      });
+      const store2 = mockFeatureStoreCR({
+        name: 'my-store',
+        namespace: ns2,
+        feastProject: 'my_store_ns2',
+        uiLabel: false,
+      });
+
+      asClusterAdminUser();
+
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+      );
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableFeatureStore: false,
+          featureStoreAdmin: true,
+        }),
+      ).as('odh-config');
+
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject(), project2]));
+
+      cy.interceptK8sList(
+        { model: FeatureStoreModel, ns: NAMESPACE },
+        mockK8sResourceList([store1]),
+      );
+      cy.interceptK8sList({ model: FeatureStoreModel, ns: ns2 }, mockK8sResourceList([store2]));
+
+      featureStoreManagePage.visit();
+
+      featureStoreManagePage.findRowByName(NAMESPACE, 'my-store').should('exist');
+      featureStoreManagePage.findRowByName(ns2, 'my-store').should('exist');
+
+      featureStoreManagePage.findRowByName(NAMESPACE, 'my-store').should('contain.text', NAMESPACE);
+      featureStoreManagePage.findRowByName(ns2, 'my-store').should('contain.text', ns2);
+    });
+  });
+
+  describe('RBAC viewer', () => {
+    const viewerStores = [
+      mockFeatureStoreCR({
+        name: 'viewer-store',
+        feastProject: 'viewer_project',
+        phase: 'Ready',
+      }),
+    ];
+
+    const initViewerIntercepts = () => {
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+      );
+
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableFeatureStore: false,
+          featureStoreAdmin: true,
+        }),
+      ).as('odh-config');
+
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject()]));
+
+      cy.interceptK8sList(
+        { model: FeatureStoreModel, ns: NAMESPACE },
+        mockK8sResourceList(viewerStores),
+      );
+
+      // AccessReviewProvider defaults undefined namespace to dashboardNamespace
+      // (opendatahub). Allow list (needed by the route gate) but deny
+      // create/delete so the RBAC viewer assertions hold.
+      cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+        const { resourceAttributes } = req.body.spec;
+        const allowed =
+          resourceAttributes.resource === 'featurestores' && resourceAttributes.verb === 'list';
+        req.reply(mockSelfSubjectAccessReview({ ...resourceAttributes, allowed }));
+      });
+    };
+
+    it('should hide Create button and disable Delete action when user lacks create/delete permissions', () => {
+      asProjectEditUser();
+      initViewerIntercepts();
+
+      featureStoreManagePage.visit();
+
+      featureStoreManagePage.findTable().should('be.visible');
+      featureStoreManagePage.findRowByName(NAMESPACE, 'viewer-store').should('exist');
+
+      cy.findByTestId('create-feature-store-toolbar-btn').should('not.exist');
+
+      featureStoreManagePage
+        .findRowByName(NAMESPACE, 'viewer-store')
+        .findByRole('button', { name: /kebab toggle/i })
+        .click();
+      cy.findByRole('menuitem', { name: 'Delete' }).should('have.attr', 'aria-disabled', 'true');
+    });
+
+    it('should allow expanding rows even without create/delete permissions', () => {
+      asProjectEditUser();
+      initViewerIntercepts();
+
+      featureStoreManagePage.visit();
+
+      cy.findByTestId(`feature-store-row-${NAMESPACE}-viewer-store`)
+        .findByRole('button', { name: 'Details' })
+        .click();
+
+      cy.contains('Feast project').should('be.visible');
+      cy.contains('viewer_project').should('be.visible');
     });
   });
 

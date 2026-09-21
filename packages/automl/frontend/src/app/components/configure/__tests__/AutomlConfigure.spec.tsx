@@ -7,13 +7,21 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
   AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/automlTrainingDataFile';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockNotificationError = jest.fn();
 
@@ -914,6 +922,150 @@ describe('AutomlConfigure', () => {
       });
     });
 
+    describe('Funnel milestone tracking', () => {
+      it('should fire AutoML Training Data Configured once when a file is selected from the bucket', () => {
+        renderComponent();
+        selectSecretAndFile();
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+          { trainingDataSourceType: 'select' },
+        );
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+      });
+
+      it('should fire AutoML Training Data Configured with trainingDataSourceType "upload" when a file is uploaded', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
+        dropFilesOnTrainingDataUploadZone([goodFile]);
+
+        await waitFor(() => {
+          expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+            AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+            { trainingDataSourceType: 'upload' },
+          );
+        });
+      });
+
+      it('should fire AutoML Target Column Configured once when a target column is selected', () => {
+        renderComponent();
+        selectSecretAndFile();
+        fireMiscTrackingEventMock.mockClear();
+
+        selectTargetColumn();
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+          {},
+        );
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+      });
+
+      it('should NOT re-fire AutoML Target Column Configured when a different prediction type is picked afterward', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn(); // fires once
+        fireMiscTrackingEventMock.mockClear();
+
+        selectPredictionType('multiclass');
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+          expect.anything(),
+        );
+      });
+    });
+
+    it('should default a two-column temporal dataset to time series and preserve an override', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'amount', type: 'double', task_type: 'multiclass', unique_count: 3 },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByTestId('task-type-radio-timeseries')).toBeChecked();
+      expectPredictionTypeRecommended('timeseries');
+      expect(screen.getByTestId('id_column-select')).toBeDisabled();
+      expect(screen.getByTestId('id_column-select')).toHaveTextContent('Auto-generated ID column');
+      expect(screen.getByText(/Your dataset does not contain an ID column/)).toHaveTextContent(
+        'Your dataset does not contain an ID column. An ID column will be automatically generated during training.',
+      );
+      expect(screen.getByText('Time series recommended')).toBeInTheDocument();
+      expect(screen.getByText(/Time series is recommended because/)).toHaveTextContent(
+        'Time series is recommended because your target column amount contains numbers, and your dataset also has a timestamp column, observed.',
+      );
+      selectPredictionType('regression');
+      expect(screen.getByTestId('task-type-radio-regression')).toBeChecked();
+      expect(screen.getByTestId('task-type-radio-timeseries')).not.toBeChecked();
+    });
+
+    it('should use the raw dataset count for ID guidance when a non-ASCII column is hidden', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'amount', type: 'double', task_type: 'regression' },
+          { name: '店舗', type: 'string', task_type: 'multiclass' },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByText('Time series recommended')).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Your dataset does not contain an ID column/),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('id_column-select')).toBeEnabled();
+      expect(screen.getByTestId('id_column-select')).toHaveTextContent('Select a column');
+    });
+
+    it('should show unsupported-format guidance only after manually selecting time series', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'date', type: 'integer', task_type: 'regression' },
+          { name: 'amount', type: 'double', task_type: 'regression' },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('amount');
+      expect(screen.getByTestId('task-type-radio-regression')).toBeChecked();
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+      selectPredictionType('timeseries');
+      expect(screen.getByText('Time series dataset format')).toBeInTheDocument();
+      selectPredictionType('regression');
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+    });
+
+    it('should show format guidance without recommending time series for categorical targets', () => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: [
+          { name: 'observed', type: 'timestamp', task_type: 'multiclass' },
+          { name: 'category', type: 'string', task_type: 'multiclass', unique_count: 3 },
+        ],
+        isLoading: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      selectSecretAndFile();
+      selectTargetColumn('category');
+      expect(screen.getByTestId('task-type-radio-multiclass')).toBeChecked();
+      expect(screen.queryByText('Time series dataset format')).not.toBeInTheDocument();
+      selectPredictionType('timeseries');
+      expect(
+        screen.getByText(/Use a timestamp column and a numeric target column/),
+      ).toBeInTheDocument();
+      showOtherPredictionTypes();
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
+    });
+
     describe('Target column', () => {
       it('should render the target column dropdown after file selection', () => {
         renderComponent();
@@ -973,6 +1125,10 @@ describe('AutomlConfigure', () => {
       });
 
       it('should clear timeseries fields that conflict with the newly selected target column', () => {
+        mockuseS3GetFileSchemaQuery.mockReturnValue({
+          data: [...MOCK_COLUMNS, { name: 'observed', type: 'timestamp', task_type: 'multiclass' }],
+          isLoading: false,
+        } as ReturnType<typeof useS3GetFileSchemaQuery>);
         renderWithInitialValues(
           {
             initialInputDataSecret: {
@@ -1322,6 +1478,123 @@ describe('AutomlConfigure', () => {
       expect(screen.getByText('train.csv')).toBeInTheDocument();
     });
 
+    it('should not fire training data / target column funnel milestones for pre-populated reconfigure values', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          target_column: 'risk_category',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          target_column: 'risk_category',
+          top_n: 3,
+        },
+      );
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+        expect.anything(),
+      );
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+        expect.anything(),
+      );
+    });
+
+    it('should fire the target column milestone and funnel step only when a pre-populated target column is replaced', () => {
+      const onFunnelStepChange = jest.fn();
+      const initialValues = {
+        train_data_secret_name: 'Test Secret 1',
+        train_data_bucket_name: 'test-bucket-1',
+        train_data_file_key: 'data.csv',
+        task_type: 'multiclass' as const,
+        target_column: 'risk_category',
+        top_n: 3,
+      };
+      renderWithQueryClient(
+        <AutomlConfigure
+          initialValues={initialValues}
+          initialInputDataSecret={{
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          }}
+          onFunnelStepChange={onFunnelStepChange}
+        />,
+        initialValues,
+      );
+
+      // Mount: the pre-populated target column must not count as a user selection.
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+        expect.anything(),
+      );
+      expect(onFunnelStepChange).not.toHaveBeenCalled();
+
+      // Replace the pre-populated target column with a real user selection.
+      fireEvent.click(screen.getByTestId('target_column-select'));
+      fireEvent.click(screen.getByRole('option', { name: /income/ }));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+        {},
+      );
+      expect(onFunnelStepChange).toHaveBeenCalledWith('predictionType');
+    });
+
+    it('should fire the training data milestone only when a pre-populated training data file is replaced', () => {
+      const initialValues = {
+        train_data_secret_name: 'Test Secret 1',
+        train_data_bucket_name: 'test-bucket-1',
+        train_data_file_key: 'old-data.csv',
+        top_n: 3,
+      };
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          ...initialValues,
+        },
+        initialValues,
+      );
+
+      // Mount: the pre-populated training data file must not count as a user selection.
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+        expect.anything(),
+      );
+
+      // Replace the pre-populated file via the file explorer — a real user selection.
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+        { trainingDataSourceType: 'select' },
+      );
+    });
+
     it('should pre-select the prediction type card when task_type is provided', () => {
       renderWithInitialValues(
         {
@@ -1483,7 +1756,7 @@ describe('AutomlConfigure', () => {
       );
 
       showOtherPredictionTypes();
-      expectPredictionTypeNotRecommended('timeseries');
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
       expectPredictionTypeNotRecommended('regression');
       expectPredictionTypeEnabled('timeseries');
       expectPredictionTypeEnabled('regression');
@@ -1585,7 +1858,7 @@ describe('AutomlConfigure', () => {
       expectPredictionTypeRecommended('binary');
       showOtherPredictionTypes();
       expectPredictionTypeNotRecommended('multiclass');
-      expectPredictionTypeNotRecommended('timeseries');
+      expect(screen.getByTestId('task-type-badge-not-recommended-timeseries')).toBeInTheDocument();
       expectPredictionTypeNotRecommended('regression');
       expectPredictionTypeEnabled('multiclass');
       expectPredictionTypeEnabled('timeseries');

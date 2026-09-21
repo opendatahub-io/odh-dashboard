@@ -62,7 +62,9 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
       (d) =>
         d.name.toLowerCase().includes(lower) ||
         getDeploymentDisplayName(d).toLowerCase().includes(lower) ||
-        (d.serverName ?? '').toLowerCase().includes(lower),
+        (d.serverName ?? '').toLowerCase().includes(lower) ||
+        (d.registryServer ?? '').toLowerCase().includes(lower) ||
+        (d.registryServerDisplayName ?? '').toLowerCase().includes(lower),
     );
   }, [deployments.items, filterText]);
 

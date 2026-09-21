@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# OpenShift Service CA wiring for admission webhooks (same pattern as
+# odh-notebook-controller: serving-cert on the Service + inject-cabundle on
+# ValidatingWebhookConfiguration). Kubeflow notebook-controller upstream uses
+# cert-manager instead; that path is in overlays/istio for local/kind dev.
+resources:
+- network-policy.yaml
+
+patches:
+- path: webhook_service_patch.yaml
+- path: webhook_configuration_patch.yaml
+- path: deployment_patch.yaml

@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# OpenShift RBAC aggregation for Workspaces (mirrors odh-notebook-controller).
+# Include via overlays/gateway for ODH/RHOAI; omit for kind/istio local dev.
+resources:
+- user_cluster_roles.yaml

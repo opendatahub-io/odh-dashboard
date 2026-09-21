@@ -1,8 +1,8 @@
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
+import { fireAutomlProjectDropdownOptionSelected } from '~/app/utilities/tracking';
 
 type ProjectSelectorNavigatorProps = {
   namespace?: string;
@@ -25,9 +25,7 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorNavigatorProps> = ({
         const match = projectName
           ? (namespaces.find((n) => n.name === projectName) ?? undefined)
           : undefined;
-        fireMiscTrackingEvent('AutoML Project Dropdown Option Selected', {
-          selectedProject: projectName,
-        });
+        fireAutomlProjectDropdownOptionSelected(projectName);
         if (match && projectName) {
           updatePreferredNamespace(match);
           navigate(getRedirectPath(projectName));

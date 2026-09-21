@@ -12,8 +12,11 @@ jest.mock('~/odh/api/mcpDeploymentService', () => ({
 
 const deleteMcpDeploymentMock = jest.mocked(deleteMcpDeployment);
 
-const renderModal = (onClose = jest.fn()) => {
-  const deployment = createMockDeployment({ name: 'kubernetes-mcp' });
+const renderModal = (
+  onClose = jest.fn(),
+  overrides: Partial<Parameters<typeof createMockDeployment>[0]> = {},
+) => {
+  const deployment = createMockDeployment({ name: 'kubernetes-mcp', ...overrides });
   render(
     <DeleteMcpDeploymentModal
       deployment={deployment}
@@ -39,6 +42,19 @@ describe('DeleteMcpDeploymentModal', () => {
     const modal = screen.getByTestId('delete-mcp-deployment-modal');
     expect(modal.textContent).toContain('kubernetes-mcp');
     expect(modal.textContent).toContain('MCP server deployment and its API keys will be deleted');
+  });
+
+  it('should not show the cascade cleanup alert for a catalog-sourced deployment', () => {
+    renderModal(jest.fn(), { registryServer: undefined });
+    expect(screen.queryByTestId('cascade-cleanup-alert')).not.toBeInTheDocument();
+  });
+
+  it('should show the cascade cleanup alert for a registry-sourced deployment', () => {
+    renderModal(jest.fn(), { registryServer: 'io.github.example/kubernetes-mcp' });
+    const alert = screen.getByTestId('cascade-cleanup-alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert.textContent).toContain('Cascade cleanup');
+    expect(alert.textContent).toContain('access binding in the MCP registry');
   });
 
   it('should render the confirmation label referencing the deployment name', () => {

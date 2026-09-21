@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
@@ -78,6 +79,43 @@ func TestComputeKustomizeVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := computeKustomizeVariables(tt.dashboard, tt.platform)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestMaaSConsumerPortalManifestInfo(t *testing.T) {
+	info := maasConsumerPortalManifestInfo("/base")
+	assert.Equal(t, "/base", info.Path)
+	assert.Equal(t, "distributions", info.ContextDir)
+	assert.Equal(t, "maas-consumer-portal", info.SourcePath)
+}
+
+func TestMaaSConsumerPortalURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		domain  string
+		wantURL string
+		wantOK  bool
+	}{
+		{
+			name:    "derives path URL from gateway domain",
+			domain:  "rh-ai.apps.example.com",
+			wantURL: "https://rh-ai.apps.example.com/maas-consumer-portal/",
+			wantOK:  true,
+		},
+		{
+			name:    "empty domain cannot be derived",
+			domain:  "",
+			wantURL: "",
+			wantOK:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url, ok := maasConsumerPortalURL(tt.domain)
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Equal(t, tt.wantURL, url)
 		})
 	}
 }
@@ -190,6 +228,35 @@ func TestParamsPreservation(t *testing.T) {
 	assert.Equal(t, "module-value", result["module-specific-key"], "existing module-specific params must be preserved")
 	assert.Equal(t, "computed-value", result["computed-key"], "computed params must be added")
 	assert.Equal(t, "overwritten-by-computed", result["shared-key"], "computed params must take precedence over existing")
+}
+
+func TestImagesMapContainsAllModules(t *testing.T) {
+	for name, mod := range moduleRegistry {
+		t.Run(name, func(t *testing.T) {
+			paramKey := mod.ManifestSlug + "-ui-image"
+			envVar, ok := imagesMap[paramKey]
+			assert.True(t, ok, "imagesMap missing entry (expected key %q)", paramKey)
+			assert.Equal(t, mod.ImageEnvVar, envVar, "imagesMap env var mismatch")
+		})
+	}
+}
+
+func TestValuesYAMLContainsAllModuleEnvVars(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "charts", "dashboard", "values.yaml"))
+	require.NoError(t, err)
+
+	var values struct {
+		RelatedImages map[string]string `yaml:"relatedImages"`
+	}
+	require.NoError(t, yaml.Unmarshal(data, &values))
+	require.NotNil(t, values.RelatedImages, "values.yaml must have a relatedImages section")
+
+	for paramKey, envVar := range imagesMap {
+		t.Run(paramKey, func(t *testing.T) {
+			_, ok := values.RelatedImages[envVar]
+			assert.True(t, ok, "relatedImages must contain key %q (for param %q)", envVar, paramKey)
+		})
+	}
 }
 
 func TestNamespaceInjection(t *testing.T) {

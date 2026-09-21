@@ -2,7 +2,7 @@
 // @ts-nocheck - Overlay file copied into the starter repo where path aliases are configured.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   BrowserStorageContextProvider,
@@ -16,7 +16,9 @@ import {
   MANDATORY_NAMESPACE,
   URL_PREFIX,
 } from '~/app/utilities/const';
+import { rootPathname } from '~/app/utilities/routes';
 import App from '~/app/App';
+import { PluginStoreContextProvider } from '~/odh/PluginStoreContextProvider';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
@@ -41,13 +43,21 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <Router>
-        <ModularArchContextProvider config={modularArchConfig}>
-          <BrowserStorageContextProvider>
-            <NotificationContextProvider>
-              <App />
-            </NotificationContextProvider>
-          </BrowserStorageContextProvider>
-        </ModularArchContextProvider>
+        <PluginStoreContextProvider>
+          <ModularArchContextProvider config={modularArchConfig}>
+            <BrowserStorageContextProvider>
+              <NotificationContextProvider>
+                {/* Mirrors the "/gen-ai-studio/autorag/*" mount point used in federated mode
+                    (see frontend/src/odh/extensions.ts) so standalone/mock mode resolves the
+                    same URLs — AppRoutes and its Link/navigate calls assume this prefix. */}
+                <Routes>
+                  <Route path={`${rootPathname}/*`} element={<App />} />
+                  <Route path="*" element={<Navigate to={rootPathname} replace />} />
+                </Routes>
+              </NotificationContextProvider>
+            </BrowserStorageContextProvider>
+          </ModularArchContextProvider>
+        </PluginStoreContextProvider>
       </Router>
     </QueryClientProvider>
   </React.StrictMode>,

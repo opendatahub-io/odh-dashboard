@@ -21,31 +21,42 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
-// copyLabelFields copies metadata.labels from desired to target, returning the updated map and whether an update is required.
+// copyLabelFields merges desired labels into target, returning the updated map and whether an update is required.
+// Only keys present in desired are written; labels added by other actors are preserved.
 func copyLabelFields(desiredLabels map[string]string, targetLabels map[string]string) (map[string]string, bool) {
 	requireUpdate := false
-
-	for k, v := range targetLabels {
-		if desiredLabels[k] != v {
+	if targetLabels == nil && len(desiredLabels) > 0 {
+		targetLabels = make(map[string]string, len(desiredLabels))
+	}
+	for k, v := range desiredLabels {
+		if existing, ok := targetLabels[k]; !ok || existing != v {
+			targetLabels[k] = v
 			requireUpdate = true
 		}
 	}
-	return desiredLabels, requireUpdate
+	return targetLabels, requireUpdate
 }
 
-// copyAnnotationFields copies metadata.annotations from desired to target, returning the updated map and whether an update is required.
+// copyAnnotationFields merges desired annotations into target, returning the updated map and whether an update is required.
+// Only keys present in desired are written; annotations added by other actors are preserved.
 func copyAnnotationFields(desiredAnnotations map[string]string, targetAnnotations map[string]string) (map[string]string, bool) {
 	requireUpdate := false
-
-	for k, v := range targetAnnotations {
-		if desiredAnnotations[k] != v {
+	if targetAnnotations == nil && len(desiredAnnotations) > 0 {
+		targetAnnotations = make(map[string]string, len(desiredAnnotations))
+	}
+	for k, v := range desiredAnnotations {
+		if existing, ok := targetAnnotations[k]; !ok || existing != v {
+			targetAnnotations[k] = v
 			requireUpdate = true
 		}
 	}
-	return desiredAnnotations, requireUpdate
+	return targetAnnotations, requireUpdate
 }
 
 // CopyStatefulSetFields updates a target StatefulSet with the fields from a desired StatefulSet, returning true if an update is required.
@@ -134,6 +145,74 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 	return requireUpdate
 }
 
+// mergeStringMapFields sets every key of desired on target, returning the updated map and whether an update is required.
+// NOTE: unlike copyLabelFields/copyAnnotationFields, keys that are only present on the target are preserved.
+func mergeStringMapFields(desired map[string]string, target map[string]string) (map[string]string, bool) {
+	requireUpdate := false
+
+	for k, v := range desired {
+		if target == nil {
+			target = make(map[string]string, len(desired))
+		}
+		if target[k] != v {
+			target[k] = v
+			requireUpdate = true
+		}
+	}
+	return target, requireUpdate
+}
+
+// replaceStringMapFields replaces target with desired, returning the desired map and whether they differed.
+// Unlike copyLabelFields, keys that are only present on the target are removed.
+func replaceStringMapFields(desired map[string]string, target map[string]string) (map[string]string, bool) {
+	return desired, !equality.Semantic.DeepEqual(desired, target)
+}
+
+// CopyServiceAccountFields updates a target ServiceAccount with the fields from a desired ServiceAccount, returning true if an update is required.
+func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.ServiceAccount) bool {
+	requireUpdate := false
+
+	// NOTE: we merge rather than replace, because administrators and other controllers attach
+	//       their own metadata to a ServiceAccount (e.g. the IAM annotations used by IRSA)
+
+	var updated bool
+	target.Labels, updated = mergeStringMapFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
+	}
+
+	target.Annotations, updated = mergeStringMapFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
+// CopyRoleBindingFields updates a target RoleBinding with the fields from a desired RoleBinding, returning true if an update is required.
+// NOTE: `roleRef` is immutable and so is NOT copied, the caller must compare it and recreate the RoleBinding when it has drifted.
+func CopyRoleBindingFields(desired *rbacv1.RoleBinding, target *rbacv1.RoleBinding) bool {
+	requireUpdate := false
+
+	var updated bool
+	target.Labels, updated = replaceStringMapFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
+	}
+
+	target.Annotations, updated = replaceStringMapFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
+	}
+
+	if !equality.Semantic.DeepEqual(target.Subjects, desired.Subjects) {
+		target.Subjects = desired.Subjects
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
 // CopyVirtualServiceFields updates a target VirtualService with the fields from a desired VirtualService, returning true if an update is required.
 func CopyVirtualServiceFields(desired *istiov1.VirtualService, target *istiov1.VirtualService) bool {
 	requireUpdate := false
@@ -156,6 +235,81 @@ func CopyVirtualServiceFields(desired *istiov1.VirtualService, target *istiov1.V
 	//       and messages with the same value are not considered equal with reflect.DeepEqual
 	if !proto.Equal(&target.Spec, &desired.Spec) {
 		target.Spec = *desired.Spec.DeepCopy()
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
+// CopyHTTPRouteFields updates a target HTTPRoute with the fields from a desired HTTPRoute, returning true if an update is required.
+func CopyHTTPRouteFields(desired *gatewayv1.HTTPRoute, target *gatewayv1.HTTPRoute) bool {
+	requireUpdate := false
+
+	// copy `metadata.labels`
+	var updated bool
+	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
+	}
+
+	// copy `metadata.annotations`
+	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
+	}
+
+	// copy `spec`
+	if !equality.Semantic.DeepEqual(target.Spec, desired.Spec) {
+		target.Spec = desired.Spec
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
+// CopyConfigMapFields updates a target ConfigMap with the fields from a desired ConfigMap, returning true if an update is required.
+func CopyConfigMapFields(desired *corev1.ConfigMap, target *corev1.ConfigMap) bool {
+	requireUpdate := false
+
+	var updated bool
+	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
+	}
+
+	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
+	}
+
+	if !equality.Semantic.DeepEqual(target.Data, desired.Data) {
+		target.Data = desired.Data
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
+// CopyReferenceGrantFields updates a target ReferenceGrant with the fields from a desired ReferenceGrant, returning true if an update is required.
+func CopyReferenceGrantFields(desired *gatewayv1beta1.ReferenceGrant, target *gatewayv1beta1.ReferenceGrant) bool {
+	requireUpdate := false
+
+	// copy `metadata.labels`
+	var updated bool
+	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
+	}
+
+	// copy `metadata.annotations`
+	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
+	}
+
+	// copy `spec`
+	if !equality.Semantic.DeepEqual(target.Spec, desired.Spec) {
+		target.Spec = desired.Spec
 		requireUpdate = true
 	}
 

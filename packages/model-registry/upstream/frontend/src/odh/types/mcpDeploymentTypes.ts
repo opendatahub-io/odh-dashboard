@@ -101,6 +101,9 @@ export type McpDeployment = {
   /** Distinct from `serverName`, which traces catalog (not registry) deployments. */
   registryServer?: string;
   registryVersion?: string;
+  /** Resolved server-side from the MLflow BFF when `registryServer` is set. Best-effort:
+   * empty if it couldn't be resolved, so consumers should fall back to `registryServer`. */
+  registryServerDisplayName?: string;
   namespace: string;
   uid: string;
   creationTimestamp: string;

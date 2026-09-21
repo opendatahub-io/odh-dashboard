@@ -4,9 +4,9 @@ export const LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY = 'legacy';
 
 const LEGACY_OPTION = {
   key: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
-  label: 'Legacy deployment',
+  label: 'Inference service',
   description:
-    'Deploy using a serving runtime template. Use this option for non-LLM models or for compatibility with previous deployments. This method does not support Models as a Service.',
+    'Deploy a model using a serving runtime template. Not compatible with Models as a Service.',
   order: 3,
 };
 

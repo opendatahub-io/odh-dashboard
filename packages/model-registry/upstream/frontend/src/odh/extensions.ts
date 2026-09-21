@@ -6,7 +6,6 @@ import type {
   AreaExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import type { McpCatalogDeployModalExtension } from '~/odh/extension-points';
 import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
@@ -28,7 +27,6 @@ const extensions: (
   | RouteExtension
   | AreaExtension
   | TabRouteTabExtension
-  | McpCatalogDeployModalExtension
   | Extension
 )[] = [
   {
@@ -297,29 +295,20 @@ const extensions: (
     properties: {
       id: 'deploy-mcp-server',
       label: 'Deploy MCP server',
-      group: 'mcp-catalog.server-deploy',
+      group: 'mcp-catalog.server-actions',
       component: () => import('./components/McpServerDeployAction'),
     },
   },
   {
     type: 'core.action',
     flags: {
-      required: [SupportedArea.MODEL_CATALOG],
-    },
-    properties: {
-      id: 'deploy-catalog-model',
-      label: 'Deploy model',
-      group: 'model-catalog.deploy',
-      component: () => import('./components/CatalogDeployAction'),
-    },
-  },
-  {
-    type: 'mcp-catalog.server/deploy-modal',
-    flags: {
       required: [SupportedArea.MCP_CATALOG],
     },
     properties: {
-      modalComponent: () => import('./components/McpDeployModal').then((m) => m.default),
+      id: 'deploy-mcp-registry-server',
+      label: 'Deploy',
+      group: 'mcp-registry.server-deploy',
+      component: () => import('./components/McpRegistryServerDeployAction'),
     },
   },
 ];

@@ -13,9 +13,9 @@ import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import { mockModelServingPodSpecOptions } from '#~/__mocks__/mockModelServingPodSpecOptions';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {
   assembleInferenceService,
   createInferenceService,

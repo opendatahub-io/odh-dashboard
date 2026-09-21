@@ -1,0 +1,36 @@
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    patch:
+      default:
+        target: auto
+
+flags:
+  frontend:
+    paths:
+      - workspaces/frontend/
+    carryforward: true
+  backend:
+    paths:
+      - workspaces/backend/
+    carryforward: true
+  controller:
+    paths:
+      - workspaces/controller/
+    carryforward: true
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
+
+ignore:
+  - "**/*_test.go"
+  - "**/zz_generated.*.go"
+  - "**/testdata/**"

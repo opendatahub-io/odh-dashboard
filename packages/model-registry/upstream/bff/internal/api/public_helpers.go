@@ -77,6 +77,27 @@ func (app *App) Logger() *slog.Logger {
 	return app.logger
 }
 
+// TrackBackgroundWork runs fn in a new goroutine detached from any request, for best-effort
+// work that must not block or fail an HTTP response (e.g. a post-delete cascade cleanup).
+// It's tracked so Shutdown can give in-flight work a bounded chance to finish, and any
+// panic inside fn is recovered and logged rather than crashing the process -- fn running in
+// the background must never be able to take down unrelated in-flight requests.
+func (app *App) TrackBackgroundWork(fn func()) {
+	if app == nil {
+		return
+	}
+	app.backgroundWg.Add(1)
+	go func() {
+		defer app.backgroundWg.Done()
+		defer func() {
+			if r := recover(); r != nil && app.logger != nil {
+				app.logger.Error("recovered panic in background work", slog.Any("recover", r))
+			}
+		}()
+		fn()
+	}()
+}
+
 // KubernetesClientFactory exposes the k8s factory for extensions.
 func (app *App) KubernetesClientFactory() k8s.KubernetesClientFactory {
 	return app.kubernetesClientFactory
@@ -85,4 +106,10 @@ func (app *App) KubernetesClientFactory() k8s.KubernetesClientFactory {
 // Repositories exposes the repositories container for extensions.
 func (app *App) Repositories() *repositories.Repositories {
 	return app.repositories
+}
+
+// PodNamespace exposes the namespace this pod is running in, for extensions
+// that need it to build inter-BFF service URLs.
+func (app *App) PodNamespace() string {
+	return app.podNamespace
 }

@@ -37,15 +37,17 @@ import {
   initMockModelAuthIntercepts,
 } from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
 import {
+  RoleBindingModel,
+  RoleModel,
+  SecretModel,
+  ServiceAccountModel,
+} from '@odh-dashboard/k8s-core/api/models';
+import {
   HardwareProfileModel,
   InferenceServiceModel,
   LLMInferenceServiceModel,
   ProjectModel,
   PVCModel,
-  RoleBindingModel,
-  RoleModel,
-  SecretModel,
-  ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
@@ -724,7 +726,6 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenWarningAlert().should('exist');
 
     //Configuration Parameters
-    modelServingWizard.findRuntimeArgsCheckbox().should('exist').click();
     modelServingWizard.findRuntimeArgsTextBox().type('--arg=value1');
     modelServingWizard.findEnvVariablesCheckbox().should('exist').click();
     modelServingWizard.findAddVariableButton().should('exist').click();

@@ -1,5 +1,50 @@
-import { Volume, VolumeMount } from '@odh-dashboard/k8s-core';
+import { type NIMAccountKind, Volume, VolumeMount } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { NGC_API_KEY_DATA_KEY, NIM_PULL_SECRET_NAME, NIM_SECRET_NAME } from '../accounts/constants';
+
+export const applyNIMServingRuntimeCredentials = (
+  servingRuntime: ServingRuntimeKind,
+  nimAccount: NIMAccountKind,
+): ServingRuntimeKind => {
+  const pullSecretName = nimAccount.status?.nimPullSecret?.name;
+  if (!pullSecretName) {
+    throw new Error('NIM image pull secret is not available for this project.');
+  }
+
+  const updatedServingRuntime = structuredClone(servingRuntime);
+  updatedServingRuntime.spec.containers = updatedServingRuntime.spec.containers.map(
+    (container) => ({
+      ...container,
+      env: container.env?.map((env) => {
+        const secretKeyRef = env.valueFrom?.secretKeyRef;
+        if (env.name !== NGC_API_KEY_DATA_KEY || !secretKeyRef) {
+          return env;
+        }
+
+        return {
+          ...env,
+          valueFrom: {
+            ...env.valueFrom,
+            secretKeyRef: {
+              ...secretKeyRef,
+              name:
+                secretKeyRef.name === NIM_SECRET_NAME
+                  ? nimAccount.spec.apiKeySecret.name
+                  : secretKeyRef.name,
+            },
+          },
+        };
+      }),
+    }),
+  );
+
+  updatedServingRuntime.spec.imagePullSecrets = updatedServingRuntime.spec.imagePullSecrets?.map(
+    (secret) =>
+      secret.name === NIM_PULL_SECRET_NAME ? { ...secret, name: pullSecretName } : secret,
+  );
+
+  return updatedServingRuntime;
+};
 
 const shmVolumeMount = (): VolumeMount => ({
   name: 'shm',

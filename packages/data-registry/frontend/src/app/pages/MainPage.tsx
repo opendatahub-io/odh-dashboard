@@ -1,15 +1,15 @@
 import React from 'react';
-import ApplicationsPage from '~/app/components/ApplicationsPage';
+import { Route, Routes } from 'react-router-dom';
+import DataRegistryPage from './DataRegistryPage';
+import TableDetailPage from './TableDetailPage';
+import CollectionDetailPage from './CollectionDetailPage';
 
 const MainPage: React.FC = () => (
-  <ApplicationsPage
-    title="Main Page"
-    description={<p>Welcome to the Main Page</p>}
-    empty
-    loaded
-    provideChildrenPadding
-    removeChildrenTopPadding
-  />
+  <Routes>
+    <Route path="collections/:project/:collection" element={<CollectionDetailPage />} />
+    <Route path="assets/:assetType/:project/:collection/:name" element={<TableDetailPage />} />
+    <Route path="*" element={<DataRegistryPage />} />
+  </Routes>
 );
 
 export default MainPage;

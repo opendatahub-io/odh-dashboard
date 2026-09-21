@@ -3,8 +3,19 @@ export type { UpdateObjectAtPropAndValue } from './types';
 export { ThemeContext, useThemeContext } from './contexts/ThemeContext';
 export type { ThemeContextProps } from './contexts/ThemeContext';
 
-export { AnalyticsContext, useAnalytics, TrackingOutcome } from './contexts/AnalyticsContext';
-export type { FormTrackingEventProperties, AnalyticsAPI } from './contexts/AnalyticsContext';
+export {
+  AnalyticsContext,
+  useAnalytics,
+  noopAnalytics,
+  TrackingOutcome,
+} from './contexts/AnalyticsContext';
+export type {
+  FormTrackingEventProperties,
+  MiscTrackingEventProperties,
+  LinkTrackingEventProperties,
+  IdentifyEventProperties,
+  AnalyticsAPI,
+} from './contexts/AnalyticsContext';
 
 export { NotificationContext, useNotification } from './contexts/NotificationContext';
 export type { NotificationAction, NotificationAPI } from './contexts/NotificationContext';
@@ -121,6 +132,9 @@ export { default as InvalidProject } from './components/InvalidProject';
 export type { InvalidProjectProps } from './components/InvalidProject';
 
 export { default as ProjectsRoutes } from './components/ProjectsRoutes';
+export { ProjectSelector, ProjectSelectorNavigator } from './components/projectSelector';
+export { ProjectsContext } from './context/ProjectsContext';
+export type { ProjectsContextType } from './context/ProjectsContext';
 
 export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';
 export { default as DefaultValueTextRenderer } from './components/connectionTypes/DefaultValueTextRenderer';

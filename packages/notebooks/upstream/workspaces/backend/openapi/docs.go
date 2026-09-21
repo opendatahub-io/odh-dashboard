@@ -541,7 +541,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/secrets.SecretUpdate"
+                            "$ref": "#/definitions/api.SecretEnvelope"
                         }
                     }
                 ],
@@ -572,6 +572,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -607,6 +613,9 @@ const docTemplate = `{
                 "consumes": [
                     "application/json"
                 ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "secrets"
                 ],
@@ -632,7 +641,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "Secret deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -648,6 +663,18 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -708,6 +735,32 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/user": {
+            "get": {
+                "description": "Returns the current user's settings including user ID and admin status",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Get user settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.UserEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -1632,6 +1685,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
                     },
+                    "404": {
+                        "description": "Workspace not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
                     "409": {
                         "description": "Conflict. Current workspace revision is newer than provided.",
                         "schema": {
@@ -1836,6 +1895,174 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}/{name}/podtemplate/details": {
+            "get": {
+                "description": "Returns detail-level data for the workspace details overlay (volumes, secrets, pod info).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace pod template details",
+                "operationId": "getWorkspacePodTemplateDetails",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceDetailsEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Workspace not found.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}/{name}/podtemplate/logs/batch": {
+            "get": {
+                "description": "Returns a point-in-time snapshot of container logs for the workspace pod as a raw text/plain stream proxied directly from the Kubernetes pod logs API. Each log line is always prefixed with an RFC3339 timestamp.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace container logs (batch)",
+                "operationId": "getWorkspacePodTemplateLogsBatch",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target container name. Defaults to the primary (main) container.",
+                        "name": "container",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of lines from the end of the log to return. Defaults to 1000.",
+                        "name": "tailLines",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Only return logs after this RFC3339 timestamp (e.g. 2026-07-15T10:30:00Z).",
+                        "name": "sinceTime",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "If true, returns logs from the previous terminated container instance.",
+                        "name": "previous",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Raw container log stream (text/plain).",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Container not found, pod not running, container not started, or no previous logs available.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Workspace not found.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -2050,6 +2277,32 @@ const docTemplate = `{
                 }
             }
         },
+        "api.UserEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/api.UserResponse"
+                }
+            }
+        },
+        "api.UserResponse": {
+            "type": "object",
+            "required": [
+                "clusterAdmin",
+                "userId"
+            ],
+            "properties": {
+                "clusterAdmin": {
+                    "type": "boolean"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
         "api.ValidationError": {
             "type": "object",
             "properties": {
@@ -2098,6 +2351,17 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/workspaces.WorkspaceCreate"
+                }
+            }
+        },
+        "api.WorkspaceDetailsEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/details.WorkspaceDetails"
                 }
             }
         },
@@ -2218,6 +2482,168 @@ const docTemplate = `{
                 }
             }
         },
+        "common.DenyMessage": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "common.PodMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "common.Restrictions": {
+            "type": "object",
+            "required": [
+                "deny"
+            ],
+            "properties": {
+                "deny": {
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "$ref": "#/definitions/common.DenyMessage"
+                }
+            }
+        },
+        "details.PodSecretInfo": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "secretName"
+            ],
+            "properties": {
+                "defaultMode": {
+                    "type": "integer"
+                },
+                "mountPath": {
+                    "type": "string"
+                },
+                "secretName": {
+                    "type": "string"
+                }
+            }
+        },
+        "details.PodVolumeInfo": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "pvcName",
+                "readOnly"
+            ],
+            "properties": {
+                "mountPath": {
+                    "type": "string"
+                },
+                "pvcName": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "details.WorkspaceDetailContainer": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "details.WorkspaceDetailPod": {
+            "type": "object",
+            "required": [
+                "name",
+                "nodeName"
+            ],
+            "properties": {
+                "containers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/details.WorkspaceDetailContainer"
+                    }
+                },
+                "initContainers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/details.WorkspaceDetailContainer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nodeName": {
+                    "type": "string"
+                }
+            }
+        },
+        "details.WorkspaceDetailVolumes": {
+            "type": "object",
+            "required": [
+                "home"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/details.PodVolumeInfo"
+                    }
+                },
+                "home": {
+                    "$ref": "#/definitions/details.PodVolumeInfo"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/details.PodSecretInfo"
+                    }
+                }
+            }
+        },
+        "details.WorkspaceDetails": {
+            "type": "object",
+            "required": [
+                "podMetadata",
+                "volumes"
+            ],
+            "properties": {
+                "pod": {
+                    "$ref": "#/definitions/details.WorkspaceDetailPod"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/common.PodMetadata"
+                },
+                "volumes": {
+                    "$ref": "#/definitions/details.WorkspaceDetailVolumes"
+                }
+            }
+        },
         "field.ErrorType": {
             "type": "string",
             "enum": [
@@ -2321,6 +2747,22 @@ const docTemplate = `{
                 "String"
             ]
         },
+        "k8s_io_api_core_v1.ResourceClaim": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "description": "Name must match the name of one entry in pod.spec.resourceClaims of\nthe Pod where this field is used. It makes that resource available\ninside a container.",
+                    "type": "string"
+                },
+                "request": {
+                    "description": "Request is the name chosen for a request in the referenced claim.\nIf empty, everything from the claim is made available, otherwise\nonly the result of this request.\n\n+optional",
+                    "type": "string"
+                }
+            }
+        },
         "namespaces.Namespace": {
             "type": "object",
             "required": [
@@ -2399,7 +2841,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2425,6 +2868,9 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -2505,7 +2951,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2531,6 +2978,9 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -2866,7 +3316,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "$ref": "#/definitions/v1.SecretType"
                 }
             }
         },
@@ -2882,9 +3332,7 @@ const docTemplate = `{
                 "audit",
                 "canMount",
                 "canUpdate",
-                "immutable",
-                "name",
-                "type"
+                "name"
             ],
             "properties": {
                 "audit": {
@@ -2896,9 +3344,6 @@ const docTemplate = `{
                 "canUpdate": {
                     "type": "boolean"
                 },
-                "immutable": {
-                    "type": "boolean"
-                },
                 "mounts": {
                     "type": "array",
                     "items": {
@@ -2906,9 +3351,6 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }
@@ -2941,13 +3383,18 @@ const docTemplate = `{
             ],
             "properties": {
                 "contents": {
-                    "$ref": "#/definitions/secrets.SecretData"
+                    "description": "Update semantics:\n  - key present with {\"base64\": \"...\"} → set/update the value\n  - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data\n  - key omitted from the request → delete that key",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/secrets.SecretData"
+                        }
+                    ]
                 },
                 "immutable": {
                     "type": "boolean"
                 },
                 "type": {
-                    "type": "string"
+                    "$ref": "#/definitions/v1.SecretType"
                 }
             }
         },
@@ -3320,7 +3767,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -3340,7 +3787,7 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -3364,7 +3811,7 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -3461,7 +3908,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "name": {
-                    "description": "Name of the environment variable. Must be a C_IDENTIFIER.",
+                    "description": "Name of the environment variable.\nMay consist of any printable ASCII characters except '='.",
                     "type": "string"
                 },
                 "value": {
@@ -3494,6 +3941,14 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ObjectFieldSelector"
+                        }
+                    ]
+                },
+                "fileKeyRef": {
+                    "description": "FileKeyRef selects a key of the env file.\nRequires the EnvFiles feature gate to be enabled.\n\n+featureGate=EnvFiles\n+optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.FileKeySelector"
                         }
                     ]
                 },
@@ -3573,6 +4028,32 @@ const docTemplate = `{
         },
         "v1.FieldsV1": {
             "type": "object"
+        },
+        "v1.FileKeySelector": {
+            "type": "object",
+            "required": [
+                "key",
+                "path",
+                "volumeName"
+            ],
+            "properties": {
+                "key": {
+                    "description": "The key within the env file. An invalid key will prevent the pod from starting.\nThe keys defined within a source may consist of any printable ASCII characters except '='.\nDuring Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.\n+required",
+                    "type": "string"
+                },
+                "optional": {
+                    "description": "Specify whether the file or its key must be defined. If the file or key\ndoes not exist, then the env var is not published.\nIf optional is set to true and the specified key does not exist,\nthe environment variable will not be set in the Pod's containers.\n\nIf optional is set to false and the specified key does not exist,\nan error will be returned during Pod creation.\n+optional\n+default=false",
+                    "type": "boolean"
+                },
+                "path": {
+                    "description": "The path within the volume from which to select the file.\nMust be relative and may not contain the '..' path or start with '..'.\n+required",
+                    "type": "string"
+                },
+                "volumeName": {
+                    "description": "The name of the volume mount containing the env file.\n+required",
+                    "type": "string"
+                }
+            }
         },
         "v1.FlexVolumeSource": {
             "type": "object",
@@ -3691,7 +4172,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "endpoints": {
-                    "description": "endpoints is the endpoint name that details Glusterfs topology.\nMore info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod",
+                    "description": "endpoints is the endpoint name that details Glusterfs topology.",
                     "type": "string"
                 },
                 "path": {
@@ -3968,7 +4449,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 }
             }
@@ -4353,7 +4834,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "volumeAttributesClassName": {
-                    "description": "volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.\nIf specified, the CSI driver will create or update the volume with the attributes defined\nin the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,\nit can be changed after the claim is created. An empty string value means that no VolumeAttributesClass\nwill be applied to the claim but it's not allowed to reset this field to empty string once it is set.\nIf unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass\nwill be set by the persistentvolume controller if it exists.\nIf the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be\nset to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource\nexists.\nMore info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/\n(Beta) Using this field requires the VolumeAttributesClass feature gate to be enabled (off by default).\n+featureGate=VolumeAttributesClass\n+optional",
+                    "description": "volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.\nIf specified, the CSI driver will create or update the volume with the attributes defined\nin the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,\nit can be changed after the claim is created. An empty string or nil value indicates that no\nVolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,\nthis field can be reset to its previous value (including nil) to cancel the modification.\nIf the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be\nset to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource\nexists.\nMore info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/\n+featureGate=VolumeAttributesClass\n+optional",
                     "type": "string"
                 },
                 "volumeMode": {
@@ -4484,14 +4965,14 @@ const docTemplate = `{
                     ]
                 },
                 "matchLabelKeys": {
-                    "description": "MatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with ` + "`" + `labelSelector` + "`" + ` as ` + "`" + `key in (value)` + "`" + `\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both matchLabelKeys and labelSelector.\nAlso, matchLabelKeys cannot be set when labelSelector isn't set.\nThis is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).\n\n+listType=atomic\n+optional",
+                    "description": "MatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with ` + "`" + `labelSelector` + "`" + ` as ` + "`" + `key in (value)` + "`" + `\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both matchLabelKeys and labelSelector.\nAlso, matchLabelKeys cannot be set when labelSelector isn't set.\n\n+listType=atomic\n+optional",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "mismatchLabelKeys": {
-                    "description": "MismatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with ` + "`" + `labelSelector` + "`" + ` as ` + "`" + `key notin (value)` + "`" + `\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both mismatchLabelKeys and labelSelector.\nAlso, mismatchLabelKeys cannot be set when labelSelector isn't set.\nThis is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).\n\n+listType=atomic\n+optional",
+                    "description": "MismatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with ` + "`" + `labelSelector` + "`" + ` as ` + "`" + `key notin (value)` + "`" + `\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both mismatchLabelKeys and labelSelector.\nAlso, mismatchLabelKeys cannot be set when labelSelector isn't set.\n\n+listType=atomic\n+optional",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -4522,7 +5003,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "preferredDuringSchedulingIgnoredDuringExecution": {
-                    "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe anti-affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling anti-affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and adding\n\"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
+                    "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe anti-affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling anti-affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and subtracting\n\"weight\" from the sum if the node has pods which matches the corresponding podAffinityTerm; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.WeightedPodAffinityTerm"
@@ -4534,6 +5015,35 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/v1.PodAffinityTerm"
                     }
+                }
+            }
+        },
+        "v1.PodCertificateProjection": {
+            "type": "object",
+            "properties": {
+                "certificateChainPath": {
+                    "description": "Write the certificate chain at this path in the projected volume.\n\nMost applications should use credentialBundlePath.  When using keyPath\nand certificateChainPath, your application needs to check that the key\nand leaf certificate are consistent, because it is possible to read the\nfiles mid-rotation.\n\n+optional",
+                    "type": "string"
+                },
+                "credentialBundlePath": {
+                    "description": "Write the credential bundle at this path in the projected volume.\n\nThe credential bundle is a single file that contains multiple PEM blocks.\nThe first PEM block is a PRIVATE KEY block, containing a PKCS#8 private\nkey.\n\nThe remaining blocks are CERTIFICATE blocks, containing the issued\ncertificate chain from the signer (leaf and any intermediates).\n\nUsing credentialBundlePath lets your Pod's application code make a single\natomic read that retrieves a consistent key and certificate chain.  If you\nproject them to separate files, your application code will need to\nadditionally check that the leaf certificate was issued to the key.\n\n+optional",
+                    "type": "string"
+                },
+                "keyPath": {
+                    "description": "Write the key at this path in the projected volume.\n\nMost applications should use credentialBundlePath.  When using keyPath\nand certificateChainPath, your application needs to check that the key\nand leaf certificate are consistent, because it is possible to read the\nfiles mid-rotation.\n\n+optional",
+                    "type": "string"
+                },
+                "keyType": {
+                    "description": "The type of keypair Kubelet will generate for the pod.\n\nValid values are \"RSA3072\", \"RSA4096\", \"ECDSAP256\", \"ECDSAP384\",\n\"ECDSAP521\", and \"ED25519\".\n\n+required",
+                    "type": "string"
+                },
+                "maxExpirationSeconds": {
+                    "description": "maxExpirationSeconds is the maximum lifetime permitted for the\ncertificate.\n\nKubelet copies this value verbatim into the PodCertificateRequests it\ngenerates for this projection.\n\nIf omitted, kube-apiserver will set it to 86400(24 hours). kube-apiserver\nwill reject values shorter than 3600 (1 hour).  The maximum allowable\nvalue is 7862400 (91 days).\n\nThe signer implementation is then free to issue a certificate with any\nlifetime *shorter* than MaxExpirationSeconds, but no shorter than 3600\nseconds (1 hour).  This constraint is enforced by kube-apiserver.\n` + "`" + `kubernetes.io` + "`" + ` signers will never issue certificates with a lifetime\nlonger than 24 hours.\n\n+optional",
+                    "type": "integer"
+                },
+                "signerName": {
+                    "description": "Kubelet's generated CSRs will be addressed to this signer.\n\n+required",
+                    "type": "string"
                 }
             }
         },
@@ -4563,6 +5073,17 @@ const docTemplate = `{
                 "PodSucceeded",
                 "PodFailed",
                 "PodUnknown"
+            ]
+        },
+        "v1.PodSELinuxChangePolicy": {
+            "type": "string",
+            "enum": [
+                "Recursive",
+                "MountOption"
+            ],
+            "x-enum-varnames": [
+                "SELinuxChangePolicyRecursive",
+                "SELinuxChangePolicyMountOption"
             ]
         },
         "v1.PodSecurityContext": {
@@ -4599,6 +5120,14 @@ const docTemplate = `{
                 "runAsUser": {
                     "description": "The UID to run the entrypoint of the container process.\nDefaults to user specified in image metadata if unspecified.\nMay also be set in SecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence\nfor that container.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
                     "type": "integer"
+                },
+                "seLinuxChangePolicy": {
+                    "description": "seLinuxChangePolicy defines how the container's SELinux label is applied to all volumes used by the Pod.\nIt has no effect on nodes that do not support SELinux or to volumes does not support SELinux.\nValid values are \"MountOption\" and \"Recursive\".\n\n\"Recursive\" means relabeling of all files on all Pod volumes by the container runtime.\nThis may be slow for large volumes, but allows mixing privileged and unprivileged Pods sharing the same volume on the same node.\n\n\"MountOption\" mounts all eligible Pod volumes with ` + "`" + `-o context` + "`" + ` mount option.\nThis requires all Pods that share the same volume to use the same SELinux label.\nIt is not possible to share the same volume among privileged and unprivileged Pods.\nEligible volumes are in-tree FibreChannel and iSCSI volumes, and all CSI volumes\nwhose CSI driver announces SELinux support by setting spec.seLinuxMount: true in their\nCSIDriver instance. Other volumes are always re-labelled recursively.\n\"MountOption\" value is allowed only when SELinuxMount feature gate is enabled.\n\nIf not specified and SELinuxMount feature gate is enabled, \"MountOption\" is used.\nIf not specified and SELinuxMount feature gate is disabled, \"MountOption\" is used for ReadWriteOncePod volumes\nand \"Recursive\" for all other volumes.\n\nThis field affects only Pods that have SELinux label set, either in PodSecurityContext or in SecurityContext of all containers.\n\nAll Pods that use the same volume should use the same seLinuxChangePolicy, otherwise some pods can get stuck in ContainerCreating state.\nNote that this field cannot be set when spec.os.name is windows.\n+featureGate=SELinuxChangePolicy\n+optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.PodSELinuxChangePolicy"
+                        }
+                    ]
                 },
                 "seLinuxOptions": {
                     "description": "The SELinux context to be applied to all containers.\nIf unspecified, the container runtime will allocate a random SELinux context for each\ncontainer.  May also be set in SecurityContext.  If set in\nboth SecurityContext and PodSecurityContext, the value specified in SecurityContext\ntakes precedence for that container.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
@@ -4693,7 +5222,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "exec": {
-                    "description": "Exec specifies the action to take.\n+optional",
+                    "description": "Exec specifies a command to execute in the container.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ExecAction"
@@ -4705,7 +5234,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "grpc": {
-                    "description": "GRPC specifies an action involving a GRPC port.\n+optional",
+                    "description": "GRPC specifies a GRPC HealthCheckRequest.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.GRPCAction"
@@ -4713,7 +5242,7 @@ const docTemplate = `{
                     ]
                 },
                 "httpGet": {
-                    "description": "HTTPGet specifies the http request to perform.\n+optional",
+                    "description": "HTTPGet specifies an HTTP GET request to perform.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.HTTPGetAction"
@@ -4733,7 +5262,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "tcpSocket": {
-                    "description": "TCPSocket specifies an action involving a TCP port.\n+optional",
+                    "description": "TCPSocket specifies a connection to a TCP port.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.TCPSocketAction"
@@ -4887,22 +5416,6 @@ const docTemplate = `{
                 "RecursiveReadOnlyEnabled"
             ]
         },
-        "v1.ResourceClaim": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "description": "Name must match the name of one entry in pod.spec.resourceClaims of\nthe Pod where this field is used. It makes that resource available\ninside a container.",
-                    "type": "string"
-                },
-                "request": {
-                    "description": "Request is the name chosen for a request in the referenced claim.\nIf empty, everything from the claim is made available, otherwise\nonly the result of this request.\n\n+optional",
-                    "type": "string"
-                }
-            }
-        },
         "v1.ResourceFieldSelector": {
             "type": "object",
             "required": [
@@ -4937,10 +5450,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "claims": {
-                    "description": "Claims lists the names of resources, defined in spec.resourceClaims,\nthat are used by this container.\n\nThis is an alpha field and requires enabling the\nDynamicResourceAllocation feature gate.\n\nThis field is immutable. It can only be set for containers.\n\n+listType=map\n+listMapKey=name\n+featureGate=DynamicResourceAllocation\n+optional",
+                    "description": "Claims lists the names of resources, defined in spec.resourceClaims,\nthat are used by this container.\n\nThis field depends on the\nDynamicResourceAllocation feature gate.\n\nThis field is immutable. It can only be set for containers.\n\n+listType=map\n+listMapKey=name\n+featureGate=DynamicResourceAllocation\n+optional",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/v1.ResourceClaim"
+                        "$ref": "#/definitions/k8s_io_api_core_v1.ResourceClaim"
                     }
                 },
                 "limits": {
@@ -5080,7 +5593,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -5100,7 +5613,7 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -5108,6 +5621,29 @@ const docTemplate = `{
                     "type": "boolean"
                 }
             }
+        },
+        "v1.SecretType": {
+            "type": "string",
+            "enum": [
+                "Opaque",
+                "kubernetes.io/service-account-token",
+                "kubernetes.io/dockercfg",
+                "kubernetes.io/dockerconfigjson",
+                "kubernetes.io/basic-auth",
+                "kubernetes.io/ssh-auth",
+                "kubernetes.io/tls",
+                "bootstrap.kubernetes.io/token"
+            ],
+            "x-enum-varnames": [
+                "SecretTypeOpaque",
+                "SecretTypeServiceAccountToken",
+                "SecretTypeDockercfg",
+                "SecretTypeDockerConfigJson",
+                "SecretTypeBasicAuth",
+                "SecretTypeSSHAuth",
+                "SecretTypeTLS",
+                "SecretTypeBootstrapToken"
+            ]
         },
         "v1.SecretVolumeSource": {
             "type": "object",
@@ -5457,7 +5993,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "awsElasticBlockStore": {
-                    "description": "awsElasticBlockStore represents an AWS Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore\n+optional",
+                    "description": "awsElasticBlockStore represents an AWS Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nDeprecated: AWSElasticBlockStore is deprecated. All operations for the in-tree\nawsElasticBlockStore type are redirected to the ebs.csi.aws.com CSI driver.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.AWSElasticBlockStoreVolumeSource"
@@ -5465,7 +6001,7 @@ const docTemplate = `{
                     ]
                 },
                 "azureDisk": {
-                    "description": "azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod.\n+optional",
+                    "description": "azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod.\nDeprecated: AzureDisk is deprecated. All operations for the in-tree azureDisk type\nare redirected to the disk.csi.azure.com CSI driver.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.AzureDiskVolumeSource"
@@ -5473,7 +6009,7 @@ const docTemplate = `{
                     ]
                 },
                 "azureFile": {
-                    "description": "azureFile represents an Azure File Service mount on the host and bind mount to the pod.\n+optional",
+                    "description": "azureFile represents an Azure File Service mount on the host and bind mount to the pod.\nDeprecated: AzureFile is deprecated. All operations for the in-tree azureFile type\nare redirected to the file.csi.azure.com CSI driver.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.AzureFileVolumeSource"
@@ -5481,7 +6017,7 @@ const docTemplate = `{
                     ]
                 },
                 "cephfs": {
-                    "description": "cephFS represents a Ceph FS mount on the host that shares a pod's lifetime\n+optional",
+                    "description": "cephFS represents a Ceph FS mount on the host that shares a pod's lifetime.\nDeprecated: CephFS is deprecated and the in-tree cephfs type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.CephFSVolumeSource"
@@ -5489,7 +6025,7 @@ const docTemplate = `{
                     ]
                 },
                 "cinder": {
-                    "description": "cinder represents a cinder volume attached and mounted on kubelets host machine.\nMore info: https://examples.k8s.io/mysql-cinder-pd/README.md\n+optional",
+                    "description": "cinder represents a cinder volume attached and mounted on kubelets host machine.\nDeprecated: Cinder is deprecated. All operations for the in-tree cinder type\nare redirected to the cinder.csi.openstack.org CSI driver.\nMore info: https://examples.k8s.io/mysql-cinder-pd/README.md\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.CinderVolumeSource"
@@ -5505,7 +6041,7 @@ const docTemplate = `{
                     ]
                 },
                 "csi": {
-                    "description": "csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers (Beta feature).\n+optional",
+                    "description": "csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.CSIVolumeSource"
@@ -5545,7 +6081,7 @@ const docTemplate = `{
                     ]
                 },
                 "flexVolume": {
-                    "description": "flexVolume represents a generic volume resource that is\nprovisioned/attached using an exec based plugin.\n+optional",
+                    "description": "flexVolume represents a generic volume resource that is\nprovisioned/attached using an exec based plugin.\nDeprecated: FlexVolume is deprecated. Consider using a CSIDriver instead.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.FlexVolumeSource"
@@ -5553,7 +6089,7 @@ const docTemplate = `{
                     ]
                 },
                 "flocker": {
-                    "description": "flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running\n+optional",
+                    "description": "flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running.\nDeprecated: Flocker is deprecated and the in-tree flocker type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.FlockerVolumeSource"
@@ -5561,7 +6097,7 @@ const docTemplate = `{
                     ]
                 },
                 "gcePersistentDisk": {
-                    "description": "gcePersistentDisk represents a GCE Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk\n+optional",
+                    "description": "gcePersistentDisk represents a GCE Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nDeprecated: GCEPersistentDisk is deprecated. All operations for the in-tree\ngcePersistentDisk type are redirected to the pd.csi.storage.gke.io CSI driver.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.GCEPersistentDiskVolumeSource"
@@ -5569,7 +6105,7 @@ const docTemplate = `{
                     ]
                 },
                 "gitRepo": {
-                    "description": "gitRepo represents a git repository at a particular revision.\nDEPRECATED: GitRepo is deprecated. To provision a container with a git repo, mount an\nEmptyDir into an InitContainer that clones the repo using git, then mount the EmptyDir\ninto the Pod's container.\n+optional",
+                    "description": "gitRepo represents a git repository at a particular revision.\nDeprecated: GitRepo is deprecated. To provision a container with a git repo, mount an\nEmptyDir into an InitContainer that clones the repo using git, then mount the EmptyDir\ninto the Pod's container.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.GitRepoVolumeSource"
@@ -5577,7 +6113,7 @@ const docTemplate = `{
                     ]
                 },
                 "glusterfs": {
-                    "description": "glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime.\nMore info: https://examples.k8s.io/volumes/glusterfs/README.md\n+optional",
+                    "description": "glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime.\nDeprecated: Glusterfs is deprecated and the in-tree glusterfs type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.GlusterfsVolumeSource"
@@ -5593,7 +6129,7 @@ const docTemplate = `{
                     ]
                 },
                 "image": {
-                    "description": "image represents an OCI object (a container image or artifact) pulled and mounted on the kubelet's host machine.\nThe volume is resolved at pod startup depending on which PullPolicy value is provided:\n\n- Always: the kubelet always attempts to pull the reference. Container creation will fail If the pull fails.\n- Never: the kubelet never pulls the reference and only uses a local image or artifact. Container creation will fail if the reference isn't present.\n- IfNotPresent: the kubelet pulls if the reference isn't already present on disk. Container creation will fail if the reference isn't present and the pull fails.\n\nThe volume gets re-resolved if the pod gets deleted and recreated, which means that new remote content will become available on pod recreation.\nA failure to resolve or pull the image during pod startup will block containers from starting and may add significant latency. Failures will be retried using normal volume backoff and will be reported on the pod reason and message.\nThe types of objects that may be mounted by this volume are defined by the container runtime implementation on a host machine and at minimum must include all valid types supported by the container image field.\nThe OCI object gets mounted in a single directory (spec.containers[*].volumeMounts.mountPath) by merging the manifest layers in the same way as for container images.\nThe volume will be mounted read-only (ro) and non-executable files (noexec).\nSub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath).\nThe field spec.securityContext.fsGroupChangePolicy has no effect on this volume type.\n+featureGate=ImageVolume\n+optional",
+                    "description": "image represents an OCI object (a container image or artifact) pulled and mounted on the kubelet's host machine.\nThe volume is resolved at pod startup depending on which PullPolicy value is provided:\n\n- Always: the kubelet always attempts to pull the reference. Container creation will fail If the pull fails.\n- Never: the kubelet never pulls the reference and only uses a local image or artifact. Container creation will fail if the reference isn't present.\n- IfNotPresent: the kubelet pulls if the reference isn't already present on disk. Container creation will fail if the reference isn't present and the pull fails.\n\nThe volume gets re-resolved if the pod gets deleted and recreated, which means that new remote content will become available on pod recreation.\nA failure to resolve or pull the image during pod startup will block containers from starting and may add significant latency. Failures will be retried using normal volume backoff and will be reported on the pod reason and message.\nThe types of objects that may be mounted by this volume are defined by the container runtime implementation on a host machine and at minimum must include all valid types supported by the container image field.\nThe OCI object gets mounted in a single directory (spec.containers[*].volumeMounts.mountPath) by merging the manifest layers in the same way as for container images.\nThe volume will be mounted read-only (ro) and non-executable files (noexec).\nSub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath) before 1.33.\nThe field spec.securityContext.fsGroupChangePolicy has no effect on this volume type.\n+featureGate=ImageVolume\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ImageVolumeSource"
@@ -5601,7 +6137,7 @@ const docTemplate = `{
                     ]
                 },
                 "iscsi": {
-                    "description": "iscsi represents an ISCSI Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://examples.k8s.io/volumes/iscsi/README.md\n+optional",
+                    "description": "iscsi represents an ISCSI Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes/#iscsi\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ISCSIVolumeSource"
@@ -5629,7 +6165,7 @@ const docTemplate = `{
                     ]
                 },
                 "photonPersistentDisk": {
-                    "description": "photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine",
+                    "description": "photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine.\nDeprecated: PhotonPersistentDisk is deprecated and the in-tree photonPersistentDisk type is no longer supported.",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.PhotonPersistentDiskVolumeSource"
@@ -5637,7 +6173,7 @@ const docTemplate = `{
                     ]
                 },
                 "portworxVolume": {
-                    "description": "portworxVolume represents a portworx volume attached and mounted on kubelets host machine\n+optional",
+                    "description": "portworxVolume represents a portworx volume attached and mounted on kubelets host machine.\nDeprecated: PortworxVolume is deprecated. All operations for the in-tree portworxVolume type\nare redirected to the pxd.portworx.com CSI driver when the CSIMigrationPortworx feature-gate\nis on.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.PortworxVolumeSource"
@@ -5653,7 +6189,7 @@ const docTemplate = `{
                     ]
                 },
                 "quobyte": {
-                    "description": "quobyte represents a Quobyte mount on the host that shares a pod's lifetime\n+optional",
+                    "description": "quobyte represents a Quobyte mount on the host that shares a pod's lifetime.\nDeprecated: Quobyte is deprecated and the in-tree quobyte type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.QuobyteVolumeSource"
@@ -5661,7 +6197,7 @@ const docTemplate = `{
                     ]
                 },
                 "rbd": {
-                    "description": "rbd represents a Rados Block Device mount on the host that shares a pod's lifetime.\nMore info: https://examples.k8s.io/volumes/rbd/README.md\n+optional",
+                    "description": "rbd represents a Rados Block Device mount on the host that shares a pod's lifetime.\nDeprecated: RBD is deprecated and the in-tree rbd type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.RBDVolumeSource"
@@ -5669,7 +6205,7 @@ const docTemplate = `{
                     ]
                 },
                 "scaleIO": {
-                    "description": "scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.\n+optional",
+                    "description": "scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.\nDeprecated: ScaleIO is deprecated and the in-tree scaleIO type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ScaleIOVolumeSource"
@@ -5685,7 +6221,7 @@ const docTemplate = `{
                     ]
                 },
                 "storageos": {
-                    "description": "storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes.\n+optional",
+                    "description": "storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes.\nDeprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.StorageOSVolumeSource"
@@ -5693,7 +6229,7 @@ const docTemplate = `{
                     ]
                 },
                 "vsphereVolume": {
-                    "description": "vsphereVolume represents a vSphere volume attached and mounted on kubelets host machine\n+optional",
+                    "description": "vsphereVolume represents a vSphere volume attached and mounted on kubelets host machine.\nDeprecated: VsphereVolume is deprecated. All operations for the in-tree vsphereVolume type\nare redirected to the csi.vsphere.vmware.com CSI driver.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.VsphereVirtualDiskVolumeSource"
@@ -5771,6 +6307,14 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.DownwardAPIProjection"
+                        }
+                    ]
+                },
+                "podCertificate": {
+                    "description": "Projects an auto-rotating credential bundle (private key and certificate\nchain) that the pod can use either as a TLS client or server.\n\nKubelet generates a private key and uses it to send a\nPodCertificateRequest to the named signer.  Once the signer approves the\nrequest and issues a certificate chain, Kubelet writes the key and\ncertificate chain to the pod filesystem.  The pod does not start until\ncertificates have been issued for each podCertificate projected volume\nsource in its spec.\n\nKubelet will begin trying to rotate the certificate at the time indicated\nby the signer using the PodCertificateRequest.Status.BeginRefreshAt\ntimestamp.\n\nKubelet can write a single file, indicated by the credentialBundlePath\nfield, or separate files, indicated by the keyPath and\ncertificateChainPath fields.\n\nThe credential bundle is a single file in PEM format.  The first PEM\nentry is the private key (in PKCS#8 format), and the remaining PEM\nentries are the certificate chain issued by the signer (typically,\nsigners will return their certificate chain in leaf-to-root order).\n\nPrefer using the credential bundle format, since your application code\ncan read it atomically.  If you use keyPath and certificateChainPath,\nyour application must make two separate file reads. If these coincide\nwith a certificate rotation, it is possible that the private key and leaf\ncertificate you read may not correspond to each other.  Your application\nwill need to check for this condition, and re-read until they are\nconsistent.\n\nThe named signer controls chooses the format of the certificate it\nissues; consult the signer implementation's documentation to learn how to\nuse the certificates it issues.\n\n+featureGate=PodCertificateProjection +optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.PodCertificateProjection"
                         }
                     ]
                 },
@@ -5882,48 +6426,141 @@ const docTemplate = `{
         "v1beta1.ActivityProbe": {
             "type": "object",
             "properties": {
-                "exec": {
-                    "description": "a shell command probe\n - if the Workspace had activity in the last 60 seconds this command\n   should return status 0, otherwise it should return status 1\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.ActivityProbeExec"
-                        }
-                    ]
-                },
                 "jupyter": {
-                    "description": "a Jupyter-specific probe\n - will poll the ` + "`" + `/api/status` + "`" + ` endpoint of the Jupyter API, and use the ` + "`" + `last_activity` + "`" + ` field\n - note, users need to be careful that their other probes don't trigger a \"last_activity\" update\n   e.g. they should only check the health of Jupyter using the ` + "`" + `/api/status` + "`" + ` endpoint\n+kubebuilder:validation:Optional",
+                    "description": "a Jupyter-specific API probe\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityProbeJupyter"
                         }
                     ]
-                }
-            }
-        },
-        "v1beta1.ActivityProbeExec": {
-            "type": "object",
-            "required": [
-                "command"
-            ],
-            "properties": {
-                "command": {
-                    "description": "the command to run\n+kubebuilder:validation:MinItems:=1\n+kubebuilder:example={\"bash\", \"-c\", \"exit 0\"}",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                },
+                "minProbeIntervalSeconds": {
+                    "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
+                    "type": "integer"
+                },
+                "podExec": {
+                    "description": "a script-based probe executed in the Pod\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityProbePodExec"
+                        }
+                    ]
+                },
+                "probeIntervalSeconds": {
+                    "description": "the desired interval in seconds between successful probes.\n - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n - Determines the freshness of workspace activity status used by activity rules.\n - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still\n   inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose\n   user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,\n   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible\n   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,\n   at the cost of more frequent probing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
+                    "type": "integer"
                 }
             }
         },
         "v1beta1.ActivityProbeJupyter": {
             "type": "object",
             "required": [
-                "lastActivity"
+                "lastActivity",
+                "portId"
             ],
             "properties": {
                 "lastActivity": {
                     "description": "if the Jupyter-specific probe is enabled\n+kubebuilder:example=true",
                     "type": "boolean"
+                },
+                "portId": {
+                    "description": "the port to probe, referencing a port defined in spec.podTemplate.ports",
+                    "type": "string"
+                }
+            }
+        },
+        "v1beta1.ActivityProbePodExec": {
+            "type": "object",
+            "required": [
+                "script"
+            ],
+            "properties": {
+                "script": {
+                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - The Pod's main container MUST provide a POSIX shell at \"/bin/sh\" and the \"cat\", \"chmod\",\n   and \"rm\" utilities, which the controller uses to stage and execute the script. Minimal\n   or distroless images without these will cause the probe to fail (and never pause).\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable.\n - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:\n   a successful probe unconditionally overwrites ` + "`" + `status.activity.lastActivity` + "`" + ` with the reported\n   timestamp (the controller does not validate monotonicity or clamp to wall-clock time).\n - The JSON fields ` + "`" + `has_activity` + "`" + ` (boolean) and ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) are mutually exclusive;\n   users should specify one or the other, not both. If both fields are present, ` + "`" + `has_activity` + "`" + ` takes\n   precedence and ` + "`" + `last_activity` + "`" + ` is totally ignored (the probe does not fail).\n   The fields are evaluated to update the Workspace status field ` + "`" + `status.activity.lastActivity` + "`" + ` as follows:\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `true` + "`" + ` (or if the JSON file is empty/omitted): The Workspace is treated as active, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the probe completion time (ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `false` + "`" + `: The Workspace is treated as inactive, and the existing ` + "`" + `status.activity.lastActivity` + "`" + ` timestamp is preserved (unchanged, ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) is provided (and ` + "`" + `has_activity` + "`" + ` is omitted): The Workspace is treated as inactive, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the ` + "`" + `last_activity` + "`" + ` timestamp.\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=2048",
+                    "type": "string"
+                },
+                "timeoutSeconds": {
+                    "description": "the maximum number of seconds the probe is allowed to run\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=60\n+kubebuilder:validation:Optional",
+                    "type": "integer"
+                }
+            }
+        },
+        "v1beta1.ActivityRule": {
+            "type": "object",
+            "required": [
+                "config",
+                "effect"
+            ],
+            "properties": {
+                "config": {
+                    "description": "the configuration for this rule",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityRuleConfig"
+                        }
+                    ]
+                },
+                "effect": {
+                    "description": "the action to take when the rule matches and its conditions are met",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityRuleEffect"
+                        }
+                    ]
+                },
+                "match": {
+                    "description": "the conditions under which this rule applies\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityRuleMatch"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.ActivityRuleConfig": {
+            "type": "object",
+            "required": [
+                "secondsSinceActive"
+            ],
+            "properties": {
+                "minRunningSeconds": {
+                    "description": "the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity\n+kubebuilder:validation:Minimum:=0\n+kubebuilder:default:=0\n+kubebuilder:validation:Optional",
+                    "type": "integer"
+                },
+                "secondsSinceActive": {
+                    "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (` + "`" + `secondsSinceActive` + "`" + ` \u003e 15) to prevent thrashing and pausing\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16",
+                    "type": "integer"
+                }
+            }
+        },
+        "v1beta1.ActivityRuleEffect": {
+            "type": "object",
+            "properties": {
+                "pauseWorkspace": {
+                    "description": "determines if the Workspace should be paused\n - the webhook rejects rules with ` + "`" + `pauseWorkspace: true` + "`" + `\n   when no ` + "`" + `activityProbe` + "`" + ` is configured\n+kubebuilder:validation:Optional",
+                    "type": "boolean"
+                }
+            }
+        },
+        "v1beta1.ActivityRuleMatch": {
+            "type": "object",
+            "properties": {
+                "matchNamespace": {
+                    "description": "filters Workspaces by namespace labels\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.NamespaceMatch"
+                        }
+                    ]
+                },
+                "matchPodConfig": {
+                    "description": "filters Workspaces by the PodConfig option they are using\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.PodConfigMatch"
+                        }
+                    ]
                 }
             }
         },
@@ -5977,7 +6614,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "image": {
-                    "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0\"",
+                    "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1\"",
                     "type": "string"
                 },
                 "imagePullPolicy": {
@@ -6091,6 +6728,22 @@ const docTemplate = `{
                 }
             }
         },
+        "v1beta1.NamespaceMatch": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "description": "the standard Kubernetes label selector to match namespace labels",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.LabelSelector"
+                        }
+                    ]
+                }
+            }
+        },
         "v1beta1.OptionRedirect": {
             "type": "object",
             "required": [
@@ -6188,6 +6841,22 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/v1beta1.PodConfigValue"
                     }
+                }
+            }
+        },
+        "v1beta1.PodConfigMatch": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "description": "the standard Kubernetes label selector to match podConfig labels",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.LabelSelector"
+                        }
+                    ]
                 }
             }
         },
@@ -6355,27 +7024,15 @@ const docTemplate = `{
                 "WorkspaceKindAssetMediaTypeSVG"
             ]
         },
-        "v1beta1.WorkspaceKindCullingConfig": {
+        "v1beta1.WorkspaceKindClusterRole": {
             "type": "object",
             "required": [
-                "activityProbe"
+                "name"
             ],
             "properties": {
-                "activityProbe": {
-                    "description": "the probe used to determine if the Workspace is active",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.ActivityProbe"
-                        }
-                    ]
-                },
-                "enabled": {
-                    "description": "if the culling feature is enabled\n+kubebuilder:validation:Optional\n+kubebuilder:default=true",
-                    "type": "boolean"
-                },
-                "maxInactiveSeconds": {
-                    "description": "the maximum number of seconds a Workspace can be inactive\n+kubebuilder:validation:Optional\n+kubebuilder:validation:Minimum:=60\n+kubebuilder:default=86400",
-                    "type": "integer"
+                "name": {
+                    "description": "the name of the ClusterRole to bind to the Workspace ServiceAccount\n - note, ClusterRole names are path segment names, so unlike most Kubernetes\n   resource names they may contain uppercase letters and \":\" (for example,\n   the aggregated \"system:aggregate-to-view\" ClusterRole)\n - the pattern is the regex form of Kubernetes ` + "`" + `IsValidPathSegmentName` + "`" + `:\n   the name must not be \".\" or \"..\", and must not contain \"/\" or \"%\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^([^./%][^/%]*|\\.[^./%][^/%]*|\\.[^/%][^/%]+)$\n+kubebuilder:example:=\"kubeflow-edit\"",
+                    "type": "string"
                 }
             }
         },
@@ -6428,23 +7085,22 @@ const docTemplate = `{
             "required": [
                 "options",
                 "ports",
-                "serviceAccount",
                 "volumeMounts"
             ],
             "properties": {
+                "activityProbe": {
+                    "description": "activityProbe configs to determine Workspace activity (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityProbe"
+                        }
+                    ]
+                },
                 "containerSecurityContext": {
                     "description": "container security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.SecurityContext"
-                        }
-                    ]
-                },
-                "culling": {
-                    "description": "culling configs for pausing inactive Workspaces (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindCullingConfig"
                         }
                     ]
                 },
@@ -6509,7 +7165,7 @@ const docTemplate = `{
                     ]
                 },
                 "serviceAccount": {
-                    "description": "service account configs for Workspace Pods",
+                    "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}\"\n - the resolved name is reported in the Workspace ` + "`" + `status.podTemplatePod.serviceAccountName` + "`" + `\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
@@ -6591,13 +7247,13 @@ const docTemplate = `{
         },
         "v1beta1.WorkspaceKindServiceAccount": {
             "type": "object",
-            "required": [
-                "name"
-            ],
             "properties": {
-                "name": {
-                    "description": "the name of the ServiceAccount (NOT MUTABLE)\n - this Service Account MUST already exist in the Namespace\n   of the Workspace, the controller will NOT create it\n - we will not show this WorkspaceKind in the Spawner UI\n   if the SA does not exist in the Namespace\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"ServiceAccount 'name' is immutable\"\n+kubebuilder:example=\"default-editor\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
-                    "type": "string"
+                "clusterRoles": {
+                    "description": "the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the\n   permissions only apply inside the Namespace of the Workspace\n - removing an entry deletes the corresponding RoleBinding\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.WorkspaceKindClusterRole"
+                    }
                 }
             }
         },
@@ -6679,6 +7335,107 @@ const docTemplate = `{
                 "WorkspaceStateUnknown"
             ]
         },
+        "workspacekinds.ActivityProbe": {
+            "type": "object",
+            "required": [
+                "minProbeIntervalSeconds",
+                "probeIntervalSeconds"
+            ],
+            "properties": {
+                "jupyter": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbeJupyter"
+                },
+                "minProbeIntervalSeconds": {
+                    "type": "integer"
+                },
+                "podExec": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbePodExec"
+                },
+                "probeIntervalSeconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityProbeJupyter": {
+            "type": "object",
+            "required": [
+                "lastActivity",
+                "portId"
+            ],
+            "properties": {
+                "lastActivity": {
+                    "type": "boolean"
+                },
+                "portId": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ActivityProbePodExec": {
+            "type": "object",
+            "required": [
+                "timeoutSeconds"
+            ],
+            "properties": {
+                "timeoutSeconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityRule": {
+            "type": "object",
+            "required": [
+                "config",
+                "effect"
+            ],
+            "properties": {
+                "config": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleConfig"
+                },
+                "effect": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleEffect"
+                },
+                "match": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleMatch"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleConfig": {
+            "type": "object",
+            "required": [
+                "secondsSinceActive"
+            ],
+            "properties": {
+                "minRunningSeconds": {
+                    "type": "integer"
+                },
+                "secondsSinceActive": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleEffect": {
+            "type": "object",
+            "required": [
+                "pauseWorkspace"
+            ],
+            "properties": {
+                "pauseWorkspace": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleMatch": {
+            "type": "object",
+            "properties": {
+                "matchNamespace": {
+                    "$ref": "#/definitions/workspacekinds.MatchNamespace"
+                },
+                "matchPodConfig": {
+                    "$ref": "#/definitions/workspacekinds.MatchPodConfig"
+                }
+            }
+        },
         "workspacekinds.ClusterKindMetrics": {
             "type": "object",
             "required": [
@@ -6687,6 +7444,28 @@ const docTemplate = `{
             "properties": {
                 "workspacesCount": {
                     "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.MatchNamespace": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "$ref": "#/definitions/v1.LabelSelector"
+                }
+            }
+        },
+        "workspacekinds.MatchPodConfig": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "$ref": "#/definitions/v1.LabelSelector"
                 }
             }
         },
@@ -6719,6 +7498,9 @@ const docTemplate = `{
                 "volumeMounts"
             ],
             "properties": {
+                "activityProbe": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbe"
+                },
                 "options": {
                     "description": "TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views",
                     "allOf": [
@@ -6777,9 +7559,16 @@ const docTemplate = `{
                 "icon",
                 "logo",
                 "name",
-                "podTemplate"
+                "podTemplate",
+                "restrictions"
             ],
             "properties": {
+                "activityRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.ActivityRule"
+                    }
+                },
                 "clusterMetrics": {
                     "$ref": "#/definitions/workspacekinds.ClusterKindMetrics"
                 },
@@ -6809,6 +7598,9 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -6820,6 +7612,12 @@ const docTemplate = `{
                 "spawner"
             ],
             "properties": {
+                "activityRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.ActivityRule"
+                    }
+                },
                 "podTemplate": {
                     "$ref": "#/definitions/v1beta1.WorkspaceKindPodTemplate"
                 },
@@ -6840,15 +7638,38 @@ const docTemplate = `{
             ],
             "properties": {
                 "lastActivity": {
-                    "description": "Unix Epoch time",
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "lastProbe": {
                     "$ref": "#/definitions/workspaces.LastProbeInfo"
                 },
                 "lastUpdate": {
-                    "description": "Unix Epoch time",
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
+                },
+                "rules": {
+                    "$ref": "#/definitions/workspaces.ActivityRules"
+                }
+            }
+        },
+        "workspaces.ActivityPauseRule": {
+            "type": "object",
+            "required": [
+                "eligibleAfter"
+            ],
+            "properties": {
+                "eligibleAfter": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                }
+            }
+        },
+        "workspaces.ActivityRules": {
+            "type": "object",
+            "properties": {
+                "pauseWorkspace": {
+                    "$ref": "#/definitions/workspaces.ActivityPauseRule"
                 }
             }
         },
@@ -6887,13 +7708,13 @@ const docTemplate = `{
         "workspaces.LastProbeInfo": {
             "type": "object",
             "required": [
-                "endTimeMs",
+                "endTime",
                 "message",
                 "result",
-                "startTimeMs"
+                "startTime"
             ],
             "properties": {
-                "endTimeMs": {
+                "endTime": {
                     "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
@@ -6903,7 +7724,7 @@ const docTemplate = `{
                 "result": {
                     "$ref": "#/definitions/workspaces.ProbeResult"
                 },
-                "startTimeMs": {
+                "startTime": {
                     "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 }
@@ -6967,27 +7788,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspaces.PodMetadata": {
-            "type": "object",
-            "required": [
-                "annotations",
-                "labels"
-            ],
-            "properties": {
-                "annotations": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "labels": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
         "workspaces.PodMetadataMutate": {
             "type": "object",
             "required": [
@@ -7006,24 +7806,6 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "workspaces.PodSecretInfo": {
-            "type": "object",
-            "required": [
-                "mountPath",
-                "secretName"
-            ],
-            "properties": {
-                "defaultMode": {
-                    "type": "integer"
-                },
-                "mountPath": {
-                    "type": "string"
-                },
-                "secretName": {
-                    "type": "string"
                 }
             }
         },
@@ -7048,19 +7830,11 @@ const docTemplate = `{
         "workspaces.PodTemplate": {
             "type": "object",
             "required": [
-                "options",
-                "podMetadata",
-                "volumes"
+                "options"
             ],
             "properties": {
                 "options": {
                     "$ref": "#/definitions/workspaces.PodTemplateOptions"
-                },
-                "podMetadata": {
-                    "$ref": "#/definitions/workspaces.PodMetadata"
-                },
-                "volumes": {
-                    "$ref": "#/definitions/workspaces.PodVolumes"
                 }
             }
         },
@@ -7113,25 +7887,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspaces.PodVolumeInfo": {
-            "type": "object",
-            "required": [
-                "mountPath",
-                "pvcName",
-                "readOnly"
-            ],
-            "properties": {
-                "mountPath": {
-                    "type": "string"
-                },
-                "pvcName": {
-                    "type": "string"
-                },
-                "readOnly": {
-                    "type": "boolean"
-                }
-            }
-        },
         "workspaces.PodVolumeMount": {
             "type": "object",
             "required": [
@@ -7147,29 +7902,6 @@ const docTemplate = `{
                 },
                 "readOnly": {
                     "type": "boolean"
-                }
-            }
-        },
-        "workspaces.PodVolumes": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspaces.PodVolumeInfo"
-                    }
-                },
-                "home": {
-                    "$ref": "#/definitions/workspaces.PodVolumeInfo"
-                },
-                "secrets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspaces.PodSecretInfo"
-                    }
                 }
             }
         },
@@ -7272,6 +8004,10 @@ const docTemplate = `{
                 "podTemplate"
             ],
             "properties": {
+                "displayName": {
+                    "description": "DisplayName is an optional human-readable name for the workspace.",
+                    "type": "string"
+                },
                 "kind": {
                     "type": "string"
                 },
@@ -7314,11 +8050,11 @@ const docTemplate = `{
             "required": [
                 "activity",
                 "audit",
+                "lastRunningTime",
                 "name",
                 "namespace",
                 "paused",
                 "pausedTime",
-                "pendingRestart",
                 "podTemplate",
                 "services",
                 "state",
@@ -7332,6 +8068,14 @@ const docTemplate = `{
                 "audit": {
                     "$ref": "#/definitions/common.Audit"
                 },
+                "displayName": {
+                    "description": "DisplayName is an optional human-readable name for the workspace.",
+                    "type": "string"
+                },
+                "lastRunningTime": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7342,10 +8086,8 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "pausedTime": {
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
-                },
-                "pendingRestart": {
-                    "type": "boolean"
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspaces.PodTemplate"
@@ -7375,6 +8117,10 @@ const docTemplate = `{
                 "revision"
             ],
             "properties": {
+                "displayName": {
+                    "description": "DisplayName is an optional human-readable name for the workspace.",
+                    "type": "string"
+                },
                 "paused": {
                     "description": "TODO: remove ` + "`" + `paused` + "`" + ` once we have an \"actions\" api for pausing workspaces",
                     "type": "boolean"

@@ -5,6 +5,10 @@ packages:
   local:
     - name: rhaii
       extensionsPath: ./extensions
-  bundled: []
+  bundled:
+    - package: '@odh-dashboard/kserve'
+      extensionsPath: ./extensions
+      featureFlags:
+        kserve: true
 
 featureFlags: {}

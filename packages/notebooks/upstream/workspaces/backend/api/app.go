@@ -20,12 +20,15 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"path"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/klauspost/compress/gzhttp"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -44,8 +47,18 @@ type App struct {
 	RequestAuthZ         authorizer.Authorizer
 }
 
-// NewApp creates a new instance of the app
-func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, configMapClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+// NewApp creates a new instance of the app.
+func NewApp(
+	cfg *config.EnvConfig,
+	logger *slog.Logger,
+	cl client.Client,
+	// configMapClient is a label-filtered cached client for image-source ConfigMaps.
+	configMapClient client.Client,
+	scheme *runtime.Scheme,
+	reqAuthN authenticator.Request,
+	reqAuthZ authorizer.Authorizer,
+	clientset kubernetes.Interface,
+) (*App, error) {
 
 	// TODO: log the configuration on startup
 
@@ -59,7 +72,7 @@ func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, config
 	app := &App{
 		Config:               cfg,
 		logger:               logger,
-		repositories:         repositories.NewRepositories(cfg, cl, configMapClient),
+		repositories:         repositories.NewRepositories(cfg, cl, configMapClient, clientset),
 		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,
@@ -77,6 +90,9 @@ func (a *App) Routes() http.Handler {
 
 	// healthcheck
 	router.GET(constants.HealthCheckPath, a.GetHealthcheckHandler)
+
+	// user
+	router.GET(constants.UserPath, a.GetUserHandler)
 
 	// namespaces
 	router.GET(constants.AllNamespacesPath, a.GetNamespacesHandler)
@@ -96,6 +112,8 @@ func (a *App) Routes() http.Handler {
 	router.PUT(constants.WorkspacesByNamePath, a.UpdateWorkspaceHandler)
 	router.DELETE(constants.WorkspacesByNamePath, a.DeleteWorkspaceHandler)
 	router.POST(constants.PauseWorkspacePath, a.PauseActionWorkspaceHandler)
+	router.GET(constants.WorkspacePodTemplateDetailsPath, a.GetWorkspacePodTemplateDetailsHandler)
+	router.GET(constants.WorkspacePodTemplatePodLogsBatchPath, a.GetWorkspacePodTemplateLogsHandler)
 
 	// workspacekinds
 	router.GET(constants.AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
@@ -120,5 +138,30 @@ func (a *App) Routes() http.Handler {
 		router.GET(constants.SwaggerPath, a.GetSwaggerHandler)
 	}
 
-	return a.recoverPanic(a.enableCORS(router))
+	// Create a mux to combine API routes with static file serving
+	mux := http.NewServeMux()
+
+	// API routes - handle /api/v1/* paths
+	mux.Handle(constants.PathPrefix+"/", router)
+
+	// Static file server for frontend assets (Module Federation support)
+	if a.Config.StaticAssetsDir != "" {
+		staticDir := http.Dir(a.Config.StaticAssetsDir)
+		fileServer := http.FileServer(staticDir)
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// Check if the requested file exists in static dir
+			if f, err := staticDir.Open(r.URL.Path); err == nil {
+				_ = f.Close()
+				a.logger.Debug("Serving static file", slog.String("path", r.URL.Path))
+				fileServer.ServeHTTP(w, r)
+				return
+			}
+
+			// Fallback to index.html for SPA routes
+			a.logger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+			http.ServeFile(w, r, path.Join(a.Config.StaticAssetsDir, "index.html"))
+		})
+	}
+
+	return a.recoverPanic(a.enableCORS(gzhttp.GzipHandler(mux)))
 }

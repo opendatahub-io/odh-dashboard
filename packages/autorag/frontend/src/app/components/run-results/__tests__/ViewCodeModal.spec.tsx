@@ -1,9 +1,18 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockNotification = {
   success: jest.fn(),
@@ -57,7 +66,7 @@ const mockTemplate: ResponsesTemplate = {
   include: ['file_search_call.results'],
 };
 
-const mockOgxCredentials = {
+const mockLegacyRunCredentials = {
   baseUrl: btoa('https://ogx.example.com'),
   apiKey: btoa('sk-test-key-123'),
 };
@@ -144,7 +153,7 @@ describe('ViewCodeModal', () => {
   describe('with credentials', () => {
     const propsWithCredentials = {
       ...defaultProps,
-      ogxCredentials: mockOgxCredentials,
+      ogxCredentials: mockLegacyRunCredentials,
     };
 
     it('should render the inject credentials toggle', () => {
@@ -230,6 +239,37 @@ describe('ViewCodeModal', () => {
       expect(copiedText).toContain('sk-test-key-123');
       expect(copiedText).not.toContain('<HOSTNAME>');
       expect(copiedText).not.toContain('<API_KEY>');
+    });
+
+    it('should fire AutoRAG Code Snippets Exported with action: copied when the clipboard write succeeds', async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
+
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
+
+      await waitFor(() => {
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED,
+          { action: 'copied' },
+        );
+      });
+    });
+
+    it('should not fire AutoRAG Code Snippets Exported when the clipboard write is rejected', async () => {
+      const writeText = jest.fn().mockRejectedValue(new Error('denied'));
+      Object.assign(navigator, { clipboard: { writeText } });
+
+      render(<ViewCodeModal {...propsWithCredentials} />);
+      fireEvent.click(screen.getByLabelText('Copy curl snippet'));
+
+      await waitFor(() => {
+        expect(writeText).toHaveBeenCalledTimes(1);
+      });
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED,
+        expect.anything(),
+      );
     });
 
     it('should not show the credentials warning alert when toggle is off', () => {

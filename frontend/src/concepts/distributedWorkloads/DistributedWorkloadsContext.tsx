@@ -5,18 +5,18 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { RefreshIntervalValue } from '@odh-dashboard/ui-core/utilities/metrics';
+import { MetricsCommonContext } from '@odh-dashboard/ui-core/contexts/MetricsCommonContext';
+import { conditionalArea } from '@odh-dashboard/ui-core/components/conditionalArea';
+import { useMakeFetchObject } from '@odh-dashboard/ui-core/hooks/useMakeFetchObject';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '#~/k8sTypes';
-import { conditionalArea } from '#~/concepts/areas';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
 import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
-import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
 import {
   DEFAULT_DW_PROJECT_CURRENT_METRICS,
   DWProjectCurrentMetrics,
-  getGenericErrorCode,
   useDWProjectCurrentMetrics,
 } from '#~/api';
-import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
 import PermissionsNotSet from './PermissionsNotSet';
 import useClusterQueues from './useClusterQueues';
 import useLocalQueues from './useLocalQueues';

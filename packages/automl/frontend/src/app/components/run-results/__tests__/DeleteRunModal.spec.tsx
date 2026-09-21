@@ -2,7 +2,16 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
+import { AUTOML_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  ...jest.requireActual('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils'),
+  fireFormTrackingEvent: jest.fn(),
+}));
+
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const renderModal = (props: Partial<React.ComponentProps<typeof DeleteRunModal>> = {}) => {
   const defaultProps: React.ComponentProps<typeof DeleteRunModal> = {
@@ -110,5 +119,33 @@ describe('DeleteRunModal', () => {
     renderModal({ isOpen: false });
 
     expect(screen.queryByTestId('delete-run-modal')).not.toBeInTheDocument();
+  });
+
+  it('should not close or fire a cancel event on Escape while a deletion is pending', async () => {
+    const onClose = jest.fn();
+    const user = userEvent.setup();
+    renderModal({ onClose, isDeleting: true });
+
+    await user.keyboard('{Escape}');
+
+    // PatternFly's Modal invokes onClose for Escape regardless of the disabled Cancel
+    // button — closing here would let a stray "cancel" event race with the submit
+    // success/failure event that handleDelete fires once the in-flight request resolves.
+    expect(onClose).not.toHaveBeenCalled();
+    expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
+  });
+
+  it('should close and fire a cancel event on Escape when no deletion is pending', async () => {
+    const onClose = jest.fn();
+    const user = userEvent.setup();
+    renderModal({ onClose, isDeleting: false });
+
+    await user.keyboard('{Escape}');
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      AUTOML_EVENTS.RUN_DELETED,
+      expect.objectContaining({ outcome: TrackingOutcome.cancel, source: 'runsList' }),
+    );
   });
 });

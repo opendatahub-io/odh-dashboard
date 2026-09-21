@@ -37,15 +37,14 @@ import {
 } from '@odh-dashboard/k8s-core/__mocks__/mockKserveMetricsConfigMap';
 import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { TrustyAIApplicationsModel } from '@odh-dashboard/trustyai/api/model';
+import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
-  ConfigMapModel,
   InferenceServiceModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
   ServingRuntimeModel,
   TemplateModel,
-  TrustyAIApplicationsModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import { projectDetailsSettingsTab } from '@odh-dashboard/cypress/cypress/pages/projects';
 import {

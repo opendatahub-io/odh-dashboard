@@ -1,0 +1,33 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  annotations:
+    openshift.io/display-name: {{SERVING_RUNTIME_DISPLAY_NAME}}
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/runtime-version: v0.0.1
+    opendatahub.io/support-status: unsupported
+  labels:
+    opendatahub.io/dashboard: 'true'
+  name: {{SERVING_RUNTIME_NAME}}
+spec:
+  containers:
+      - args:
+          - --port=8080
+          - --model=/mnt/models
+          - --served-model-name={{.Name}}
+        command:
+          - python
+          - -m
+          - vllm.entrypoints.openai.api_server
+        env:
+          - name: HF_HOME
+            value: /tmp/hf_home
+        name: kserve-container
+        ports:
+          - containerPort: 8080
+            protocol: TCP
+  multiModel: false
+  supportedModelFormats:
+    - autoSelect: true
+      name: vLLM
+

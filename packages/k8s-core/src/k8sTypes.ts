@@ -296,7 +296,6 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
@@ -322,9 +321,9 @@ export type DashboardCommonConfig = {
   gpuaas?: boolean;
   connectionTest?: boolean;
   modelCapabilities?: boolean;
-  modelDeploymentSettings?: boolean;
-  notebooksV2?: boolean;
+  workbenchesV2?: boolean;
   dataRegistry?: boolean;
+  dataConnectHub?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -525,6 +524,17 @@ export type RoleBindingKind = K8sResourceCommon & {
   roleRef: RoleBindingRoleRef;
 };
 
+export type ServiceAccountKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+    namespace: string;
+  };
+  secrets?: {
+    name: string;
+  }[];
+};
+
 export type TrustyAIKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -607,6 +617,8 @@ export type ClusterQueueKind = K8sResourceCommon & {
         resources: {
           name: ContainerResourceAttributes;
           nominalQuota: string | number;
+          borrowingLimit?: string | number;
+          lendingLimit?: string | number;
         }[];
       }[];
     }[];

@@ -101,6 +101,7 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
           props={{
             registeredModel: rm,
             preferredModelRegistryName: preferredModelRegistry?.name,
+            deploymentsUrl: `${rmUrl}/deployments`,
           }}
         />
       </Td>

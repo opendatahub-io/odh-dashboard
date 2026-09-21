@@ -1,5 +1,5 @@
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 export const fetchDashboardConfig = (forceRefresh = false): Promise<DashboardConfigKind> => {
   const url = '/api/config';

@@ -10,7 +10,7 @@ import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import {
   MultiSelection,
   type SelectionOptions,
-} from '@odh-dashboard/internal/components/MultiSelection';
+} from '@odh-dashboard/ui-core/components/MultiSelection';
 import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileFeatureVisibilityTitles } from './const';

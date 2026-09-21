@@ -1,4 +1,4 @@
-import { pollUntilSuccess } from './baseCommands';
+import { pollUntilSuccess, waitForNamespace } from './baseCommands';
 import type { CommandLineResult, DashboardConfig } from '../../types';
 import { handleOCCommandResult } from '../errorHandling';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -25,15 +25,24 @@ export const createOpenShiftProject = (
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.exitCode}`);
     }
-    // Add dashboard label immediately after project creation
-    const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
-    return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
-      if (labelResult.exitCode !== 0) {
-        cy.log(`WARNING: Failed to add dashboard label to ${projectName}
-                  stdout: ${labelResult.stdout}
-                  stderr: ${labelResult.stderr}`);
-      }
-      return cy.wrap(result);
+    // Wait until the namespace is patchable, then require the dashboard label
+    // and Active phase so the A.I. projects filter can see it.
+    return waitForNamespace(projectName, 30, 1000).then(() => {
+      const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
+      return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
+        if (labelResult.exitCode !== 0) {
+          throw new Error(
+            `Failed to add dashboard label to ${projectName}: ${
+              labelResult.stderr || labelResult.stdout
+            }`,
+          );
+        }
+        return pollUntilSuccess(
+          `oc get project ${projectName} -o json | jq -e '.metadata.labels["opendatahub.io/dashboard"] == "true" and .status.phase == "Active"'`,
+          `project ${projectName} dashboard-ready`,
+          { maxAttempts: 15, pollIntervalMs: 1000 },
+        ).then(() => cy.wrap(result));
+      });
     });
   });
 };
@@ -72,6 +81,47 @@ export const deleteOpenShiftProject = (
     }
     return result;
   });
+};
+
+/** Deletes a project without waiting; logs failures but does not throw (for after hooks). */
+export const deleteOpenShiftProjectBestEffort = (
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> =>
+  cy
+    .exec(`oc delete project ${projectName} --wait=false --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        cy.log(
+          `WARNING: best-effort delete of ${projectName} returned exit ${result.exitCode}: ${result.stderr}`,
+        );
+      }
+      return cy.wrap(result);
+    });
+
+/** Deletes any existing project, waits until it is gone, then creates a fresh one. */
+export const recreateOpenShiftProject = (
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const waitUntilGone = (attempt = 1): Cypress.Chainable<void> =>
+    verifyOpenShiftProjectExists(projectName).then((exists): Cypress.Chainable<void> => {
+      if (!exists) {
+        return cy.wrap(undefined as void);
+      }
+      if (attempt >= 60) {
+        throw new Error(`Project ${projectName} still exists after cleanup`);
+      }
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(2000).then(() => waitUntilGone(attempt + 1));
+    });
+
+  return cy
+    .exec(`oc delete project ${projectName} --wait=false --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then(() => waitUntilGone())
+    .then(() => createOpenShiftProject(projectName));
 };
 
 /**
@@ -159,7 +209,7 @@ export const waitForUserProjectAccess = (
   interval = 2000,
 ): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get project ${project} --as=${user} -o name`,
+    `oc get projects --as=${user} -o name | grep -qxF 'project.project.openshift.io/${project}'`,
     `${user} access to ${project}`,
     {
       maxAttempts: attempts,

@@ -99,17 +99,21 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
         objectType={ProjectObjectType.deployedModels}
         sectionType={SectionType.serving}
         title={startHintTitle}
-        headerInfo={
-          <Flex gap={{ default: 'gapSm' }}>
-            <Label>{enabledText}</Label>
-            <ResetPlatformButton
-              platforms={platforms}
-              hasDeployments={false}
-              isLoading={loadingState.type === 'reset'}
-              onReset={resetProjectPlatform}
-            />
-          </Flex>
-        }
+        {...(platforms.length > 1
+          ? {
+              headerInfo: (
+                <Flex gap={{ default: 'gapSm' }}>
+                  <Label>{enabledText}</Label>
+                  <ResetPlatformButton
+                    platforms={platforms}
+                    hasDeployments={false}
+                    isLoading={loadingState.type === 'reset'}
+                    onReset={resetProjectPlatform}
+                  />
+                </Flex>
+              ),
+            }
+          : {})}
       >
         <CardBody>
           <Stack hasGutter>
@@ -123,7 +127,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
           </Stack>
         </CardBody>
         <CardFooter>
-          <DeployButton project={currentProject} variant="link" />
+          <DeployButton project={currentProject} variant="link" fromProject />
         </CardFooter>
       </OverviewCard>
     </CollapsibleSection>

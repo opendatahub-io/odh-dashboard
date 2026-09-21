@@ -30,6 +30,7 @@ func (app *App) RecoverPanic(next http.Handler) http.Handler {
 }
 
 func requiresAuth(path string) bool {
+	// DataRegistryPathPrefix equals ApiPathPrefix (see app.go), so it's already covered here.
 	prefixes := []string{
 		ApiPathPrefix,
 		PathPrefix + ApiPathPrefix,
@@ -67,10 +68,15 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 	}
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:     app.config.AllowedOrigins,
-		AllowCredentials:   true,
-		AllowedMethods:     []string{"GET", "PUT", "POST", "PATCH", "DELETE"},
-		AllowedHeaders:     []string{constants.KubeflowUserIDHeader, constants.KubeflowUserGroupsIdHeader},
+		AllowedOrigins:   app.config.AllowedOrigins,
+		AllowCredentials: true,
+		AllowedMethods:   []string{"GET", "PUT", "POST", "PATCH", "DELETE", "HEAD"},
+		AllowedHeaders: []string{
+			constants.KubeflowUserIDHeader,
+			constants.KubeflowUserGroupsIdHeader,
+			"Authorization",
+			"Content-Type",
+		},
 		Debug:              app.config.LogLevel == slog.LevelDebug,
 		OptionsPassthrough: false,
 	})

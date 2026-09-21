@@ -46,6 +46,10 @@ const initIntercepts = () => {
       size: 2,
     }),
   });
+
+  cy.intercept('GET', '**/model-registry/api/v1/mcp_catalog/mcp_servers*', {
+    body: { data: { items: [], size: 0, pageSize: 5, nextPageToken: '' } },
+  });
 };
 
 describe('MCP server deployment delete', () => {
@@ -56,7 +60,6 @@ describe('MCP server deployment delete', () => {
   it('should delete a deployment via kebab action and confirmation modal', () => {
     cy.intercept('DELETE', `${MCP_DEPLOYMENTS_BFF}/kubernetes-mcp*`, {
       statusCode: 204,
-      body: '',
     }).as('deleteMcpDeployment');
 
     mcpDeploymentsPage.visit('mcp-servers');
@@ -68,6 +71,8 @@ describe('MCP server deployment delete', () => {
     modal.shouldBeVisible();
     modal.find().should('contain.text', 'Delete MCP server deployment?');
     modal.find().should('contain.text', 'kubernetes-mcp');
+    // This deployment is catalog-sourced (no registryServer), so no cascade cleanup applies.
+    modal.findCascadeCleanupAlert().should('not.exist');
 
     modal.findSubmitButton().should('be.disabled');
     modal.findInput().type('kubernetes-mcp');
@@ -80,7 +85,6 @@ describe('MCP server deployment delete', () => {
   it('should close the modal on Cancel without deleting', () => {
     cy.intercept('DELETE', `${MCP_DEPLOYMENTS_BFF}/kubernetes-mcp*`, {
       statusCode: 204,
-      body: '',
     }).as('deleteMcpDeployment');
 
     mcpDeploymentsPage.visit('mcp-servers');
@@ -95,6 +99,39 @@ describe('MCP server deployment delete', () => {
     modal.shouldNotExist();
     cy.get('@deleteMcpDeployment.all').should('have.length', 0);
     mcpDeploymentsPage.findTableRows().should('have.length', 2);
+  });
+
+  it('should show the cascade cleanup alert for a registry-sourced deployment', () => {
+    cy.intercept('GET', `${MCP_DEPLOYMENTS_BFF}*`, {
+      data: mockMcpDeploymentList({
+        items: [
+          mockMcpDeployment({
+            name: 'kubernetes-mcp',
+            registryServer: 'io.github.example/kubernetes-mcp',
+          }),
+        ],
+        size: 1,
+      }),
+    });
+    cy.intercept('DELETE', `${MCP_DEPLOYMENTS_BFF}/kubernetes-mcp*`, {
+      statusCode: 204,
+    }).as('deleteMcpDeployment');
+
+    mcpDeploymentsPage.visit('mcp-servers');
+    mcpDeploymentsPage.getRow('kubernetes-mcp').findKebabAction('Delete').click();
+
+    const modal = mcpDeploymentsPage.findDeleteModal();
+    modal.shouldBeVisible();
+    modal
+      .findCascadeCleanupAlert()
+      .should('contain.text', 'Cascade cleanup')
+      .and('contain.text', 'access binding in the MCP registry');
+
+    modal.findInput().type('kubernetes-mcp');
+    modal.findSubmitButton().click();
+
+    cy.wait('@deleteMcpDeployment');
+    modal.shouldNotExist();
   });
 
   it('should show an inline error when deletion fails and keep the modal open', () => {

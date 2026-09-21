@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
-import { HostApiContext } from '../HostApiContext';
+import { HostApiCoreContext } from '../HostApiCoreContext';
 
 /**
  * Used for a non-cached SSAR request.
@@ -14,7 +14,7 @@ export const useAccessReview = (
   resourceAttributes: AccessReviewResourceAttributes,
   shouldRunCheck = true,
 ): [boolean, boolean] => {
-  const { checkAccess } = React.useContext(HostApiContext);
+  const { checkAccess } = React.useContext(HostApiCoreContext);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [isAllowed, setAllowed] = React.useState(false);
 

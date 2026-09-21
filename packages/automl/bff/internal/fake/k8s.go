@@ -50,6 +50,7 @@ var fakeSecrets = map[string][]v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-secret",
 				Namespace: "my-project",
+				UID:       "2d5635c7-14f6-494b-a7b7-0b48ce9b421f",
 			},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("fake-access-key"),
@@ -62,6 +63,7 @@ var fakeSecrets = map[string][]v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-secret-with-bucket",
 				Namespace: "my-project",
+				UID:       "8f7a2b3e-9c1d-4e6f-b5a8-3d2c1e0f9a7b",
 			},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("fake-access-key"),

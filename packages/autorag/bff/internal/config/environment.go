@@ -102,7 +102,7 @@ func (d DeploymentMode) IsFederatedMode() bool {
 type EnvConfig struct {
 	Port                     int
 	MockK8sClient            bool
-	MockOGXClient            bool
+	MockMaaSClient           bool
 	MockPipelineServerClient bool
 	MockS3Client             bool
 	DevMode                  bool
@@ -138,10 +138,13 @@ type EnvConfig struct {
 	// Default: "documents-rag-optimization-pipeline"
 	AutoRAGPipelineNamePrefix string
 
-	// PipelineVersionSuffix is the release version suffix appended to pipeline version
-	// names during discovery (e.g. "<prefix>-<suffix>"). Override via PIPELINE_VERSION_SUFFIX
-	// env var when the deployed pipeline version differs from the built-in default.
-	// Default: constants.DefaultPipelineVersionSuffix
+	// IndexingPipelineNamePrefix is the display name used to identify the documents
+	// indexing managed pipeline during discovery.
+	// Default: "documents-indexing-pipeline"
+	IndexingPipelineNamePrefix string
+
+	// PipelineVersionSuffix is an optional explicit pipeline version display name pin during
+	// discovery. Override via the PIPELINE_VERSION_SUFFIX env var.
 	PipelineVersionSuffix string
 
 	// ─── TLS ────────────────────────────────────────────────────

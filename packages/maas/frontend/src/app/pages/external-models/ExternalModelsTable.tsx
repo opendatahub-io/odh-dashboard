@@ -9,6 +9,7 @@ type ExternalModelsTableProps = {
   onClearFilters: () => void;
   toolbarContent: React.ReactElement;
   emptyTableView: React.ReactNode;
+  setDeleteExternalModel: (externalModel: ExternalModel) => void;
 };
 
 export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
@@ -16,6 +17,7 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
   onClearFilters,
   toolbarContent,
   emptyTableView,
+  setDeleteExternalModel,
 }): React.ReactNode => (
   <Table
     data-testid="external-models-table"
@@ -30,6 +32,7 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
         key={externalModel.name}
         externalModel={externalModel}
         rowIndex={rowIndex}
+        setDeleteExternalModel={setDeleteExternalModel}
       />
     )}
     emptyTableView={emptyTableView ?? <DashboardEmptyTableView onClearFilters={onClearFilters} />}

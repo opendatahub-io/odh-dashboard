@@ -24,6 +24,6 @@ export enum BenchmarkSortOption {
 
 export const benchmarkSortLabels: Record<BenchmarkSortOption, string> = {
   [BenchmarkSortOption.DEFAULT]: 'Default',
-  [BenchmarkSortOption.NAME]: 'Alphabetical',
+  [BenchmarkSortOption.NAME]: 'Name',
   [BenchmarkSortOption.CATEGORY]: 'Category',
 };

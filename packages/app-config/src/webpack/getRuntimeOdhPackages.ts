@@ -19,30 +19,49 @@ export type RuntimeOdhPackages = {
   hostProvided: Set<string>;
 };
 
+type PackageJsonFile = {
+  dependencies?: Record<string, string>;
+  workspaces?: unknown;
+};
+
+const readPackageJson = (dir: string): PackageJsonFile | undefined => {
+  try {
+    const pkg: PackageJsonFile = JSON.parse(
+      fs.readFileSync(path.join(dir, 'package.json'), 'utf8'),
+    );
+    return pkg;
+  } catch {
+    return undefined;
+  }
+};
+
 const findMonorepoRoot = (): string => {
   let dir = process.cwd();
   while (dir !== path.dirname(dir)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
-      if (pkg.workspaces) {
-        return dir;
-      }
-    } catch {
-      // no package.json here, keep walking up
+    const pkg = readPackageJson(dir);
+    if (pkg?.workspaces != null) {
+      return dir;
     }
     dir = path.dirname(dir);
   }
   throw new Error(
     `Could not locate monorepo root from ${process.cwd()}. ` +
-      'Ensure webpack is invoked from a directory within the monorepo.',
+      'Ensure the bundler is invoked from a directory within the monorepo.',
   );
 };
+
+/**
+ * Read `dependencies` from the package.json in `startDir` (bundler `compiler.options.context`).
+ */
+const collectDependenciesFromContext = (startDir: string): Record<string, string> =>
+  readPackageJson(startDir)?.dependencies ?? {};
 
 const getWorkspacePackages = (root: string): WorkspacePackageInfo[] => {
   try {
     const stdout = execFileSync('npm', ['query', '.workspace', '--json'], {
       encoding: 'utf8',
       cwd: root,
+      shell: process.platform === 'win32',
     });
     const packages: WorkspacePackageInfo[] = JSON.parse(stdout);
     if (packages.length === 0) {
@@ -117,4 +136,5 @@ const getRuntimeOdhPackages = (packages?: WorkspacePackageInfo[]): RuntimeOdhPac
 
 module.exports = {
   getRuntimeOdhPackages,
+  collectDependenciesFromContext,
 };

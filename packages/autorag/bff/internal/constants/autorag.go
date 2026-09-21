@@ -9,15 +9,15 @@ const (
 	DefaultOptimizationMetric = MetricOverallScore
 	DefaultPreset             = "speed"
 
-	MinRagPatterns = 4
-	MaxRagPatterns = 20
+	MinRagPatterns        = 4
+	MaxRagPatterns        = 10
+	DefaultMaxRagPatterns = 5
 
 	// PipelineTypeAutoRAG identifies the AutoRAG pipeline type used during discovery and in run responses.
 	PipelineTypeAutoRAG = "autorag"
 
-	// DefaultPipelineVersionSuffix is the release version suffix appended to pipeline version names.
-	// Override at runtime with the PIPELINE_VERSION_SUFFIX env var.
-	DefaultPipelineVersionSuffix = "3.5.0"
+	// PipelineTypeIndexing identifies the documents-indexing-pipeline type used during discovery and in run responses.
+	PipelineTypeIndexing = "indexing"
 )
 
 var ValidOptimizationMetrics = map[string]bool{

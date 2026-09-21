@@ -30,3 +30,6 @@ export const evaluationCompareRoute = (namespace?: string): string =>
 
 export const evaluationCompareBenchmarksRoute = (namespace?: string): string =>
   `${evaluationCompareRoute(namespace)}/benchmarks`;
+
+export const evaluationReconfigureRoute = (namespace?: string, jobId?: string): string =>
+  `${evaluationsBaseRoute(namespace)}/reconfigure/${jobId ?? ':jobId'}`;

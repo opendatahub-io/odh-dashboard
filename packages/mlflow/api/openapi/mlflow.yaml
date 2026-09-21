@@ -350,6 +350,44 @@ paths:
       summary: Delete Prompt Version
       description: Deletes a specific version of a prompt.
 
+  /api/v1/mcp-registry/register:
+    summary: Register an MCP server (create version + optional metadata and tags).
+    post:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/workspace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterMCPServerRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/RegisterMCPServerResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: registerMCPServer
+      summary: Register MCP Server
+      description: >-
+        Orchestrates MCP Registry registration in one call: creates a server
+        version from server_json (and optional tools/status/source), then
+        best-effort updates server display_name/icons and sets tags. Version
+        creation failures are hard errors; metadata and tag failures are
+        reported on the response without failing the overall request.
   /api/v1/mcp-registry/servers:
     summary: Search or register MCP Registry servers.
     description: >-
@@ -541,8 +579,8 @@ paths:
             schema:
               $ref: "#/components/schemas/SetMCPTagRequest"
       responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
+        "200":
+          $ref: "#/components/responses/MCPTagResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -911,8 +949,8 @@ paths:
             schema:
               $ref: "#/components/schemas/SetMCPTagRequest"
       responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
+        "200":
+          $ref: "#/components/responses/MCPTagResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1162,6 +1200,135 @@ paths:
       operationId: deleteMCPAccessEndpoint
       summary: Delete MCP Access Endpoint
       description: Removes an access endpoint from an MCP server.
+
+  /api/v1/mcp-catalog/servers/{id}/tools:
+    summary: List tools for an MCP catalog server.
+    description: >-
+      Proxies to the model-registry catalog BFF to list tools exposed by an MCP
+      catalog server. Used by the register flow so the mlflow frontend does not
+      call the model-registry BFF directly.
+    get:
+      tags:
+        - MCPCatalogProxy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: MCP catalog server ID.
+        - name: namespace
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Catalog namespace that owns the MCP server.
+        - name: filterQuery
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: orderBy
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sortOrder
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: nextPageToken
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated list of MCP catalog tools.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/McpToolList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getMcpServerTools
+      summary: List MCP catalog server tools
+      description: Returns tools for an MCP catalog server via model-registry inter-BFF proxy.
+
+  /api/v1/mcp-catalog/servers/{id}/mcpserver:
+    summary: Convert an MCP catalog server to an MCPServer CR.
+    description: >-
+      Proxies to the model-registry BFF converter endpoint
+      (GET /mcp_catalog/mcp_servers/:id/mcpserver). Used by the register flow
+      so the mlflow frontend does not call the model-registry BFF directly.
+    get:
+      tags:
+        - MCPCatalogProxy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: MCP catalog server ID.
+        - name: namespace
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Catalog namespace that owns the MCP server.
+      responses:
+        "200":
+          description: Converted MCPServer custom resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/McpServerCR"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getMcpServerConverter
+      summary: Convert MCP catalog server to MCPServer CR
+      description: Returns an MCPServer CR via model-registry inter-BFF proxy.
 
   /api/v1/user:
     summary: Path used to Retrieve a user based on the header.
@@ -1481,6 +1648,31 @@ components:
         next_page_token:
           type: string
           description: Token for fetching the next page of results.
+    MCPServerJSON:
+      description: >-
+        MCP server.json document. name and version are required by the BFF when
+        creating or registering a version; additionalProperties preserves open
+        manifest fields (packages, remotes, title, etc.).
+      type: object
+      required:
+        - name
+        - version
+      properties:
+        name:
+          type: string
+          description: Server identity; must match the registry server name.
+          example: io.github.example/weather-server
+        version:
+          type: string
+          description: Version string from the server.json manifest.
+          example: "1.0.0"
+        description:
+          type: string
+        _meta:
+          type: object
+          additionalProperties: true
+          description: Extension metadata bag (reverse-DNS keys).
+      additionalProperties: true
     MCPTool:
       description: A single tool exposed by an MCP server version.
       type: object
@@ -1569,6 +1761,127 @@ components:
         last_updated_timestamp:
           type: string
           format: date-time
+    McpToolList:
+      type: object
+      description: Paginated list of MCP catalog tools (proxied from model-registry).
+      properties:
+        nextPageToken:
+          type: string
+        pageSize:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              serverId:
+                type: string
+              tool:
+                $ref: "#/components/schemas/MCPCatalogTool"
+    MCPCatalogTool:
+      type: object
+      description: MCP catalog tool shape used when registering from the catalog.
+      required:
+        - name
+        - accessType
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        accessType:
+          type: string
+          enum:
+            - read_only
+            - read_write
+            - execute
+        revoked:
+          type: boolean
+        revokedReason:
+          type: string
+        parameters:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - type
+              - required
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+              description:
+                type: string
+              required:
+                type: boolean
+    McpServerCR:
+      type: object
+      description: >-
+        MCPServer custom resource returned by the model-registry converter
+        (deploy prefill). Full CR tree is opaque/pass-through; required fields
+        used by deploy UI are documented here.
+      required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+      properties:
+        apiVersion:
+          type: string
+          example: mcp.x-k8s.io/v1alpha1
+        kind:
+          type: string
+          example: MCPServer
+        metadata:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+            namespace:
+              type: string
+            annotations:
+              type: object
+              additionalProperties:
+                type: string
+          additionalProperties: true
+        spec:
+          type: object
+          required:
+            - source
+            - config
+          properties:
+            source:
+              type: object
+              properties:
+                type:
+                  type: string
+                containerImage:
+                  type: object
+                  properties:
+                    ref:
+                      type: string
+              additionalProperties: true
+            config:
+              type: object
+              properties:
+                port:
+                  type: integer
+                path:
+                  type: string
+              additionalProperties: true
+            runtime:
+              type: object
+              additionalProperties: true
+          additionalProperties: true
+      additionalProperties: true
     MCPServer:
       description: An MLflow MCP Registry server entry.
       type: object
@@ -1672,8 +1985,7 @@ components:
           type: string
           example: "1.0.0"
         server_json:
-          type: object
-          description: The MCP server.json manifest describing how to run the server.
+          $ref: "#/components/schemas/MCPServerJSON"
         status:
           type: string
           enum:
@@ -1734,8 +2046,7 @@ components:
         - server_json
       properties:
         server_json:
-          type: object
-          description: The MCP server.json manifest describing how to run the server.
+          $ref: "#/components/schemas/MCPServerJSON"
         status:
           type: string
           enum:
@@ -1753,6 +2064,80 @@ components:
           type: object
           additionalProperties:
             $ref: "#/components/schemas/MCPConnectOptionSettings"
+    RegisterMCPServerRequest:
+      description: >-
+        Request body for the composite Register MCP server operation. name must
+        match server_json.name. Metadata (display_name/icons) and tags are
+        applied best-effort after the version is created.
+      type: object
+      required:
+        - name
+        - server_json
+      properties:
+        name:
+          type: string
+          description: MCP Registry server name (namespace/slug). Must match server_json.name.
+          example: io.github.example/weather-server
+        server_json:
+          $ref: "#/components/schemas/MCPServerJSON"
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - deprecated
+            - deleted
+        source:
+          type: string
+        tools:
+          type: array
+          description: >-
+            Catalog-shaped tools from the MCP catalog. The BFF drops revoked
+            tools and converts the rest to the MCP Registry tool schema.
+          items:
+            $ref: "#/components/schemas/MCPCatalogTool"
+        display_name:
+          type: string
+          description: Optional human-readable label stored on the parent MCP server.
+        icons:
+          type: array
+          description: Optional icons stored on the parent MCP server (http or https URLs).
+          items:
+            type: object
+            required:
+              - src
+            properties:
+              src:
+                type: string
+              theme:
+                type: string
+                enum:
+                  - light
+                  - dark
+        tags:
+          type: array
+          description: Optional tags to set on the parent MCP server after registration.
+          items:
+            $ref: "#/components/schemas/SetMCPTagRequest"
+    RegisterMCPServerResult:
+      description: >-
+        Result of Register MCP server. Always includes the created version when
+        the request succeeds (201). Soft-failure fields are set when follow-up
+        metadata or tag writes fail.
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          $ref: "#/components/schemas/MCPServerVersion"
+        metadata_error:
+          type: string
+          description: Present when display_name/icons could not be saved after version creation.
+        failed_tag_keys:
+          type: array
+          description: Tag keys that could not be set after version creation.
+          items:
+            type: string
     MCPAccessEndpoint:
       description: A concrete, reachable URL bound to an MCP server.
       type: object
@@ -1908,6 +2293,18 @@ components:
           example: latest
     SetMCPTagRequest:
       description: Request body for setting a tag on an MCP server or server version.
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          example: category
+        value:
+          type: string
+          example: weather
+    MCPTag:
+      description: A tag key-value pair echoed in responses after setting a tag.
       type: object
       required:
         - key
@@ -2136,6 +2533,35 @@ components:
             required:
               - data
       description: A response containing a single MCP server version.
+    MCPTagResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/MCPTag"
+            required:
+              - data
+      description: A response echoing the tag that was set on an MCP server or server version.
+    RegisterMCPServerResponse:
+      headers:
+        Location:
+          schema:
+            type: string
+          description: URI of the created MCP server version.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/RegisterMCPServerResult"
+            required:
+              - data
+      description: >-
+        Composite register response. HTTP 201 means the version was created;
+        metadata_error / failed_tag_keys report best-effort follow-up failures.
     MCPAccessEndpointsResponse:
       content:
         application/json:
@@ -2321,3 +2747,5 @@ tags:
     description: Operations on the MLflow Prompt Registry
   - name: MCPRegistryOperation
     description: Operations on the MLflow MCP (Model Context Protocol) Server Registry
+  - name: MCPCatalogProxy
+    description: Inter-BFF proxies to model-registry MCP catalog APIs

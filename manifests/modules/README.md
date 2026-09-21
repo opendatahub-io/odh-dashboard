@@ -1,6 +1,6 @@
-# Standalone module manifests
+# Module manifests
 
-Each directory is a **complete, independently deployable** kustomize package for a BFF module running as its own Kubernetes Deployment. These are used by the Dashboard Module Controller when `spec.deploymentMode: Standalone` is set on the Dashboard CR.
+Each directory is a **complete, independently deployable** kustomize package for a BFF module running as its own Kubernetes Deployment. These are used by the Dashboard Module Controller.
 
 ```bash
 # One module
@@ -49,10 +49,4 @@ Each directory contains:
 
 ## DSC component gating
 
-The Dashboard Module Controller (`dashboard-operator`) gates each module against DSC component availability. Modules with no DSC gate (`gen-ai`, `maas`, `agent-ops`) are deployed whenever the Dashboard CR is in Managed/Standalone state. Modules with a DSC gate are only deployed when the corresponding component is set to `Managed` in the Dashboard CR `spec.components` map.
-
-## Sidecar counterparts
-
-The sidecar JSON6902 patches for the same modules live at [`../sidecar/deployment.yaml`](../sidecar/deployment.yaml). In sidecar mode all BFFs run as containers inside the main `odh-dashboard` pod; in standalone mode each runs as its own pod from this directory.
-
-Do **not** apply both overlays simultaneously — that runs two copies of each BFF.
+The Dashboard Module Controller (`dashboard-operator`) gates each module against DSC component availability. Modules with no DSC gate (`gen-ai`, `maas`, `agent-ops`) are deployed whenever the Dashboard CR is in Managed state. Modules with a DSC gate are only deployed when the corresponding component is set to `Managed` in the Dashboard CR `spec.components` map.

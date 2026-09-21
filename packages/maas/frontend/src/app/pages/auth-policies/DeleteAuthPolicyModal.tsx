@@ -16,7 +16,7 @@ const DeleteAuthPolicyModal: React.FC<DeleteAuthPolicyModalProps> = ({ authPolic
   }
   return (
     <DeleteModal
-      title="Delete Policy?"
+      title="Delete policy?"
       onClose={() => {
         onClose();
       }}
@@ -32,7 +32,7 @@ const DeleteAuthPolicyModal: React.FC<DeleteAuthPolicyModalProps> = ({ authPolic
     >
       <Stack hasGutter>
         <StackItem data-testid="delete-modal-confirmation-message">
-          Are you sure you want to delete the Policy{' '}
+          Are you sure you want to delete the policy{' '}
           <strong>{authPolicy.displayName || authPolicy.name}</strong>?
         </StackItem>
       </Stack>

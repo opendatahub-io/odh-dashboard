@@ -46,6 +46,51 @@ class EvaluationFileCreator extends Modal {
   }
 }
 
+class FileExplorer {
+  findBrowseBucketButton() {
+    return cy.findByTestId('browse-bucket-button');
+  }
+
+  find() {
+    return cy.findByTestId('file-explorer-table');
+  }
+
+  // When multiple file explorer instances are open at once (e.g. document selector
+  // layered over the main configure page), the most recently opened one is last in the DOM.
+  findLast() {
+    return cy.findAllByTestId('file-explorer-table').last();
+  }
+
+  findSearch() {
+    return cy.findByTestId('file-explorer-search');
+  }
+
+  findFolder(folderName: string) {
+    return this.find().findByRole('button', { name: folderName });
+  }
+
+  findRow(rowText: string) {
+    return this.find().contains('td', rowText);
+  }
+
+  findLastRowCheckbox(rowText: string) {
+    return this.findLast().contains('tr', rowText).find('input[type="checkbox"]');
+  }
+
+  findSelectButton() {
+    return cy.findByTestId('file-explorer-select-btn');
+  }
+
+  findLastSelectButton() {
+    return cy.findAllByTestId('file-explorer-select-btn').last();
+  }
+
+  navigateIntoFolder(folderName: string) {
+    this.findFolder(folderName).click();
+    return this;
+  }
+}
+
 class EvaluationFileSelector {
   find() {
     return cy.findByTestId('evaluation-file-selector');
@@ -70,3 +115,4 @@ class EvaluationFileSelector {
 
 export const evaluationFileCreator = new EvaluationFileCreator();
 export const evaluationFileSelector = new EvaluationFileSelector();
+export const fileExplorer = new FileExplorer();

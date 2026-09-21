@@ -1,6 +1,7 @@
 export type DeployPrefillData = {
   modelName: string;
   modelUri?: string;
+  catalogModelId?: string;
   returnRouteValue?: string;
   cancelReturnRouteValue?: string;
   wizardStartIndex?: number;

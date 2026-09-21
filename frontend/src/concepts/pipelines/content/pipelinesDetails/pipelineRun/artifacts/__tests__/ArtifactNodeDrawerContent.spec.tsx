@@ -2,13 +2,26 @@ import * as React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import { Drawer } from '@patternfly/react-core';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { act } from 'react';
 import { PipelineTask } from '#~/concepts/pipelines/topology';
 import { Artifact, Value } from '#~/third_party/mlmd';
 import { ArtifactNodeDrawerContent } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/ArtifactNodeDrawerContent';
+
+jest.mock('#~/components/markdown/MarkdownComponent', () => ({
+  __esModule: true,
+  default: ({ data }: { data: string }) => <div data-testid="mock-markdown">{data}</div>,
+}));
+
+const mockReadBoundedText = jest.fn();
+jest.mock('#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils', () => ({
+  ...jest.requireActual(
+    '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils',
+  ),
+  readBoundedText: (...args: unknown[]) => mockReadBoundedText(...args),
+}));
 
 const task: PipelineTask = {
   type: 'artifact',
@@ -26,7 +39,6 @@ jest.mock('#~/concepts/pipelines/content/compareRuns/metricsSection/roc/utils', 
   isConfidenceMetric: jest.fn(() => true),
 }));
 
-// Mock the useDispatch hook
 jest.mock('#~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
@@ -76,7 +88,24 @@ jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({
   })),
 }));
 
+const mockGetStorageObjectDownloadUrl = jest.fn();
+const mockGetStorageObjectRenderUrl = jest.fn();
+
+jest.mock('#~/concepts/pipelines/apiHooks/useArtifactStorage', () => ({
+  useArtifactStorage: () => ({
+    getStorageObjectSize: jest.fn(),
+    getStorageObjectDownloadUrl: mockGetStorageObjectDownloadUrl,
+    getStorageObjectRenderUrl: mockGetStorageObjectRenderUrl,
+  }),
+}));
+
 describe('ArtifactNodeDrawerContent', () => {
+  beforeEach(() => {
+    mockGetStorageObjectDownloadUrl.mockReset();
+    mockGetStorageObjectRenderUrl.mockReset();
+    mockReadBoundedText.mockReset();
+  });
+
   it('renders artifact drawer content', async () => {
     await act(async () =>
       render(
@@ -233,6 +262,62 @@ describe('ArtifactNodeDrawerContent', () => {
     );
 
     expect(screen.queryByRole('tab', { name: 'Visualization' })).toBeNull();
+  });
+
+  it('renders markdown visualization natively when fetch succeeds', async () => {
+    mockGetStorageObjectDownloadUrl.mockResolvedValue('https://example.com/md');
+    mockReadBoundedText.mockResolvedValue('# Hello Markdown');
+    global.fetch = jest.fn().mockResolvedValue({ ok: true } as Response);
+
+    const user = userEvent.setup();
+    render(
+      <BrowserRouter>
+        <Drawer isExpanded>
+          <ArtifactNodeDrawerContent
+            task={{
+              ...task,
+              metadata: createArtifact('system.Markdown'),
+            }}
+            upstreamTaskName="some-upstream-task"
+            onClose={jest.fn()}
+          />
+        </Drawer>
+      </BrowserRouter>,
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Visualization' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-markdown')).toHaveTextContent('# Hello Markdown');
+    });
+    expect(screen.queryByTestId('artifact-visualization')).toBeNull();
+    expect(screen.getByTestId('artifact-visualization-expand')).toBeInTheDocument();
+  });
+
+  it('falls back to iframe when markdown fetch fails', async () => {
+    mockGetStorageObjectDownloadUrl.mockRejectedValue(new Error('CORS'));
+    mockGetStorageObjectRenderUrl.mockResolvedValue('https://example.com/render');
+
+    const user = userEvent.setup();
+    render(
+      <BrowserRouter>
+        <Drawer isExpanded>
+          <ArtifactNodeDrawerContent
+            task={{
+              ...task,
+              metadata: createArtifact('system.Markdown'),
+            }}
+            upstreamTaskName="some-upstream-task"
+            onClose={jest.fn()}
+          />
+        </Drawer>
+      </BrowserRouter>,
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Visualization' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('artifact-visualization')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('mock-markdown')).toBeNull();
   });
 });
 

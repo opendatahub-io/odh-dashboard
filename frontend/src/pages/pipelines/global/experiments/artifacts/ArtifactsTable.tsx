@@ -7,6 +7,7 @@ import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Artifact } from '#~/third_party/mlmd';
 import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
+import useFilters from '#~/utilities/useFilters';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
 import ArtifactsTableRow from './ArtifactsTableRow';
 
@@ -28,15 +29,8 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
     setMaxResultSize,
   } = useMlmdListContext(nextPageToken);
   const [page, setPage] = React.useState(1);
-  const [filterData, setFilterData] = React.useState(initialFilterData);
-  const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), []);
+  const { filterData, onFilterUpdate, onClearFilters } = useFilters(initialFilterData);
   const [pageTokens, setPageTokens] = React.useState<Record<number, string>>({});
-
-  const onFilterUpdate = React.useCallback(
-    (key: string, value: string | { label: string; value: string } | undefined) =>
-      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
-    [],
-  );
 
   const onNextPageClick = React.useCallback(
     (_: React.SyntheticEvent<HTMLButtonElement>, nextPage: number) => {

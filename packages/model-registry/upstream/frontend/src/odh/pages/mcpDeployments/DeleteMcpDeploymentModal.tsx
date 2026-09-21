@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Alert, Stack, StackItem } from '@patternfly/react-core';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import DeleteModal from '~/app/shared/components/DeleteModal';
 import { deleteMcpDeployment } from '~/odh/api/mcpDeploymentService';
@@ -44,8 +45,25 @@ const DeleteMcpDeploymentModal: React.FC<DeleteMcpDeploymentModalProps> = ({
       confirmationRequiredIndicator
       error={deleteError}
     >
-      The <strong>{getDeploymentDisplayName(deployment)}</strong> MCP server deployment and its API
-      keys will be deleted, and its endpoint will no longer be available as an AI asset.
+      <Stack hasGutter>
+        <StackItem>
+          The <strong>{getDeploymentDisplayName(deployment)}</strong> MCP server deployment and its
+          API keys will be deleted, and its endpoint will no longer be available as an AI asset.
+        </StackItem>
+        {deployment.registryServer && (
+          <StackItem>
+            <Alert
+              isInline
+              variant="info"
+              title="Cascade cleanup"
+              data-testid="cascade-cleanup-alert"
+            >
+              Deleting this deployment removes the MCPServer from the cluster and deletes the
+              matching access binding in the MCP registry.
+            </Alert>
+          </StackItem>
+        )}
+      </Stack>
     </DeleteModal>
   );
 };

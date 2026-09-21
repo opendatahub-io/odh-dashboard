@@ -1,237 +1,16 @@
-import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
-import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
-import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
-import { mockCohortK8sResource } from '@odh-dashboard/internal/__mocks__/mockCohortK8sResource';
-import { mockResourceFlavorK8sResource } from '@odh-dashboard/internal/__mocks__/mockResourceFlavorK8sResource';
-import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { ClusterQueueModel, CohortModel, ResourceFlavorModel } from '../../../utils/models';
+import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
+import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
+import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
+import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
+import { LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { initIntercepts, type InitInterceptsOptions } from './infrastructureMocks';
+import { PodModel, ProjectModel } from '../../../utils/models';
+import { getK8sAPIResourceURL } from '../../../utils/k8s';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';
-
-const mockPrometheusResponse = (value: string) => ({
-  data: {
-    result: [{ value: [Date.now() / 1000, value] }],
-    resultType: 'vector',
-  },
-  status: 'success',
-});
-
-const mockEmptyPrometheusResponse = () => ({
-  data: { result: [], resultType: 'vector' },
-  status: 'success',
-});
-
-const mockHardwareModelResponse = (models: { modelName: string; count: string }[]) => ({
-  data: {
-    result: models.map(({ modelName, count }) => ({
-      metric: { modelName },
-      value: [Date.now() / 1000, count],
-    })),
-    resultType: 'vector',
-  },
-  status: 'success',
-});
-
-const NODE_LABEL_KEY = 'label_nvidia_com_gpu_product';
-const mockNodeLabelResponse = (models: { label: string; count: string }[]) => ({
-  data: {
-    result: models.map(({ label, count }) => ({
-      metric: { [NODE_LABEL_KEY]: label },
-      value: [Date.now() / 1000, count],
-    })),
-    resultType: 'vector',
-  },
-  status: 'success',
-});
-
-const mockPrometheusResponseWithModel = (modelName: string, value: string) => ({
-  data: {
-    result: [{ metric: { modelName }, value: [Date.now() / 1000, value] }],
-    resultType: 'vector',
-  },
-  status: 'success',
-});
-
-const NOW_S = Math.floor(Date.now() / 1000);
-const ONE_HOUR_S = 3600;
-
-const makeRangeResult = (cqName: string, netValues: number[]) => ({
-  // eslint-disable-next-line camelcase
-  metric: { cluster_queue: cqName },
-  values: netValues.map((v, i): [number, string] => [
-    NOW_S - (netValues.length - i) * ONE_HOUR_S,
-    String(v),
-  ]),
-});
-
-const makePrometheusRangeResponse = (results: ReturnType<typeof makeRangeResult>[]) => ({
-  code: 200,
-  response: {
-    status: 'success',
-    data: {
-      resultType: 'matrix',
-      result: results,
-    },
-  },
-});
-
-type InitInterceptsOptions = {
-  isKueueInstalled?: boolean;
-  gpuaas?: boolean;
-  hasAccelerators?: boolean;
-  hasDcgm?: boolean;
-  hasHardwareModels?: boolean;
-  hasNodeLabels?: boolean;
-  /** When set, per-model DCGM queries return data keyed by this model name. */
-  dcgmModelName?: string;
-  clusterQueues?: Parameters<typeof mockClusterQueueK8sResource>[0][];
-  cohortNames?: string[];
-  resourceFlavors?: Parameters<typeof mockResourceFlavorK8sResource>[0][];
-  hasChartData?: boolean;
-};
-
-const MOCK_HARDWARE_MODELS = [
-  { modelName: 'NVIDIA H100', count: '8' },
-  { modelName: 'NVIDIA A100', count: '12' },
-  { modelName: 'NVIDIA L40S', count: '6' },
-  { modelName: 'AMD MI300X', count: '4' },
-];
-
-const MOCK_HARDWARE_IN_USE = [
-  { modelName: 'NVIDIA H100', count: '8' },
-  { modelName: 'NVIDIA A100', count: '12' },
-  { modelName: 'NVIDIA L40S', count: '4' },
-  { modelName: 'AMD MI300X', count: '2' },
-];
-
-const MOCK_NODE_LABELS = [
-  { label: 'NVIDIA L40S', count: '4' },
-  { label: 'AMD MI300X', count: '2' },
-];
-
-const initIntercepts = ({
-  isKueueInstalled = true,
-  gpuaas = true,
-  hasAccelerators = true,
-  hasDcgm = true,
-  hasHardwareModels = true,
-  hasNodeLabels = false,
-  dcgmModelName,
-  clusterQueues = [{ name: 'test-cq' }],
-  cohortNames = ['test-cohort'],
-  resourceFlavors = [],
-  hasChartData = false,
-}: InitInterceptsOptions = {}) => {
-  cy.interceptOdh(
-    'GET /api/dsc/status',
-    mockDscStatus({
-      components: {
-        [DataScienceStackComponent.KUEUE]: {
-          managementState: isKueueInstalled ? 'Managed' : 'Removed',
-        },
-      },
-    }),
-  );
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ gpuaas }));
-  cy.interceptOdh('GET /api/components', null, mockComponents());
-
-  cy.interceptK8sList(
-    ClusterQueueModel,
-    mockK8sResourceList(clusterQueues.map((opts) => mockClusterQueueK8sResource(opts))),
-  );
-  cy.interceptK8sList(
-    CohortModel,
-    mockK8sResourceList(cohortNames.map((name) => mockCohortK8sResource({ name }))),
-  );
-  cy.interceptK8sList(
-    ResourceFlavorModel,
-    mockK8sResourceList(resourceFlavors.map((opts) => mockResourceFlavorK8sResource(opts))),
-  );
-
-  cy.interceptOdh('POST /api/prometheus/cluster/query', (req) => {
-    const { query } = req.body;
-
-    // DCGM per-model queries must come before the generic 'modelName' check because
-    // they contain both 'DCGM_FI_*' and 'modelName' in the same query string.
-    if (query.includes('modelName') && query.includes('pod')) {
-      // Hardware usage per-model (pod-level resource requests).
-      req.reply({
-        code: 200,
-        response:
-          hasDcgm && hasHardwareModels
-            ? mockHardwareModelResponse(MOCK_HARDWARE_IN_USE)
-            : mockEmptyPrometheusResponse(),
-      });
-    } else if (query.includes('DCGM_FI_PROF_GR_ENGINE_ACTIVE')) {
-      // Per-model query: return model-keyed data; aggregate query: return single value.
-      req.reply({
-        code: 200,
-        response: hasDcgm
-          ? query.includes('modelName')
-            ? dcgmModelName
-              ? mockPrometheusResponseWithModel(dcgmModelName, '30')
-              : mockHardwareModelResponse(MOCK_HARDWARE_MODELS)
-            : mockPrometheusResponse('79.5')
-          : mockEmptyPrometheusResponse(),
-      });
-    } else if (query.includes('DCGM_FI_DEV_FB_USED')) {
-      req.reply({
-        code: 200,
-        response: hasDcgm
-          ? query.includes('modelName')
-            ? dcgmModelName
-              ? mockPrometheusResponseWithModel(dcgmModelName, '35')
-              : mockHardwareModelResponse(MOCK_HARDWARE_IN_USE)
-            : mockPrometheusResponse('83.2')
-          : mockEmptyPrometheusResponse(),
-      });
-    } else if (query.includes('modelName')) {
-      // Generic hardware model count query (no DCGM, no pod filter).
-      req.reply({
-        code: 200,
-        response:
-          hasDcgm && hasHardwareModels
-            ? mockHardwareModelResponse(MOCK_HARDWARE_MODELS)
-            : mockEmptyPrometheusResponse(),
-      });
-    } else if (query.includes('kube_node_status_allocatable')) {
-      req.reply({
-        code: 200,
-        response: hasAccelerators ? mockPrometheusResponse('16') : mockEmptyPrometheusResponse(),
-      });
-    } else if (query.includes('kube_pod_container_resource_requests')) {
-      req.reply({
-        code: 200,
-        response: hasAccelerators ? mockPrometheusResponse('11') : mockEmptyPrometheusResponse(),
-      });
-    } else if (query.includes('kube_node_labels')) {
-      req.reply({
-        code: 200,
-        response: hasNodeLabels
-          ? mockNodeLabelResponse(MOCK_NODE_LABELS)
-          : mockEmptyPrometheusResponse(),
-      });
-    } else {
-      req.reply(404);
-    }
-  });
-
-  cy.interceptOdh('POST /api/prometheus/cluster/queryRange', (req) => {
-    if (req.body.query && req.body.query.includes('kueue_cluster_queue_resource_usage')) {
-      req.reply(
-        makePrometheusRangeResponse(
-          hasChartData
-            ? clusterQueues.map((opts) => makeRangeResult(opts.name ?? '', [2, -1, 3, 0, 2, -2, 1]))
-            : [],
-        ),
-      );
-    } else {
-      req.reply(404);
-    }
-  });
-};
 
 describe('GPUaaS Infrastructure Page', () => {
   it('should not be accessible for non-admin users', () => {
@@ -268,7 +47,7 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findComputeUtilizationCard().should('contain.text', '80%');
       infrastructurePage.findMemoryUtilizationCard().should('contain.text', '83%');
       infrastructurePage.findRefreshBadge().should('exist');
-      infrastructurePage.findRefreshBadge().should('contain.text', 'Last update');
+      infrastructurePage.findRefreshBadge().should('contain.text', 'Updated');
     });
 
     it('should display empty states when no accelerators are present', () => {
@@ -384,237 +163,204 @@ describe('GPUaaS Infrastructure Page', () => {
     });
   });
 
-  describe('Cluster queue utilization section', () => {
+  describe('Cluster queue workloads section', () => {
+    const PROJECT_D = 'project-d';
+    const CLUSTER_QUEUE = 'burst-training';
+    const LOCAL_QUEUE = 'large-model-jobs';
+    const COHORT = 'ml-training';
+
+    const gpuPodSet: WorkloadPodSet = {
+      count: 1,
+      name: 'main',
+      template: {
+        metadata: {},
+        spec: {
+          containers: [
+            {
+              name: 'main',
+              image: 'test-image',
+              env: [],
+              resources: { requests: { 'nvidia.com/gpu': '2' } },
+            },
+          ],
+        },
+      },
+    };
+
+    const makeGpuWorkload = (name: string, mockStatus: WorkloadStatusType): WorkloadKind => ({
+      ...mockWorkloadK8sResource({
+        k8sName: name,
+        namespace: PROJECT_D,
+        ownerName: `${name}-owner`,
+        ownerKind: WorkloadOwnerType.Job,
+        mockStatus,
+        podSets: [gpuPodSet],
+      }),
+      spec: {
+        ...mockWorkloadK8sResource({
+          k8sName: name,
+          namespace: PROJECT_D,
+          mockStatus,
+          podSets: [gpuPodSet],
+        }).spec,
+        queueName: LOCAL_QUEUE,
+      },
+    });
+
+    const pendingWorkload = makeGpuWorkload('llm-pretrain-run', WorkloadStatusType.Pending);
+    const inadmissibleWorkload = makeGpuWorkload(
+      'multimodal-trial',
+      WorkloadStatusType.Inadmissible,
+    );
+
+    const initWorkloadIntercepts = ({
+      workloads = [pendingWorkload, inadmissibleWorkload],
+      workloadListError = false,
+    }: {
+      workloads?: WorkloadKind[];
+      workloadListError?: boolean;
+    } = {}) => {
+      initIntercepts({
+        clusterQueues: [
+          {
+            name: CLUSTER_QUEUE,
+            cohortName: COHORT,
+            gpuFlavorName: 'a100-flavor',
+            gpuNominalQuota: 8,
+          },
+        ],
+        cohortNames: ['research', { name: COHORT, parentName: 'research' }],
+        resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
+      });
+
+      cy.interceptK8sList(
+        ProjectModel,
+        mockK8sResourceList([
+          mockProjectK8sResource({
+            k8sName: PROJECT_D,
+            displayName: 'Project-D',
+            enableKueue: true,
+          }),
+        ]),
+      );
+
+      cy.interceptK8sList({ model: PodModel, ns: PROJECT_D }, mockK8sResourceList([]));
+
+      const projectDLocalQueue = {
+        ...mockLocalQueueK8sResource({
+          name: LOCAL_QUEUE,
+          namespace: PROJECT_D,
+        }),
+        spec: { clusterQueue: CLUSTER_QUEUE },
+      };
+
+      // Cluster-wide LocalQueue index (listAllLocalQueues). interceptK8sList infers ns from mock
+      // items and would register a namespaced path; listAllLocalQueues is cluster-scoped.
+      cy.intercept(
+        'GET',
+        getK8sAPIResourceURL(LocalQueueModel),
+        mockK8sResourceList([projectDLocalQueue]),
+      );
+
+      cy.interceptK8sList(
+        { model: LocalQueueModel, ns: PROJECT_D },
+        mockK8sResourceList([projectDLocalQueue]),
+      );
+
+      if (workloadListError) {
+        cy.interceptK8sList({ model: WorkloadModel, ns: PROJECT_D }, { statusCode: 500 });
+      } else {
+        cy.interceptK8sList(
+          { model: WorkloadModel, ns: PROJECT_D },
+          mockK8sResourceList(workloads),
+        );
+      }
+
+      cy.intercept(
+        'GET',
+        `/api/k8s/apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/${PROJECT_D}/localqueues/${LOCAL_QUEUE}/pendingworkloads`,
+        {
+          kind: 'PendingWorkloadsSummary',
+          apiVersion: 'visibility.kueue.x-k8s.io/v1beta2',
+          metadata: {},
+          items: [
+            {
+              metadata: { name: 'llm-pretrain-run', namespace: PROJECT_D },
+              priority: 0,
+              localQueueName: LOCAL_QUEUE,
+              positionInClusterQueue: 0,
+              positionInLocalQueue: 0,
+            },
+          ],
+        },
+      );
+    };
+
     beforeEach(() => {
       asClusterAdminUser();
     });
 
-    it('should show empty state when no GPU CQs exist or all are CPU-only', () => {
-      // Stage 1: no cluster queues at all
-      initIntercepts({ clusterQueues: [], cohortNames: [], resourceFlavors: [] });
+    it('should not show workloads section when a cohort is selected', () => {
+      initWorkloadIntercepts();
       infrastructurePage.visit();
-      infrastructurePage.switchToClusterQueueUtilizationTab();
-      infrastructurePage
-        .findCQUtilizationEmptyState()
-        .should('exist')
-        .should('contain.text', 'No accelerator cluster queues found');
-
-      // Stage 2: only CPU-only CQ — same empty state
-      initIntercepts({
-        clusterQueues: [
-          {
-            name: 'cq-cpu-only',
-            cohortName: 'cohort-1',
-            gpuFlavorName: undefined,
-            hasResourceGroups: true,
-          },
-        ],
-        cohortNames: ['cohort-1'],
-        resourceFlavors: [],
-      });
-      infrastructurePage.visit();
-      infrastructurePage.switchToClusterQueueUtilizationTab();
-      infrastructurePage.findCQUtilizationEmptyState().should('exist');
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(COHORT).click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', COHORT);
+      infrastructurePage.findQuotaUsageWorkloadsSection().should('not.exist');
     });
 
-    it('should render CQ card with subtitle, hardware badge, donut, workload counts, and cohort accordion', () => {
-      initIntercepts({
-        clusterQueues: [
-          {
-            name: 'cq-gpu',
-            cohortName: 'cohort-1',
-            gpuFlavorName: 'a100-flavor',
-            gpuNominalQuota: 8,
-            gpuUsed: 5,
-            admittedWorkloads: 2,
-            pendingWorkloads: 1,
-          },
-        ],
-        cohortNames: ['cohort-1'],
-        resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
-      });
+    it('should show workloads table when a cluster queue is selected', () => {
+      initWorkloadIntercepts();
       infrastructurePage.visit();
-      infrastructurePage.switchToClusterQueueUtilizationTab();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(CLUSTER_QUEUE).click();
+      infrastructurePage.findQuotaUsageWorkloadsSection().should('exist');
+      infrastructurePage.findClusterQueueWorkloadsTable().should('exist');
       infrastructurePage
-        .findCQUtilizationSubtitle()
-        .should('contain.text', 'Compute profile accelerator utilization grouped by Kueue cohort.');
-      infrastructurePage.findCohortAccordion('cohort-1').should('exist');
-      infrastructurePage.findCQCard('cq-gpu').should('exist');
-      infrastructurePage.findHardwareModelBadge('NVIDIA A100').should('exist');
-      infrastructurePage.findAcceleratorDonutChart().should('exist');
+        .findClusterQueueWorkloadRow(PROJECT_D, 'llm-pretrain-run')
+        .should('contain.text', 'Project-D')
+        .and('contain.text', 'Queued')
+        .and('contain.text', '1st');
       infrastructurePage
-        .findCQWorkloadCounts()
-        .should('contain.text', 'Workloads: 2 active, 1 pending');
+        .findClusterQueueWorkloadRow(PROJECT_D, 'multimodal-trial')
+        .should('contain.text', 'Inadmissible')
+        .and('contain.text', '--');
     });
 
-    it('should render two CQ cards with DCGM utilization columns when telemetry is available', () => {
-      initIntercepts({
-        clusterQueues: [
-          {
-            name: 'notebook-queues',
-            cohortName: 'research-sandbox',
-            gpuFlavorName: 'mi300x-flavor',
-            gpuNominalQuota: 6,
-            gpuUsed: 2,
-            admittedWorkloads: 2,
-            pendingWorkloads: 2,
-          },
-          {
-            name: 'experiment-queues',
-            cohortName: 'research-sandbox',
-            gpuFlavorName: 'mi300x-flavor',
-            gpuNominalQuota: 4,
-            gpuUsed: 0,
-            admittedWorkloads: 0,
-            pendingWorkloads: 1,
-          },
-        ],
-        cohortNames: ['research-sandbox'],
-        resourceFlavors: [{ name: 'mi300x-flavor', gpuProduct: 'AMD MI300X' }],
-        dcgmModelName: 'AMD MI300X',
-      });
+    it('should show empty state when the cluster queue has no workloads', () => {
+      initWorkloadIntercepts({ workloads: [] });
       infrastructurePage.visit();
-      infrastructurePage.switchToClusterQueueUtilizationTab();
-      infrastructurePage.scrollToCQUtilizationSection();
-      infrastructurePage.findCohortAccordion('research-sandbox').should('exist');
-      infrastructurePage.findCQCard('notebook-queues').should('exist');
-      infrastructurePage.findCQCard('experiment-queues').should('exist');
-      // Scope to one card since both share the same model badge testid
-      infrastructurePage
-        .findCQCard('notebook-queues')
-        .findByTestId('hardware-model-badge-AMD MI300X')
-        .should('exist');
-      infrastructurePage.findAcceleratorDonutChartInCard('notebook-queues').should('exist');
-      infrastructurePage.findAcceleratorDonutChartInCard('experiment-queues').should('exist');
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(CLUSTER_QUEUE).click();
+      infrastructurePage.findClusterQueueWorkloadsEmptyState().should('exist');
+      infrastructurePage.findClusterQueueWorkloadsTable().should('not.exist');
     });
 
-    describe('borrow donut state', () => {
-      // a100-train-queues: 6 nominal, 4 used → 2 unallocated (available to borrow); burst-training: 8 nominal, 10 used, 2 borrowed
-      const COHORT = 'ml-training-cohort';
-      const FLAVOR = 'a100-flavor';
+    it('should filter workloads by name and status', () => {
+      initWorkloadIntercepts();
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(CLUSTER_QUEUE).click();
+      infrastructurePage.findClusterQueueWorkloadsNameFilter().type('llm-pretrain');
+      infrastructurePage.findClusterQueueWorkloadRow(PROJECT_D, 'llm-pretrain-run').should('exist');
+      infrastructurePage
+        .findClusterQueueWorkloadRow(PROJECT_D, 'multimodal-trial')
+        .should('not.exist');
+      infrastructurePage.findClusterQueueWorkloadsNameFilter().clear();
+      infrastructurePage.findClusterQueueWorkloadsStatusFilter().click();
+      cy.findByRole('option', { name: 'Queued' }).click();
+      infrastructurePage.findClusterQueueWorkloadRow(PROJECT_D, 'llm-pretrain-run').should('exist');
+      infrastructurePage
+        .findClusterQueueWorkloadRow(PROJECT_D, 'multimodal-trial')
+        .should('not.exist');
+    });
 
-      beforeEach(() => {
-        initIntercepts({
-          clusterQueues: [
-            {
-              name: 'a100-train-queues',
-              cohortName: COHORT,
-              gpuFlavorName: FLAVOR,
-              gpuNominalQuota: 6,
-              gpuUsed: 4,
-              admittedWorkloads: 1,
-              pendingWorkloads: 2,
-            },
-            {
-              name: 'burst-training',
-              cohortName: COHORT,
-              gpuFlavorName: FLAVOR,
-              gpuNominalQuota: 8,
-              gpuUsed: 10,
-              gpuBorrowed: 2,
-              admittedWorkloads: 2,
-              pendingWorkloads: 2,
-            },
-          ],
-          cohortNames: [COHORT],
-          resourceFlavors: [{ name: FLAVOR, gpuProduct: 'NVIDIA A100' }],
-          dcgmModelName: 'NVIDIA A100',
-        });
-        infrastructurePage.visit();
-        infrastructurePage.switchToClusterQueueUtilizationTab();
-        infrastructurePage.scrollToCQUtilizationSection();
-      });
-
-      it('shows borrow badge, no lent badge, workload counts, all chart columns, and per-model badge popovers', () => {
-        // Cohort-level badges
-        infrastructurePage.findCohortAccordion(COHORT).should('exist');
-        infrastructurePage.findCohortBorrowBadge().should('exist');
-        infrastructurePage
-          .findCohortUnallocatedBorrowable()
-          .should('contain.text', '2 available to borrow');
-
-        // Unallocated-capacity CQ — no borrow badge, normal donut
-        infrastructurePage
-          .findWorkloadCountsInCard('a100-train-queues')
-          .should('contain.text', 'Workloads: 1 active, 2 pending');
-        infrastructurePage.findAcceleratorDonutChartInCard('a100-train-queues').should('exist');
-        infrastructurePage
-          .findCQCard('a100-train-queues')
-          .should('contain.text', 'Compute consumption')
-          .should('contain.text', 'Memory consumption');
-
-        // Borrower card
-        infrastructurePage
-          .findCQBorrowBadgeInCard('burst-training')
-          .should('contain.text', 'Borrowed: 2');
-        infrastructurePage
-          .findWorkloadCountsInCard('burst-training')
-          .should('contain.text', 'Workloads: 2 active, 2 pending');
-        infrastructurePage.findAcceleratorDonutChartInCard('burst-training').should('exist');
-        infrastructurePage
-          .findCQCard('burst-training')
-          .should('contain.text', 'Compute consumption')
-          .should('contain.text', 'Memory consumption');
-
-        // Borrowed badge popover: shows per-model borrowed count
-        infrastructurePage.findCQBorrowBadgeInCard('burst-training').click();
-        infrastructurePage
-          .findOpenPopover()
-          .should('contain.text', 'Borrowed capacity')
-          .should('contain.text', '2 × NVIDIA A100');
-        cy.get('body').type('{esc}');
-      });
-
-      it('shows per-model breakdown in donut segment hover tooltip', () => {
-        // a100-train-queues has unallocated capacity but is shown as a normal donut (no Lent segment).
-        // Hovering the used segment shows the own-capacity tooltip.
-        infrastructurePage
-          .findAcceleratorDonutChartInCard('a100-train-queues')
-          .find('svg path')
-          .first()
-          .trigger('mouseover', { force: true });
-        infrastructurePage
-          .findCQCard('a100-train-queues')
-          .should('contain.text', 'NVIDIA A100: 4/6 in use');
-      });
-
-      describe('pure borrower CQ (nominal=0, used>0)', () => {
-        const PURE_BORROWER_COHORT = 'burst-cohort';
-        const PURE_BORROWER_FLAVOR = 'h100-flavor';
-
-        beforeEach(() => {
-          initIntercepts({
-            clusterQueues: [
-              {
-                name: 'pure-borrower-cq',
-                cohortName: PURE_BORROWER_COHORT,
-                gpuFlavorName: PURE_BORROWER_FLAVOR,
-                gpuNominalQuota: 0,
-                gpuUsed: 6,
-                admittedWorkloads: 1,
-                pendingWorkloads: 0,
-              },
-            ],
-            cohortNames: [PURE_BORROWER_COHORT],
-            resourceFlavors: [{ name: PURE_BORROWER_FLAVOR, gpuProduct: 'NVIDIA H100' }],
-            dcgmModelName: 'NVIDIA H100',
-          });
-          infrastructurePage.visit();
-          infrastructurePage.switchToClusterQueueUtilizationTab();
-        });
-
-        it('renders the CQ card with all 3 chart columns and a fully-filled borrowed donut', () => {
-          infrastructurePage.findAcceleratorDonutChartInCard('pure-borrower-cq').should('exist');
-          infrastructurePage
-            .findCQCard('pure-borrower-cq')
-            .findByText('Borrowed: 6')
-            .should('exist');
-          infrastructurePage
-            .findCQCard('pure-borrower-cq')
-            .should('contain.text', 'Compute consumption')
-            .should('contain.text', 'Memory consumption');
-        });
-      });
+    it('should show an error when namespace workload data fails to load', () => {
+      initWorkloadIntercepts({ workloadListError: true });
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(CLUSTER_QUEUE).click();
+      infrastructurePage.findClusterQueueWorkloadsError().should('exist');
     });
   });
 });

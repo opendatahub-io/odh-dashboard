@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"os/signal"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/opendatahub-io/mlflow/bff/internal/api"
 	"github.com/opendatahub-io/mlflow/bff/internal/config"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
 
 	"log/slog"
 	"net/http"
@@ -48,6 +48,13 @@ func main() {
 
 	// TLS configuration flags
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")
+
+	// Inter-BFF: model-registry catalog proxy
+	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
+	flag.StringVar(&cfg.BFFModelRegistryDevURL, "bff-model-registry-dev-url", getEnvAsString("BFF_MODEL_REGISTRY_DEV_URL", ""), "Developer override URL for model-registry BFF (e.g., http://localhost:8043/api/v1)")
+	flag.StringVar(&cfg.BFFModelRegistryServiceName, "bff-model-registry-service-name", getEnvAsString("BFF_MODEL_REGISTRY_SERVICE_NAME", "odh-dashboard-model-registry-ui"), "Kubernetes service name for model-registry BFF")
+	flag.IntVar(&cfg.BFFModelRegistryServicePort, "bff-model-registry-service-port", getEnvAsInt("BFF_MODEL_REGISTRY_SERVICE_PORT", 8043), "Port for model-registry BFF service")
+	flag.BoolVar(&cfg.BFFModelRegistryTLSEnabled, "bff-model-registry-tls-enabled", getEnvAsBool("BFF_MODEL_REGISTRY_TLS_ENABLED", false), "Enable TLS for model-registry BFF communication")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
@@ -93,16 +100,20 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
+	if certFile != "" && keyFile != "" {
+		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
+		if err != nil {
+			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
+			os.Exit(1)
+		}
+		srv.TLSConfig = tlsCfg
+	}
+
 	// Start the server in a goroutine
 	go func() {
 		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
 		var err error
 		if certFile != "" && keyFile != "" {
-			// Configure TLS if both cert and key files are provided
-			tlsConfig := &tls.Config{
-				MinVersion: tls.VersionTLS13,
-			}
-			srv.TLSConfig = tlsConfig
 			err = srv.ListenAndServeTLS(certFile, keyFile)
 		} else {
 			err = srv.ListenAndServe()

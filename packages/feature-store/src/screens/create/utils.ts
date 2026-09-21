@@ -231,7 +231,7 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
 
 const buildAuthz = (data: FeatureStoreFormData): FeastAuthzConfig | undefined => {
   if (data.authzType === AuthzType.NONE) {
-    return undefined;
+    return { noAuth: true };
   }
   return data.authz;
 };

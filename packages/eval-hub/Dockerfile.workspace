@@ -52,13 +52,13 @@ USER default
 # Install workspace dependencies first (this creates node_modules at workspace level)
 RUN npm cache clean --force
 # Install all workspace dependencies (includes root + any copied workspaces)
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 # Set up the specific module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 
 # Install module dependencies
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 # Build the module
 RUN npm run build:prod
@@ -74,11 +74,13 @@ WORKDIR /usr/src/app
 
 # Copy the Go Modules manifests
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 
 # Download dependencies
 RUN go mod download
 
 # Copy the go source files
+COPY pkg/tls/ /pkg/tls/
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 

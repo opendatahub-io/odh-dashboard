@@ -1,0 +1,11 @@
+// A plain <fieldset> is used to lock every field once the connection Secret has been created
+// (see AutoragConnectionModal.tsx), since PatternFly's ConnectionTypeForm only exposes an
+// `isPreview` mode that swaps displayed values for schema defaults rather than a true read-only
+// mode that preserves the current values. Reset the browser's default fieldset chrome so it's
+// visually transparent — PF has no equivalent "disable a form subtree, keep values" primitive.
+.autorag-connection-modal__fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}

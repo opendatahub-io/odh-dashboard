@@ -4,7 +4,11 @@ import type {
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
-import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
+import type {
+  ExternalModel,
+  ExternalProvider,
+  SecretSummary,
+} from '@odh-dashboard/maas/types/external-models';
 import type {
   MaaSSubscription,
   ModelOverviewItem,
@@ -998,11 +1002,11 @@ export const mockExternalModel = (options: Partial<ExternalModel> = {}): Externa
   namespace: 'test-project',
   displayName: 'GPT-4o External',
   description: 'External GPT-4o model routed through OpenAI provider.',
-  modelName: 'gpt-4o',
+  modelName: 'gpt-4o-external',
   providerRefs: [
     {
       providerName: 'openai-prod',
-      weight: 100,
+      weight: 1,
       apiFormat: 'openai-chat',
       path: '/v1/chat/completions',
       targetModel: 'gpt-4o',
@@ -1033,11 +1037,11 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'claude-split',
     displayName: 'Claude A/B Split',
     description: 'Weighted routing across Anthropic and Bedrock providers.',
-    modelName: 'claude-sonnet',
+    modelName: 'claude-split',
     providerRefs: [
       {
         providerName: 'anthropic-dev',
-        weight: 60,
+        weight: 6,
         apiFormat: 'anthropic',
         path: '/v1/messages',
         targetModel: 'claude-sonnet-4-5-20241022',
@@ -1053,7 +1057,7 @@ export const mockExternalModels = (): ExternalModel[] => [
       },
       {
         providerName: 'bedrock-us-east',
-        weight: 40,
+        weight: 4,
         apiFormat: 'anthropic',
         path: '/v1/messages',
         targetModel: 'anthropic.claude-3-sonnet',
@@ -1080,7 +1084,7 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'awaiting-pairing-model',
     displayName: 'Awaiting Pairing Model',
     description: 'Model waiting for subscription and auth pairing.',
-    modelName: 'awaiting-model',
+    modelName: 'awaiting-pairing-model',
     phase: 'Pending',
     statusMessage: 'External model is pending',
     maaSModelRef: {
@@ -1092,9 +1096,154 @@ export const mockExternalModels = (): ExternalModel[] => [
     name: 'missing-ref-model',
     displayName: 'Missing Ref Model',
     description: 'External model without a MaaS model reference.',
-    modelName: 'missing-ref',
+    modelName: 'missing-ref-model',
     phase: 'Ready',
     statusMessage: 'External model is ready',
     maaSModelRef: undefined,
   }),
 ];
+
+export const mockExternalProvidersForCreateFlow = (): ExternalProvider[] => [
+  mockExternalProvider({
+    name: 'anthropic-dev',
+    displayName: 'Anthropic Provider',
+    description: 'Anthropic provider for create flow tests.',
+    provider: 'anthropic',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.anthropic.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'anthropic-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+    config: {
+      project: 'my-project',
+      location: 'us-east1',
+      region: 'us-east-1',
+    },
+  }),
+  mockExternalProvider({
+    name: 'openai-prod',
+    displayName: 'OpenAI Production',
+    description: 'OpenAI production provider for create flow tests.',
+    provider: 'openai',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.openai.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'openai-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+    config: {
+      project: 'my-project',
+    },
+  }),
+];
+
+export const mockMaasSecrets = (): SecretSummary[] => [
+  { name: 'openai-api-key' },
+  { name: 'anthropic-api-key', displayName: 'Anthropic API key' },
+];
+
+export const mockExternalProviders = (): ExternalProvider[] => [
+  mockFailedExternalProvider(),
+  mockInvalidExternalProvider(),
+  mockPendingExternalProvider(),
+  mockExternalProvider({
+    name: 'anthropic-dev',
+    displayName: 'Anthropic Provider',
+    description: 'Anthropic provider.',
+    provider: 'anthropic',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.anthropic.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'anthropic-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+  }),
+  mockExternalProvider({
+    name: 'bedrock-us-east',
+    displayName: 'AWS Bedrock US East',
+    description: 'AWS Bedrock US East provider.',
+    provider: 'aws-bedrock',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'bedrock.us-east-1.amazonaws.com',
+    authMechanism: 'sigv4',
+    credentialSecretRef: 'bedrock-credentials-us-east',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+  }),
+];
+
+export const mockExternalProvider = (
+  options: Partial<ExternalProvider> = {},
+): ExternalProvider => ({
+  name: 'generic-anthropic-dev',
+  displayName: 'Generic Anthropic Development',
+  description: 'Generic Anthropic development provider.',
+  namespace: 'test-project',
+  provider: 'anthropic',
+  phase: 'Ready',
+  statusMessage: 'External provider is ready',
+  endpointUrl: 'api.anthropic.com',
+  authMechanism: 'apikey',
+  credentialSecretRef: 'generic-provider-secret',
+  lastTransitionTime: '2025-03-01T10:00:00Z',
+  conditionType: 'Ready',
+  reason: 'ready',
+  ...options,
+});
+
+export const mockFailedExternalProvider = (): ExternalProvider => ({
+  name: 'failed-anthropic-dev',
+  displayName: 'Failed Anthropic Development',
+  description: 'Failed Anthropic development provider.',
+  namespace: 'test-project',
+  provider: 'anthropic',
+  phase: 'Failed',
+  statusMessage: 'External provider is failed',
+  endpointUrl: 'api.anthropic.com',
+  authMechanism: 'oauth2',
+  credentialSecretRef: 'failed-provider-secret',
+  lastTransitionTime: '2025-03-01T10:00:00Z',
+  conditionType: 'Ready',
+  reason: 'failed to connect',
+});
+
+export const mockInvalidExternalProvider = (): ExternalProvider => ({
+  name: 'invalid-aws-bedrock-us-west',
+  displayName: 'Invalid AWS Bedrock US West',
+  description: 'Invalid AWS Bedrock US West provider.',
+  namespace: 'test-project',
+  provider: 'aws-bedrock',
+  phase: 'Invalid',
+  statusMessage: 'External provider is invalid',
+  endpointUrl: 'bedrock.us-west-2.amazonaws.com',
+  authMechanism: 'apikey',
+  credentialSecretRef: 'invalid-provider-secret',
+  lastTransitionTime: '2025-03-01T10:00:00Z',
+  conditionType: 'Ready',
+  reason: 'invalid configuration',
+});
+
+export const mockPendingExternalProvider = (): ExternalProvider => ({
+  name: 'pending-anthropic-dev',
+  displayName: 'Pending Anthropic Development',
+  description: 'Pending Anthropic development provider.',
+  namespace: 'test-project',
+  provider: 'anthropic',
+  phase: 'Pending',
+  statusMessage: 'External provider is pending',
+  endpointUrl: 'api.anthropic.com',
+  authMechanism: 'sigv4',
+  credentialSecretRef: 'pending-provider-secret',
+  lastTransitionTime: '2025-03-01T10:00:00Z',
+  conditionType: 'Ready',
+  reason: 'pending',
+});

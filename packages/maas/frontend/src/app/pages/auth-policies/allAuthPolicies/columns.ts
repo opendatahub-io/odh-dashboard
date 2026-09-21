@@ -12,19 +12,21 @@ export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
   {
     label: 'Status',
     field: 'phase',
-    width: 10,
+    width: 15,
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
       normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),
   },
   {
     label: 'Groups',
     field: 'subjects.groups',
+    width: 15,
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
       (a.subjects.groups?.length ?? 0) - (b.subjects.groups?.length ?? 0),
   },
   {
     label: 'Models',
     field: 'modelRefs',
+    width: 15,
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
       a.modelRefs.length - b.modelRefs.length,
   },

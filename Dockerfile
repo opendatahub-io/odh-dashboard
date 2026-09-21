@@ -4,8 +4,9 @@ ARG BUILD_MODE=ODH
 
 # Use ubi9/nodejs-22 as default base image
 ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"
+ARG MINIMAL_IMAGE="registry.access.redhat.com/ubi9/nodejs-22-minimal:latest"
 
-FROM ${BASE_IMAGE} as builder
+FROM ${BASE_IMAGE} AS builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
@@ -41,22 +42,22 @@ RUN if [ "$BUILD_MODE" = "RHOAI" ]; then \
 RUN . /tmp/env.sh && npm run build
 
 
-FROM ${BASE_IMAGE} as runtime
+FROM ${MINIMAL_IMAGE} AS runtime
 
 # The curl binary is required in the final image, as it's used for
 # liveness and readiness probes
 USER root
-RUN dnf install -y curl-minimal && dnf clean all && curl --version
+RUN microdnf install -y curl-minimal && microdnf clean all && curl --version
 USER 1001:0
 
 WORKDIR /usr/src/app
 
 RUN mkdir /usr/src/app/logs && chmod 775 /usr/src/app/logs
 
-COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
-COPY --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
-COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
-COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
+COPY --chown=1001:0 --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
+COPY --chown=1001:0 --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
+COPY --chown=1001:0 --from=builder /usr/src/app/.env /usr/src/app/.env
+COPY --chown=1001:0 --from=builder /usr/src/app/data /usr/src/app/data
 
 WORKDIR /usr/src/app/backend
 

@@ -9,23 +9,28 @@ import {
   Content,
   Popover,
 } from '@patternfly/react-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import {
   formatValidatedOptionValueForDisplay,
   slugifyValidatedOptionTitle,
 } from './validatedConfigurationUtils';
+import { fireValidatedArgumentsViewed } from '../../../../shared/tracking/deployWizardTracking';
 import type { ValidatedConfigurationOption } from '../../../../shared/types/form-data';
 
 type ValidatedConfigurationOptionCardProps = {
   option: ValidatedConfigurationOption;
   isSelected: boolean;
   onSelectionChange: (checked: boolean) => void;
+  catalogModelId?: string;
 };
 
 export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOptionCardProps> = ({
   option,
   isSelected,
   onSelectionChange,
+  catalogModelId,
 }) => {
+  const trackEvent = useTrackEvent();
   const optionSlug = slugifyValidatedOptionTitle(option.title);
   const formattedArgs = formatValidatedOptionValueForDisplay(option.value);
 
@@ -35,6 +40,7 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
       isSelectable
       isSelected={isSelected}
       isFullHeight
+      id={`select-config-${optionSlug}`}
       data-testid={`validated-configuration-option-${optionSlug}`}
     >
       <CardHeader
@@ -59,10 +65,18 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
         <Popover
           aria-label={`${option.title} arguments`}
           headerContent={`${option.title} arguments`}
+          onShow={() => {
+            fireValidatedArgumentsViewed(trackEvent, {
+              configurationName: option.title,
+              catalogModelId,
+              entryPoint: 'model_details',
+              hasValidatedArgumentsSection: true,
+            });
+          }}
           bodyContent={
             <pre
               data-testid={`validated-configuration-arguments-popover-content-${optionSlug}`}
-              className="pf-v6-u-font-family-monospace pf-v6-u-white-space-pre-wrap"
+              className="pf-v6-u-font-family-monospace pf-v6-u-white-space-pre-wrap pf-v6-u-pt-sm"
             >
               {formattedArgs}
             </pre>
@@ -71,6 +85,7 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
           <Button
             variant="link"
             isInline
+            id={`select-config-view-${optionSlug}`}
             data-testid={`validated-configuration-view-arguments-${optionSlug}`}
           >
             View arguments

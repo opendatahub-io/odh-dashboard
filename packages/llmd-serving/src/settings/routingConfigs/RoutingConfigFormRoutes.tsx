@@ -25,10 +25,7 @@ const RoutingConfigFormRoutes: React.FC = () => {
   return (
     <LlmInferenceServiceConfigAccessGate>
       <RoutingConfigContextProvider>
-        <RoutingConfigurationCreateEdit
-          listPath={ROUTING_CONFIGS_TAB_PATH}
-          isDuplicate={isDuplicate}
-        />
+        <RoutingConfigurationCreateEdit isDuplicate={isDuplicate} />
       </RoutingConfigContextProvider>
     </LlmInferenceServiceConfigAccessGate>
   );

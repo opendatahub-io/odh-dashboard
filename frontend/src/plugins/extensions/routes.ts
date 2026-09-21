@@ -315,32 +315,6 @@ const extensions: RouteExtension[] = [
     type: 'app.route',
     flags: {
       required: [ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      path: '/settings/model-resources-operations/serving-runtimes/*',
-      component: () =>
-        import('#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      path: '/servingRuntimes/*',
-      component: createRedirectComponent({
-        from: '/servingRuntimes/*',
-        to: '/settings/model-resources-operations/serving-runtimes/*',
-      }),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [ADMIN_USER],
     },
     properties: {
       path: '/settings/environment-setup/connection-types/*',

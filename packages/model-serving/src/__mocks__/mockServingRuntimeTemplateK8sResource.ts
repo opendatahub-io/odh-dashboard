@@ -1,4 +1,10 @@
-import type { K8sDSGResource, SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
+import type {
+  K8sDSGResource,
+  SupportedModelFormats,
+  TemplateKind,
+  Volume,
+  VolumeMount,
+} from '@odh-dashboard/k8s-core';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
@@ -16,6 +22,8 @@ type MockResourceConfigType = {
   apiProtocol?: ServingRuntimeAPIProtocol;
   containerName?: string;
   containerEnvVars?: { name: string; value: string }[];
+  containerVolumeMounts?: VolumeMount[];
+  volumes?: Volume[];
   supportedModelFormats?: SupportedModelFormats[];
   annotations?: Record<string, string>;
   objects?: K8sDSGResource[];
@@ -46,6 +54,8 @@ export const mockServingRuntimeTemplateK8sResource = ({
   ],
   annotations,
   objects,
+  containerVolumeMounts,
+  volumes,
   version = '1.0.0',
 }: MockResourceConfigType): TemplateKind => ({
   apiVersion: 'template.openshift.io/v1',
@@ -97,6 +107,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
               '--target_device=NVIDIA',
             ],
             ...(containerEnvVars && { env: containerEnvVars }),
+            ...(containerVolumeMounts && { volumeMounts: containerVolumeMounts }),
             image:
               'quay.io/modh/openvino-model-server@sha256:c89f76386bc8b59f0748cf173868e5beef21ac7d2f78dada69089c4d37c44116',
             name: containerName,
@@ -116,6 +127,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
         grpcEndpoint: 'port:8085',
         protocolVersions: ['grpc-v1'],
         supportedModelFormats,
+        ...(volumes && { volumes }),
       },
     },
   ],

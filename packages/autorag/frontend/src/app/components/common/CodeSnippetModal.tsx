@@ -22,6 +22,8 @@ type CodeSnippetModalProps = {
   downloadText?: string;
   downloadFileName: string;
   onClose: () => void;
+  /** Called after the download has been triggered — use to fire download-completed analytics. */
+  onDownload?: () => void;
 };
 
 const CodeSnippetModal: React.FC<CodeSnippetModalProps> = ({
@@ -33,6 +35,7 @@ const CodeSnippetModal: React.FC<CodeSnippetModalProps> = ({
   downloadText = 'Download',
   downloadFileName,
   onClose,
+  onDownload,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -48,6 +51,8 @@ const CodeSnippetModal: React.FC<CodeSnippetModalProps> = ({
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
+
+    onDownload?.();
   };
 
   const modalHeaderLabelId = `${id}-modal-title`;

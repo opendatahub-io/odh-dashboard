@@ -110,7 +110,7 @@ describe('MCP Server Details Page', () => {
     it('should render README with markdown elements', () => {
       initServerDetailIntercept(kubernetesServer);
       mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findReadmeMarkdown().should('be.visible');
+      mcpServerDetails.findReadmeMarkdown().scrollIntoView().should('be.visible');
       mcpServerDetails.findReadmeMarkdown().should('contain.text', 'Kubernetes MCP Server');
       mcpServerDetails.findReadmeMarkdown().find('h3').should('exist');
       mcpServerDetails.findReadmeMarkdown().find('code').should('exist');
@@ -125,22 +125,47 @@ describe('MCP Server Details Page', () => {
   });
 
   describe('Server.json card', () => {
-    it('should render mapped remotes from backend packages serverJson', () => {
+    it('should render the unmodified backend serverJson payload', () => {
       initServerDetailIntercept(kubernetesServer);
       mcpServerDetails.visit(kubernetesServer.id);
       mcpServerDetails.findServerJsonCard().should('be.visible');
-      mcpServerDetails.findServerJsonCode().should('contain.text', 'kubernetes-mcp-server');
-      mcpServerDetails.findServerJsonCode().should('contain.text', '$schema');
-      mcpServerDetails.findServerJsonCode().should('contain.text', 'remotes');
       mcpServerDetails
         .findServerJsonCode()
-        .should(
-          'contain.text',
-          'https://kubernetes-mcp-server.demo-namespace.svc.cluster.local:8080',
-        );
-      mcpServerDetails.findServerJsonCode().should('not.contain.text', 'environmentVariables');
-      mcpServerDetails.findServerJsonCode().should('not.contain.text', 'packageArguments');
-      mcpServerDetails.findServerJsonCode().should('not.contain.text', 'repository');
+        .should('contain.text', JSON.stringify(kubernetesServer.serverJson, null, 2));
+    });
+
+    it('should keep copy actions outside the in-card scroll region', () => {
+      initServerDetailIntercept(kubernetesServer);
+      mcpServerDetails.visit(kubernetesServer.id);
+      mcpServerDetails
+        .findServerJsonCard()
+        .find('.pf-v6-c-code-block__header')
+        .findByRole('button', { name: 'Copy to clipboard' })
+        .should('be.visible');
+      mcpServerDetails
+        .findServerJsonScroll()
+        .find('.pf-v6-c-code-block__header')
+        .should('not.exist');
+    });
+
+    it('should scroll tall serverJson inside the card', () => {
+      const tallServer = mockMcpServer({
+        id: 'tall-json',
+        serverJson: {
+          name: 'tall-mcp-server',
+          packages: Array.from({ length: 40 }, (_, i) => ({
+            identifier: `quay.io/example/mcp-server:${i}`,
+            environmentVariables: [{ name: `VAR_${i}`, description: `Environment variable ${i}` }],
+          })),
+        },
+      });
+      initServerDetailIntercept(tallServer);
+      mcpServerDetails.visit(tallServer.id);
+      mcpServerDetails.findServerJsonScroll().should('have.css', 'max-height', '400px');
+      mcpServerDetails.findServerJsonScroll().then(($el) => {
+        expect($el[0].scrollHeight).to.be.greaterThan($el[0].clientHeight);
+      });
+      mcpServerDetails.findServerJsonScroll().scrollTo('bottom');
     });
 
     it('should hide Server.json card when serverJson is absent', () => {

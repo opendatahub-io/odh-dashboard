@@ -9,14 +9,13 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import type { NodeSelector, Volume, VolumeMount } from '@odh-dashboard/k8s-core';
 import { NotebookModel } from '#~/api/models';
 import { ImageStreamKind, ImageStreamSpecTagType, K8sAPIOptions, NotebookKind } from '#~/k8sTypes';
 import { usernameTranslate } from '#~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '#~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {
   ELYRA_VOLUME_NAME,
   getElyraVolume,

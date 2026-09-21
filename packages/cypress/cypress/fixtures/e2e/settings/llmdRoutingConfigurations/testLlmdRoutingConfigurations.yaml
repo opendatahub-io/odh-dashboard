@@ -2,7 +2,7 @@
 
 routingConfigName: 'e2e-scheduler-routing'
 routingConfigFixture: 'resources/modelServing/llmd-routing-config.yaml'
-topologyTypeTestId: 'topology-type-workload-single-node'
+topologyTypeTestId: 'workload-single-node'
 topologyTypeLabel: 'Single node'
 configSourceEditorKey: 'editor'
 projectResourceName: 'routing-admin'

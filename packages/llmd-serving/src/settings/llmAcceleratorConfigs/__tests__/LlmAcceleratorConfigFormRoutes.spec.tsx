@@ -19,11 +19,9 @@ jest.mock('../LlmAcceleratorConfigContext', () => ({
 
 jest.mock('../LlmAcceleratorConfigAddForm', () => ({
   __esModule: true,
-  default: ({ mode, listPath }: { mode: string; listPath: string }) => (
-    <div data-testid="add-form" data-mode={mode} data-list-path={listPath} />
-  ),
-  LlmAcceleratorConfigFormByName: ({ mode, listPath }: { mode: string; listPath: string }) => (
-    <div data-testid="form-by-name" data-mode={mode} data-list-path={listPath} />
+  default: ({ mode }: { mode: string }) => <div data-testid="add-form" data-mode={mode} />,
+  LlmAcceleratorConfigFormByName: ({ mode }: { mode: string }) => (
+    <div data-testid="form-by-name" data-mode={mode} />
   ),
 }));
 
@@ -51,7 +49,6 @@ describe('LlmAcceleratorConfigFormRoutes', () => {
 
     const form = screen.getByTestId('add-form');
     expect(form).toHaveAttribute('data-mode', 'add');
-    expect(form).toHaveAttribute('data-list-path', LLM_ACCELERATOR_CONFIGS_TAB_PATH);
   });
 
   it('should render the edit form when mounted at the registered edit path', () => {
@@ -62,7 +59,6 @@ describe('LlmAcceleratorConfigFormRoutes', () => {
 
     const form = screen.getByTestId('form-by-name');
     expect(form).toHaveAttribute('data-mode', 'edit');
-    expect(form).toHaveAttribute('data-list-path', LLM_ACCELERATOR_CONFIGS_TAB_PATH);
   });
 
   it('should render the duplicate form when mounted at the registered duplicate path', () => {
@@ -73,7 +69,6 @@ describe('LlmAcceleratorConfigFormRoutes', () => {
 
     const form = screen.getByTestId('form-by-name');
     expect(form).toHaveAttribute('data-mode', 'duplicate');
-    expect(form).toHaveAttribute('data-list-path', LLM_ACCELERATOR_CONFIGS_TAB_PATH);
   });
 
   it('should wrap the form in the config context provider', () => {
