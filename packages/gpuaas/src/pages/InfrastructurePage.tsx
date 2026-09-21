@@ -17,12 +17,11 @@ import {
   Tab,
   TabContent,
   Tabs,
-  TabTitleIcon,
   TabTitleText,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { ClusterIcon, MicrochipIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import {
   INFRASTRUCTURE_PAGE_DESCRIPTION,
@@ -42,11 +41,6 @@ import './InfrastructurePage.scss';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
 type InfrastructureSection = (typeof INFRASTRUCTURE_SECTIONS)[number];
-
-const TAB_ICONS: Record<InfrastructureTabId, React.ComponentType> = {
-  utilization: MicrochipIcon,
-  'quota-usage': ClusterIcon,
-};
 
 const getTabPanelId = (tabId: InfrastructureTabId): string => `infrastructure-tab-panel-${tabId}`;
 
@@ -326,16 +320,12 @@ const InfrastructurePage: React.FC = () => {
                 data-testid="infrastructure-tabs"
               >
                 {INFRASTRUCTURE_TABS.map((tabInfo) => {
-                  const TabIcon = TAB_ICONS[tabInfo.id];
                   return (
                     <Tab
                       key={tabInfo.id}
                       eventKey={tabInfo.id}
                       title={
                         <>
-                          <TabTitleIcon>
-                            <TabIcon />
-                          </TabTitleIcon>
                           <TabTitleText>{tabInfo.title}</TabTitleText>
                         </>
                       }
