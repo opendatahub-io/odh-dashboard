@@ -36,7 +36,7 @@ jest.mock('@odh-dashboard/ui-core', () => {
 });
 
 jest.mock('@odh-dashboard/internal/utilities/time', () => ({
-  relativeTime: () => 'a few seconds ago',
+  relativeTime: () => 'Just now',
 }));
 
 const mockRefresh = jest.fn();
@@ -159,6 +159,13 @@ describe('InfrastructurePage - Tracking Events', () => {
   });
 
   describe('Infrastructure Data Refresh', () => {
+    it('renders just now with lowercase after the Updated prefix', () => {
+      render(<InfrastructurePage />);
+
+      expect(screen.getByText('Updated just now')).toBeInTheDocument();
+      expect(screen.queryByText('Updated Just now')).not.toBeInTheDocument();
+    });
+
     it('refreshes active tab data after switching tabs', async () => {
       const user = userEvent.setup();
       render(<InfrastructurePage />);

@@ -96,7 +96,11 @@ const KueueProjectsModal: React.FC<KueueProjectsModalProps> = ({ clusterQueueNam
       aria-labelledby="kueue-projects-modal-title"
     >
       <ModalHeader
-        title={KUEUE_PROJECTS_MODAL_TITLE}
+        title={
+          <>
+            {KUEUE_PROJECTS_MODAL_TITLE} <strong>{clusterQueueName}</strong>
+          </>
+        }
         labelId="kueue-projects-modal-title"
         description={KUEUE_PROJECTS_MODAL_DESCRIPTION}
       />
