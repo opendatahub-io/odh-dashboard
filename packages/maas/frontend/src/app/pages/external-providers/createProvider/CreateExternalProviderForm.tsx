@@ -228,6 +228,7 @@ const CreateExternalProviderForm: React.FC<CreateExternalProviderFormProps> = ({
           pairs={configPairs}
           onChange={setConfigPairs}
           validationMessage={configPairsError}
+          data-testid="external-provider-advanced-settings-content"
         />
       </ExpandableSection>
 
