@@ -148,7 +148,8 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground
         .findImageUploadMenuItem()
         .should('be.visible')
-        .and('not.have.attr', 'aria-disabled', 'true');
+        .and('not.have.attr', 'aria-disabled', 'true')
+        .click();
       genAiPlayground.findImageFileInput().selectFile(
         {
           contents: Cypress.Buffer.from(testData.image.base64Content, 'base64'),
