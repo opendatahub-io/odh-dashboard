@@ -165,13 +165,15 @@ func (fault *activeChaosFault) revert() error {
 	if fault == nil || !fault.active {
 		return nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), chaosCleanupTimeout)
-	defer cancel()
 	var cleanupErr error
 	if fault.cleanup != nil {
-		cleanupErr = fault.cleanup(ctx)
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), chaosCleanupTimeout)
+		cleanupErr = fault.cleanup(cleanupCtx)
+		cancel()
 	}
-	revertErr := fault.injector.Revert(ctx, fault.experiment.Spec.Injection, fault.namespace)
+	revertCtx, cancel := context.WithTimeout(context.Background(), chaosCleanupTimeout)
+	defer cancel()
+	revertErr := fault.injector.Revert(revertCtx, fault.experiment.Spec.Injection, fault.namespace)
 	err := errors.Join(cleanupErr, revertErr)
 	if err == nil {
 		fault.active = false
