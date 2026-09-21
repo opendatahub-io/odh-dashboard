@@ -59,6 +59,15 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
 };
 
+export const getExternalProviders = (): Cypress.Chainable<boolean> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  return cy
+    .exec(
+      `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -r '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders // false'`,
+    )
+    .then((result) => result.stdout.trim() === 'true');
+};
+
 /**
  * Enable externalProviders in OdhDashboardConfig so that non-cluster-local
  * endpoint URLs are accepted by the custom endpoints form.

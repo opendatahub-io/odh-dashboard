@@ -131,6 +131,14 @@ class GenAiPlayground {
     return cy.findByTestId('vision-file-preview', options);
   }
 
+  findImagePreviewCloseButton(fileName: string) {
+    return this.findImagePreview().findByRole('button', { name: `Close ${fileName}` });
+  }
+
+  findSentImage(fileName: string) {
+    return cy.findByRole('img', { name: fileName });
+  }
+
   findAudioFileChip(options?: { timeout?: number }) {
     return cy.findByTestId('audio-file-chip', options);
   }

@@ -12,6 +12,7 @@ import {
   waitForModelInLSD,
   forceDashboardConfigRefresh,
   createExternalModelViaAPI,
+  getExternalProviders,
 } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -36,12 +37,8 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       }
 
       if (originalExternalProviders === undefined) {
-        cy.exec(
-          `oc get OdhDashboardConfig odh-dashboard-config -n ${Cypress.env(
-            'APPLICATIONS_NAMESPACE',
-          )} -o json | jq -r '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders // false'`,
-        ).then((result) => {
-          originalExternalProviders = result.stdout.trim() === 'true';
+        getExternalProviders().then((externalProviders) => {
+          originalExternalProviders = externalProviders;
         });
       }
 
@@ -142,11 +139,8 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       );
 
       cy.step('Verify image preview appears');
-      genAiPlayground
-        .findImagePreview({ timeout: 10000 })
-        .should('be.visible')
-        .findByRole('button', { name: `Close ${testData.image.fileName}` })
-        .should('be.visible');
+      genAiPlayground.findImagePreview({ timeout: 10000 }).should('be.visible');
+      genAiPlayground.findImagePreviewCloseButton(testData.image.fileName).should('be.visible');
 
       cy.step('Type a message and send');
       const message = testData.inference.visionTestMessage;
@@ -157,7 +151,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.findAllUserMessages().should('contain.text', message);
 
       cy.step('Verify image is included in the sent message');
-      cy.findByRole('img', { name: testData.image.fileName }).should('exist');
+      genAiPlayground.findSentImage(testData.image.fileName).should('exist');
 
       cy.step('Wait for and verify model response to image');
       genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
