@@ -167,7 +167,7 @@
         "execution": "workflow",
         "artifact_name": "fullsend-coderabbit-context-{pr_number}",
         "artifact_file": "coderabbit.json",
-        "checkout_pr": true,
+        "checkout_pr": false,
         "setup_runner": "scripts/setup-coderabbit-cli.sh",
         "credentials": {
           "url_secret": "FULLSEND_UNUSED",
