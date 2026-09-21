@@ -1,50 +1,67 @@
 name: Test / Dashboard Operator Tests
+# This workflow always runs on every push/PR so the "Dashboard Operator Tests"
+# check reports a status on every commit. That lets it be promoted to a hard
+# required merge gate (tide required-contexts) without deadlocking PRs that do
+# not touch the operator: when no dashboard-operator/ or manifests/ files
+# changed, the heavy steps are skipped and the job reports success (green no-op).
+# Do NOT add a top-level `paths:` filter here — a required check that never
+# reports on unrelated PRs would block them indefinitely.
 on:
   push:
-    paths:
-      - "dashboard-operator/**"
-      - "manifests/**"
-      - "!LICENSE*"
-      - "!DOCKERFILE*"
-      - "!**.gitignore"
-      - "!**.md"
-
   pull_request:
-    paths:
-      - "dashboard-operator/**"
-      - "manifests/**"
-      - ".github/workflows/dashboard-operator-tests.yml"
-      - "!LICENSE*"
-      - "!DOCKERFILE*"
-      - "!**.gitignore"
-      - "!**.md"
 
 jobs:
   test:
     name: Dashboard Operator Tests
     permissions:
       contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.1
 
+      # Determine whether this change actually touches the operator or manifests.
+      # On pull_request this uses the GitHub API (no history needed); on push it
+      # diffs against the previous commit.
+      - name: Detect operator/manifest changes
+        id: changes
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            operator:
+              - 'dashboard-operator/**'
+              - 'manifests/**'
+              - '.github/workflows/dashboard-operator-tests.yml'
+              - '!**/*.md'
+              - '!**/LICENSE*'
+              - '!**/.gitignore'
+
+      - name: No operator/manifest changes — skipping (reporting green)
+        if: steps.changes.outputs.operator != 'true'
+        run: echo "No dashboard-operator/ or manifests/ changes detected; operator test suite not required for this change."
+
       - name: Setup Go
+        if: steps.changes.outputs.operator == 'true'
         uses: actions/setup-go@v6
         with:
           go-version-file: dashboard-operator/go.mod
 
       - name: Install Helm
+        if: steps.changes.outputs.operator == 'true'
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
 
       - name: Lint
+        if: steps.changes.outputs.operator == 'true'
         working-directory: dashboard-operator
         run: make lint
 
       - name: Build
+        if: steps.changes.outputs.operator == 'true'
         working-directory: dashboard-operator
         run: make build
 
       - name: Test
+        if: steps.changes.outputs.operator == 'true'
         working-directory: dashboard-operator
         run: make test
 
@@ -53,6 +70,7 @@ jobs:
       # is the slow part of the integration step; the tests themselves run in seconds.
       # Keyed on the Makefile so a change to the pinned envtest/K8s version busts the cache.
       - name: Cache envtest binaries
+        if: steps.changes.outputs.operator == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: dashboard-operator/bin/k8s
@@ -61,14 +79,17 @@ jobs:
             envtest-${{ runner.os }}-
 
       - name: Integration tests (envtest)
+        if: steps.changes.outputs.operator == 'true'
         working-directory: dashboard-operator
         run: make test-integration
 
       - name: Validate Helm chart
+        if: steps.changes.outputs.operator == 'true'
         working-directory: dashboard-operator
         run: make chart-validate
 
       - name: Check if there are uncommitted file changes
+        if: steps.changes.outputs.operator == 'true'
         working-directory: dashboard-operator
         run: |
           clean=$(git status --porcelain)
