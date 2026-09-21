@@ -43,7 +43,7 @@ const mockVolumeResponse = {
   properties: {
     description: 'Training document storage',
     'content-type': 'application/pdf',
-    purpose: 'training',
+    volume_purpose: 'training',
     environment: 'production',
     registered_by: 'ml-team@example.com',
     updated_by: 'admin@example.com',
@@ -162,7 +162,7 @@ describe('Table Detail View', () => {
     cy.intercept(
       'DELETE',
       `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
-      { statusCode: 403, body: 'Forbidden' },
+      { statusCode: 403, body: { error: { code: '403', message: 'Forbidden' } } },
     ).as('deleteTable');
 
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
@@ -172,7 +172,7 @@ describe('Table Detail View', () => {
     cy.findByTestId('delete-asset-confirmation').type('claims-data');
     cy.findByTestId('delete-asset-confirm').click();
     cy.wait('@deleteTable');
-    cy.findByText('API error 403: Forbidden').should('exist');
+    cy.findByText('status code 403: Forbidden').should('exist');
   });
 });
 
@@ -274,7 +274,7 @@ describe('Volume Detail View', () => {
     cy.intercept(
       'DELETE',
       `${REGISTRY_API}/test-project/namespaces/default/volumes/training-documents`,
-      { statusCode: 404, body: 'Not found' },
+      { statusCode: 404, body: { error: { code: '404', message: 'Not found' } } },
     ).as('deleteVolume');
 
     cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
@@ -284,6 +284,6 @@ describe('Volume Detail View', () => {
     cy.findByTestId('delete-asset-confirmation').type('training-documents');
     cy.findByTestId('delete-asset-confirm').click();
     cy.wait('@deleteVolume');
-    cy.findByText('API error 404: Not found').should('exist');
+    cy.findByText('status code 404: Not found').should('exist');
   });
 });

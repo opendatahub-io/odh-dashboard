@@ -6,7 +6,6 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Label,
   Stack,
   StackItem,
   TextInput,
@@ -31,6 +30,7 @@ import {
   ProviderReferenceFieldErrors,
   ProviderReferenceFormData,
   ProviderReferenceHelperVariant,
+  InitialProviderReferenceFormData,
 } from '~/app/pages/external-models/validations';
 import { isProviderReferenceApiFormat } from '~/app/pages/external-models/providerReferenceUtils';
 import {
@@ -46,7 +46,7 @@ import ModelConfigPairsEditor from './ModelConfigPairsEditor';
 import InheritedProviderConfig from './InheritedProviderConfig';
 
 type ProviderReferenceFormFieldProps = {
-  form: ProviderReferenceFormData;
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData;
   onChange: (updates: Partial<ProviderReferenceFormData>) => void;
 };
 
@@ -75,6 +75,16 @@ export const ProviderReferenceApiFormatField: React.FC<ProviderReferenceApiForma
 
   return (
     <FormGroup label="API format" fieldId="provider-ref-api-format" isRequired>
+      {showHelperText && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              Select the API format used by this provider. This determines how requests and
+              responses are translated for models that reference this provider.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
       <SimpleSelect
         dataTestId="provider-ref-api-format"
         ariaLabel="API format"
@@ -83,58 +93,46 @@ export const ProviderReferenceApiFormatField: React.FC<ProviderReferenceApiForma
         onChange={handleApiFormatChange}
         isFullWidth
         toggleProps={{ id: 'provider-ref-api-format' }}
+        placeholder="Select an API format"
       />
-      {showHelperText && (
-        <FormHelperText>
-          <HelperText>
-            <HelperTextItem>
-              Determines how requests and responses are translated for this provider.
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
-      )}
     </FormGroup>
   );
 };
 
 type ProviderReferenceTargetModelFieldProps = ProviderReferenceValidatedFieldProps & {
-  showHelperText?: boolean;
   onBlur?: () => void;
 };
 
 export const ProviderReferenceTargetModelField: React.FC<
   ProviderReferenceTargetModelFieldProps
-> = ({ form, onChange, fieldErrors, showHelperText = false, onBlur }) => {
+> = ({ form, onChange, fieldErrors, onBlur }) => {
   const targetModelError = fieldErrors?.targetModel;
 
   return (
-    <FormGroup label="Target model ID" fieldId="provider-ref-target-model" isRequired>
+    <FormGroup label="Model ID" fieldId="provider-ref-target-model" isRequired>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            The exact model ID that the provider&apos;s API expects, such as <em>gpt-4o</em> or{' '}
+            <em>claude-sonnet-4-5-20241022</em>. Must match the provider&apos;s documentation.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <TextInput
         id="provider-ref-target-model"
         data-testid="provider-ref-target-model"
-        placeholder="e.g. gpt-4o, claude-sonnet-4-5-20241022"
         value={form.targetModel}
         maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
         validated={targetModelError ? 'error' : 'default'}
         onChange={(_event, value) => onChange({ targetModel: value })}
         onBlur={onBlur}
       />
-      {targetModelError ? (
+      {targetModelError && (
         <FormHelperText>
           <HelperText>
             <HelperTextItem variant="error">{targetModelError}</HelperTextItem>
           </HelperText>
         </FormHelperText>
-      ) : (
-        showHelperText && (
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                The provider-specific model identifier used in API requests.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        )
       )}
     </FormGroup>
   );
@@ -159,10 +157,23 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
   context,
 }) => {
   const pathError = fieldErrors?.path;
-  const apiFormatConfig = PROVIDER_REFERENCE_API_FORMATS[form.apiFormat];
-
+  const apiFormatConfig = form.apiFormat
+    ? PROVIDER_REFERENCE_API_FORMATS[form.apiFormat]
+    : undefined;
   return (
     <FormGroup label="Path" fieldId="provider-ref-path" isRequired isStack>
+      <FormHelperText>
+        {pathHelperVariant === 'add' ? (
+          <HelperText>
+            <HelperTextItem>{apiFormatConfig?.pathHelper}</HelperTextItem>
+            <HelperTextItem>{ADD_PATH_PLACEHOLDER_HELPER}</HelperTextItem>
+          </HelperText>
+        ) : (
+          <HelperText>
+            <HelperTextItem>{EDIT_PATH_PLACEHOLDER_HELPER}</HelperTextItem>
+          </HelperText>
+        )}
+      </FormHelperText>
       <TextInput
         id="provider-ref-path"
         data-testid="provider-ref-path"
@@ -174,19 +185,10 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
       />
       <FormHelperText>
         <HelperText>
-          {pathError ? (
-            <HelperTextItem variant="error">{pathError}</HelperTextItem>
-          ) : pathHelperVariant === 'add' ? (
-            <>
-              <HelperTextItem>{apiFormatConfig.pathHelper}</HelperTextItem>
-              <HelperTextItem>{ADD_PATH_PLACEHOLDER_HELPER}</HelperTextItem>
-            </>
-          ) : (
-            <HelperTextItem>{EDIT_PATH_PLACEHOLDER_HELPER}</HelperTextItem>
-          )}
+          {pathError && <HelperTextItem variant="error">{pathError}</HelperTextItem>}
         </HelperText>
       </FormHelperText>
-      {showResetButton && form.path !== apiFormatConfig.defaultPath && (
+      {showResetButton && apiFormatConfig && (form.path ?? '') !== apiFormatConfig.defaultPath && (
         <Button
           variant="link"
           isInline
@@ -194,7 +196,7 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
           onClick={() => {
             onChange({ path: apiFormatConfig.defaultPath });
             fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PATH_RESET, {
-              apiFormat: convertStringToExternalProviderRefApiFormat(form.apiFormat),
+              apiFormat: convertStringToExternalProviderRefApiFormat(form.apiFormat ?? ''),
               providerType: convertStringToExternalModelProviderType(providerType),
               context,
             } satisfies ExternalModelWizardPathResetProperties);
@@ -209,7 +211,7 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
 };
 
 type ProviderReferenceConfigSectionProps = {
-  form: ProviderReferenceFormData;
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData;
   onChange: (updates: Partial<ProviderReferenceFormData>) => void;
   selectedProvider?: ExternalProvider;
   variant: 'advanced' | 'edit';
@@ -240,7 +242,7 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
           <HelperTextItem>
             {helperVariant === 'edit'
               ? EDIT_INHERITED_CONFIG_HELPER
-              : 'These values come from the provider and are available for {key} resolution in the path. Add an override below to change a value for this model.'}
+              : 'These key-value pairs are inherited from the provider. If the request path contains a matching placeholder such as {project}, the value defined here is used. To override a provider value, add a model key-value pair with the same key name.'}
           </HelperTextItem>
         </HelperText>
       </FormHelperText>
@@ -253,7 +255,7 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
   );
 
   const modelConfigContent = (
-    <FormGroup label="Model configuration" fieldId="provider-ref-model-configuration" isStack>
+    <FormGroup label="Model key-value pairs" fieldId="provider-ref-model-configuration" isStack>
       {variant === 'advanced' && (
         <FormHelperText>
           <HelperText>
@@ -265,11 +267,10 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
             ) : (
               <>
                 <HelperTextItem>
-                  Add key-value pairs specific to this model reference. Values are only used as{' '}
-                  {'{key}'} placeholders in the path field – they do not affect other configuration.
-                  Inherited values from the provider appear here and can be overridden per-model.
+                  Add key-value pairs for this provider reference only. Values replace matching{' '}
+                  {`{placeholders}`} in the request path. If a key matches one inherited from the
+                  provider, the value here is used instead.
                 </HelperTextItem>
-                <HelperTextItem>{CONFIG_EXAMPLES_HELPER}</HelperTextItem>
               </>
             )}
           </HelperText>
@@ -283,18 +284,7 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
   );
 
   const inheritedFormGroup = (
-    <FormGroup
-      label={
-        <>
-          Inherited from provider{' '}
-          <Label isCompact color="grey" data-testid="inherited-provider-config-count">
-            {inheritedConfigCount}
-          </Label>
-        </>
-      }
-      fieldId="inherited-provider-config"
-      isStack
-    >
+    <FormGroup label={<>Provider key-value pairs</>} fieldId="inherited-provider-config" isStack>
       {variant === 'advanced' ? (
         inheritedConfigContent
       ) : (
