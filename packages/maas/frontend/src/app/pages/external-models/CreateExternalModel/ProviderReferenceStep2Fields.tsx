@@ -196,7 +196,7 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
           onClick={() => {
             onChange({ path: apiFormatConfig.defaultPath });
             fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PATH_RESET, {
-              apiFormat: convertStringToExternalProviderRefApiFormat(form.apiFormat),
+              apiFormat: convertStringToExternalProviderRefApiFormat(form.apiFormat ?? ''),
               providerType: convertStringToExternalModelProviderType(providerType),
               context,
             } satisfies ExternalModelWizardPathResetProperties);

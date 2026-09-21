@@ -255,12 +255,13 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         onNext={handleNext}
         providerSource={providerSource}
         providerType={trackingProviderType}
-        apiFormat={configureForm.apiFormat.trim()}
+        apiFormat={configureForm.apiFormat?.trim() ?? ''}
         authMechanism={trackingAuthMechanism}
         hasCreatedSecret={trackingHasCreatedSecret}
         hasPathOverride={
-          configureForm.path.trim() !==
-          PROVIDER_REFERENCE_API_FORMATS[configureForm.apiFormat].defaultPath
+          !!configureForm.apiFormat &&
+          configureForm.path?.trim() !==
+            PROVIDER_REFERENCE_API_FORMATS[configureForm.apiFormat].defaultPath
         }
         countOfConfigOverrides={configureForm.configPairs.length}
         context={eventContext}
