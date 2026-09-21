@@ -485,7 +485,6 @@ def status_text(result, action):
 
 SEVERITY_MARK = {"critical": "⛔", "high": "🔴", "medium": "🟠", "low": "🟡", "info": "⚪"}
 STATUS_MARK = {"pass": "✅", "warning": "🟡", "fail": "❌", "not-applicable": "➖", "could-not-verify": "❔"}
-VERDICT_MARK = {"PASS": "✅", "PARTIAL": "🟠", "MISS": "❌", "SKIP": "➖"}
 ACTION_MARK = {"approve": "✅", "comment": "💬", "request-changes": "🔴", "reject": "⛔", "failure": "❌"}
 LEVEL_MARK = {"low": "🟢", "medium": "🟠", "high": "🔴", "critical": "⛔"}
 CONFIDENCE_MARK = {"high": "🟢", "medium": "🟠", "low": "🔴"}
@@ -696,19 +695,6 @@ def render_body(result, previous_md, action):
             details_body += ["", "_No dispatch ledger for this run — this list is self-reported by the agent._"]
         details_body.append("")
 
-    criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
-    if criteria:
-        details_body += ["### Jira acceptance criteria", "",
-                         "| Criterion | Verdict | Evidence |", "| --- | --- | --- |"]
-        for c in criteria:
-            verdict = c.get("verdict") or ""
-            stale = " · stale comment" if c.get("stale_comment") else ""
-            details_body.append(
-                f"| {table_cell(c.get('criterion'))} | "
-                f"{mark(VERDICT_MARK, verdict)} {table_cell(verdict)}{stale} "
-                f"| {table_cell(c.get('evidence'))} |")
-        details_body.append("")
-
     checks = result.get("checks") if isinstance(result.get("checks"), list) else []
     if checks:
         details_body += ["### Readiness checks", "",
@@ -846,14 +832,12 @@ run_self_test() {
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}]}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}]}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
   if grep -q '## Checks' <<<"${body}" ||
      ! grep -q '### Readiness checks' <<<"${body}" ||
-     ! grep -q 'test-impact-review' <<<"${body}" ||
-     ! grep -q '### Jira acceptance criteria' <<<"${body}" ||
-     ! grep -q 'Permission is checked' <<<"${body}"; then
+     ! grep -q 'test-impact-review' <<<"${body}"; then
     echo "FAIL structured results: audit tables were not rendered in Review details" >&2
     fail=1
   else
@@ -973,16 +957,6 @@ run_self_test() {
     fail=1
   else
     echo "PASS producers table attributes findings and separates ran-clean from skipped"
-  fi
-
-  # Unmet criteria stay expanded; an all-clear set collapses.
-  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Gate is present\",\"verdict\":\"MISS\",\"evidence\":\"No gate in diff.\"}]}" > "${tmp}/jira-miss.json"
-  body=$(transform_review_result "${tmp}/jira-miss.json" | jq -r .body)
-  if ! grep -q '### Jira acceptance criteria' <<<"${body}" || ! grep -q 'Gate is present' <<<"${body}"; then
-    echo "FAIL jira-miss: unmet Jira criteria must appear in Review details" >&2
-    fail=1
-  else
-    echo "PASS unmet Jira criteria render in Review details"
   fi
 
   # The ledger claiming an empty-set skip while findings exist is the exact
