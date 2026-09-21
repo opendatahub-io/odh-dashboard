@@ -1,33 +1,27 @@
 import * as yaml from 'js-yaml';
 import {
+  cleanupEvalHubTestResources,
   navigateToEvaluationsPage,
   submitSingleBenchmarkEvaluation,
   stopAndReconfigureEvaluation,
 } from '../../../utils/evalHubTestFlows';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
-import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { addUserToProject } from '../../../utils/oc_commands/project';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
-import {
-  cleanupEvalHubMlflowExperiment,
-  ensureEvalHubCrReady,
-} from '../../../utils/oc_commands/evalHubInstance';
+import { ensureEvalHubCrReady } from '../../../utils/oc_commands/evalHubInstance';
 import {
   ensureMlflowCrReady,
   findAvailableExperimentSuffix,
 } from '../../../utils/oc_commands/mlflow';
 import {
   grantEvalHubTenantAccess,
-  removeEvalHubTenantLabel,
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
-import {
-  cleanupEvalHubHardwareProfile,
-  getEvalHubHardwareProfileName,
-} from '../../../utils/oc_commands/evalHubHardwareProfile';
+import { getEvalHubHardwareProfileName } from '../../../utils/oc_commands/evalHubHardwareProfile';
 
 /**
  * Live-cluster Eval Hub E2E — stop and reconfigure flow.
@@ -106,23 +100,11 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
   });
 
   after(() => {
-    ensureAdminOcSession();
-
-    if (evaluationTenantProject && mlflowExperimentName) {
-      cy.step(`Delete MLflow experiment: ${mlflowExperimentName}`);
-      cleanupEvalHubMlflowExperiment(evaluationTenantProject, mlflowExperimentName);
-    }
-
-    if (evaluationTenantProject) {
-      cy.step(`Delete tenant project: ${evaluationTenantProject}`);
-      removeEvalHubTenantLabel(evaluationTenantProject);
-      deleteOpenShiftProject(evaluationTenantProject, { wait: true, ignoreNotFound: true });
-    }
-
-    if (hardwareProfileName) {
-      cy.step(`Clean up Hardware Profile: ${hardwareProfileName}`);
-      cleanupEvalHubHardwareProfile(hardwareProfileName);
-    }
+    cleanupEvalHubTestResources({
+      evaluationTenantProject,
+      mlflowExperimentName,
+      hardwareProfileName,
+    });
   });
 
   it(

@@ -5,12 +5,12 @@ class EvaluationsPage {
     return `/evaluation/${namespace}?${LM_EVAL_DEV_FEATURE_FLAGS}`;
   }
 
-  findPageTitle() {
-    return cy.findByTestId('app-page-title');
+  findPageTitle(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('app-page-title', options);
   }
 
-  findCreateEvaluationButton() {
-    return cy.findByTestId('create-evaluation-button');
+  findCreateEvaluationButton(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('create-evaluation-button', options);
   }
 
   findEvaluationsTable(options?: Partial<Cypress.Timeoutable>) {

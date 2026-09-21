@@ -1,5 +1,12 @@
 import { LDAP_ADMIN_USER } from './e2eUsers';
-import { waitForEvaluationJobComplete } from './oc_commands/evalHubInstance';
+import { ensureAdminOcSession } from './oc_commands/baseCommands';
+import { deleteOpenShiftProject } from './oc_commands/project';
+import {
+  cleanupEvalHubMlflowExperiment,
+  waitForEvaluationJobComplete,
+} from './oc_commands/evalHubInstance';
+import { removeEvalHubTenantLabel } from './oc_commands/evalHubModelDeploy';
+import { cleanupEvalHubHardwareProfile } from './oc_commands/evalHubHardwareProfile';
 import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
 import { createEvaluationPage } from '../pages/evalHub/createEvaluationPage';
 import { evaluationResultsPage } from '../pages/evalHub/evaluationResultsPage';
@@ -38,8 +45,11 @@ export const navigateToEvaluationsPage = (evaluationTenantProject: string): void
     LDAP_ADMIN_USER,
   );
   cy.url().should('include', `/evaluation/${evaluationTenantProject}`);
-  evaluationsPage.findPageTitle().should('be.visible').and('contain.text', 'Evaluations');
-  evaluationsPage.findCreateEvaluationButton().should('be.visible');
+  evaluationsPage
+    .findPageTitle({ timeout: 30000 })
+    .should('be.visible')
+    .and('contain.text', 'Evaluations');
+  evaluationsPage.findCreateEvaluationButton({ timeout: 30000 }).should('be.visible');
 };
 
 export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationOptions): void => {
@@ -163,7 +173,7 @@ export const verifyEvaluationCompletedAndViewResults = (
 ): void => {
   cy.step('Re-open status modal after completion — View Results shown, Stop absent');
   cy.reload();
-  evaluationsPage.findPageTitle().should('be.visible', { timeout: 30000 });
+  evaluationsPage.findPageTitle({ timeout: 30000 }).should('be.visible');
   evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
   evaluationsPage.findStatusModal().should('be.visible');
   evaluationsPage.findStatusModalStopButton().should('not.exist');
@@ -235,7 +245,7 @@ export const stopAndReconfigureEvaluation = (
 
   cy.step('Wait for evaluation to reach Canceled status');
   cy.reload();
-  evaluationsPage.findPageTitle().should('be.visible', { timeout: 30000 });
+  evaluationsPage.findPageTitle({ timeout: 30000 }).should('be.visible');
   evaluationsPage
     .findEvaluationStatusButtonInRow(evaluationRunName, { timeout: 120000 })
     .should('contain.text', 'Canceled');
@@ -247,7 +257,7 @@ export const stopAndReconfigureEvaluation = (
 
   cy.step(`Submit the reconfigured evaluation run as "${reconfiguredRunName}"`);
   cy.url().should('include', '/reconfigure');
-  createEvaluationPage.findStartEvaluationForm().should('exist', { timeout: 30000 });
+  createEvaluationPage.findStartEvaluationForm({ timeout: 30000 }).should('exist');
   createEvaluationPage.findEvaluationNameInput().clear().type(reconfiguredRunName);
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
   cy.url({ timeout: 120000 }).should('not.include', '/reconfigure');
@@ -263,4 +273,114 @@ export const runSingleBenchmarkEvaluationFlow = (
   verifyEvaluationProgressModal(opts.evaluationRunName);
   waitForEvaluationJobComplete(evaluationTenantProject);
   verifyEvaluationCompletedAndViewResults(opts.evaluationRunName, evaluationTenantProject);
+};
+
+export type EvalHubCleanupStep = {
+  description: string;
+  run: () => Cypress.Chainable | void;
+};
+
+export type EvalHubCleanupOptions = {
+  evaluationTenantProject: string;
+  mlflowExperimentName: string;
+  hardwareProfileName: string;
+};
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+/** Builds the shared cleanup sequence used by the live EvalHub specs. */
+export const createEvalHubCleanupSteps = ({
+  evaluationTenantProject,
+  mlflowExperimentName,
+  hardwareProfileName,
+}: EvalHubCleanupOptions): EvalHubCleanupStep[] => {
+  const cleanupSteps: EvalHubCleanupStep[] = [];
+
+  if (evaluationTenantProject && mlflowExperimentName) {
+    cleanupSteps.push({
+      description: `Delete MLflow experiment ${mlflowExperimentName}`,
+      run: () => {
+        cy.step(`Delete MLflow experiment: ${mlflowExperimentName}`);
+        return cleanupEvalHubMlflowExperiment(evaluationTenantProject, mlflowExperimentName);
+      },
+    });
+  }
+
+  if (evaluationTenantProject) {
+    cleanupSteps.push({
+      description: `Remove EvalHub tenant label from ${evaluationTenantProject}`,
+      run: () => removeEvalHubTenantLabel(evaluationTenantProject),
+    });
+    cleanupSteps.push({
+      description: `Delete tenant project ${evaluationTenantProject}`,
+      run: () => {
+        cy.step(`Delete tenant project: ${evaluationTenantProject}`);
+        return deleteOpenShiftProject(evaluationTenantProject, {
+          wait: true,
+          ignoreNotFound: true,
+        });
+      },
+    });
+  }
+
+  if (hardwareProfileName) {
+    cleanupSteps.push({
+      description: `Clean up Hardware Profile ${hardwareProfileName}`,
+      run: () => {
+        cy.step(`Clean up Hardware Profile: ${hardwareProfileName}`);
+        return cleanupEvalHubHardwareProfile(hardwareProfileName);
+      },
+    });
+  }
+
+  return cleanupSteps;
+};
+
+/** Runs every cleanup step and reports all failures after the final attempt. */
+export const runEvalHubCleanup = (steps: EvalHubCleanupStep[]): void => {
+  const failures: string[] = [];
+  let activeDescription = '';
+
+  const recordFailure = (description: string, error: unknown): void => {
+    failures.push(`${description}: ${getErrorMessage(error)}`);
+  };
+
+  const handleCypressFailure = (error: Cypress.CypressError): false | void => {
+    if (!activeDescription) {
+      throw error;
+    }
+    recordFailure(activeDescription, error);
+    activeDescription = '';
+    return false;
+  };
+
+  Cypress.on('fail', handleCypressFailure);
+
+  steps.forEach(({ description, run }) => {
+    cy.then(() => {
+      activeDescription = description;
+      try {
+        return run();
+      } catch (error) {
+        recordFailure(description, error);
+        activeDescription = '';
+        return undefined;
+      }
+    }).then(() => {
+      activeDescription = '';
+    });
+  });
+
+  cy.then(() => {
+    Cypress.off('fail', handleCypressFailure);
+    if (failures.length > 0) {
+      throw new Error(`EvalHub cleanup failed:\n${failures.join('\n')}`);
+    }
+  });
+};
+
+export const cleanupEvalHubTestResources = (options: EvalHubCleanupOptions): void => {
+  ensureAdminOcSession();
+  runEvalHubCleanup(createEvalHubCleanupSteps(options));
 };
