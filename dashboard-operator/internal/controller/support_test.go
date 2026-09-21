@@ -57,7 +57,7 @@ func TestComputeKustomizeVariables(t *testing.T) {
 			name: "with gateway domain",
 			dashboard: &v1alpha1.Dashboard{
 				Spec: v1alpha1.DashboardSpec{
-					Gateway: &v1alpha1.GatewaySpec{Domain: "RH-AI.Apps.Example.Com"},
+					Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
 				},
 			},
 			platform: cluster.OpenDataHub,
