@@ -2,7 +2,11 @@ import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import dataRegistryPage from '../../../pages/dataRegistry/dataRegistryPage';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import {
+  addUserToProject,
+  deleteOpenShiftProject,
+  waitForUserProjectAccess,
+} from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
   createFeatureStoreCR,
@@ -26,6 +30,28 @@ const crudAssetDescription = 'Data Registry CRUD asset';
 const updatedCrudAssetDescription = 'Updated Data Registry CRUD asset';
 const testProjectName = `data-registry-e2e-${generateTestUUID()}`;
 
+const navigateToDataRegistry = (project: string): void => {
+  // The CLI session used during setup is independent from the browser session. Clear any
+  // existing browser session so visitWithLogin authenticates as the configured test user.
+  cy.clearCookies();
+  cy.clearLocalStorage();
+  cy.intercept('GET', '**/data-registry/api/v1/namespaces').as('dataRegistryNamespaces');
+  dataRegistryPage.navigate(undefined, HTPASSWD_CLUSTER_ADMIN_USER);
+  cy.wait('@dataRegistryNamespaces').then(({ response }) => {
+    const namespaces = (response?.body as { data?: Array<{ name?: string }> } | undefined)?.data
+      ?.map((namespace) => namespace.name)
+      .filter((name): name is string => Boolean(name));
+
+    cy.log(
+      `Data Registry namespaces response (${response?.statusCode ?? 'unknown'}): ${
+        namespaces?.join(', ') || '(none)'
+      }`,
+    );
+    expect(response?.statusCode, 'Data Registry namespace request status').to.equal(200);
+    expect(namespaces, 'Data Registry namespace response').to.include(project);
+  });
+};
+
 describe('Data Registry browse flow', () => {
   let testData: Record<string, string>;
   let dataRegistryNamespace: string;
@@ -47,6 +73,16 @@ describe('Data Registry browse flow', () => {
         return createCleanProject(testProjectName).then(() => {
           projectCreated = true;
         });
+      })
+      .then(() => {
+        cy.step(`Grant ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME} access to ${testProjectName}`);
+        return addUserToProject(
+          testProjectName,
+          HTPASSWD_CLUSTER_ADMIN_USER.USERNAME,
+          'admin',
+        ).then(() =>
+          waitForUserProjectAccess(testProjectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME),
+        );
       })
       .then(() => {
         return waitForDataRegistryNamespace().then((namespace) => {
@@ -138,7 +174,7 @@ describe('Data Registry browse flow', () => {
     { tags: ['@Dashboard', '@DataRegistry', '@Smoke'] },
     () => {
       cy.step('Log in as an administrator');
-      dataRegistryPage.navigate(undefined, HTPASSWD_CLUSTER_ADMIN_USER);
+      navigateToDataRegistry(testData.project);
 
       cy.step(`Select the ${testData.project} project`);
       dataRegistryPage.selectProject(testData.project);
@@ -167,7 +203,7 @@ describe('Data Registry browse flow', () => {
     { tags: ['@Dashboard', '@DataRegistry', '@Smoke'] },
     () => {
       cy.step('Log in as an administrator');
-      dataRegistryPage.navigate(undefined, HTPASSWD_CLUSTER_ADMIN_USER);
+      navigateToDataRegistry(testData.project);
       dataRegistryPage.selectProject(testData.project);
 
       cy.step(`Create the ${crudCollectionName} collection`);
