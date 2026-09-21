@@ -1,6 +1,10 @@
 import React from 'react';
 import { Form, Stack } from '@patternfly/react-core';
 import { ExternalProvider } from '~/app/types/external-models';
+import {
+  ExternalModelProviderContext,
+  ExternalModelProviderSource,
+} from '~/app/types/event-tracking';
 import CreateExternalProviderSubmitError from '~/app/pages/external-providers/createProvider/CreateExternalProviderSubmitError';
 import {
   ProviderReferenceFieldErrors,
@@ -23,6 +27,8 @@ type ProviderReferenceStep2FormProps = {
   onTargetModelBlur?: () => void;
   onPathBlur?: () => void;
   createProviderSubmitError?: string;
+  providerSource: ExternalModelProviderSource;
+  context: ExternalModelProviderContext;
   /** Set false when fields render inside a parent Form (e.g. edit provider ref modal). */
   wrapInForm?: boolean;
 };
@@ -36,6 +42,8 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
   onTargetModelBlur,
   onPathBlur,
   createProviderSubmitError,
+  providerSource,
+  context,
   wrapInForm = true,
 }) => {
   const fields = (
@@ -59,6 +67,8 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
         pathHelperVariant={helperVariant}
         showResetButton
         onBlur={onPathBlur}
+        providerType={selectedProvider?.provider ?? ''}
+        context={context}
       />
       <ProviderReferenceConfigSection
         form={form}
@@ -66,6 +76,8 @@ const ProviderReferenceStep2Form: React.FC<ProviderReferenceStep2FormProps> = ({
         selectedProvider={selectedProvider}
         variant="advanced"
         helperVariant={helperVariant}
+        providerSource={providerSource}
+        context={context}
       />
       <CreateExternalProviderSubmitError
         error={createProviderSubmitError}

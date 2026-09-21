@@ -17,7 +17,7 @@ const ClusterQueueWorkloadStatusLabel: React.FC<ClusterQueueWorkloadStatusLabelP
   return (
     <Label
       className="gpuaas-cluster-queue-workload-status-label"
-      variant="filled"
+      variant="outline"
       isCompact
       color={labelSettings.color}
       status={labelSettings.status}

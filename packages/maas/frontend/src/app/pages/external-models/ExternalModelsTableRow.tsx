@@ -14,6 +14,7 @@ import {
   ExternalModelRowExpandedProperties,
   MaaSEvents,
   ExternalModelsInfoPopoverViewedProperties,
+  ExternalModelEditClickedProperties,
 } from '~/app/types/event-tracking';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { externalModelsColumns } from './columns';
@@ -245,7 +246,13 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         items={[
           {
             title: 'Edit',
-            onClick: () => onEditExternalModel(externalModel.namespace, externalModel.name),
+            onClick: () => {
+              fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_EDIT_CLICKED, {
+                modelStatus: convertStringToPhaseStatus(externalModel.phase ?? ''),
+                providerCount: externalModel.providerRefs.length,
+              } satisfies ExternalModelEditClickedProperties);
+              onEditExternalModel(externalModel.namespace, externalModel.name);
+            },
           },
           {
             title: 'Delete',
