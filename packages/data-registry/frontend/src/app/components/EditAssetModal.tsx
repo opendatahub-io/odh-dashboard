@@ -1,18 +1,16 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import {
-  Alert,
-  Button,
-  Form,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-} from '@patternfly/react-core';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
+import { Alert, Form, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AssetResponse, ConnectionRef, VolumeInfo } from '~/app/types';
-import { ApiError, createLabel, updateGenericTable, updateVolume } from '~/app/api/dataRegistry';
+import {
+  isConflictError,
+  createLabel,
+  updateGenericTable,
+  updateVolume,
+} from '~/app/api/dataRegistry';
 import { editAssetSchema, EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import { getRawUnstructuredFormat, normalizeUnstructuredFormat } from '~/app/utilities/formatUtils';
 import AssetDetailsSection from './register-data/AssetDetailsSection';
@@ -168,7 +166,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
           await Promise.all(
             addLabels.map((label) =>
               createLabel(project, { name: label }).catch((err) => {
-                if (err instanceof ApiError && err.status === 409) {
+                if (isConflictError(err)) {
                   return;
                 }
                 throw err;
@@ -268,23 +266,16 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
         </FormProvider>
       </ModalBody>
       <ModalFooter>
-        <Button
-          variant="primary"
-          onClick={form.handleSubmit(handleSubmit)}
-          isDisabled={isSubmitting}
-          isLoading={isSubmitting}
-          data-testid="edit-asset-save"
-        >
-          Save
-        </Button>
-        <Button
-          variant="link"
-          onClick={onClose}
-          isDisabled={isSubmitting}
-          data-testid="edit-asset-cancel"
-        >
-          Cancel
-        </Button>
+        <DashboardModalFooter
+          submitLabel="Save"
+          onSubmit={form.handleSubmit(handleSubmit)}
+          onCancel={onClose}
+          isSubmitDisabled={isSubmitting}
+          isSubmitLoading={isSubmitting}
+          isCancelDisabled={isSubmitting}
+          submitButtonTestId="edit-asset-save"
+          cancelButtonTestId="edit-asset-cancel"
+        />
       </ModalFooter>
     </Modal>
   );
