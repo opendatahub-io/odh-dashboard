@@ -17,12 +17,11 @@ import {
   Tab,
   TabContent,
   Tabs,
-  TabTitleIcon,
   TabTitleText,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { ClusterIcon, MicrochipIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import {
   INFRASTRUCTURE_PAGE_DESCRIPTION,
@@ -42,11 +41,6 @@ import './InfrastructurePage.scss';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
 type InfrastructureSection = (typeof INFRASTRUCTURE_SECTIONS)[number];
-
-const TAB_ICONS: Record<InfrastructureTabId, React.ComponentType> = {
-  utilization: MicrochipIcon,
-  'quota-usage': ClusterIcon,
-};
 
 const getTabPanelId = (tabId: InfrastructureTabId): string => `infrastructure-tab-panel-${tabId}`;
 
@@ -226,8 +220,14 @@ const InfrastructurePage: React.FC = () => {
     onRefresh: () => void,
     lastRefreshed: Date | null,
     testId = 'infrastructure-refresh-badge',
-  ): React.ReactNode =>
-    lastRefreshed ? (
+  ): React.ReactNode => {
+    if (!lastRefreshed) {
+      return null;
+    }
+
+    const refreshTime = relativeTime(currentTime, lastRefreshed.getTime());
+
+    return (
       <Flex
         justifyContent={{ default: 'justifyContentFlexEnd' }}
         alignItems={{ default: 'alignItemsCenter' }}
@@ -243,11 +243,12 @@ const InfrastructurePage: React.FC = () => {
         </FlexItem>
         <FlexItem>
           <Content component="small" className="pf-v6-u-color-200">
-            Updated {relativeTime(currentTime, lastRefreshed.getTime())}
+            Updated {refreshTime === 'Just now' ? 'just now' : refreshTime}
           </Content>
         </FlexItem>
       </Flex>
-    ) : null;
+    );
+  };
 
   const getSectionRenderOptions = (section: InfrastructureSection): SectionRenderOptions => ({
     headerAction: section.refreshBadgeTestId
@@ -326,16 +327,12 @@ const InfrastructurePage: React.FC = () => {
                 data-testid="infrastructure-tabs"
               >
                 {INFRASTRUCTURE_TABS.map((tabInfo) => {
-                  const TabIcon = TAB_ICONS[tabInfo.id];
                   return (
                     <Tab
                       key={tabInfo.id}
                       eventKey={tabInfo.id}
                       title={
                         <>
-                          <TabTitleIcon>
-                            <TabIcon />
-                          </TabTitleIcon>
                           <TabTitleText>{tabInfo.title}</TabTitleText>
                         </>
                       }

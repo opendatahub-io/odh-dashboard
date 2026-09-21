@@ -82,6 +82,7 @@ type App struct {
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	evalHubClientFactory    evalhub.EvalHubClientFactory
 	bffClientFactory        bffclient.BFFClientFactory
+	portForwardManager      *k8s.PortForwardManager
 	repositories            *repositories.Repositories
 	testEnv                 *envtest.Environment
 	rootCAs                 *x509.CertPool
@@ -163,12 +164,32 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
 
+	var portForwardManager *k8s.PortForwardManager
+	if cfg.DevMode && !cfg.MockK8Client {
+		restConfig, err := helper.GetKubeconfig()
+		if err != nil {
+			logger.Warn("failed to initialize dynamic port-forwarding", "error", err)
+		} else {
+			clientset, err := kubernetes.NewForConfig(restConfig)
+			if err != nil {
+				logger.Warn("failed to initialize dynamic port-forwarding", "error", err)
+			} else {
+				portForwardManager = k8s.NewPortForwardManager(restConfig, clientset, logger)
+				logger.Info("dynamic port-forwarding enabled for in-cluster service URLs")
+			}
+		}
+	}
+
 	var ehFactory evalhub.EvalHubClientFactory
 	if cfg.MockEvalHubClient {
 		ehFactory = ehmocks.NewMockClientFactory()
 		logger.Info("Using mock EvalHub client")
 	} else {
-		ehFactory = evalhub.NewRealClientFactory()
+		var wrapTransport func(http.RoundTripper) http.RoundTripper
+		if portForwardManager != nil {
+			wrapTransport = k8s.PortForwardWrapTransport(portForwardManager, logger)
+		}
+		ehFactory = evalhub.NewRealClientFactoryWithTransport(wrapTransport)
 	}
 
 	// Inter-BFF client factory (model-catalog BFF)
@@ -217,6 +238,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory: k8sFactory,
 		evalHubClientFactory:    ehFactory,
 		bffClientFactory:        bffFactory,
+		portForwardManager:      portForwardManager,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
@@ -228,6 +250,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.portForwardManager != nil {
+		app.portForwardManager.Close()
+	}
 	if app.testEnv == nil {
 		return nil
 	}

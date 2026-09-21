@@ -173,6 +173,6 @@ build: frontend-build bff-build
 ############ Run mocked ########
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
-	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
+	rm -rf ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run LOG_LEVEL=debug STATIC_ASSETS_DIR=./static-local-run DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_S3_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_MODEL_REGISTRY_CLIENT=true AUTH_METHOD=disabled DEPLOYMENT_MODE=standalone
 
 
