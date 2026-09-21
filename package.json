@@ -144,6 +144,7 @@
     "js-cookie": "^3.0.7",
     "fflate": "^0.4.9",
     "baseline-browser-mapping": "^2.11.0",
-    "compression": "^1.8.2"
+    "compression": "^1.8.2",
+    "adm-zip": "0.6.1"
   }
 }
