@@ -18,6 +18,7 @@ import (
 type SandboxDeploymentResources struct {
 	LlamaStackConfigMapName string
 	WrapperAppConfigMapName string
+	MCPAuthSecretNames      []string
 	SandboxName             string
 	MLflowRoleBindingName   string
 	ServiceName             string
@@ -91,6 +92,12 @@ func (kc *TokenKubernetesClient) RollbackSandboxDeployment(
 			continue
 		}
 		kc.Logger.Info("rolled back agent deployment resource", "kind", resource.kind, "name", resource.name, "namespace", namespace)
+	}
+	for _, name := range resources.MCPAuthSecretNames {
+		secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
+		if err := kc.Client.Delete(ctx, secret); err != nil && !apierrors.IsNotFound(err) {
+			kc.Logger.Error("failed to roll back MCP authentication Secret", "name", name, "namespace", namespace, "error", err)
+		}
 	}
 }
 

@@ -43,6 +43,7 @@ type KubernetesClientInterface interface {
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
+	GetDashboardConfigMap(ctx context.Context, namespace string, name string) (*corev1.ConfigMap, error)
 
 	// External Models operations
 	GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
@@ -80,6 +81,8 @@ type KubernetesClientInterface interface {
 	CreateWrapperAppConfigMap(ctx context.Context, namespace string, profileID string, appPy string) (*corev1.ConfigMap, error)
 	CreateSandboxCR(ctx context.Context, namespace string, opts SandboxCROptions) (string, error)
 	SetSandboxConfigMapsOwner(ctx context.Context, namespace, sandboxName string, configMapNames ...string) error
+	CreateSandboxMCPAuthSecret(ctx context.Context, namespace, serverID, authorization string) (*corev1.Secret, error)
+	SetSandboxMCPAuthSecretsOwner(ctx context.Context, namespace, sandboxName string, secretNames ...string) error
 	CreateMLflowRoleBinding(ctx context.Context, namespace string, sandboxName string) error
 	RollbackSandboxDeployment(ctx context.Context, namespace string, resources SandboxDeploymentResources)
 

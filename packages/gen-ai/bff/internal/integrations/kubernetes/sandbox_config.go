@@ -49,6 +49,13 @@ func BuildSandboxLlamaStackConfig(
 	cfg.RegisterModel(NewLLMModel(profile.Spec.Model.ID, sandboxPassthroughProviderID, profile.Spec.DisplayName))
 
 	if profile.Spec.VectorStores == nil || len(profile.Spec.VectorStores.Stores) == 0 {
+		// OGX validates vector_stores.default_embedding_model during startup even when
+		// no vector store is selected. Register the inline default so that lookup succeeds.
+		registerSandboxEmbeddingModel(
+			cfg,
+			ogxSentenceTransformersModelID(cfg.VectorStores.DefaultEmbeddingModel.ModelID),
+			sandboxDefaultEmbeddingDimension,
+		)
 		return cfg, nil
 	}
 
@@ -111,13 +118,25 @@ func BuildSandboxLlamaStackConfig(
 		// in the YAML — OGX constructs the full OGX model_id internally as provider_id/model_id,
 		// so this field must stay unprefixed.
 		cfg.VectorStores.DefaultEmbeddingModel.ModelID = hfModelName(firstEmbeddingModel)
-		cfg.RegisterModel(NewEmbeddingModel(
-			firstEmbeddingModel, // OGX model_id with prefix (registered_resources)
-			cfg.VectorStores.DefaultEmbeddingModel.ProviderID,
-			hfModelName(firstEmbeddingModel), // provider_model_id: raw HF name
-			firstEmbeddingDimension,
-		))
+		registerSandboxEmbeddingModel(cfg, firstEmbeddingModel, firstEmbeddingDimension)
+	} else {
+		// Invalid or unresolved store references still leave the default embedding model
+		// in the config, which OGX validates at startup.
+		registerSandboxEmbeddingModel(
+			cfg,
+			ogxSentenceTransformersModelID(cfg.VectorStores.DefaultEmbeddingModel.ModelID),
+			sandboxDefaultEmbeddingDimension,
+		)
 	}
 
 	return cfg, nil
+}
+
+func registerSandboxEmbeddingModel(cfg *LlamaStackConfig, modelID string, dimension int) {
+	cfg.RegisterModel(NewEmbeddingModel(
+		modelID, // OGX model_id with prefix (registered_resources)
+		cfg.VectorStores.DefaultEmbeddingModel.ProviderID,
+		hfModelName(modelID), // provider_model_id: raw HuggingFace name
+		dimension,
+	))
 }

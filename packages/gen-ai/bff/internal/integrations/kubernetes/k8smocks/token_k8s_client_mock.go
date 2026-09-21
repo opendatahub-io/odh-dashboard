@@ -873,6 +873,14 @@ func (m *TokenKubernetesClientMock) SetSandboxConfigMapsOwner(ctx context.Contex
 	return nil
 }
 
+func (m *TokenKubernetesClientMock) CreateSandboxMCPAuthSecret(ctx context.Context, namespace, serverID, authorization string) (*corev1.Secret, error) {
+	return &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "agent-mcp-auth-mock", Namespace: namespace}}, nil
+}
+
+func (m *TokenKubernetesClientMock) SetSandboxMCPAuthSecretsOwner(ctx context.Context, namespace, sandboxName string, secretNames ...string) error {
+	return nil
+}
+
 func (m *TokenKubernetesClientMock) CreateMLflowRoleBinding(ctx context.Context, namespace string, sandboxName string) error {
 	return nil
 }

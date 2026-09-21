@@ -103,9 +103,14 @@ func TestBuildSandboxLlamaStackConfig_NoVectorStores(t *testing.T) {
 	// No pgvector provider when there are no vector stores
 	assert.Empty(t, cfg.Providers.VectorIO)
 
-	// LLM model registered
-	require.Len(t, cfg.RegisteredResources.Models, 1)
+	// OGX validates the default embedding model even with no vector stores, so both
+	// the LLM and the default inline embedding model must be registered.
+	require.Len(t, cfg.RegisteredResources.Models, 2)
 	assert.Equal(t, "meta-llama/Llama-3.1-8B", cfg.RegisteredResources.Models[0].ModelID)
+	assert.Equal(t, "sentence-transformers/ibm-granite/granite-embedding-125m-english", cfg.RegisteredResources.Models[1].ModelID)
+	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", cfg.RegisteredResources.Models[1].ProviderModelID)
+	assert.Equal(t, "embedding", cfg.RegisteredResources.Models[1].ModelType)
+	assert.Equal(t, 768, cfg.RegisteredResources.Models[1].Metadata["embedding_dimension"])
 }
 
 func TestBuildSandboxLlamaStackConfig_StoreRefKey(t *testing.T) {

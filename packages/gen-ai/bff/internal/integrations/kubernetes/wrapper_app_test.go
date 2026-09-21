@@ -43,6 +43,14 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `token validation failed`)
 	assert.Contains(t, script, `"application/json"`)
 
+	// Selected MCP servers are injected into every OGX Responses API request.
+	assert.Contains(t, script, `AGENT_MCP_SERVERS_JSON`)
+	assert.Contains(t, script, `MCPServerMiddleware`)
+	assert.Contains(t, script, `"/v1/responses"`)
+	assert.Contains(t, script, `"type": "mcp"`)
+	assert.Contains(t, script, `"authorization"] = os.environ[auth_env_var]`)
+	assert.Contains(t, script, `"allowed_tools"] = server["allowed_tools"]`)
+
 	// create_app synchronous + uvicorn on port 8321
 	assert.Contains(t, script, `create_app()`)
 	assert.Contains(t, script, `uvicorn`)

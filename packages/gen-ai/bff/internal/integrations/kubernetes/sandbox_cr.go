@@ -41,6 +41,9 @@ type SandboxCROptions struct {
 	// AgentConfigJSON is the immutable AgentProfile snapshot exposed by the agent's
 	// authenticated /internal/agent_config endpoint.
 	AgentConfigJSON string
+	// MCPServersJSON describes selected MCP servers without embedding credentials.
+	MCPServersJSON string
+	MCPAuthSecrets []SandboxSecretEnvVar
 	// PgvectorHost defaults to <pgvector-service>.<namespace>.svc.cluster.local when empty.
 	PgvectorHost string
 	// PgvectorSecretName defaults to pgvector.CredentialsSecretName when empty.
@@ -49,6 +52,20 @@ type SandboxCROptions struct {
 	MLflowTrackingURI   string
 	MLflowPromptName    string
 	MLflowPromptVersion string
+}
+
+// SandboxSecretEnvVar maps a deployment-created Secret to a container environment variable.
+type SandboxSecretEnvVar struct {
+	Name       string
+	SecretName string
+}
+
+// SandboxMCPServer contains the non-secret MCP configuration injected into the wrapper.
+type SandboxMCPServer struct {
+	ServerLabel         string    `json:"server_label"`
+	ServerURL           string    `json:"server_url"`
+	AllowedTools        *[]string `json:"allowed_tools,omitempty"`
+	AuthorizationEnvVar string    `json:"authorization_env_var,omitempty"`
 }
 
 func (kc *TokenKubernetesClient) sandboxOwnerReference(
@@ -65,7 +82,7 @@ func (kc *TokenKubernetesClient) sandboxOwnerReference(
 		return metav1.OwnerReference{}, fmt.Errorf("failed to read Sandbox %s for owner reference: %w", sandboxName, err)
 	}
 	if sandbox.GetUID() == "" {
-		return metav1.OwnerReference{}, fmt.Errorf("Sandbox %s has no UID", sandboxName)
+		return metav1.OwnerReference{}, fmt.Errorf("sandbox %s has no UID", sandboxName)
 	}
 
 	controller := true
@@ -197,6 +214,7 @@ func buildSandboxEnvVars(opts SandboxCROptions, pgvectorHost, pgvectorSecret str
 		sandboxEnvVar("MAAS_GATEWAY_URL", opts.MaaSGatewayURL),
 		sandboxEnvVar("MAAS_SUBSCRIPTION", opts.MaaSSubscription),
 		sandboxEnvVar("AGENT_CONFIG_JSON", opts.AgentConfigJSON),
+		sandboxEnvVar("AGENT_MCP_SERVERS_JSON", opts.MCPServersJSON),
 		sandboxEnvVar(pgvector.HostEnvVar, pgvectorHost),
 		sandboxEnvVar(pgvector.PortEnvVar, strconv.Itoa(pgvector.DefaultPort)),
 		sandboxEnvVar(pgvector.DBEnvVar, pgvector.DefaultDB),
@@ -206,6 +224,9 @@ func buildSandboxEnvVars(opts SandboxCROptions, pgvectorHost, pgvectorSecret str
 		sandboxEnvVar("HF_HUB_OFFLINE", "1"),
 		sandboxEnvVar("TRANSFORMERS_OFFLINE", "1"),
 		sandboxEnvVar("HF_DATASETS_OFFLINE", "1"),
+	}
+	for _, secret := range opts.MCPAuthSecrets {
+		vars = append(vars, sandboxEnvVarFromSecret(secret.Name, secret.SecretName, sandboxMCPAuthSecretKey))
 	}
 
 	if opts.MLflowTrackingURI != "" {

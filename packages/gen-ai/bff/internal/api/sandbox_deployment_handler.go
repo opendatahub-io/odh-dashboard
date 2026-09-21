@@ -3,7 +3,9 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -72,6 +74,11 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		})
 		return
 	}
+	mcpServerAuth, err := normalizeMCPServerAuth(req.MCPServerAuth)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
 
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
@@ -125,6 +132,16 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	agentConfigJSON, err := json.Marshal(profile)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	mcpServers, err := app.resolveSandboxMCPServers(ctx, k8sClient, profile, mcpServerAuth)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	mcpServersJSON, err := json.Marshal(mcpServers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -191,16 +208,39 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+	sandboxName := req.Name + "-" + sandboxSuffix
+
+	var mcpAuthSecrets []kubernetes.SandboxSecretEnvVar
+	for _, server := range mcpServers {
+		if server.AuthorizationEnvVar == "" {
+			continue
+		}
+		authorization := mcpServerAuth[server.ServerLabel]
+		secret, secretErr := k8sClient.CreateSandboxMCPAuthSecret(ctx, namespace, server.ServerLabel, authorization)
+		if secretErr != nil {
+			rollback()
+			if httpErr, ok := secretErr.(*integrations.HTTPError); ok && httpErr.StatusCode == http.StatusForbidden {
+				app.forbiddenResponse(w, r, httpErr.Message)
+				return
+			}
+			app.serverErrorResponse(w, r, secretErr)
+			return
+		}
+		resources.MCPAuthSecretNames = append(resources.MCPAuthSecretNames, secret.Name)
+		mcpAuthSecrets = append(mcpAuthSecrets, kubernetes.SandboxSecretEnvVar{Name: server.AuthorizationEnvVar, SecretName: secret.Name})
+	}
 
 	// Build Sandbox CR options from the profile snapshot and BFF config.
 	sandboxOpts := kubernetes.SandboxCROptions{
-		Name:                    req.Name + "-" + sandboxSuffix,
+		Name:                    sandboxName,
 		ProfileID:               req.AgentProfileID,
 		LlamaStackConfigMapName: lsCM.Name,
 		WrapperAppConfigMapName: waCM.Name,
 		Image:                   ogxImage,
 		MaaSGatewayURL:          app.config.MaaSURL,
 		AgentConfigJSON:         string(agentConfigJSON),
+		MCPServersJSON:          string(mcpServersJSON),
+		MCPAuthSecrets:          mcpAuthSecrets,
 		PgvectorHost:            app.config.PgvectorHost,
 		PgvectorSecretName:      app.config.PgvectorPasswordSecretName,
 	}
@@ -214,7 +254,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Create the Sandbox CR.
-	sandboxName, err := k8sClient.CreateSandboxCR(ctx, namespace, sandboxOpts)
+	sandboxName, err = k8sClient.CreateSandboxCR(ctx, namespace, sandboxOpts)
 	if err != nil {
 		rollback()
 		if httpErr, ok := err.(*integrations.HTTPError); ok {
@@ -241,6 +281,11 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 			app.forbiddenResponse(w, r, httpErr.Message)
 			return
 		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if err := k8sClient.SetSandboxMCPAuthSecretsOwner(ctx, namespace, sandboxName, resources.MCPAuthSecretNames...); err != nil {
+		rollback()
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -305,4 +350,84 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// normalizeMCPServerAuth accepts either a raw OAuth token or an Authorization header value.
+// OGX adds the "Bearer " scheme itself when it connects to MCP servers, so Secrets must hold
+// only the token value to avoid sending "Bearer Bearer <token>".
+func normalizeMCPServerAuth(authorizations map[string]string) (map[string]string, error) {
+	if len(authorizations) == 0 {
+		return nil, nil
+	}
+
+	normalized := make(map[string]string, len(authorizations))
+	for serverID, authorization := range authorizations {
+		value := strings.TrimSpace(authorization)
+		if strings.EqualFold(value, "Bearer") {
+			value = ""
+		} else if len(value) >= len("Bearer ") && strings.EqualFold(value[:len("Bearer ")], "Bearer ") {
+			value = strings.TrimSpace(value[len("Bearer "):])
+		}
+		if value == "" {
+			return nil, fmt.Errorf("mcpServerAuth[%q] cannot be empty", serverID)
+		}
+		normalized[serverID] = value
+	}
+	return normalized, nil
+}
+
+func (app *App) resolveSandboxMCPServers(
+	ctx context.Context,
+	k8sClient kubernetes.KubernetesClientInterface,
+	profile *models.AgentProfile,
+	authorizations map[string]string,
+) ([]kubernetes.SandboxMCPServer, error) {
+	if len(profile.Spec.MCPServers) == 0 {
+		if len(authorizations) > 0 {
+			return nil, fmt.Errorf("mcpServerAuth was provided but the AgentProfile has no MCP servers")
+		}
+		return nil, nil
+	}
+
+	registryServers, err := app.repositories.MCPClient.GetMCPServersFromDashboardConfig(
+		k8sClient, ctx, app.dashboardNamespace, constants.MCPServerName,
+	)
+	if err != nil {
+		return nil, err
+	}
+	registryByID := make(map[string]models.MCPServerConfig, len(registryServers))
+	for _, server := range registryServers {
+		registryByID[server.Name] = server.Config
+	}
+
+	selectedIDs := make(map[string]struct{}, len(profile.Spec.MCPServers))
+	servers := make([]kubernetes.SandboxMCPServer, 0, len(profile.Spec.MCPServers))
+	for i, selected := range profile.Spec.MCPServers {
+		if selected.ServerRef.Kind != "ConfigMap" || selected.ServerRef.Name != constants.MCPServerName {
+			return nil, fmt.Errorf("spec.mcpServers[%d] must reference ConfigMap %q", i, constants.MCPServerName)
+		}
+		serverID := selected.ServerRef.Key
+		config, found := registryByID[serverID]
+		if !found || config.URL == "" {
+			return nil, fmt.Errorf("MCP server %q was not found in dashboard ConfigMap %q", serverID, constants.MCPServerName)
+		}
+		selectedIDs[serverID] = struct{}{}
+		server := kubernetes.SandboxMCPServer{ServerLabel: serverID, ServerURL: config.URL}
+		if selected.AllowedTools != nil {
+			server.AllowedTools = &selected.AllowedTools
+		}
+		if authorization, found := authorizations[serverID]; found {
+			if strings.TrimSpace(authorization) == "" {
+				return nil, fmt.Errorf("mcpServerAuth[%q] cannot be empty", serverID)
+			}
+			server.AuthorizationEnvVar = fmt.Sprintf("MCP_AUTH_%d", i+1)
+		}
+		servers = append(servers, server)
+	}
+	for serverID := range authorizations {
+		if _, selected := selectedIDs[serverID]; !selected {
+			return nil, fmt.Errorf("mcpServerAuth[%q] does not match a selected MCP server", serverID)
+		}
+	}
+	return servers, nil
 }

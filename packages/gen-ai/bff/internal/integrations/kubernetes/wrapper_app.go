@@ -18,6 +18,7 @@ from ogx.core.server.server import create_app
 MAAS_GATEWAY_URL = os.environ["MAAS_GATEWAY_URL"]
 MAAS_SUBSCRIPTION = os.environ["MAAS_SUBSCRIPTION"]
 AGENT_CONFIG_JSON = os.environ["AGENT_CONFIG_JSON"]
+MCP_SERVERS = json.loads(os.environ.get("AGENT_MCP_SERVERS_JSON", "[]"))
 
 _token_cache = {}
 
@@ -125,13 +126,56 @@ class AgentConfigMiddleware:
         await send({"type": "http.response.body", "body": body})
 
 
+class MCPServerMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] != "POST" or scope["path"] != "/v1/responses" or not MCP_SERVERS:
+            await self.app(scope, receive, send)
+            return
+
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            body += message.get("body", b"")
+            more_body = message.get("more_body", False)
+
+        try:
+            request = json.loads(body)
+            tools = request.get("tools", [])
+            if not isinstance(tools, list):
+                raise ValueError("tools must be an array")
+            for server in MCP_SERVERS:
+                tool = {
+                    "type": "mcp",
+                    "server_label": server["server_label"],
+                    "server_url": server["server_url"],
+                }
+                if "allowed_tools" in server:
+                    tool["allowed_tools"] = server["allowed_tools"]
+                if auth_env_var := server.get("authorization_env_var"):
+                    tool["authorization"] = os.environ[auth_env_var]
+                tools.append(tool)
+            request["tools"] = tools
+            body = json.dumps(request).encode()
+        except Exception as e:
+            print(f"[MCPServerMiddleware] could not configure MCP tools: {e}")
+
+        async def replay_receive():
+            return {"type": "http.request", "body": body, "more_body": False}
+
+        await self.app(scope, replay_receive, send)
+
+
 for d in ["/opt/app-root/.llama/providers.d", "/opt/app-root/src/.llama/distributions/rh/files"]:
     os.makedirs(d, exist_ok=True)
 
 os.environ.setdefault("OGX_CONFIG", "/etc/ogx/config.yaml")
 
 ogx_app = create_app()
-app = AgentConfigMiddleware(MaaSTokenMiddleware(ogx_app))
+app = AgentConfigMiddleware(MCPServerMiddleware(MaaSTokenMiddleware(ogx_app)))
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8321)
