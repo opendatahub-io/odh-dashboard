@@ -220,8 +220,14 @@ const InfrastructurePage: React.FC = () => {
     onRefresh: () => void,
     lastRefreshed: Date | null,
     testId = 'infrastructure-refresh-badge',
-  ): React.ReactNode =>
-    lastRefreshed ? (
+  ): React.ReactNode => {
+    if (!lastRefreshed) {
+      return null;
+    }
+
+    const refreshTime = relativeTime(currentTime, lastRefreshed.getTime());
+
+    return (
       <Flex
         justifyContent={{ default: 'justifyContentFlexEnd' }}
         alignItems={{ default: 'alignItemsCenter' }}
@@ -237,11 +243,12 @@ const InfrastructurePage: React.FC = () => {
         </FlexItem>
         <FlexItem>
           <Content component="small" className="pf-v6-u-color-200">
-            Updated {relativeTime(currentTime, lastRefreshed.getTime())}
+            Updated {refreshTime === 'Just now' ? 'just now' : refreshTime}
           </Content>
         </FlexItem>
       </Flex>
-    ) : null;
+    );
+  };
 
   const getSectionRenderOptions = (section: InfrastructureSection): SectionRenderOptions => ({
     headerAction: section.refreshBadgeTestId
