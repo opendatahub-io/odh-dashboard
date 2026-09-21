@@ -8,6 +8,7 @@ import {
   PRESET_FASTER,
   OPTIMIZATION_METRICS,
   DEFAULT_OPTIMIZATION_METRIC,
+  getOptimizationMetricsForPreset,
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 
@@ -104,6 +105,17 @@ function createConfigureSchema() {
               },
             ]
           : [],
+      (data) =>
+        getOptimizationMetricsForPreset(data.preset).includes(data.optimization_metric)
+          ? []
+          : [
+              {
+                code: 'custom' as const,
+                message: `Optimization metric "${data.optimization_metric}" is not available for preset "${data.preset}"`,
+                path: ['optimization_metric'],
+                input: data.optimization_metric,
+              },
+            ],
     ],
     /* eslint-disable no-param-reassign */
     transformers: [

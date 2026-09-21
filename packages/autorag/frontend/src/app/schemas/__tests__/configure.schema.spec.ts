@@ -33,6 +33,46 @@ describe('Configure Schema', () => {
     expect(schema.full.safeParse(validData).success).toBe(true);
   });
 
+  it('should reject RAGAS metrics for the speed preset', () => {
+    const result = schema.full.safeParse({
+      ...validData,
+      preset: 'speed',
+      optimization_metric: 'ragas:faithfulness',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['optimization_metric'],
+            message: expect.stringContaining('not available for preset "speed"'),
+          }),
+        ]),
+      );
+    }
+  });
+
+  it('should accept RAGAS metrics for the balanced preset', () => {
+    expect(
+      schema.full.safeParse({
+        ...validData,
+        preset: 'balanced',
+        optimization_metric: 'ragas:faithfulness',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('should accept valid speed preset metrics', () => {
+    expect(
+      schema.full.safeParse({
+        ...validData,
+        preset: 'speed',
+        optimization_metric: 'unitxt:answer_correctness',
+      }).success,
+    ).toBe(true);
+  });
+
   it('should accept one valid canonical corpus location', () => {
     const result = schema.full.safeParse({ ...validData, input_data_keys: ['input/data.csv'] });
     expect(result.success).toBe(true);
