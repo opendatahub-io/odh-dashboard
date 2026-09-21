@@ -38,8 +38,8 @@ const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let modelURI: string;
 let deploymentMethod: DataScienceProjectData['deploymentMethod'];
-const llmInferenceServiceConfigName = 'kserve-config-llm-template-cpu';
-const llmInferenceServiceConfigDisplayName = 'vLLM CPU LLMInferenceServiceConfig';
+const llmInferenceServiceConfigName = 'test-llm-template-cpu';
+const llmInferenceServiceConfigDisplayName = 'Test vLLM CPU LLMInferenceServiceConfig';
 const llmInferenceServiceConfigYamlPath =
   'resources/modelServing/llmd-inference-service-config.yaml';
 
@@ -119,7 +119,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      cy.step('Step 2: Model deployment - select vLLM CPU LLMInferenceServiceConfig');
+      cy.step('Step 2: Model deployment - select Test vLLM CPU LLMInferenceServiceConfig');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findResourceNameButton().click();
       modelServingWizard

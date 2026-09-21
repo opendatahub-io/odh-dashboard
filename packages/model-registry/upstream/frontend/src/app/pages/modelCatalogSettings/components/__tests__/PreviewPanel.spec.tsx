@@ -17,6 +17,7 @@ const mockSummary: CatalogSourcePreviewSummary = {
   totalModels: 20,
   includedModels: 15,
   excludedModels: 5,
+  hasGatedAccessDeniedModels: false,
 };
 
 const mockIncludedItems: CatalogSourcePreviewModel[] = [
@@ -79,7 +80,7 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('Preview models')).toBeInTheDocument();
     expect(
@@ -98,7 +99,7 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByLabelText('Loading preview')).toBeInTheDocument();
   });
@@ -115,7 +116,7 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('Preview failed')).toBeInTheDocument();
     expect(screen.getByText('Failed to fetch preview')).toBeInTheDocument();
@@ -134,7 +135,7 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('Preview failed')).toBeInTheDocument();
     expect(screen.getByText('invalid Hugging Face API credentials')).toBeInTheDocument();
@@ -142,7 +143,7 @@ describe('PreviewPanel', () => {
 
   it('renders tabs for included/excluded models', () => {
     const preview = createMockPreview();
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('Models included')).toBeInTheDocument();
     expect(screen.getByText('Models excluded')).toBeInTheDocument();
@@ -153,7 +154,7 @@ describe('PreviewPanel', () => {
     const handleTabChange = jest.fn();
     const preview = createMockPreview({ handleTabChange });
 
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     await user.click(screen.getByText('Models excluded'));
 
@@ -162,14 +163,14 @@ describe('PreviewPanel', () => {
 
   it('displays correct count text for included tab', () => {
     const preview = createMockPreview({}, { activeTab: CatalogSettingsPreviewTab.INCLUDED });
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('15 of 20 models included:')).toBeInTheDocument();
   });
 
   it('displays correct count text for excluded tab', () => {
     const preview = createMockPreview({}, { activeTab: CatalogSettingsPreviewTab.EXCLUDED });
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('5 of 20 models excluded:')).toBeInTheDocument();
   });
@@ -184,14 +185,14 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('Load more')).toBeInTheDocument();
   });
 
   it('does not render Load more button when hasMore is false', () => {
     const preview = createMockPreview();
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.queryByText('Load more')).not.toBeInTheDocument();
   });
@@ -209,7 +210,7 @@ describe('PreviewPanel', () => {
       },
     );
 
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     await user.click(screen.getByText('Load more'));
 
@@ -227,55 +228,122 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
-  it('shows gated access alert when preview includes gated models without access', () => {
+  it('shows gated access alert when preview summary reports gated models', () => {
     const preview = createMockPreview(
       {},
       {
+        summary: { ...mockSummary, hasGatedAccessDeniedModels: true },
         tabStates: {
           [CatalogSettingsPreviewTab.INCLUDED]: {
-            items: [
-              {
-                name: 'org/model-a',
-                included: true,
-                hfAccessType: 'gated_auto',
-                hfGatedAccessGranted: true,
-              },
-              {
-                name: 'org/model-b',
-                included: true,
-                hfAccessType: 'gated_manual',
-                hfGatedAccessGranted: false,
-              },
-            ],
+            items: [{ name: 'org/model-a', included: true }],
             hasMore: false,
           },
           [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByTestId('preview-gated-access-alert')).toBeInTheDocument();
     expect(screen.getByText(PREVIEW_ALERTS.GATED_ACCESS_REQUIRED_TITLE)).toBeInTheDocument();
     expect(screen.getByText(PREVIEW_ALERTS.GATED_ACCESS_REQUIRED_BODY)).toBeInTheDocument();
   });
 
-  it('does not show gated access alert when all gated models have access', () => {
+  it('shows gated access alert when summary has gated models but loaded page items are not gated', () => {
     const preview = createMockPreview(
       {},
       {
+        summary: {
+          ...mockSummary,
+          totalModels: 50,
+          includedModels: 40,
+          hasGatedAccessDeniedModels: true,
+        },
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: {
+            items: [
+              { name: 'org/public-model', included: true, hfAccessType: 'public' },
+              { name: 'org/private-model', included: true, hfAccessType: 'private' },
+            ],
+            hasMore: true,
+          },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
+
+    expect(screen.getByTestId('preview-gated-access-alert')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Gated access warning')).not.toBeInTheDocument();
+  });
+
+  it('shows gated access alert when summary has gated models and included tab has no items yet', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        summary: {
+          ...mockSummary,
+          totalModels: 10,
+          includedModels: 0,
+          hasGatedAccessDeniedModels: true,
+        },
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: { items: [], hasMore: false },
+          [CatalogSettingsPreviewTab.EXCLUDED]: {
+            items: [{ name: 'org/gated-later', included: false, hfAccessType: 'gated_auto' }],
+            hasMore: false,
+          },
+        },
+        activeTab: CatalogSettingsPreviewTab.INCLUDED,
+      },
+    );
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
+
+    expect(screen.getByTestId('preview-gated-access-alert')).toBeInTheDocument();
+  });
+
+  it('does not show gated access alert when preview summary has no gated models', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        summary: { ...mockSummary, hasGatedAccessDeniedModels: false },
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: {
+            items: [{ name: 'org/model-a', included: true }],
+            hasMore: false,
+          },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
+
+    expect(screen.queryByTestId('preview-gated-access-alert')).not.toBeInTheDocument();
+  });
+
+  it('does not show gated access alert when summary reports no gated-without-access models even if loaded items are gated with access', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        summary: { ...mockSummary, hasGatedAccessDeniedModels: false },
         tabStates: {
           [CatalogSettingsPreviewTab.INCLUDED]: {
             items: [
               {
-                name: 'org/model-a',
+                name: 'org/gated-granted',
                 included: true,
                 hfAccessType: 'gated_auto',
+                hfGatedAccessGranted: true,
+              },
+              {
+                name: 'org/gated-manual-granted',
+                included: true,
+                hfAccessType: 'gated_manual',
                 hfGatedAccessGranted: true,
               },
             ],
@@ -285,14 +353,16 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.queryByTestId('preview-gated-access-alert')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Gated access warning')).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText('Included model')).toHaveLength(2);
   });
 
   it('shows refresh alert when hasFormChanged is true', () => {
     const preview = createMockPreview({ hasFormChanged: true });
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(
       screen.getByText('Source configuration changed. Refresh the preview.'),
@@ -311,7 +381,7 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(
       screen.queryByText('Source configuration changed. Refresh the preview.'),
@@ -323,14 +393,14 @@ describe('PreviewPanel', () => {
     const user = userEvent.setup();
     const preview = createMockPreview({
       canPreview: false,
-      previewDisabledTooltip: 'Validate the access token to preview models.',
+      previewDisabledTooltip: 'To preview models, validate the access token.',
     });
 
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     await user.hover(screen.getByTestId('preview-button-header'));
     expect(
-      await screen.findByText('Validate the access token to preview models.'),
+      await screen.findByText('To preview models, validate the access token.'),
     ).toBeInTheDocument();
   });
 
@@ -339,7 +409,7 @@ describe('PreviewPanel', () => {
     const handlePreview = jest.fn();
     const preview = createMockPreview({ handlePreview, hasFormChanged: true });
 
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     await user.click(screen.getByTestId('refresh-preview-link'));
 
@@ -358,7 +428,7 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('No models included')).toBeInTheDocument();
     expect(
@@ -380,7 +450,7 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('No models excluded')).toBeInTheDocument();
     expect(
@@ -390,7 +460,7 @@ describe('PreviewPanel', () => {
 
   it('renders model items in list', () => {
     const preview = createMockPreview();
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.getByText('model-1')).toBeInTheDocument();
     expect(screen.getByText('model-2')).toBeInTheDocument();
@@ -402,7 +472,7 @@ describe('PreviewPanel', () => {
       {
         canPreview: false,
         hasFormChanged: true,
-        previewDisabledTooltip: 'Validate the access token to preview models.',
+        previewDisabledTooltip: 'To preview models, validate the access token.',
       },
       {
         summary: mockSummary,
@@ -412,7 +482,7 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     expect(screen.queryByTestId('preview-button-panel')).not.toBeInTheDocument();
     expect(screen.getByTestId('preview-button-header')).toBeDisabled();
@@ -429,9 +499,58 @@ describe('PreviewPanel', () => {
         },
       },
     );
-    render(<PreviewPanel preview={preview} />);
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
 
     const previewButton = screen.getByTestId('preview-button-panel');
     expect(previewButton).toBeDisabled();
+  });
+
+  it('shows source disabled warning when source is disabled and preview has loaded', () => {
+    const preview = createMockPreview();
+    render(<PreviewPanel preview={preview} isSourceEnabled={false} />);
+
+    expect(screen.getByTestId('source-disabled-warning')).toBeInTheDocument();
+    expect(screen.getByText(PREVIEW_ALERTS.SOURCE_DISABLED_TITLE)).toBeInTheDocument();
+    expect(screen.getByText(PREVIEW_ALERTS.SOURCE_DISABLED_BODY)).toBeInTheDocument();
+  });
+
+  it('does not show source disabled warning when source is enabled', () => {
+    const preview = createMockPreview();
+    render(<PreviewPanel preview={preview} isSourceEnabled />);
+
+    expect(screen.queryByTestId('source-disabled-warning')).not.toBeInTheDocument();
+  });
+
+  it('does not show source disabled warning before preview has loaded', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        summary: undefined,
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: { items: [], hasMore: false },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} isSourceEnabled={false} />);
+
+    expect(screen.queryByTestId('source-disabled-warning')).not.toBeInTheDocument();
+  });
+
+  it('does not show source disabled warning when preview has an error', () => {
+    const preview = createMockPreview(
+      {},
+      {
+        error: new Error('Failed to fetch preview'),
+        tabStates: {
+          [CatalogSettingsPreviewTab.INCLUDED]: { items: [], hasMore: false },
+          [CatalogSettingsPreviewTab.EXCLUDED]: { items: [], hasMore: false },
+        },
+      },
+    );
+    render(<PreviewPanel preview={preview} isSourceEnabled={false} />);
+
+    expect(screen.queryByTestId('source-disabled-warning')).not.toBeInTheDocument();
+    expect(screen.getByText('Preview failed')).toBeInTheDocument();
   });
 });

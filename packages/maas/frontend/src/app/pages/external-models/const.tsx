@@ -3,11 +3,32 @@ import { Popover, Button, Label } from '@patternfly/react-core';
 import { PendingIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AddProviderReferenceSource,
   ExternalModelsInfoPopoverLocation,
   ExternalModelsInfoPopoverTarget,
   ExternalModelsInfoPopoverViewedProperties,
   MaaSEvents,
 } from '~/app/types/event-tracking';
+
+export type CreateExternalModelLocationState = {
+  addProviderReferenceSource: AddProviderReferenceSource;
+};
+
+export const getAddProviderReferenceSourceFromLocationState = (
+  state: unknown,
+): AddProviderReferenceSource | undefined => {
+  if (typeof state !== 'object' || state === null || !('addProviderReferenceSource' in state)) {
+    return undefined;
+  }
+  const { addProviderReferenceSource } = state;
+  if (
+    addProviderReferenceSource === AddProviderReferenceSource.TOOLBAR ||
+    addProviderReferenceSource === AddProviderReferenceSource.EMPTY_LIST
+  ) {
+    return addProviderReferenceSource;
+  }
+  return undefined;
+};
 
 export enum ExternalModelsFilterOptions {
   keyword = 'keyword',
@@ -28,6 +49,9 @@ export const deploymentsExternalPath = (namespace: string): string =>
 
 export const createExternalModelPath = (namespace: string): string =>
   `${deploymentsExternalPath(namespace)}/register`;
+
+export const editExternalModelPath = (namespace: string, modelName: string): string =>
+  `${deploymentsExternalPath(namespace)}/${encodeURIComponent(modelName)}/edit`;
 
 /** Matches CRD maxLength for spec.modelName and spec.externalProviderRefs[].targetModel. */
 export const EXTERNAL_MODEL_FIELD_MAX_LENGTH = 253;
@@ -51,6 +75,13 @@ export const PROVIDER_REFERENCE_API_FORMATS = {
 
 export type ProviderReferenceApiFormat = keyof typeof PROVIDER_REFERENCE_API_FORMATS;
 
+export const ProviderSource = {
+  EXISTING: 'existing',
+  CREATE_NEW: 'create-new',
+} as const;
+
+export type ProviderSourceType = (typeof ProviderSource)[keyof typeof ProviderSource];
+
 export const PROVIDER_REFERENCE_API_FORMAT_OPTIONS = Object.entries(
   PROVIDER_REFERENCE_API_FORMATS,
 ).map(([key, value]) => ({
@@ -61,7 +92,7 @@ export const PROVIDER_REFERENCE_API_FORMAT_OPTIONS = Object.entries(
 export const INHERITED_CONFIG_PREVIEW_COUNT = 5;
 
 export const ADD_PATH_PLACEHOLDER_HELPER =
-  'Only the path uses {key} placeholders. {model} is filled automatically from the Target model ID. Other keys come from provider configuration — add a model override in Advanced settings only if this model needs a different value.';
+  "The URL path appended to the provider endpoint when routing requests. Placeholders such as {project} or {location} are replaced with values from the provider's key-value pairs. This field is prefilled with the default path for the selected API format.";
 
 export const EDIT_PATH_PLACEHOLDER_HELPER =
   'Wrap any key from the key-value pairs section in curly braces to insert its value — for example, /v1/projects/{project}/locations/{location}/chat/completions.';
@@ -96,15 +127,14 @@ const MISSING_MAAS_MODEL_REF_BODY = (
   <div>
     <p>
       MaaS governance features (subscriptions, authorization policies, API keys) require a
-      MaaSModelRef resource that references this external model. This resource must be deployed in
-      the same namespace as the external model.
+      MaaSModelRef resource that references this external model.
     </p>
   </div>
 );
 
 export const MissingMaaSModelRefWarning: React.FC = () => (
   <Popover
-    headerContent="Missing MaaS model setup"
+    headerContent="Missing MaaS governance setup"
     bodyContent={MISSING_MAAS_MODEL_REF_BODY}
     data-testid="external-model-missing-maas-model-ref-popover"
   >

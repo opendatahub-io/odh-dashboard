@@ -42,6 +42,10 @@ class ModelCatalog {
     return cy.findByTestId('search-input').find('input');
   }
 
+  findSourceCategoryBlock(blockId: string) {
+    return cy.findByTestId(blockId);
+  }
+
   searchByName(name: string) {
     this.findSearchInput().clear().type(`${name}{enter}`);
     return this;
@@ -120,8 +124,8 @@ class ModelCatalog {
     return this.findFirstModelCatalogCard().contains('[data-testid="model-catalog-label"]', text);
   }
 
-  findValidatedTaskIcon() {
-    return this.findFirstModelCatalogCard().findByTestId('validated-task-icon');
+  findValidatedTaskIcon(modelName: string) {
+    return this.findModelCatalogCard(modelName).findByTestId('validated-task-icon');
   }
 
   findCardLabelByIndex(modelName: string, index: number) {

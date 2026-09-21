@@ -12,6 +12,7 @@ import {
   mockCatalogSource,
   mockCatalogSourceList,
 } from '~/__mocks__';
+import { CatalogSourceStatus } from '~/app/shared/types/catalogTypes';
 import {
   CatalogSourceType,
   type CatalogSource,
@@ -190,7 +191,7 @@ describe('Catalog Source Configs Table', () => {
       const availableSource = mockCatalogSource({
         id: 'hf-google',
         name: 'HuggingFace Google',
-        status: 'available',
+        status: CatalogSourceStatus.AVAILABLE,
       });
       setupMocks([availableSource], {
         catalogs: [defaultYamlSource, huggingFaceSource, customYamlSource],
@@ -502,7 +503,7 @@ describe('Catalog Source Configs Table', () => {
       const availableSource = mockCatalogSource({
         id: 'hf-google',
         name: 'HuggingFace Google',
-        status: 'available',
+        status: CatalogSourceStatus.AVAILABLE,
       });
       setupMocks([availableSource], { catalogs: [huggingFaceSource] });
       modelCatalogSettings.visit();
@@ -538,7 +539,7 @@ describe('Catalog Source Configs Table', () => {
       const reenablingSource = mockCatalogSource({
         id: 'hf-google',
         name: 'HuggingFace Google',
-        status: 'disabled',
+        status: CatalogSourceStatus.DISABLED,
       });
       setupMocks([reenablingSource], { catalogs: [huggingFaceSource] }); // huggingFaceSource has enabled=true
       modelCatalogSettings.visit();
@@ -552,7 +553,7 @@ describe('Catalog Source Configs Table', () => {
       const errorSource = mockCatalogSource({
         id: 'hf-google',
         name: 'HuggingFace Google',
-        status: 'error',
+        status: CatalogSourceStatus.ERROR,
         error: 'The provided API key is invalid or has expired. Please update your credentials.',
       });
       setupMocks([errorSource], { catalogs: [huggingFaceSource] });
@@ -570,7 +571,7 @@ describe('Catalog Source Configs Table', () => {
       const errorSource = mockCatalogSource({
         id: 'hf-google',
         name: 'HuggingFace Google',
-        status: 'error',
+        status: CatalogSourceStatus.ERROR,
         error: longErrorMessage,
       });
       setupMocks([errorSource], { catalogs: [huggingFaceSource] });
@@ -585,7 +586,7 @@ describe('Catalog Source Configs Table', () => {
       const errorSource = mockCatalogSource({
         id: 'hf-google',
         name: 'HuggingFace Google',
-        status: 'error',
+        status: CatalogSourceStatus.ERROR,
         error: 'The provided API key is invalid or has expired.',
       });
       setupMocks([errorSource], { catalogs: [huggingFaceSource] });
@@ -609,7 +610,7 @@ describe('Catalog Source Configs Table', () => {
       const errorSource = mockCatalogSource({
         id: 'hf-google',
         name: 'HuggingFace Google',
-        status: 'error',
+        status: CatalogSourceStatus.ERROR,
         error: 'The provided API key is invalid.',
       });
       setupMocks([errorSource], { catalogs: [huggingFaceSource] });
@@ -677,7 +678,7 @@ describe('Catalog Source Configs Table', () => {
       const availableSource = mockCatalogSource({
         id: 'hf-google',
         name: 'HuggingFace Google',
-        status: 'available',
+        status: CatalogSourceStatus.AVAILABLE,
       });
       setupMocks([availableSource], {
         catalogs: [defaultYamlSource, huggingFaceSource, customYamlSource],
@@ -1036,7 +1037,12 @@ describe('Manage Source Page', () => {
               hfGatedAccessGranted: false,
             },
           ],
-          summary: { totalModels: 3, includedModels: 2, excludedModels: 1 },
+          summary: {
+            totalModels: 3,
+            includedModels: 2,
+            excludedModels: 1,
+            hasGatedAccessDeniedModels: true,
+          },
           nextPageToken: '',
           pageSize: 20,
           size: 3,
@@ -1090,6 +1096,42 @@ describe('Manage Source Page', () => {
       manageSourcePage.findPreviewPanelBodyButton().should('not.exist');
       manageSourcePage.findRefreshPreviewAlert().should('not.exist');
       manageSourcePage.findPreviewModelsIncludedSummary(1, 1).should('exist');
+    });
+
+    it('should show source disabled warning after preview when source is disabled', () => {
+      cy.intercept('POST', '/model-registry/api/v1/settings/model_catalog/source_preview*', {
+        data: {
+          items: [
+            { name: 'google/model-1', included: true },
+            { name: 'google/model-2', included: true },
+          ],
+          summary: { totalModels: 2, includedModels: 2, excludedModels: 0 },
+          nextPageToken: '',
+          pageSize: 10,
+          size: 2,
+        },
+      }).as('previewSource');
+
+      manageSourcePage.visitAddSource({ enableTempDevCatalogHuggingFaceApiKeyFeature: true });
+      manageSourcePage.fillAccessToken('test-token');
+      manageSourcePage.fillOrganization('Google');
+      manageSourcePage.findEnableSourceCheckbox().should('not.be.checked');
+      manageSourcePage.findPreviewButton().should('be.disabled');
+      manageSourcePage.clickValidate();
+      cy.wait('@previewSource');
+      manageSourcePage.findPreviewButton().should('not.be.disabled');
+      manageSourcePage.findPreviewButton().click();
+      cy.wait('@previewSource');
+
+      manageSourcePage.findSourceDisabledWarning().should('be.visible');
+      manageSourcePage
+        .findSourceDisabledWarning()
+        .should('contain.text', 'Models from this source will not appear in the model catalog');
+      cy.contains('google/model-1').should('be.visible');
+      cy.contains('Source configuration changed. Refresh the preview.').should('not.exist');
+
+      manageSourcePage.findEnableSourceCheckbox().check();
+      manageSourcePage.findSourceDisabledWarning().should('not.exist');
     });
 
     it('submit add source form with yaml source type', () => {

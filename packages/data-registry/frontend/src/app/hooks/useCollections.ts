@@ -1,4 +1,5 @@
 import React from 'react';
+import { useFetchState, type APIOptions, type FetchStateCallbackPromise } from 'mod-arch-core';
 import { fetchCollectionDetails } from '~/app/api/dataRegistry';
 import type { RegistryAsset } from '~/app/hooks/useAssets';
 import { parseCollectionDescription } from '~/app/utilities/collectionUtils';
@@ -16,69 +17,44 @@ export const useCollections = (
   assets: RegistryAsset[],
   collectionNames: string[],
 ): [CollectionInfo[], boolean, Error | undefined, () => void] => {
-  const [rawCollections, setRawCollections] = React.useState<
-    { name: string; description: string }[]
-  >([]);
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>();
-  const [refreshKey, setRefreshKey] = React.useState(0);
   const namesKey = collectionNames.join(',');
-
-  const refresh = React.useCallback(() => setRefreshKey((k) => k + 1), []);
-
-  React.useEffect(() => {
-    if (!project || collectionNames.length === 0) {
-      setRawCollections([]);
-      setLoaded(true);
-      return;
-    }
-
-    let cancelled = false;
-    setRawCollections([]);
-    setLoaded(false);
-    setError(undefined);
-
-    Promise.all(
-      collectionNames.map(async (name) => {
-        const detail = await fetchCollectionDetails(project, name);
-        const description = parseCollectionDescription(detail.properties, project, name);
-        return { name, description };
-      }),
-    )
-      .then((details) => {
-        if (!cancelled) {
-          setRawCollections(details);
-          setLoaded(true);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err);
-          setLoaded(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // collectionNames excluded: namesKey (joined string) provides stable identity for the array
+  const assetsKey = JSON.stringify(assets);
+  const stableCollectionNames = React.useMemo(
+    () => collectionNames,
+    // collectionNames identity is normalized by its joined value.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, namesKey, refreshKey]);
+    [namesKey],
+  );
+  const stableAssets = React.useMemo(
+    () => assets,
+    // assets identity is normalized by its serialized value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [assetsKey],
+  );
+  const callback = React.useCallback<FetchStateCallbackPromise<CollectionInfo[]>>(
+    async (opts: APIOptions) => {
+      if (!project || stableCollectionNames.length === 0) {
+        return [];
+      }
 
-  const collections = React.useMemo<CollectionInfo[]>(
-    () =>
-      rawCollections.map((c) => {
-        const collectionAssets = assets.filter((a) => a.collection === c.name);
-        return {
-          name: c.name,
-          description: c.description,
-          assetNames: collectionAssets.map((a) => a.name),
-          tableCount: collectionAssets.filter((a) => a.assetType === 'table').length,
-          volumeCount: collectionAssets.filter((a) => a.assetType === 'volume').length,
-        };
-      }),
-    [rawCollections, assets],
+      const details = await Promise.all(
+        stableCollectionNames.map(async (name) => {
+          const detail = await fetchCollectionDetails(project, name, opts);
+          const collectionAssets = stableAssets.filter((asset) => asset.collection === name);
+          return {
+            name,
+            description: parseCollectionDescription(detail.properties, project, name),
+            assetNames: collectionAssets.map((asset) => asset.name),
+            tableCount: collectionAssets.filter((asset) => asset.assetType === 'table').length,
+            volumeCount: collectionAssets.filter((asset) => asset.assetType === 'volume').length,
+          };
+        }),
+      );
+
+      return details;
+    },
+    [project, stableAssets, stableCollectionNames],
   );
 
-  return [collections, loaded, error, refresh];
+  return useFetchState(callback, [], { initialPromisePurity: true });
 };

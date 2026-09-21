@@ -8,6 +8,18 @@ export type AutoragPatternScoreMetric = {
 
 export type AutoragPatternScores = Partial<Record<string, AutoragPatternScoreMetric>>;
 
+/** Shared metric identity used by aggregate and sample evaluation results. */
+export type MetricReference = Readonly<{
+  name: string;
+  evaluator?: string;
+}>;
+
+/** Canonical metric identity used for comparisons and opaque UI keys. */
+export type NormalizedMetricReference = Readonly<{
+  name: string;
+  evaluator?: string;
+}>;
+
 import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
 export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
@@ -87,14 +99,13 @@ export type AutoragVectorStoreBinding = {
   collection_name: string;
 };
 
-export type AutoragEvaluationMetric = {
+export type AutoragEvaluationMetric = MetricReference & {
   evaluator: string;
-  name: string;
   description?: string;
   scores: AutoragPatternScoreMetric;
   model_id?: string;
-  // Backend contract: exactly one metric per pattern has this set to true,
-  // and its `name` matches the run's `optimization_metric` pipeline parameter.
+  // Backend marker for the selected objective metric. The run's `optimization_metric` pipeline
+  // parameter remains authoritative when this marker is absent on a pattern.
   optimization_metric?: boolean;
 };
 
@@ -169,8 +180,7 @@ export type AutoRAGEvaluationAnswerContext = {
   document_key: string;
 };
 
-export type AutoRAGEvaluationMetricResult = {
-  name: string;
+export type AutoRAGEvaluationMetricResult = MetricReference & {
   evaluator: string;
   score: number | null;
 };
@@ -201,7 +211,7 @@ export type PatternDataBundle = {
 export type TabContentProps = {
   primaryPattern: PatternDataBundle;
   comparisonPattern: PatternDataBundle | null;
-  optimizedMetric?: string;
+  optimizationMetric?: MetricReference;
   onChangeComparisonPattern?: () => void;
 };
 

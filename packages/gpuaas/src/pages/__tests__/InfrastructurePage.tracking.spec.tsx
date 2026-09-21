@@ -36,10 +36,12 @@ jest.mock('@odh-dashboard/ui-core', () => {
 });
 
 jest.mock('@odh-dashboard/internal/utilities/time', () => ({
-  relativeTime: () => 'a few seconds ago',
+  relativeTime: () => 'Just now',
 }));
 
 const mockRefresh = jest.fn();
+const mockBorrowingRefresh = jest.fn();
+const mockQuotaRefresh = jest.fn();
 const mockMetrics: ClusterMetrics = {
   accelerators: { total: 8, inUse: 3 },
   computeUtilization: { percentage: 65 },
@@ -71,7 +73,16 @@ jest.mock('../../components/HardwareUsageSection', () => ({
 
 jest.mock('../../components/BorrowingLendingSection', () => ({
   __esModule: true,
-  default: () => <div data-testid="borrowing" />,
+  default: function BorrowingLendingSectionMock({
+    onRegisterRefresh,
+  }: {
+    onRegisterRefresh?: (refresh: () => void) => void;
+  }) {
+    jest.requireActual<typeof React>('react').useEffect(() => {
+      onRegisterRefresh?.(mockBorrowingRefresh);
+    }, [onRegisterRefresh]);
+    return <div data-testid="borrowing" />;
+  },
 }));
 
 jest.mock('../../hooks/useQuotaHierarchy', () => ({
@@ -79,7 +90,7 @@ jest.mock('../../hooks/useQuotaHierarchy', () => ({
   default: () => ({
     data: { tree: [] },
     loaded: true,
-    refresh: jest.fn(),
+    refresh: mockQuotaRefresh,
   }),
 }));
 
@@ -147,8 +158,31 @@ describe('InfrastructurePage - Tracking Events', () => {
     });
   });
 
-  describe('Infrastructure Data Refreshed', () => {
-    it('fires data-refreshed event on refresh button click', async () => {
+  describe('Infrastructure Data Refresh', () => {
+    it('renders just now with lowercase after the Updated prefix', () => {
+      render(<InfrastructurePage />);
+
+      expect(screen.getByText('Updated just now')).toBeInTheDocument();
+      expect(screen.queryByText('Updated Just now')).not.toBeInTheDocument();
+    });
+
+    it('refreshes active tab data after switching tabs', async () => {
+      const user = userEvent.setup();
+      render(<InfrastructurePage />);
+
+      await user.click(screen.getByTestId('infrastructure-tab-quota-usage'));
+      await waitFor(() => expect(mockQuotaRefresh).toHaveBeenCalled());
+
+      const utilizationRefreshCount = mockRefresh.mock.calls.length;
+      await user.click(screen.getByTestId('infrastructure-tab-utilization'));
+
+      await waitFor(() => {
+        expect(mockRefresh).toHaveBeenCalledTimes(utilizationRefreshCount + 1);
+        expect(mockBorrowingRefresh).toHaveBeenCalled();
+      });
+    });
+
+    it('refreshes utilization and borrowing metrics on refresh button click', async () => {
       const user = userEvent.setup();
       render(<InfrastructurePage />);
 
@@ -160,6 +194,7 @@ describe('InfrastructurePage - Tracking Events', () => {
 
       expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, expect.any(Object));
       expect(mockRefresh).toHaveBeenCalled();
+      expect(mockBorrowingRefresh).toHaveBeenCalled();
     });
 
     it('includes secondsSinceLastUpdate when lastRefreshed is available', async () => {

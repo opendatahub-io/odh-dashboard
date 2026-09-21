@@ -67,9 +67,10 @@ const BorrowingClusterQueueList: React.FC<{
             onClick={() => onSelectClusterQueue(path)}
             data-testid={`quota-usage-borrowing-cluster-queue-link-${clusterQueueName}`}
           >
-            <strong>{clusterQueueName}</strong>
+            <strong>{clusterQueueName.charAt(0).toUpperCase() + clusterQueueName.slice(1)}</strong>
           </Button>
-          {QUOTA_USAGE_BORROWING.cohortCalloutSuffix(borrowedCount, cohortName)}
+          {QUOTA_USAGE_BORROWING.cohortCalloutPrefix(borrowedCount)}
+          <strong>{cohortName}.</strong>
         </Content>
       </StackItem>
     ))}
@@ -207,7 +208,6 @@ const QuotaUsageSummarySection: React.FC<QuotaUsageSummarySectionProps> = ({
               used={summary.totalUsed}
               capacity={summary.capacityDisplayNominal}
               ariaLabel={QUOTA_USAGE_SUMMARY.capacity}
-              showAcceleratorsLabel
               compact
               data-testid="quota-usage-summary-capacity"
             />
@@ -281,7 +281,7 @@ const QuotaUsageSummarySection: React.FC<QuotaUsageSummarySectionProps> = ({
           <Button
             variant="link"
             isInline
-            aria-label="View Kueue projects using this cluster queue"
+            aria-label="View projects"
             onClick={handleViewKueueProjects}
             data-testid="quota-usage-view-kueue-projects"
           >
