@@ -106,12 +106,9 @@ const AllExternalProvidersPage: React.FC = () => {
   const pageDescription = (
     <>
       <p>
-        An external provider defines the connection details (endpoint, credentials, and
-        authentication) for an external LLM service.
-      </p>
-      <p>
-        Manage providers here or create them inline when adding an external model. External models
-        reference a provider to route inference requests to the correct endpoint.
+        View and manage external model providers for the selected project. Providers store
+        connection details for external model services. External models reference providers to route
+        requests.
       </p>
     </>
   );

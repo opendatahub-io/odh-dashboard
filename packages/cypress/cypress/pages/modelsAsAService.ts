@@ -1902,10 +1902,6 @@ class CreateExternalModelPage {
     return cy.findByTestId('provider-references-table');
   }
 
-  findProviderRefsRequiredInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('provider-refs-required-info');
-  }
-
   findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-external-model-button');
   }
@@ -2028,6 +2024,11 @@ class ProviderReferenceModalBase extends Modal {
   fillTargetModel(targetModel: string): void {
     this.findTargetModelInput().clear();
     this.findTargetModelInput().type(targetModel);
+  }
+
+  selectApiFormat(key: string): void {
+    this.findApiFormatSelect().should('be.visible').click();
+    cy.findByTestId(key).click();
   }
 
   findApiFormatSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2164,10 +2165,11 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     this.findNextButton().click();
   }
 
-  addProviderReference(providerDisplayName: string, targetModel: string): void {
+  addProviderReference(providerDisplayName: string, targetModel: string, apiFormat: string): void {
     this.selectProvider(providerDisplayName);
     this.goToConfigureStep();
     this.fillTargetModel(targetModel);
+    this.selectApiFormat(apiFormat);
     this.findAddButton().click();
     this.shouldBeOpen(false);
   }
