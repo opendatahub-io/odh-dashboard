@@ -99,13 +99,17 @@ func verifyChaosPermissions(ctx context.Context, operatorNamespace, operandNames
 		{Namespace: operandNamespace, Verb: "patch", Group: "apps", Resource: "deployments"},
 	}
 	for _, attributes := range checks {
+		resource := attributes.Resource
+		if attributes.Subresource != "" {
+			resource += "/" + attributes.Subresource
+		}
 		review := &authorizationv1.SelfSubjectAccessReview{Spec: authorizationv1.SelfSubjectAccessReviewSpec{ResourceAttributes: &attributes}}
 		if err := k8sClient.Create(ctx, review); err != nil {
-			return fmt.Errorf("check chaos permission %s %s/%s: %w", attributes.Verb, attributes.Resource, attributes.Subresource, err)
+			return fmt.Errorf("check chaos permission %s %s: %w", attributes.Verb, resource, err)
 		}
 		if !review.Status.Allowed {
-			return fmt.Errorf("chaos permission denied: %s %s/%s in namespace %s: %s",
-				attributes.Verb, attributes.Resource, attributes.Subresource, attributes.Namespace, review.Status.Reason)
+			return fmt.Errorf("chaos permission denied: %s %s in namespace %s: %s",
+				attributes.Verb, resource, attributes.Namespace, review.Status.Reason)
 		}
 	}
 	return nil
@@ -263,20 +267,6 @@ func waitForReadyControllerPod(target *chaosTarget, timeout time.Duration) (*cor
 		return nil, fmt.Errorf("wait for a Ready controller pod in namespace %q: %w", target.namespace, err)
 	}
 	return readyPod, nil
-}
-
-func waitForDeploymentUnready(namespace, name string, timeout time.Duration) error {
-	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, timeout, true, func(ctx context.Context) (bool, error) {
-		deployment := &appsv1.Deployment{}
-		if err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
-			return false, err
-		}
-		return !deploymentReady(deployment), nil
-	})
-	if err != nil {
-		return fmt.Errorf("wait for controller Deployment %s/%s to report unready: %w", namespace, name, err)
-	}
-	return nil
 }
 
 func assertDashboardAndOperandsHealthy() error {

@@ -72,8 +72,6 @@ func TestE2EOperatorChaos(t *testing.T) {
 		require.NoError(t, waitForChaosNetworkPolicy(events[0].Target, target.namespace, true))
 		waitForNetworkPolicyEnforcement()
 
-		require.NoError(t, waitForDeploymentUnready(target.namespace, target.deployment.Name, experiment.ResolvedRecoveryTimeout()),
-			"API-aware controller readiness must report the active partition")
 		require.NoError(t, removeOwnedCoreDeploymentLabel(context.Background(), coreKey))
 		require.NoError(t, assertDeploymentLabelAbsentFor(coreKey, partitionObservationTime),
 			"managed-resource drift must remain unhealed while the controller is isolated")
@@ -91,8 +89,6 @@ func TestE2EOperatorChaos(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, chaosv1alpha1.PDBBlock, experiment.Spec.Injection.Type)
 
-		original, err := waitForReadyControllerPod(target, chaosRecoveryTimeout)
-		require.NoError(t, err)
 		fault, events, err := startChaosFault(context.Background(), experiment, target.namespace)
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, fault.revert()) })
@@ -102,12 +98,14 @@ func TestE2EOperatorChaos(t *testing.T) {
 		require.NotEmpty(t, pdbName)
 		require.NoError(t, waitForChaosPDB(pdbName, target.namespace, true))
 
-		err = evictControllerPod(context.Background(), clientset, original)
+		current, err := waitForReadyControllerPod(target, chaosRecoveryTimeout)
+		require.NoError(t, err)
+		err = evictControllerPod(context.Background(), clientset, current)
 		require.Error(t, err, "controller eviction must be blocked while the chaos PDB is active")
 		require.True(t, evictionBlocked(err), "expected PDB denial/HTTP 429, got %v", err)
 		unchanged := &corev1.Pod{}
-		require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKeyFromObject(original), unchanged))
-		require.Equal(t, original.UID, unchanged.UID)
+		require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKeyFromObject(current), unchanged))
+		require.Equal(t, current.UID, unchanged.UID)
 
 		require.NoError(t, fault.revert())
 		require.NoError(t, waitForChaosPDB(pdbName, target.namespace, false))

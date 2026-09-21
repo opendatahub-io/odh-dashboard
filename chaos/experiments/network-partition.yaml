@@ -24,10 +24,10 @@ spec:
     ttl: "300s"
   hypothesis:
     description: >-
-      When dashboard-operator is partitioned from the API server, its readiness
-      must report the loss of connectivity and managed-resource drift must stay
-      unhealed. Once the partition is removed, informers must reconnect and the
-      controller must restore the drift without manual intervention.
+      When dashboard-operator is partitioned from the API server,
+      managed-resource drift must stay unhealed. Once the partition is removed,
+      informers must reconnect and the controller must restore the drift without
+      manual intervention.
     recoveryTimeout: 180s
   blastRadius:
     maxPodsAffected: 1

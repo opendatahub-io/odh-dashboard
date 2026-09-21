@@ -142,8 +142,9 @@ captured pod UIDs, injected resource names, eviction result, and recovery logs.
 The suite validates:
 
 - controller pod replacement after a forced kill while operands remain healthy;
-- API-aware controller readiness, informer reconnection, and reconciliation of
-  managed-resource drift after a NetworkPolicy partition is removed; and
+- managed-resource drift remaining unreconciled during a NetworkPolicy
+  partition, followed by informer reconnection and drift repair after removal;
+  and
 - a real `policy/v1` eviction denied with HTTP 429 while the injected
   `maxUnavailable: 0` PDB is active.
 
