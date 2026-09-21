@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
@@ -71,6 +72,43 @@ type writer interface {
 	Write([]byte) (int, error)
 }
 
+const maxStreamingDeltaPreviewRunes = 256
+
+func addStreamingDeltaTraceEvent(ctx context.Context, event *StreamingEvent, chunkIndex int) {
+	span := trace.SpanFromContext(ctx)
+	if !span.IsRecording() || event == nil {
+		return
+	}
+
+	delta := event.Delta
+	if delta == "" {
+		delta = event.Text
+	}
+	if delta == "" {
+		delta = event.Refusal
+	}
+
+	span.AddEvent(event.Type, trace.WithAttributes(
+		attribute.Int("gen_ai.streaming.chunk.index", chunkIndex),
+		attribute.Int64("gen_ai.streaming.sequence_number", event.SequenceNumber),
+		attribute.String("gen_ai.streaming.item_id", event.ItemID),
+		attribute.Int("gen_ai.streaming.chunk.bytes", len(delta)),
+		attribute.Int("gen_ai.streaming.chunk.characters", utf8.RuneCountInString(delta)),
+		attribute.String("gen_ai.streaming.chunk.preview", truncateRunes(delta, maxStreamingDeltaPreviewRunes)),
+	))
+}
+
+func truncateRunes(value string, maxRunes int) string {
+	if maxRunes <= 0 {
+		return ""
+	}
+	if utf8.RuneCountInString(value) <= maxRunes {
+		return value
+	}
+	runes := []rune(value)
+	return string(runes[:maxRunes])
+}
+
 // streamSSEEvents is the unified SSE streaming handler.
 // Handles both regular streaming and async moderation streaming via pluggable callbacks.
 //
@@ -108,6 +146,8 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 		}
 		return nil
 	}
+
+	streamingDeltaChunkIndex := 0
 
 	// Main streaming loop
 	for stream.Next() {
@@ -173,6 +213,8 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 		// Handle delta events (output_text.delta, reasoning_text.delta)
 		isDelta := streamingEvent.Type == "response.output_text.delta" || streamingEvent.Type == "response.reasoning_text.delta"
 		if isDelta {
+			streamingDeltaChunkIndex++
+			addStreamingDeltaTraceEvent(ctx, streamingEvent, streamingDeltaChunkIndex)
 			if cfg.OnDelta != nil {
 				// Async moderation path: buffer and chunk
 				toSend, shouldContinue, err := cfg.OnDelta(streamingEvent)

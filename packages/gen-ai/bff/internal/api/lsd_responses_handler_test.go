@@ -35,6 +35,7 @@ import (
 	gentypes "github.com/opendatahub-io/gen-ai/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 var _ = Describe("LlamaStackCreateResponseHandler", func() {
@@ -1357,6 +1358,25 @@ func TestGetProviderDataRouting(t *testing.T) {
 			"maas_subscription":           "my-subscription",
 			"inference_model_source_type": string(models.ModelSourceTypeMaaS),
 		}, providerData)
+	})
+
+	t.Run("includes W3C trace context when request context has a sampled span", func(t *testing.T) {
+		traceID := oteltrace.TraceID{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+		spanID := oteltrace.SpanID{1, 2, 3, 4, 5, 6, 7, 8}
+		spanContext := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+			TraceID:    traceID,
+			SpanID:     spanID,
+			TraceFlags: oteltrace.FlagsSampled,
+		})
+		ctx := oteltrace.ContextWithSpanContext(context.Background(), spanContext)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "test-token",
+		})
+
+		providerData, err := app.getProviderData(ctx, "", "")
+		require.NoError(t, err)
+		assert.Equal(t, "test-token", providerData["passthrough_api_key"])
+		assert.Equal(t, "00-0102030405060708090a0b0c0d0e0f10-0102030405060708-01", providerData[constants.TraceParentHeader])
 	})
 
 	t.Run("returns nil when identity is missing", func(t *testing.T) {

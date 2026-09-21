@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1621,6 +1622,9 @@ func TestNewPassthroughProvider(t *testing.T) {
 	assert.True(t, ok, "forward_headers should be a map")
 	assert.Equal(t, "X-MaaS-Subscription", fh["maas_subscription"])
 	assert.Equal(t, "X-Inference-Model-Source-Type", fh["inference_model_source_type"])
+	assert.Equal(t, "traceparent", fh[constants.TraceParentHeader])
+	assert.Equal(t, "tracestate", fh[constants.TraceStateHeader])
+	assert.Equal(t, "baggage", fh[constants.BaggageHeader])
 }
 
 func TestHasPassthroughProvider(t *testing.T) {
@@ -1653,6 +1657,17 @@ func TestHasPassthroughProvider(t *testing.T) {
 
 		assert.False(t, config.HasPassthroughProvider(matchingURL),
 			"a stale passthrough provider must be updated to forward model source type")
+	})
+
+	t.Run("returns false when trace context forwarding is absent", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		provider := NewPassthroughProvider("genai-bff-proxy", matchingURL)
+		forwardHeaders := provider.Config["forward_headers"].(map[string]interface{})
+		delete(forwardHeaders, constants.TraceParentHeader)
+		config.AddInferenceProvider(provider)
+
+		assert.False(t, config.HasPassthroughProvider(matchingURL),
+			"a stale passthrough provider must be updated to forward trace context")
 	})
 
 	t.Run("returns false when only vllm providers exist", func(t *testing.T) {

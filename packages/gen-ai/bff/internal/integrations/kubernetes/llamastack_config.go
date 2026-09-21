@@ -417,6 +417,9 @@ func NewPassthroughProvider(providerID, baseURL string) Provider {
 			"forward_headers": map[string]interface{}{
 				"maas_subscription":           constants.MaaSSubscriptionHeader,
 				"inference_model_source_type": constants.InferenceModelSourceTypeHeader,
+				constants.TraceParentHeader:   constants.TraceParentHeader,
+				constants.TraceStateHeader:    constants.TraceStateHeader,
+				constants.BaggageHeader:       constants.BaggageHeader,
 			},
 		},
 	}
@@ -443,17 +446,26 @@ func (c *LlamaStackConfig) HasPassthroughProvider(expectedBaseURL string) bool {
 }
 
 func hasExpectedPassthroughForwardHeaders(forwardHeaders interface{}) bool {
-	var maasSubscription, inferenceModelSourceType string
+	var maasSubscription, inferenceModelSourceType, traceparent, tracestate, baggage string
 	switch headers := forwardHeaders.(type) {
 	case map[string]interface{}:
 		maasSubscription, _ = headers["maas_subscription"].(string)
 		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
+		traceparent, _ = headers[constants.TraceParentHeader].(string)
+		tracestate, _ = headers[constants.TraceStateHeader].(string)
+		baggage, _ = headers[constants.BaggageHeader].(string)
 	case map[interface{}]interface{}:
 		maasSubscription, _ = headers["maas_subscription"].(string)
 		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
+		traceparent, _ = headers[constants.TraceParentHeader].(string)
+		tracestate, _ = headers[constants.TraceStateHeader].(string)
+		baggage, _ = headers[constants.BaggageHeader].(string)
 	}
 	return maasSubscription == constants.MaaSSubscriptionHeader &&
-		inferenceModelSourceType == constants.InferenceModelSourceTypeHeader
+		inferenceModelSourceType == constants.InferenceModelSourceTypeHeader &&
+		traceparent == constants.TraceParentHeader &&
+		tracestate == constants.TraceStateHeader &&
+		baggage == constants.BaggageHeader
 }
 
 // NewSentenceTransformerProvider creates a new sentence transformer provider
