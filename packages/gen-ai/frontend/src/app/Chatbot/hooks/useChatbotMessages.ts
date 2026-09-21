@@ -21,6 +21,7 @@ import {
   TokenInfo,
   ToolCallStreamEvent,
   ClassifiedError,
+  DocumentAttachment,
 } from '~/app/types';
 import {
   ERROR_MESSAGES,
@@ -59,7 +60,12 @@ export type ChatbotMessageProps = MessageProps & {
   isTextStreaming?: boolean;
   /** True only after the stream has reached its terminal event. */
   isToolCallStreamComplete?: boolean;
+  attachmentWarning?: 'general' | 'near-limit' | 'context-exceeded';
 };
+
+const DEFAULT_CONTEXT_WINDOW_TOKENS = 8192;
+const DOCUMENT_CONTEXT_WINDOW_WARNING_THRESHOLD = 0.5;
+const NEAR_CONTEXT_WINDOW_THRESHOLD = 0.8;
 
 export interface UseChatbotMessagesReturn {
   messages: ChatbotMessageProps[];
@@ -115,6 +121,7 @@ interface UseChatbotMessagesProps {
   hasImageInConversation?: boolean;
   hasAudioInConversation?: boolean;
   isProfileDirty?: boolean;
+  documentAttachments?: DocumentAttachment[];
 }
 
 const useChatbotMessages = ({
@@ -145,6 +152,7 @@ const useChatbotMessages = ({
   hasImageInConversation,
   hasAudioInConversation,
   isProfileDirty,
+  documentAttachments = [],
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -426,13 +434,19 @@ const useChatbotMessages = ({
         },
       });
     }
-    const userMessage: MessageProps = {
+    const userMessage: ChatbotMessageProps = {
       id: getId(),
       role: 'user',
       content: message,
       name: username || 'User',
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
+      ...(documentAttachments.length > 0 && {
+        attachments: documentAttachments.map(({ file_id, filename }) => ({
+          id: file_id,
+          name: filename,
+        })),
+      }),
       ...(Object.keys(extraContent).length > 0 && { extraContent }),
     };
 
@@ -520,6 +534,13 @@ const useChatbotMessages = ({
           model_source_type: selectedModel.model_source_type,
         }),
         ...(subscription && { subscription }),
+        ...(documentAttachments.length > 0 && {
+          attachments: documentAttachments.map(({ file_id, filename, text }) => ({
+            file_id,
+            filename,
+            text,
+          })),
+        }),
       };
 
       const hasImage = !!fileId;
@@ -800,6 +821,25 @@ const useChatbotMessages = ({
 
         if (streamingResponse.metrics) {
           setLastResponseMetrics(streamingResponse.metrics);
+          const inputTokens = streamingResponse.metrics.usage?.input_tokens;
+          if (
+            inputTokens &&
+            inputTokens >= DEFAULT_CONTEXT_WINDOW_TOKENS * DOCUMENT_CONTEXT_WINDOW_WARNING_THRESHOLD
+          ) {
+            setMessages((previous) =>
+              previous.map((entry) =>
+                entry.id === userMessage.id
+                  ? {
+                      ...entry,
+                      attachmentWarning:
+                        inputTokens >= DEFAULT_CONTEXT_WINDOW_TOKENS * NEAR_CONTEXT_WINDOW_THRESHOLD
+                          ? 'near-limit'
+                          : 'general',
+                    }
+                  : entry,
+              ),
+            );
+          }
         }
       } else {
         // Handle non-streaming response
@@ -841,6 +881,25 @@ const useChatbotMessages = ({
         // Update last response metrics for pane header display
         if (response.metrics) {
           setLastResponseMetrics(response.metrics);
+          const inputTokens = response.metrics.usage?.input_tokens;
+          if (
+            inputTokens &&
+            inputTokens >= DEFAULT_CONTEXT_WINDOW_TOKENS * DOCUMENT_CONTEXT_WINDOW_WARNING_THRESHOLD
+          ) {
+            setMessages((previous) =>
+              previous.map((entry) =>
+                entry.id === userMessage.id
+                  ? {
+                      ...entry,
+                      attachmentWarning:
+                        inputTokens >= DEFAULT_CONTEXT_WINDOW_TOKENS * NEAR_CONTEXT_WINDOW_THRESHOLD
+                          ? 'near-limit'
+                          : 'general',
+                    }
+                  : entry,
+              ),
+            );
+          }
         }
       }
     } catch (error) {
@@ -864,6 +923,21 @@ const useChatbotMessages = ({
               retriable: false,
             },
           };
+
+      if (
+        documentAttachments.length > 0 &&
+        ['context_length', 'context_length_exceeded', 'stream_context'].includes(
+          apiError.error.code.toLowerCase(),
+        )
+      ) {
+        setMessages((previous) =>
+          previous.map((entry) =>
+            entry.id === userMessage.id
+              ? { ...entry, attachmentWarning: 'context-exceeded' }
+              : entry,
+          ),
+        );
+      }
 
       // Check if this is an abort error (from user stopping or clearing)
       const isAbortError =

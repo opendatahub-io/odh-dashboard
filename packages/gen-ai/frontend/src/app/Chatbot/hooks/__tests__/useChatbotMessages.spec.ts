@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
+import { CreateResponseRequest, DocumentAttachment, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
   mockSuccessResponse,
@@ -87,6 +87,7 @@ const createDefaultHookProps = (overrides?: {
   knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
   subscription?: string;
+  documentAttachments?: DocumentAttachment[];
 }) => ({
   ...defaultMcpProps,
   configId: 'default',
@@ -309,6 +310,42 @@ describe('useChatbotMessages', () => {
   });
 
   describe('error handling', () => {
+    it('includes persisted document attachments in each Responses request', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document',
+          filename: 'notes.txt',
+          text: 'Extracted document content',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(
+          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Summarize these notes');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachments: [
+            {
+              file_id: 'file-document',
+              filename: 'notes.txt',
+              text: 'Extracted document content',
+            },
+          ],
+        }),
+        expect.objectContaining({ abortSignal: expect.any(Object) }),
+      );
+    });
+
     it('should handle missing modelId', async () => {
       const { result } = renderHook(() =>
         useChatbotMessages(createDefaultHookProps({ modelId: '' })),

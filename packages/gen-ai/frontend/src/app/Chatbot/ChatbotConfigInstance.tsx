@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { MCPServerFromAPI, TokenInfo } from '~/app/types';
+import { DocumentAttachment, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
@@ -50,6 +50,7 @@ interface ChatbotConfigInstanceProps {
   hasAudioInCurrentMessage?: boolean;
   hasAudioInConversation?: boolean;
   onViewTrace?: (traceId: string) => void;
+  documentAttachments?: DocumentAttachment[];
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -72,6 +73,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   hasAudioInCurrentMessage,
   hasAudioInConversation,
   onViewTrace,
+  documentAttachments,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
@@ -163,6 +165,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     hasImageInConversation: hasImagesInConversation,
     hasAudioInConversation,
     isProfileDirty,
+    documentAttachments,
   });
 
   const embeddedMessagesHook = useEmbeddedChatbotMessages({
