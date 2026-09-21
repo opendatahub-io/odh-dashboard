@@ -27,6 +27,12 @@ jobs:
         id: changes
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
+          # OR across the positive roots, but honor the `!` exclusions. With the
+          # default `some` quantifier the negated patterns are ineffective (a
+          # non-markdown file matches `!**/*.md`, so almost any change would
+          # match); `every` can't be used here because it requires all patterns
+          # to match a single file and we have multiple positive roots.
+          predicate-quantifier: some-with-excludes
           filters: |
             operator:
               - 'dashboard-operator/**'
