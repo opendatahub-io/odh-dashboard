@@ -1,0 +1,94 @@
+name: Test / Data Registry Frontend Tests
+on:
+  push:
+    paths:
+      - 'packages/data-registry/**'
+      - 'packages/cypress/**'
+      - '.github/workflows/data-registry-frontend-tests.yml'
+      - '.github/actions/module-caches/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/data-registry/**'
+      - 'packages/cypress/**'
+      - '.github/workflows/data-registry-frontend-tests.yml'
+      - '.github/actions/module-caches/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  test:
+    name: Data Registry Frontend Tests
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: data-registry node_modules cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/data-registry/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-data-registry-${{ hashFiles('packages/data-registry/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-data-registry-
+
+      - name: Install data-registry dependencies
+        working-directory: packages/data-registry/frontend
+        run: npm install && npx --no-install cypress install
+
+      - name: Lint
+        working-directory: packages/data-registry/frontend
+        run: npm run test:lint
+
+      - name: Type check
+        working-directory: packages/data-registry/frontend
+        run: npm run test:type-check
+
+      - name: Unit tests (Jest)
+        working-directory: packages/data-registry/frontend
+        run: npm run test:unit
+
+      - name: Cypress mock tests
+        working-directory: packages/data-registry/frontend
+        run: npm run test:cypress-ci
+
+      - name: Run clean
+        working-directory: packages/data-registry/frontend
+        run: npm run build:clean
+
+      - name: Run build
+        working-directory: packages/data-registry/frontend
+        run: npm run build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/data-registry/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
