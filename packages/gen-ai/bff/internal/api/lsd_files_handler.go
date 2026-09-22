@@ -23,7 +23,10 @@ import (
 
 type FileUploadResponse = llamastack.APIResponse
 
-const scannedPDFMinimumTextCharacters = 50
+const (
+	scannedPDFMinimumTextCharacters = 50
+	playgroundDocumentUploadPurpose = "assistants"
+)
 
 var supportedDocumentMIMETypes = map[string][]string{
 	".pdf":  {"application/pdf"},
@@ -103,7 +106,7 @@ func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 	upload, err := client.UploadFile(r.Context(), llamastack.UploadFileParams{
-		Reader: file, Filename: header.Filename, ContentType: contentType, Purpose: "user_data",
+		Reader: file, Filename: header.Filename, ContentType: contentType, Purpose: playgroundDocumentUploadPurpose,
 	})
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)

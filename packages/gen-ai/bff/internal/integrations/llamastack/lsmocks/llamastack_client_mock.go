@@ -27,6 +27,7 @@ type MockLlamaStackClient struct {
 	getResponseResults map[string]*MockResponse
 	getResponseErrors  map[string]error
 	UploadFileError    error
+	UploadFileParams   []llamastack.UploadFileParams
 	ProcessFileResult  *llamastack.ProcessedDocument
 	ProcessFileError   error
 	DeletedFileIDs     []string
@@ -183,6 +184,7 @@ func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params lla
 
 // UploadFile uploads a file with optional parameters and optionally adds to vector store
 func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
+	m.UploadFileParams = append(m.UploadFileParams, params)
 	if m.UploadFileError != nil {
 		return nil, m.UploadFileError
 	}
