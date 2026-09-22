@@ -17,7 +17,10 @@ import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared/types';
-import { HF_TOKEN_ENV_NAME } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
+import {
+  HF_TOKEN_ENV_NAME,
+  HF_TOKEN_SECRET_ANNOTATION,
+} from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   mockCustomSecretK8sResource,
@@ -334,18 +337,20 @@ const initDeployIntercepts = () => {
     },
   );
 
-  cy.interceptK8s(
-    'POST',
-    { model: ServiceAccountModel, ns: 'test-project' },
-    {
+  cy.interceptK8s('POST', { model: ServiceAccountModel, ns: 'test-project' }, (req) => {
+    req.reply({
       statusCode: 200,
       body: {
         apiVersion: 'v1',
         kind: 'ServiceAccount',
-        metadata: { name: `${MODEL_NAME}-sa`, namespace: 'test-project' },
+        metadata: {
+          name: req.body.metadata?.name ?? `${MODEL_NAME}-sa`,
+          namespace: 'test-project',
+        },
+        secrets: req.body.secrets,
       },
-    },
-  ).as('createServiceAccount');
+    });
+  }).as('createServiceAccount');
 
   cy.interceptK8s(
     'POST',
@@ -379,6 +384,15 @@ const initDeployIntercepts = () => {
       model: ServiceAccountModel,
       ns: 'test-project',
       name: `${MODEL_NAME}-sa`,
+    },
+    { statusCode: 404, body: mock404Error({}) },
+  );
+  cy.interceptK8s(
+    'GET',
+    {
+      model: ServiceAccountModel,
+      ns: 'test-project',
+      name: `${MODEL_NAME}-hf-sa`,
     },
     { statusCode: 404, body: mock404Error({}) },
   );
@@ -478,7 +492,7 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled');
   });
 
-  it('should create an HF token Secret and wire secretKeyRef on submit', () => {
+  it('should create an HF token Secret and ServiceAccount on submit', () => {
     openWizardFromCatalog('private');
     initDeployIntercepts();
     navigateToModelSourceStep();
@@ -518,13 +532,35 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
       });
     });
 
+    cy.get('@createServiceAccount.all').should((interceptions) => {
+      const hfServiceAccounts = (
+        interceptions as unknown as Array<{
+          request: {
+            url: string;
+            body: {
+              metadata: { name?: string };
+              secrets?: Array<{ name: string }>;
+            };
+          };
+        }>
+      ).filter((interception) =>
+        interception.request.body.secrets?.some((secret) => secret.name === HF_TOKEN_SECRET_NAME),
+      );
+      expect(hfServiceAccounts).to.have.length(2);
+      expect(hfServiceAccounts[0].request.url).to.include('?dryRun=All');
+      expect(hfServiceAccounts[0].request.body.metadata.name).to.equal(`${MODEL_NAME}-hf-sa`);
+      expect(hfServiceAccounts[1].request.url).not.to.include('?dryRun=All');
+    });
+
     cy.get('@createInferenceService.all').should((interceptions) => {
       const isvcCreates = interceptions as unknown as Array<{
         request: {
           url: string;
           body: {
+            metadata: { annotations?: Record<string, string> };
             spec: {
               predictor: {
+                serviceAccountName?: string;
                 model: { env?: Array<Record<string, unknown>> };
               };
             };
@@ -533,15 +569,17 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
       }>;
       expect(isvcCreates).to.have.length(2);
       expect(isvcCreates[0].request.url).to.include('?dryRun=All');
-      expect(isvcCreates[0].request.body.spec.predictor.model.env).to.deep.include({
-        name: HF_TOKEN_ENV_NAME,
-        valueFrom: {
-          secretKeyRef: {
-            name: HF_TOKEN_SECRET_NAME,
-            key: HF_TOKEN_ENV_NAME,
-          },
-        },
+      expect(isvcCreates[0].request.body.spec.predictor.serviceAccountName).to.equal(
+        `${MODEL_NAME}-hf-sa`,
+      );
+      expect(isvcCreates[0].request.body.metadata.annotations).to.containSubset({
+        [HF_TOKEN_SECRET_ANNOTATION]: HF_TOKEN_SECRET_NAME,
       });
+      expect(
+        isvcCreates[0].request.body.spec.predictor.model.env?.find(
+          (env) => env.name === HF_TOKEN_ENV_NAME,
+        ),
+      ).to.equal(undefined);
       expect(isvcCreates[1].request.url).not.to.include('?dryRun=All');
     });
   });
@@ -557,17 +595,11 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
           storageUri: MODEL_URI,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
-          env: [
-            {
-              name: HF_TOKEN_ENV_NAME,
-              valueFrom: {
-                secretKeyRef: {
-                  name: HF_TOKEN_SECRET_NAME,
-                  key: HF_TOKEN_ENV_NAME,
-                },
-              },
-            },
-          ],
+          additionalAnnotations: {
+            [HF_TOKEN_SECRET_ANNOTATION]: HF_TOKEN_SECRET_NAME,
+          },
+          serviceAccountName: 'test-inference-service-hf-sa',
+          env: [],
         }),
       ]),
     );
