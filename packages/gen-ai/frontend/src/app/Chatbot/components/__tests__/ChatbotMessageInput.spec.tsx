@@ -757,6 +757,24 @@ describe('ChatbotMessageInput', () => {
       );
       expect(onRemoveDocument).toHaveBeenCalledWith('file-document');
     });
+
+    it('shows an in-progress attachment while a document is being added', () => {
+      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading />);
+
+      expect(screen.getByTestId('document-attachment-loading')).toHaveTextContent(
+        'Adding Document…',
+      );
+      expect(screen.getByRole('progressbar', { name: 'Adding document' })).toBeInTheDocument();
+    });
+
+    it('uses plural loading text for multiple documents', () => {
+      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading documentUploadCount={2} />);
+
+      expect(screen.getByTestId('document-attachment-loading')).toHaveTextContent(
+        'Adding Documents…',
+      );
+      expect(screen.getByRole('progressbar', { name: 'Adding documents' })).toBeInTheDocument();
+    });
   });
 
   describe('alwaysShowSendButton', () => {

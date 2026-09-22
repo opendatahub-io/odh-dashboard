@@ -450,6 +450,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   );
   const [documentAttachments, setDocumentAttachments] = React.useState<DocumentAttachment[]>([]);
   const [isDocumentUploading, setIsDocumentUploading] = React.useState(false);
+  const [documentUploadCount, setDocumentUploadCount] = React.useState(0);
   const [viewedDocument, setViewedDocument] = React.useState<DocumentAttachment | null>(null);
 
   React.useEffect(() => {
@@ -634,6 +635,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         alertManagement.onShowErrorAlert('API is not available', 'Document upload error');
         return;
       }
+      setDocumentUploadCount(acceptedFiles.length);
       setIsDocumentUploading(true);
       try {
         const uploaded: DocumentAttachment[] = [];
@@ -667,6 +669,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         alertManagement.onShowErrorAlert(message, 'Document upload error');
       } finally {
         setIsDocumentUploading(false);
+        setDocumentUploadCount(0);
       }
     },
     [api, apiAvailable, alertManagement, documentStorageKey],
@@ -1329,6 +1332,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   documentAttachments={documentAttachments}
                   onRemoveDocument={handleRemoveDocument}
                   onViewDocument={setViewedDocument}
+                  isDocumentUploading={isDocumentUploading}
+                  documentUploadCount={documentUploadCount}
                   isDocumentUploadDisabled={isDocumentUploading}
                   shouldShowPdfTextExtractionNotice={
                     capabilitiesReady &&
