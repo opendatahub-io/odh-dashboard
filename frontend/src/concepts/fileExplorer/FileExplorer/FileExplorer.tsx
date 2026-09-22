@@ -48,8 +48,6 @@ import {
   EmptyStateFooter,
   Flex,
   FlexItem,
-  Grid,
-  GridItem,
   Label,
   LabelGroup,
   MenuToggle,
@@ -862,7 +860,11 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
       >
         <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
       </CardHeader>
-      <CardBody className="pf-v6-u-pt-sm" isFilled={false}>
+      <CardBody
+        className="pf-v6-u-pt-sm"
+        isFilled={false}
+        style={{ minHeight: 0, overflowY: 'auto' }}
+      >
         <DescriptionList>
           {Array.isArray(filesToView) &&
             filesToView.length > 0 &&
@@ -897,7 +899,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
       >
         <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
       </CardHeader>
-      <CardBody className="pf-v6-u-pt-sm">
+      <CardBody className="pf-v6-u-pt-sm" style={{ minHeight: 0, overflowY: 'auto' }}>
         {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
           <SelectedFilesDataList
             selectedFiles={selectedFiles}
@@ -1266,6 +1268,18 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const shouldRenderSidePanel = shouldRenderProgressPanel || shouldRenderDetails.panel;
   const isUploading = uploadStatuses.some((status) => status.variant === undefined);
 
+  const gridTemplateAreas = shouldRenderDetails.panel
+    ? shouldRenderProgressPanel
+      ? '"file-table file-details" "file-table upload-progress"'
+      : '"file-table file-details" "file-table file-details"'
+    : shouldRenderProgressPanel
+    ? '"file-table upload-progress" "file-table upload-progress"'
+    : '"file-table"';
+  const gridTemplateColumns = shouldRenderSidePanel
+    ? 'minmax(0, 2fr) minmax(0, 1fr)'
+    : 'minmax(0, 1fr)';
+  const gridTemplateRows = shouldRenderSidePanel ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)';
+
   const handleClose = useCallback(
     (event?: KeyboardEvent | React.MouseEvent) => {
       if (isUploading) {
@@ -1310,11 +1324,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         description={defaults.labels.modalDescription(selection)}
         labelId={`${rootId}-FileExplorer-modal-title`}
       />
-      <ModalBody className="pf-v6-u-h-100" id={`${rootId}-FileExplorer-modal-body`}>
+      <ModalBody
+        className="pf-v6-u-h-100"
+        id={`${rootId}-FileExplorer-modal-body`}
+        style={{ overflow: 'hidden' }}
+      >
         <Flex
           className="pf-v6-u-h-100"
           direction={{ default: 'column' }}
           flexWrap={{ default: 'nowrap' }}
+          style={{ minHeight: 0 }}
         >
           {isUploading && (
             <FlexItem>
@@ -1444,9 +1463,27 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               </LabelGroup>
             </FlexItem>
           )}
-          <FlexItem className="pf-v6-u-min-height" grow={{ default: 'grow' }}>
-            <Grid className="pf-v6-u-h-100" hasGutter>
-              <GridItem className="pf-v6-u-h-100" span={shouldRenderSidePanel ? 8 : 12}>
+          <FlexItem
+            className="pf-v6-u-min-height"
+            grow={{ default: 'grow' }}
+            style={{ minHeight: 0 }}
+          >
+            <div
+              data-testid="file-explorer-layout"
+              style={{
+                display: 'grid',
+                height: '100%',
+                minHeight: 0,
+                minWidth: 0,
+                gridTemplateAreas,
+                gridTemplateColumns,
+                gridTemplateRows,
+                gap: 'var(--pf-t--global--spacer--md)',
+              }}
+            >
+              <div
+                style={{ gridArea: 'file-table', minHeight: 0, minWidth: 0, overflow: 'hidden' }}
+              >
                 <FilesTable
                   files={files}
                   onSelectFile={onSelectFile}
@@ -1463,9 +1500,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   loading={loading}
                   perPage={currentPerPage}
                 />
-              </GridItem>
+              </div>
               {shouldRenderDetails.panel && (
-                <GridItem span={4}>
+                <div
+                  style={{
+                    gridArea: 'file-details',
+                    minHeight: 0,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                  }}
+                >
                   <DetailsPanel
                     selectedFiles={selectedFiles}
                     filesToView={filesToView}
@@ -1474,10 +1518,18 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     onClearAllSelections={handleClearAllSelections}
                     onClearDetails={handleClearDetails}
                   />
-                </GridItem>
+                </div>
               )}
               {shouldRenderProgressPanel && (
-                <GridItem span={4} data-testid="file-explorer-upload-panel">
+                <div
+                  data-testid="file-explorer-upload-panel"
+                  style={{
+                    gridArea: 'upload-progress',
+                    minHeight: 0,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                  }}
+                >
                   <Card isFullHeight isCompact>
                     <CardHeader
                       actions={{
@@ -1495,7 +1547,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     >
                       <CardTitle>Upload progress</CardTitle>
                     </CardHeader>
-                    <CardBody>
+                    <CardBody style={{ minHeight: 0, overflowY: 'auto' }}>
                       <MultipleFileUploadStatus
                         aria-label="Upload status"
                         statusToggleText="Upload history"
@@ -1516,9 +1568,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                       </MultipleFileUploadStatus>
                     </CardBody>
                   </Card>
-                </GridItem>
+                </div>
               )}
-            </Grid>
+            </div>
           </FlexItem>
         </Flex>
       </ModalBody>

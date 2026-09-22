@@ -60,6 +60,44 @@ describe('FileExplorer', () => {
 
       expect(screen.getByText('Select which files or folders to use')).toBeInTheDocument();
     });
+    it('should use the full-width table grid when no side panel is visible', () => {
+      render(<FileExplorer {...defaultProps} />);
+
+      expect(screen.getByTestId('file-explorer-layout')).toHaveStyle({
+        gridTemplateAreas: '"file-table"',
+        gridTemplateColumns: 'minmax(0, 1fr)',
+        gridTemplateRows: 'minmax(0, 1fr)',
+      });
+    });
+    it('should place details and upload progress in state-driven grid areas', () => {
+      const uploadFiles = jest.fn().mockResolvedValue([{ key: '/uploaded.csv' }]);
+      render(
+        <FileExplorer {...defaultProps} upload={{ uploadFiles, picker: { accept: '.csv' } }} />,
+      );
+
+      const fileRow = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(fileRow).getByRole('button', { name: 'file-1.json actions' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'View details' }));
+      expect(screen.getByTestId('file-explorer-layout')).toHaveStyle({
+        gridTemplateAreas: '"file-table file-details" "file-table file-details"',
+      });
+
+      fireEvent.click(screen.getByTestId('file-explorer-close-details-btn'));
+      const input = screen.getByTestId('file-explorer-upload-input') as HTMLInputElement;
+      fireEvent.change(input, {
+        target: { files: [new File(['data'], 'uploaded.csv', { type: 'text/csv' })] },
+      });
+
+      expect(screen.getByTestId('file-explorer-layout')).toHaveStyle({
+        gridTemplateAreas: '"file-table upload-progress" "file-table upload-progress"',
+      });
+
+      fireEvent.click(within(fileRow).getByRole('button', { name: 'file-1.json actions' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'View details' }));
+      expect(screen.getByTestId('file-explorer-layout')).toHaveStyle({
+        gridTemplateAreas: '"file-table file-details" "file-table upload-progress"',
+      });
+    });
 
     it('should open progress automatically for native picker selections', async () => {
       const uploadFiles = jest.fn().mockResolvedValue([{ key: '/uploaded.csv' }]);
