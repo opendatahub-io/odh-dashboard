@@ -88,6 +88,7 @@ import {
   METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
+import { metricDomId, parseMetricReference } from '~/app/utilities/metricUtils';
 import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -1029,7 +1030,10 @@ function AutoragConfigure({
                                       <SelectOption
                                         key={metric.value}
                                         value={metric.value}
-                                        data-testid={`metric-option-${metric.value}`}
+                                        data-testid={metricDomId(
+                                          'metric-option',
+                                          parseMetricReference(metric.value),
+                                        )}
                                       >
                                         {metric.label}
                                       </SelectOption>

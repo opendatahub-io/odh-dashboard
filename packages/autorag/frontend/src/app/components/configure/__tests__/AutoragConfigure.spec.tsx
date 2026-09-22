@@ -1301,10 +1301,11 @@ describe('AutoragConfigure', () => {
         expect(screen.getAllByTestId(/^metric-option-/)).toHaveLength(expectedMetrics.length);
       });
       expectedMetrics.forEach(([metric, label]) => {
-        expect(screen.getByTestId(`metric-option-${metric}`)).toHaveTextContent(label);
+        const metricTestId = metric.includes(':') ? metric.split(':').reverse().join('-') : metric;
+        expect(screen.getByTestId(`metric-option-${metricTestId}`)).toHaveTextContent(label);
       });
       expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('metric-option-ragas:faithfulness')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-option-faithfulness-ragas')).not.toBeInTheDocument();
     });
 
     it('should offer exactly the seven balanced metrics with evaluator-specific labels', async () => {
@@ -1329,7 +1330,8 @@ describe('AutoragConfigure', () => {
       });
 
       expectedMetrics.forEach(([metric, label]) => {
-        expect(screen.getByTestId(`metric-option-${metric}`)).toHaveTextContent(label);
+        const metricTestId = metric.includes(':') ? metric.split(':').reverse().join('-') : metric;
+        expect(screen.getByTestId(`metric-option-${metricTestId}`)).toHaveTextContent(label);
       });
       expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
     });
