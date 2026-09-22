@@ -2,6 +2,14 @@ export const agentOpsRootPath = '/ai-hub/agents';
 
 export const globAgentOpsAll = `${agentOpsRootPath}/*`;
 
+export const agentOpsWorkspacesPath = `${agentOpsRootPath}/workspaces`;
+
+export const agentOpsWorkspaceDetailPath = (workspaceId: string): string =>
+  `${agentOpsWorkspacesPath}/${encodeURIComponent(workspaceId)}`;
+
+export const agentOpsSandboxDetailPath = (workspaceId: string, sandboxName: string): string =>
+  `${agentOpsWorkspacesPath}/${encodeURIComponent(workspaceId)}/sandboxes/${encodeURIComponent(sandboxName)}`;
+
 export const agentDeploymentsPath = `${agentOpsRootPath}/deployments`;
 
 export const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;

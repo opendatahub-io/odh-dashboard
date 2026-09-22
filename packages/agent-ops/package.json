@@ -34,7 +34,7 @@
     "./extensions": "./extensions.ts"
   },
   "scripts": {
-    "install:module": "npm install --prefix frontend",
+    "install:module": "npm install --legacy-peer-deps --prefix frontend",
     "check:openapi-sync": "make -C bff check-openapi-sync",
     "pretest:contract": "npm run check:openapi-sync",
     "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-agent-client --mock-http-client --auth-method=internal' odh-ct-bff-consumer --bff-dir bff",
