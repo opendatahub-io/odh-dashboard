@@ -134,21 +134,8 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                 </Flex>
               )}
               {attachmentWarning && (
-                <Alert
-                  variant={attachmentWarning === 'context-exceeded' ? 'danger' : 'warning'}
-                  isInline
-                  isPlain
-                  title={
-                    attachmentWarning === 'context-exceeded'
-                      ? 'Model context window exceeded'
-                      : 'Document attachment warning'
-                  }
-                >
-                  {attachmentWarning === 'context-exceeded'
-                    ? 'Model’s context window exceeded. Instead upload files to Settings → RAG.'
-                    : attachmentWarning === 'near-limit'
-                      ? 'Model accuracy may be reduced because attached files use most of the model context window. Upload them to Settings → RAG instead.'
-                      : 'Attached files use the model context window. Upload large files to Settings → RAG instead.'}
+                <Alert variant="danger" isInline isPlain title="Model context window exceeded">
+                  Model’s context window exceeded. Instead upload files to Settings → RAG.
                 </Alert>
               )}
             </>

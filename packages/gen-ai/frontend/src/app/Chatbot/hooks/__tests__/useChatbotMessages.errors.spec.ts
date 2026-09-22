@@ -80,6 +80,50 @@ describe('useChatbotMessages - Error Handling', () => {
   });
 
   describe('Structured Error Handling', () => {
+    it('should show an attachment context error for an OGX invalid_prompt response', async () => {
+      const mockError = {
+        error: {
+          component: 'ogx' as const,
+          code: 'invalid_prompt',
+          message:
+            "[invalid_prompt] This model's maximum context length is 128 tokens. However, you requested 214 tokens in the messages.",
+          retriable: false,
+        },
+      };
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          ...defaultProps,
+          documentAttachments: [
+            {
+              // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+              file_id: 'policy.txt',
+              filename: 'policy.txt',
+              // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+              content_type: 'text/plain',
+              size: 42,
+              text: 'A document that exceeds the configured test context window.',
+            },
+          ],
+        }),
+      );
+
+      await result.current.handleMessageSend('Summarize this document');
+
+      await waitFor(() => {
+        const userMessage = result.current.messages.find((message) => message.role === 'user');
+        expect(userMessage?.attachmentWarning).toBe('context-exceeded');
+        expect(result.current.messages.some((message) => message.role === 'bot')).toBe(false);
+      });
+
+      expect(mockClassifyError).not.toHaveBeenCalled();
+    });
+
     it('should extract error message from mod-arch error format', async () => {
       const mockError = {
         error: {

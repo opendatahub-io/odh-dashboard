@@ -68,9 +68,15 @@ export type ChatbotMessageProps = MessageProps & {
   documentAttachments?: DocumentAttachment[];
 };
 
-const DEFAULT_CONTEXT_WINDOW_TOKENS = 8192;
-const DOCUMENT_CONTEXT_WINDOW_WARNING_THRESHOLD = 0.5;
-const NEAR_CONTEXT_WINDOW_THRESHOLD = 0.8;
+const isDocumentContextWindowExceeded = (error: ApiError): boolean => {
+  const errorCode = error.error.code.toLowerCase();
+  const errorMessage = error.error.message.toLowerCase();
+
+  return (
+    ['context_length', 'context_length_exceeded', 'stream_context'].includes(errorCode) ||
+    (errorCode === 'invalid_prompt' && errorMessage.includes('maximum context length'))
+  );
+};
 
 export interface UseChatbotMessagesReturn {
   messages: ChatbotMessageProps[];
@@ -827,25 +833,6 @@ const useChatbotMessages = ({
 
         if (streamingResponse.metrics) {
           setLastResponseMetrics(streamingResponse.metrics);
-          const inputTokens = streamingResponse.metrics.usage?.input_tokens;
-          if (
-            inputTokens &&
-            inputTokens >= DEFAULT_CONTEXT_WINDOW_TOKENS * DOCUMENT_CONTEXT_WINDOW_WARNING_THRESHOLD
-          ) {
-            setMessages((previous) =>
-              previous.map((entry) =>
-                entry.id === userMessage.id
-                  ? {
-                      ...entry,
-                      attachmentWarning:
-                        inputTokens >= DEFAULT_CONTEXT_WINDOW_TOKENS * NEAR_CONTEXT_WINDOW_THRESHOLD
-                          ? 'near-limit'
-                          : 'general',
-                    }
-                  : entry,
-              ),
-            );
-          }
         }
       } else {
         // Handle non-streaming response
@@ -887,25 +874,6 @@ const useChatbotMessages = ({
         // Update last response metrics for pane header display
         if (response.metrics) {
           setLastResponseMetrics(response.metrics);
-          const inputTokens = response.metrics.usage?.input_tokens;
-          if (
-            inputTokens &&
-            inputTokens >= DEFAULT_CONTEXT_WINDOW_TOKENS * DOCUMENT_CONTEXT_WINDOW_WARNING_THRESHOLD
-          ) {
-            setMessages((previous) =>
-              previous.map((entry) =>
-                entry.id === userMessage.id
-                  ? {
-                      ...entry,
-                      attachmentWarning:
-                        inputTokens >= DEFAULT_CONTEXT_WINDOW_TOKENS * NEAR_CONTEXT_WINDOW_THRESHOLD
-                          ? 'near-limit'
-                          : 'general',
-                    }
-                  : entry,
-              ),
-            );
-          }
         }
       }
     } catch (error) {
@@ -930,19 +898,17 @@ const useChatbotMessages = ({
             },
           };
 
-      if (
-        documentAttachments.length > 0 &&
-        ['context_length', 'context_length_exceeded', 'stream_context'].includes(
-          apiError.error.code.toLowerCase(),
-        )
-      ) {
+      if (documentAttachments.length > 0 && isDocumentContextWindowExceeded(apiError)) {
         setMessages((previous) =>
-          previous.map((entry) =>
-            entry.id === userMessage.id
-              ? { ...entry, attachmentWarning: 'context-exceeded' }
-              : entry,
-          ),
+          previous
+            .filter((entry) => entry.id !== botMessageId)
+            .map((entry) =>
+              entry.id === userMessage.id
+                ? { ...entry, attachmentWarning: 'context-exceeded' }
+                : entry,
+            ),
         );
+        return;
       }
 
       // Check if this is an abort error (from user stopping or clearing)
