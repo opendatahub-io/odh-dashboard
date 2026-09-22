@@ -1,164 +1,125 @@
-import { Button } from '@patternfly/react-core';
-import { DesktopIcon, PlusCircleIcon, StorageDomainIcon } from '@patternfly/react-icons';
-import type { FileRejection } from 'react-dropzone';
-import React, { useCallback, useRef, useState } from 'react';
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  MenuToggle,
+  MenuToggleAction,
+  Split,
+  SplitItem,
+  TextInputGroup,
+  TextInputGroupMain,
+  TextInputGroupUtilities,
+} from '@patternfly/react-core';
+import { FileIcon, TimesIcon } from '@patternfly/react-icons';
+import React, { useRef, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
-import FileSelector from '~/app/components/common/FileSelector';
 import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
-import { useNotification } from '~/app/hooks/useNotification';
+import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { fireAutoragEvaluationSourceConfigured, TrackingOutcome } from '~/app/utilities/tracking';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_FILES,
-  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import {
-  EVALUATION_FILE_ACCEPT,
-  getEvaluationDropRejectedNotification,
+  EVALUATION_FILE_NATIVE_ACCEPT,
   isAllowedEvaluationJsonFile,
 } from '~/app/utilities/autoragEvaluationFile';
-import {
-  AUTORAG_FAILURE_CATEGORY,
-  fireAutoragEvaluationSourceConfigured,
-  TrackingOutcome,
-} from '~/app/utilities/tracking';
 
 function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
-
-  const notification = useNotification();
   const { onEvaluationSourceConfigured } = useRunTriggeredTracking();
-
   const [fileExplorerOpen, setFileExplorerOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const s3SelectionCommittedRef = useRef(false);
-
   const form = useFormContext<ConfigureSchema>();
-  const {
-    formState: { isSubmitting },
-  } = form;
-  const controller = useController({ control: form.control, name: 'test_data_key' });
-  const { field } = controller;
-
+  const { formState } = form;
+  const { field } = useController({ control: form.control, name: 'test_data_key' });
   const [testDataSecretName, displayName, inputDataKeys] = useWatch({
     control: form.control,
     name: ['test_data_secret_name', 'display_name', 'input_data_keys'],
   });
   const inputDataKey = inputDataKeys[0] ?? '';
+  const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
-  const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
-
-  const handleEvaluationDropRejected = useCallback(
-    (fileRejections: FileRejection[]) => {
-      const payload = getEvaluationDropRejectedNotification(fileRejections);
-      if (payload) {
-        notification.error(payload.title, payload.description);
-      }
-    },
-    [notification],
-  );
+  const openExplorer = () => {
+    setDropdownOpen(false);
+    setFileExplorerOpen(true);
+  };
 
   return (
     <div data-testid="evaluation-file-selector">
-      <FileSelector
-        id={field.name}
-        selected={field.value}
-        isDisabled={isSubmitting}
-        onDropRejected={handleEvaluationDropRejected}
-        onUpload={async (file, setProgress, setStatus) => {
-          if (file.size > AUTORAG_UPLOAD_MAX_BYTES) {
-            notification.error('File too large', AUTORAG_UPLOAD_TOO_LARGE_DETAIL);
-            setStatus('danger');
-            return;
-          }
-          if (!isAllowedEvaluationJsonFile(file)) {
-            notification.error(
-              'Invalid file type',
-              'Evaluation dataset must be a JSON file (.json).',
-            );
-            setStatus('danger');
-            return;
-          }
-
-          let response;
-          try {
-            response = await uploadToStorageMutation.mutateAsync({
-              file,
-              onProgress: setProgress,
-            });
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            const isConflict = errorMessage.toLowerCase().includes('unique filename');
-
-            notification.error(
-              'Failed to upload file',
-              isConflict
-                ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
-                : errorMessage,
-            );
-            setStatus('danger');
-            fireAutoragEvaluationSourceConfigured({
-              evaluationSourceType: 'upload',
-              countOfDocuments: 0,
-              outcome: TrackingOutcome.submit,
-              success: false,
-              error: AUTORAG_FAILURE_CATEGORY,
-            });
-            return;
-          }
-
-          field.onChange(response.key);
-          setStatus('success');
-          fireAutoragEvaluationSourceConfigured({
-            evaluationSourceType: 'upload',
-            countOfDocuments: 1,
-            outcome: TrackingOutcome.submit,
-            success: true,
-          });
-          onEvaluationSourceConfigured('upload');
-        }}
-        onClear={() => field.onChange('')}
-        fileUploadProps={{
-          'data-testid': 'evaluation-upload-zone',
-          dropzoneProps: {
-            accept: EVALUATION_FILE_ACCEPT,
-            maxFiles: AUTORAG_UPLOAD_MAX_FILES,
-            maxSize: AUTORAG_UPLOAD_MAX_BYTES,
-            multiple: false,
-          },
-          filenamePlaceholder: 'Drag and drop or browse from...',
-          // @ts-expect-error: bypass ts error to allow icon
-          browseButtonText: (
-            <>
-              <DesktopIcon /> Computer
-            </>
-          ),
-          // @ts-expect-error: bypass ts error to allow icon
-          clearButtonText: (
-            <>
-              <StorageDomainIcon /> S3
-            </>
-          ),
-          isClearButtonDisabled: false,
-          onClearClick: () => setFileExplorerOpen(true),
-        }}
-        fileUploadHelperText="Supply a JSON file with test questions and answers to evaluate the quality of Q&A responses."
-        extraButtons={
-          <Button
-            variant="control"
-            icon={<PlusCircleIcon />}
-            onClick={() => setCreatorOpen(true)}
-            isDisabled={isSubmitting || !testDataSecretName}
-            data-testid="evaluation-create-button"
+      <Split hasGutter>
+        <SplitItem isFilled>
+          <TextInputGroup isDisabled={formState.isSubmitting}>
+            <TextInputGroupMain
+              inputProps={{
+                readOnly: true,
+                readOnlyVariant: 'default',
+                title: field.value || undefined,
+              }}
+              icon={<FileIcon />}
+              placeholder="No file selected"
+              value={field.value}
+              data-testid="evaluation-file-input"
+            />
+            {!!field.value && (
+              <TextInputGroupUtilities>
+                <Button
+                  aria-label="Clear file"
+                  variant="plain"
+                  icon={<TimesIcon />}
+                  isDisabled={formState.isSubmitting}
+                  onClick={() => field.onChange('')}
+                />
+              </TextInputGroupUtilities>
+            )}
+          </TextInputGroup>
+        </SplitItem>
+        <SplitItem>
+          <Dropdown
+            isOpen={dropdownOpen}
+            onOpenChange={setDropdownOpen}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                variant="secondary"
+                isExpanded={dropdownOpen}
+                isDisabled={formState.isSubmitting || !testDataSecretName}
+                splitButtonItems={[
+                  <MenuToggleAction
+                    key="add-evaluation-file"
+                    className="pf-v6-u-text-nowrap"
+                    aria-label="Add file"
+                    onClick={openExplorer}
+                  >
+                    Add file
+                  </MenuToggleAction>,
+                ]}
+                aria-label="More evaluation file actions"
+                data-testid="evaluation-file-actions"
+                onClick={() => setDropdownOpen((open) => !open)}
+              />
+            )}
           >
-            Create
-          </Button>
-        }
-      />
+            <DropdownList>
+              <DropdownItem
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setCreatorOpen(true);
+                }}
+              >
+                Create new evaluation dataset
+              </DropdownItem>
+            </DropdownList>
+          </Dropdown>
+        </SplitItem>
+      </Split>
       {creatorOpen && (
         <EvaluationFileCreator
           isOpen
@@ -185,8 +146,6 @@ function AutoragEvaluationSelect(): React.JSX.Element {
                 evaluationSourceType: 's3',
                 countOfDocuments: 0,
                 outcome: TrackingOutcome.cancel,
-                // No file was ever selected/committed, so nothing was actually configured —
-                // `success: true` would misleadingly imply the milestone was completed.
                 success: false,
               });
             }
@@ -195,18 +154,40 @@ function AutoragEvaluationSelect(): React.JSX.Element {
           }}
           onSelectFiles={(files) => {
             if (files.length > 0) {
-              const file = files[0];
-              const filePath = file.path.replace(/^\//, '');
-              field.onChange(filePath);
+              field.onChange(files[0].path.replace(/^\//, ''));
               s3SelectionCommittedRef.current = true;
               fireAutoragEvaluationSourceConfigured({
                 evaluationSourceType: 's3',
-                countOfDocuments: files.length,
+                countOfDocuments: 1,
                 outcome: TrackingOutcome.submit,
                 success: true,
               });
               onEvaluationSourceConfigured('s3');
             }
+          }}
+          uploadFiles={async (files, folder) => {
+            const prefix = folder.replace(/^\/+|\/+$/g, '');
+            return Promise.all(
+              files.map((file) =>
+                uploadFileToS3({
+                  namespace: namespace ?? '',
+                  secretName: testDataSecretName,
+                  bucket: '',
+                  key: prefix ? `${prefix}/${file.name}` : file.name,
+                  file,
+                }).then((result) => ({ key: result.key })),
+              ),
+            );
+          }}
+          uploadConfig={{
+            accept: EVALUATION_FILE_NATIVE_ACCEPT,
+            maxFiles: AUTORAG_UPLOAD_MAX_FILES,
+            maxSize: AUTORAG_UPLOAD_MAX_BYTES,
+            multiple: false,
+            validateFile: (file) =>
+              isAllowedEvaluationJsonFile(file)
+                ? undefined
+                : 'Evaluation dataset must be a JSON file.',
           }}
           allowFolderSelection={false}
           selectableExtensions={['json']}

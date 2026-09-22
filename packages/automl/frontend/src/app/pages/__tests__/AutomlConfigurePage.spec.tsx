@@ -477,7 +477,7 @@ describe('AutomlConfigurePage', () => {
       // Progress past training data: select an AWS connection and browse to a file.
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
@@ -587,9 +587,7 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      expect(
-        await screen.findByRole('heading', { name: 'Select file from bucket' }),
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Add files' })).toBeInTheDocument();
 
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
@@ -632,7 +630,7 @@ describe('AutomlConfigurePage', () => {
       await user.click(selectAwsSecretButton);
 
       // Browse bucket to populate train_data_file_key
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
 
       // FileExplorer should open
@@ -690,7 +688,7 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
@@ -748,7 +746,7 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
@@ -816,7 +814,7 @@ describe('AutomlConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');

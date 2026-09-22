@@ -12,6 +12,8 @@ export const EVALUATION_FILE_ACCEPT: Record<string, string[]> = {
   'text/json': ['.json'],
 };
 
+export const EVALUATION_FILE_NATIVE_ACCEPT = '.json,application/json,text/json';
+
 /**
  * Client-side hint for UX only; file extensions and browser-reported MIME types can be spoofed.
  * The BFF must enforce limits and validate evaluation payloads independently (see upload/storage handlers).

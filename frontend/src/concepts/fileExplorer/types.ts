@@ -36,6 +36,26 @@ export interface ExplorerFile {
 
 export type ExplorerFiles<T extends ExplorerFile = ExplorerFile> = T[];
 
+export type FileExplorerUploadResult = { key: string };
+
+export type FileExplorerUploadFiles = (
+  files: File[],
+  currentFolder: string,
+) => Promise<FileExplorerUploadResult[]>;
+
+export type FileExplorerUploadConfig = {
+  accept?: string;
+  multiple?: boolean;
+  maxFiles?: number;
+  maxSize?: number;
+  validateFile?: (file: File) => string | undefined;
+};
+
+export type FileExplorerUploadProps = {
+  uploadFiles: FileExplorerUploadFiles;
+  picker?: FileExplorerUploadConfig;
+};
+
 /** A {@link ExplorerFile} whose `type` is `'folder'`, making it navigable in the breadcrumb trail. */
 export interface Folder extends ExplorerFile {
   type: 'folder';

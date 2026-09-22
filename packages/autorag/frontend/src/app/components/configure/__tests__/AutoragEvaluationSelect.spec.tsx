@@ -1,24 +1,20 @@
+/* eslint-disable camelcase */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
+import type {
+  ExplorerFiles,
+  FileExplorerUploadConfig,
+} from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluationSelect';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import {
-  AUTORAG_UPLOAD_MAX_BYTES,
-  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-} from '~/app/utilities/dropzoneFileUpload';
-import {
-  AUTORAG_EVENTS,
-  AUTORAG_FAILURE_CATEGORY,
-  TrackingOutcome,
-} from '~/app/utilities/tracking';
+import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
 
 jest.mock('react-router', () => ({
@@ -28,24 +24,13 @@ jest.mock('react-router', () => ({
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
 }));
+
+const mockUpload = jest.fn().mockResolvedValue({ key: 'uploaded.json' });
 
 jest.mock('~/app/hooks/mutations', () => ({
   ...jest.requireActual('~/app/hooks/mutations'),
-  useUploadToStorageMutation: jest.fn(),
-}));
-
-const mockNotificationError = jest.fn();
-const mockNotificationSuccess = jest.fn();
-jest.mock('~/app/hooks/useNotification', () => ({
-  useNotification: jest.fn(() => ({
-    success: mockNotificationSuccess,
-    error: mockNotificationError,
-    info: jest.fn(),
-    warning: jest.fn(),
-    remove: jest.fn(),
-  })),
+  useS3FileUploadMutation: jest.fn(() => ({ mutateAsync: mockUpload })),
 }));
 
 jest.mock('~/app/components/configure/EvaluationFileCreator', () => ({
@@ -78,665 +63,219 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
     onClose,
     onSelectFiles,
     namespace,
+    uploadFiles,
+    uploadConfig,
   }: {
     isOpen: boolean;
     onClose: () => void;
-    onSelectFiles: (files: Array<{ path: string }>) => void;
+    onSelectFiles: (files: ExplorerFiles) => void;
     namespace: string;
+    uploadFiles?: (files: File[], folder: string) => Promise<{ key: string }[]>;
+    uploadConfig?: FileExplorerUploadConfig;
   }) =>
     isOpen ? (
       <div data-testid="s3-file-explorer">
         <div data-testid="s3-namespace">{namespace}</div>
+        <div data-testid="s3-upload-picker-config">{JSON.stringify(uploadConfig)}</div>
         <button data-testid="s3-close" onClick={onClose}>
           Close
         </button>
         <button
           data-testid="s3-select-file"
-          onClick={() => onSelectFiles([{ path: '/test-data.json' }])}
+          onClick={() => {
+            onSelectFiles([{ path: '/test-data.json', name: 'test-data.json', type: 'json' }]);
+            onClose();
+          }}
         >
           Select File
         </button>
         <button
           data-testid="s3-select-nested-file"
-          onClick={() => onSelectFiles([{ path: '/folder/subfolder/test-data.json' }])}
+          onClick={() => {
+            onSelectFiles([
+              { path: '/folder/subfolder/test-data.json', name: 'test-data.json', type: 'json' },
+            ]);
+            onClose();
+          }}
         >
           Select Nested File
+        </button>
+        <button
+          data-testid="s3-upload-file"
+          onClick={() => void uploadFiles?.([new File(['{}'], 'uploaded.json')], '/')}
+        >
+          Upload File
         </button>
       </div>
     ) : null,
 }));
 
 const mockUseParams = jest.mocked(useParams);
-const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
 const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
-
 const configureSchema = createConfigureSchema();
-
-/**
- * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
- */
-function createFileList(fileArr: File[]): FileList {
-  const arr = [...fileArr];
-  const list = Object.assign(arr, {
-    length: arr.length,
-    item(index: number): File | null {
-      return arr[index] ?? null;
-    },
-    *[Symbol.iterator]() {
-      for (let i = 0; i < arr.length; i++) {
-        yield arr[i];
-      }
-    },
-  });
-  return list as unknown as FileList;
-}
-
-/** Partial `DataTransfer` for tests — jsdom has no real API; react-dropzone reads `types`/`files` on drop. */
-function mockDataTransferForDrop(files: File[]) {
-  return {
-    files: createFileList(files),
-    types: ['Files'],
-    dropEffect: 'copy',
-    effectAllowed: 'all',
-  };
-}
-
-const EVALUATION_UPLOAD_ZONE_TEST_ID = 'evaluation-upload-zone';
-
-/** Drop target is `FileUpload` with `data-testid={EVALUATION_UPLOAD_ZONE_TEST_ID}` (see AutoragEvaluationSelect). */
-function dropFilesOnEvaluationFileUpload(container: HTMLElement, files: File[]): void {
-  fireEvent.drop(within(container).getByTestId(EVALUATION_UPLOAD_ZONE_TEST_ID), {
-    dataTransfer: mockDataTransferForDrop(files),
-  });
-}
-
-/**
- * Native file input for browse/change simulation. PF `FileUpload` renders it internally and does not
- * expose `getInputProps` customization, so we scope under `evaluation-upload-zone` (same pattern as
- * Cypress: `[data-testid="…"] input[type="file"]`).
- */
-function getEvaluationFileInput(container: HTMLElement): HTMLInputElement {
-  const input = within(container)
-    .getByTestId(EVALUATION_UPLOAD_ZONE_TEST_ID)
-    .querySelector('input[type="file"]');
-  if (!(input instanceof HTMLInputElement)) {
-    throw new Error(`file input not found under [data-testid="${EVALUATION_UPLOAD_ZONE_TEST_ID}"]`);
-  }
-  return input;
-}
 
 type FormWrapperProps = {
   children: React.ReactNode;
-  onFormChange?: (values: unknown) => void;
   defaultValues?: Partial<typeof configureSchema.defaults>;
 };
 
-const FormWrapper: React.FC<FormWrapperProps> = ({ children, onFormChange, defaultValues }) => {
+const FormWrapper: React.FC<FormWrapperProps> = ({ children, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: {
-      ...configureSchema.defaults,
-      ...defaultValues,
-    },
+    defaultValues: { ...configureSchema.defaults, ...defaultValues },
   });
-
-  React.useEffect(() => {
-    if (onFormChange) {
-      onFormChange(form.getValues());
-
-      const subscription = form.watch((values) => {
-        onFormChange(values);
-      });
-      return () => subscription.unsubscribe();
-    }
-    return undefined;
-  }, [form, onFormChange]);
-
   return <FormProvider {...form}>{children}</FormProvider>;
 };
 
-const renderWithProviders = (
-  component: React.ReactElement,
-  options?: {
-    onFormChange?: (values: unknown) => void;
-    defaultValues?: Partial<typeof configureSchema.defaults>;
-    onEvaluationSourceConfigured?: (sourceType: string) => void;
-  },
+const renderComponent = (
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+  onEvaluationSourceConfigured?: (sourceType: string) => void,
 ) => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  const tree = (
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const content = (
     <QueryClientProvider client={queryClient}>
-      <FormWrapper onFormChange={options?.onFormChange} defaultValues={options?.defaultValues}>
-        {component}
+      <FormWrapper defaultValues={defaultValues}>
+        <AutoragEvaluationSelect />
       </FormWrapper>
     </QueryClientProvider>
   );
   return render(
-    options?.onEvaluationSourceConfigured ? (
+    onEvaluationSourceConfigured ? (
       <RunTriggeredTrackingContext.Provider
         value={{
           onKnowledgeSourceConfigured: jest.fn(),
-          onEvaluationSourceConfigured: options.onEvaluationSourceConfigured,
+          onEvaluationSourceConfigured,
           onVectorStoreConfigured: jest.fn(),
           onModelsConfigured: jest.fn(),
         }}
       >
-        {tree}
+        {content}
       </RunTriggeredTrackingContext.Provider>
     ) : (
-      tree
+      content
     ),
   );
 };
 
 describe('AutoragEvaluationSelect', () => {
-  const mockUploadMutateAsync = jest.fn();
-
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
-    mockUseUploadToStorageMutation.mockReturnValue({
-      mutateAsync: mockUploadMutateAsync,
-    } as unknown as ReturnType<typeof useUploadToStorageMutation>);
+    mockUpload.mockResolvedValue({ key: 'uploaded.json' });
   });
 
-  it('should render FileSelector component', () => {
-    renderWithProviders(<AutoragEvaluationSelect />);
+  it('should show the placeholder and Add file action when no dataset is selected', () => {
+    renderComponent({ test_data_secret_name: 'test-secret' });
 
-    // FileSelector renders a TextInputGroup with a file input
     expect(screen.getByPlaceholderText('No file selected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add file' })).toBeEnabled();
+    expect(screen.getByTestId('evaluation-file-actions')).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Clear file' })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('No file selected')).toHaveAttribute('readonly');
   });
 
-  it('should render helper text for FileSelector', () => {
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    expect(
-      screen.getByText(
-        'Supply a JSON file with test questions and answers to evaluate the quality of Q&A responses.',
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it('should display selected file in FileSelector', () => {
-    renderWithProviders(<AutoragEvaluationSelect />, {
-      // eslint-disable-next-line camelcase
-      defaultValues: { test_data_key: 'my-test-file.json' },
+  it('should show the full selected key in the readonly input title', () => {
+    renderComponent({
+      test_data_secret_name: 'test-secret',
+      test_data_key: 'folder/selected.json',
     });
 
-    expect(screen.getByDisplayValue('my-test-file.json')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('folder/selected.json')).toHaveAttribute(
+      'title',
+      'folder/selected.json',
+    );
   });
 
-  it('should clear selected file when clear button is clicked', async () => {
+  it('should open the JSON-only explorer from Add file', async () => {
     const user = userEvent.setup();
-    let formValues: unknown;
-    const onFormChange = (values: unknown) => {
-      formValues = values;
-    };
+    renderComponent({ test_data_secret_name: 'test-secret' });
 
-    renderWithProviders(<AutoragEvaluationSelect />, {
-      onFormChange,
-      // eslint-disable-next-line camelcase
-      defaultValues: { test_data_key: 'my-test-file.json' },
-    });
-
-    const clearButton = screen.getByRole('button', { name: /clear file/i });
-    await user.click(clearButton);
-
-    await waitFor(() => {
-      expect(formValues).toMatchObject({
-        test_data_key: '', // eslint-disable-line camelcase
-      });
-    });
-  });
-
-  it('should upload file and update form field on successful upload', async () => {
-    const user = userEvent.setup();
-    const file = new File(['test content'], 'test.json', { type: 'application/json' });
-    let formValues: unknown;
-    const onFormChange = (values: unknown) => {
-      formValues = values;
-    };
-
-    mockUploadMutateAsync.mockResolvedValue({ key: 'test.json' });
-
-    const { container } = renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
-
-    const uploadInput = getEvaluationFileInput(container);
-    await user.upload(uploadInput, file);
-
-    await waitFor(() => {
-      expect(mockUploadMutateAsync).toHaveBeenCalledWith({
-        file,
-        onProgress: expect.any(Function),
-      });
-    });
-
-    await waitFor(() => {
-      expect(formValues).toMatchObject({
-        test_data_key: 'test.json', // eslint-disable-line camelcase
-      });
-    });
-  });
-
-  describe('evaluation file upload validation', () => {
-    it('should show a notification when a disallowed file type is dropped', async () => {
-      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
-      mockUploadMutateAsync.mockClear();
-      dropFilesOnEvaluationFileUpload(container, [badFile]);
-
-      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(mockNotificationError).toHaveBeenCalledWith(
-          'Invalid file type',
-          'Evaluation dataset must be a JSON file (.json).',
-        );
-      });
-    });
-
-    it('should show a notification when an oversized file is dropped', async () => {
-      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-      const largeFile = new File(['x'], 'big.json', { type: 'application/json' });
-      Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
-      mockUploadMutateAsync.mockClear();
-      dropFilesOnEvaluationFileUpload(container, [largeFile]);
-
-      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(mockNotificationError).toHaveBeenCalledWith(
-          'File too large',
-          'File size must be 32 MiB or less.',
-        );
-      });
-    });
-
-    it('should show a notification when more than one file is dropped', async () => {
-      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-      const fileA = new File(['{}'], 'a.json', { type: 'application/json' });
-      const fileB = new File(['{}'], 'b.json', { type: 'application/json' });
-      mockUploadMutateAsync.mockClear();
-      dropFilesOnEvaluationFileUpload(container, [fileA, fileB]);
-
-      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(mockNotificationError).toHaveBeenCalledWith(
-          'Too many files',
-          AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
-        );
-      });
-    });
-
-    it('should not upload a valid file when dropped together with an invalid file', async () => {
-      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-      const goodFile = new File(['{}'], 'eval.json', { type: 'application/json' });
-      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
-      mockUploadMutateAsync.mockClear();
-      dropFilesOnEvaluationFileUpload(container, [goodFile, badFile]);
-
-      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(mockNotificationError).toHaveBeenCalledWith(
-          'File not accepted',
-          `${AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL} Evaluation dataset must be a JSON file (.json).`,
-        );
-      });
-    });
-
-    it('should not upload a disallowed file type from the file input and should notify', async () => {
-      const file = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
-      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-
-      mockUploadMutateAsync.mockClear();
-      fireEvent.change(getEvaluationFileInput(container), { target: { files: [file] } });
-
-      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(mockNotificationError).toHaveBeenCalledWith(
-          'Invalid file type',
-          'Evaluation dataset must be a JSON file (.json).',
-        );
-      });
-    });
-
-    it('should not upload an oversized file from the file input and should notify', async () => {
-      const file = new File(['x'], 'big.json', { type: 'application/json' });
-      Object.defineProperty(file, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
-      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-
-      mockUploadMutateAsync.mockClear();
-      fireEvent.change(getEvaluationFileInput(container), { target: { files: [file] } });
-
-      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
-      await waitFor(() => {
-        expect(mockNotificationError).toHaveBeenCalledWith(
-          'File too large',
-          'File size must be 32 MiB or less.',
-        );
-      });
-    });
-  });
-
-  it('should show error notification on upload failure', async () => {
-    const user = userEvent.setup();
-    const file = new File(['test content'], 'test.json', { type: 'application/json' });
-    const error = new Error('Upload failed');
-
-    mockUploadMutateAsync.mockRejectedValue(error);
-
-    const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-
-    const uploadInput = getEvaluationFileInput(container);
-    await user.upload(uploadInput, file);
-
-    await waitFor(() => {
-      expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'Upload failed');
-    });
-  });
-
-  it('should handle non-Error upload failures', async () => {
-    const user = userEvent.setup();
-    const file = new File(['test content'], 'test.json', { type: 'application/json' });
-
-    mockUploadMutateAsync.mockRejectedValue('String error');
-
-    const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-
-    const uploadInput = getEvaluationFileInput(container);
-    await user.upload(uploadInput, file);
-
-    await waitFor(() => {
-      expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'String error');
-    });
-  });
-
-  it('should show human-readable error for max collision attempts (409)', async () => {
-    const user = userEvent.setup();
-    const file = new File(['test content'], 'test.json', { type: 'application/json' });
-    const error = new Error('unable to find unique filename after 10 attempts');
-
-    mockUploadMutateAsync.mockRejectedValue(error);
-
-    const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-
-    await user.upload(getEvaluationFileInput(container), file);
-
-    await waitFor(() => {
-      expect(mockNotificationError).toHaveBeenCalledWith(
-        'Failed to upload file',
-        'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
-      );
-    });
-  });
-
-  it('should not open S3FileExplorer initially', () => {
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    expect(screen.queryByTestId('s3-file-explorer')).not.toBeInTheDocument();
-  });
-
-  it('should open S3FileExplorer when S3 button is clicked', async () => {
-    const user = userEvent.setup();
-
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    // The FileUpload's clear button displays "S3" text
-    const s3Button = screen.getByRole('button', { name: /s3/i });
-    await user.click(s3Button);
-
+    await user.click(screen.getByRole('button', { name: 'Add file' }));
     expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
-  });
-
-  it('should close S3FileExplorer when close button is clicked', async () => {
-    const user = userEvent.setup();
-
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    const s3Button = screen.getByRole('button', { name: /s3/i });
-    await user.click(s3Button);
-
-    expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
-
-    const closeButton = screen.getByTestId('s3-close');
-    await user.click(closeButton);
-
-    expect(screen.queryByTestId('s3-file-explorer')).not.toBeInTheDocument();
-  });
-
-  it('should update form field when file is selected from S3', async () => {
-    const user = userEvent.setup();
-    let formValues: unknown;
-    const onFormChange = (values: unknown) => {
-      formValues = values;
-    };
-
-    renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
-
-    const s3Button = screen.getByRole('button', { name: /s3/i });
-    await user.click(s3Button);
-
-    const selectButton = screen.getByTestId('s3-select-file');
-    await user.click(selectButton);
-
-    await waitFor(() => {
-      expect(formValues).toMatchObject({
-        test_data_key: 'test-data.json', // eslint-disable-line camelcase
-      });
-    });
-  });
-
-  it('should strip leading slash from S3 file path with nested folders', async () => {
-    const user = userEvent.setup();
-    let formValues: unknown;
-    const onFormChange = (values: unknown) => {
-      formValues = values;
-    };
-
-    renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
-
-    const s3Button = screen.getByRole('button', { name: /s3/i });
-    await user.click(s3Button);
-
-    const selectButton = screen.getByTestId('s3-select-nested-file');
-    await user.click(selectButton);
-
-    await waitFor(() => {
-      expect(formValues).toMatchObject({
-        test_data_key: 'folder/subfolder/test-data.json', // eslint-disable-line camelcase
-      });
-    });
-  });
-
-  it('should pass correct namespace to S3FileExplorer', async () => {
-    const user = userEvent.setup();
-
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    const s3Button = screen.getByRole('button', { name: /s3/i });
-    await user.click(s3Button);
-
     expect(screen.getByTestId('s3-namespace')).toHaveTextContent('test-namespace');
   });
 
-  it('should pass test_data_secret_name to useUploadToStorageMutation', () => {
-    renderWithProviders(<AutoragEvaluationSelect />, {
-      // eslint-disable-next-line camelcase
-      defaultValues: { test_data_secret_name: 'my-secret' },
-    });
-
-    expect(mockUseUploadToStorageMutation).toHaveBeenCalledWith('test-namespace', 'my-secret');
-  });
-
-  it('should use empty string for namespace when undefined', () => {
-    mockUseParams.mockReturnValue({ namespace: undefined });
-
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    expect(mockUseUploadToStorageMutation).toHaveBeenCalledWith('', '');
-  });
-
-  it('should render custom browse button text with Computer icon', () => {
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    // Verify the browse button contains the "Computer" text
-    const browseButton = screen.getByRole('button', { name: /computer/i });
-    expect(browseButton).toBeInTheDocument();
-    expect(browseButton).toHaveTextContent('Computer');
-  });
-
-  it('should render custom clear button text with S3 icon', () => {
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    // Verify S3 button is rendered with correct text
-    const s3Button = screen.getByRole('button', { name: /s3/i });
-    expect(s3Button).toBeInTheDocument();
-    expect(s3Button).toHaveTextContent('S3');
-  });
-
-  it('should have isClearButtonDisabled set to false', () => {
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    // S3 button should be enabled
-    const s3Button = screen.getByRole('button', { name: /s3/i });
-    expect(s3Button).not.toBeDisabled();
-  });
-
-  it('should pass correct secret to S3FileExplorer', async () => {
+  it('should update test_data_key only after explicit S3 selection', async () => {
     const user = userEvent.setup();
+    renderComponent({ test_data_secret_name: 'test-secret' });
 
-    renderWithProviders(<AutoragEvaluationSelect />, {
-      // eslint-disable-next-line camelcase
-      defaultValues: { test_data_secret_name: 'test-secret-1' },
-    });
+    const input = screen.getByPlaceholderText('No file selected');
+    expect(input).toHaveValue('');
+    await user.click(screen.getByRole('button', { name: 'Add file' }));
+    await user.click(screen.getByTestId('s3-select-file'));
 
-    const s3Button = screen.getByRole('button', { name: /s3/i });
-    await user.click(s3Button);
-
-    // The S3FileExplorer should be rendered with the correct secret
-    expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByDisplayValue('test-data.json')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Clear file' })).toBeInTheDocument();
   });
 
-  it('should render the Create button', () => {
-    renderWithProviders(<AutoragEvaluationSelect />);
-
-    expect(screen.getByTestId('evaluation-create-button')).toBeInTheDocument();
-    expect(screen.getByTestId('evaluation-create-button')).toHaveTextContent('Create');
-  });
-
-  it('should open EvaluationFileCreator when Create button is clicked', async () => {
+  it('should preserve the existing selection when the explorer is cancelled', async () => {
     const user = userEvent.setup();
+    renderComponent({ test_data_secret_name: 'test-secret', test_data_key: 'existing.json' });
 
-    renderWithProviders(<AutoragEvaluationSelect />, {
-      // eslint-disable-next-line camelcase
-      defaultValues: { test_data_secret_name: 'test-secret-1' },
-    });
+    await user.click(screen.getByRole('button', { name: 'Add file' }));
+    await user.click(screen.getByTestId('s3-close'));
+    expect(screen.getByDisplayValue('existing.json')).toBeInTheDocument();
+  });
 
-    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+  it('should clear a selected dataset', async () => {
+    const user = userEvent.setup();
+    renderComponent({ test_data_secret_name: 'test-secret', test_data_key: 'existing.json' });
 
-    await user.click(screen.getByTestId('evaluation-create-button'));
+    await user.click(screen.getByRole('button', { name: 'Clear file' }));
+    expect(screen.getByPlaceholderText('No file selected')).toHaveValue('');
+  });
 
+  it('should open the creator from the split-button menu', async () => {
+    const user = userEvent.setup();
+    renderComponent({ test_data_secret_name: 'test-secret' });
+
+    await user.click(screen.getByTestId('evaluation-file-actions'));
+    expect(screen.getAllByRole('menuitem')).toHaveLength(1);
+    expect(
+      screen.getByRole('menuitem', { name: 'Create new evaluation dataset' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('menuitem', { name: 'Create new evaluation dataset' }));
     expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
   });
 
-  it('should close EvaluationFileCreator when close is triggered', async () => {
+  it('should pass JSON upload constraints to the unified explorer', async () => {
     const user = userEvent.setup();
+    renderComponent({ test_data_secret_name: 'test-secret' });
 
-    renderWithProviders(<AutoragEvaluationSelect />, {
-      // eslint-disable-next-line camelcase
-      defaultValues: { test_data_secret_name: 'test-secret-1' },
-    });
-
-    await user.click(screen.getByTestId('evaluation-create-button'));
-    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
-
-    await user.click(screen.getByTestId('creator-close'));
-    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add file' }));
+    expect(screen.getByTestId('s3-upload-picker-config')).toHaveTextContent('application/json');
+    expect(screen.getByTestId('s3-upload-picker-config')).toHaveTextContent('maxFiles');
   });
 
-  it('should update form field when EvaluationFileCreator creates a file', async () => {
+  it('should set test_data_key when the creator creates a dataset', async () => {
     const user = userEvent.setup();
-    let formValues: unknown;
-    const onFormChange = (values: unknown) => {
-      formValues = values;
-    };
+    renderComponent({ test_data_secret_name: 'test-secret' });
 
-    renderWithProviders(<AutoragEvaluationSelect />, {
-      onFormChange,
-      // eslint-disable-next-line camelcase
-      defaultValues: { test_data_secret_name: 'test-secret-1' },
-    });
-
-    await user.click(screen.getByTestId('evaluation-create-button'));
+    await user.click(screen.getByTestId('evaluation-file-actions'));
+    await user.click(screen.getByRole('menuitem', { name: 'Create new evaluation dataset' }));
     await user.click(screen.getByTestId('creator-submit'));
-
-    await waitFor(() => {
-      expect(formValues).toMatchObject({
-        test_data_key: 'created-eval.json', // eslint-disable-line camelcase
-      });
-    });
+    expect(screen.getByDisplayValue('created-eval.json')).toBeInTheDocument();
   });
 
-  describe('AutoRAG Evaluation Source Configured tracking', () => {
-    it('should fire with evaluationSourceType: upload and success: true on successful upload', async () => {
+  it('should pass uploaded files to the unified explorer without selecting them', async () => {
+    const user = userEvent.setup();
+    renderComponent({ test_data_secret_name: 'test-secret' });
+
+    await user.click(screen.getByRole('button', { name: 'Add file' }));
+    await user.click(screen.getByTestId('s3-upload-file'));
+    await waitFor(() => expect(mockUpload).toHaveBeenCalled());
+    expect(screen.getByPlaceholderText('No file selected')).toHaveValue('');
+  });
+
+  describe('source tracking', () => {
+    it('should track an explicit S3 selection and notify run-triggered tracking', async () => {
       const user = userEvent.setup();
-      const file = new File(['test content'], 'test.json', { type: 'application/json' });
-      mockUploadMutateAsync.mockResolvedValue({ key: 'test.json' });
+      const onEvaluationSourceConfigured = jest.fn();
+      renderComponent({ test_data_secret_name: 'test-secret' }, onEvaluationSourceConfigured);
 
-      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-
-      await user.upload(getEvaluationFileInput(container), file);
-
-      await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-          {
-            evaluationSourceType: 'upload',
-            countOfDocuments: 1,
-            outcome: TrackingOutcome.submit,
-            success: true,
-          },
-        );
-      });
-    });
-
-    it('should fire with success: false and an allowlisted failure category (not the raw error message) on a failed upload', async () => {
-      const user = userEvent.setup();
-      const file = new File(['test content'], 'test.json', { type: 'application/json' });
-      mockUploadMutateAsync.mockRejectedValueOnce(
-        new Error('Upload failed: s3://acme-secret-bucket'),
-      );
-
-      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
-
-      await user.upload(getEvaluationFileInput(container), file);
-
-      await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-          {
-            evaluationSourceType: 'upload',
-            countOfDocuments: 0,
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: AUTORAG_FAILURE_CATEGORY,
-          },
-        );
-      });
-
-      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
-      expect(allTrackingCalls).not.toContain('acme-secret-bucket');
-    });
-
-    it('should fire with evaluationSourceType: s3 and countOfDocuments: 1 when a file is selected', async () => {
-      const user = userEvent.setup();
-
-      renderWithProviders(<AutoragEvaluationSelect />);
-
-      await user.click(screen.getByRole('button', { name: /s3/i }));
+      await user.click(screen.getByRole('button', { name: 'Add file' }));
       await user.click(screen.getByTestId('s3-select-file'));
-
       expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
         {
@@ -746,67 +285,20 @@ describe('AutoragEvaluationSelect', () => {
           success: true,
         },
       );
-    });
-
-    it('should fire with outcome: cancel and success: false when the S3 file browser is closed without a selection', async () => {
-      const user = userEvent.setup();
-
-      renderWithProviders(<AutoragEvaluationSelect />);
-
-      await user.click(screen.getByRole('button', { name: /s3/i }));
-      await user.click(screen.getByTestId('s3-close'));
-
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-        {
-          evaluationSourceType: 's3',
-          countOfDocuments: 0,
-          outcome: TrackingOutcome.cancel,
-          success: false,
-        },
-      );
-    });
-
-    it('should not fire a cancel event when the browser is closed right after a successful selection', async () => {
-      const user = userEvent.setup();
-
-      renderWithProviders(<AutoragEvaluationSelect />);
-
-      await user.click(screen.getByRole('button', { name: /s3/i }));
-      fireFormTrackingEventMock.mockClear();
-      // Real S3FileExplorer/FileExplorer calls onSelectFiles then onClose in sequence when the
-      // user clicks "Select" — simulate that ordering here to verify onClose doesn't re-fire.
-      await user.click(screen.getByTestId('s3-select-file'));
-      await user.click(screen.getByTestId('s3-close'));
-
-      expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-        expect.objectContaining({ outcome: TrackingOutcome.submit }),
-      );
-    });
-
-    it('should report a successful s3 selection to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', async () => {
-      const user = userEvent.setup();
-      const onEvaluationSourceConfigured = jest.fn();
-
-      renderWithProviders(<AutoragEvaluationSelect />, { onEvaluationSourceConfigured });
-
-      await user.click(screen.getByRole('button', { name: /s3/i }));
-      await user.click(screen.getByTestId('s3-select-file'));
-
       expect(onEvaluationSourceConfigured).toHaveBeenCalledWith('s3');
     });
 
-    it('should not report a cancelled s3 selection to RunTriggeredTrackingContext', async () => {
+    it('should track cancellation without notifying run-triggered tracking', async () => {
       const user = userEvent.setup();
       const onEvaluationSourceConfigured = jest.fn();
+      renderComponent({ test_data_secret_name: 'test-secret' }, onEvaluationSourceConfigured);
 
-      renderWithProviders(<AutoragEvaluationSelect />, { onEvaluationSourceConfigured });
-
-      await user.click(screen.getByRole('button', { name: /s3/i }));
+      await user.click(screen.getByRole('button', { name: 'Add file' }));
       await user.click(screen.getByTestId('s3-close'));
-
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+        expect.objectContaining({ outcome: TrackingOutcome.cancel, success: false }),
+      );
       expect(onEvaluationSourceConfigured).not.toHaveBeenCalled();
     });
   });

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import * as React from 'react';
 import type { ExplorerFile, ExplorerFiles } from '#~/concepts/fileExplorer/types';
 import FileExplorer, {
@@ -59,6 +59,39 @@ describe('FileExplorer', () => {
       render(<FileExplorer {...defaultProps} selection="checkbox" />);
 
       expect(screen.getByText('Select which files or folders to use')).toBeInTheDocument();
+    });
+
+    it('should open progress automatically for native picker selections', async () => {
+      const uploadFiles = jest.fn().mockResolvedValue([{ key: '/uploaded.csv' }]);
+      render(
+        <FileExplorer
+          {...defaultProps}
+          upload={{ uploadFiles, picker: { accept: '.csv', maxFiles: 2 } }}
+        />,
+      );
+
+      const uploadButton = screen.getByRole('button', { name: 'Upload files' });
+      expect(uploadButton).toHaveTextContent('Upload files');
+      expect(screen.getByTestId('file-explorer-upload-input')).toHaveAttribute('accept', '.csv');
+      expect(screen.queryByTestId('file-explorer-upload-panel')).not.toBeInTheDocument();
+
+      const input = screen.getByTestId('file-explorer-upload-input') as HTMLInputElement;
+      const file = new File(['data'], 'uploaded.csv', { type: 'text/csv' });
+      fireEvent.change(input, { target: { files: [file] } });
+
+      expect(input.value).toBe('');
+      expect(screen.getByTestId('file-explorer-upload-panel')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('/uploaded.csv')).toBeInTheDocument());
+      expect(uploadFiles).toHaveBeenCalledWith([file], '');
+      expect(screen.queryByText('Drag and drop files here')).not.toBeInTheDocument();
+    });
+
+    it('should not open progress by clicking the upload button alone', () => {
+      render(<FileExplorer {...defaultProps} upload={{ uploadFiles: jest.fn() }} />);
+
+      fireEvent.click(screen.getByTestId('file-explorer-upload-button'));
+
+      expect(screen.queryByTestId('file-explorer-upload-panel')).not.toBeInTheDocument();
     });
   });
   describe('file table', () => {

@@ -26,6 +26,8 @@ import type {
   Folder,
   FileExplorerEmptyStateConfig,
   S3ListObjectsResponse,
+  FileExplorerUploadFiles,
+  FileExplorerUploadConfig,
 } from '#~/concepts/fileExplorer/types';
 import { getFiles, type GetFilesOptions } from '#~/concepts/fileExplorer/api/s3.ts';
 import { mapResultToItems } from '#~/concepts/fileExplorer/utils.tsx';
@@ -104,6 +106,10 @@ interface S3FileExplorerProps {
 
   /** Absolute folder paths that should be disabled (unselectable and unnavigable). Keys represent the paths and values represent the reason that should be rendered. Example: `{ "/pipeline-output": "System folder" }` disables the `pipeline-output` folder at the bucket root with a useful message to users. */
   disabledPaths?: Record<string, string>;
+
+  /** Product-provided S3 upload adapter. It receives files and the active UI folder path. */
+  uploadFiles?: FileExplorerUploadFiles;
+  uploadConfig?: FileExplorerUploadConfig;
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
@@ -120,6 +126,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   rootPath,
   selection: selectionProp = 'radio',
   disabledPaths,
+  uploadFiles,
+  uploadConfig,
 }) => {
   const effectiveRoot = rootPath && rootPath !== '/' ? rootPath : '/';
   const rootFolderName =
@@ -174,6 +182,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const connectionKeyRef = useRef<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const debouncedSearchRef = useRef<{ cancel: () => void } | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Helpers ------------------------------------------------------------------>
 
@@ -181,6 +190,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     controllerRef.current?.abort();
     controllerRef.current = null;
     debouncedSearchRef.current?.cancel();
+    clearTimeout(refreshTimerRef.current);
+    fetchIdRef.current += 1;
     setFilesToRender([]);
     setFoldersToRender([]);
     setFetchError(null);
@@ -256,6 +267,40 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         });
     },
     [apiPath, namespace, s3SecretName, bucket],
+  );
+
+  const refreshCurrentView = useCallback(() => {
+    continuationTokensRef.current = new Map();
+    setPageToRender(1);
+    fetchPath(
+      currentPathRef.current,
+      perPageToRenderRef.current,
+      1,
+      appliedSearchRef.current || undefined,
+    );
+  }, [fetchPath]);
+
+  const scheduleRefresh = useCallback(() => {
+    clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      if (isOpen && connectionKeyRef.current) {
+        refreshCurrentView();
+      }
+    }, 50);
+  }, [isOpen, refreshCurrentView]);
+
+  const handleUploadFiles = useCallback(
+    async (files: File[], folder: string) => {
+      if (!uploadFiles) {
+        return [];
+      }
+      const results = await uploadFiles(files, folder);
+      if (results.length > 0) {
+        scheduleRefresh();
+      }
+      return results;
+    },
+    [scheduleRefresh, uploadFiles],
   );
 
   const navigateTo = useCallback(
@@ -552,6 +597,12 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       onSetPage={handleSetPage}
       onPerPageSelect={handlePerPageSelect}
       onPrimary={onSelectFiles}
+      {...(uploadFiles && {
+        upload: {
+          uploadFiles: (files) => handleUploadFiles(files, currentPathRef.current),
+          picker: uploadConfig,
+        },
+      })}
       {...(rootFolderName &&
         foldersToRender.length === 0 && {
           searchPlaceholder: `Search within '${rootFolderName}'`,
