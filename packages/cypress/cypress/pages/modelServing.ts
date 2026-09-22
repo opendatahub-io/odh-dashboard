@@ -1282,6 +1282,22 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('prefill-alert');
   }
 
+  findHfApiKeyField() {
+    return cy.findByTestId('hf-api-key-field');
+  }
+
+  findHfApiKeyInput() {
+    return cy.findByTestId('hf-api-key-input');
+  }
+
+  findHfGatedAccessAlert() {
+    return cy.findByTestId('hf-gated-access-alert');
+  }
+
+  findHfApiKeyConfiguredHelper() {
+    return cy.findByTestId('hf-api-key-configured-helper');
+  }
+
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-select');
   }

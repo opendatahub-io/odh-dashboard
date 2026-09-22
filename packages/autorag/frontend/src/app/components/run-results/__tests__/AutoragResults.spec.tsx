@@ -20,6 +20,8 @@ import * as transformPipelineDataModule from '~/app/topology/tree-view/transform
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutoragTaskTopologyModule from '~/app/topology/useAutoragTaskTopology';
 import * as utils from '~/app/utilities/utils';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
+import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
 
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedPattern: undefined, stageMapNodes: [] }),
@@ -43,16 +45,19 @@ jest.mock('~/app/components/run-results/AutoragPipelineVisualization', () => ({
     runTitle,
     runState,
     treeLoadingMode,
+    showStageMapUnavailableNotice,
   }: {
     runTitle: string;
     runState?: string;
     treeLoadingMode?: string;
+    showStageMapUnavailableNotice?: boolean;
   }) => (
     <div
       data-testid="autorag-pipeline-visualization"
       data-run-title={runTitle}
       data-run-state={runState}
       data-tree-loading-mode={treeLoadingMode ?? 'none'}
+      data-stage-map-unavailable={showStageMapUnavailableNotice ? 'true' : 'false'}
     />
   ),
 }));
@@ -237,6 +242,12 @@ describe('AutoragResults', () => {
                 patterns,
                 parameters: {},
                 ragPatternsBasePath: 'rag_patterns',
+                optimizationMetric: resolveObjectiveReference(
+                  patterns,
+                  typeof pipelineRun?.runtime_config?.parameters?.optimization_metric === 'string'
+                    ? pipelineRun.runtime_config.parameters.optimization_metric
+                    : DEFAULT_OPTIMIZATION_METRIC,
+                ),
                 ...contextOverrides,
               }}
             >
@@ -356,6 +367,7 @@ describe('AutoragResults', () => {
                     patterns,
                     parameters: {},
                     ragPatternsBasePath: 'rag_patterns',
+                    optimizationMetric: { name: 'overall_score', evaluator: 'custom' },
                   }}
                 >
                   <AutoragResults />
@@ -822,6 +834,44 @@ describe('AutoragResults', () => {
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should show a pipeline view notice when a failed run has no stage map', () => {
+      const failedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'FAILED',
+      };
+      renderWithContext(failedStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should not show a pipeline view notice while the run is still preparing', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice when the stage map is available', () => {
+      renderWithContext({ ...stageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice for pipelines without a stage map task', () => {
+      renderWithContext({ ...noStageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
     });
   });
 

@@ -52,7 +52,12 @@ describe('useVolume', () => {
     });
 
     expect(result.current[0]).toEqual(mockVolume);
-    expect(mockFetchVolume).toHaveBeenCalledWith('my-project', 'default', 'my-volume');
+    expect(mockFetchVolume).toHaveBeenCalledWith(
+      'my-project',
+      'default',
+      'my-volume',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('should handle fetch errors', async () => {

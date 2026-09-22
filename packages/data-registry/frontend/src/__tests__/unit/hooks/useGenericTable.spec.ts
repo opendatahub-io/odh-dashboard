@@ -54,7 +54,12 @@ describe('useGenericTable', () => {
     });
 
     expect(result.current[0]).toEqual(mockTable);
-    expect(mockFetchGenericTable).toHaveBeenCalledWith('my-project', 'default', 'my-table');
+    expect(mockFetchGenericTable).toHaveBeenCalledWith(
+      'my-project',
+      'default',
+      'my-table',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('should handle fetch errors', async () => {

@@ -18,6 +18,10 @@ import BorrowingLendingChart from './BorrowingLendingChart';
 import useCohorts from '../hooks/useCohorts';
 import useBorrowingLendingMetrics, { CQMetricSeries } from '../hooks/useBorrowingLendingMetrics';
 
+type BorrowingLendingSectionProps = {
+  onRegisterRefresh?: (refresh: () => void) => void;
+};
+
 const ALL_COHORTS = '__all__';
 const NOT_IN_COHORT = '__none__';
 
@@ -49,7 +53,7 @@ const filterSeries = (
   return filtered;
 };
 
-const BorrowingLendingSection: React.FC = () => {
+const BorrowingLendingSection: React.FC<BorrowingLendingSectionProps> = ({ onRegisterRefresh }) => {
   const chartContainerRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(0);
 
@@ -68,7 +72,11 @@ const BorrowingLendingSection: React.FC = () => {
   const [cqNameFilter, setCqNameFilter] = React.useState('');
 
   const { data: cohorts, loaded: cohortsLoaded } = useCohorts();
-  const { series, loaded: metricsLoaded, error } = useBorrowingLendingMetrics(cohorts);
+  const { series, loaded: metricsLoaded, error, refresh } = useBorrowingLendingMetrics(cohorts);
+
+  React.useEffect(() => {
+    onRegisterRefresh?.(refresh);
+  }, [onRegisterRefresh, refresh]);
 
   const cohortGroupedOptions = React.useMemo((): SimpleGroupSelectOption[] => {
     const systemOptions: SimpleSelectOption[] = [

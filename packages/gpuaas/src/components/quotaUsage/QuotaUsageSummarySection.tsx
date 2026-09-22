@@ -10,6 +10,7 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import QuotaUsageAccordionSection from './QuotaUsageAccordionSection';
 import QuotaUsageMeter from './QuotaUsageMeter';
 import { QUOTA_USAGE_BORROWING, QUOTA_USAGE_SUMMARY } from '../../const';
@@ -25,6 +26,7 @@ import {
 import { ModelGpuCount } from '../../utils/hardwareModels';
 import { formatBorrowingSinceDate } from '../../utils/borrowingLending';
 import { summarizeQuotaUsageWorkloads } from '../../utils/quotaUsageAggregation';
+import { GPUAAS_EVENTS } from '../../tracking/gpuaasTrackingConstants';
 
 type QuotaUsageSummarySectionProps = {
   summary: QuotaUsageSummary;
@@ -67,9 +69,10 @@ const BorrowingClusterQueueList: React.FC<{
             onClick={() => onSelectClusterQueue(path)}
             data-testid={`quota-usage-borrowing-cluster-queue-link-${clusterQueueName}`}
           >
-            <strong>{clusterQueueName}</strong>
+            <strong>{clusterQueueName.charAt(0).toUpperCase() + clusterQueueName.slice(1)}</strong>
           </Button>
-          {QUOTA_USAGE_BORROWING.cohortCalloutSuffix(borrowedCount, cohortName)}
+          {QUOTA_USAGE_BORROWING.cohortCalloutPrefix(borrowedCount)}
+          <strong>{cohortName}.</strong>
         </Content>
       </StackItem>
     ))}
@@ -126,7 +129,16 @@ const BorrowingInfo: React.FC<{
 
   return (
     <Popover bodyContent={popoverBody}>
-      <Button variant="link" isInline data-testid="quota-usage-borrowing-link">
+      <Button
+        variant="link"
+        isInline
+        data-testid="quota-usage-borrowing-link"
+        onClick={() => {
+          fireMiscTrackingEvent(GPUAAS_EVENTS.BORROWING_POPOVER_LINK_SELECTED, {
+            gpusBorrowing: borrowedCount,
+          });
+        }}
+      >
         {QUOTA_USAGE_BORROWING.label(borrowedCount, cohortName)}
       </Button>
     </Popover>
@@ -207,7 +219,6 @@ const QuotaUsageSummarySection: React.FC<QuotaUsageSummarySectionProps> = ({
               used={summary.totalUsed}
               capacity={summary.capacityDisplayNominal}
               ariaLabel={QUOTA_USAGE_SUMMARY.capacity}
-              showAcceleratorsLabel
               compact
               data-testid="quota-usage-summary-capacity"
             />
@@ -273,6 +284,7 @@ const QuotaUsageSummarySection: React.FC<QuotaUsageSummarySectionProps> = ({
       isSummary
       id="quota-usage-summary"
       isExpanded={isExpanded}
+      nodeType={selectionType ?? QUOTA_NODE_TYPE.clusterQueue}
       onToggle={() => setIsExpanded((expanded) => !expanded)}
       data-testid="quota-usage-summary-section"
       title={QUOTA_USAGE_SUMMARY.title}
@@ -281,7 +293,7 @@ const QuotaUsageSummarySection: React.FC<QuotaUsageSummarySectionProps> = ({
           <Button
             variant="link"
             isInline
-            aria-label="View Kueue projects using this cluster queue"
+            aria-label="View projects"
             onClick={handleViewKueueProjects}
             data-testid="quota-usage-view-kueue-projects"
           >

@@ -53,10 +53,12 @@ const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
         </Button>
       </MCPServerEndpointPopover>
     </Td>
-    <Td dataLabel="Source">
+    <Td dataLabel="Source" className="pf-v6-u-align-content-center">
       {(server.source && SOURCE_LABELS.get(server.source)) ?? server.source ?? '-'}
     </Td>
-    <Td dataLabel="Version">{server.version || '-'}</Td>
+    <Td dataLabel="Version" className="pf-v6-u-align-content-center">
+      {server.version || '-'}
+    </Td>
   </Tr>
 );
 
