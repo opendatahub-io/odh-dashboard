@@ -108,6 +108,9 @@ export const resolveHfTokenSecretName = async (
 /**
  * Ensures a ServiceAccount exists that references the HF token Secret (KServe Option 1).
  * SA name is derived from the deployment k8s name: `{deployment}-hf-sa`.
+ *
+ * Only mutates ServiceAccounts already labeled as dashboard-managed to avoid clobbering
+ * user-owned accounts that happen to share the generated name.
  */
 export const resolveHfTokenServiceAccountName = async (
   namespace: string,
@@ -124,6 +127,13 @@ export const resolveHfTokenServiceAccountName = async (
 
   try {
     const existing = await getServiceAccount(serviceAccountName, namespace, opts);
+    const isDashboardManaged = existing.metadata.labels?.[HF_TOKEN_DASHBOARD_LABEL] === 'true';
+    if (!isDashboardManaged) {
+      throw new Error(
+        `ServiceAccount ${serviceAccountName} already exists in ${namespace} and is not managed by the dashboard`,
+      );
+    }
+
     const hasSecretRef = existing.secrets?.some((secret) => secret.name === secretName);
     if (hasSecretRef) {
       return serviceAccountName;
@@ -139,6 +149,7 @@ export const resolveHfTokenServiceAccountName = async (
             [HF_TOKEN_DASHBOARD_LABEL]: 'true',
           },
         },
+        // Keep OpenShift-managed refs (e.g. dockercfg); only ensure the HF Secret is attached.
         secrets: [
           ...(existing.secrets ?? []).filter((secret) => secret.name !== secretName),
           { name: secretName },

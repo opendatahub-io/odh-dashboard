@@ -179,7 +179,7 @@ describe('hfTokenSecret', () => {
     );
   });
 
-  it('should update an existing ServiceAccount when the secret ref is missing', async () => {
+  it('should update an existing dashboard-managed ServiceAccount when the secret ref is missing', async () => {
     mockGetServiceAccount.mockResolvedValue({
       apiVersion: 'v1',
       kind: 'ServiceAccount',
@@ -187,6 +187,7 @@ describe('hfTokenSecret', () => {
         name: 'my-model-hf-sa',
         namespace: 'test-project',
         resourceVersion: '9',
+        labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
       },
       secrets: [{ name: 'other-secret' }],
     });
@@ -208,17 +209,39 @@ describe('hfTokenSecret', () => {
     expect(mockCreateServiceAccount).not.toHaveBeenCalled();
   });
 
-  it('should reuse an existing ServiceAccount that already references the HF secret', async () => {
+  it('should reuse an existing dashboard-managed ServiceAccount that already references the HF secret', async () => {
     mockGetServiceAccount.mockResolvedValue({
       apiVersion: 'v1',
       kind: 'ServiceAccount',
-      metadata: { name: 'my-model-hf-sa', namespace: 'test-project' },
-      secrets: [{ name: 'hf-secret' }],
+      metadata: {
+        name: 'my-model-hf-sa',
+        namespace: 'test-project',
+        labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
+      },
+      secrets: [{ name: 'hf-secret' }, { name: 'my-model-hf-sa-dockercfg-xyz' }],
     });
 
     const saName = await resolveHfTokenServiceAccountName('test-project', 'hf-secret', 'my-model');
 
     expect(saName).toBe('my-model-hf-sa');
+    expect(mockCreateServiceAccount).not.toHaveBeenCalled();
+    expect(mockReplaceServiceAccount).not.toHaveBeenCalled();
+  });
+
+  it('should not mutate an existing ServiceAccount that is not dashboard-managed', async () => {
+    mockGetServiceAccount.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'ServiceAccount',
+      metadata: {
+        name: 'my-model-hf-sa',
+        namespace: 'test-project',
+      },
+      secrets: [],
+    });
+
+    await expect(
+      resolveHfTokenServiceAccountName('test-project', 'hf-secret', 'my-model'),
+    ).rejects.toThrow(/not managed by the dashboard/);
     expect(mockCreateServiceAccount).not.toHaveBeenCalled();
     expect(mockReplaceServiceAccount).not.toHaveBeenCalled();
   });
