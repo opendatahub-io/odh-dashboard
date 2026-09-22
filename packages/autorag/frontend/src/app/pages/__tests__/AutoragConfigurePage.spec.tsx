@@ -799,6 +799,27 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
+    it('should revalidate the reset metric when switching from balanced to speed', async () => {
+      const user = userEvent.setup();
+
+      await user.click(await screen.findByTestId('aws-secret-selector-select-secret'));
+      await user.click(await screen.findByRole('button', { name: 'Browse bucket' }));
+      await user.click(await screen.findByTestId('file-explorer-select-file'));
+
+      const runButton = await screen.findByRole('button', { name: 'Create run' });
+      await waitFor(() => expect(runButton).toBeEnabled());
+
+      await user.click(await screen.findByTestId('preset-radio-balanced'));
+      await user.click(await screen.findByTestId('optimization-metric-select'));
+      await user.click(await screen.findByTestId('metric-option-faithfulness-ragas'));
+      await user.click(await screen.findByTestId('preset-radio-speed'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent('Overall score');
+        expect(runButton).toBeEnabled();
+      });
+    });
+
     it('should render "Back" button', async () => {
       expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
     });

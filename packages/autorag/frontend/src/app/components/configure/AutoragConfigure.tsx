@@ -952,7 +952,9 @@ function AutoragConfigure({
                                         optimizationMetric,
                                       )
                                     ) {
-                                      setValue('optimization_metric', DEFAULT_OPTIMIZATION_METRIC);
+                                      setValue('optimization_metric', DEFAULT_OPTIMIZATION_METRIC, {
+                                        shouldValidate: true,
+                                      });
                                     }
                                   }}
                                   data-testid={`preset-radio-${presetValue}`}
