@@ -487,6 +487,10 @@ class TrainingJobStatusModal extends Modal {
     return this.findHeader().findByTestId('training-job-status');
   }
 
+  findDescription() {
+    return this.findHeader().findByTestId('training-job-status-modal-description');
+  }
+
   getTrainingJobStatus(expectedStatus: string, timeout?: number) {
     // Scope the search to within the modal to avoid finding status in table rows
     // Use cy.get with scoped selector within the modal
