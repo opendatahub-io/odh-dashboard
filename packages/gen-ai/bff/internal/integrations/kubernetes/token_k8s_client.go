@@ -70,6 +70,10 @@ const (
 	// Gen-ai playground LLS distribution name
 	lsdName = "lsd-genai-playground"
 
+	// Suppresses noisy OGX Python auto-instrumentors that otherwise emit internal
+	// database and HTTP client spans as standalone request=null MLflow traces.
+	ogxDisabledInstrumentations = "sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2"
+
 	// Label for dashboard-managed OGXServer identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
 
@@ -1521,7 +1525,7 @@ func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
-			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none --disabled_instrumentations=sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2 ogx run /etc/ogx/config.yaml --insecure",
+			fmt.Sprintf("opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none --disabled_instrumentations=%s ogx run /etc/ogx/config.yaml --insecure", ogxDisabledInstrumentations),
 		}, " && ")}
 	}
 	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
@@ -1549,7 +1553,7 @@ func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, coll
 			// instrumentors. Otherwise OGX discovery, provider health, pgvector, and
 			// persistence calls are exported as separate request=null root traces.
 			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata,models,vector_stores,providers,files"},
-			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: "sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2"},
+			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: ogxDisabledInstrumentations},
 		)
 	}
 
