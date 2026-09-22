@@ -20,8 +20,14 @@ const mockUseEvaluationJobLogs = jest.fn().mockReturnValue({
   refresh: jest.fn(),
 });
 
+const mockNotificationWarning = jest.fn();
+
 jest.mock('~/app/hooks/useEvaluationJobLogs', () => ({
   useEvaluationJobLogs: (...args: unknown[]) => mockUseEvaluationJobLogs(...args),
+}));
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({ warning: mockNotificationWarning }),
 }));
 
 const mockGetEvaluationJobLogs = jest.mocked(getEvaluationJobLogs);
@@ -79,6 +85,18 @@ describe('EvaluationStatusModal tab defaults', () => {
   it('should show the progress tab by default for a completed job', () => {
     renderModal(mockEvaluationJob({ state: 'completed' }));
     expect(screen.getByTestId('progress-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('should only apply full-height on the events-log tab', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+    expect(screen.getByTestId('evaluation-status-modal')).not.toHaveClass(
+      'evalhub-status-modal--full-height',
+    );
+
+    switchToEventsLog();
+    expect(screen.getByTestId('evaluation-status-modal')).toHaveClass(
+      'evalhub-status-modal--full-height',
+    );
   });
 
   it('should not show the failure-info tab for a failed job', () => {
@@ -185,7 +203,9 @@ describe('EvaluationStatusModal download', () => {
 
   it('should download full logs when the download button is clicked', async () => {
     const fullLogs = 'Full log content line 1\nFull log content line 2';
-    mockGetEvaluationJobLogs.mockReturnValue(jest.fn().mockResolvedValue(fullLogs));
+    mockGetEvaluationJobLogs.mockReturnValue(
+      jest.fn().mockResolvedValue({ logs: fullLogs, truncated: false }),
+    );
 
     renderModal(mockEvaluationJob({ state: 'running', name: 'my-eval' }));
     switchToEventsLog();
@@ -193,13 +213,17 @@ describe('EvaluationStatusModal download', () => {
     fireEvent.click(screen.getByTestId('download-logs-button'));
 
     await waitFor(() => {
-      expect(mockGetEvaluationJobLogs).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001');
+      expect(mockGetEvaluationJobLogs).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001', {
+        tail_lines: -1,
+      });
     });
   });
 
   it('should use benchmark-specific endpoint when a benchmark is selected', async () => {
     const fullLogs = 'Benchmark log content';
-    mockGetEvaluationJobBenchmarkLogs.mockReturnValue(jest.fn().mockResolvedValue(fullLogs));
+    mockGetEvaluationJobBenchmarkLogs.mockReturnValue(
+      jest.fn().mockResolvedValue({ logs: fullLogs, truncated: false }),
+    );
 
     const job = mockEvaluationJob({ state: 'running' });
     job.status.benchmarks = makeBenchmarks([
@@ -220,6 +244,7 @@ describe('EvaluationStatusModal download', () => {
         'test-ns',
         'eval-job-001',
         0,
+        { tail_lines: -1 },
       );
     });
   });
@@ -430,6 +455,11 @@ describe('EvaluationStatusModal running state header', () => {
 
     expect(screen.getByTestId('modal-title-name')).toHaveTextContent('Safety and fairness');
     expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
+  });
+
+  it('should truncate the benchmark name on the header paragraph', () => {
+    renderModal();
+    expect(screen.getByTestId('benchmark-name-header')).toHaveClass('pf-v6-u-text-truncate');
   });
 
   it('should show "Evaluation job is running." in description', () => {
@@ -839,8 +869,8 @@ describe('EvaluationStatusModal log level filter', () => {
 
     const notices = screen.getAllByTestId('log-filter-empty-notice');
     expect(notices).toHaveLength(2);
-    expect(notices[0]).toHaveTextContent('No error logs in this section.');
-    expect(notices[1]).toHaveTextContent('No error logs in this section.');
+    expect(notices[0]).toHaveTextContent('No messages match the specified filter in this section.');
+    expect(notices[1]).toHaveTextContent('No messages match the specified filter in this section.');
   });
 
   it('should show empty notice when no section headers and filter removes all entries', () => {
@@ -858,10 +888,10 @@ describe('EvaluationStatusModal log level filter', () => {
     fireEvent.click(screen.getByText('Errors only'));
 
     const notice = screen.getByTestId('log-filter-empty-notice');
-    expect(notice).toHaveTextContent('No error logs in this section.');
+    expect(notice).toHaveTextContent('No messages match the specified filter.');
   });
 
-  it('should use correct empty notice message for warnings filter', () => {
+  it('should use same empty notice message for warnings filter', () => {
     mockUseEvaluationJobLogs.mockReturnValue({
       logs: '2026-01-15 09:30:00,123 - main - INFO - All good here',
       loaded: true,
@@ -876,7 +906,7 @@ describe('EvaluationStatusModal log level filter', () => {
     fireEvent.click(screen.getByText('Warnings and errors'));
 
     const notice = screen.getByTestId('log-filter-empty-notice');
-    expect(notice).toHaveTextContent('No warning or error logs in this section.');
+    expect(notice).toHaveTextContent('No messages match the specified filter.');
   });
 
   it('should not show empty notice for sections that have matching entries', () => {
@@ -911,6 +941,60 @@ describe('EvaluationStatusModal log level filter', () => {
   });
 });
 
+describe('EvaluationStatusModal tail notice', () => {
+  it('should render tail notice when log entries are displayed', () => {
+    renderModal();
+    switchToEventsLog();
+
+    expect(screen.getByTestId('log-tail-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('log-tail-notice')).toHaveTextContent(
+      'Only the 500 most recent messages are displayed',
+    );
+  });
+
+  it('should show download action link in tail notice', () => {
+    renderModal();
+    switchToEventsLog();
+
+    const tailNotice = screen.getByTestId('log-tail-notice');
+    expect(tailNotice).toHaveTextContent('Download full log (server limits may apply)');
+  });
+
+  it('should show refresh action link in tail notice for in-progress jobs', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+    switchToEventsLog();
+
+    const tailNotice = screen.getByTestId('log-tail-notice');
+    expect(tailNotice).toHaveTextContent('Refresh for newer messages');
+  });
+
+  it('should not show refresh action link in tail notice for completed jobs', () => {
+    renderModal(mockEvaluationJob({ state: 'completed' }));
+    switchToEventsLog();
+
+    const tailNotice = screen.getByTestId('log-tail-notice');
+    expect(tailNotice).not.toHaveTextContent('Refresh for newer messages');
+  });
+
+  it('should still render tail notice when filter removes all entries', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '2026-01-15 09:30:00,123 - main - INFO - All good here',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+    switchToEventsLog();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Errors only'));
+
+    expect(screen.getByTestId('log-filter-empty-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('log-tail-notice')).toBeInTheDocument();
+  });
+});
+
 describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
   it('should pass namespace and job ID on the events-log tab', () => {
     renderModal(mockEvaluationJob({ state: 'running' }));
@@ -920,7 +1004,7 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
       'test-ns',
       'eval-job-001',
       undefined,
-      1000,
+      500,
     );
   });
 
@@ -945,7 +1029,7 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
     fireEvent.click(screen.getByTestId('benchmark-log-selector'));
     fireEvent.click(screen.getByText('bm-a'));
 
-    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 1000);
+    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 500);
   });
 
   it('should hide the benchmark selector when there is only one benchmark', () => {

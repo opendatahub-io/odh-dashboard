@@ -25,6 +25,7 @@ import type {
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type {
   AreaExtension,
+  ClusterStorageConnectedResourcesExtension,
   RouteExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
@@ -34,6 +35,7 @@ import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/types';
+import type { KServeConnectedResourcesData } from './src/clusterStorage/connectedResources';
 
 export const KSERVE_ID = 'kserve';
 const ADMIN_USER = 'ADMIN_USER';
@@ -120,6 +122,45 @@ const deploymentMethodExtractorExtension: WizardFieldExtractorExtension<
   },
 };
 
+export const kserveFormDataExtension: ModelServingDeploymentFormDataExtension<KServeDeployment> = {
+  type: 'model-serving.deployment/form-data',
+  properties: {
+    platform: KSERVE_ID,
+    isActive: true,
+    priority: 0,
+    extractHardwareProfileConfig: () =>
+      import('./src/hardware').then((m) => (deployment) => ({
+        data: m.extractHardwareProfileConfig(deployment),
+      })),
+    extractModelType: () => import('./src/deployUtils').then((m) => m.extractModelType),
+    extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
+    extractReplicas: () =>
+      import('./src/hardware').then((m) => (deployment) => ({
+        data: m.extractReplicas(deployment),
+      })),
+    extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
+    extractEnvironmentVariables: () =>
+      import('./src/hardware').then((m) => m.extractEnvironmentVariables),
+    extractModelAvailabilityData: () =>
+      import('./src/aiAssets').then((m) => m.extractModelAvailabilityData),
+    extractModelLocationData: () =>
+      import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
+    extractDeploymentStrategy: () =>
+      import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
+    extractModelServerTemplate: () =>
+      import('./src/deployServer').then((m) => m.extractModelServerTemplate),
+    extractHuggingFaceApiKey: () =>
+      import('./src/hfTokenSecret').then(
+        (m) => (deployment) => m.extractHuggingFaceApiKeyFromEnv(deployment.model),
+      ),
+    hardwareProfilePaths: () =>
+      import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
+
 const extensions: (
   | AreaExtension
   | ModelServingPlatformExtension<KServeDeployment>
@@ -140,6 +181,7 @@ const extensions: (
   | DeploymentWizardFieldOverrideExtension<KServeDeployment>
   | TabRouteTabExtension
   | RouteExtension
+  | ClusterStorageConnectedResourcesExtension<KServeConnectedResourcesData>
 )[] = [
   {
     type: 'app.area',
@@ -148,6 +190,22 @@ const extensions: (
       featureFlags: ['disableKServe'],
       requiredComponents: [DataScienceStackComponent.K_SERVE],
       reliantAreas: [SupportedArea.MODEL_SERVING],
+    },
+  },
+  {
+    type: 'app.cluster-storage/connected-resources',
+    properties: {
+      useConnectedResources: () =>
+        import('./src/clusterStorage/connectedResources').then(
+          (m) => m.useConnectedKServeResources,
+        ),
+      getConnectedResources: () =>
+        import('./src/clusterStorage/connectedResources').then(
+          (m) => m.getConnectedKServeResourceLabels,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {
@@ -249,38 +307,7 @@ const extensions: (
       required: [SupportedArea.K_SERVE],
     },
   },
-  {
-    type: 'model-serving.deployment/form-data',
-    properties: {
-      platform: KSERVE_ID,
-      extractHardwareProfileConfig: () =>
-        import('./src/hardware').then((m) => (deployment) => ({
-          data: m.extractHardwareProfileConfig(deployment),
-        })),
-      extractModelType: () => import('./src/deployUtils').then((m) => m.extractModelType),
-      extractModelFormat: () => import('./src/modelFormat').then((m) => m.extractKServeModelFormat),
-      extractReplicas: () =>
-        import('./src/hardware').then((m) => (deployment) => ({
-          data: m.extractReplicas(deployment),
-        })),
-      extractRuntimeArgs: () => import('./src/hardware').then((m) => m.extractRuntimeArgs),
-      extractEnvironmentVariables: () =>
-        import('./src/hardware').then((m) => m.extractEnvironmentVariables),
-      extractModelAvailabilityData: () =>
-        import('./src/aiAssets').then((m) => m.extractModelAvailabilityData),
-      extractModelLocationData: () =>
-        import('./src/modelLocationData').then((m) => m.extractKServeModelLocationData),
-      extractDeploymentStrategy: () =>
-        import('./src/deployUtils').then((m) => m.extractDeploymentStrategy),
-      extractModelServerTemplate: () =>
-        import('./src/deployServer').then((m) => m.extractModelServerTemplate),
-      hardwareProfilePaths: () =>
-        import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
-    },
-    flags: {
-      required: [SupportedArea.K_SERVE],
-    },
-  },
+  kserveFormDataExtension,
   {
     type: 'model-serving.deployment/deploy',
     properties: {

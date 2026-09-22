@@ -15,7 +15,7 @@ import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
@@ -49,7 +49,8 @@ import {
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
-const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
+type ConfigureInitialValues = Partial<ConfigureSchema> & Record<string, unknown>;
+const createFields = ['display_name', 'description', 'maas_secret_name'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
 
@@ -64,21 +65,22 @@ const arraysEqualUnordered = (a: string[], b: string[]): boolean => {
 };
 
 type AutoragConfigurePageProps = {
-  initialValues?: Partial<ConfigureSchema>;
+  initialValues?: ConfigureInitialValues;
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
-  /** Pre-resolved Open GenAI Stack connection secret for reconfigure flows. */
-  initialOgxSecret?: SecretSelection;
+  initialMaaSSecret?: SecretSelection;
+  initialVectorDbSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
-  /** When reconfiguring, the display name of the source run (used in the page title). */
+  /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
   sourceRunName?: string;
 };
 
 function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
-  initialOgxSecret,
+  initialMaaSSecret,
+  initialVectorDbSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -123,13 +125,23 @@ function AutoragConfigurePage({
     defaultValues: initialFormValues,
   });
 
-  const [displayName, description, ogxSecretName] = useWatch({
+  // RHF does not validate defaultValues automatically in onChange mode. Reconfigure values are
+  // loaded before this page mounts, so validate them once after the form and its dependent fields
+  // are registered instead of requiring the user to reselect an unchanged connection. A new run
+  // must remain pristine until the user interacts with or submits the form.
+  useEffect(() => {
+    if (sourceRunId && initialValues) {
+      void form.trigger();
+    }
+  }, [form, initialFormValues, initialValues, sourceRunId]);
+
+  const [displayName, description, maasSecretName] = useWatch({
     control: form.control,
     name: createFields,
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
-
+  const [maasModelsReady, setMaaSModelsReady] = useState(false);
   // Populated by the Knowledge/Evaluation/Vector-store selectors via RunTriggeredTrackingContext
   // when the user actually (re)selects a source/provider in this session — see the context's
   // doc comment for why this can't be safely derived from form data alone. Read at submit time
@@ -219,11 +231,8 @@ function AutoragConfigurePage({
 
   // Reconfigure's configure screen is fully populated on mount, so there's no equivalent to the
   // create flow's progressive knowledge → evaluation → models milestones to observe — the form
-  // starts ready to submit, so report the deepest funnel step immediately. For the create flow,
-  // reset on every (re-)entry to 'configure': `handleBackToCreate` clears the knowledge/
-  // evaluation/models field values, so without this reset, a Back → Next round-trip after
-  // completing a milestone would leave funnel progress reporting a selection that no longer
-  // exists in the form.
+  // starts ready to submit, so report the deepest funnel step immediately. Page-2 values remain
+  // in the form across Back → Next navigation.
   useEffect(() => {
     if (step === 'configure') {
       if (sourceRunId) {
@@ -315,20 +324,9 @@ function AutoragConfigurePage({
   }, []);
 
   const handleBackToCreate = useCallback(() => {
-    // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
-    // Reconfigure keeps form state so users can edit step 1 without losing step 2 selections.
-    if (!sourceRunId) {
-      const createFieldSet = new Set<string>(createFields);
-      type DefaultKey = keyof typeof configureSchema.defaults;
-      const isDefaultKey = (key: string): key is DefaultKey => key in configureSchema.defaults;
-      for (const key of Object.keys(configureSchema.defaults)) {
-        if (!createFieldSet.has(key) && isDefaultKey(key)) {
-          form.setValue(key, configureSchema.defaults[key], { shouldValidate: false });
-        }
-      }
-    }
+    setMaaSModelsReady(false);
     setStep('create');
-  }, [form, sourceRunId]);
+  }, []);
 
   const createActions = (
     <>
@@ -340,7 +338,7 @@ function AutoragConfigurePage({
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
             !configureSchema.base.shape.description.safeParse(description).success ||
-            !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
+            !configureSchema.base.shape.maas_secret_name.safeParse(maasSecretName).success
           }
         >
           Next
@@ -361,7 +359,7 @@ function AutoragConfigurePage({
           data-testid="autorag-create-run-button"
           type="submit"
           variant="primary"
-          isDisabled={!form.formState.isValid || form.formState.isSubmitting}
+          isDisabled={!form.formState.isValid || form.formState.isSubmitting || !maasModelsReady}
           isLoading={form.formState.isSubmitting}
           spinnerAriaValueText="Submitting"
         >
@@ -431,8 +429,20 @@ function AutoragConfigurePage({
             homePath={getRedirectPath(namespace)}
             onHomeNavigate={handleHomeNavigate}
           >
+            {fromResultsPage && sourceRunId && sourceRunName && (
+              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
+                <Link
+                  to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}
+                  onClick={() =>
+                    fireAutoragFlowExited('navigate', funnelStepRef.current, 'otherGenAi')
+                  }
+                >
+                  <Truncate content={sourceRunName} />
+                </Link>
+              </BreadcrumbItem>
+            )}
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              Experiment configurations
+              {sourceRunId ? 'Reconfigure' : 'Run configurations'}
             </BreadcrumbItem>
           </ExperimentContextBreadcrumb>
         )
@@ -462,6 +472,10 @@ function AutoragConfigurePage({
                 return;
               }
 
+              if (!maasModelsReady) {
+                return;
+              }
+
               form.handleSubmit(
                 async (data: ConfigureSchema) => {
                   // Computed up front so it's available in both the success and failure branches
@@ -474,7 +488,7 @@ function AutoragConfigurePage({
                     optimizationMetric: mapOptimizationMetric(data.optimization_metric),
                     vectorDatabase: vectorDatabaseRef.current,
                     countOfModels: data.generation_models.length + data.embedding_models.length,
-                    countOfKnowledgeDocuments: data.input_data_key ? 1 : 0,
+                    countOfKnowledgeDocuments: data.input_data_keys.length,
                     countOfEvaluationDocuments: data.test_data_key ? 1 : 0,
                     countOfFoundationModels: data.generation_models.length,
                     countOfEmbeddingModels: data.embedding_models.length,
@@ -546,11 +560,14 @@ function AutoragConfigurePage({
                 hasBodyWrapper={false}
               >
                 {step === 'create' ? (
-                  <AutoragCreate initialOgxSecret={initialOgxSecret} />
+                  <AutoragCreate initialMaaSSecret={initialMaaSSecret} />
                 ) : (
                   <AutoragConfigure
                     initialValues={initialValues}
                     initialInputDataSecret={initialInputDataSecret}
+                    initialVectorDbSecret={initialVectorDbSecret}
+                    isReconfigure={!!sourceRunId}
+                    onMaaSModelsReady={setMaaSModelsReady}
                   />
                 )}
               </PageSection>

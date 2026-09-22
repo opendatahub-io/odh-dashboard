@@ -7,8 +7,10 @@ import {
   getDescriptionFromK8sResource,
 } from '@odh-dashboard/k8s-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { useKebabAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
 import {
   type LLMInferenceServiceConfigKind,
+  LLMInferenceServiceConfigModel,
   TopologyTypeLabels,
   DASHBOARD_RESOURCE_LABEL,
   getConfigTopologyType,
@@ -37,6 +39,18 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
   const topologyType = getConfigTopologyType(config);
   const isDashboardCreated =
     config.metadata.labels?.[DASHBOARD_RESOURCE_LABEL] === 'true' && !preInstalled;
+
+  const deleteKebabItems = useKebabAccessAllowed(
+    [
+      { isSeparator: true },
+      {
+        title: 'Delete',
+        onClick: () => onDelete(config),
+        isDanger: true,
+      },
+    ],
+    verbModelAccess('delete', LLMInferenceServiceConfigModel, config.metadata.namespace),
+  );
 
   return (
     <Tr data-testid={`topology-config-row-${configName}`}>
@@ -80,12 +94,7 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
                     title: 'Duplicate',
                     onClick: () => navigate(`duplicate/${configName}`),
                   },
-                  { isSeparator: true },
-                  {
-                    title: 'Delete',
-                    onClick: () => onDelete(config),
-                    isDanger: true,
-                  },
+                  ...deleteKebabItems,
                 ]
               : [
                   {

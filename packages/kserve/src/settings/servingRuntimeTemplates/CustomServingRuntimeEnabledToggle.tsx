@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   getTemplateEnabled,
   setListDisabled,
@@ -24,6 +25,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { patchDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
 import { patchTemplateAcceptedAnnotationBackend } from '@odh-dashboard/internal/services/templateService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
+import { fireServingRuntimeTemplateEnablementChanged } from './tracking/servingRuntimeTemplateTracking';
 
 type CustomServingRuntimeEnabledToggleProps = {
   template: TemplateKind;
@@ -70,6 +72,11 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
       patchDashboardConfigTemplateDisablementBackend(templateDisablementUpdated, dashboardNamespace)
         .then(() => {
           setEnabled(checked);
+          fireServingRuntimeTemplateEnablementChanged({
+            outcome: TrackingOutcome.submit,
+            success: true,
+            enabled: checked,
+          });
           refreshDisablement();
         })
         .catch((e) => {
@@ -77,6 +84,12 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
             `Error ${checked ? 'enabling' : 'disabling'} the serving runtime`,
             e.message,
           );
+          fireServingRuntimeTemplateEnablementChanged({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            // The patch failed, so the state reverts — report the actual state, not the intended one.
+            enabled: !checked,
+          });
           setEnabled(!checked);
         })
         .finally(() => {

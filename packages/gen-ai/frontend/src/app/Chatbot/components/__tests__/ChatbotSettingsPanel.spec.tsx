@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChatbotSettingsPanel } from '~/app/Chatbot/components/ChatbotSettingsPanel';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
@@ -16,31 +17,6 @@ let mockDrawerPanelDefaultSize: string | undefined;
 let mockDrawerPanelStyle: React.CSSProperties | undefined;
 let mockDrawerHeadStyle: React.CSSProperties | undefined;
 let mockDrawerBodyStyle: React.CSSProperties | undefined;
-let mockTabsMountCount = 0;
-
-// Component to track Tabs mounts - must be outside jest.mock to use React hooks
-const TabsMountTracker: React.FC<{
-  children: React.ReactNode;
-  activeKey?: string | number;
-  role?: string;
-  [key: string]: unknown;
-}> = ({ children, activeKey, role, ...props }) => {
-  const mountedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      mockTabsMountCount += 1;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div data-testid="mock-tabs" data-active-key={activeKey} role={role} {...props}>
-      {children}
-    </div>
-  );
-};
 
 jest.mock('@patternfly/react-core', () => {
   const actual = jest.requireActual('@patternfly/react-core');
@@ -142,23 +118,6 @@ jest.mock('@patternfly/react-core', () => {
         </div>
       );
     },
-    Tabs: ({
-      children,
-      activeKey,
-      role,
-      ...domProps
-    }: {
-      children: React.ReactNode;
-      activeKey?: string | number;
-      onSelect?: (event: unknown, key: string | number) => void;
-      role?: string;
-      'aria-label'?: string;
-      'data-testid'?: string;
-    }) => (
-      <TabsMountTracker activeKey={activeKey} role={role} {...domProps}>
-        {children}
-      </TabsMountTracker>
-    ),
   };
 });
 
@@ -166,6 +125,8 @@ jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
   __esModule: true,
   default: jest.fn(() => false),
 }));
+
+const mockUseGuardrailsEnabled = jest.mocked(useGuardrailsEnabled);
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   useFeatureFlag: jest.fn(() => [false]),
@@ -236,7 +197,6 @@ describe('ChatbotSettingsPanel', () => {
     mockDrawerPanelDefaultSize = undefined;
     mockDrawerHeadStyle = undefined;
     mockDrawerBodyStyle = undefined;
-    mockTabsMountCount = 0;
   });
 
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {
@@ -292,6 +252,37 @@ describe('ChatbotSettingsPanel', () => {
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('200px');
   });
 
+  it('should only call onCloseClick once when resized below threshold multiple times in a row', async () => {
+    const user = userEvent.setup();
+    const mockOnCloseClick = jest.fn();
+    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
+
+    const resize99Button = screen.getByTestId('trigger-resize-99');
+    await user.click(resize99Button);
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+
+    const resize50Button = screen.getByTestId('trigger-resize-50');
+    await user.click(resize50Button);
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onCloseClick again after crossing back above the threshold and below it again', async () => {
+    const user = userEvent.setup();
+    const mockOnCloseClick = jest.fn();
+    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
+
+    // Panel remounts (new `key`) on auto-close, so re-query the buttons fresh each time
+    // rather than reusing a stale reference to the unmounted element.
+    await user.click(screen.getByTestId('trigger-resize-50'));
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByTestId('trigger-resize-200'));
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByTestId('trigger-resize-50'));
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(2);
+  });
+
   it('should not throw when onCloseClick is not provided and panel is resized below threshold', async () => {
     const user = userEvent.setup();
     expect(() => {
@@ -301,58 +292,6 @@ describe('ChatbotSettingsPanel', () => {
     const resize50Button = screen.getByTestId('trigger-resize-50');
     await expect(user.click(resize50Button)).resolves.not.toThrow();
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe(DEFAULT_WIDTH);
-  });
-
-  it('should debounce Tabs remount when panel is resized', async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({ delay: null });
-    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={jest.fn()} />);
-
-    // Verify tabs are rendered and track initial mount count
-    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
-    const initialMountCount = mockTabsMountCount;
-    expect(initialMountCount).toBe(1);
-
-    // Resize panel to 200px
-    const resize200Button = screen.getByTestId('trigger-resize-200');
-    await user.click(resize200Button);
-
-    // Verify the resize was processed
-    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('200px');
-
-    // Before debounce timeout, Tabs should not have remounted yet (tabsKey not incremented)
-    expect(mockTabsMountCount).toBe(initialMountCount);
-
-    // Fast-forward past debounce timeout (300ms)
-    await React.act(async () => {
-      jest.advanceTimersByTime(300);
-    });
-
-    // Tabs should have remounted after debounce (tabsKey incremented)
-    expect(mockTabsMountCount).toBe(initialMountCount + 1);
-    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
-
-    // Resize again to 250px
-    const resize250Button = screen.getByTestId('trigger-resize-250');
-    await user.click(resize250Button);
-
-    // Verify the second resize was processed
-    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('250px');
-
-    // Mount count should stay the same before debounce
-    const mountCountAfterFirstDebounce = mockTabsMountCount;
-    expect(mountCountAfterFirstDebounce).toBe(initialMountCount + 1);
-
-    // Fast-forward past debounce timeout again
-    await React.act(async () => {
-      jest.advanceTimersByTime(300);
-    });
-
-    // Tabs should have remounted again (tabsKey incremented)
-    expect(mockTabsMountCount).toBe(initialMountCount + 2);
-    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
-
-    jest.useRealTimers();
   });
 
   it('should auto-close when panel is resized below threshold without debouncing', async () => {
@@ -490,14 +429,14 @@ describe('ChatbotSettingsPanel', () => {
       // Both should have DrawerHead and DrawerPanelBody as direct children
       const singleHead = singlePanel?.querySelector('[data-testid="mock-drawer-head"]');
       const singleBody = singlePanel?.querySelector('[data-testid="mock-drawer-body"]');
-      const singleTabs = singleContainer.querySelector(
+      const singleToggleGroup = singleContainer.querySelector(
         '[data-testid="chatbot-settings-page-tabs"]',
       );
 
       // Verify structure
       expect(singleHead?.parentElement).toBe(singlePanel);
       expect(singleBody?.parentElement).toBe(singlePanel);
-      expect(singleTabs).toBeInTheDocument();
+      expect(singleToggleGroup).toBeInTheDocument();
 
       // Now render compare mode
       const { container: compareContainer } = render(
@@ -507,14 +446,14 @@ describe('ChatbotSettingsPanel', () => {
       const comparePanel = compareContainer.querySelector('[data-testid="mock-drawer-panel"]');
       const compareHead = comparePanel?.querySelector('[data-testid="mock-drawer-head"]');
       const compareBody = comparePanel?.querySelector('[data-testid="mock-drawer-body"]');
-      const compareTabs = compareContainer.querySelector(
+      const compareToggleGroup = compareContainer.querySelector(
         '[data-testid="chatbot-settings-page-tabs"]',
       );
 
       // Verify structure is identical to single mode
       expect(compareHead?.parentElement).toBe(comparePanel);
       expect(compareBody?.parentElement).toBe(comparePanel);
-      expect(compareTabs).toBeInTheDocument();
+      expect(compareToggleGroup).toBeInTheDocument();
     });
 
     it('should render content directly in DrawerPanelContent for both modes', () => {
@@ -680,6 +619,190 @@ describe('ChatbotSettingsPanel', () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
       expect(mockDrawerPanelStyle).toBeUndefined();
+    });
+  });
+
+  describe('Tab content visibility (display-none hiding approach)', () => {
+    // ToggleGroupItem's data-testid lives on a non-interactive wrapper <div>; the actual
+    // clickable element is the nested <button>, so we scope into it before clicking.
+    const clickTabToggle = async (
+      user: ReturnType<typeof userEvent.setup>,
+      testId: string,
+    ): Promise<void> => {
+      await user.click(within(screen.getByTestId(testId)).getByRole('button'));
+    };
+
+    it('should show the Model tab content and hide all other tab contents by default', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should keep all tab content mounted in the DOM regardless of active tab', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      // All tab content divs should be present in the DOM even though only one is visible,
+      // preserving lifecycle state (data fetches, etc.) instead of unmounting inactive tabs.
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toBeInTheDocument();
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toBeInTheDocument();
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).toBeInTheDocument();
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).toBeInTheDocument();
+
+      // A field deep within the Prompt tab content should already be mounted, even while hidden.
+      expect(screen.getByTestId('system-instructions-section')).toBeInTheDocument();
+    });
+
+    it('should switch visibility to the Prompt tab content when its toggle is selected', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      await clickTabToggle(user, 'chatbot-settings-page-tab-prompt');
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+      // Still mounted, just hidden
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toBeInTheDocument();
+    });
+
+    it('should switch visibility to the Knowledge tab content when its toggle is selected', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      await clickTabToggle(user, 'chatbot-settings-page-tab-knowledge');
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should switch visibility to the MCP tab content when its toggle is selected', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      await clickTabToggle(user, 'chatbot-settings-page-tab-mcp');
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should restore Model tab visibility when switching back after visiting another tab', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      await clickTabToggle(user, 'chatbot-settings-page-tab-knowledge');
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+
+      await clickTabToggle(user, 'chatbot-settings-page-tab-model');
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should respect defaultActiveTabKey for initial tab content visibility', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} defaultActiveTabKey={1} />);
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should normalize a string defaultActiveTabKey to select the matching tab', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} defaultActiveTabKey="1" />);
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should normalize a controlled string activeTabKey to select the matching tab', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} activeTabKey="2" />);
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    describe('when guardrails feature flag is enabled', () => {
+      beforeEach(() => {
+        mockUseGuardrailsEnabled.mockReturnValue(true);
+      });
+
+      afterEach(() => {
+        mockUseGuardrailsEnabled.mockReturnValue(false);
+      });
+
+      it('should render the Guardrails tab content hidden by default', () => {
+        render(<ChatbotSettingsPanel {...defaultProps} />);
+
+        expect(screen.getByTestId('chatbot-settings-page-tab-content-guardrails')).toHaveStyle({
+          display: 'none',
+        });
+      });
+
+      it('should show the Guardrails tab content when its toggle is selected', async () => {
+        const user = userEvent.setup();
+        render(<ChatbotSettingsPanel {...defaultProps} />);
+
+        await clickTabToggle(user, 'chatbot-settings-page-tab-guardrails');
+
+        expect(screen.getByTestId('chatbot-settings-page-tab-content-guardrails')).not.toHaveStyle({
+          display: 'none',
+        });
+        expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+          display: 'none',
+        });
+      });
+    });
+
+    it('should not render the Guardrails tab content when the feature flag is disabled', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} />);
+
+      expect(
+        screen.queryByTestId('chatbot-settings-page-tab-content-guardrails'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('chatbot-settings-page-tab-guardrails')).not.toBeInTheDocument();
     });
   });
 });

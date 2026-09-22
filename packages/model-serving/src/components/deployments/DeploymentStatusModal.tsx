@@ -39,15 +39,22 @@ import {
 } from '@patternfly/react-tokens';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
+import { useAccessReview, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
-import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/internal/concepts/kueue/types';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/k8s-core/kueue/types';
 import {
   ModelStatusIcon,
   getDeploymentStatusSubtitleColor,
 } from '@odh-dashboard/model-serving/shared/components';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import DeploymentResourcesTab from './DeploymentResourcesTab';
+import {
+  DeploymentTrackingEvent,
+  fireDeploymentStatusEvent,
+} from '../../shared/tracking/deploymentTracking';
 import type {
   Deployment,
   DeploymentCondition,
@@ -247,13 +254,57 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
+  const trackEvent = useTrackEvent();
   const localQueueName = deployment.model.metadata.labels?.[KUEUE_QUEUE_LABEL];
+  const [canViewClusterQueue] = useAccessReview(
+    { group: ClusterQueueModel.apiGroup, resource: ClusterQueueModel.plural, verb: 'get' },
+    Boolean(isKueueFeatureEnabled && isProjectKueueEnabled),
+  );
   // Tab visibility depends only on Kueue being enabled for this project — not on whether this
   // particular deployment has a queue label. A missing label is handled as an empty state inside
   // DeploymentResourcesTab, so the tab strip stays consistent across all deployment states.
-  const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
+  const showResourcesTab = Boolean(
+    isKueueFeatureEnabled && isProjectKueueEnabled && canViewClusterQueue,
+  );
 
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
+
+  const trackModalAction = React.useCallback(
+    (action: 'edit' | 'stop' | 'close') => {
+      fireDeploymentStatusEvent(
+        trackEvent,
+        DeploymentTrackingEvent.STATUS_MODAL_ACTION_CLICKED,
+        deployment,
+        {
+          action,
+          outcome: action === 'close' ? TrackingOutcome.cancel : TrackingOutcome.submit,
+          activeTab,
+        },
+      );
+    },
+    [activeTab, deployment, trackEvent],
+  );
+
+  const handleTabSelect = React.useCallback(
+    (_event: React.MouseEvent<HTMLElement>, tabKey: string | number) => {
+      const nextTab = String(tabKey);
+      setActiveTab(nextTab);
+      if (nextTab === PROGRESS_TAB) {
+        fireDeploymentStatusEvent(
+          trackEvent,
+          DeploymentTrackingEvent.STATUS_PROGRESS_TAB_SELECTED,
+          deployment,
+        );
+      } else if (nextTab === RESOURCES_TAB) {
+        fireDeploymentStatusEvent(
+          trackEvent,
+          DeploymentTrackingEvent.STATUS_RESOURCES_TAB_SELECTED,
+          deployment,
+        );
+      }
+    },
+    [deployment, trackEvent],
+  );
 
   React.useEffect(() => {
     if (!showResourcesTab && activeTab === RESOURCES_TAB) {
@@ -266,7 +317,10 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
       appendTo={document.body}
       variant={ModalVariant.medium}
       isOpen
-      onClose={onClose}
+      onClose={() => {
+        trackModalAction('close');
+        onClose();
+      }}
       data-testid="deployment-status-modal"
     >
       <ModalHeader
@@ -292,7 +346,7 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
                 the modal shape stays consistent as more tabs (e.g. Events) are added later. */}
             <Tabs
               activeKey={activeTab}
-              onSelect={(_event, tabKey) => setActiveTab(String(tabKey))}
+              onSelect={handleTabSelect}
               aria-label="Deployment status tabs"
               data-testid="deployment-status-tabs"
             >
@@ -332,7 +386,10 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
               <Button
                 variant="primary"
                 isDanger
-                onClick={onStopDeployment}
+                onClick={() => {
+                  trackModalAction('stop');
+                  onStopDeployment();
+                }}
                 data-testid="deployment-status-stop-button"
               >
                 Stop deployment
@@ -343,7 +400,10 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
             <FlexItem>
               <Button
                 variant="link"
-                onClick={onEditDeployment}
+                onClick={() => {
+                  trackModalAction('edit');
+                  onEditDeployment();
+                }}
                 isDisabled={isEditLoading}
                 icon={isEditLoading ? <Spinner size="sm" /> : undefined}
                 data-testid="deployment-status-edit-button"

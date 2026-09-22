@@ -174,11 +174,11 @@ describe('NIM Model Serving', () => {
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Model server size')
-        .should('contain.text', '8 CPUs, 32GiB Memory requested');
+        .should('contain.text', '2 CPUs, 6GiB Memory requested');
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Model server size')
-        .should('contain.text', '16 CPUs, 64GiB Memory limit');
+        .should('contain.text', '4 CPUs, 8GiB Memory limit');
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Hardware profile')
@@ -222,6 +222,7 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableNIMModelServing: false,
+          nimWizard: false,
         });
         projectDetailsOverviewTab.visit('test-project');
         projectDetailsOverviewTab.findSelectPlatformButton('nvidia-nim').should('be.enabled');
@@ -245,6 +246,7 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: false,
           disableNIMModelServing: false,
+          nimWizard: false,
         });
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails.findSelectPlatformButton('nvidia-nim').should('be.enabled');
@@ -282,6 +284,7 @@ describe('NIM Model Serving', () => {
         initInterceptorsValidatingNimEnablement({
           disableKServe: true,
           disableNIMModelServing: true,
+          nimWizard: false,
         });
         projectDetails.visitSection('test-project', 'model-server');
         cy.get('button[data-testid=deploy-button]').should('not.exist');
@@ -329,6 +332,7 @@ describe('NIM Model Serving', () => {
           {
             disableKServe: false,
             disableNIMModelServing: false,
+            nimWizard: false,
           },
           true,
         );

@@ -1,30 +1,42 @@
 {
   "name": "Pattern1",
   "max_combinations": 45,
-  "scores": {
-    "answer_correctness": {
-      "mean": 0.5826,
-      "ci_low": 0.4593,
-      "ci_high": 0.6926
-    },
-    "faithfulness": {
-      "mean": 0.5895,
-      "ci_low": 0.4778,
-      "ci_high": 0.7286
-    },
-    "context_correctness": {
-      "mean": 1.0,
-      "ci_low": null,
-      "ci_high": null
-    }
+  "evaluation": {
+    "metrics": [
+      {
+        "evaluator": "unitxt",
+        "name": "answer_correctness",
+        "scores": { "mean": 0.5826, "ci_low": 0.4593, "ci_high": 0.6926 }
+      },
+      {
+        "evaluator": "judge",
+        "name": "answer_correctness",
+        "scores": { "mean": 0.55, "ci_low": 0.42, "ci_high": 0.68 }
+      },
+      {
+        "evaluator": "unitxt",
+        "name": "faithfulness",
+        "scores": { "mean": 0.5895, "ci_low": 0.4778, "ci_high": 0.7286 },
+        "optimization_metric": true
+      },
+      {
+        "evaluator": "unitxt",
+        "name": "context_correctness",
+        "scores": { "mean": 1.0, "ci_low": null, "ci_high": null }
+      },
+      {
+        "evaluator": "custom",
+        "name": "overall_score",
+        "scores": { "mean": 0.5895, "ci_low": null, "ci_high": null },
+        "optimization_metric": false
+      }
+    ]
   },
   "duration_seconds": 7,
-  "final_score": 0.5895,
   "settings": {
     "vector_store_binding": {
-      "provider_id": "milvus",
-      "vector_store_id": "vs_8a3b896e-c894-4796-8a20-1c81a7786667",
-      "provider_type": "remote::milvus"
+      "provider_type": "milvus",
+      "collection_name": "vs_8a3b896e-c894-4796-8a20-1c81a7786667"
     },
     "chunking": {
       "method": "recursive",
@@ -56,7 +68,9 @@
         "code": "en",
         "name": "English"
       }
-    },
+    }
+  },
+  "inference": {
     "responses_template": {
       "model": "vllm-inference/meta-llama/Llama-3.1-8B-Instruct",
       "stream": false,
@@ -87,9 +101,7 @@
       "tools": [
         {
           "type": "file_search",
-          "vector_store_ids": [
-            "vs_8a3b896e-c894-4796-8a20-1c81a7786667"
-          ],
+          "vector_store_ids": ["vs_8a3b896e-c894-4796-8a20-1c81a7786667"],
           "max_num_results": 5,
           "ranking_options": {
             "ranker": "weighted",
@@ -97,9 +109,7 @@
           }
         }
       ],
-      "include": [
-        "file_search_call.results"
-      ],
+      "include": ["file_search_call.results"],
       "temperature": 0.2,
       "max_output_tokens": 2048
     }
@@ -113,8 +123,8 @@
         "input_data_secret_name": "aws-connection-my-bucket",
         "input_data_bucket_name": "my-bucket",
         "input_data_key": "docs/",
-        "ogx_secret_name": "ogx-connection",
-        "vector_io_provider_id": "milvus",
+        "maas_secret_name": "maas-connection",
+        "vector_db_secret_name": "vector-db-connection",
         "chunk_size": 512,
         "chunk_overlap": 32,
         "chunking_method": "recursive"

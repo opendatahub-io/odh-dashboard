@@ -9,15 +9,15 @@ import {
   StateActionToggle,
 } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource, SchedulingType } from '@odh-dashboard/k8s-core';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import {
   useHardwareProfileBindingState,
   MODEL_SERVING_VISIBILITY,
 } from '@odh-dashboard/hardware-profiles/shared';
-import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import UnderlinedTruncateButton from '@odh-dashboard/internal/components/UnderlinedTruncateButton';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import UnderlinedTruncateButton from '@odh-dashboard/ui-core/components/UnderlinedTruncateButton';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import {
   ModelStatusIcon,
@@ -33,7 +33,10 @@ import DeploymentStatus from '../DeploymentStatus';
 import DeployedModelsVersion from '../DeployedModelsVersion';
 import ModelServingStopModal from '../ModelServingStopModal';
 import DeploymentStatusModal from '../DeploymentStatusModal';
-import { useDeploymentExtension } from '../../../concepts/extensionUtils';
+import {
+  useDeploymentExtension,
+  useResolvedDeploymentExtension,
+} from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
@@ -47,6 +50,10 @@ import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
 import { shouldShowDeploymentMetricsLink } from '../../../concepts/deploymentUtils';
 import useStopModalPreference from '../../../concepts/useStopModalPreference';
 import { ExtensionDataEntry } from '../../../concepts/extensionHelpers/usePlatformExtensionDataMap';
+import {
+  DeploymentTrackingEvent,
+  fireDeploymentStatusEvent,
+} from '../../../shared/tracking/deploymentTracking';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -83,6 +90,7 @@ export const DeploymentRow: React.FC<{
   const { namespace } = deployment.model.metadata;
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
+  const trackEvent = useTrackEvent();
   const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
     useHardwareProfileBindingState(deployment.model, MODEL_SERVING_VISIBILITY);
   const isStoppedOrStopping = Boolean(
@@ -105,15 +113,14 @@ export const DeploymentRow: React.FC<{
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
   const statusSubtitle = getDeploymentStatusSubtitle(deployment.status);
 
-  const [formDataExtensions, formDataResolved] = useResolvedExtensions(
+  const openStatusModal = React.useCallback(() => {
+    fireDeploymentStatusEvent(trackEvent, DeploymentTrackingEvent.STATUS_LOG_VIEWED, deployment);
+    setStatusModalOpen(true);
+  }, [deployment, trackEvent]);
+
+  const [formDataExtension, formDataResolved] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
-  );
-  const formDataExtension = React.useMemo(
-    () =>
-      formDataExtensions.find(
-        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
-      ) ?? null,
-    [formDataExtensions, deployment.modelServingPlatformId],
+    deployment,
   );
   const hardwareProfilePaths = formDataExtension?.properties.hardwareProfilePaths;
   const pathsLoaded = formDataResolved && !!hardwareProfilePaths;
@@ -239,7 +246,7 @@ export const DeploymentRow: React.FC<{
                 defaultHeaderContent="Inference Service Status"
                 stoppedStates={deployment.status?.stoppedStates}
                 kueueStatus={deployment.status?.kueueStatus}
-                onClick={() => setStatusModalOpen(true)}
+                onClick={openStatusModal}
               />
             </FlexItem>
             {statusSubtitle != null && (
@@ -248,7 +255,7 @@ export const DeploymentRow: React.FC<{
                   data-testid="deployment-status-subtitle"
                   content={statusSubtitle}
                   color={getDeploymentStatusSubtitleColor(deployment.status)}
-                  onClick={() => setStatusModalOpen(true)}
+                  onClick={openStatusModal}
                 />
               </FlexItem>
             )}

@@ -292,7 +292,7 @@ function AutomlResultsPage(): React.JSX.Element {
                         to={`${automlReconfigurePathname}/${namespace}/${runId}`}
                         state={{ from: 'results' }}
                       >
-                        Experiment configurations
+                        Run configurations
                       </Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem isActive>Run results</BreadcrumbItem>

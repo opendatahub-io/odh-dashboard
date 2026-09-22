@@ -18,16 +18,16 @@
     "branch": "main",
     "src": "",
     "target": "upstream",
-    "commit": "00d7ec5e34d24c838a564ccd98790be6aa7fdb91"
+    "commit": "a7d85c1d52305197751594015269331b61a1143b"
   },
   "module-federation": {
     "name": "notebooks",
     "remoteEntry": "/remoteEntry.js",
     "authorize": true,
-    "tls": false,
+    "tls": true,
     "proxy": [
       {
-        "path": "/workspaces/api",
+        "path": "/notebooks/api",
         "pathRewrite": "/api"
       }
     ],
@@ -36,8 +36,8 @@
       "port": 9105
     },
     "service": {
-      "name": "odh-dashboard",
-      "port": 8343
+      "name": "odh-dashboard-notebooks-ui",
+      "port": 9043
     }
   },
   "devDependencies": {

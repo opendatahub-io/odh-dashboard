@@ -2,12 +2,12 @@
 import { K8sResourceCommon } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AAModelResponse,
   AIModel,
   LlamaModel,
   TokenInfo,
   MCPServerFromAPI,
   MCPServerConfig,
-  MaaSModel,
 } from '~/app/types';
 
 /**
@@ -57,39 +57,44 @@ export const splitLlamaModelId = (llamaModelId: string): { providerId: string; i
 
 /**
  * Returns true if a provider-qualified LlamaStack model ID belongs to a MaaS provider.
- * MaaS providers are registered in LlamaStack with a "maas-" prefix (e.g. "maas-vllm-inference-1").
- *
- * NOTE: this is brittle. Ideally we should fetch /v1/providers from LLS
- * and cross reference the MaaS URL with the provider URL.
+ * Detects MaaS models by either:
+ * - Legacy: provider ID starts with "maas-" (e.g. "maas-vllm-inference-1/model")
+ * - Passthrough: model ID starts with "maas-" under a shared provider (e.g. "genai-bff-proxy/maas-model")
  */
-export const isMaasLlamaModelId = (llamaModelId: string): boolean =>
-  splitLlamaModelId(llamaModelId).providerId.startsWith('maas-');
+export const isMaasLlamaModelId = (llamaModelId: string): boolean => {
+  const { providerId, id } = splitLlamaModelId(llamaModelId);
+  return providerId.startsWith('maas-') || id.startsWith('maas-');
+};
 
 /**
- * Returns true if a playground LlamaModel corresponds to the given AIModel, accounting for
- * model_source_type. MaaS playground models have a "maas-" provider prefix in their full id;
- * namespace and custom_endpoint models do not. Without this check, two AIModels that share the
- * same model_id but differ in model_source_type would incorrectly match the same playground entry.
+ * Returns true if a playground LlamaModel corresponds to the given AIModel.
+ * Model IDs are unique across sources, so the normalized model ID is sufficient to identify a
+ * matching playground model.
  */
 export const isPlaygroundModelMatchForAIModel = (
   playgroundModel: LlamaModel,
   aiModel: AIModel,
 ): boolean => {
-  if (playgroundModel.modelId !== aiModel.model_id) {
-    return false;
-  }
-  return aiModel.model_source_type === 'maas'
-    ? isMaasLlamaModelId(playgroundModel.id)
-    : !isMaasLlamaModelId(playgroundModel.id);
+  // For passthrough MaaS models, modelId has a "maas-" prefix that the AIModel doesn't.
+  const playgroundModelId = playgroundModel.modelId.startsWith('maas-')
+    ? playgroundModel.modelId.slice(5)
+    : playgroundModel.modelId;
+  return playgroundModelId === aiModel.model_id;
 };
 
 export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): string => {
   const { id, providerId } = splitLlamaModelId(modelId);
-  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
+
+  // The genai-bff-proxy passthrough provider prefix is an OGX routing detail, not a meaningful
+  // distinction for users. Strip it (and the maas- model prefix) for display.
+  const isPassthrough = providerId === 'genai-bff-proxy';
+  const lookupId = isPassthrough && id.startsWith('maas-') ? id.slice(5) : id;
+
+  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === lookupId);
   if (!enabledModel) {
-    return modelId;
+    return isPassthrough ? lookupId : modelId;
   }
-  if (!providerId) {
+  if (!providerId || isPassthrough) {
     return enabledModel.display_name;
   }
   return `${providerId}/${enabledModel.display_name}`;
@@ -98,7 +103,7 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
 export const isLlamaModelEnabled = (
   modelId: string,
   aiModels: AIModel[],
-  maasModels: MaaSModel[],
+  maasModels: AIModel[],
   isCustomLSD: boolean,
 ): boolean => {
   if (isCustomLSD) {
@@ -115,9 +120,13 @@ export const isLlamaModelEnabled = (
     );
   }
 
-  const maasModel = maasModels.find((m) => m.id === id);
+  // When models are registered under the passthrough provider, MaaS model IDs
+  // are prefixed with "maas-" in OGX but not in the MaaS BFF response.
+  const maasPrefix = 'maas-';
+  const maasModelId = id.startsWith(maasPrefix) ? id.slice(maasPrefix.length) : id;
+  const maasModel = maasModels.find((m) => m.model_id === maasModelId || m.model_id === id);
   if (maasModel) {
-    return maasModel.ready;
+    return maasModel.status === 'Running';
   }
 
   return false;
@@ -255,27 +264,39 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
 
 /**
  * Converts a MaaS model to AIModel format
- * @param maasModel - The MaaS model to convert
- * @returns The converted AIModel
+ * @param model - The model response (from BFF /v1/models) to convert to AIModel with parsed endpoints
+ * @returns The converted AIModel with internalEndpoint and externalEndpoint populated
  */
-export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
-  model_name: maasModel.display_name || maasModel.id,
-  model_id: maasModel.id,
-  serving_runtime: 'MaaS',
-  api_protocol: 'OpenAI',
-  version: '',
-  usecase: maasModel.usecase || 'LLM',
-  description: maasModel.description || '',
-  endpoints: maasModel.url ? [`external: ${maasModel.url}`] : [],
-  status: maasModel.ready ? 'Running' : 'Stop',
-  display_name: maasModel.display_name || maasModel.id,
-  model_source_type: 'maas',
-  capabilities: maasModel.capabilities ?? [],
-  externalEndpoint: maasModel.url || undefined,
-  internalEndpoint: undefined,
-  model_type: maasModel.model_type,
-  subscriptions: maasModel.subscriptions,
-});
+export const convertMaaSModelToAIModel = (model: AAModelResponse): AIModel => {
+  let internalEndpoint: string | undefined;
+  let externalEndpoint: string | undefined;
+
+  for (const endpoint of Array.isArray(model.endpoints) ? model.endpoints : []) {
+    if (typeof endpoint !== 'string') {
+      continue;
+    }
+    if (endpoint.startsWith('external:')) {
+      const value = endpoint.replace(/^external:/, '').trim();
+      if (value) {
+        externalEndpoint = value;
+      }
+    } else if (endpoint.startsWith('internal:')) {
+      const value = endpoint.replace(/^internal:/, '').trim();
+      if (value) {
+        internalEndpoint = value;
+      }
+    } else {
+      internalEndpoint = endpoint;
+    }
+  }
+
+  return {
+    ...model,
+    display_name: model.display_name || model.model_name,
+    internalEndpoint,
+    externalEndpoint,
+  };
+};
 
 /**
  * Properties for clipboard copy tracking events

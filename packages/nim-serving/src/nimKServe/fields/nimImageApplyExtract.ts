@@ -1,43 +1,51 @@
 import { KServeDeployment } from '@odh-dashboard/kserve/types';
-import type { NIMImageFieldValue } from '../../pages/deploymentWizard/fields/NIMImageField';
-import { getModelNameFromRepository } from '../../api/images/utils';
+import { parseImageString } from '../../api/images/utils';
 import { KSERVE_CONTAINER_NAME } from '../../constants';
+import {
+  getImageOptionKey,
+  NIMImageFieldValue,
+  toNIMImageFieldValue,
+} from '../../pages/deploymentWizard/fields/NIMImageField';
+import { isNIMKServeDeployment } from '../extractFormData';
 
 const setNIMDeploymentModelFormat = (
   deployment: KServeDeployment,
   nimImage: NIMImageFieldValue,
-): KServeDeployment => ({
-  ...deployment,
-  model: {
-    ...deployment.model,
-    spec: {
-      ...deployment.model.spec,
-      predictor: {
-        ...deployment.model.spec.predictor,
-        model: {
-          ...deployment.model.spec.predictor.model,
-          modelFormat: { name: getModelNameFromRepository(nimImage.repository) },
+): KServeDeployment => {
+  const [, , imageName] = parseImageString(nimImage.repository);
+  return {
+    ...deployment,
+    model: {
+      ...deployment.model,
+      spec: {
+        ...deployment.model.spec,
+        predictor: {
+          ...deployment.model.spec.predictor,
+          model: {
+            ...deployment.model.spec.predictor.model,
+            modelFormat: { name: imageName },
+          },
         },
       },
     },
-  },
-  server: deployment.server
-    ? {
-        ...deployment.server,
-        spec: {
-          ...deployment.server.spec,
-          supportedModelFormats: [
-            {
-              autoSelect: false,
-              name: getModelNameFromRepository(nimImage.repository),
-              priority: 1,
-              version: nimImage.tag,
-            },
-          ],
-        },
-      }
-    : undefined,
-});
+    server: deployment.server
+      ? {
+          ...deployment.server,
+          spec: {
+            ...deployment.server.spec,
+            supportedModelFormats: [
+              {
+                autoSelect: false,
+                name: imageName,
+                priority: 1,
+                version: nimImage.tag,
+              },
+            ],
+          },
+        }
+      : undefined,
+  };
+};
 
 const setNIMDeploymentImage = (
   deployment: KServeDeployment,
@@ -51,7 +59,7 @@ const setNIMDeploymentImage = (
     if (c.name === KSERVE_CONTAINER_NAME) {
       return {
         ...c,
-        image: `${nimImage.repository}:${nimImage.tag}`,
+        image: getImageOptionKey(nimImage),
       };
     }
     return c;
@@ -83,4 +91,22 @@ export const applyNIMImageFieldData = (
   assembledDeployment = setNIMDeploymentImage(assembledDeployment, fieldData);
 
   return assembledDeployment;
+};
+
+export const getNIMKServeContainerImage = (deployment: KServeDeployment): string | undefined =>
+  deployment.server?.spec.containers.find((c) => c.name === KSERVE_CONTAINER_NAME)?.image;
+
+/**
+ * Reads the NIM image back off the ServingRuntime container to prefill the image field on edit.
+ * Returns undefined for non-NIM KServe deployments so it doesn't fire on plain KServe edits
+ * (the extractor matches on the shared KServe platform).
+ */
+export const extractNIMKServeImageFieldData = (
+  deployment: KServeDeployment,
+): NIMImageFieldValue | undefined => {
+  const image = getNIMKServeContainerImage(deployment);
+  if (!image || !isNIMKServeDeployment(deployment)) {
+    return undefined;
+  }
+  return toNIMImageFieldValue(image);
 };

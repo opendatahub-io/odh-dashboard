@@ -1,5 +1,5 @@
 import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { ResponseStatus } from '#~/types';
 
 export const enableIntegrationApp = (

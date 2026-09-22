@@ -28,8 +28,10 @@ export interface ExplorerFile {
   details?: Record<string, RenderableDetailValue>;
   hidden?: boolean;
   selectable?: boolean;
-  disabled?: boolean;
-  forceShowAsSelected?: boolean;
+  disabled?: boolean | string;
+  hint?: string | ReactNode;
+  /** Only rendered when `hint` is also set — the rendering code gates on `hint` first. */
+  hintTooltip?: string | ReactNode;
 }
 
 export type ExplorerFiles<T extends ExplorerFile = ExplorerFile> = T[];

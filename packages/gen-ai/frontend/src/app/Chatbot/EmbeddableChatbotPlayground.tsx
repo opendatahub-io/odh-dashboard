@@ -14,14 +14,14 @@ import type { EmbeddableChatbotPlaygroundProps } from '~/types/embeddable-chatbo
 import { UserContextProvider } from '~/app/context/UserContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { API_URL_PREFIX } from '~/app/utilities/const';
 import ChatbotPlayground from './ChatbotPlayground';
 import { EmbeddedMessagesContext } from './context/EmbeddedMessagesContext';
 import { createChatbotConfigStore, ChatbotConfigStoreContext, DEFAULT_CONFIG_ID } from './store';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
-  URL_PREFIX,
+  URL_PREFIX: API_URL_PREFIX,
   BFF_API_VERSION: 'v1',
 };
 

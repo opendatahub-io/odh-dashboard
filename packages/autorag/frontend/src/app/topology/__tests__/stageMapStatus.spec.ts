@@ -59,6 +59,7 @@ describe('translateStageStatus', () => {
   it.each([
     ['completed', RunStatus.Succeeded],
     ['started', RunStatus.InProgress],
+    ['running', RunStatus.InProgress],
     ['failed', RunStatus.Failed],
     ['skipped', RunStatus.Pending],
   ])('should map %s to %s', (status, expected) => {

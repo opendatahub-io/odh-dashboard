@@ -88,51 +88,56 @@ func (h *S3Handler) buildS3Request(w http.ResponseWriter, r *http.Request, secre
 
 // handleS3RepoError classifies errors from S3 repository calls and writes the appropriate HTTP response.
 func (h *S3Handler) handleS3RepoError(w http.ResponseWriter, r *http.Request, err error, key string) {
+	handleS3RepoError(h.logger, w, r, err, key)
+}
+
+// handleS3RepoError shares S3 error mapping with create-run dataset validation.
+func handleS3RepoError(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error, key string) {
 	switch {
 	case errors.Is(err, kubernetes.ErrNotFound):
-		notFoundResponseWithMessage(h.logger, w, r, err.Error())
+		notFoundResponseWithMessage(logger, w, r, err.Error())
 		return
 	case errors.Is(err, kubernetes.ErrForbidden):
-		forbiddenResponse(h.logger, w, r, err.Error())
+		forbiddenResponse(logger, w, r, err.Error())
 		return
 	case errors.Is(err, kubernetes.ErrUnauthorized):
-		unauthorizedResponse(h.logger, w, r, err.Error())
+		unauthorizedResponse(logger, w, r, err.Error())
 		return
 	}
 
 	if errors.Is(err, pipelines.ErrNoDSPAFound) {
-		notFoundResponseWithMessage(h.logger, w, r, "no Pipeline Server (DSPipelineApplication) found in namespace")
+		notFoundResponseWithMessage(logger, w, r, "no Pipeline Server (DSPipelineApplication) found in namespace")
 		return
 	}
 	if errors.Is(err, pipelines.ErrDSPANotReady) {
-		serviceUnavailableResponseWithMessage(h.logger, w, r, err,
+		serviceUnavailableResponseWithMessage(logger, w, r, err,
 			"Pipeline Server exists but is not ready - check that the APIServer component is running")
 		return
 	}
 
 	if errors.Is(err, s3.ErrObjectNotFound) {
-		notFoundResponseWithMessage(h.logger, w, r, fmt.Sprintf("object %q not found in S3 storage", key))
+		notFoundResponseWithMessage(logger, w, r, fmt.Sprintf("object %q not found in S3 storage", key))
 		return
 	}
 	if errors.Is(err, s3.ErrBucketNotFound) {
-		notFoundResponseWithMessage(h.logger, w, r, "S3 bucket not found")
+		notFoundResponseWithMessage(logger, w, r, "S3 bucket not found")
 		return
 	}
 	if errors.Is(err, s3.ErrAccessDenied) {
 		if key != "" {
-			forbiddenResponse(h.logger, w, r, fmt.Sprintf("access denied to S3 object %q", key))
+			forbiddenResponse(logger, w, r, fmt.Sprintf("access denied to S3 object %q", key))
 		} else {
-			forbiddenResponse(h.logger, w, r, "access denied to S3 bucket")
+			forbiddenResponse(logger, w, r, "access denied to S3 bucket")
 		}
 		return
 	}
 	if errors.Is(err, s3.ErrObjectAlreadyExists) {
-		conflictResponse(h.logger, w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", key))
+		conflictResponse(logger, w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", key))
 		return
 	}
 
 	if errors.Is(err, repositories.ErrDSPAConfiguration) {
-		serviceUnavailableResponseWithMessage(h.logger, w, r, err, err.Error())
+		serviceUnavailableResponseWithMessage(logger, w, r, err, err.Error())
 		return
 	}
 	if errors.Is(err, s3.ErrInvalidKey) ||
@@ -141,12 +146,12 @@ func (h *S3Handler) handleS3RepoError(w http.ResponseWriter, r *http.Request, er
 		errors.Is(err, repositories.ErrS3Configuration) ||
 		errors.Is(err, repositories.ErrCSVUploadValidation) ||
 		errors.Is(err, helper.ErrCSVValidation) {
-		badRequestResponse(h.logger, w, r, err.Error())
+		badRequestResponse(logger, w, r, err.Error())
 		return
 	}
 
 	if s3.IsConnectivityError(err) {
-		badGatewayResponseWithMessage(h.logger, w, r, err,
+		badGatewayResponseWithMessage(logger, w, r, err,
 			"Unable to connect to the S3 storage endpoint. "+
 				"The endpoint may be unreachable from this cluster. "+
 				"If this is a disconnected or air-gapped environment, "+
@@ -155,7 +160,7 @@ func (h *S3Handler) handleS3RepoError(w http.ResponseWriter, r *http.Request, er
 		return
 	}
 
-	serverErrorResponse(h.logger, w, r, err)
+	serverErrorResponse(logger, w, r, err)
 }
 
 // GetS3FileHandler retrieves a file from S3 storage.

@@ -1,0 +1,69 @@
+# Sim-only operator Deployment for the Konflux build simulator's reconciliation
+# smoke test (see .github/workflows/pr-build-validation.yml, "Phase 4: Operator
+# Integration"). NOT shipped and NOT part of any kustomize overlay.
+#
+# Minimal on purpose: the real config/manager/manager.yaml mounts webhook/metrics
+# cert secrets (cert-manager) that don't exist in Kind. We run the manager with the
+# webhook disabled (default) and metrics served over HTTP so no certs are required —
+# enough to prove the controller starts and reconciles a Dashboard CR.
+#
+# RELATED_IMAGE_ODH_DASHBOARD_IMAGE pins the dashboard image the operator writes when
+# it SSA-applies the base manifests. Without it the operator falls back to the baked-in
+# param (quay.io/opendatahub/odh-dashboard:main), pulling that large image over the
+# network during reconcile. Pointing it at the PR image tag that is already loaded into
+# Kind keeps the simulator validating the PR's artifacts and avoids the :main download.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-operator
+  namespace: opendatahub
+  labels:
+    app.kubernetes.io/name: dashboard-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dashboard-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dashboard-operator
+    spec:
+      serviceAccountName: dashboard-operator
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: manager
+          image: dashboard-operator:sim-test
+          imagePullPolicy: Never
+          args:
+            - --namespace=opendatahub
+            - --secure-metrics=false
+            - --health-probe-bind-address=:8081
+          env:
+            - name: OPERATOR_NAMESPACE
+              value: opendatahub
+            - name: APPLICATIONS_NAMESPACE
+              value: opendatahub
+            - name: RELATED_IMAGE_ODH_DASHBOARD_IMAGE
+              value: odh-dashboard:odh-test
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi

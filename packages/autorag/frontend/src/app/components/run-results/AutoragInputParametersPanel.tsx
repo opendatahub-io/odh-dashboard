@@ -27,10 +27,10 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
 import InlineTooltip from '~/app/components/InlineTooltip';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { DetectedLanguageMetadata } from '~/app/types/autoragPattern';
+import type { AutoragRuntimeParameters } from '~/app/types';
+import type { MetricReference } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
-import { OPTIMIZATION_METRIC_LABELS, PRESET_LABELS } from '~/app/utilities/const';
+import { PRESET_LABELS } from '~/app/utilities/const';
 import {
   formatDetectedLanguage,
   formatDetectedLanguageMetadata,
@@ -40,6 +40,7 @@ import {
   isDetectedLanguageMetadata,
 } from '~/app/utilities/detectedLanguageFromPatterns';
 import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import { metricLabel } from '~/app/utilities/metricUtils';
 import './AutoragInputParametersPanel.scss';
 
 /** Keys that are handled by the special "Model configuration" entry. */
@@ -65,10 +66,13 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
   { key: 'preset', label: 'Run preset' },
   { key: 'ogx_secret_name', label: 'Open GenAI Stack connection' },
+  { key: 'maas_secret_name', label: 'MaaS connection' },
   { key: 'input_data_secret_name', label: 'S3 connection' },
   { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
   { key: 'input_data_key', label: 'Selected files and folders' },
+  { key: 'input_data_keys', label: 'Selected files and folders' },
   { key: 'vector_io_provider_id', label: 'Vector I/O provider' },
+  { key: 'vector_db_secret_name', label: 'Vector database connection' },
   { key: 'test_data_key', label: 'Evaluation dataset' },
   { key: 'detected_language', label: 'Detected languages' },
   { key: 'optimization_metric', label: 'Optimization metric' },
@@ -106,6 +110,7 @@ const formatValue = (
   key: string,
   value: unknown,
   allParameters?: DisplayParameters,
+  optimizationMetric?: MetricReference,
 ): React.ReactNode => {
   if (value == null || value === '') {
     return '-';
@@ -130,9 +135,7 @@ const formatValue = (
     }
   }
   if (key === 'optimization_metric' && typeof value === 'string') {
-    return Object.hasOwn(OPTIMIZATION_METRIC_LABELS, value)
-      ? OPTIMIZATION_METRIC_LABELS[value]
-      : value;
+    return metricLabel(optimizationMetric ?? { name: value });
   }
   if (Array.isArray(value)) {
     return value.join(', ');
@@ -193,7 +196,9 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
     parts.push(
       <InlineTooltip
         key="generation"
-        text={`${generationModels.length} foundation model${generationModels.length !== 1 ? 's' : ''}`}
+        text={`${generationModels.length} foundation model${
+          generationModels.length !== 1 ? 's' : ''
+        }`}
         tooltip={generationModels.join(', ')}
       />,
     );
@@ -206,7 +211,9 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
     parts.push(
       <InlineTooltip
         key="embeddings"
-        text={`${embeddingsModels.length} embedding model${embeddingsModels.length !== 1 ? 's' : ''}`}
+        text={`${embeddingsModels.length} embedding model${
+          embeddingsModels.length !== 1 ? 's' : ''
+        }`}
         tooltip={embeddingsModels.join(', ')}
       />,
     );
@@ -219,13 +226,11 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
   return <>{parts}</>;
 };
 
-type DisplayParameters = Omit<Partial<ConfigureSchema>, 'detected_language'> & {
-  detected_language?: string | DetectedLanguageMetadata;
-};
+type DisplayParameters = AutoragRuntimeParameters;
 
 type AutoragInputParametersPanelProps = {
   onClose: () => void;
-  parameters?: Partial<ConfigureSchema>;
+  parameters?: AutoragRuntimeParameters;
   isLoading?: boolean;
 };
 
@@ -235,7 +240,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
   isLoading,
 }) => {
   const { namespace } = useParams();
-  const { pipelineRun, patterns, patternsLoading, ragPatternsBasePath } =
+  const { pipelineRun, patterns, patternsLoading, ragPatternsBasePath, optimizationMetric } =
     useAutoragResultsContext();
   const pipelineRef = pipelineRun?.pipeline_version_reference;
 
@@ -278,10 +283,10 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
   }
 
   const generationModels = Array.isArray(parameters?.generation_models)
-    ? parameters.generation_models
+    ? parameters.generation_models.filter((model): model is string => typeof model === 'string')
     : [];
   const embeddingModels = Array.isArray(parameters?.embedding_models)
-    ? parameters.embedding_models
+    ? parameters.embedding_models.filter((model): model is string => typeof model === 'string')
     : [];
   const hasModelConfig = generationModels.length > 0 || embeddingModels.length > 0;
 
@@ -366,7 +371,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                   <ParameterTerm parameterKey={key} label={getParameterLabel(key)} />
                   <DescriptionListDescription>
                     <Content component="p" className="odh-autorag-input-parameters-panel__value">
-                      {formatValue(key, value, displayParameters)}
+                      {formatValue(key, value, displayParameters, optimizationMetric)}
                     </Content>
                   </DescriptionListDescription>
                 </DescriptionListGroup>

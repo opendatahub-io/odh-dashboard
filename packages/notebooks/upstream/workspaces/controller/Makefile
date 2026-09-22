@@ -8,6 +8,19 @@ TAG ?= sha-$(GIT_COMMIT)$(GIT_TREE_STATE)
 IMG ?= $(REGISTRY)/$(NAME):$(TAG)
 ARCH ?= linux/arm64/v8,linux/amd64,linux/ppc64le
 
+# Target namespace for gateway overlay (manual deploy). workbenches-operator overrides
+# the placeholder in overlays/gateway/kustomization.yaml at render time.
+NAMESPACE ?= redhat-ods-applications
+export NAMESPACE
+
+# Validate NAMESPACE as a DNS-1123 label and substitute into gateway kustomization.
+# Uses $$NAMESPACE in the shell (not Make expansion) to avoid CWE-78 injection.
+define gateway_namespace_sed
+printf '%s' "$$NAMESPACE" | grep -Eq '^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$$' || { \
+  echo "ERROR: NAMESPACE must be a valid DNS-1123 label (lowercase alphanumeric or '-', cannot start/end with '-', max 63 chars)" >&2; exit 1; \
+}; \
+sed -i "s|^namespace:.*|namespace: $$NAMESPACE|" manifests/kustomize/.output/overlays/gateway/kustomization.yaml
+endef
 
 # The version of Kubernetes to use for envtest.
 # If updating, also update the version referenced in `BinaryAssetsDirectory` of suite_test.go files.
@@ -100,17 +113,23 @@ test-e2e: manifests generate fmt vet istioctl ## Run the e2e tests. Expected an 
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
-	$(GOLANGCI_LINT) run
+	$(GOLANGCI_LINT) run --max-issues-per-linter 0 --max-same-issues 0
 
 .PHONY: lint-fix
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
-	$(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) run --fix --max-issues-per-linter 0 --max-same-issues 0
 
 ##@ Build
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
+
+##@ Clean
+.PHONY: clean
+clean: ## Remove local test/build artifacts.
+	rm -rf $(LOCALBIN)
+	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -160,6 +179,34 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=$(ignore-not-found)
 
+.PHONY: deploy-gateway
+deploy-gateway: manifests kustomize ## Deploy controller with gateway overlay to the K8s cluster specified in ~/.kube/config.
+ifndef IMG
+	$(error IMG must be set)
+endif
+ifneq ($(findstring |,$(IMG)),)
+	$(error IMG must not contain '|')
+endif
+ifneq ($(findstring ",$(IMG)),)
+	$(error IMG must not contain double quotes)
+endif
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	@$(gateway_namespace_sed)
+	@sed -i "s|^WORKBENCH_CONTROLLER_IMAGE=.*|WORKBENCH_CONTROLLER_IMAGE=${IMG}|" manifests/kustomize/.output/overlays/gateway/params.env
+	@$(KUSTOMIZE) build manifests/kustomize/.output/overlays/gateway | $(KUBECTL) apply -f -
+
+.PHONY: undeploy-gateway
+undeploy-gateway: kustomize ## Undeploy controller (gateway overlay) from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	@$(gateway_namespace_sed)
+	@$(KUSTOMIZE) build manifests/kustomize/.output/overlays/gateway | $(KUBECTL) delete --ignore-not-found="$(ignore-not-found)" -f -
+
 ##@ Dependencies
 
 ## Location to install dependencies to
@@ -180,7 +227,7 @@ KUSTOMIZE_VERSION ?= v5.5.0
 CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
-GOLANGCI_LINT_VERSION ?= v1.64.8
+GOLANGCI_LINT_VERSION ?= v2.12.2
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -206,7 +253,7 @@ $(ISTIOCTL): $(LOCALBIN)
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
-	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

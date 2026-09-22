@@ -3,7 +3,7 @@ import {
   MultiSelection,
   GroupSelectionOptions,
   SelectionOptions,
-} from '#~/components/MultiSelection';
+} from '@odh-dashboard/ui-core/components/MultiSelection';
 import { API_GROUP_CATEGORIES, ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
 import { CORE_GROUP_ID } from './ruleModalUtils';
 import {
@@ -49,7 +49,14 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
       return [];
     }
     const mappedNames = new Set(API_GROUP_CATEGORIES.flatMap((c) => c.groups.map((g) => g.name)));
-    return apiResourcesData.apiGroups.filter((g) => !mappedNames.has(g));
+    const seen = new Set<string>();
+    return apiResourcesData.apiGroups.filter((g) => {
+      if (mappedNames.has(g) || g === '' || seen.has(g)) {
+        return false;
+      }
+      seen.add(g);
+      return true;
+    });
   }, [apiResourcesData.apiGroups, discoveredApiGroups.size]);
 
   const allCategories = React.useMemo(() => {

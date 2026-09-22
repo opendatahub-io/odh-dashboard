@@ -13,7 +13,7 @@ export type FormTrackingEventProperties = {
 };
 
 export type MiscTrackingEventProperties = {
-  [key: string]: string | number | boolean | undefined;
+  [key: string]: string | number | boolean | string[] | undefined;
 };
 
 export type LinkTrackingEventProperties = {

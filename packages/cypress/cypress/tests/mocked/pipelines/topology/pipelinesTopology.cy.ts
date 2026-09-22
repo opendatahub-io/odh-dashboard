@@ -20,6 +20,7 @@ import {
   RuntimeStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   pipelineDetails,
   pipelineRecurringRunDetails,
@@ -32,7 +33,6 @@ import {
   PodModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { toastNotifications } from '../../../../pages/components/ToastNotifications';

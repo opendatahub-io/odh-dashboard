@@ -17,7 +17,10 @@ FROM ${NODE_BASE_IMAGE} AS ui-builder
 
 ARG UI_SOURCE_CODE
 ARG MODULE_NAME
-ARG DEPLOYMENT_MODE
+ARG DEPLOYMENT_MODE=federated
+# Promote the build arg to an env var so the frontend build compiles in federated
+# Module Federation mode by default (host provides shared @odh-dashboard/* + framework packages).
+ENV DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
 ARG PLATFORM_MODE
 
 WORKDIR /usr/src/workspace
@@ -52,13 +55,13 @@ USER default
 # Install workspace dependencies first (this creates node_modules at workspace level)
 RUN npm cache clean --force
 # Install all workspace dependencies (includes root + any copied workspaces)
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 # Set up the specific module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 
 # Install module dependencies
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 # Build the module
 RUN npm run build:prod
@@ -77,6 +80,7 @@ WORKDIR /usr/src/workspace
 
 # Copy module manifests first for dependency caching
 COPY packages/autox-core/services/go.mod packages/autox-core/services/go.sum ./packages/autox-core/services/
+COPY pkg/tls/go.mod pkg/tls/go.sum ./pkg/tls/
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./${BFF_SOURCE_CODE}/
 
 # Download dependencies
@@ -85,6 +89,7 @@ RUN go mod download
 
 # Copy source files
 COPY packages/autox-core/services/ /usr/src/workspace/packages/autox-core/services/
+COPY pkg/tls/ /usr/src/workspace/pkg/tls/
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 

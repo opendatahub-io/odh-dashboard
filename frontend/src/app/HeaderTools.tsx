@@ -15,6 +15,7 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import LightBulbIcon from '#~/images/icons/LightBulbIcon';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '#~/utilities/const';
 import useNotification from '#~/utilities/useNotification';
@@ -45,6 +46,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const { dashboardConfig } = useAppContext();
   const { theme, setAllThemes } = useThemeContext();
   const notification = useNotification();
+  const isGuidedTourAvailable = useIsAreaAvailable(SupportedArea.GUIDED_TOUR).status;
 
   React.useEffect(() => {
     const htmlElement = document.getElementsByTagName('html')[0];
@@ -151,18 +153,20 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
     <Toolbar isFullHeight>
       <ToolbarContent>
         <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
-          <ToolbarItem>
-            <Tooltip content="Take a guided tour" position="bottom">
-              <Button
-                variant="plain"
-                aria-label="Take a guided tour"
-                onClick={() => openWhatsNewTour('masthead')}
-                data-testid="whats-new-button"
-              >
-                <LightBulbIcon style={{ fontSize: 'var(--pf-t--global--font--size--lg)' }} />
-              </Button>
-            </Tooltip>
-          </ToolbarItem>
+          {isGuidedTourAvailable ? (
+            <ToolbarItem>
+              <Tooltip content="Take a guided tour" position="bottom">
+                <Button
+                  variant="plain"
+                  aria-label="Take a guided tour"
+                  onClick={() => openWhatsNewTour('masthead')}
+                  data-testid="whats-new-button"
+                >
+                  <LightBulbIcon style={{ fontSize: 'var(--pf-t--global--font--size--lg)' }} />
+                </Button>
+              </Tooltip>
+            </ToolbarItem>
+          ) : null}
           <ToolbarItem>
             <Tooltip content="Notifications" position="bottom">
               <NotificationBadge

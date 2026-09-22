@@ -360,8 +360,8 @@ export type LlamaStackDistributionModel = {
   distributionConfig: {
     activeDistribution: string;
     providers: Array<{
-      providerID: string;
-      providerType: string;
+      provider_id?: string;
+      provider_type?: string;
       api: string;
       config?: Record<string, unknown> | null;
       health: {
@@ -400,13 +400,16 @@ export interface AAModelResponse {
   model_type?: LlamaModelType;
   embedding_dimension?: number;
   capabilities?: string[];
+  subscriptions?: SubscriptionInfo[];
 }
 
 export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
-  subscriptions?: SubscriptionInfo[];
+  /** Raw MaaS model identifier. For MaaS models, this equals model_id. Present when the
+   * context has enriched the AIModel from a raw MaaS source. */
+  id?: string;
 }
 
 export type ExternalModelRequest = {
@@ -479,6 +482,7 @@ export type {
   MCPToolsStatus,
   MCPToolsResponse,
   MCPTool,
+  MCPToolSummary,
   MCPServer,
   MCPTransportType,
   MCPServerStatus,
@@ -593,7 +597,6 @@ export type GenAiAPIs = {
   deleteLSD: DeleteLSD;
   getAAModels: GetAAModels;
   getAAVectorStores: GetAAVectorStores;
-  getMaaSModels: GetMaaSModels;
   generateMaaSToken: GenerateMaaSToken;
   getMCPServerTools: GetMCPServerTools;
   getMCPServers: GetMCPServers;
@@ -621,20 +624,19 @@ export interface SubscriptionInfo {
   description?: string;
 }
 
+/** Raw MaaS model as returned by the MaaS API (before conversion to AIModel). */
 export interface MaaSModel {
   id: string;
   object: string;
   created: number;
   owned_by: string;
   ready: boolean;
-  url?: string;
-  // Optional fields for display name, description, and use case
-  // These may not be provided by all backends, so we use id as fallback for display_name
   display_name?: string;
-  description?: string;
   usecase?: string;
-  model_type?: LlamaModelType;
+  description?: string;
+  url?: string;
   capabilities?: string[];
+  model_type?: LlamaModelType;
   subscriptions?: SubscriptionInfo[];
 }
 
@@ -683,7 +685,6 @@ type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDReque
 type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
 type GetAAModels = ModArchRestGET<AAModelResponse[]>;
 type GetAAVectorStores = ModArchRestGET<ExternalVectorStoreSummary[]>;
-type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
 type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
 type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;

@@ -16,6 +16,8 @@ module.exports = require('@odh-dashboard/eslint-config')
           patterns: [
             {
               group: [
+                '!@odh-dashboard/analytics',
+                '!@odh-dashboard/analytics/**',
                 '!@odh-dashboard/app-config',
                 '!@odh-dashboard/app-config/**',
                 '!@odh-dashboard/plugin-core',
@@ -38,6 +40,8 @@ module.exports = require('@odh-dashboard/eslint-config')
                 '!@odh-dashboard/ui-core/**',
                 '!@odh-dashboard/model-serving/shared',
                 '!@odh-dashboard/model-serving/shared/**',
+                '!@odh-dashboard/trustyai',
+                '!@odh-dashboard/trustyai/**',
                 '!@odh-dashboard/*/__mocks__',
                 '!@odh-dashboard/*/__mocks__/**',
                 '!@odh-dashboard/model-registry/shared',

@@ -20,6 +20,7 @@ import {
 } from '@patternfly/react-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { ExternalLinkAltIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { useAppContext } from '#~/app/AppContext';
 import { useUser } from '#~/redux/selectors';
@@ -74,12 +75,12 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const globalProjectPromptsAvailable = config.globalProjectPrompts ?? false;
   const connectionTestAvailable = config.connectionTest ?? false;
   const mcpRegistryAvailable = config.mcpRegistry ?? false;
-  const externalModelsAvailable = config.externalModels ?? false;
   const llmdTemplatesAvailable = config.llmdTemplates ?? false;
   const vllmDeploymentOnMaaSAvailable = config.vLLMDeploymentOnMaaS ?? false;
   const modelCatalogAvailable = !config.disableModelCatalog;
   const modelRegistryAvailable = !config.disableModelRegistry;
   const modelServingAvailable = !config.disableModelServing;
+  const maasAvailable = config.modelAsService ?? false;
   const aiHubAvailable =
     modelCatalogAvailable ||
     modelRegistryAvailable ||
@@ -152,8 +153,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
           {
             title: 'External models',
             description: 'View models from external providers alongside your deployed models.',
-            flagName: 'externalModels',
-            available: externalModelsAvailable,
+            flagName: 'modelAsService',
+            available: maasAvailable,
           },
           {
             title: 'Safety and security insights',
@@ -332,10 +333,10 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       globalProjectPromptsAvailable,
       connectionTestAvailable,
       mcpRegistryAvailable,
-      externalModelsAvailable,
       llmdTemplatesAvailable,
       vllmDeploymentOnMaaSAvailable,
       aiHubAvailable,
+      maasAvailable,
       isAdmin,
     ],
   );
@@ -383,7 +384,7 @@ const ensureNavSidebarClosed = (): void => {
   }
 };
 
-const WhatsNewModal: React.FC = () => {
+const WhatsNewModalContent: React.FC = () => {
   const { isAdmin } = useUser();
   const [seen, setSeen] = useBrowserStorage<boolean>(TOUR_SEEN_STORAGE_KEY, false);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -876,6 +877,14 @@ const WhatsNewModal: React.FC = () => {
       <ModalFooter>{stepFooter}</ModalFooter>
     </Modal>
   );
+};
+
+const WhatsNewModal: React.FC = () => {
+  const isGuidedTourAvailable = useIsAreaAvailable(SupportedArea.GUIDED_TOUR).status;
+  if (!isGuidedTourAvailable) {
+    return null;
+  }
+  return <WhatsNewModalContent />;
 };
 
 export default WhatsNewModal;

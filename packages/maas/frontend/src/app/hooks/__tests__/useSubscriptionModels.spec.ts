@@ -170,6 +170,7 @@ describe('useSubscriptionModels', () => {
 
     expect(renderResult.result.current.models[0].tokenRateLimits).toEqual(newLimits);
     expect(renderResult.result.current.models[1].tokenRateLimits).toEqual([]);
+    expect(renderResult.result.current.editLimitsTarget).toBeNull();
   });
 
   it('should report allModelsHaveRateLimits correctly', () => {

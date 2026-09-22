@@ -68,10 +68,6 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
 
-	sidecar := filepath.Join(base, "sidecar")
-	require.NoError(t, os.MkdirAll(sidecar, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"), []byte(""), 0644))
-
 	return base
 }
 
@@ -189,7 +185,7 @@ func TestReconcile(t *testing.T) {
 			wantModuleCount: registrySize,
 		},
 		{
-			name:       "module statuses populated — all modules deployed by default",
+			name:       "module statuses populated — all modules not deployed when no manifests present",
 			generation: 1,
 			manifestsBase: func(t *testing.T) string {
 				return createMinimalManifests(t)
@@ -205,14 +201,15 @@ func TestReconcile(t *testing.T) {
 			wantRequeue:     ctrlpkg.ObservabilityRetryInterval,
 			wantModuleCount: registrySize,
 			wantModulePhases: map[string]v1alpha1.ModulePhase{
-				"modelRegistry": v1alpha1.ModulePhaseDeployed,
-				"genAi":         v1alpha1.ModulePhaseDeployed,
-				"mlflow":        v1alpha1.ModulePhaseDeployed,
-				"maas":          v1alpha1.ModulePhaseDeployed,
-				"evalHub":       v1alpha1.ModulePhaseDeployed,
-				"automl":        v1alpha1.ModulePhaseDeployed,
-				"autorag":       v1alpha1.ModulePhaseDeployed,
-				"agentOps":      v1alpha1.ModulePhaseDeployed,
+				"modelRegistry": v1alpha1.ModulePhaseNotDeployed,
+				"genAi":         v1alpha1.ModulePhaseNotDeployed,
+				"mlflow":        v1alpha1.ModulePhaseNotDeployed,
+				"maas":          v1alpha1.ModulePhaseNotDeployed,
+				"evalHub":       v1alpha1.ModulePhaseNotDeployed,
+				"automl":        v1alpha1.ModulePhaseNotDeployed,
+				"autorag":       v1alpha1.ModulePhaseNotDeployed,
+				"agentOps":      v1alpha1.ModulePhaseNotDeployed,
+				"notebooks":     v1alpha1.ModulePhaseNotDeployed,
 			},
 		},
 		{
@@ -333,6 +330,49 @@ func TestReconcile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
+	scheme := testScheme(t)
+	manifests := t.TempDir()
+	maasModulePath := filepath.Join(manifests, "modules", "maas")
+	require.NoError(t, os.MkdirAll(maasModulePath, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(maasModulePath, "kustomization.yaml"), []byte("invalid: ["), 0644))
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
+			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		},
+	}
+	cli := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                scheme,
+		ManifestsBasePath:     manifests,
+		Platform:              cluster.SelfManagedRhoai,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+	require.Error(t, err)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+	condition := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, condition)
+	assert.Equal(t, metav1.ConditionFalse, condition.Status)
+	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
 }
 
 func TestReconcile_Deletion(t *testing.T) {
@@ -769,6 +809,35 @@ func TestReconcile_StatusContract(t *testing.T) {
 	}
 }
 
+func TestReconcileDegradedCondition(t *testing.T) {
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(
+		dashboard,
+		string(common.ConditionTypeReady),
+		string(common.ConditionTypeDegraded),
+	)
+	r := &ctrlpkg.DashboardReconciler{}
+
+	r.ReconcileDegradedCondition(cm, map[string]v1alpha1.ModuleStatus{
+		"modelRegistry": {Phase: v1alpha1.ModulePhaseDegraded},
+		"genAi":         {Phase: v1alpha1.ModulePhaseDegraded},
+		"mlflow":        {Phase: v1alpha1.ModulePhaseDeployed},
+	})
+
+	degraded := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "ModulesDegraded", degraded.Reason)
+	assert.Equal(t, "2 module(s) degraded", degraded.Message)
+	assert.Equal(t, common.ConditionSeverityError, degraded.Severity)
+	ready := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeReady))
+	require.NotNil(t, ready)
+	assert.Equal(t, metav1.ConditionFalse, ready.Status)
+	assert.Equal(t, "ModulesDegraded", ready.Reason)
+	assert.Equal(t, "2 module(s) degraded", ready.Message)
+	assert.False(t, cm.IsHappy())
+}
+
 func TestReconcile_DistinctNamespaces(t *testing.T) {
 	s := testScheme(t)
 
@@ -810,10 +879,6 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(kustomization), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
-
-	sidecar := filepath.Join(base, "sidecar")
-	require.NoError(t, os.MkdirAll(sidecar, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"), []byte(""), 0644))
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
@@ -916,18 +981,31 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 			updated := &v1alpha1.Dashboard{}
 			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
 
-			var platformVersion string
-			for _, r := range updated.GetReleaseStatus().Releases {
-				if r.Name == "platform" {
-					platformVersion = r.Version
-					break
-				}
-			}
-			assert.Equal(t, tt.wantPlatformVersion, platformVersion)
-
+			releases := updated.GetReleaseStatus().Releases
+			wantReleaseCount := 1
 			if tt.wantPlatformVersion != "" {
-				require.GreaterOrEqual(t, len(updated.GetReleaseStatus().Releases), 2,
-					"should have both dashboard and platform release entries")
+				wantReleaseCount = 2
+			}
+			require.Len(t, releases, wantReleaseCount)
+
+			releasesByName := make(map[string]common.ComponentRelease, len(releases))
+			for _, release := range releases {
+				_, duplicate := releasesByName[release.Name]
+				require.False(t, duplicate, "release %q must appear only once", release.Name)
+				releasesByName[release.Name] = release
+			}
+
+			dashboardRelease, found := releasesByName[v1alpha1.DashboardComponentName]
+			require.True(t, found, "dashboard release must be reported")
+			assert.Equal(t, ctrlpkg.Version, dashboardRelease.Version)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", dashboardRelease.RepoURL)
+
+			platformRelease, found := releasesByName[common.ReleasePlatform]
+			if tt.wantPlatformVersion == "" {
+				assert.False(t, found, "platform release must be omitted without platformVersion")
+			} else {
+				require.True(t, found, "platform release must be reported")
+				assert.Equal(t, tt.wantPlatformVersion, platformRelease.Version)
 			}
 		})
 	}
@@ -1111,8 +1189,8 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
 }
 
-func TestDeleteSidecarResources(t *testing.T) {
-	t.Run("deletes all sidecar-specific resources", func(t *testing.T) {
+func TestCleanupLegacySidecarResources(t *testing.T) {
+	t.Run("deletes all legacy sidecar resources", func(t *testing.T) {
 		s := testScheme(t)
 		ctx := context.Background()
 
@@ -1150,7 +1228,7 @@ func TestDeleteSidecarResources(t *testing.T) {
 			ApplicationsNamespace: testNamespace,
 		}
 
-		err := r.DeleteSidecarResources(ctx)
+		err := r.CleanupLegacySidecarResources(ctx)
 		require.NoError(t, err)
 
 		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ServiceAccount{}, testNamespace, "odh-dashboard-modules"))
@@ -1174,7 +1252,7 @@ func TestDeleteSidecarResources(t *testing.T) {
 			ApplicationsNamespace: testNamespace,
 		}
 
-		err := r.DeleteSidecarResources(context.Background())
+		err := r.CleanupLegacySidecarResources(context.Background())
 		require.NoError(t, err)
 	})
 }

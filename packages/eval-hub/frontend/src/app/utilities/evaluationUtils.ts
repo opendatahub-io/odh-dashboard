@@ -74,15 +74,41 @@ export const getBenchmarkDisplayName = (id: string): string =>
 export const formatAsPercentage = (value: number): string =>
   Number.isFinite(value) ? `${Math.round(value * 100)}%` : '-';
 
+/**
+ * Extract a display score from a benchmark result, returned as a formatted percentage.
+ *
+ * Resolution order:
+ *  1. `benchmark.test.primary_score` — populated by the eval service when the `test` object is present.
+ *  2. `primaryMetric` lookup in `benchmark.metrics` — the metric name from the benchmark's
+ *     config (`primary_score.metric`). This covers providers like garak whose primary metric
+ *     (`attack_success_rate`) is not in the well-known fallback list, and whose list-endpoint
+ *     response may omit the `test` object entirely.
+ *  3. Well-known metric names (`acc_norm`, `acc`, `attack_success_rate`) as a last resort.
+ *
+ * @param primaryMetric - The configured `primary_score.metric` from the benchmark config
+ *   (e.g. `job.benchmarks[].primary_score.metric`). The benchmark result itself does not
+ *   carry this field, so callers cross-reference with the config benchmarks.
+ */
 export const formatBenchmarkScore = (
   benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
+  primaryMetric?: string,
 ): string | null => {
   const primaryScore = benchmark.test?.primary_score;
   if (primaryScore != null && Number.isFinite(primaryScore)) {
     return formatAsPercentage(primaryScore);
   }
   if (benchmark.metrics) {
-    const candidates = [benchmark.metrics.acc_norm, benchmark.metrics.acc];
+    if (primaryMetric) {
+      const configured = benchmark.metrics[primaryMetric];
+      if (typeof configured === 'number' && Number.isFinite(configured)) {
+        return formatAsPercentage(configured);
+      }
+    }
+    const candidates = [
+      benchmark.metrics.acc_norm,
+      benchmark.metrics.acc,
+      benchmark.metrics.attack_success_rate,
+    ];
     const preferred = candidates.find(
       (v): v is number => typeof v === 'number' && Number.isFinite(v),
     );
@@ -102,7 +128,12 @@ export const getResultScore = (job: EvaluationJob): string => {
     return '-';
   }
   if (job.results.benchmarks?.length) {
-    return formatBenchmarkScore(job.results.benchmarks[0]) ?? '-';
+    const resultBenchmark = job.results.benchmarks[0];
+    const resolvedIndex = resultBenchmark.benchmark_index ?? 0;
+    const configBenchmark = getJobBenchmarks(job).find(
+      (b, idx) => b.id === resultBenchmark.id && (b.benchmark_index ?? idx) === resolvedIndex,
+    );
+    return formatBenchmarkScore(resultBenchmark, configBenchmark?.primary_score?.metric) ?? '-';
   }
   return '-';
 };
@@ -120,7 +151,12 @@ export const getBenchmarkResultScore = (
   if (!benchmark) {
     return '-';
   }
-  return formatBenchmarkScore(benchmark) ?? '-';
+  const configBenchmark = getJobBenchmarks(job).find(
+    (b, idx) =>
+      b.id === benchmarkId &&
+      (benchmarkIndex === undefined || (b.benchmark_index ?? idx) === benchmarkIndex),
+  );
+  return formatBenchmarkScore(benchmark, configBenchmark?.primary_score?.metric) ?? '-';
 };
 
 export const getResultPass = (job: EvaluationJob): boolean | null => {

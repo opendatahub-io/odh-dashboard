@@ -1,5 +1,5 @@
 import type { EitherOrNone } from '@odh-dashboard/foundation';
-import { mergeRequestInit } from '#~/api/apiMergeUtils';
+import { mergeRequestInit } from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions } from '#~/k8sTypes';
 
 /**

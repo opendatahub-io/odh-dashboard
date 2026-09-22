@@ -120,7 +120,8 @@ The reconciler must check `dashboard.Spec.ManagementState` after finalizer handl
 if dashboard.Spec.ManagementState == "Removed" {
     // Delete all resources labeled platform.opendatahub.io/part-of=dashboard
     // Clean up cross-namespace resources
-    // Set phase=NotReady, clear URL and moduleStatuses
+    // Set phase=NotReady and clear URL. Preserve the computed aggregate
+    // moduleStatuses for modules still required by another operand.
     // Set ProvisioningSucceeded=False (reason: Removed)
     return ctrl.Result{}, nil
 }
@@ -285,4 +286,4 @@ RBAC manifests are in `config/rbac/`. When adding new resource types to the reco
 - **Creating resources without ownership** — use `deployer.Deploy()` with `Owner` set for garbage collection
 - **Missing `Owns()` registration** — if the controller deploys Deployments, Services, or ConfigMaps, register them with `Owns()` so external modifications/deletions trigger re-reconciliation
 - **Ignoring `managementState: Removed`** — always check before proceeding with deployment; `Removed` means "tear down the operand but keep the CR"
-- **Adding modules without updating the full chain** — new modules need entries in `modules.go` (registry), `support.go` (image mapping), and `charts/dashboard/values.yaml` (related images)
+- **Adding modules without updating the full chain** — new modules need entries in `modules.go` (registry with all fields), `modules_test.go` (count and name list), `charts/dashboard/values.yaml` (related images), and `relatedImages()` in `opendatahub-io/opendatahub-operator` `internal/controller/modules/dashboard/support.go` (one-line addition). The `support.go` image mapping and proxy paths are read from the `ModuleDefinition` in the registry (single source of truth)

@@ -139,6 +139,12 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Feature Store](packages/feature-store/docs/overview.md) | Feature store management UI; dataset versioning; see also [README](packages/feature-store/README.md) and [AGENTS.md](packages/feature-store/AGENTS.md) |
 | [LLMD Serving](packages/llmd-serving/docs/overview.md) | LLM-dedicated serving; interactions with gen-ai frontend area |
 
+### Infrastructure
+
+| Doc | Description |
+|-----|-------------|
+| [Analytics](packages/analytics/README.md) | Shared Segment analytics implementation |
+
 ### Stubs (tooling-only packages)
 
 | Doc | Description |

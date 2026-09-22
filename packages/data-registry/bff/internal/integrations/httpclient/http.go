@@ -1,4 +1,4 @@
-package mrserver
+package httpclient
 
 import (
 	"crypto/tls"

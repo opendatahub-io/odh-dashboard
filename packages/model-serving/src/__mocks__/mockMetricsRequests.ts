@@ -1,4 +1,4 @@
-import { BaseMetricListResponse } from '@odh-dashboard/internal/api';
+import { BaseMetricListResponse } from '@odh-dashboard/trustyai/types';
 
 type MockMetricsRequestType = {
   modelName?: string;

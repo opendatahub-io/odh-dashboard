@@ -20,7 +20,7 @@ paths:
 | PatternFly v6 | Primary UI component library — import from `@patternfly/react-core`, `@patternfly/react-table`, `@patternfly/react-icons` |
 | Material UI | Secondary UI library (Kubeflow mode only) |
 | Fastify | Backend server framework |
-| Webpack | Build tooling with Module Federation |
+| Rspack | Build tooling with Module Federation |
 | Turbo | Monorepo task runner |
 
 ## Code Style
@@ -68,7 +68,7 @@ paths:
 - **`useMemo`** — only memoize expensive computations; React is performant by default
 - **`useRef`** — avoid unless you need DOM access or a mutable value that persists across renders without triggering re-renders
 - **Custom hooks** — always memoize functions returned from hooks (consumers can't control reference stability)
-- See [docs/best-practices.md](../best-practices.md) for detailed examples and code patterns
+- See [docs/best-practices.md](../../docs/best-practices.md) for detailed examples and code patterns
 
 ## PatternFly v6
 

@@ -615,7 +615,7 @@ describe('MCP Manage Source Page - Manage Source Mode', () => {
         },
       }).as('previewDefaultSource');
 
-      mcpManageSourcePage.visitManageSource('default_source');
+      mcpManageSourcePage.visitManageSource('default_source', { sourcePreviewStub: false });
       cy.wait('@previewDefaultSource');
       cy.findByTestId('app-page-title').should('exist');
 

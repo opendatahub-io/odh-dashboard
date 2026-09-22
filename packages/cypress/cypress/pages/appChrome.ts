@@ -20,8 +20,8 @@ class AppChrome {
     return cy.get('#page-nav-toggle');
   }
 
-  findSideBar() {
-    return cy.get('#page-sidebar');
+  findSideBar(options?: { timeout?: number }) {
+    return cy.get('#page-sidebar', options);
   }
 
   findMainContent() {

@@ -27,6 +27,12 @@ import {
   transformFormDataToConfig,
 } from '~/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils';
 import { CatalogSourceConfig, CatalogSourceType } from '~/app/modelCatalogTypes';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,
+  MODEL_CATALOG_SOURCE_EVENTS,
+  ModelCatalogAccessTokenClearOutcome,
+} from '~/app/pages/modelCatalogSettings/tracking/modelCatalogSourcesTracking';
 import SourceDetailsSection from './SourceDetailsSection';
 import CredentialsSection from './CredentialsSection';
 import YamlSection from './YamlSection';
@@ -46,23 +52,73 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
   onToggleExpectedFormatDrawer,
 }) => {
   const navigate = useNavigate();
+  const { trackSimpleEvent } = useUserInteraction();
   const existingData = existingSourceConfig
-    ? catalogSourceConfigToFormData(existingSourceConfig)
+    ? { ...catalogSourceConfigToFormData(existingSourceConfig), tokenModified: false }
     : undefined;
   const [formData, setData] = useManageSourceData(existingData);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
-  const { apiState, refreshCatalogSourceConfigs } = React.useContext(ModelCatalogSettingsContext);
+  const {
+    apiState,
+    catalogSources,
+    refreshCatalogSourceConfigs,
+    refreshCatalogSources,
+    markSourcePending,
+  } = React.useContext(ModelCatalogSettingsContext);
 
-  // Use the preview hook
+  const hasExistingApiKey = React.useMemo(() => {
+    if (!isEditMode || !formData.id) {
+      return false;
+    }
+    const source = catalogSources?.items?.find((s) => s.id === formData.id);
+    return source?.hasApiKey ?? false;
+  }, [isEditMode, formData.id, catalogSources]);
+
   const preview = useSourcePreview({
     formData,
     existingSourceConfig,
     apiState,
     isEditMode,
+    hasExistingApiKey,
   });
 
   const isHuggingFaceMode = formData.sourceType === CatalogSourceType.HUGGING_FACE;
+
+  const handleEnableSourceChange = React.useCallback(
+    (checked: boolean) => {
+      setData('enabled', checked);
+      if (isHuggingFaceMode) {
+        trackSimpleEvent(MODEL_CATALOG_SOURCE_EVENTS.ENABLE_SOURCE_TOGGLED, {
+          isSourceEnabled: checked,
+          sourceType: MODEL_CATALOG_HF_TRACKING_SOURCE_TYPE,
+        });
+      }
+    },
+    [isHuggingFaceMode, setData, trackSimpleEvent],
+  );
+
+  const handleAccessTokenClearOutcome = React.useCallback(
+    (outcome: ModelCatalogAccessTokenClearOutcome) => {
+      trackSimpleEvent(MODEL_CATALOG_SOURCE_EVENTS.ACCESS_TOKEN_CLEAR_CONFIRMED, {
+        outcome,
+      });
+    },
+    [trackSimpleEvent],
+  );
+
+  const handleClearCredentials = React.useCallback(async () => {
+    if (!formData.id) {
+      return;
+    }
+    if (!apiState.apiAvailable) {
+      throw new Error('API is not available');
+    }
+    await apiState.api.deleteCatalogSourceCredentials({}, formData.id);
+    refreshCatalogSourceConfigs();
+    refreshCatalogSources();
+  }, [apiState, formData.id, refreshCatalogSourceConfigs, refreshCatalogSources]);
+
   const isFormComplete = isFormValid(formData);
 
   const handleSubmit = async () => {
@@ -75,15 +131,29 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
 
     try {
       const sourceConfig = transformFormDataToConfig(formData, existingSourceConfig);
-      const payload = getPayloadForConfig(sourceConfig, isEditMode);
+      const payload = getPayloadForConfig(sourceConfig, isEditMode, formData.tokenModified);
 
-      if (isEditMode) {
+      if (isEditMode && existingData) {
+        const previousStatus =
+          catalogSources?.items?.find((s) => s.id === formData.id)?.status ?? '';
         await apiState.api.updateCatalogSourceConfig({}, formData.id, payload);
+        const validationFieldsChanged =
+          existingData!.sourceType !== formData.sourceType ||
+          existingData!.yamlContent !== formData.yamlContent ||
+          existingData!.accessToken !== formData.accessToken ||
+          existingData!.organization !== formData.organization ||
+          existingData!.allowedModels !== formData.allowedModels ||
+          existingData!.excludedModels !== formData.excludedModels ||
+          existingData!.enabled !== formData.enabled;
+        if (validationFieldsChanged) {
+          markSourcePending(formData.id, previousStatus);
+        }
       } else {
         await apiState.api.createCatalogSourceConfig({}, payload);
       }
 
       refreshCatalogSourceConfigs();
+      refreshCatalogSources();
       navigate(catalogSettingsUrl());
     } catch (error) {
       setSubmitError(error instanceof Error ? error : new Error(ERROR_MESSAGES.SAVE_FAILED));
@@ -120,6 +190,9 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                     validationError={preview.validationError}
                     isValidationSuccess={preview.isValidationSuccess}
                     onClearValidationSuccess={preview.clearValidationSuccess}
+                    hasExistingApiKey={hasExistingApiKey}
+                    onClearCredentials={handleClearCredentials}
+                    onAccessTokenClearOutcome={handleAccessTokenClearOutcome}
                   />
                 </StackItem>
               )}
@@ -135,18 +208,6 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
               )}
 
               <StackItem>
-                <ModelVisibilitySection
-                  formData={formData}
-                  setData={setData}
-                  isDefaultExpanded={
-                    existingData?.isDefault ||
-                    !!existingData?.allowedModels ||
-                    !!existingData?.excludedModels
-                  }
-                />
-              </StackItem>
-
-              <StackItem>
                 <FormSection>
                   <FormGroup fieldId="enable-source">
                     <Checkbox
@@ -160,16 +221,28 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
                       data-testid="enable-source-checkbox"
                       description={DESCRIPTION_TEXT.ENABLE_SOURCE}
                       isChecked={formData.enabled}
-                      onChange={(_event, checked) => setData('enabled', checked)}
+                      onChange={(_event, checked) => handleEnableSourceChange(checked)}
                     />
                   </FormGroup>
                 </FormSection>
+              </StackItem>
+
+              <StackItem>
+                <ModelVisibilitySection
+                  formData={formData}
+                  setData={setData}
+                  isDefaultExpanded={
+                    existingData?.isDefault ||
+                    !!existingData?.allowedModels ||
+                    !!existingData?.excludedModels
+                  }
+                />
               </StackItem>
             </Stack>
           </Form>
         </SidebarContent>
         <SidebarPanel width={{ default: 'width_50' }}>
-          <PreviewPanel preview={preview} />
+          <PreviewPanel preview={preview} isSourceEnabled={formData.enabled} />
         </SidebarPanel>
       </Sidebar>
       <ManageSourceFormFooter
@@ -182,6 +255,7 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
         isPreviewDisabled={!preview.canPreview}
         isPreviewLoading={preview.previewState.isLoadingInitial}
         onPreview={() => preview.handlePreview()}
+        previewDisabledTooltip={preview.previewDisabledTooltip}
       />
     </>
   );

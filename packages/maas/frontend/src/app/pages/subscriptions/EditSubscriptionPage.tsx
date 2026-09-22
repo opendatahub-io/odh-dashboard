@@ -2,12 +2,10 @@ import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import {
-  getBackUrl,
-  getSubscriptionViewUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+import { getBackUrl, getSubscriptionViewUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
+import { EventTrackingEditSource } from '~/app/types/event-tracking';
 import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 
 const EditSubscriptionPage: React.FC = () => {
@@ -31,6 +29,15 @@ const EditSubscriptionPage: React.FC = () => {
     subscriptionInfo?.subscription.displayName ||
     subscriptionInfo?.subscription.name ||
     subscriptionName;
+
+  const editSource =
+    state != null &&
+    typeof state === 'object' &&
+    'editSource' in state &&
+    (state.editSource === EventTrackingEditSource.LIST_KEBAB ||
+      state.editSource === EventTrackingEditSource.DETAIL_KEBAB)
+      ? state.editSource
+      : undefined;
 
   return (
     <ApplicationsPage
@@ -69,6 +76,7 @@ const EditSubscriptionPage: React.FC = () => {
           policies={policies}
           subscriptionInfo={subscriptionInfo}
           returnTo={returnTo}
+          editSource={editSource}
         />
       )}
     </ApplicationsPage>

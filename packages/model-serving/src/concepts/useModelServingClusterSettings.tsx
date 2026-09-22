@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApiCore } from '@odh-dashboard/plugin-core';
 import useFetch, { type FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 
 export type ModelServingClusterSettings = {

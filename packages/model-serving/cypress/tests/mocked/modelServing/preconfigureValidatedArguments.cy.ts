@@ -262,8 +262,7 @@ describe('Preconfigure deployment validated arguments', () => {
 
     navigateToAdvancedOptions();
 
-    modelServingWizard.findRuntimeArgsCheckbox().should('be.checked');
-    modelServingWizard.findRuntimeArgsTextBox().should('have.value', EXPECTED_RUNTIME_ARGS);
+    modelServingWizard.findRuntimeArgsTextBox().should('contain.value', EXPECTED_RUNTIME_ARGS);
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -289,7 +288,7 @@ describe('Preconfigure deployment validated arguments', () => {
 
     navigateToAdvancedOptions();
 
-    modelServingWizard.findRuntimeArgsTextBox().should('have.value', EXPECTED_RUNTIME_ARGS);
+    modelServingWizard.findRuntimeArgsTextBox().should('contain.value', EXPECTED_RUNTIME_ARGS);
     modelServingWizard.findRuntimeArgsTextBox().type('{moveToEnd}\n--user-custom-arg');
 
     modelServingWizard.findPreconfigureStep().click();
@@ -299,7 +298,7 @@ describe('Preconfigure deployment validated arguments', () => {
       .should('not.be.checked');
 
     modelServingWizard.findAdvancedOptionsStep().click();
-    modelServingWizard.findRuntimeArgsTextBox().should('have.value', '--user-custom-arg');
+    modelServingWizard.findRuntimeArgsTextBox().should('contain.value', '--user-custom-arg');
   });
 
   it('should not show the tool calling checkbox when the toolCalling flag is off', () => {

@@ -1,14 +1,15 @@
 import {
   CodeBlock,
   CodeBlockCode,
+  Checkbox,
   Content,
   Flex,
   Label,
   Pagination,
   Popover,
-  Spinner,
   Stack,
   StackItem,
+  Skeleton,
   Tab,
   TabAction,
   TabContentBody,
@@ -19,15 +20,11 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-table';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
-import { useController, useFormContext, useWatch } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
-import { useParams } from 'react-router';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
-import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { OgxModelType } from '~/app/types';
+import type { MaaSModel } from '~/app/types';
 
 type ModelTab = {
-  modelType: OgxModelType;
+  modelType: 'llm' | 'embedding';
   label: string;
   popoverHeader: string;
   description: string;
@@ -80,46 +77,43 @@ const ModelsToTestHelpContent: React.FC = () => (
 
 const DEFAULT_PER_PAGE = 5;
 
-const AutoragExperimentSettingsModelSelection: React.FC = () => {
-  const [activeModelType, setActiveModelType] = React.useState<OgxModelType>('llm');
+type AutoragExperimentSettingsModelSelectionProps = {
+  generationModels: string[];
+  embeddingModels: string[];
+  onGenerationModelsChange: (models: string[]) => void;
+  onEmbeddingModelsChange: (models: string[]) => void;
+  models: MaaSModel[];
+  modelsLoaded: boolean;
+  modelsLoading: boolean;
+};
+
+const AutoragExperimentSettingsModelSelection: React.FC<
+  AutoragExperimentSettingsModelSelectionProps
+> = ({
+  generationModels,
+  embeddingModels,
+  onGenerationModelsChange,
+  onEmbeddingModelsChange,
+  models,
+  modelsLoaded,
+  modelsLoading,
+}) => {
+  const [activeModelType, setActiveModelType] = React.useState<'llm' | 'embedding'>('llm');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
-  const { namespace = '' } = useParams();
-
-  const form = useFormContext<ConfigureSchema>();
-
-  const ogxSecretName = useWatch({
-    control: form.control,
-    name: 'ogx_secret_name',
-  });
-
-  const { data: llmModelsData, isLoading: isLlmLoading } = useOgxModelsQuery(
-    namespace,
-    ogxSecretName,
-    'llm',
-  );
-  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useOgxModelsQuery(
-    namespace,
-    ogxSecretName,
-    'embedding',
-  );
-
-  const isLoading = isLlmLoading || isEmbeddingLoading;
-
-  const { field: generationModelField } = useController({
-    control: form.control,
-    name: 'generation_models',
-  });
-
-  const { field: embeddingModelField } = useController({
-    control: form.control,
-    name: 'embedding_models',
-  });
-
+  const availableMaaSModels = models;
   const tabData = {
-    llm: { field: generationModelField, models: llmModelsData?.models ?? [] },
-    embedding: { field: embeddingModelField, models: embeddingModelsData?.models ?? [] },
+    llm: {
+      selectedModels: generationModels,
+      onChange: onGenerationModelsChange,
+      models: availableMaaSModels,
+    },
+    embedding: {
+      selectedModels: embeddingModels,
+      onChange: onEmbeddingModelsChange,
+      models: availableMaaSModels,
+    },
   };
 
   const activeModels = tabData[activeModelType].models;
@@ -183,8 +177,12 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
         </Flex>
       </Content>
       <div data-testid="model-selection-section">
-        {isLoading ? (
-          <Spinner size="md" aria-label="Loading models" />
+        {modelsLoading || !modelsLoaded ? (
+          <Skeleton
+            data-testid="modal-maas-models-loading"
+            width="100%"
+            screenreaderText="Loading MaaS models"
+          />
         ) : (
           <Tabs
             activeKey={activeModelType}
@@ -198,30 +196,59 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
             aria-label="Model selection tabs"
           >
             {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
-              const { field, models } = tabData[modelType];
-              const selectedModels = field.value;
+              const { selectedModels, onChange, models: tabModels } = tabData[modelType];
+              const oppositeSelectedModels =
+                tabData[modelType === 'llm' ? 'embedding' : 'llm'].selectedModels;
+              const oppositeSelectedModelIds = new Set(oppositeSelectedModels);
+              const selectableModels = tabModels.filter((model) => model.ready);
+              const selectableModelsNotInOppositeCategory = selectableModels.filter(
+                (model) => !oppositeSelectedModelIds.has(model.id),
+              );
+              const selectableModelIds = new Set(selectableModels.map((model) => model.id));
               const selectedCount = selectedModels.filter((id) =>
-                models.some((model) => model.id === id),
+                selectableModelIds.has(id),
               ).length;
               const allSelected =
-                models.length > 0 &&
-                models.every((model) =>
+                selectableModelsNotInOppositeCategory.length > 0 &&
+                selectableModelsNotInOppositeCategory.every((model) =>
                   selectedModels.some((selectedModel) => selectedModel === model.id),
                 );
 
               const handleSelectAll = (isSelecting: boolean) => {
-                field.onChange(
-                  isSelecting
-                    ? models.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
-                    : [],
+                if (!isSelecting) {
+                  onChange([]);
+                  return;
+                }
+
+                const selectedIds = selectableModels
+                  .filter((model) => !oppositeSelectedModelIds.has(model.id))
+                  .map((model) => model.id)
+                  .toSorted((a, b) => a.localeCompare(b));
+                const updatedOppositeModels = oppositeSelectedModels.filter(
+                  (id) => !selectedIds.includes(id),
                 );
+
+                onChange(selectedIds);
+                tabData[modelType === 'llm' ? 'embedding' : 'llm'].onChange(updatedOppositeModels);
               };
 
-              const handleToggleModel = (modelId: string, isSelecting: boolean) => {
+              const handleToggleModel = (model: MaaSModel, isSelecting: boolean) => {
+                if (!model.ready) {
+                  return;
+                }
+                const modelId = model.id;
                 const updated = isSelecting
-                  ? [...selectedModels, modelId]
+                  ? [
+                      ...selectedModels.filter((selectedModel) => selectedModel !== modelId),
+                      modelId,
+                    ]
                   : selectedModels.filter((selectedModel) => selectedModel !== modelId);
-                field.onChange(updated.toSorted((a, b) => a.localeCompare(b)));
+                onChange(updated.toSorted((a, b) => a.localeCompare(b)));
+                if (isSelecting) {
+                  tabData[modelType === 'llm' ? 'embedding' : 'llm'].onChange(
+                    oppositeSelectedModels.filter((id) => id !== modelId),
+                  );
+                }
               };
 
               return (
@@ -238,7 +265,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                         className="pf-v6-u-ml-xs"
                         data-testid={`${modelType}-selected-count`}
                       >
-                        {selectedCount}
+                        {selectedCount}&#8725;{selectableModels.length}
                       </Label>
                     </TabTitleText>
                   }
@@ -256,7 +283,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                   data-testid={testId}
                 >
                   <TabContentBody className="pf-v6-u-pt-md">
-                    {models.length === 0 ? (
+                    {tabModels.length === 0 ? (
                       <p>No models available.</p>
                     ) : (
                       <>
@@ -291,19 +318,60 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                               </Tr>
                             </Thead>
                             <Tbody>
-                              {sortedAndPaginatedModels.map((model, rowIndex) => (
+                              {sortedAndPaginatedModels.map((model) => (
                                 <Tr key={model.id} data-testid={`model-row-${model.id}`}>
-                                  <Td
-                                    select={{
-                                      rowIndex,
-                                      isSelected: selectedModels.some(
-                                        (selectedModel) => selectedModel === model.id,
-                                      ),
-                                      onSelect: (_, isSelecting) =>
-                                        handleToggleModel(model.id, isSelecting),
-                                    }}
-                                  />
-                                  <Td dataLabel="Model name">{model.id}</Td>
+                                  <Td dataLabel="Select">
+                                    {(() => {
+                                      const selectedInOtherCategory = oppositeSelectedModelIds.has(
+                                        model.id,
+                                      );
+                                      const isUnavailable = !model.ready;
+                                      const checkboxDisabled =
+                                        isUnavailable || selectedInOtherCategory;
+                                      const modelName = model.display_name || model.id;
+                                      const disabledReason = isUnavailable
+                                        ? 'unavailable: model is not ready'
+                                        : `unavailable: already selected in ${
+                                            modelType === 'llm'
+                                              ? 'Embedding models'
+                                              : 'Foundation models'
+                                          }`;
+
+                                      return (
+                                        <Checkbox
+                                          id={`select-${modelType}-${model.id}`}
+                                          isChecked={selectedModels.some(
+                                            (selectedModel) => selectedModel === model.id,
+                                          )}
+                                          isDisabled={checkboxDisabled}
+                                          aria-label={
+                                            checkboxDisabled
+                                              ? `${modelName} ${disabledReason}`
+                                              : `Select ${modelName}`
+                                          }
+                                          onChange={(_, isSelecting) =>
+                                            handleToggleModel(model, isSelecting)
+                                          }
+                                        />
+                                      );
+                                    })()}
+                                  </Td>
+                                  <Td dataLabel="Model name">
+                                    <span title={model.description || model.owned_by || undefined}>
+                                      {model.display_name || model.id}
+                                    </span>
+                                    {(!model.ready || oppositeSelectedModelIds.has(model.id)) && (
+                                      <span className="pf-v6-screen-reader">
+                                        {model.ready
+                                          ? `Unavailable: already selected in ${
+                                              modelType === 'llm'
+                                                ? 'Embedding models'
+                                                : 'Foundation models'
+                                            }`
+                                          : 'Unavailable: model is not ready'}
+                                      </span>
+                                    )}
+                                  </Td>
                                 </Tr>
                               ))}
                             </Tbody>

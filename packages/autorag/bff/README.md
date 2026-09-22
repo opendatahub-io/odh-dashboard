@@ -15,8 +15,7 @@ This service exposes the following endpoints:
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
 - GET `/api/v1/secrets` – list and filter Kubernetes secrets by type
 - GET `/api/v1/s3/file` – retrieve a file from S3 storage
-- GET `/api/v1/ogx/models` – list available models from Open GenAI Stack Distribution
-- GET `/api/v1/ogx/vector-stores` – list available vector stores from Open GenAI Stack Distribution
+- GET `/api/v1/maas/models` – list all models from hosted MaaS using a selected Kubernetes Secret
 - GET `/api/v1/pipeline-runs` – query AutoRAG pipeline runs from Kubeflow Pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single managed pipeline run (AutoRAG or indexing) with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
@@ -38,10 +37,10 @@ After building it, you can run our app with:
 make run
 ```
 
-If you want to use a different port or mock kubernetes client you can run:
+For a fully mocked local BFF, including MaaS model discovery, run:
 
 ```shell
-make run PORT=8000 MOCK_K8S_CLIENT=true
+make run PORT=8000 DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_S3_CLIENT=true AUTH_METHOD=disabled
 ```
 
 If you want to change the log level on deployment, add the LOG_LEVEL argument when running, supported levels are: ERROR, WARN, INFO, DEBUG. The default level is INFO.
@@ -53,24 +52,25 @@ make run LOG_LEVEL=DEBUG
 
 ## Flags / Environment Variables
 
-| Flag | Env Var | Description                                                                            |
-|------|---------|----------------------------------------------------------------------------------------|
-| `-port` | `PORT` | Listen port (default 4000)                                                             |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`)                                    |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.)                                   |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution                                       |
-| `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls                                       |
-| `-mock-s3-client` | `MOCK_S3_CLIENT` | Use mock client for S3 SDK calls                                                       |
+| Flag                            | Env Var                        | Description                                                                                                        |
+| ------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `-port`                         | `PORT`                         | Listen port (default 4000)                                                                                         |
+| `-deployment-mode`              | `DEPLOYMENT_MODE`              | `standalone` or `integrated` (default `standalone`)                                                                |
+| `-dev-mode`                     | `DEV_MODE`                     | Enables relaxed behaviors (namespaces listing, etc.)                                                               |
+| `-mock-k8s-client`              | `MOCK_K8S_CLIENT`              | Use in‑memory stub for namespace/user resolution                                                                   |
+| `-mock-maas-client`             | `MOCK_MAAS_CLIENT`             | Use mock client for MaaS model discovery (avoids external MaaS calls)                                              |
+| `-mock-pipeline-server-client`  | `MOCK_PIPELINE_SERVER_CLIENT`  | Use mock client for Kubeflow Pipelines API calls                                                                   |
+| `-mock-s3-client`               | `MOCK_S3_CLIENT`               | Use mock client for S3 SDK calls                                                                                   |
 | `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `documents-rag-optimization-pipeline`) |
-| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets                                         |
-| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO)                                                |
-| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins                                                           |
-| `-auth-method` | `AUTH_METHOD` | Authentication method: `disabled`, `internal`, or `user_token` (default: `user_token`) |
-| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization)                               |
-| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer)                                                 |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key)                                |
-| `-key-file` | `KEY_FILE` | TLS key path                                                                           |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)                                                    |
+| `-static-assets-dir`            | `STATIC_ASSETS_DIR`            | Directory to serve single‑page frontend assets                                                                     |
+| `-log-level`                    | `LOG_LEVEL`                    | ERROR, WARN, INFO, DEBUG (default INFO)                                                                            |
+| `-allowed-origins`              | `ALLOWED_ORIGINS`              | Comma separated CORS origins                                                                                       |
+| `-auth-method`                  | `AUTH_METHOD`                  | Authentication method: `disabled`, `internal`, or `user_token` (default: `user_token`)                             |
+| `-auth-header`                  | `AUTH_HEADER`                  | Header to read bearer token from (default Authorization)                                                           |
+| `-auth-prefix`                  | `AUTH_PREFIX`                  | Expected value prefix (default Bearer)                                                                             |
+| `-cert-file`                    | `CERT_FILE`                    | TLS certificate path (enables TLS when paired with key)                                                            |
+| `-key-file`                     | `KEY_FILE`                     | TLS key path                                                                                                       |
+| `-insecure-skip-verify`         | `INSECURE_SKIP_VERIFY`         | Skip upstream TLS verify (dev only)                                                                                |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
 
@@ -111,8 +111,7 @@ GET /api/v1/user
 GET /api/v1/namespaces             (dev / mock mode only)
 GET  /api/v1/secrets                 (requires namespace parameter)
 GET  /api/v1/s3/file                 (requires namespace, secretName, and key parameters)
-GET  /api/v1/ogx/models              (requires namespace and secretName parameters)
-GET  /api/v1/ogx/vector-stores       (requires namespace and secretName parameters)
+GET  /api/v1/maas/models             (requires namespace and secretName parameters)
 GET  /api/v1/pipeline-runs          (requires namespace parameter)
 GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 POST /api/v1/pipeline-runs          (requires namespace parameter)
@@ -124,12 +123,12 @@ Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
 - **`user_token` (default)**: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview. This is the production mode and the default for `make run`.
 - **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
-- **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true` or `MOCK_OGX_CLIENT=true`). Useful for local testing. **Not recommended for production.**
+- **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true`). Useful for local testing. **Not recommended for production.**
+- Mock MaaS model discovery is enabled with `MOCK_MAAS_CLIENT=true`; fully mocked Makefile targets set this automatically so fake MaaS credentials never reach an external service.
 
 ### Sample local calls
 
 When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all endpoints.
-
 
 ```shell
 curl -i localhost:4000/healthcheck
@@ -141,14 +140,13 @@ curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-r
 # Create a pipeline run
 curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: application/json" \
   "localhost:4000/api/v1/pipeline-runs?namespace=test-namespace" \
-  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_key":"k","ogx_secret_name":"s"}'
+  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_keys":["k"],"maas_secret_name":"maas","vector_db_secret_name":"vector-db"}'
 ```
 
 For detailed API documentation, see:
+
 - [Secrets API](docs/secrets-endpoint.md)
 - [Pipeline Runs API](../docs/pipeline-runs-api.md)
-- [OGX Models API](docs/ogx-models-endpoint.md)
-- [OGX Vector Stores API](docs/ogx-vector-stores-endpoint.md)
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
 
@@ -181,79 +179,6 @@ When running in dev mode (via `make dev-start-federated`), the BFF uses **dynami
 Under the covers, the BFF discovers the DSPipelineApplication (DSPA) in the target namespace, identifies the pipeline server and any managed MinIO services, and sets up local port-forwards on-demand. The forwarded connections are managed for the lifetime of the BFF process and cleaned up automatically on shutdown.
 
 This means you can simply start the BFF in dev mode and it will handle all service connectivity transparently using your current kubeconfig context.
-
-### Setting up a Open GenAI Stack secret
-
-The AutoRAG BFF requires a Kubernetes secret with Open GenAI Stack credentials to access models and vector stores. The secret must contain the Open GenAI Stack server URL and an API key (OAuth2 token from Keycloak).
-
-#### Secret format
-
-```yaml
-kind: Secret
-apiVersion: v1
-metadata:
-  name: my-ogx-secret
-  namespace: <your-namespace>
-type: Opaque
-data:
-  OGX_CLIENT_BASE_URL: <base64-encoded URL>
-  OGX_CLIENT_API_KEY: <base64-encoded token>
-```
-
-The secret keys `OGX_CLIENT_BASE_URL` and `OGX_CLIENT_API_KEY` are required (exact match, case-sensitive). The BFF reads these to create the Open GenAI Stack client.
-
-#### Generating the API key
-
-The Open GenAI Stack server uses Keycloak for authentication. To obtain an OAuth2 access token:
-
-```shell
-# 1. Retrieve Keycloak client credentials from the cluster
-CLIENT_ID=$(oc get secret ogx-client-secret -n keycloak -o jsonpath='{.data.client-id}' | base64 -d)
-CLIENT_SECRET=$(oc get secret ogx-client-secret -n keycloak -o jsonpath='{.data.client-secret}' | base64 -d)
-
-# 2. Request a token via the Keycloak token endpoint (from inside the cluster)
-TOKEN=$(oc exec -n ogx $(oc get pods -n ogx -l app=ogx -o jsonpath='{.items[0].metadata.name}') -- \
-  curl -s -X POST 'http://keycloak-service.keycloak.svc.cluster.local:8080/realms/ogx/protocol/openid-connect/token' \
-  -d "client_id=${CLIENT_ID}&grant_type=client_credentials&client_secret=${CLIENT_SECRET}" | jq -r '.access_token')
-
-# 3. Verify the token works
-curl -s -H "Authorization: Bearer ${TOKEN}" \
-  'https://<ogx-route>/v1/vector_stores' | jq
-```
-
-#### Creating the secret
-
-Once you have the token and know your Open GenAI Stack server URL, create the secret:
-
-```shell
-oc create secret generic my-ogx-secret \
-  --namespace=<your-namespace> \
-  --from-literal=OGX_CLIENT_BASE_URL=https://<ogx-route> \
-  --from-literal=OGX_CLIENT_API_KEY=${TOKEN}
-```
-
-**Note:** OAuth2 tokens expire. You will need to regenerate the token and update the secret when it expires. To update an existing secret:
-
-```shell
-oc create secret generic my-ogx-secret \
-  --namespace=<your-namespace> \
-  --from-literal=OGX_CLIENT_BASE_URL=https://<ogx-route> \
-  --from-literal=OGX_CLIENT_API_KEY=${TOKEN} \
-  --dry-run=client -o yaml | oc apply -f -
-```
-
-#### Using the secret with the BFF
-
-The secret name is passed as a query parameter to the Open GenAI Stack endpoints:
-
-```shell
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/ogx/models?namespace=<your-namespace>&secretName=my-ogx-secret'
-```
-
-For more details on the Open GenAI Stack endpoints, see:
-- [OGX Models API](docs/ogx-models-endpoint.md)
-- [OGX Vector Stores API](docs/ogx-vector-stores-endpoint.md)
 
 ### Enabling CORS
 
@@ -304,7 +229,7 @@ For local Kubeflow installations with self-signed certificates, you may need to 
 ```yaml
 env:
   - name: INSECURE_SKIP_VERIFY
-    value: "true"
+    value: 'true'
 ```
 
 **Local development:**
@@ -334,7 +259,7 @@ From the `packages/autorag/` directory:
 make dev-start-federated
 ```
 
-This starts both the BFF (port 4001) and the frontend webpack dev server (port 9107) in federated mode. The BFF connects to in-cluster services using dynamic port-forwarding and uses your cluster credentials for RBAC.
+This starts both the BFF (port 4001) and the frontend dev server (port 9107) in federated mode. The BFF connects to in-cluster services using dynamic port-forwarding and uses your cluster credentials for RBAC.
 
 **Pipeline name prefix:** The BFF discovers AutoRAG pipelines by matching display names that start with a configurable prefix. The default is `documents-rag-optimization-pipeline`. If your pipelines use a different naming convention, override it:
 

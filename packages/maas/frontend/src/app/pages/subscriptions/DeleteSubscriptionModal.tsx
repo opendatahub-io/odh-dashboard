@@ -20,7 +20,7 @@ const DeleteSubscriptionModal: React.FC<DeleteSubscriptionModalProps> = ({
 
   return (
     <DeleteModal
-      title="Delete Subscription?"
+      title="Delete subscription?"
       onClose={() => {
         onClose();
       }}
@@ -37,7 +37,7 @@ const DeleteSubscriptionModal: React.FC<DeleteSubscriptionModalProps> = ({
     >
       <Stack hasGutter>
         <StackItem data-testid="delete-modal-confirmation-message">
-          Are you sure you want to delete the Subscription{' '}
+          Are you sure you want to delete the subscription{' '}
           <strong>{subscription.displayName || subscription.name}</strong>?
         </StackItem>
       </Stack>

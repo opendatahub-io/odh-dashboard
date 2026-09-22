@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/opendatahub-io/data-registry/bff/internal/api"
 	"github.com/opendatahub-io/data-registry/bff/internal/config"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
 
 	"log/slog"
 	"net/http"
@@ -51,6 +51,14 @@ func main() {
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients",
 		getEnvAsBool("MOCK_BFF_CLIENTS", false),
 		"Enable mock BFF clients (no real HTTP calls to other BFFs)")
+
+	// ─── Data Registry API ────────────────────────────────────────
+	flag.StringVar(&cfg.DataRegistryAPIURL, "data-registry-api-url", getEnvAsString("DATA_REGISTRY_API_URL", ""),
+		"Base URL of the upstream Data Registry API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
+	flag.StringVar(&cfg.DataRegistryConfigMapName, "data-registry-configmap-name", getEnvAsString("DATA_REGISTRY_CONFIGMAP_NAME", config.DefaultDataRegistryConfigMapName),
+		"Name of the ConfigMap (in the pod's namespace) holding the Data Registry API URL")
+	flag.StringVar(&cfg.DataRegistryConfigMapKey, "data-registry-configmap-key", getEnvAsString("DATA_REGISTRY_CONFIGMAP_KEY", config.DefaultDataRegistryConfigMapKey),
+		"Key within the Data Registry ConfigMap holding the API URL")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
@@ -101,16 +109,20 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
+	if certFile != "" && keyFile != "" {
+		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
+		if err != nil {
+			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
+			os.Exit(1)
+		}
+		srv.TLSConfig = tlsCfg
+	}
+
 	// Start the server in a goroutine
 	go func() {
 		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
 		var err error
 		if certFile != "" && keyFile != "" {
-			// Configure TLS if both cert and key files are provided
-			tlsConfig := &tls.Config{
-				MinVersion: tls.VersionTLS13,
-			}
-			srv.TLSConfig = tlsConfig
 			err = srv.ListenAndServeTLS(certFile, keyFile)
 		} else {
 			err = srv.ListenAndServe()

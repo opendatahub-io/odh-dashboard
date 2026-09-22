@@ -441,7 +441,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       variant="medium"
       aria-label="Evaluation run status"
       data-testid="evaluation-status-modal"
-      className="evalhub-status-modal"
+      className={`evalhub-status-modal${activeTab === 'events-log' ? ' evalhub-status-modal--full-height' : ''}`}
     >
       <ModalHeader>
         <div className="evalhub-status-modal__title">
@@ -464,7 +464,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
         <div className="evalhub-status-modal__header" data-testid="status-detail-header">
           <Stack className="evalhub-status-modal__header-stack">
             <StackItem>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
                 <FlexItem>
                   {isFailed ? (
                     <Icon status="danger" isInline>
@@ -484,8 +488,12 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     </Icon>
                   )}
                 </FlexItem>
-                <FlexItem>
-                  <Content component="p" data-testid="benchmark-name-header">
+                <FlexItem className="evalhub-status-modal__benchmark-name">
+                  <Content
+                    component="p"
+                    className="pf-v6-u-text-truncate"
+                    data-testid="benchmark-name-header"
+                  >
                     <strong>{benchmarkName}</strong>
                   </Content>
                 </FlexItem>
@@ -576,7 +584,13 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
         </div>
 
         {/* Tab content */}
-        <div className="pf-v6-u-pt-md">
+        <div
+          className={`evalhub-status-modal__tab-content ${
+            activeTab === 'events-log'
+              ? 'evalhub-status-modal__tab-content--events-log'
+              : 'evalhub-status-modal__tab-content--progress'
+          }`}
+        >
           {activeTab === 'progress' ? (
             <Stack hasGutter>
               {isFailed && (messageOrigin || messageCode) ? (
@@ -617,7 +631,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               evaluationName={evaluationName}
               benchmarks={progressBenchmarks}
               isInProgress={isInProgress}
-              state={state}
               activeBenchmarkIndex={logBenchmarkIndex}
             />
           ) : null}

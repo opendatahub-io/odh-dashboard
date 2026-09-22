@@ -122,6 +122,9 @@ describe('Workbenches - variable tests', () => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream for first workbench: ${selectedImageStream}`);
 
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
+
           createSpawnerPage.findAddVariableButton().click();
           const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
           secretEnvVarField.selectEnvironmentVariableTypeByTestId(EnvironmentVariableType.SECRET);
@@ -158,6 +161,9 @@ describe('Workbenches - variable tests', () => {
               (imageStreamName2) => {
                 selectedImageStream2 = imageStreamName2;
                 cy.log(`Selected imagestream for second workbench: ${selectedImageStream2}`);
+
+                cy.step('Select the default hardware profile');
+                createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
 
                 createSpawnerPage.findAddVariableButton().click();
                 const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -229,6 +235,9 @@ describe('Workbenches - variable tests', () => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream for workbench: ${selectedImageStream}`);
 
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
+
           createSpawnerPage.findAddVariableButton().click();
           const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
           secretEnvVarField.selectEnvironmentVariableTypeByTestId(EnvironmentVariableType.SECRET);
@@ -289,6 +298,9 @@ describe('Workbenches - variable tests', () => {
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream for workbench: ${selectedImageStream}`);
+
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
 
           createSpawnerPage.findAddVariableButton().click();
           const configMapEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);

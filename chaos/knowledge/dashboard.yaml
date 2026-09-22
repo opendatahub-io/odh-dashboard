@@ -1,0 +1,67 @@
+operator:
+  name: dashboard
+  namespace: opendatahub
+  repository: https://github.com/opendatahub-io/odh-dashboard
+
+components:
+  - name: odh-dashboard
+    # controller refers to the upstream opendatahub-operator reconciler that
+    # owns the Dashboard lifecycle (DataScienceCluster CRD). The in-repo
+    # DashboardReconciler is a downstream module controller managed by it.
+    controller: DataScienceCluster
+    managedResources:
+      - apiVersion: apps/v1
+        kind: Deployment
+        name: odh-dashboard
+        namespace: opendatahub
+        labels:
+          deployment: odh-dashboard
+          # Labels below are injected by the ODH kustomize overlay
+          # (manifests/odh/kustomization.yaml), not the base manifest.
+          # RHOAI deployments may use different overlay labels.
+          app: odh-dashboard
+          app.kubernetes.io/part-of: odh-dashboard
+        expectedSpec:
+          replicas: 2
+      - apiVersion: v1
+        kind: ServiceAccount
+        name: odh-dashboard
+        namespace: opendatahub
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        name: odh-dashboard
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        name: odh-dashboard-auth-delegator
+      - apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        name: odh-dashboard-monitoring
+      - apiVersion: v1
+        kind: Service
+        name: odh-dashboard
+        namespace: opendatahub
+      - apiVersion: v1
+        kind: ConfigMap
+        name: kube-rbac-proxy-config
+        namespace: opendatahub
+      - apiVersion: policy/v1
+        kind: PodDisruptionBudget
+        name: odh-dashboard
+        namespace: opendatahub
+      - apiVersion: gateway.networking.k8s.io/v1
+        kind: HTTPRoute
+        name: odh-dashboard
+        namespace: opendatahub
+    steadyState:
+      checks:
+        - type: conditionTrue
+          apiVersion: apps/v1
+          kind: Deployment
+          name: odh-dashboard
+          namespace: opendatahub
+          conditionType: Available
+      timeout: "60s"
+
+recovery:
+  reconcileTimeout: "300s"
+  maxReconcileCycles: 10

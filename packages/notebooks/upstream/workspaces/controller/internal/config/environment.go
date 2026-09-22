@@ -17,8 +17,13 @@ limitations under the License.
 package config
 
 type EnvConfig struct {
-	IstioGateway  string
-	IstioHosts    string
-	ClusterDomain string
-	UseIstio      bool
+	IstioGateway         string
+	IstioHosts           string
+	ClusterDomain        string
+	UseIstio             bool
+	UseKubeGateway       bool
+	KubeGatewayName      string
+	KubeGatewayNamespace string
+	ControllerNamespace  string
+	KubeRbacProxyImage   string
 }

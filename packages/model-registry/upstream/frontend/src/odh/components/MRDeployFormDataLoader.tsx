@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared/types/deploy-prefill';
 import { ModelVersion } from '~/app/types';
 import { ModelRegistryContext } from '~/odh/api';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';

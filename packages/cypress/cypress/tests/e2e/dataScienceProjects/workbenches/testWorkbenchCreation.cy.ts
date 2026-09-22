@@ -42,6 +42,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
   let s3AccessKey: string;
   let s3SecretKey: string;
   let notebookImage: string;
+  let hardwareProfileName: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -55,6 +56,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         connectionDescription = fixtureData.connectionDescription;
         notebookImage = fixtureData.notebookImage;
+        hardwareProfileName = fixtureData.hardwareProfileName;
         const bucketKey = 'BUCKET_1' as const;
         const bucketConfig = AWS_BUCKETS[bucketKey];
 
@@ -110,6 +112,8 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
 
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(hardwareProfileName);
           createSpawnerPage.findSubmitButton().click();
 
           // Wait for workbench to run

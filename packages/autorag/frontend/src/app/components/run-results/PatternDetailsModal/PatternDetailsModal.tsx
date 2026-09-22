@@ -17,16 +17,22 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import classNames from 'classnames';
-import type { AutoragPattern, PatternDataBundle, TabDefinition } from '~/app/types/autoragPattern';
+import type {
+  AutoragPattern,
+  MetricReference,
+  PatternDataBundle,
+  TabDefinition,
+} from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
+import { formatPatternName } from '~/app/utilities/utils';
 import {
   computePatternRankMap,
-  formatMetricName,
   formatMetricValue,
-  formatPatternName,
+  getObjectiveMetric,
   getOptimizedScore,
-  getMetricByName,
-} from '~/app/utilities/utils';
+  metricLabel,
+} from '~/app/utilities/metricUtils';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import {
   fireAutoragPatternsCompared,
   fireAutoragPatternDetailsDownloadInitiated,
@@ -34,20 +40,23 @@ import {
 import { getVisibleTabs, OVERVIEW_KEY, SAMPLE_QA_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
-import PatternInformationTab, { buildTopLevelFields } from './tabs/PatternInformationTab';
+import { buildTopLevelFields } from './tabs/PatternInformationTab';
 import { settingsSectionEntries } from './tabs/KeyValueTab';
 import KeyValueList from './components/KeyValueList';
 import ComparisonKeyValueList from './components/ComparisonKeyValueList';
-import ConfidenceIntervalChart from './components/ConfidenceIntervalChart';
+import ConfidenceIntervalChart, {
+  hasConfidenceIntervalData,
+} from './components/ConfidenceIntervalChart';
 import './PatternDetailsModal.scss';
 
 export type PatternDetailsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   patterns: AutoragPattern[];
+  patternKeys?: string[];
   selectedIndex: number;
-  rank: number;
-  optimizedMetric?: string;
+  rank?: number;
+  optimizationMetric?: MetricReference;
   onPatternChange: (index: number) => void;
   namespace?: string;
   ragPatternsBasePath?: string;
@@ -72,9 +81,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   isOpen,
   onClose,
   patterns,
+  patternKeys = patterns.map((_, index) => String(index)),
   selectedIndex,
   rank,
-  optimizedMetric,
+  optimizationMetric,
   onPatternChange,
   namespace,
   ragPatternsBasePath,
@@ -92,8 +102,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   const [isComparisonSelectOpen, setIsComparisonSelectOpen] = React.useState(false);
 
   const data = patterns[selectedIndex];
-
-  const rankMap = React.useMemo(() => computePatternRankMap(patterns), [patterns]);
+  const rankMap = React.useMemo<Partial<Record<string, number>>>(
+    () =>
+      computePatternRankMap(
+        Object.fromEntries(patterns.map((pattern, index) => [patternKeys[index], pattern])),
+        optimizationMetric ?? DEFAULT_OPTIMIZATION_METRIC,
+      ),
+    [patterns, patternKeys, optimizationMetric],
+  );
 
   // Primary pattern evaluation results
   const {
@@ -182,7 +198,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
     }
     return {
       pattern: comparisonPatternData,
-      rank: rankMap[comparisonPatternData.name] ?? 0,
+      rank: rankMap[patternKeys[comparisonPatternIndex!]],
       evaluationResults: comparisonEvaluationResults || undefined,
       isEvaluationLoading: comparisonEvaluationLoading,
       isEvaluationError: comparisonEvaluationError,
@@ -190,6 +206,8 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   }, [
     comparisonEnabled,
     comparisonPatternData,
+    comparisonPatternIndex,
+    patternKeys,
     rankMap,
     comparisonEvaluationResults,
     comparisonEvaluationLoading,
@@ -220,7 +238,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             patterns={patterns}
             selectedIndex={selectedIndex}
             rank={rank}
-            optimizedMetric={optimizedMetric}
+            optimizationMetric={optimizationMetric}
             onPatternChange={onPatternChange}
             onDownload={() => {
               fireAutoragPatternDetailsDownloadInitiated();
@@ -346,7 +364,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                       <ActiveComponent
                         primaryPattern={primaryBundle}
                         comparisonPattern={comparisonBundle}
-                        optimizedMetric={optimizedMetric}
+                        optimizationMetric={optimizationMetric}
                         onChangeComparisonPattern={() => setIsComparisonSelectOpen(true)}
                       />
                     </div>
@@ -369,19 +387,40 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           setIsComparisonSelectOpen(false);
         }}
         patterns={patterns}
+        patternKeys={patternKeys}
         rankMap={rankMap}
         currentPatternIndex={comparisonPatternIndex ?? -1}
         excludePatternIndex={selectedIndex}
-        optimizedMetric={optimizedMetric ?? ''}
+        optimizationMetric={optimizationMetric ?? { name: DEFAULT_OPTIMIZATION_METRIC }}
         onSelectPattern={(index) => {
           const comparisonPattern = patterns[index];
-          const primaryRank = rankMap[data.name] ?? rank;
-          const comparisonRank = rankMap[comparisonPattern.name] ?? 0;
-          fireAutoragPatternsCompared(
-            comparisonEnabled ? 'changed' : 'initial',
-            comparisonRank - primaryRank,
-            getOptimizedScore(comparisonPattern) - getOptimizedScore(data),
-          );
+          const primaryRank = rankMap[patternKeys[selectedIndex]] ?? rank;
+          const comparisonRank = rankMap[patternKeys[index]];
+          const getComparisonScore = (pattern: AutoragPattern): number | undefined => {
+            const mean = getObjectiveMetric(
+              pattern,
+              optimizationMetric ?? DEFAULT_OPTIMIZATION_METRIC,
+            )?.scores.mean;
+            return typeof mean === 'number' && Number.isFinite(mean) ? mean : undefined;
+          };
+          const comparisonScore = getComparisonScore(comparisonPattern);
+          const primaryScore = getComparisonScore(data);
+          const hasValidRank = (value: number | undefined): value is number =>
+            typeof value === 'number' && Number.isInteger(value) && value > 0;
+          if (
+            hasValidRank(primaryRank) &&
+            hasValidRank(comparisonRank) &&
+            typeof primaryScore === 'number' &&
+            Number.isFinite(primaryScore) &&
+            typeof comparisonScore === 'number' &&
+            Number.isFinite(comparisonScore)
+          ) {
+            fireAutoragPatternsCompared(
+              comparisonEnabled ? 'changed' : 'initial',
+              comparisonRank - primaryRank,
+              comparisonScore - primaryScore,
+            );
+          }
           setComparisonPatternIndex(index);
           setComparisonEnabled(true);
         }}
@@ -398,31 +437,47 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 <h1>{formatPatternName(data.name)}</h1>
                 <p>
                   {formatPatternName(data.name)} |{' '}
-                  {optimizedMetric
-                    ? `${formatMetricName(optimizedMetric)} (optimized): ${formatMetricValue(
-                        getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A',
+                  {optimizationMetric
+                    ? `${metricLabel(optimizationMetric)} (optimized): ${formatMetricValue(
+                        getObjectiveMetric(data, optimizationMetric)?.scores.mean ?? 'N/A',
                       )}`
                     : `Final score: ${getOptimizedScore(data)}`}
                 </p>
               </div>
               <Title headingLevel="h2">Pattern information</Title>
               {comparisonBundle ? (
-                <PatternInformationTab
+                <ComparisonKeyValueList
                   primaryPattern={primaryBundle}
                   comparisonPattern={comparisonBundle}
-                  optimizedMetric={optimizedMetric}
+                  primaryEntries={buildTopLevelFields(data, optimizationMetric)}
+                  comparisonEntries={buildTopLevelFields(
+                    comparisonBundle.pattern,
+                    optimizationMetric,
+                  )}
                 />
               ) : (
-                <>
-                  <KeyValueList entries={buildTopLevelFields(data)} />
-                  <ConfidenceIntervalChart
-                    scores={Object.fromEntries(
-                      data.evaluation.metrics.map((m) => [m.name, m.scores]),
-                    )}
-                  />
-                </>
+                <KeyValueList entries={buildTopLevelFields(data, optimizationMetric)} />
               )}
             </div>
+            {(hasConfidenceIntervalData(data.evaluation.metrics) ||
+              (comparisonBundle &&
+                hasConfidenceIntervalData(comparisonBundle.pattern.evaluation.metrics))) && (
+              <div className="autorag-print-page">
+                <div className="autorag-print-header">
+                  <h1>{formatPatternName(data.name)}</h1>
+                </div>
+                {comparisonBundle ? (
+                  <ConfidenceIntervalChart
+                    scores={data.evaluation.metrics}
+                    comparisonScores={comparisonBundle.pattern.evaluation.metrics}
+                    primaryLabel={formatPatternName(data.name)}
+                    comparisonLabel={formatPatternName(comparisonBundle.pattern.name)}
+                  />
+                ) : (
+                  <ConfidenceIntervalChart scores={data.evaluation.metrics} />
+                )}
+              </div>
+            )}
             {visibleTabs
               .filter((tab) => tab.key !== OVERVIEW_KEY && tab.key !== SAMPLE_QA_KEY)
               .map((tab) => {

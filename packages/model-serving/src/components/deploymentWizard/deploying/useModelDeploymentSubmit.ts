@@ -1,6 +1,6 @@
 import React from 'react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useSecretOps } from '@odh-dashboard/plugin-core/host-api';
+import { useSecretOps } from '@odh-dashboard/plugin-core';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
@@ -9,16 +9,16 @@ import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidatio
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
 import { Deployment } from '../../../../extension-points';
-import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
+import {
+  DeploymentAssemblyResources,
+  isModelServingDeploymentFormDataExtension,
+} from '../../../../extension-points/deployment-wizard';
+import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
 import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 import { ExternalDataMap, isExternalDataReady } from '../ExternalDataLoader';
-import {
-  fireModelDeployed,
-  type DeploymentTrackingProperties,
-} from '../../../shared/tracking/deploymentTracking';
-import { useWizardTrackingProperties } from '../../../shared/tracking/useWizardTrackingProperties';
+import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeployedTracking';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -40,41 +40,53 @@ export const useModelDeploymentSubmit = (
   onSave: (overwrite?: boolean) => Promise<void>;
   onOverwrite?: () => Promise<void>;
   isLoading: boolean;
+  formDataExtensionLoaded: boolean;
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
+  const { fireModelDeployedTracking } = useModelDeployedTracking(
+    formState,
+    initialWizardData,
+    deployMethod?.properties.platform,
+    !!existingDeployment,
+    externalData,
+    resources.model?.kind === 'LLMInferenceService' ? 'llmInferenceService' : 'inferenceService',
+    resources.model?.metadata.labels?.[KUEUE_QUEUE_LABEL],
+  );
   const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
     initialWizardData?.navSourceMetadata,
   );
   const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
-  const { getTrackingProperties } = useWizardTrackingProperties(
-    formState,
-    deployMethod?.properties.platform,
+  const deploymentForExtension = React.useMemo(
+    () =>
+      existingDeployment ??
+      (deployMethod && resources.model
+        ? {
+            modelServingPlatformId: deployMethod.properties.platform,
+            model: resources.model,
+            server: resources.server,
+          }
+        : undefined),
+    [existingDeployment, deployMethod, resources.model, resources.server],
   );
+  const [formDataExtension, formDataExtensionLoaded] = useResolvedDeploymentExtension(
+    isModelServingDeploymentFormDataExtension,
+    deploymentForExtension,
+  );
+  const extractHuggingFaceApiKey = React.useMemo(() => {
+    const extractFn = formDataExtension?.properties.extractHuggingFaceApiKey;
+    if (typeof extractFn !== 'function') {
+      return undefined;
+    }
+    return (deployment: Deployment) => extractFn(deployment);
+  }, [formDataExtension]);
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-
-  const isEdit = !!existingDeployment;
-
-  const getBaseTrackingProperties = React.useCallback((): Omit<
-    DeploymentTrackingProperties,
-    'outcome' | 'success' | 'error'
-  > => {
-    const serverTemplateName = formState.modelServer?.data?.selection?.name;
-    return {
-      modelType: formState.modelType.data?.type,
-      runtime: serverTemplateName,
-      servingRuntimeName: formState.modelServer?.data?.selection?.label,
-      servingRuntimeFormat: formState.modelFormatState.modelFormat?.name,
-      numReplicas: formState.numReplicas.data ?? undefined,
-      modelLocationType: formState.modelLocationData.data?.type,
-    };
-  }, [formState]);
 
   const onSave = React.useCallback(
     async (overwrite?: boolean) => {
@@ -106,7 +118,8 @@ export const useModelDeploymentSubmit = (
           !deployMethod ||
           !applyExtensionsLoaded ||
           !preDeployExtensionsLoaded ||
-          !postDeployExtensionsLoaded
+          !postDeployExtensionsLoaded ||
+          !formDataExtensionLoaded
         ) {
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
@@ -138,33 +151,24 @@ export const useModelDeploymentSubmit = (
           applyAllFieldDataFn,
           runPreDeploy,
           runPostDeploy,
+          extractHuggingFaceApiKey,
         );
 
-        fireModelDeployed(
-          {
-            outcome: TrackingOutcome.submit,
-            success: true,
-            ...getBaseTrackingProperties(),
-            ...(await getTrackingProperties()),
-          },
-          isEdit,
-        );
-
+        try {
+          await fireModelDeployedTracking('submit', true);
+        } catch {
+          // Telemetry must not block navigation after a successful deploy.
+        }
         exitWizardOnSubmit();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         setSubmitError(error instanceof Error ? error : new Error(errorMessage));
 
-        fireModelDeployed(
-          {
-            outcome: TrackingOutcome.submit,
-            success: false,
-            errorMessage,
-            ...getBaseTrackingProperties(),
-            ...(await getTrackingProperties()),
-          },
-          isEdit,
-        );
+        try {
+          await fireModelDeployedTracking('submit', false);
+        } catch {
+          // Telemetry must not mask the deploy failure shown to the user.
+        }
       } finally {
         setIsLoading(false);
       }
@@ -178,6 +182,7 @@ export const useModelDeploymentSubmit = (
       applyExtensionsLoaded,
       preDeployExtensionsLoaded,
       postDeployExtensionsLoaded,
+      formDataExtensionLoaded,
       formState,
       secretOps,
       resources,
@@ -187,11 +192,10 @@ export const useModelDeploymentSubmit = (
       applyAllFieldDataFn,
       runPreDeploy,
       runPostDeploy,
+      extractHuggingFaceApiKey,
       exitWizardOnSubmit,
       yamlError,
-      isEdit,
-      getBaseTrackingProperties,
-      getTrackingProperties,
+      fireModelDeployedTracking,
     ],
   );
 
@@ -200,9 +204,16 @@ export const useModelDeploymentSubmit = (
       onSave,
       onOverwrite: deployMethod?.properties.supportsOverwrite ? () => onSave(true) : undefined,
       isLoading,
+      formDataExtensionLoaded,
       submitError,
       clearSubmitError: () => setSubmitError(null),
     }),
-    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError],
+    [
+      onSave,
+      deployMethod?.properties.supportsOverwrite,
+      isLoading,
+      formDataExtensionLoaded,
+      submitError,
+    ],
   );
 };

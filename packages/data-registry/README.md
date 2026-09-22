@@ -20,7 +20,10 @@ See [`docs/install.md`](./docs/install.md) for all CLI options and details about
 
 ## OpenAPI Specification
 
-You can find the OpenAPI specification for the Data Registry UI in the [openapi](./api/openapi) directory.
+You can find the OpenAPI specification for the Data Registry BFF in
+[`bff/openapi/src/data-registry.yaml`](./bff/openapi/src/data-registry.yaml). The upstream Data Registry
+API contract that the BFF proxies to is vendored at
+[`bff/openapi/src/data-registry-api.yaml`](./bff/openapi/src/data-registry-api.yaml).
 
 ## Targeted environments
 

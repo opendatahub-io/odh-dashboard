@@ -134,6 +134,8 @@ func TestRoutesMCPServerCatchAll(t *testing.T) {
 			setupMock: func(m *mlflowpkg.MockClient) {
 				m.On("UpdateMCPServer", tmock.Anything, testMCPServerName, tmock.Anything).
 					Return(&mcpregistry.MCPServer{Name: testMCPServerName, CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+				m.On("GetMCPServer", tmock.Anything, testMCPServerName).
+					Return(&mcpregistry.MCPServer{Name: testMCPServerName, CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
 			},
 			wantStatus: http.StatusOK,
 		},

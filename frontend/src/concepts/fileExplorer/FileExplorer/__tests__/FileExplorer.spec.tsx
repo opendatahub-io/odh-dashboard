@@ -1169,6 +1169,184 @@ describe('FileExplorer', () => {
       fireEvent.click(screen.getByText('disabled-folder'));
       expect(onFolderClick).not.toHaveBeenCalled();
     });
+    it('should render disabled folder as plain text when disabled is a string reason', () => {
+      const folder = mockFolder({
+        name: 'system-folder',
+        path: '/system-folder',
+        disabled: 'System folder',
+        selectable: false,
+      });
+      const onFolderClick = jest.fn();
+      render(<FileExplorer {...defaultProps} files={[folder]} onFolderClick={onFolderClick} />);
+
+      const row = screen.getByTestId('file-explorer-row--system-folder');
+      expect(within(row).queryByRole('button', { name: 'system-folder' })).not.toBeInTheDocument();
+      expect(within(row).getByText('system-folder')).toBeInTheDocument();
+    });
+  });
+  describe('per-file disabled reason (file.disabled as string)', () => {
+    it('should show the per-file disabled reason as the select cell title', () => {
+      const file = mockFile({
+        name: 'restricted.json',
+        path: '/restricted.json',
+        selectable: false,
+        disabled: 'This file is restricted',
+      });
+      render(<FileExplorer {...defaultProps} files={[file]} />);
+
+      const row = screen.getByTestId('file-explorer-row--restricted-json');
+      const selectCell = row.querySelector('td');
+      expect(selectCell).toHaveAttribute('title', 'This file is restricted');
+    });
+    it('should prefer per-file disabled reason over global unselectableReason', () => {
+      const file = mockFile({
+        name: 'special.json',
+        path: '/special.json',
+        selectable: false,
+        disabled: 'Per-file reason',
+      });
+      render(<FileExplorer {...defaultProps} files={[file]} unselectableReason="Global reason" />);
+
+      const row = screen.getByTestId('file-explorer-row--special-json');
+      const selectCell = row.querySelector('td');
+      expect(selectCell).toHaveAttribute('title', 'Per-file reason');
+    });
+    it('should fall back to global unselectableReason when file.disabled is boolean', () => {
+      const file = mockFile({
+        name: 'blocked.json',
+        path: '/blocked.json',
+        selectable: false,
+        disabled: true,
+      });
+      render(<FileExplorer {...defaultProps} files={[file]} unselectableReason="Global reason" />);
+
+      const row = screen.getByTestId('file-explorer-row--blocked-json');
+      const selectCell = row.querySelector('td');
+      expect(selectCell).toHaveAttribute('title', 'Global reason');
+    });
+    it('should show empty title when file is unselectable without any reason', () => {
+      const file = mockFile({
+        name: 'nope.json',
+        path: '/nope.json',
+        selectable: false,
+      });
+      render(<FileExplorer {...defaultProps} files={[file]} />);
+
+      const row = screen.getByTestId('file-explorer-row--nope-json');
+      const selectCell = row.querySelector('td');
+      expect(selectCell).toHaveAttribute('title', '');
+    });
+    it('should show per-file disabled reason on a folder', () => {
+      const folder = mockFolder({
+        name: 'pipeline-output',
+        path: '/pipeline-output',
+        selectable: false,
+        disabled: 'System output folder',
+      });
+      render(<FileExplorer {...defaultProps} files={[folder]} />);
+
+      const row = screen.getByTestId('file-explorer-row--pipeline-output');
+      const selectCell = row.querySelector('td');
+      expect(selectCell).toHaveAttribute('title', 'System output folder');
+      expect(within(row).getByRole('radio')).toBeDisabled();
+    });
+  });
+  describe('hint labels', () => {
+    it('should render a hint label on a file with the hint prop', () => {
+      const file = mockFile({
+        name: 'child.json',
+        path: '/child.json',
+        hint: 'Included in selection',
+      });
+      render(<FileExplorer {...defaultProps} files={[file]} />);
+
+      const row = screen.getByTestId('file-explorer-row--child-json');
+      expect(within(row).getByText('Included in selection')).toBeInTheDocument();
+    });
+    it('should not render a hint label when hint prop is not set', () => {
+      const file = mockFile({ name: 'normal.json', path: '/normal.json' });
+      render(<FileExplorer {...defaultProps} files={[file]} />);
+
+      const row = screen.getByTestId('file-explorer-row--normal-json');
+      expect(within(row).queryByText('Included in selection')).not.toBeInTheDocument();
+    });
+    it('should render hint labels on multiple files independently', () => {
+      const files: ExplorerFiles = [
+        mockFile({ name: 'a.json', path: '/a.json', hint: 'Hint A' }),
+        mockFile({ name: 'b.json', path: '/b.json' }),
+        mockFile({ name: 'c.json', path: '/c.json', hint: 'Hint C' }),
+      ];
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      expect(
+        within(screen.getByTestId('file-explorer-row--a-json')).getByText('Hint A'),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--b-json')).queryByText(/Hint/),
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--c-json')).getByText('Hint C'),
+      ).toBeInTheDocument();
+    });
+  });
+  describe('selection pill', () => {
+    it('should render selection pill when a folder is selected', () => {
+      const folder = mockFolder({ name: 'my-data', path: '/my-data' });
+      render(<FileExplorer {...defaultProps} files={[folder]} />);
+
+      const row = screen.getByTestId('file-explorer-row--my-data');
+      fireEvent.click(within(row).getByRole('radio'));
+
+      // The LabelGroup category name should show "Selected folder"
+      expect(screen.getByText('Selected folder')).toBeInTheDocument();
+      // The pill should contain the folder name (find via the Truncate id)
+      expect(document.getElementById('pill-selected-file--my-data')).toBeInTheDocument();
+    });
+    it('should not render selection pill when only files are selected', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row).getByRole('radio'));
+
+      expect(screen.queryByText('Selected file')).not.toBeInTheDocument();
+      expect(screen.queryByText('Selected folder')).not.toBeInTheDocument();
+    });
+    it('should remove selection via pill close button', () => {
+      const folder = mockFolder({ name: 'my-data', path: '/my-data' });
+      const onSelectFile = jest.fn();
+      render(<FileExplorer {...defaultProps} files={[folder]} onSelectFile={onSelectFile} />);
+
+      // Select the folder
+      const row = screen.getByTestId('file-explorer-row--my-data');
+      fireEvent.click(within(row).getByRole('radio'));
+
+      expect(screen.getByText('Selected folder')).toBeInTheDocument();
+
+      const pillLabel = screen.getByTestId('file-explorer-selection-pill--my-data');
+      const closeButton = within(pillLabel).getByRole('button');
+      fireEvent.click(closeButton);
+
+      // Folder should be deselected
+      expect(within(row).getByRole('radio')).not.toBeChecked();
+      expect(onSelectFile).toHaveBeenCalledWith(folder, false);
+    });
+    it('should not render selection pill for mixed file and folder selections', () => {
+      const items: ExplorerFiles = [
+        mockFolder({ name: 'folder-1', path: '/folder-1' }),
+        mockFile({ name: 'file-1.json', path: '/file-1.json' }),
+      ];
+      render(<FileExplorer {...defaultProps} files={items} selection="checkbox" />);
+
+      // Select both items
+      const folderRow = screen.getByTestId('file-explorer-row--folder-1');
+      const fileRow = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(folderRow).getByRole('checkbox'));
+      fireEvent.click(within(fileRow).getByRole('checkbox'));
+
+      expect(screen.queryByText('Selected folder')).not.toBeInTheDocument();
+      expect(screen.queryByText('Selected file')).not.toBeInTheDocument();
+    });
   });
   describe('unselectable file actions', () => {
     it('should not show "Select file" action for an unselectable file', () => {

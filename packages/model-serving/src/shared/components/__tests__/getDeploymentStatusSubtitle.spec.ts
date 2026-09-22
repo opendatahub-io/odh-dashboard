@@ -1,4 +1,4 @@
-import { KueueWorkloadStatus } from '@odh-dashboard/internal/concepts/kueue/types';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { getDeploymentStatusSubtitle } from '../getDeploymentStatusSubtitle';
 

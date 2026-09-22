@@ -22,6 +22,7 @@ describe('Workbenches - status tests', () => {
   let projectName: string;
   let projectDescription: string;
   let notebookImage: string;
+  let hardwareProfileName: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -31,6 +32,7 @@ describe('Workbenches - status tests', () => {
         projectName = `${fixtureData.wbStatusTestNamespace}-${uuid}`;
         projectDescription = fixtureData.wbStatusTestDescription;
         notebookImage = fixtureData.notebookImage;
+        hardwareProfileName = fixtureData.hardwareProfileName;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -83,6 +85,8 @@ describe('Workbenches - status tests', () => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
 
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(hardwareProfileName);
           createSpawnerPage.findSubmitButton().click();
 
           // Wait for workbench to run
@@ -101,6 +105,9 @@ describe('Workbenches - status tests', () => {
             );
             notebookRow.findHaveNotebookStatusText().click();
             workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Ready);
+
+            cy.step('Verify the workbench description is displayed in the status modal');
+            workbenchStatusModal.findModalDescription().should('have.text', projectDescription);
 
             // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');

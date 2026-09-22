@@ -2,8 +2,17 @@ import { Content, ContentVariants, Flex, FlexItem } from '@patternfly/react-core
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { URL_PREFIX } from '~/app/utilities/const';
 import ApiKeyCountLabel from '~/app/components/ApiKeyCountLabel';
+import {
+  MaaSEvents,
+  ModelInfoContext,
+  MySubscriptionsGrouping,
+  MySubscriptionsRowExpandedProperties,
+  SubscriptionDetailNavLocation,
+  SubscriptionDetailNavigatedProperties,
+} from '~/app/types/event-tracking';
 import { ModelGroupEntry } from './SubscriptionsViewTable';
 import { ModelInfoPopover, formatTokenLimit } from './SubscriptionModelsTable';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
@@ -22,7 +31,17 @@ const ModelGroupRow: React.FC<{
           expand={{
             rowIndex,
             isExpanded,
-            onToggle: () => setIsExpanded((prev) => !prev),
+            onToggle: () => {
+              setIsExpanded((prev) => {
+                const next = !prev;
+                fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_ROW_EXPANDED, {
+                  currentView: MySubscriptionsGrouping.MODEL,
+                  nestedItemCount: modelGroup.subscriptions.length,
+                  expanded: next,
+                } satisfies MySubscriptionsRowExpandedProperties);
+                return next;
+              });
+            },
           }}
         />
         <Td dataLabel="Model">
@@ -35,6 +54,7 @@ const ModelGroupRow: React.FC<{
                 displayName={modelGroup.displayName || modelGroup.name}
                 modelId={modelGroup.name}
                 description={modelGroup.description}
+                context={ModelInfoContext.LIST_MODEL_VIEW}
               />
             </FlexItem>
           </Flex>
@@ -70,6 +90,12 @@ const ModelGroupRow: React.FC<{
                         <Link
                           data-testid={`subscription-detail-link-${sub.subscriptionIdHeader}`}
                           to={`${URL_PREFIX}/keys-and-subs/subscriptions/${sub.subscriptionIdHeader}`}
+                          onClick={() => {
+                            fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
+                              currentView: MySubscriptionsGrouping.MODEL,
+                              location: SubscriptionDetailNavLocation.EXPANDED_NESTED_ROW,
+                            } satisfies SubscriptionDetailNavigatedProperties);
+                          }}
                         >
                           {sub.displayName || sub.subscriptionIdHeader}
                         </Link>

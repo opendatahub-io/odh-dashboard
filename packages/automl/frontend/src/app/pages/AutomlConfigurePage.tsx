@@ -15,7 +15,7 @@ import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
@@ -52,7 +52,7 @@ type AutomlConfigurePageProps = {
   initialInputDataSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
-  /** When reconfiguring, the display name of the source run (used in the page title). */
+  /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
   sourceRunName?: string;
 };
 
@@ -321,8 +321,25 @@ function AutomlConfigurePage({
             homePath={getRedirectPath(namespace)}
             onHomeNavigate={handleHomeNavigate}
           >
+            {fromResultsPage && sourceRunId && sourceRunName && (
+              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
+                <Link
+                  to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}
+                  onClick={() =>
+                    fireAutomlFlowExited(
+                      'navigate',
+                      funnelStepRef.current,
+                      'otherAutoml',
+                      changedFieldsOnExitRef.current,
+                    )
+                  }
+                >
+                  <Truncate content={sourceRunName} />
+                </Link>
+              </BreadcrumbItem>
+            )}
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              Experiment configurations
+              {sourceRunId ? 'Reconfigure' : 'Run configurations'}
             </BreadcrumbItem>
           </ExperimentContextBreadcrumb>
         )

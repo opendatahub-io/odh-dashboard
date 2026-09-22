@@ -1,0 +1,8 @@
+# testLlmdTopologyConfigurationsCrud.cy.ts Test Data #
+
+# Base names; the spec appends a per-run UUID for concurrency safety.
+topologyConfigResourceName: 'e2e-topo-crud'
+topologyConfigDisplayName: 'E2E Topology CRUD'
+# Spec body pasted into the create form's YAML editor (name comes from the form).
+topologyConfigEditorFixture: 'resources/modelServing/llmd-topology-config-editor-body.yaml'
+configSourceEditorKey: 'editor'

@@ -27,6 +27,7 @@ import {
   EventTrackingSource,
   MaaSEvents,
   convertPhaseResourceTypeToEventTrackingResourceType,
+  MaaSSettingsDetailsViewedProperties,
 } from '~/app/types/event-tracking';
 import type { AffectedModel } from '~/app/types/maas-model';
 import AffectedModelsTable from './AffectedModelsTable';
@@ -159,10 +160,10 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
                 resourceType: convertPhaseResourceTypeToEventTrackingResourceType(resourceType),
                 source: EventTrackingSource.TAB_LINK,
                 resourceStatus: phase,
-              })
+              } satisfies MaaSSettingsDetailsViewedProperties)
             }
           >
-            View Details
+            View details
           </Link>
         </ModalFooter>
       ) : null}

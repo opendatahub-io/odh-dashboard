@@ -21,6 +21,7 @@ import {
 import { URL_PREFIX } from '~/app/utilities/const';
 import SubscriptionModelsTable from '~/app/pages/keys-and-subs/mySubscriptions/SubscriptionModelsTable';
 import { useGetUserSubscription } from '~/app/hooks/useGetUserSubscription';
+import { ModelInfoContext } from '~/app/types/event-tracking';
 import MySubscriptionDetails from './MySubscriptionDetails';
 import MySubscriptionsApiKeyTable from './MySubscriptionsApiKeyTable';
 
@@ -103,7 +104,10 @@ const ViewSubscriptionPage: React.FC = () => {
                           </Flex>
                         </StackItem>
                         <StackItem>
-                          <SubscriptionModelsTable models={modelRefs} />
+                          <SubscriptionModelsTable
+                            models={modelRefs}
+                            context={ModelInfoContext.DETAIL_PAGE}
+                          />
                         </StackItem>
                       </Stack>
                     </CardBody>

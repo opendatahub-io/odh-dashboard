@@ -68,9 +68,9 @@ mlflow/
 │   │   ├── __tests__/           # Test files
 │   │   └── images/              # Image assets
 │   ├── config/
-│   │   ├── webpack.common.js    # Shared webpack config
-│   │   ├── webpack.dev.js       # Development webpack config
-│   │   ├── webpack.prod.js      # Production webpack config
+│   │   ├── rspack.common.js    # Shared rspack config
+│   │   ├── rspack.dev.js       # Development rspack config
+│   │   ├── rspack.prod.js      # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
 │   ├── docs/                    # Frontend documentation
 │   ├── package.json             # NPM dependencies and scripts
@@ -94,8 +94,8 @@ mlflow/
 
 ### Frontend
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.8.2
+- **Node.js**: >= 22.18.0
+- **npm**: 11.8.0
 
 ### BFF
 
@@ -288,7 +288,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 - React 18 + TypeScript
 - PatternFly v6 (UI framework for federated mode)
-- Webpack with Module Federation
+- Rspack with Module Federation
 - **mod-arch-core** - Core functionality, hooks, context providers
 
 ### Development Guidelines
@@ -408,7 +408,7 @@ make test   # Run tests
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.26+** for the BFF and **Node 22+** for the frontend
+1. Use **Go 1.26+** for the BFF and **Node 22.18+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Use **PatternFly components** for all federated-mode UI
 4. Run tests before pushing:

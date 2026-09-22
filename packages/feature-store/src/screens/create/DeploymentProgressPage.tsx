@@ -30,18 +30,21 @@ import {
   InProgressIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import useWatchFeatureStoreDeployment, {
   DeploymentPhase,
 } from '../../hooks/useWatchFeatureStoreDeployment';
-import { FeatureStoreObject } from '../../const';
-import { featureStoreRoute, featureStoreManageRoute } from '../../routes';
+import { featureStoreManageRoute } from '../../routes';
 import {
   hasConditionFailure,
   humanizeConditionType,
   resolveConditionDisplay,
 } from '../../statusUtils';
+
+const FeatureStoresLink = (props: React.ComponentProps<'a'>) => (
+  <Link {...props} to={featureStoreManageRoute()} />
+);
 
 const phaseConfig: Record<
   DeploymentPhase,
@@ -72,7 +75,6 @@ const computeProgress = (phase: DeploymentPhase, conditions: { status?: string }
 
 const DeploymentProgressPage: React.FC = () => {
   const { namespace = '', name = '' } = useParams<{ namespace: string; name: string }>();
-  const navigate = useNavigate();
   const deploymentStatus = useWatchFeatureStoreDeployment(namespace, name);
   const {
     featureStore,
@@ -320,8 +322,7 @@ const DeploymentProgressPage: React.FC = () => {
               title="Deployment failed"
               data-testid="deployment-failed-alert"
             >
-              The feature store deployment has failed. Review the conditions and pod logs for
-              details.
+              Review the conditions and pod logs. Delete this feature store, then create it again.
             </Alert>
           </StackItem>
         )}
@@ -334,7 +335,7 @@ const DeploymentProgressPage: React.FC = () => {
               title="Deployment complete"
               data-testid="deployment-success-alert"
             >
-              The feature store has been deployed successfully.
+              This feature store is ready. Open it from Feature stores.
             </Alert>
           </StackItem>
         )}
@@ -346,27 +347,15 @@ const DeploymentProgressPage: React.FC = () => {
             </Title>
           </StackItem>
         )}
+
         <StackItem>
-          <Split hasGutter>
-            <SplitItem>
-              <Button
-                variant="primary"
-                onClick={() => navigate(featureStoreRoute(FeatureStoreObject.OVERVIEW))}
-                data-testid="go-to-feature-store"
-              >
-                {isComplete ? 'Go to feature store' : 'Back to overview'}
-              </Button>
-            </SplitItem>
-            <SplitItem>
-              <Button
-                variant="secondary"
-                onClick={() => navigate(featureStoreManageRoute())}
-                data-testid="manage-feature-stores"
-              >
-                Manage feature stores
-              </Button>
-            </SplitItem>
-          </Split>
+          <Button
+            variant="primary"
+            component={FeatureStoresLink}
+            data-testid="go-to-feature-stores-btn"
+          >
+            Go to Feature stores
+          </Button>
         </StackItem>
       </Stack>
     </ApplicationsPage>

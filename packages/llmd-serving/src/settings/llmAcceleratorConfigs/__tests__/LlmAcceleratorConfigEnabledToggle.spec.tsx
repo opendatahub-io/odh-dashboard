@@ -19,6 +19,7 @@ jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+  fireFormTrackingEvent: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking', () => ({

@@ -14,10 +14,7 @@ import {
   PageSection,
   Popover,
 } from '@patternfly/react-core';
-import {
-  MultiSelection,
-  SelectionOptions,
-} from '@odh-dashboard/internal/components/MultiSelection';
+import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -26,7 +23,9 @@ import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormVal
 import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
-import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
@@ -41,6 +40,17 @@ import {
 } from '~/app/types/subscriptions';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  EventTrackingEditSource,
+  EventTrackingPrefillSource,
+  MaaSEvents,
+  SubscriptionCreatedCancelProperties,
+  SubscriptionCreatedErrorProperties,
+  SubscriptionCreatedSuccessProperties,
+  SubscriptionUpdatedCancelProperties,
+  SubscriptionUpdatedErrorProperties,
+  SubscriptionUpdatedSuccessProperties,
+} from '~/app/types/event-tracking';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
@@ -51,6 +61,7 @@ type CreateSubscriptionFormProps = {
   subscriptionInfo?: SubscriptionInfoResponse;
   returnTo?: string;
   preSelectedModel?: { name: string; namespace?: string };
+  editSource?: EventTrackingEditSource;
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
@@ -90,6 +101,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   subscriptionInfo,
   returnTo,
   preSelectedModel,
+  editSource,
 }) => {
   const navigate = useNavigate();
   const { refresh } = useMaaSGovernanceContext();
@@ -226,6 +238,12 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     isPriorityValid &&
     !isSubmitting;
 
+  const modelRefsPayload = models.map((m) => ({
+    name: m.modelRefSummary.name,
+    namespace: m.modelRefSummary.namespace,
+    tokenRateLimits: m.tokenRateLimits,
+  }));
+
   const handleSubmit = async () => {
     if (priority == null || Number.isNaN(priority)) {
       return;
@@ -233,12 +251,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
 
     setIsSubmitting(true);
     setSubmitError(null);
-
-    const modelRefsPayload = models.map((m) => ({
-      name: m.modelRefSummary.name,
-      namespace: m.modelRefSummary.namespace,
-      tokenRateLimits: m.tokenRateLimits,
-    }));
 
     try {
       const apiOpts: APIOptions = {};
@@ -254,6 +266,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           priority,
         };
         await updateSubscription()(apiOpts, subscription.name, request);
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          groupCount: selectedGroupNames.length,
+          modelCount: models.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          priority,
+          editSource,
+        } satisfies SubscriptionUpdatedSuccessProperties);
       } else {
         const request: CreateSubscriptionRequest = {
           name: nameDescData.k8sName.value,
@@ -265,21 +286,49 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           createAuthPolicy,
         };
         await createSubscription()(apiOpts, request);
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_CREATED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          groupCount: selectedGroupNames.length,
+          modelCount: models.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          modelCountAvailable: modelRefs.length,
+          hasMatchingPolicy: createAuthPolicy,
+          priority,
+          prefillSource,
+        } satisfies SubscriptionCreatedSuccessProperties);
       }
       refresh();
       navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
-      setSubmitError(
+      const errMsg =
         e instanceof Error
           ? e.message
-          : `Failed to ${isEditing ? 'update' : 'create'} subscription`,
+          : `Failed to ${isEditing ? 'update' : 'create'} subscription`;
+      fireFormTrackingEvent(
+        isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
+        isEditing
+          ? ({
+              outcome: TrackingOutcome.submit,
+              success: false,
+              editSource,
+            } satisfies SubscriptionUpdatedErrorProperties)
+          : ({
+              outcome: TrackingOutcome.submit,
+              success: false,
+            } satisfies SubscriptionCreatedErrorProperties),
       );
+      setSubmitError(errMsg);
       setIsSubmitting(false);
     }
   };
 
   const showNoModelsWarning = !isEditing && modelRefs.length === 0 && models.length === 0;
   const canAddModels = modelRefs.length > 0;
+
+  const prefillSource = preSelectedModel
+    ? EventTrackingPrefillSource.MODEL
+    : EventTrackingPrefillSource.NONE;
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -372,9 +421,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             title="No models available"
             data-testid="no-models-warning"
           >
-            There are no model endpoints available on the cluster. Deploy a model on the{' '}
-            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef
-            before creating a subscription.
+            There are no model endpoints available on the cluster. To create a subscription, first
+            deploy a model from the <Link to="/ai-hub/models/deployments">Deployments page</Link>{' '}
+            and create a MaaSModelRef.
           </Alert>
         ) : (
           <MaasModelsSection
@@ -431,7 +480,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         )}
 
         {!isEditing && (
-          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization Policy">
+          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization policy">
             <FormHelperText>
               <HelperText>
                 <HelperTextItem>
@@ -525,7 +574,24 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(returnTo ?? getSectionUrl('subscriptions'))}
+            onClick={() => {
+              navigate(returnTo ?? getSectionUrl('subscriptions'));
+              fireFormTrackingEvent(
+                isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
+                isEditing
+                  ? ({
+                      outcome: TrackingOutcome.cancel,
+                      editSource,
+                    } satisfies SubscriptionUpdatedCancelProperties)
+                  : ({
+                      outcome: TrackingOutcome.cancel,
+                      modelCount: models.length,
+                      modelCountWoLimit: modelRefsPayload.filter(
+                        (m) => m.tokenRateLimits.length === 0,
+                      ).length,
+                    } satisfies SubscriptionCreatedCancelProperties),
+              );
+            }}
             isDisabled={isSubmitting}
             data-testid="cancel-subscription-button"
           >

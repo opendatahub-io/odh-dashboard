@@ -116,6 +116,22 @@ dev-bff-kubeflow:
 	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
 
 ########### Dev Federated ###########
+# Ingress redirects http:// to https://; POST passthrough (e.g. api-keys/search) must use https:// directly.
+define resolve_maas_api_url
+	MAAS_URL="$${MAAS_API_URL}"; \
+	if [ -z "$$MAAS_URL" ]; then \
+		echo "MAAS_API_URL not set, attempting to auto-detect from cluster..."; \
+		CLUSTER_DOMAIN=$$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}' 2>/dev/null); \
+		if [ -z "$$CLUSTER_DOMAIN" ]; then \
+			echo "Error: Could not auto-detect cluster domain."; \
+			echo "Ensure you are logged into the cluster (oc login) or set MAAS_API_URL manually."; \
+			exit 1; \
+		fi; \
+		MAAS_URL="https://maas.$$CLUSTER_DOMAIN/maas-api"; \
+		echo "Auto-detected MAAS_API_URL: $$MAAS_URL"; \
+	fi;
+endef
+
 .PHONY: dev-start-federated
 dev-start-federated:
 	@trap 'exit 0' INT; \
@@ -127,18 +143,7 @@ dev-frontend-federated:
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
-	@MAAS_URL="$${MAAS_API_URL}"; \
-	if [ -z "$$MAAS_URL" ]; then \
-		echo "MAAS_API_URL not set, attempting to auto-detect from cluster..."; \
-		CLUSTER_DOMAIN=$$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}' 2>/dev/null); \
-		if [ -z "$$CLUSTER_DOMAIN" ]; then \
-			echo "Error: Could not auto-detect cluster domain."; \
-			echo "Ensure you are logged into the cluster (oc login) or set MAAS_API_URL manually."; \
-			exit 1; \
-		fi; \
-		MAAS_URL="http://maas.$$CLUSTER_DOMAIN/maas-api"; \
-		echo "Auto-detected MAAS_API_URL: $$MAAS_URL"; \
-	fi; \
+	@$(resolve_maas_api_url) \
 	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
 
 .PHONY: dev-bff-federated-mock
@@ -167,7 +172,8 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
+	@$(resolve_maas_api_url) \
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
 
 ############ Build ############
 

@@ -37,11 +37,11 @@ import {
   modelServingGlobal,
   modelServingSection,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
-  SecretModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
@@ -274,7 +274,7 @@ describe('Model Serving Global', () => {
 
   it('All projects with every type of serving listed', () => {
     asClusterAdminUser();
-    initInterceptsForAllProjects();
+    initInterceptsForAllProjects({ nimWizard: false });
 
     // Visit the all-projects view and ensure each project type is listed
     modelServingGlobal.visit();

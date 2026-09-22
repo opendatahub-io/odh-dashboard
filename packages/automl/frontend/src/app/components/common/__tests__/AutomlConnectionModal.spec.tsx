@@ -3,13 +3,13 @@ import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
-import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
+import * as secretsApi from '@odh-dashboard/k8s-core/api/secrets';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import * as tracking from '~/app/utilities/tracking';
 
 const TEST_PROJECT = 'my-project';
 
-jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
   createSecret: jest.fn(),
 }));
 

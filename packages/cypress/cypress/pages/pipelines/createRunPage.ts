@@ -214,8 +214,10 @@ export class CreateRunPage {
     return this.find().findByTestId('no-pipeline-versions-available-alert');
   }
 
-  findMlflowIntegrationSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('run-section-mlflow-integration');
+  findMlflowIntegrationSection(options?: {
+    timeout?: number;
+  }): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('run-section-mlflow-integration', options);
   }
 
   findMlflowIntegrationJumpLink(): Cypress.Chainable<JQuery<HTMLElement>> {

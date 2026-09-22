@@ -12,13 +12,27 @@ import type {
   WizardField,
   ModelLocationData,
 } from '../src/shared/types/form-data';
-import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type {
+  HuggingFaceApiKeyFieldData,
+  ModelTypeFieldData,
+  ModelServerSelectFieldData,
+} from '../src/shared/wizard-fields';
 import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
+    /**
+     * Whether this extension is active for the given deployment. When multiple form-data
+     * extensions share a `platform`, the active one with the highest `priority` wins.
+     * Evaluated at extraction time from an existing deployment, so it must not rely on wizard state.
+     */
+    isActive: CodeRef<(deployment: D) => boolean> | true;
+    /**
+     * Priority among active extensions WITH the same `platform`. Higher number wins.
+     */
+    priority: number | 0;
     hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
       (deployment: D) => ExtractionResult<Parameters<typeof useHardwareProfileConfig> | null>
@@ -40,6 +54,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelServerTemplate: CodeRef<
       (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
     >;
+    extractHuggingFaceApiKey?: CodeRef<(deployment: D) => HuggingFaceApiKeyFieldData | null>;
     validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
 >;
@@ -309,6 +324,7 @@ export type WizardTrackingPropertiesExtension<D extends Deployment = Deployment>
     getProperties: CodeRef<
       (
         wizardState: WizardFormData['state'],
+        externalData?: ExternalDataMap,
       ) => Record<string, string | number | boolean | undefined>
     >;
   }

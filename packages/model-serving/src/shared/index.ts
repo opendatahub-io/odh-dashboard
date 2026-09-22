@@ -69,6 +69,7 @@ export {
   ModelServingToolbarFilterOptions,
   modelServingFilterOptions,
   initialModelServingFilterData,
+  DEPLOY_BUTTON_TOOLTIP,
 } from './const';
 export type { ModelServingFilterDataType } from './const';
 

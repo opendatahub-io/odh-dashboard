@@ -6,7 +6,7 @@ const LEGACY_OPTION = {
   key: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
   label: 'Inference service',
   description:
-    'Deploy a model using a serving runtime template. Best for custom runtimes. Not compatible with Models as a Service.',
+    'Deploy a model using a serving runtime template. Not compatible with Models as a Service.',
   order: 3,
 };
 

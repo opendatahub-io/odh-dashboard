@@ -1,7 +1,7 @@
 # AGENTS.md - Core BFF
 
 This document provides guidance for AI agents and developers working on the Core BFF module.
-The Core BFF replaces the Fastify backend for RHOAI sidecar deployments. It contains a Go
+The Core BFF replaces the Fastify backend for RHOAI deployments. It contains a Go
 backend-for-frontend (BFF) and a React frontend that integrates with the ODH dashboard via
 Module Federation.
 
@@ -100,8 +100,8 @@ core-bff/
 
 ### Frontend
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.8.2
+- **Node.js**: >= 22.18.0
+- **npm**: 11.8.0
 
 ### BFF
 
@@ -394,7 +394,7 @@ npm run test:contract:xks         # foundation + xks tests
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.25+** for the BFF and **Node 22+** for the frontend
+1. Use **Go 1.25+** for the BFF and **Node 22.18+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Use **PatternFly components** for all federated-mode UI
 4. Run tests before pushing:

@@ -119,7 +119,7 @@ Access the dashboard in your browser (usually at `http://localhost:4000` or the 
 
 ## Standalone Deployment
 
-In production, each module is deployed as an **independent Kubernetes Deployment** rather than a sidecar container in the main dashboard pod. This is the primary deployment mode for all modular architecture modules.
+In production, each module is deployed as an **independent Kubernetes Deployment** with its own Service, ServiceAccount, NetworkPolicy, and RBAC resources.
 
 The Dashboard Module Controller (operator in `dashboard-operator/`) manages the full lifecycle of each module based on the `Dashboard` custom resource (CR). Modules are enabled or disabled based on:
 

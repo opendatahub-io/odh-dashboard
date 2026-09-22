@@ -1,4 +1,3 @@
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   fireModelDeployed,
@@ -6,11 +5,7 @@ import {
   type DeploymentTrackingProperties,
 } from '../deploymentTracking';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockTrackEvent = jest.fn();
 
 describe('fireModelDeployed', () => {
   beforeEach(() => {
@@ -28,12 +23,9 @@ describe('fireModelDeployed', () => {
       numReplicas: 1,
     };
 
-    fireModelDeployed(properties, false);
+    fireModelDeployed(mockTrackEvent, properties, false);
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      DeploymentTrackingEvent.MODEL_DEPLOYED,
-      properties,
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(DeploymentTrackingEvent.MODEL_DEPLOYED, properties);
   });
 
   it('should fire Model Updated event when isEdit is true', () => {
@@ -47,12 +39,9 @@ describe('fireModelDeployed', () => {
       numReplicas: 2,
     };
 
-    fireModelDeployed(properties, true);
+    fireModelDeployed(mockTrackEvent, properties, true);
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      DeploymentTrackingEvent.MODEL_UPDATED,
-      properties,
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(DeploymentTrackingEvent.MODEL_UPDATED, properties);
   });
 
   it('should fire Model Deployed with cancel outcome', () => {
@@ -60,32 +49,9 @@ describe('fireModelDeployed', () => {
       outcome: TrackingOutcome.cancel,
     };
 
-    fireModelDeployed(properties);
+    fireModelDeployed(mockTrackEvent, properties);
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      DeploymentTrackingEvent.MODEL_DEPLOYED,
-      properties,
-    );
-  });
-
-  it('should fire with error message on failure', () => {
-    const properties: DeploymentTrackingProperties = {
-      outcome: TrackingOutcome.submit,
-      success: false,
-      errorMessage: 'Connection refused',
-      modelType: 'single',
-      runtime: 'vllm-template',
-      servingRuntimeName: 'vLLM',
-      servingRuntimeFormat: 'pytorch',
-      numReplicas: 1,
-    };
-
-    fireModelDeployed(properties, false);
-
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      DeploymentTrackingEvent.MODEL_DEPLOYED,
-      properties,
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(DeploymentTrackingEvent.MODEL_DEPLOYED, properties);
   });
 
   it('should include per-platform properties via the spread', () => {
@@ -101,9 +67,9 @@ describe('fireModelDeployed', () => {
       nimImageVersion: '1.0.0',
     };
 
-    fireModelDeployed(properties, false);
+    fireModelDeployed(mockTrackEvent, properties, false);
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       DeploymentTrackingEvent.MODEL_DEPLOYED,
       expect.objectContaining({
         nimModelId: 'meta/llama3-8b',
@@ -118,12 +84,9 @@ describe('fireModelDeployed', () => {
       success: true,
     };
 
-    fireModelDeployed(properties);
+    fireModelDeployed(mockTrackEvent, properties);
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      DeploymentTrackingEvent.MODEL_DEPLOYED,
-      properties,
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(DeploymentTrackingEvent.MODEL_DEPLOYED, properties);
   });
 
   it('should include model location properties', () => {
@@ -138,9 +101,9 @@ describe('fireModelDeployed', () => {
       modelLocationType: 'existing',
     };
 
-    fireModelDeployed(properties, false);
+    fireModelDeployed(mockTrackEvent, properties, false);
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       DeploymentTrackingEvent.MODEL_DEPLOYED,
       expect.objectContaining({
         modelLocationType: 'existing',

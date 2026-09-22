@@ -1,4 +1,4 @@
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 
 import {
   shouldShowConfigurePipelineServerEmptyState,
@@ -6,7 +6,7 @@ import {
   shouldShowNoDSPAEmptyState,
 } from '~/app/utilities/pipelineServerEmptyState';
 
-jest.mock('@odh-dashboard/internal/api/errorUtils', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/errorUtils', () => ({
   getGenericErrorCode: jest.fn(),
 }));
 

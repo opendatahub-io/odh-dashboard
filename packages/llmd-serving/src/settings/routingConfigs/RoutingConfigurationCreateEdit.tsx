@@ -20,7 +20,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {
   getDisplayNameFromK8sResource,
@@ -54,6 +54,10 @@ import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
+import {
+  fireRoutingConfigCreated,
+  fireRoutingConfigUpdated,
+} from '../../tracking/llmdTrackingConstants';
 
 const SAMPLE_DISPLAY_NAME_ANNOTATION = 'openshift.io/display-name';
 const SAMPLE_DESCRIPTION_ANNOTATION = 'description';
@@ -318,8 +322,20 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
+        fireRoutingConfigUpdated({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          topologyType: selectedTopology,
+        });
       } else {
         await createLLMInferenceServiceConfig(newConfig);
+        fireRoutingConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          mode: isDuplicate ? 'duplicate' : 'create',
+          configSource,
+          topologyType: selectedTopology,
+        });
       }
       navigate(listPath);
     } catch (e) {
@@ -329,6 +345,21 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         `Error ${isEditMode ? 'updating' : 'creating'} configuration`,
         err.message,
       );
+      if (isEditMode) {
+        fireRoutingConfigUpdated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          topologyType: selectedTopology,
+        });
+      } else {
+        fireRoutingConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          mode: isDuplicate ? 'duplicate' : 'create',
+          configSource,
+          topologyType: selectedTopology,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -431,7 +462,17 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             variant="link"
             data-testid="cancel-routing-config-button"
             isDisabled={loading}
-            onClick={() => navigate(listPath)}
+            onClick={() => {
+              if (isEditMode) {
+                fireRoutingConfigUpdated({ outcome: TrackingOutcome.cancel });
+              } else {
+                fireRoutingConfigCreated({
+                  outcome: TrackingOutcome.cancel,
+                  mode: isDuplicate ? 'duplicate' : 'create',
+                });
+              }
+              navigate(listPath);
+            }}
           >
             Cancel
           </Button>

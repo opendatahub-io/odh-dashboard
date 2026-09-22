@@ -322,7 +322,7 @@ describe('AutomlLeaderboard utility functions', () => {
   });
 
   describe('formatMetricValue', () => {
-    it('should format normal values with 3 decimal places', () => {
+    it('should format normal values with 4 decimal places', () => {
       renderWithContext({
         models: {
           'model-1': createMockModel('Test Model', {
@@ -332,9 +332,9 @@ describe('AutomlLeaderboard utility functions', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
 
-      // Value should be formatted to 3 decimal places
+      // Value should be formatted to 4 decimal places
       const metricCell = screen.getByTestId('metric-accuracy-1');
-      expect(metricCell).toHaveTextContent('0.954');
+      expect(metricCell).toHaveTextContent('0.9543');
     });
 
     it('should use scientific notation for very small values', () => {
@@ -345,7 +345,7 @@ describe('AutomlLeaderboard utility functions', () => {
 
       // Very small values should use scientific notation
       const accuracyCell = screen.getByTestId('metric-accuracy-1');
-      expect(accuracyCell.textContent).toMatch(/1\.230e-5|1\.23e-5/);
+      expect(accuracyCell).toHaveTextContent('1.2300e-5');
     });
   });
 });
@@ -834,11 +834,11 @@ describe('AutomlLeaderboard component', () => {
       showAllColumns();
 
       // Check first model (rank 1 - XGBoost with highest accuracy)
-      expect(screen.getByTestId('metric-accuracy-1')).toHaveTextContent('0.970');
-      expect(screen.getByTestId('metric-f1-1')).toHaveTextContent('0.960');
-      expect(screen.getByTestId('metric-precision-1')).toHaveTextContent('0.960');
-      expect(screen.getByTestId('metric-recall-1')).toHaveTextContent('0.950');
-      expect(screen.getByTestId('metric-roc_auc-1')).toHaveTextContent('0.980');
+      expect(screen.getByTestId('metric-accuracy-1')).toHaveTextContent('0.9700');
+      expect(screen.getByTestId('metric-f1-1')).toHaveTextContent('0.9600');
+      expect(screen.getByTestId('metric-precision-1')).toHaveTextContent('0.9600');
+      expect(screen.getByTestId('metric-recall-1')).toHaveTextContent('0.9500');
+      expect(screen.getByTestId('metric-roc_auc-1')).toHaveTextContent('0.9800');
     });
 
     it('should display metrics with tooltip showing full value', () => {

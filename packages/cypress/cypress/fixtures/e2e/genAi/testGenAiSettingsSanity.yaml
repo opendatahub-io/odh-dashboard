@@ -26,3 +26,11 @@ guardrails:
 agent:
   name: 'e2e-agent-persistence-test'
   description: 'E2E test agent for configuration persistence validation'
+mcp:
+  configMapName: 'gen-ai-aa-mcp-servers'
+  namespace: 'mcp-servers'
+  serverKey: 'kubernetes-mcp-server'
+  serverName: 'kubernetes-mcp-server'
+  image: 'quay.io/containers/kubernetes_mcp_server:v0.0.60'
+  serverDescription: 'Kubernetes cluster management (read-only) - list namespaces, pods, events, resources, logs, and more'
+  testQuestion: 'List the namespaces in this cluster'

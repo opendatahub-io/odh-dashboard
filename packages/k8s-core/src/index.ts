@@ -1,3 +1,5 @@
+export { applyK8sAPIOptions, mergeRequestInit } from './apiMergeUtils';
+
 export {
   ContainerResourceAttributes,
   SchedulingType,
@@ -83,6 +85,7 @@ export type {
   WorkloadCondition,
   CohortKind,
   ResourceFlavorKind,
+  ServiceAccountKind,
   ServiceKind,
   NIMAccountKind,
   ConfigSecretItem,

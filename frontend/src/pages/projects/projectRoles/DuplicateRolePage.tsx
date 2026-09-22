@@ -3,7 +3,7 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import { Navigate, useParams } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { getRole } from '#~/api';
+import { getRole } from '@odh-dashboard/k8s-core/api/roles';
 import { RoleKind } from '#~/k8sTypes';
 import CreateRolePage from './CreateRolePage';
 

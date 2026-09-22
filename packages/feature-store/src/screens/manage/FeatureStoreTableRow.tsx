@@ -16,6 +16,7 @@ import {
   OutlinedQuestionCircleIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { FeatureStoreKind, FeastOnlineStore, FeastOfflineStore } from '../../k8sTypes';
@@ -49,15 +50,32 @@ const resolveEffectivePhase = (
 };
 
 const phaseLabel = (phase: string): React.ReactNode => {
+  const testId = `status-badge-${phase.toLowerCase()}`;
   switch (phase) {
     case 'Ready':
-      return <Label color="green">Ready</Label>;
+      return (
+        <Label color="green" data-testid={testId}>
+          Ready
+        </Label>
+      );
     case 'Failed':
-      return <Label color="red">Failed</Label>;
+      return (
+        <Label color="red" data-testid={testId}>
+          Failed
+        </Label>
+      );
     case 'Installing':
-      return <Label color="blue">Installing</Label>;
+      return (
+        <Label color="blue" data-testid={testId}>
+          Installing
+        </Label>
+      );
     default:
-      return <Label color="purple">{phase}</Label>;
+      return (
+        <Label color="purple" data-testid={testId}>
+          {phase}
+        </Label>
+      );
   }
 };
 
@@ -161,6 +179,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
     <>
       <Tr data-testid={`feature-store-row-${fs.metadata.namespace}-${fs.metadata.name}`}>
         <Td
+          data-testid="feature-store-expand-toggle"
           expand={{
             rowIndex,
             expandId: `feature-store-${fs.metadata.namespace}-${fs.metadata.name}`,
@@ -182,16 +201,24 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
           {isUILabeled && (
             <>
               {' '}
-              <Popover bodyContent="This is the primary feature store whose registry is shared with other feature stores. Additional feature stores should use a remote registry pointing to this store.">
-                <Label color="blue" isCompact isClickable icon={<OutlinedQuestionCircleIcon />}>
-                  Primary
-                </Label>
+              <Label color="blue" isCompact>
+                Primary
+              </Label>{' '}
+              <Popover
+                aria-label="Primary feature store help"
+                bodyContent="This is the primary feature store whose registry is shared with other feature stores. Additional feature stores should use a remote registry pointing to this store."
+              >
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="Primary feature store help"
+                  data-testid="primary-label-help"
+                />
               </Popover>
             </>
           )}
         </Td>
         <Td dataLabel="Project">{fs.metadata.namespace}</Td>
-        <Td dataLabel="Status">
+        <Td dataLabel="Status" data-testid="feature-store-status">
           {phaseLabel(resolveEffectivePhase(fs.status?.phase, fs.status?.conditions))}
         </Td>
         <Td dataLabel="Version">{fs.status?.feastVersion ?? '-'}</Td>
@@ -212,7 +239,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
             items={[
               {
                 title: 'Delete',
-                isDisabled: !canDelete,
+                isAriaDisabled: !canDelete,
                 tooltipProps: !canDelete
                   ? { content: 'You do not have permission to delete feature stores.' }
                   : undefined,

@@ -17,6 +17,12 @@ const (
 	KubeflowUserIDHeader       = "kubeflow-userid" // kubeflow-userid :contains the user's email address
 	KubeflowUserGroupsIdHeader = "kubeflow-groups" // kubeflow-groups : Holds a comma-separated list of user groups
 
+	// XUserHeader is a caller-asserted identity header that some upstream APIs trust for
+	// attribution (e.g. the Data Registry API's `registered_by` field). Proxies must strip any
+	// caller-supplied value rather than forwarding it verbatim, the same way Authorization is
+	// never copied as-is from the incoming request.
+	XUserHeader = "X-User"
+
 	TraceIdKey     contextKey = "TraceIdKey"
 	TraceLoggerKey contextKey = "TraceLoggerKey"
 )

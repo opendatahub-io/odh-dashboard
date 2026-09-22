@@ -1,5 +1,5 @@
 import { ModelSubscriptionRef } from '~/app/types/subscriptions';
-import { formatWindow } from '~/app/utilities/rateLimits';
+import { formatTokenRateLimitLine } from '~/app/utilities/rateLimits';
 
 export const formatTokenLimits = (
   modelRefs: ModelSubscriptionRef[],
@@ -8,7 +8,5 @@ export const formatTokenLimits = (
 ): string[] => {
   const ref = modelRefs.find((r) => r.namespace === namespace && r.name === name);
   const limits = ref && Array.isArray(ref.tokenRateLimits) ? ref.tokenRateLimits : [];
-  return limits.map(
-    ({ limit, window }) => `${limit.toLocaleString('en-US')} / ${formatWindow(window)}`,
-  );
+  return limits.map(({ limit, window }) => formatTokenRateLimitLine(limit, window));
 };

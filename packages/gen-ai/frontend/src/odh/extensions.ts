@@ -26,6 +26,7 @@ export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
 export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
+export const MCP_REGISTRY = 'mcpRegistry';
 const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 
 const extensions: (
@@ -94,6 +95,14 @@ const extensions: (
       id: AGENT_CONFIG_MANAGEMENT,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [AGENT_CONFIG_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: MCP_REGISTRY,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [MCP_REGISTRY],
     },
   },
   {

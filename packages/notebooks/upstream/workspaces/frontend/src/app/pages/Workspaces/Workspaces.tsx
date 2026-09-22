@@ -2,6 +2,7 @@ import React from 'react';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { useWorkspacesByNamespace } from '~/app/hooks/useWorkspaces';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
@@ -9,6 +10,7 @@ import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import NamespaceSelector from '~/app/components/NamespaceSelector';
 
 export const Workspaces: React.FunctionComponent = () => {
   const { namespacesLoaded, selectedNamespace } = useNamespaceSelectorWrapper();
@@ -28,12 +30,9 @@ export const Workspaces: React.FunctionComponent = () => {
     },
     {
       id: 'start',
-      isVisible: (w) => w.state !== V1Beta1WorkspaceState.WorkspaceStateRunning,
-      onActionDone: refreshWorkspaces,
-    },
-    {
-      id: 'restart',
-      isVisible: (w) => w.state === V1Beta1WorkspaceState.WorkspaceStateRunning,
+      isVisible: (w) =>
+        w.state !== V1Beta1WorkspaceState.WorkspaceStateRunning &&
+        w.state !== V1Beta1WorkspaceState.WorkspaceStateError,
       onActionDone: refreshWorkspaces,
     },
   ]);
@@ -50,9 +49,19 @@ export const Workspaces: React.FunctionComponent = () => {
     <PageSection isFilled>
       <Stack hasGutter>
         <StackItem>
-          <Content component={ContentVariants.h1} data-testid="app-page-title">
-            Workspaces
-          </Content>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Content component={ContentVariants.h1} data-testid="app-page-title">
+                Workspaces
+              </Content>
+            </FlexItem>
+            <FlexItem>
+              <NamespaceSelector />
+            </FlexItem>
+          </Flex>
         </StackItem>
         <StackItem>
           <Content component={ContentVariants.p}>

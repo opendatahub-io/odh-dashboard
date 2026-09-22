@@ -2,9 +2,18 @@ import { Flex, FlexItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TokenRateLimitInfo, UserSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import ApiKeyCountLabel from '~/app/components/ApiKeyCountLabel';
+import {
+  MaaSEvents,
+  ModelInfoContext,
+  MySubscriptionsGrouping,
+  MySubscriptionsRowExpandedProperties,
+  SubscriptionDetailNavLocation,
+  SubscriptionDetailNavigatedProperties,
+} from '~/app/types/event-tracking';
 import SubscriptionModelsTable from './SubscriptionModelsTable';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
 
@@ -37,7 +46,17 @@ const SubscriptionRow: React.FC<{
           expand={{
             rowIndex,
             isExpanded,
-            onToggle: () => setIsExpanded((prev) => !prev),
+            onToggle: () => {
+              setIsExpanded((prev) => {
+                const next = !prev;
+                fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_ROW_EXPANDED, {
+                  currentView: MySubscriptionsGrouping.SUBSCRIPTION,
+                  nestedItemCount: subscription.model_refs.length,
+                  expanded: next,
+                } satisfies MySubscriptionsRowExpandedProperties);
+                return next;
+              });
+            },
           }}
         />
         <Td dataLabel="Subscription">
@@ -47,6 +66,12 @@ const SubscriptionRow: React.FC<{
                 className="pf-v6-u-font-weight-bold"
                 data-testid={`subscription-detail-link-${subscription.subscription_id_header}`}
                 to={`${URL_PREFIX}/keys-and-subs/subscriptions/${subscription.subscription_id_header}`}
+                onClick={() => {
+                  fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
+                    currentView: MySubscriptionsGrouping.SUBSCRIPTION,
+                    location: SubscriptionDetailNavLocation.LIST_ROW,
+                  } satisfies SubscriptionDetailNavigatedProperties);
+                }}
               >
                 {subscription.display_name || subscription.subscription_id_header}
               </Link>
@@ -62,6 +87,7 @@ const SubscriptionRow: React.FC<{
               models={subscription.model_refs}
               ariaLabel={`Models for ${subscription.display_name || subscription.subscription_id_header}`}
               tableTestId={`subscription-models-table-${subscription.subscription_id_header}`}
+              context={ModelInfoContext.LIST_SUBSCRIPTION_VIEW}
             />
           </ExpandableRowContent>
         </Td>

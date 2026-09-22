@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { LocalQueueKind } from '@odh-dashboard/k8s-core';
 import useFetch, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getClusterQueueNameFromLocalQueues } from '@odh-dashboard/hardware-profiles/pages/utils';
-import { listLocalQueues } from '@odh-dashboard/internal/api/k8s/localQueues';
+import { listLocalQueues } from '@odh-dashboard/k8s-core/api/localQueues';
 
 type UseClusterQueueFromLocalQueueResult = {
   clusterQueueName: string | undefined;

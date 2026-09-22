@@ -152,7 +152,6 @@ spec:
             # Inter-BFF communication with the MLflow BFF (see docs/inter-bff-communication.md),
             # used to resolve MCP Registry server details for the deployments table.
             - name: BFF_MLFLOW_SERVICE_NAME
-              # Standalone Service DNS name (sidecar mode uses "odh-dashboard" on the shared Service).
               value: "odh-dashboard-mlflow-ui"
             - name: BFF_MLFLOW_SERVICE_PORT
               value: "8343"

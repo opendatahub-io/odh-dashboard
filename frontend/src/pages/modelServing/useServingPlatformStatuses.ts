@@ -1,41 +1,5 @@
-import * as React from 'react';
-import {
-  DataScienceStackComponent,
-  SupportedArea,
-  useIsAreaAvailable,
-} from '@odh-dashboard/plugin-core/areas';
-import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
-import { useIsNIMAvailable } from '#~/pages/modelServing/screens/projects/nim/useIsNIMAvailable';
-
-const useServingPlatformStatuses = (
-  shouldRefreshNimAvailability = false,
-): ServingPlatformStatuses => {
-  const kServeStatus = useIsAreaAvailable(SupportedArea.K_SERVE);
-  const kServeEnabled = kServeStatus.status;
-  const kServeInstalled = !!kServeStatus.requiredComponents?.[DataScienceStackComponent.K_SERVE];
-  const [isNIMAvailable, , , refreshNIMAvailability] = useIsNIMAvailable();
-
-  React.useEffect(() => {
-    if (shouldRefreshNimAvailability) {
-      // eslint-disable-next-line no-console
-      refreshNIMAvailability().catch((error) =>
-        console.error('Failed to refresh NIM availability:', error),
-      );
-    }
-  }, [shouldRefreshNimAvailability, refreshNIMAvailability]);
-
-  return {
-    kServe: {
-      enabled: kServeEnabled,
-      installed: kServeInstalled,
-    },
-    kServeNIM: {
-      enabled: isNIMAvailable,
-      installed: kServeInstalled,
-    },
-    platformEnabledCount: [kServeEnabled, isNIMAvailable].filter(Boolean).length,
-    refreshNIMAvailability,
-  };
-};
-
-export default useServingPlatformStatuses;
+// Re-export shim. The implementation now lives in the model-serving package
+// (packages/model-serving/src/hooks/useServingPlatformStatuses.ts) per the host-api
+// decoupling plan (RHOAIENG-79894). This shim keeps existing frontend consumers and
+// their mocks working while the domain hook is owned by model-serving.
+export { default } from '@odh-dashboard/model-serving/hooks/useServingPlatformStatuses';

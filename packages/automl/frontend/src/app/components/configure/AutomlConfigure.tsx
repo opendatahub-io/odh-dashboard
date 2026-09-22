@@ -53,6 +53,7 @@ import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { getInferredPredictionType } from '~/app/utilities/predictionTypeUtils';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
@@ -105,6 +106,8 @@ import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import OptimizationMetricModal from './OptimizationMetricModal';
 import './AutomlConfigure.scss';
+
+const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
 
 type AutomlConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
@@ -292,6 +295,14 @@ function AutomlConfigure({
   );
   const filteredNonASCIIColumnCount = schemaColumns.length - columns.length;
 
+  // Synchronize dataset metadata with the form resolver, including after file changes.
+  useEffect(() => {
+    setValue('training_data_column_count', schemaColumns.length, { shouldValidate: true });
+    if (schemaColumns.length === 2) {
+      setValue('id_column', '', { shouldValidate: true });
+    }
+  }, [schemaColumns.length, setValue]);
+
   const selectedColumn = columns.find((c) => c.name === targetColumn);
 
   useEffect(() => {
@@ -302,8 +313,9 @@ function AutomlConfigure({
 
   // Report whether the selected prediction type matches the target column's recommended type
   useEffect(() => {
-    onRecommendationChange?.(!selectedColumn?.task_type || taskType === selectedColumn.task_type);
-  }, [selectedColumn, taskType, onRecommendationChange]);
+    const inferred = getInferredPredictionType(selectedColumn, columns);
+    onRecommendationChange?.(!inferred || taskType === inferred);
+  }, [selectedColumn, columns, taskType, onRecommendationChange]);
 
   // Funnel milestone tracking — fires once per configure-step visit, the first time each
   // section is completed via an actual user selection, to measure retention through the
@@ -899,14 +911,9 @@ function AutomlConfigure({
                                   setIsTargetColumnOpen(false);
                                   if (typeof value === 'string') {
                                     const selected = columns.find((c) => c.name === value);
-                                    if (timestampColumn && selected?.type !== 'string') {
-                                      setValue('task_type', TASK_TYPE_TIMESERIES, {
-                                        shouldValidate: true,
-                                      });
-                                    } else if (selected?.task_type) {
-                                      setValue('task_type', selected.task_type, {
-                                        shouldValidate: true,
-                                      });
+                                    const inferred = getInferredPredictionType(selected, columns);
+                                    if (inferred) {
+                                      setValue('task_type', inferred, { shouldValidate: true });
                                     }
                                     // Fired here, from the actual selection, rather than from an
                                     // effect watching target_column — a pre-populated reconfigure
@@ -1010,6 +1017,7 @@ function AutomlConfigure({
                             name="task_type"
                             render={({ field }) => (
                               <AutomlPredictionTypeSelector
+                                columnCount={schemaColumns.length}
                                 value={field.value}
                                 onChange={field.onChange}
                                 onClearTimeseriesTimestamp={() =>
@@ -1027,6 +1035,7 @@ function AutomlConfigure({
 
                     {isTaskTypeSelected && isTimeseries && (
                       <ConfigureTimeseriesForm
+                        columnCount={schemaColumns.length}
                         columns={columns}
                         isLoadingColumns={isLoadingColumns}
                         isFetchingColumns={isFetchingColumns}
@@ -1133,9 +1142,12 @@ function AutomlConfigure({
                         <Divider />
                         <StackItem>
                           <Card data-testid="optimization-metric-card">
-                            <CardHeader
-                              actions={{
-                                actions: (
+                            <CardHeader>
+                              <Split hasGutter className="pf-v6-u-w-100">
+                                <SplitItem isFilled>
+                                  <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                                <SplitItem>
                                   <Button
                                     variant="secondary"
                                     isDisabled={formIsSubmitting}
@@ -1144,10 +1156,8 @@ function AutomlConfigure({
                                   >
                                     Edit
                                   </Button>
-                                ),
-                              }}
-                            >
-                              <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                              </Split>
                             </CardHeader>
                             <CardBody>
                               <Content component="p" data-testid="optimization-metric-value">
@@ -1220,10 +1230,10 @@ function AutomlConfigure({
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
-        disabledPaths={[
-          '/autogluon-tabular-training-pipeline',
-          '/autogluon-timeseries-training-pipeline',
-        ]}
+        disabledPaths={{
+          '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+          '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+        }}
       />
       <OptimizationMetricModal
         isOpen={isMetricModalOpen}

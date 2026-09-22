@@ -79,7 +79,9 @@ describe('ApiGroupsTreeSelect', () => {
     await openDropdown();
 
     expect(screen.getByText('core')).toBeInTheDocument();
-    expect(screen.getByText('Pods, services, configmaps, namespaces, events')).toBeInTheDocument();
+    expect(
+      screen.getByText('Pods, services, configmaps, PVCs, namespaces, events'),
+    ).toBeInTheDocument();
     expect(screen.getByText('apps')).toBeInTheDocument();
     expect(screen.getByText('Deployments, StatefulSets, DaemonSets')).toBeInTheDocument();
   });

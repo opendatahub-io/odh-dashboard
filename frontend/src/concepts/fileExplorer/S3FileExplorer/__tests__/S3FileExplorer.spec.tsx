@@ -658,7 +658,7 @@ describe('S3FileExplorer', () => {
   });
 
   describe('folder selection', () => {
-    it('should mark children as forceShowAsSelected when viewing a selected folder', async () => {
+    it('should show hint labels on children when viewing a selected folder', async () => {
       render(<S3FileExplorer {...defaultProps} />);
 
       await waitFor(() => {
@@ -690,12 +690,91 @@ describe('S3FileExplorer', () => {
         expect(screen.getByText('metadata.json')).toBeInTheDocument();
       });
 
-      // The child files should be shown as selected (forceShowAsSelected)
-      // which means their radio/checkbox should be checked and disabled
+      // Children should show "Included in selection" hint labels
       const metadataRow = screen.getByTestId('file-explorer-row--datasets-metadata-json');
-      const metadataRadio = metadataRow.querySelector('input[type="checkbox"]') as HTMLInputElement;
-      expect(metadataRadio).toBeChecked();
-      expect(metadataRadio).toBeDisabled();
+      expect(within(metadataRow).getByText('Included in selection')).toBeInTheDocument();
+
+      // Children should still be selectable (not disabled)
+      const metadataRadio = within(metadataRow).getByRole('radio');
+      expect(metadataRadio).not.toBeDisabled();
+    });
+
+    it('should show hint labels on all children of the selected folder', async () => {
+      render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      // Select the "datasets" folder
+      const datasetsRow = screen.getByTestId('file-explorer-row--datasets');
+      fireEvent.click(datasetsRow);
+
+      // Navigate into datasets
+      mockGetFiles.mockClear();
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: mockDatasetsPrefixes(),
+          contents: mockDatasetsObjects(),
+        }),
+      );
+
+      const folderLink = within(datasetsRow).getByRole('button', { name: 'datasets' });
+      fireEvent.click(folderLink);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('metadata.json')).toBeInTheDocument();
+      });
+
+      // All children should have the hint label
+      const hintLabels = screen.getAllByText('Included in selection');
+      expect(hintLabels.length).toBeGreaterThan(0);
+
+      // Subfolder children should also have hints
+      const trainRow = screen.getByTestId('file-explorer-row--datasets-train');
+      expect(within(trainRow).getByText('Included in selection')).toBeInTheDocument();
+    });
+
+    it('should clear hint labels when folder is deselected', async () => {
+      render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      // Select the "datasets" folder
+      const datasetsRow = screen.getByTestId('file-explorer-row--datasets');
+      fireEvent.click(datasetsRow);
+
+      // Navigate into datasets
+      mockGetFiles.mockClear();
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: mockDatasetsPrefixes(),
+          contents: mockDatasetsObjects(),
+        }),
+      );
+
+      const folderLink = within(datasetsRow).getByRole('button', { name: 'datasets' });
+      fireEvent.click(folderLink);
+
+      await waitFor(() => {
+        expect(screen.getByText('metadata.json')).toBeInTheDocument();
+      });
+
+      // Hints should be visible
+      expect(screen.getAllByText('Included in selection').length).toBeGreaterThan(0);
+
+      // Select a child file — this should clear the folder selection and hints
+      const metadataRow = screen.getByTestId('file-explorer-row--datasets-metadata-json');
+      fireEvent.click(metadataRow);
+
+      // Hint labels should be gone
+      expect(screen.queryByText('Included in selection')).not.toBeInTheDocument();
     });
 
     it('should clear folder selection when a non-folder file is selected', async () => {
@@ -926,7 +1005,7 @@ describe('S3FileExplorer', () => {
 
   describe('disabledPaths prop', () => {
     it('should mark a disabled folder as unselectable', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(screen.getByText('datasets')).toBeInTheDocument();
@@ -938,7 +1017,7 @@ describe('S3FileExplorer', () => {
     });
 
     it('should render a disabled folder name as plain text instead of a link', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(screen.getByText('datasets')).toBeInTheDocument();
@@ -951,7 +1030,7 @@ describe('S3FileExplorer', () => {
     });
 
     it('should not disable folders that do not match disabledPaths', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(screen.getByText('results')).toBeInTheDocument();
@@ -965,7 +1044,7 @@ describe('S3FileExplorer', () => {
     });
 
     it('should prevent navigation into a disabled folder', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(mockGetFiles).toHaveBeenCalledTimes(1);
@@ -982,9 +1061,11 @@ describe('S3FileExplorer', () => {
     });
 
     it('should disable a nested folder only when browsed into the matching parent', async () => {
-      // disabledPaths=["/datasets/train"] should NOT disable a top-level "train" folder
+      // disabledPaths={"/datasets/train": "..."} should NOT disable a top-level "train" folder
       // but SHOULD disable "train" when inside /datasets
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets/train']} />);
+      render(
+        <S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets/train': 'Disabled' }} />,
+      );
 
       await waitFor(() => {
         expect(screen.getByText('datasets')).toBeInTheDocument();
@@ -1023,8 +1104,25 @@ describe('S3FileExplorer', () => {
       expect(within(trainRow).queryByRole('button', { name: 'train' })).not.toBeInTheDocument();
     });
 
+    it('should show the disabled reason string as the select cell title', async () => {
+      render(
+        <S3FileExplorer
+          {...defaultProps}
+          disabledPaths={{ '/datasets': 'System output folder' }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('datasets')).toBeInTheDocument();
+      });
+
+      const datasetsRow = screen.getByTestId('file-explorer-row--datasets');
+      const selectCell = datasetsRow.querySelector('td');
+      expect(selectCell).toHaveAttribute('title', 'System output folder');
+    });
+
     it('should not show "Select folder" in the overflow menu for a disabled folder', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(screen.getByText('datasets')).toBeInTheDocument();

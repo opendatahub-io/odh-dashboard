@@ -44,7 +44,6 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  externalModels?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
@@ -52,6 +51,7 @@ export type MockDashboardConfigType = {
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
+  workbenchesV2?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
   toolCalling?: boolean;
@@ -82,6 +82,7 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
+  workbenchesV2 = false,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -94,7 +95,6 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
-  externalModels = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -136,7 +136,7 @@ export const mockDashboardConfig = ({
   llmGatewayField = false,
   promptManagement = false,
   globalProjectPrompts = false,
-  nimWizard = false,
+  nimWizard = true,
   nimServiceOperator = false,
   agentOps = false,
   agentOpsDeploy = false,
@@ -275,6 +275,7 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
+      workbenchesV2,
       projectRBAC,
       enablement: true,
       disableInfo,
@@ -301,7 +302,6 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
-      externalModels,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,

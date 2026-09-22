@@ -4,8 +4,6 @@ import {
   Badge,
   Button,
   Content,
-  ContentVariants,
-  FormGroup,
   MenuToggle,
   MenuToggleElement,
   // eslint-disable-next-line no-restricted-imports -- typeahead multi-select requires Select directly
@@ -123,19 +121,6 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
 
   const collidingKeySet = React.useMemo(() => getCollidingKeySet(collisions), [collisions]);
 
-  const availableSecrets = secrets.filter((s) => !usedSecretNames.has(s.name));
-  const hasSecrets = availableSecrets.length > 0;
-
-  if (!hasSecrets && secrets.length > 0 && existingSecretRefs.length === 0) {
-    return (
-      <FormGroup label="Existing secrets" data-testid="env-existing-secret-field">
-        <Content component={ContentVariants.small} data-testid="env-existing-secret-all-used">
-          All secrets in this project are already attached in other variables.
-        </Content>
-      </FormGroup>
-    );
-  }
-
   const selectedCount = existingSecretRefs.length;
 
   return (
@@ -165,7 +150,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
                   onChange={handleTextInputChange}
                   autoComplete="off"
                   innerRef={textInputRef}
-                  placeholder="Search secrets"
+                  placeholder="Select secrets"
                   role="combobox"
                   isExpanded={isOpen}
                   data-testid="env-existing-secret-search"
@@ -193,7 +178,10 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
           <SelectList data-testid="env-existing-secret-list">
             {filteredSecrets.length === 0 ? (
               <SelectOption isDisabled data-testid="env-existing-secret-no-results">
-                No results found. Adjust your filter and try again.
+                <div>No results found.</div>
+                <Content component="small" className="pf-v6-u-text-color-subtle">
+                  Adjust your filter and try again.
+                </Content>
               </SelectOption>
             ) : (
               filteredSecrets.map((secret: ExistingSecretMetadata) => {
@@ -228,21 +216,21 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
             variant="warning"
             isInline
             isPlain
-            title={
-              collisions.length === 1
-                ? `${collisions[0].key} is defined in both ${collisions[0].sources.join(' and ')}.`
-                : 'Key name collisions across attached secrets'
-            }
+            title="Resolve key name collisions"
             data-testid="env-collision-warning"
           >
-            <p>Choose one and deselect the duplicate key to resolve the collision.</p>
-            {collisions.length > 1
-              ? collisions.map((c) => (
-                  <div key={c.key}>
-                    <strong>{c.key}</strong> is defined in both {c.sources.join(' and ')}.
-                  </div>
-                ))
-              : null}
+            <p>
+              The following keys are defined more than once across the selected secrets. To
+              continue, deselect the duplicate keys in the key pickers below, or remove a secret
+              containing the duplicate.
+            </p>
+            {collisions.map((c) => (
+              <div key={c.key}>
+                <strong>{c.key}</strong>
+                <br />
+                Defined in secrets: <strong>{c.sources.join(', ')}</strong>
+              </div>
+            ))}
           </Alert>
         </StackItem>
       ) : null}

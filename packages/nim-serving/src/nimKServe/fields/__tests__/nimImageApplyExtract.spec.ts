@@ -1,16 +1,22 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
-import { applyNIMImageFieldData } from '../nimImageApplyExtract';
+import { applyNIMImageFieldData, extractNIMKServeImageFieldData } from '../nimImageApplyExtract';
 
 const NIM_IMAGE = { repository: 'nvcr.io/nim/snowflake/arctic-embed-l', tag: '1.0.1' };
 
-const makeServingRuntime = (): ServingRuntimeKind => ({
+const makeServingRuntime = (
+  kserveContainerImage?: string,
+  annotations?: Record<string, string>,
+): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
-  metadata: { name: 'test-model', namespace: 'test-project' },
+  metadata: { name: 'test-model', namespace: 'test-project', annotations },
   spec: {
-    containers: [{ name: 'transformer-container' }, { name: 'kserve-container' }],
+    containers: [
+      { name: 'transformer-container' },
+      { name: 'kserve-container', image: kserveContainerImage },
+    ],
     supportedModelFormats: [{ name: 'placeholder', version: '1' }],
   },
 });
@@ -70,5 +76,53 @@ describe('applyNIMImageFieldData', () => {
     });
 
     expect(result.model.spec.predictor.model?.modelFormat).toEqual({ name: 'arctic-embed-l' });
+  });
+});
+
+describe('extractNIMKServeImageFieldData', () => {
+  it('should split the kserve-container image into repository and tag', () => {
+    const deployment = makeDeployment(
+      makeServingRuntime('nvcr.io/nim/snowflake/arctic-embed-l:1.0.1'),
+    );
+
+    expect(extractNIMKServeImageFieldData(deployment)).toEqual(NIM_IMAGE);
+  });
+
+  it('should return an empty tag when the image has no tag', () => {
+    const deployment = makeDeployment(makeServingRuntime('nvcr.io/nim/snowflake/arctic-embed-l'));
+
+    expect(extractNIMKServeImageFieldData(deployment)).toEqual({
+      repository: 'nvcr.io/nim/snowflake/arctic-embed-l',
+      tag: '',
+    });
+  });
+
+  it('should prefill a mirror-registry image when the NIM runtime stamp annotation is present', () => {
+    const deployment = makeDeployment(
+      makeServingRuntime('mirror.local/nim/snowflake/arctic-embed-l:1.0.1', {
+        'runtimes.opendatahub.io/nvidia-nim': 'true',
+      }),
+    );
+
+    expect(extractNIMKServeImageFieldData(deployment)).toEqual({
+      repository: 'mirror.local/nim/snowflake/arctic-embed-l',
+      tag: '1.0.1',
+    });
+  });
+
+  it('should return undefined for a non-NIM (non-nvcr.io) image without the annotation', () => {
+    const deployment = makeDeployment(makeServingRuntime('quay.io/some/image:1.0'));
+
+    expect(extractNIMKServeImageFieldData(deployment)).toBeUndefined();
+  });
+
+  it('should return undefined when the kserve-container has no image', () => {
+    const deployment = makeDeployment(makeServingRuntime());
+
+    expect(extractNIMKServeImageFieldData(deployment)).toBeUndefined();
+  });
+
+  it('should return undefined when the deployment has no server', () => {
+    expect(extractNIMKServeImageFieldData(makeDeployment())).toBeUndefined();
   });
 });

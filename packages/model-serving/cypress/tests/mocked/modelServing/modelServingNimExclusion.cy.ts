@@ -15,10 +15,10 @@ import {
   modelServingGlobal,
   modelServingSection,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   InferenceServiceModel,
   ProjectModel,
-  SecretModel,
   ServingRuntimeModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asClusterAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
