@@ -23,6 +23,7 @@ import StateActionToggle from '#~/components/StateActionToggle';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
+import useNotification from '#~/utilities/useNotification';
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { NotebookImageStatus } from './const';
@@ -61,6 +62,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
+  const notification = useNotification();
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
     useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
@@ -84,10 +86,24 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       notebookName,
       notebookNamespace,
       getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
-    ).then(() => {
-      obj.refresh().then(() => setInProgress(false));
-    });
-  }, [podSpecOptionsState, notebookName, notebookNamespace, obj, bindingStateInfo]);
+    )
+      .then(
+        () => obj.refresh(),
+        (e) => {
+          notification.error(
+            `Failed to stop workbench ${notebookName}`,
+            e instanceof Error ? e.message : String(e),
+          );
+        },
+      )
+      .catch((e) => {
+        notification.error(
+          `Failed to refresh workbench ${notebookName}`,
+          e instanceof Error ? e.message : String(e),
+        );
+      })
+      .finally(() => setInProgress(false));
+  }, [podSpecOptionsState, notebookName, notebookNamespace, obj, bindingStateInfo, notification]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
