@@ -32,7 +32,9 @@ synthesizing **findings** arrays, and producing a structured result. The
 orchestrator does not evaluate code directly. It does not start CLI tools
 (those already ran on the host).
 Challenger (step 6d) is synthesis over **findings only**, not a
-dimension and not a schema section.
+dimension and not a schema section. Rating (step 6g) assigns risk and
+confidence after findings are final; it is likewise not a registry
+dimension.
 
 In pipeline mode (`$FULLSEND_OUTPUT_DIR` set), it writes JSON for the
 post-script to post. In interactive mode, it posts directly via
@@ -78,6 +80,9 @@ Each `dimensions[]` object:
 
 - **Challenger** — sequential after collect (step 6d). Definition:
   `sub-agents/challenger.md`. Sees **findings** only.
+- **Rating** — sequential after final findings (step 6g). Definition:
+  `sub-agents/rating.md` + `meta-prompts/rating-output.md`. Emits
+  `{ risk, confidence }` only — never `action`.
 - **CLI adapters** — do not `Task()` them and do not invoke their
   CLIs. The host already wrote their envelopes into `collected.json`.
   Include **findings** payloads at collect. LLM rows read `output: context`
@@ -1264,7 +1269,80 @@ challenger-adjudicated finding set. Classify blockers consistently so the
   `reject`. Use it only when no amount of code-level iteration will make the PR
   mergeable.
 
-#### 6g. Contextual labels are deferred to step 7b
+#### 6g. Rating pass (dedicated sub-agent)
+
+After the final finding set is known (challenger + orchestrator checks),
+dispatch the **rating** sub-agent to assign blast-radius **risk** and
+intent/evidence **confidence**. Rating needs the final findings,
+`product_ask`, ledger/completeness signals, and the shared context file.
+
+**Always run rating** for non-failure reviews — including when findings are
+empty (challenger may have been skipped). Risk and confidence are required
+schema fields.
+
+1. Compose the spawn prompt by reference (same pattern as step 6d —
+   paths only; do not paste definition or meta-prompt bodies):
+
+   **Part 1 — Sub-agent definition:** absolute path of
+   `sub-agents/rating.md`; instruct the sub-agent to read it first.
+
+   **Part 2 — Invocation contract:** absolute paths of
+   `meta-prompts/common-review.md` and `meta-prompts/rating-output.md`,
+   to be read in that order.
+
+   **Part 3 — Context package:**
+
+   ```markdown
+   ## Context
+
+   ### Final findings
+   <JSON array of the final finding set, or []>
+
+   ### product_ask
+   <JSON object or {"status":"none"}>
+
+   ### change_summary
+   <draft one-line summary of this PR's own diff, or "pending">
+
+   ### Completeness signals
+   - producers ledger: <path to producers.json>
+   - inspected / could_not_verify notes so far: <brief or none>
+
+   ### Diff, PR-head source, changed files, and PR metadata
+   Read <context_path>. Do not read changed files from disk.
+   ```
+
+   **Part 4 — Dispatch guard flag:**
+
+   ```markdown
+   REVIEW_SUB_AGENT_TRUE
+   ```
+
+2. Spawn sequentially (after challenger / 6e). Parse the return per
+   `meta-prompts/rating-output.md` (`risk` + `confidence` only).
+
+3. If rating fails (timeout, malformed JSON, missing fields), fall back to:
+
+   ```json
+   {
+     "risk": {
+       "level": "medium",
+       "why": "Rating sub-agent did not return a usable risk assessment; defaulting to medium pending human review."
+     },
+     "confidence": {
+       "level": "low",
+       "why": "Rating sub-agent did not return a usable confidence assessment; cannot stand behind approve."
+     }
+   }
+   ```
+
+   Record an **info**-level finding with category `sub-agent-failure`
+   describing the rating failure. Do not invent high confidence.
+
+4. Merge `{ risk, confidence }` into the result in step 7. Do not
+   overwrite them with orchestrator heuristics.
+
+#### 6h. Contextual labels are deferred to step 7b
 
 Label recommendation is optional enrichment, not review output. It runs
 **after** `agent-result.json` has been written and validated (step 7b),
@@ -1330,19 +1408,13 @@ Every non-failure result must include:
   from step 2 and summarize exactly those.
 - `findings[]` when issues survive synthesis. Critical/high/medium findings
   require `why`; critical/high findings also require `remediation`.
-- `risk: { level, why }`: blast radius if this change ships wrong. `low` is
-  narrow/internal, `medium` is feature-local or sensitive-adjacent, `high` is
-  wide/product-visible, and `critical` crosses a trust boundary or risks data
-  loss. **Do not derive risk from the highest finding severity.**
-- `confidence: { level, why }`: the weaker of proof quality and patch-review
-  completeness. Use `high` when evidence matches the change and every planned
-  producer ran, `medium` when usable but incomplete, and `low` when the review
-  cannot support approval. A skipped dimension, an unavailable trusted
-  snapshot, a `could-not-verify` row, or `CHANGED_FILES=all` from a failed
-  compare all mean this review is incomplete: `high` is unavailable, and
-  the `why` names what was missing. Small diff is not the same as complete
-  review — a one-line change reviewed by three of seven dimensions is a
-  partial review of a small change.
+- `risk: { level, why }` and `confidence: { level, why }`: **from the
+  rating sub-agent (step 6g)**. Do not invent or re-derive them in the
+  orchestrator. Meanings are in the rating skill and schema glossaries —
+  risk is blast radius if this head ships wrong (not finding severity);
+  confidence is `min(intent, verified_evidence)` with completeness as a
+  ceiling only. Host floors may still lower confidence for product-ask or
+  incompleteness after you write the file.
 - `verification[]`: one row for each applicable fixed check ID:
   `description-vs-code`, `evidence`, `security`, `blocking-findings`, and
   `product-ask`, with result `pass`, `fail`, or `could-not-verify`. A failed row

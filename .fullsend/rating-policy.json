@@ -1,0 +1,15 @@
+{
+  "blocking_finding_severities": ["critical", "high", "medium"],
+  "exclude_blocking_categories": ["protected-path"],
+  "risk_refuse_approve": ["high", "critical"],
+  "confidence_refuse_approve": ["low"],
+  "product_ask": {
+    "mismatch_unjustified": {
+      "confidence_floor": "low",
+      "needs_human": true
+    }
+  },
+  "confidence_cap": {
+    "incomplete_review": "medium"
+  }
+}
