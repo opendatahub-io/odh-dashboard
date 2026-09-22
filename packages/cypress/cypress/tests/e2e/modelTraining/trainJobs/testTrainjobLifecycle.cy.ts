@@ -139,7 +139,7 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
 
       cy.step('Verify status modal opens and shows Running status');
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findTitle().should('exist');
+      trainingJobStatusModal.findTitle(trainJobName).should('exist');
       trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.RUNNING);
 
       cy.step('Switch to Events log tab and verify log entries exist');

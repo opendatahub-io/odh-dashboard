@@ -479,8 +479,8 @@ class TrainingJobStatusModal extends Modal {
     return cy.findByTestId('training-job-status-modal-header');
   }
 
-  findTitle() {
-    return this.findHeader().contains('Training job status');
+  findTitle(name: string) {
+    return this.findHeader().contains(`${name} status`);
   }
 
   findStatusLabel() {
