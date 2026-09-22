@@ -5,16 +5,9 @@ import { createLabel, deleteLabel } from '~/app/api/dataRegistry';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 
 jest.mock('~/app/api/dataRegistry', () => ({
+  ...jest.requireActual('~/app/api/dataRegistry'),
   createLabel: jest.fn(),
   deleteLabel: jest.fn(),
-  ApiError: class ApiError extends Error {
-    status: number;
-
-    constructor(status: number, message: string) {
-      super(message);
-      this.status = status;
-    }
-  },
 }));
 
 const mockCreateLabel = jest.mocked(createLabel);

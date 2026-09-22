@@ -37,15 +37,23 @@ permissions: {}
 jobs:
   adapter-plan:
     name: Plan host adapters
+    # These jobs run a paid CodeRabbit review and a credentialed Jira fetch, and
+    # `dispatch` needs them, so they finish before Route picks a stage. Anything
+    # admitted here that Route then declines is wasted spend. Route only accepts
+    # `labeled` for `ready-for-review`, and only acts on a `changes_requested`
+    # review, so match that: applying `fullsend` itself used to burn a full
+    # review that nothing consumed.
     if: >-
       (github.event_name == 'pull_request_target'
        && contains(github.event.pull_request.labels.*.name, 'fullsend')
        && (github.event.action == 'opened'
         || github.event.action == 'synchronize'
         || github.event.action == 'ready_for_review'
-        || github.event.action == 'labeled'))
+        || (github.event.action == 'labeled'
+         && github.event.label.name == 'ready-for-review')))
       || (github.event_name == 'pull_request_review'
-       && contains(github.event.pull_request.labels.*.name, 'fullsend'))
+       && contains(github.event.pull_request.labels.*.name, 'fullsend')
+       && github.event.review.state == 'changes_requested')
       || (github.event_name == 'issue_comment'
        && github.event.issue.pull_request
        && github.event.comment.user.type != 'Bot'
@@ -56,12 +64,28 @@ jobs:
       pull-requests: read
     outputs:
       matrix: ${{ steps.adapters.outputs.matrix }}
+      run_adapters: ${{ steps.gate.outputs.run_adapters }}
     steps:
       - name: Checkout trusted review integration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          # github.sha is the base branch's current tip, unlike pull_request.base.sha
+          # which is stale for any PR that hasn't been synced since this checkout ref
+          # was last advanced (see RHOAIENG-82125 CI failure on PR #9090).
+          ref: ${{ github.sha }}
           persist-credentials: false
+
+      # The review's pre-script skips closed PRs and PRs whose description
+      # lacks the agentic template sections, but it runs inside dispatch,
+      # after the adapters have already bought a CodeRabbit review. Apply the
+      # same checks here first.
+      - name: Check review readiness
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REPO_FULL_NAME: ${{ github.repository }}
+        run: bash .fullsend/scripts/pre-review.sh --adapter-gate
 
       - name: Build adapter matrix from registry
         id: adapters
@@ -95,6 +119,7 @@ jobs:
   adapter-context:
     name: Prepare ${{ matrix.id }} context
     needs: adapter-plan
+    if: needs.adapter-plan.outputs.run_adapters == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -106,7 +131,7 @@ jobs:
       - name: Checkout trusted review integration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Resolve pull request context
@@ -117,15 +142,21 @@ jobs:
           REPO_FULL_NAME: ${{ github.repository }}
         run: |
           set -euo pipefail
-          PR_JSON="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json baseRefOid,headRefOid)"
+          PR_JSON="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json baseRefOid,headRefOid,baseRefName)"
           BASE_SHA="$(jq -r '.baseRefOid // empty' <<<"${PR_JSON}")"
           HEAD_SHA="$(jq -r '.headRefOid // empty' <<<"${PR_JSON}")"
+          BASE_REF="$(jq -r '.baseRefName // empty' <<<"${PR_JSON}")"
           if [[ ! "${BASE_SHA}" =~ ^[0-9a-f]{40}$ || ! "${HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::Could not resolve immutable base and head revisions for PR ${PR_NUMBER}"
             exit 1
           fi
+          if [[ ! "${BASE_REF}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error::Could not resolve base branch name for PR ${PR_NUMBER}"
+            exit 1
+          fi
           echo "base_sha=${BASE_SHA}" >> "${GITHUB_OUTPUT}"
           echo "head_sha=${HEAD_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "base_ref=${BASE_REF}" >> "${GITHUB_OUTPUT}"
 
       - name: Checkout pull request for adapter
         if: ${{ matrix.checkout_pr }}
@@ -149,6 +180,9 @@ jobs:
           FULLSEND_ADAPTER_TOKEN: ${{ secrets[matrix.token_secret] }}
           FULLSEND_ADAPTER_TARGET_REPO: ${{ matrix.checkout_pr && format('{0}/adapter-target', github.workspace) || '' }}
           FULLSEND_ADAPTER_BASE_SHA: ${{ steps.revisions.outputs.base_sha }}
+          FULLSEND_ADAPTER_REPO: ${{ github.repository }}
+          FULLSEND_ADAPTER_BASE_REF: ${{ steps.revisions.outputs.base_ref }}
+          FULLSEND_ADAPTER_HEAD_SHA: ${{ steps.revisions.outputs.head_sha }}
           ADAPTER_RUNNER: ${{ matrix.runner }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
@@ -196,7 +230,7 @@ jobs:
       issues: write
       packages: read
       pull-requests: write
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@094191b0151e3261d65ce2b032a4586654eb44ab # v0.41.0
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@d5f36921ac754705619f38c637ef692873809fbc # v0.43.0
     with:
       event_action: ${{ github.event.action }}
       install_mode: per-repo

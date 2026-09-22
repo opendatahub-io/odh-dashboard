@@ -41,11 +41,11 @@ export const useEvaluationJobLogs = (
           : getEvaluationJobLogs('', namespace, jobId, params);
 
       fetcher(signal)
-        .then((text) => {
+        .then(({ logs: fetchedLogs }) => {
           if (fetchGenRef.current !== gen) {
             return;
           }
-          setLogs(text);
+          setLogs(fetchedLogs);
           setLoaded(true);
         })
         .catch((err) => {

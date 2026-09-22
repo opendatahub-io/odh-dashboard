@@ -53,7 +53,6 @@ export type QuotaUsageMeterProps = {
   showOverQuotaVisual?: boolean;
   ariaLabel: string;
   compact?: boolean;
-  showAcceleratorsLabel?: boolean;
   'data-testid'?: string;
 };
 
@@ -122,7 +121,6 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
   showOverQuotaVisual = false,
   ariaLabel,
   compact = false,
-  showAcceleratorsLabel = false,
   'data-testid': testId,
 }) => {
   const chartName = React.useId().replace(/:/g, '');
@@ -138,10 +136,7 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
     trackTotal,
   );
   const hasOverQuotaSegment = segments.overQuotaValue > 0;
-  const valueText =
-    variant === QUOTA_USAGE_METER_VARIANT.capacity && showAcceleratorsLabel
-      ? `${segments.valueLabel} accelerators`
-      : segments.valueLabel;
+  const valueText = segments.valueLabel;
   const chartWidth = compact ? COMPACT_CHART_WIDTH : FULL_CHART_WIDTH;
 
   if (variant === QUOTA_USAGE_METER_VARIANT.utilization && percentage === null) {

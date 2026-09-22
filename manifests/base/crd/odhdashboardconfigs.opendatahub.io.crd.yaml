@@ -161,7 +161,7 @@ spec:
                       description: 'DEPRECATED: This field is no longer used and will be removed in a future version.'
                     externalModels:
                       type: boolean
-                      description: 'When true, enables the external models page.'
+                      description: 'DEPRECATED: When true, enables the external models page.'
                     aiAssetCustomEndpoints:
                       type: boolean
                       description: 'When true, enables custom endpoint configuration for AI assets.'
@@ -234,6 +234,9 @@ spec:
                     connectionTest:
                       type: boolean
                       description: 'When true, enables connection test functionality to verify credentials and connectivity for S3, URI, and OCI connections.'
+                    nimWizard:
+                      type: boolean
+                      description: 'When true, replaces global NIM accounts with project NIM accounts and replaces the NIM deployment modal with the model deployment wizard.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'
@@ -243,6 +246,8 @@ spec:
                       message: 'DEPRECATED: spec.dashboardConfig.disableFineTuning must be removed or left unchanged.'
                     - rule: '!has(self.mlflow) || (has(oldSelf.mlflow) && self.mlflow == oldSelf.mlflow)'
                       message: 'DEPRECATED: spec.dashboardConfig.mlflow must be removed or left unchanged.'
+                    - rule: '!has(self.externalModels) || self.externalModels == oldSelf.externalModels'
+                      message: 'DEPRECATED: spec.dashboardConfig.externalModels must be removed or left unchanged.'
                     - rule: '!has(self.maasAuthPolicies) || self.maasAuthPolicies == oldSelf.maasAuthPolicies'
                       message: 'DEPRECATED: spec.dashboardConfig.maasAuthPolicies must be removed or left unchanged.'
                 # TODO: Remove before going to v1

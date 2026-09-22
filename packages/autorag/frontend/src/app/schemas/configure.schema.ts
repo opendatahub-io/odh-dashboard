@@ -65,11 +65,15 @@ function createConfigureSchema() {
       embedding_models: z.array(z.string().trim().min(1)).min(1).default([]),
 
       optimization_metric: RAG_OPTIMIZATION_METRICS.default(DEFAULT_OPTIMIZATION_METRIC),
+      // Note: the upper bound is enforced in `validators` below (applied only to `full`, the
+      // schema used for new form submissions) rather than as a field-level `.max()`. A
+      // field-level max would also apply to `base`, which is used to parse persisted
+      // `runtime_config.parameters` from historical runs created under the previous, higher
+      // limit — those must still parse successfully when loading/reconfiguring old runs.
       optimization_max_rag_patterns: z
         .number()
         .min(MIN_RAG_PATTERNS, `Minimum number of RAG patterns is ${MIN_RAG_PATTERNS}`)
-        .max(MAX_RAG_PATTERNS, `Maximum number of RAG patterns is ${MAX_RAG_PATTERNS}`)
-        .default(8),
+        .default(5),
 
       // Output-only run metadata populated by the pipeline after language detection.
       detected_language: z.string().optional(),
@@ -81,17 +85,6 @@ function createConfigureSchema() {
         .optional(),
     }),
     /* eslint-enable camelcase */
-    /* eslint-disable no-param-reassign */
-    transformers: [
-      (data) => {
-        if (data.description === '') {
-          delete data.description;
-        }
-        delete data.detected_language;
-        delete data.detected_language_confidence;
-        return data;
-      },
-    ],
     validators: [
       (data) => {
         const generationModelIds = new Set(data.generation_models);
@@ -107,6 +100,28 @@ function createConfigureSchema() {
               ]
             : [],
         );
+      },
+      (data) =>
+        data.optimization_max_rag_patterns > MAX_RAG_PATTERNS
+          ? [
+              {
+                code: 'custom' as const,
+                message: `Maximum number of RAG patterns is ${MAX_RAG_PATTERNS}`,
+                path: ['optimization_max_rag_patterns'],
+                input: data.optimization_max_rag_patterns,
+              },
+            ]
+          : [],
+    ],
+    /* eslint-disable no-param-reassign */
+    transformers: [
+      (data) => {
+        if (data.description === '') {
+          delete data.description;
+        }
+        delete data.detected_language;
+        delete data.detected_language_confidence;
+        return data;
       },
     ],
     /* eslint-enable no-param-reassign */

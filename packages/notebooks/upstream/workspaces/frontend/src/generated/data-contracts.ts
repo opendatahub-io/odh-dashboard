@@ -111,6 +111,11 @@ export enum V1ProcMountType {
   UnmaskedProcMount = 'Unmasked',
 }
 
+export enum V1PodSELinuxChangePolicy {
+  SELinuxChangePolicyRecursive = 'Recursive',
+  SELinuxChangePolicyMountOption = 'MountOption',
+}
+
 export enum V1PodPhase {
   PodPending = 'Pending',
   PodRunning = 'Running',
@@ -315,6 +320,15 @@ export interface ApiStorageClassListEnvelope {
   data: StorageclassesStorageClassListItem[];
 }
 
+export interface ApiUserEnvelope {
+  data: ApiUserResponse;
+}
+
+export interface ApiUserResponse {
+  clusterAdmin: boolean;
+  userId: string;
+}
+
 export interface ApiValidationError {
   /**
    * The field of the resource that has caused this error, as named by its JSON serialization.
@@ -451,6 +465,23 @@ export interface IntstrIntOrString {
   intVal: number;
   strVal: string;
   type: IntstrType;
+}
+
+export interface K8SIoApiCoreV1ResourceClaim {
+  /**
+   * Name must match the name of one entry in pod.spec.resourceClaims of
+   * the Pod where this field is used. It makes that resource available
+   * inside a container.
+   */
+  name: string;
+  /**
+   * Request is the name chosen for a request in the referenced claim.
+   * If empty, everything from the claim is made available, otherwise
+   * only the result of this request.
+   *
+   * +optional
+   */
+  request?: string;
 }
 
 export interface NamespacesNamespace {
@@ -941,7 +972,6 @@ export interface V1ConfigMapKeySelector {
    * This field is effectively required, but due to backwards compatibility is
    * allowed to be empty. Instances of this type with an empty value here are
    * almost certainly wrong.
-   * TODO: Add other useful fields. apiVersion, kind, uid?
    * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
    * +optional
    * +default=""
@@ -974,7 +1004,6 @@ export interface V1ConfigMapProjection {
    * This field is effectively required, but due to backwards compatibility is
    * allowed to be empty. Instances of this type with an empty value here are
    * almost certainly wrong.
-   * TODO: Add other useful fields. apiVersion, kind, uid?
    * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
    * +optional
    * +default=""
@@ -1018,7 +1047,6 @@ export interface V1ConfigMapVolumeSource {
    * This field is effectively required, but due to backwards compatibility is
    * allowed to be empty. Instances of this type with an empty value here are
    * almost certainly wrong.
-   * TODO: Add other useful fields. apiVersion, kind, uid?
    * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
    * +optional
    * +default=""
@@ -1111,7 +1139,10 @@ export interface V1EmptyDirVolumeSource {
 }
 
 export interface V1EnvVar {
-  /** Name of the environment variable. Must be a C_IDENTIFIER. */
+  /**
+   * Name of the environment variable.
+   * May consist of any printable ASCII characters except '='.
+   */
   name: string;
   /**
    * Variable references $(VAR_NAME) are expanded
@@ -1145,6 +1176,14 @@ export interface V1EnvVarSource {
    * +optional
    */
   fieldRef?: V1ObjectFieldSelector;
+  /**
+   * FileKeyRef selects a key of the env file.
+   * Requires the EnvFiles feature gate to be enabled.
+   *
+   * +featureGate=EnvFiles
+   * +optional
+   */
+  fileKeyRef?: V1FileKeySelector;
   /**
    * Selects a resource of the container: only resources limits and requests
    * (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
@@ -1234,6 +1273,39 @@ export interface V1FCVolumeSource {
 }
 
 export type V1FieldsV1 = object;
+
+export interface V1FileKeySelector {
+  /**
+   * The key within the env file. An invalid key will prevent the pod from starting.
+   * The keys defined within a source may consist of any printable ASCII characters except '='.
+   * During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
+   * +required
+   */
+  key: string;
+  /**
+   * Specify whether the file or its key must be defined. If the file or key
+   * does not exist, then the env var is not published.
+   * If optional is set to true and the specified key does not exist,
+   * the environment variable will not be set in the Pod's containers.
+   *
+   * If optional is set to false and the specified key does not exist,
+   * an error will be returned during Pod creation.
+   * +optional
+   * +default=false
+   */
+  optional?: boolean;
+  /**
+   * The path within the volume from which to select the file.
+   * Must be relative and may not contain the '..' path or start with '..'.
+   * +required
+   */
+  path: string;
+  /**
+   * The name of the volume mount containing the env file.
+   * +required
+   */
+  volumeName: string;
+}
 
 export interface V1FlexVolumeSource {
   /** driver is the name of the driver to use for this volume. */
@@ -1347,10 +1419,7 @@ export interface V1GitRepoVolumeSource {
 }
 
 export interface V1GlusterfsVolumeSource {
-  /**
-   * endpoints is the endpoint name that details Glusterfs topology.
-   * More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
-   */
+  /** endpoints is the endpoint name that details Glusterfs topology. */
   endpoints: string;
   /**
    * path is the Glusterfs volume path.
@@ -1572,7 +1641,6 @@ export interface V1LocalObjectReference {
    * This field is effectively required, but due to backwards compatibility is
    * allowed to be empty. Instances of this type with an empty value here are
    * almost certainly wrong.
-   * TODO: Add other useful fields. apiVersion, kind, uid?
    * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
    * +optional
    * +default=""
@@ -2014,15 +2082,13 @@ export interface V1PersistentVolumeClaimSpec {
    * volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
    * If specified, the CSI driver will create or update the volume with the attributes defined
    * in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-   * it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-   * will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-   * If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-   * will be set by the persistentvolume controller if it exists.
+   * it can be changed after the claim is created. An empty string or nil value indicates that no
+   * VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+   * this field can be reset to its previous value (including nil) to cancel the modification.
    * If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
    * set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
    * exists.
    * More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
-   * (Beta) Using this field requires the VolumeAttributesClass feature gate to be enabled (off by default).
    * +featureGate=VolumeAttributesClass
    * +optional
    */
@@ -2128,7 +2194,6 @@ export interface V1PodAffinityTerm {
    * pod labels will be ignored. The default value is empty.
    * The same key is forbidden to exist in both matchLabelKeys and labelSelector.
    * Also, matchLabelKeys cannot be set when labelSelector isn't set.
-   * This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
    *
    * +listType=atomic
    * +optional
@@ -2143,7 +2208,6 @@ export interface V1PodAffinityTerm {
    * pod labels will be ignored. The default value is empty.
    * The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
    * Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-   * This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
    *
    * +listType=atomic
    * +optional
@@ -2185,8 +2249,8 @@ export interface V1PodAntiAffinity {
    * most preferred is the one with the greatest sum of weights, i.e.
    * for each node that meets all of the scheduling requirements (resource
    * request, requiredDuringScheduling anti-affinity expressions, etc.),
-   * compute a sum by iterating through the elements of this field and adding
-   * "weight" to the sum if the node has pods which matches the corresponding podAffinityTerm; the
+   * compute a sum by iterating through the elements of this field and subtracting
+   * "weight" from the sum if the node has pods which matches the corresponding podAffinityTerm; the
    * node(s) with the highest sum are the most preferred.
    * +optional
    * +listType=atomic
@@ -2204,6 +2268,84 @@ export interface V1PodAntiAffinity {
    * +listType=atomic
    */
   requiredDuringSchedulingIgnoredDuringExecution?: V1PodAffinityTerm[];
+}
+
+export interface V1PodCertificateProjection {
+  /**
+   * Write the certificate chain at this path in the projected volume.
+   *
+   * Most applications should use credentialBundlePath.  When using keyPath
+   * and certificateChainPath, your application needs to check that the key
+   * and leaf certificate are consistent, because it is possible to read the
+   * files mid-rotation.
+   *
+   * +optional
+   */
+  certificateChainPath?: string;
+  /**
+   * Write the credential bundle at this path in the projected volume.
+   *
+   * The credential bundle is a single file that contains multiple PEM blocks.
+   * The first PEM block is a PRIVATE KEY block, containing a PKCS#8 private
+   * key.
+   *
+   * The remaining blocks are CERTIFICATE blocks, containing the issued
+   * certificate chain from the signer (leaf and any intermediates).
+   *
+   * Using credentialBundlePath lets your Pod's application code make a single
+   * atomic read that retrieves a consistent key and certificate chain.  If you
+   * project them to separate files, your application code will need to
+   * additionally check that the leaf certificate was issued to the key.
+   *
+   * +optional
+   */
+  credentialBundlePath?: string;
+  /**
+   * Write the key at this path in the projected volume.
+   *
+   * Most applications should use credentialBundlePath.  When using keyPath
+   * and certificateChainPath, your application needs to check that the key
+   * and leaf certificate are consistent, because it is possible to read the
+   * files mid-rotation.
+   *
+   * +optional
+   */
+  keyPath?: string;
+  /**
+   * The type of keypair Kubelet will generate for the pod.
+   *
+   * Valid values are "RSA3072", "RSA4096", "ECDSAP256", "ECDSAP384",
+   * "ECDSAP521", and "ED25519".
+   *
+   * +required
+   */
+  keyType?: string;
+  /**
+   * maxExpirationSeconds is the maximum lifetime permitted for the
+   * certificate.
+   *
+   * Kubelet copies this value verbatim into the PodCertificateRequests it
+   * generates for this projection.
+   *
+   * If omitted, kube-apiserver will set it to 86400(24 hours). kube-apiserver
+   * will reject values shorter than 3600 (1 hour).  The maximum allowable
+   * value is 7862400 (91 days).
+   *
+   * The signer implementation is then free to issue a certificate with any
+   * lifetime *shorter* than MaxExpirationSeconds, but no shorter than 3600
+   * seconds (1 hour).  This constraint is enforced by kube-apiserver.
+   * `kubernetes.io` signers will never issue certificates with a lifetime
+   * longer than 24 hours.
+   *
+   * +optional
+   */
+  maxExpirationSeconds?: number;
+  /**
+   * Kubelet's generated CSRs will be addressed to this signer.
+   *
+   * +required
+   */
+  signerName?: string;
 }
 
 export interface V1PodSecurityContext {
@@ -2268,6 +2410,34 @@ export interface V1PodSecurityContext {
    * +optional
    */
   runAsUser?: number;
+  /**
+   * seLinuxChangePolicy defines how the container's SELinux label is applied to all volumes used by the Pod.
+   * It has no effect on nodes that do not support SELinux or to volumes does not support SELinux.
+   * Valid values are "MountOption" and "Recursive".
+   *
+   * "Recursive" means relabeling of all files on all Pod volumes by the container runtime.
+   * This may be slow for large volumes, but allows mixing privileged and unprivileged Pods sharing the same volume on the same node.
+   *
+   * "MountOption" mounts all eligible Pod volumes with `-o context` mount option.
+   * This requires all Pods that share the same volume to use the same SELinux label.
+   * It is not possible to share the same volume among privileged and unprivileged Pods.
+   * Eligible volumes are in-tree FibreChannel and iSCSI volumes, and all CSI volumes
+   * whose CSI driver announces SELinux support by setting spec.seLinuxMount: true in their
+   * CSIDriver instance. Other volumes are always re-labelled recursively.
+   * "MountOption" value is allowed only when SELinuxMount feature gate is enabled.
+   *
+   * If not specified and SELinuxMount feature gate is enabled, "MountOption" is used.
+   * If not specified and SELinuxMount feature gate is disabled, "MountOption" is used for ReadWriteOncePod volumes
+   * and "Recursive" for all other volumes.
+   *
+   * This field affects only Pods that have SELinux label set, either in PodSecurityContext or in SecurityContext of all containers.
+   *
+   * All Pods that use the same volume should use the same seLinuxChangePolicy, otherwise some pods can get stuck in ContainerCreating state.
+   * Note that this field cannot be set when spec.os.name is windows.
+   * +featureGate=SELinuxChangePolicy
+   * +optional
+   */
+  seLinuxChangePolicy?: V1PodSELinuxChangePolicy;
   /**
    * The SELinux context to be applied to all containers.
    * If unspecified, the container runtime will allocate a random SELinux context for each
@@ -2353,7 +2523,7 @@ export interface V1PreferredSchedulingTerm {
 
 export interface V1Probe {
   /**
-   * Exec specifies the action to take.
+   * Exec specifies a command to execute in the container.
    * +optional
    */
   exec?: V1ExecAction;
@@ -2364,12 +2534,12 @@ export interface V1Probe {
    */
   failureThreshold?: number;
   /**
-   * GRPC specifies an action involving a GRPC port.
+   * GRPC specifies a GRPC HealthCheckRequest.
    * +optional
    */
   grpc?: V1GRPCAction;
   /**
-   * HTTPGet specifies the http request to perform.
+   * HTTPGet specifies an HTTP GET request to perform.
    * +optional
    */
   httpGet?: V1HTTPGetAction;
@@ -2392,7 +2562,7 @@ export interface V1Probe {
    */
   successThreshold?: number;
   /**
-   * TCPSocket specifies an action involving a TCP port.
+   * TCPSocket specifies a connection to a TCP port.
    * +optional
    */
   tcpSocket?: V1TCPSocketAction;
@@ -2536,23 +2706,6 @@ export interface V1RBDVolumeSource {
   user?: string;
 }
 
-export interface V1ResourceClaim {
-  /**
-   * Name must match the name of one entry in pod.spec.resourceClaims of
-   * the Pod where this field is used. It makes that resource available
-   * inside a container.
-   */
-  name: string;
-  /**
-   * Request is the name chosen for a request in the referenced claim.
-   * If empty, everything from the claim is made available, otherwise
-   * only the result of this request.
-   *
-   * +optional
-   */
-  request?: string;
-}
-
 export interface V1ResourceFieldSelector {
   /**
    * Container name: required for volumes, optional for env vars
@@ -2575,7 +2728,7 @@ export interface V1ResourceRequirements {
    * Claims lists the names of resources, defined in spec.resourceClaims,
    * that are used by this container.
    *
-   * This is an alpha field and requires enabling the
+   * This field depends on the
    * DynamicResourceAllocation feature gate.
    *
    * This field is immutable. It can only be set for containers.
@@ -2585,7 +2738,7 @@ export interface V1ResourceRequirements {
    * +featureGate=DynamicResourceAllocation
    * +optional
    */
-  claims?: V1ResourceClaim[];
+  claims?: K8SIoApiCoreV1ResourceClaim[];
   /**
    * Limits describes the maximum amount of compute resources allowed.
    * More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
@@ -2708,7 +2861,6 @@ export interface V1SecretKeySelector {
    * This field is effectively required, but due to backwards compatibility is
    * allowed to be empty. Instances of this type with an empty value here are
    * almost certainly wrong.
-   * TODO: Add other useful fields. apiVersion, kind, uid?
    * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
    * +optional
    * +default=""
@@ -2741,7 +2893,6 @@ export interface V1SecretProjection {
    * This field is effectively required, but due to backwards compatibility is
    * allowed to be empty. Instances of this type with an empty value here are
    * almost certainly wrong.
-   * TODO: Add other useful fields. apiVersion, kind, uid?
    * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
    * +optional
    * +default=""
@@ -3059,27 +3210,36 @@ export interface V1Volume {
   /**
    * awsElasticBlockStore represents an AWS Disk resource that is attached to a
    * kubelet's host machine and then exposed to the pod.
+   * Deprecated: AWSElasticBlockStore is deprecated. All operations for the in-tree
+   * awsElasticBlockStore type are redirected to the ebs.csi.aws.com CSI driver.
    * More info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore
    * +optional
    */
   awsElasticBlockStore?: V1AWSElasticBlockStoreVolumeSource;
   /**
    * azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod.
+   * Deprecated: AzureDisk is deprecated. All operations for the in-tree azureDisk type
+   * are redirected to the disk.csi.azure.com CSI driver.
    * +optional
    */
   azureDisk?: V1AzureDiskVolumeSource;
   /**
    * azureFile represents an Azure File Service mount on the host and bind mount to the pod.
+   * Deprecated: AzureFile is deprecated. All operations for the in-tree azureFile type
+   * are redirected to the file.csi.azure.com CSI driver.
    * +optional
    */
   azureFile?: V1AzureFileVolumeSource;
   /**
-   * cephFS represents a Ceph FS mount on the host that shares a pod's lifetime
+   * cephFS represents a Ceph FS mount on the host that shares a pod's lifetime.
+   * Deprecated: CephFS is deprecated and the in-tree cephfs type is no longer supported.
    * +optional
    */
   cephfs?: V1CephFSVolumeSource;
   /**
    * cinder represents a cinder volume attached and mounted on kubelets host machine.
+   * Deprecated: Cinder is deprecated. All operations for the in-tree cinder type
+   * are redirected to the cinder.csi.openstack.org CSI driver.
    * More info: https://examples.k8s.io/mysql-cinder-pd/README.md
    * +optional
    */
@@ -3090,7 +3250,7 @@ export interface V1Volume {
    */
   configMap?: V1ConfigMapVolumeSource;
   /**
-   * csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers (Beta feature).
+   * csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers.
    * +optional
    */
   csi?: V1CSIVolumeSource;
@@ -3142,24 +3302,28 @@ export interface V1Volume {
   /**
    * flexVolume represents a generic volume resource that is
    * provisioned/attached using an exec based plugin.
+   * Deprecated: FlexVolume is deprecated. Consider using a CSIDriver instead.
    * +optional
    */
   flexVolume?: V1FlexVolumeSource;
   /**
-   * flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running
+   * flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running.
+   * Deprecated: Flocker is deprecated and the in-tree flocker type is no longer supported.
    * +optional
    */
   flocker?: V1FlockerVolumeSource;
   /**
    * gcePersistentDisk represents a GCE Disk resource that is attached to a
    * kubelet's host machine and then exposed to the pod.
+   * Deprecated: GCEPersistentDisk is deprecated. All operations for the in-tree
+   * gcePersistentDisk type are redirected to the pd.csi.storage.gke.io CSI driver.
    * More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk
    * +optional
    */
   gcePersistentDisk?: V1GCEPersistentDiskVolumeSource;
   /**
    * gitRepo represents a git repository at a particular revision.
-   * DEPRECATED: GitRepo is deprecated. To provision a container with a git repo, mount an
+   * Deprecated: GitRepo is deprecated. To provision a container with a git repo, mount an
    * EmptyDir into an InitContainer that clones the repo using git, then mount the EmptyDir
    * into the Pod's container.
    * +optional
@@ -3167,7 +3331,7 @@ export interface V1Volume {
   gitRepo?: V1GitRepoVolumeSource;
   /**
    * glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime.
-   * More info: https://examples.k8s.io/volumes/glusterfs/README.md
+   * Deprecated: Glusterfs is deprecated and the in-tree glusterfs type is no longer supported.
    * +optional
    */
   glusterfs?: V1GlusterfsVolumeSource;
@@ -3196,7 +3360,7 @@ export interface V1Volume {
    * The types of objects that may be mounted by this volume are defined by the container runtime implementation on a host machine and at minimum must include all valid types supported by the container image field.
    * The OCI object gets mounted in a single directory (spec.containers[*].volumeMounts.mountPath) by merging the manifest layers in the same way as for container images.
    * The volume will be mounted read-only (ro) and non-executable files (noexec).
-   * Sub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath).
+   * Sub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath) before 1.33.
    * The field spec.securityContext.fsGroupChangePolicy has no effect on this volume type.
    * +featureGate=ImageVolume
    * +optional
@@ -3205,7 +3369,7 @@ export interface V1Volume {
   /**
    * iscsi represents an ISCSI Disk resource that is attached to a
    * kubelet's host machine and then exposed to the pod.
-   * More info: https://examples.k8s.io/volumes/iscsi/README.md
+   * More info: https://kubernetes.io/docs/concepts/storage/volumes/#iscsi
    * +optional
    */
   iscsi?: V1ISCSIVolumeSource;
@@ -3228,28 +3392,36 @@ export interface V1Volume {
    * +optional
    */
   persistentVolumeClaim?: V1PersistentVolumeClaimVolumeSource;
-  /** photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine */
+  /**
+   * photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine.
+   * Deprecated: PhotonPersistentDisk is deprecated and the in-tree photonPersistentDisk type is no longer supported.
+   */
   photonPersistentDisk?: V1PhotonPersistentDiskVolumeSource;
   /**
-   * portworxVolume represents a portworx volume attached and mounted on kubelets host machine
+   * portworxVolume represents a portworx volume attached and mounted on kubelets host machine.
+   * Deprecated: PortworxVolume is deprecated. All operations for the in-tree portworxVolume type
+   * are redirected to the pxd.portworx.com CSI driver when the CSIMigrationPortworx feature-gate
+   * is on.
    * +optional
    */
   portworxVolume?: V1PortworxVolumeSource;
   /** projected items for all in one resources secrets, configmaps, and downward API */
   projected?: V1ProjectedVolumeSource;
   /**
-   * quobyte represents a Quobyte mount on the host that shares a pod's lifetime
+   * quobyte represents a Quobyte mount on the host that shares a pod's lifetime.
+   * Deprecated: Quobyte is deprecated and the in-tree quobyte type is no longer supported.
    * +optional
    */
   quobyte?: V1QuobyteVolumeSource;
   /**
    * rbd represents a Rados Block Device mount on the host that shares a pod's lifetime.
-   * More info: https://examples.k8s.io/volumes/rbd/README.md
+   * Deprecated: RBD is deprecated and the in-tree rbd type is no longer supported.
    * +optional
    */
   rbd?: V1RBDVolumeSource;
   /**
    * scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.
+   * Deprecated: ScaleIO is deprecated and the in-tree scaleIO type is no longer supported.
    * +optional
    */
   scaleIO?: V1ScaleIOVolumeSource;
@@ -3261,11 +3433,14 @@ export interface V1Volume {
   secret?: V1SecretVolumeSource;
   /**
    * storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes.
+   * Deprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported.
    * +optional
    */
   storageos?: V1StorageOSVolumeSource;
   /**
-   * vsphereVolume represents a vSphere volume attached and mounted on kubelets host machine
+   * vsphereVolume represents a vSphere volume attached and mounted on kubelets host machine.
+   * Deprecated: VsphereVolume is deprecated. All operations for the in-tree vsphereVolume type
+   * are redirected to the csi.vsphere.vmware.com CSI driver.
    * +optional
    */
   vsphereVolume?: V1VsphereVirtualDiskVolumeSource;
@@ -3363,6 +3538,45 @@ export interface V1VolumeProjection {
    * +optional
    */
   downwardAPI?: V1DownwardAPIProjection;
+  /**
+   * Projects an auto-rotating credential bundle (private key and certificate
+   * chain) that the pod can use either as a TLS client or server.
+   *
+   * Kubelet generates a private key and uses it to send a
+   * PodCertificateRequest to the named signer.  Once the signer approves the
+   * request and issues a certificate chain, Kubelet writes the key and
+   * certificate chain to the pod filesystem.  The pod does not start until
+   * certificates have been issued for each podCertificate projected volume
+   * source in its spec.
+   *
+   * Kubelet will begin trying to rotate the certificate at the time indicated
+   * by the signer using the PodCertificateRequest.Status.BeginRefreshAt
+   * timestamp.
+   *
+   * Kubelet can write a single file, indicated by the credentialBundlePath
+   * field, or separate files, indicated by the keyPath and
+   * certificateChainPath fields.
+   *
+   * The credential bundle is a single file in PEM format.  The first PEM
+   * entry is the private key (in PKCS#8 format), and the remaining PEM
+   * entries are the certificate chain issued by the signer (typically,
+   * signers will return their certificate chain in leaf-to-root order).
+   *
+   * Prefer using the credential bundle format, since your application code
+   * can read it atomically.  If you use keyPath and certificateChainPath,
+   * your application must make two separate file reads. If these coincide
+   * with a certificate rotation, it is possible that the private key and leaf
+   * certificate you read may not correspond to each other.  Your application
+   * will need to check for this condition, and re-read until they are
+   * consistent.
+   *
+   * The named signer controls chooses the format of the certificate it
+   * issues; consult the signer implementation's documentation to learn how to
+   * use the certificates it issues.
+   *
+   * +featureGate=PodCertificateProjection +optional
+   */
+  podCertificate?: V1PodCertificateProjection;
   /**
    * secret information about the secret data to project
    * +optional
@@ -3478,8 +3692,14 @@ export interface V1Beta1ActivityProbe {
   podExec?: V1Beta1ActivityProbePodExec;
   /**
    * the desired interval in seconds between successful probes.
-   * - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
-   * - Determines the freshness of workspace activity status used for culling inactive workspaces.
+   *  - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
+   *  - Determines the freshness of workspace activity status used by activity rules.
+   *  - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still
+   *    inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose
+   *    user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,
+   *    so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible
+   *    (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,
+   *    at the cost of more frequent probing.
    * +kubebuilder:validation:Minimum:=1
    * +kubebuilder:validation:Maximum:=31536000
    * +kubebuilder:default:=3600
@@ -3502,15 +3722,24 @@ export interface V1Beta1ActivityProbePodExec {
   /**
    * script is the script to run inside the Pod to determine if the Workspace is active.
    * The script must meet the following requirements:
+   *  - The Pod's main container MUST provide a POSIX shell at "/bin/sh" and the "cat", "chmod",
+   *    and "rm" utilities, which the controller uses to stage and execute the script. Minimal
+   *    or distroless images without these will cause the probe to fail (and never pause).
    *  - It must start with a shebang (e.g., "#!/usr/bin/env bash" or "#!/usr/bin/env python").
-   *  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).
+   *  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).
    *  - It should be idempotent and without side effects since it can be run multiple times.
    *  - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path
-   *    supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the
-   *    Workspace status field `status.activity.lastActivity` as follows:
+   *    supplied in the OUTPUT_JSON_PATH environment variable.
+   *  - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:
+   *    a successful probe unconditionally overwrites `status.activity.lastActivity` with the reported
+   *    timestamp (the controller does not validate monotonicity or clamp to wall-clock time).
+   *  - The JSON fields `has_activity` (boolean) and `last_activity` (ISO 8601 string) are mutually exclusive;
+   *    users should specify one or the other, not both. If both fields are present, `has_activity` takes
+   *    precedence and `last_activity` is totally ignored (the probe does not fail).
+   *    The fields are evaluated to update the Workspace status field `status.activity.lastActivity` as follows:
    *      - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
-   *      - If `last_activity` (ISO 8601 string) is provided and `has_activity` is explicitly `false` (or omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
-   *      - If `has_activity` is explicitly `false` and `last_activity` is omitted: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged).
+   *      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`).
+   *      - If `last_activity` (ISO 8601 string) is provided (and `has_activity` is omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
    * +kubebuilder:validation:MinLength:=1
    * +kubebuilder:validation:MaxLength:=2048
    */
@@ -3546,7 +3775,7 @@ export interface V1Beta1ActivityRuleConfig {
   minRunningSeconds?: number;
   /**
    * the number of seconds of inactivity before a Workspace is eligible for this rule's effect
-   *  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and culling
+   *  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and pausing
    *    workspaces prematurely during startup or transient connection drops
    * +kubebuilder:validation:Minimum:=16
    */
@@ -3612,7 +3841,7 @@ export interface V1Beta1ImageConfigSpec {
   /**
    * the container image to use
    * +kubebuilder:validation:MinLength:=2
-   * +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0"
+   * +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1"
    */
   image: string;
   /**
@@ -3896,6 +4125,22 @@ export interface V1Beta1WorkspaceKindAssetConfigMap {
   namespace: string;
 }
 
+export interface V1Beta1WorkspaceKindClusterRole {
+  /**
+   * the name of the ClusterRole to bind to the Workspace ServiceAccount
+   *  - note, ClusterRole names are path segment names, so unlike most Kubernetes
+   *    resource names they may contain uppercase letters and ":" (for example,
+   *    the aggregated "system:aggregate-to-view" ClusterRole)
+   *  - the pattern is the regex form of Kubernetes `IsValidPathSegmentName`:
+   *    the name must not be "." or "..", and must not contain "/" or "%"
+   * +kubebuilder:validation:MinLength:=1
+   * +kubebuilder:validation:MaxLength:=253
+   * +kubebuilder:validation:Pattern:=^([^./%][^/%]*|\.[^./%][^/%]*|\.[^/%][^/%]+)$
+   * +kubebuilder:example:="kubeflow-edit"
+   */
+  name: string;
+}
+
 export interface V1Beta1WorkspaceKindPodMetadata {
   /**
    * annotations to be applied to the Pod resource
@@ -3981,10 +4226,9 @@ export interface V1Beta1WorkspaceKindPodTemplate {
   securityContext?: V1PodSecurityContext;
   /**
    * service account configs for Workspace Pods
-   *  - currently has no fields, the ServiceAccount used by Workspace Pods is
-   *    hardcoded to "default-editor" in the controller
-   *  - this ServiceAccount MUST already exist in the Namespace of the Workspace,
-   *    the controller will NOT create it
+   *  - each Workspace runs as its own ServiceAccount, which is created and owned by
+   *    the controller and named "ws-{WORKSPACE_NAME}"
+   *  - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`
    * +kubebuilder:validation:Optional
    */
   serviceAccount?: V1Beta1WorkspaceKindServiceAccount;
@@ -4037,7 +4281,22 @@ export interface V1Beta1WorkspaceKindProbes {
   startupProbe?: V1Probe;
 }
 
-export type V1Beta1WorkspaceKindServiceAccount = object;
+export interface V1Beta1WorkspaceKindServiceAccount {
+  /**
+   * the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
+   *  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the
+   *    permissions only apply inside the Namespace of the Workspace
+   *  - removing an entry deletes the corresponding RoleBinding
+   *  - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing
+   *    ClusterRole simply grants nothing until that ClusterRole is created
+   *  - changes take effect immediately, Workspaces do NOT need to be restarted
+   * +kubebuilder:validation:Optional
+   * +listType:="map"
+   * +listMapKey:="name"
+   * +kubebuilder:example={{name: "kubeflow-edit"}}
+   */
+  clusterRoles?: V1Beta1WorkspaceKindClusterRole[];
+}
 
 export interface V1Beta1WorkspaceKindSpawner {
   /**

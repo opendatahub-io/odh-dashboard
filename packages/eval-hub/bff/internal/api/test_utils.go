@@ -205,11 +205,11 @@ func (e *erroringEHClient) ListCollections(_ context.Context, _ evalhub.ListColl
 func (e *erroringEHClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
 	return evalhub.ProvidersResponse{}, nil
 }
-func (e *erroringEHClient) GetEvaluationJobLogs(_ context.Context, _ string, _ string, _ evalhub.GetJobLogsParams) (string, error) {
-	return "", fmt.Errorf("connection refused")
+func (e *erroringEHClient) GetEvaluationJobLogs(_ context.Context, _ string, _ string, _ evalhub.GetJobLogsParams) (evalhub.EvaluationJobLogsResponse, error) {
+	return evalhub.EvaluationJobLogsResponse{}, fmt.Errorf("connection refused")
 }
-func (e *erroringEHClient) GetEvaluationJobBenchmarkLogs(_ context.Context, _ string, _ int, _ string, _ evalhub.GetJobLogsParams) (string, error) {
-	return "", fmt.Errorf("connection refused")
+func (e *erroringEHClient) GetEvaluationJobBenchmarkLogs(_ context.Context, _ string, _ int, _ string, _ evalhub.GetJobLogsParams) (evalhub.EvaluationJobLogsResponse, error) {
+	return evalhub.EvaluationJobLogsResponse{}, fmt.Errorf("connection refused")
 }
 
 // setupApiTestWithEvalHubRaw exercises handlers that return plain text (not JSON).

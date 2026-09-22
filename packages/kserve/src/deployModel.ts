@@ -5,9 +5,9 @@ import {
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import {
-  DeploymentStrategyFieldData,
   type ModelLocationData,
   ModelLocationType,
+  WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type {
   ModelAvailabilityFieldsData,
@@ -34,6 +34,7 @@ import {
   applyModelType,
   applyDeploymentStrategy,
 } from './deployUtils';
+import { applyHfTokenEnvVar } from './hfTokenSecret';
 import { applyReplicas } from './hardware';
 import {
   createInferenceService,
@@ -58,7 +59,8 @@ export type CreatingInferenceServiceObject = {
   environmentVariables?: EnvironmentVariablesFieldData;
   modelAvailability?: ModelAvailabilityFieldsData;
   createConnectionData?: CreateConnectionData;
-  deploymentStrategy?: DeploymentStrategyFieldData;
+  deploymentStrategy?: WizardFormData['state']['deploymentStrategy'];
+  hfTokenSecretName?: string;
 };
 
 export const assembleInferenceService = (
@@ -84,6 +86,7 @@ export const assembleInferenceService = (
     runtimeArgs,
     environmentVariables,
     deploymentStrategy,
+    hfTokenSecretName,
   } = data;
   let inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -154,7 +157,11 @@ export const assembleInferenceService = (
     environmentVariables ?? { variables: [], enabled: false },
   );
 
-  inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy);
+  if (deploymentStrategy?.isVisible) {
+    inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy.data);
+  }
+
+  inferenceService = applyHfTokenEnvVar(inferenceService, hfTokenSecretName);
 
   return inferenceService;
 };
