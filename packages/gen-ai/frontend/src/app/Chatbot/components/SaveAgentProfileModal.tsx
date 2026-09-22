@@ -39,6 +39,8 @@ type SaveAgentProfileModalProps = {
   mcpServers: MCPServerFromAPI[];
   /** ConfigMap name from the BFF response (config_map_info.name). Falls back to a default when null. */
   mcpConfigMapName: string | null;
+  /** Saving is blocked until all MCP endpoint status checks have resolved. */
+  isMcpServerStatusCheckComplete?: boolean;
   onClose: () => void;
   /** Called after a successful save with the resulting profileId, displayName, and description. */
   onSaved: (profileId: string, displayName: string, description: string) => void;
@@ -48,6 +50,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   mode,
   mcpServers,
   mcpConfigMapName,
+  isMcpServerStatusCheckComplete = true,
   onClose,
   onSaved,
 }) => {
@@ -201,7 +204,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
 
   const title = mode === 'save' ? 'Save agent' : 'Save as new agent';
   const nameError = nameTouched && !name.trim();
-  const isSaveDisabled = isSaving || !name.trim();
+  const isSaveDisabled = isSaving || !name.trim() || !isMcpServerStatusCheckComplete;
 
   const activePrompt = config?.activePrompt;
   const dirtyPrompt = config?.dirtyPrompt;

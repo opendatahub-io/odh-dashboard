@@ -1,22 +1,37 @@
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
+const replaceMetadataName = (yamlContent: string, resourceName: string): string => {
+  const metadataNamePattern = /(^metadata:\s*\n\s+name:\s*)[^\n]+/m;
+
+  if (!metadataNamePattern.test(yamlContent)) {
+    throw new Error(`Unable to find metadata.name in custom resource fixture for ${resourceName}`);
+  }
+
+  return yamlContent.replace(metadataNamePattern, `$1${resourceName}`);
+};
+
 /**
  * Create a custom resource in a specified namespace using a YAML file.
  *
  * @param resourceNamespace The namespace where the resource will be created.
- * @param customYaml The path to the YAML file defining the custom resource.
- * @param kind The kind/type of the resource (e.g., Deployment, Service).
+ * @param customYamlPath The path to the YAML file defining the custom resource.
+ * @param resourceName Optional metadata.name override for the resource.
  * @returns A Cypress chainable that executes the command to create the resource.
  */
 export const createCustomResource = (
   resourceNamespace: string,
   customYamlPath: string,
+  resourceName?: string,
 ): Cypress.Chainable<CommandLineResult> =>
   cy.fixture(customYamlPath).then((yamlContent) => {
+    const resourceYaml = resourceName
+      ? replaceMetadataName(yamlContent, resourceName)
+      : yamlContent;
+
     // Write the YAML content to a temporary file
     const tempFilePath = `/tmp/temp_${Date.now()}.yaml`;
-    cy.writeFile(tempFilePath, yamlContent);
+    cy.writeFile(tempFilePath, resourceYaml);
 
     const ocCommand = `oc apply -f "${tempFilePath}" -n ${resourceNamespace}`;
     cy.log(`Executing command: ${ocCommand}`);

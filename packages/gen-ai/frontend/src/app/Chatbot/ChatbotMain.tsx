@@ -12,6 +12,7 @@ import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { isLlamaModelEnabled } from '~/app/utilities';
+import { filterUnavailableMCPServers } from '~/app/utilities/mcp';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
@@ -19,6 +20,7 @@ import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfigura
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import { deserializeAgentProfile } from '~/app/agentProfile/deserialize';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
@@ -58,8 +60,23 @@ const ChatbotMain: React.FunctionComponent = () => {
   const {
     data: mcpServers = [],
     configMapName: mcpConfigMapName,
+    registryAvailable: mcpRegistryAvailable,
     loaded: mcpServersLoaded,
+    error: mcpServersLoadError,
   } = useFetchMCPServers();
+  const {
+    serverStatuses: mcpServerStatuses,
+    statusesLoading: mcpServerStatusesLoading,
+    checkServerStatus: checkMcpServerStatus,
+  } = useMCPServerStatuses(mcpServers, mcpServersLoaded);
+  const availableMcpServers = React.useMemo(
+    () => filterUnavailableMCPServers(mcpServers, mcpServerStatuses),
+    [mcpServers, mcpServerStatuses],
+  );
+  const areMcpServerStatusesResolved =
+    mcpServersLoaded &&
+    mcpServerStatusesLoading.size === 0 &&
+    mcpServers.every((server) => mcpServerStatuses.has(server.url));
   const { data: bffConfig } = useFetchBFFConfig();
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const [existingCollections] = useFetchVectorStores();
@@ -99,7 +116,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
 
-  const isProfileDirty = useIsProfileDirty(primaryConfigId);
+  const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
   useSafeBrowserUnloadBlocker(isProfileDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
@@ -395,6 +412,12 @@ const ChatbotMain: React.FunctionComponent = () => {
               onClearAgent={handleNewAgentConfiguration}
               isProfileDirty={isProfileDirty}
               onResetToLastSaved={handleResetToLastSaved}
+              mcpServers={availableMcpServers}
+              mcpRegistryAvailable={mcpRegistryAvailable}
+              mcpServersLoaded={mcpServersLoaded}
+              mcpServersLoadError={mcpServersLoadError}
+              mcpServerStatuses={mcpServerStatuses}
+              checkMcpServerStatus={checkMcpServerStatus}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -439,8 +462,9 @@ const ChatbotMain: React.FunctionComponent = () => {
       {saveModalMode && (
         <SaveAgentProfileModal
           mode={saveModalMode}
-          mcpServers={mcpServers}
+          mcpServers={availableMcpServers}
           mcpConfigMapName={mcpConfigMapName}
+          isMcpServerStatusCheckComplete={areMcpServerStatusesResolved}
           onClose={handleCloseSaveModal}
           onSaved={handleProfileSaved}
         />

@@ -16,21 +16,21 @@ import {
 } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
+import { formatPatternName } from '~/app/utilities/utils';
 import {
-  formatMetricName,
   formatMetricValue,
-  formatPatternName,
+  getObjectiveMetric,
   getOptimizedScore,
-  getRankableOptimizationMetric,
-} from '~/app/utilities/utils';
+  metricLabel,
+} from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
   selectedIndex: number;
   rank?: number;
-  optimizedMetric?: string;
+  optimizationMetric?: MetricReference;
   onPatternChange: (index: number) => void;
   onDownload: () => void;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
@@ -48,7 +48,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   patterns,
   selectedIndex,
   rank,
-  optimizedMetric,
+  optimizationMetric,
   onPatternChange,
   onDownload,
   onSaveNotebook,
@@ -132,18 +132,18 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
           <Stack>
             <StackItem>
               <Content component={ContentVariants.small}>
-                {optimizedMetric
-                  ? `${formatMetricName(optimizedMetric)} (optimized)`
+                {optimizationMetric
+                  ? `${metricLabel(optimizationMetric)} (optimized)`
                   : 'Final score'}
               </Content>
             </StackItem>
             <StackItem>
               <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
-                {optimizedMetric
+                {optimizationMetric
                   ? formatMetricValue(
-                      getRankableOptimizationMetric(data, optimizedMetric)?.scores.mean ?? 'N/A',
+                      getObjectiveMetric(data, optimizationMetric)?.scores.mean ?? 'N/A',
                     )
-                  : getOptimizedScore(data).toFixed(3)}
+                  : formatMetricValue(getOptimizedScore(data))}
               </Title>
             </StackItem>
           </Stack>

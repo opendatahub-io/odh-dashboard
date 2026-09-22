@@ -5,7 +5,11 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  FormSection,
+  Form,
   Radio,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
@@ -15,8 +19,7 @@ import { ExternalProvider } from '~/app/types/external-models';
 import CreateExternalProviderForm from '~/app/pages/external-providers/createProvider/CreateExternalProviderForm';
 import { UseCreateExternalProviderFormReturn } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
-
-export type ProviderSourceType = 'existing' | 'create-new';
+import { ProviderSource, type ProviderSourceType } from '~/app/pages/external-models/const';
 
 type SelectProviderStepProps = {
   namespace: string;
@@ -47,81 +50,103 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
   );
 
   return (
-    <>
-      <FormGroup hasNoPaddingTop isStack>
-        <Radio
-          id="provider-source-existing"
-          name="provider-source"
-          label="Use existing provider"
-          isChecked={providerSource === 'existing'}
-          onChange={() => onProviderSourceChange('existing')}
-          data-testid="provider-source-existing"
-          body={
-            providerSource === 'existing' ? (
-              <FormGroup
-                label="External provider"
-                fieldId="provider-ref-provider"
-                isRequired
-                hasNoPaddingTop
-                isStack
-              >
-                <TypeaheadSelect
-                  dataTestId="provider-ref-provider-select"
-                  selectOptions={providerOptions}
-                  selected={providerName}
-                  onSelect={(_event, selection) => onProviderNameChange(String(selection))}
-                  onClearSelection={() => onProviderNameChange('')}
-                  allowClear
-                  placeholder="Select a provider"
-                  previewDescription={false}
-                  isRequired={false}
-                  isDisabled={externalProviders.length === 0}
-                  isScrollable
-                  toggleWidth="100%"
-                  popperProps={{ maxWidth: 'trigger' }}
-                  toggleProps={{ id: 'provider-ref-provider' }}
-                />
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>
-                      Select the external provider that supplies the endpoint and credentials.
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-                {externalProviders.length === 0 && (
-                  <Alert
-                    variant="info"
-                    isInline
-                    isPlain
-                    title="No external providers found"
-                    data-testid="no-external-providers-alert"
-                  >
-                    Create a provider on the{' '}
-                    <Link to={externalProvidersManagementPath(namespace)}>
-                      Manage external providers
-                    </Link>{' '}
-                    page first.
-                  </Alert>
-                )}
-              </FormGroup>
-            ) : null
-          }
-        />
-        <Radio
-          id="provider-source-create-new"
-          name="provider-source"
-          label="Create new provider"
-          isChecked={providerSource === 'create-new'}
-          onChange={() => onProviderSourceChange('create-new')}
-          data-testid="provider-source-create-new"
-          body={
-            providerSource === 'create-new' ? (
-              <CreateExternalProviderForm form={createProviderForm} showProjectField={false} />
-            ) : null
-          }
-        />
-      </FormGroup>
-    </>
+    <Form>
+      <FormSection title="Provider">
+        <FormGroup hasNoPaddingTop isStack>
+          <Stack hasGutter>
+            <StackItem>
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    Select an existing provider or create a new one. A provider stores the
+                    connection details for an external model service, including its endpoint and
+                    credentials
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </StackItem>
+            <StackItem>
+              <Radio
+                id="provider-source-existing"
+                name="provider-source"
+                label="Select existing provider"
+                isChecked={providerSource === ProviderSource.EXISTING}
+                onChange={() => onProviderSourceChange(ProviderSource.EXISTING)}
+                data-testid="provider-source-existing"
+                body={
+                  providerSource === ProviderSource.EXISTING ? (
+                    <FormGroup
+                      label={<strong>Provider</strong>}
+                      fieldId="provider-ref-provider"
+                      isRequired
+                      hasNoPaddingTop
+                      isStack
+                    >
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem>
+                            Select the provider that supplies the model endpoint and credentials.
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                      <TypeaheadSelect
+                        dataTestId="provider-ref-provider-select"
+                        selectOptions={providerOptions}
+                        selected={providerName}
+                        onSelect={(_event, selection) => onProviderNameChange(String(selection))}
+                        onClearSelection={() => onProviderNameChange('')}
+                        allowClear
+                        placeholder="Select a provider"
+                        previewDescription={false}
+                        isRequired={false}
+                        isDisabled={externalProviders.length === 0}
+                        isScrollable
+                        toggleWidth="100%"
+                        popperProps={{ maxWidth: 'trigger' }}
+                        toggleProps={{ id: 'provider-ref-provider' }}
+                      />
+                      {externalProviders.length === 0 && (
+                        <Alert
+                          variant="info"
+                          isInline
+                          isPlain
+                          title="No external providers found"
+                          data-testid="no-external-providers-alert"
+                        >
+                          Create a provider on the{' '}
+                          <Link to={externalProvidersManagementPath(namespace)}>
+                            Manage external providers
+                          </Link>{' '}
+                          page first.
+                        </Alert>
+                      )}
+                    </FormGroup>
+                  ) : null
+                }
+              />
+            </StackItem>
+            <StackItem>
+              <Radio
+                id="provider-source-create-new"
+                name="provider-source"
+                label="Create new provider"
+                isChecked={providerSource === ProviderSource.CREATE_NEW}
+                onChange={() => onProviderSourceChange(ProviderSource.CREATE_NEW)}
+                data-testid="provider-source-create-new"
+                body={
+                  providerSource === ProviderSource.CREATE_NEW ? (
+                    <CreateExternalProviderForm
+                      form={createProviderForm}
+                      showProjectField={false}
+                    />
+                  ) : null
+                }
+              />
+            </StackItem>
+          </Stack>
+        </FormGroup>
+      </FormSection>
+    </Form>
   );
 };
 
