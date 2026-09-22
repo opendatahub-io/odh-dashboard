@@ -144,8 +144,9 @@ The package validates that all owned operand Deployments become available, all
 owned Services publish ready endpoints, the Dashboard HTTPRoute is admitted and
 externally reachable, each standalone BFF returns HTTP 200 from `/healthcheck`,
 the `/catalog/` sibling HTTPRoute wins over the Dashboard catch-all and returns
-an API response rather than Dashboard SPA HTML, and the core PodDisruptionBudget
-selects ready Dashboard pods.
+a successful JSON API response rather than an authorization-layer response or
+Dashboard SPA HTML, and the core PodDisruptionBudget selects ready Dashboard
+pods.
 
 The BFF checks use the HTTPS Service ports declared by the current module
 registry (`8043`, `8143`, `8243`, `8343`, `8543`, `8643`, `8743`, and `8843`).

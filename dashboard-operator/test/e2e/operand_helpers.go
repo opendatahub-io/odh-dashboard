@@ -189,9 +189,7 @@ func routeResponseHealthy(statusCode int) bool {
 }
 
 func validateModuleAPIResponse(statusCode int, contentType string, body []byte) error {
-	switch statusCode {
-	case http.StatusOK, http.StatusUnauthorized, http.StatusForbidden:
-	default:
+	if statusCode != http.StatusOK {
 		return fmt.Errorf("unexpected module API status %d", statusCode)
 	}
 
@@ -208,13 +206,11 @@ func validateModuleAPIResponse(statusCode int, contentType string, body []byte) 
 		return fmt.Errorf("module API response is Dashboard HTML (status %d, content type %q)", statusCode, contentType)
 	}
 
-	if statusCode == http.StatusOK {
-		if mediaType != "application/json" && !strings.HasSuffix(mediaType, "+json") {
-			return fmt.Errorf("successful module API response has non-JSON content type %q", contentType)
-		}
-		if !json.Valid(body) {
-			return fmt.Errorf("successful module API response is not valid JSON")
-		}
+	if mediaType != "application/json" && !strings.HasSuffix(mediaType, "+json") {
+		return fmt.Errorf("successful module API response has non-JSON content type %q", contentType)
+	}
+	if !json.Valid(body) {
+		return fmt.Errorf("successful module API response is not valid JSON")
 	}
 
 	return nil

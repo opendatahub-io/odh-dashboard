@@ -4,7 +4,6 @@ package e2e
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -65,13 +64,6 @@ func TestE2E_GatewaySubPathRoutingConformance(t *testing.T) {
 		response.StatusCode,
 		response.Header.Get("Content-Type"),
 		body,
-	), "gateway request %s returned status %s, content type %q, and body prefix %s",
-		requestURL.String(), response.Status, response.Header.Get("Content-Type"), responseBodyPrefix(body, 256))
-}
-
-func responseBodyPrefix(body []byte, limit int) string {
-	if len(body) > limit {
-		body = body[:limit]
-	}
-	return fmt.Sprintf("%q", body)
+	), "gateway request path %s returned status %s, content type %q, and body length %d",
+		requestURL.Path, response.Status, response.Header.Get("Content-Type"), len(body))
 }
