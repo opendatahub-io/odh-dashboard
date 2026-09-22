@@ -345,8 +345,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
   const isEmpty = isEmptyProp === true || (!loading && visibleFiles.length === 0);
 
   return (
-    <OuterScrollContainer>
-      <InnerScrollContainer>
+    <OuterScrollContainer className="pf-v6-u-h-100">
+      <InnerScrollContainer className="pf-v6-u-h-100">
         <Table
           aria-label={defaults.labels.tableAriaLabel}
           data-testid="file-explorer-table"
@@ -1303,14 +1303,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       variant="large"
       aria-labelledby={`${rootId}-FileExplorer-modal-title`}
       aria-describedby={`${rootId}-FileExplorer-modal-body`}
+      style={{ height: 'var(--pf-v6-c-modal-box--MaxHeight)' }}
     >
       <ModalHeader
         title={defaults.labels.modalTitle}
         description={defaults.labels.modalDescription(selection)}
         labelId={`${rootId}-FileExplorer-modal-title`}
       />
-      <ModalBody id={`${rootId}-FileExplorer-modal-body`}>
-        <Flex direction={{ default: 'column' }} flexWrap={{ default: 'nowrap' }}>
+      <ModalBody className="pf-v6-u-h-100" id={`${rootId}-FileExplorer-modal-body`}>
+        <Flex
+          className="pf-v6-u-h-100"
+          direction={{ default: 'column' }}
+          flexWrap={{ default: 'nowrap' }}
+        >
           {isUploading && (
             <FlexItem>
               <span className="pf-v6-screen-reader" data-testid="file-explorer-upload-helper">
@@ -1439,9 +1444,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               </LabelGroup>
             </FlexItem>
           )}
-          <FlexItem grow={{ default: 'grow' }}>
-            <Grid hasGutter>
-              <GridItem span={shouldRenderSidePanel ? 8 : 12}>
+          <FlexItem className="pf-v6-u-min-height" grow={{ default: 'grow' }}>
+            <Grid className="pf-v6-u-h-100" hasGutter>
+              <GridItem className="pf-v6-u-h-100" span={shouldRenderSidePanel ? 8 : 12}>
                 <FilesTable
                   files={files}
                   onSelectFile={onSelectFile}
