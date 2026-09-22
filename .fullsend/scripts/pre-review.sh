@@ -38,6 +38,19 @@ post_review_sticky_comment() {
     --result "${body_file}"
 }
 
+# `fullsend run` treats a bare exit 0 as "proceed": it still builds the sandbox
+# and runs the agent. A skip only takes effect when written to the pre-script
+# output file (prescript-output v1, ADR 0072). The guard keeps an older CLI that
+# does not export the variable failing open instead of crashing on `>> ""`.
+request_skip() {
+  local reason
+  reason="$(printf '%s' "$1" | tr -d '[:cntrl:]')"
+  if [[ -n "${FULLSEND_PRESCRIPT_OUTPUT:-}" ]]; then
+    printf 'skipped=true\nreason=%s\n' "${reason}" >> "${FULLSEND_PRESCRIPT_OUTPUT}"
+  fi
+  exit 0
+}
+
 normalize_dispatch_context() {
   local work_item_url
   work_item_url="${FULLSEND_WORK_ITEM_URL:-${GITHUB_ISSUE_URL:-}}"
@@ -267,6 +280,17 @@ run_self_test() {
     echo "FAIL cli-adapter registry validation" >&2
     fail=1
   fi
+  temp_dir="$(mktemp -d)"
+  : > "${temp_dir}/prescript.out"
+  if (FULLSEND_PRESCRIPT_OUTPUT="${temp_dir}/prescript.out" request_skip $'missing: Problem\r\nskipped=false') \
+    && [[ "$(cat "${temp_dir}/prescript.out")" == $'skipped=true\nreason=missing: Problemskipped=false' ]] \
+    && (unset FULLSEND_PRESCRIPT_OUTPUT; request_skip "no output file"); then
+    echo "PASS pre-script skip signal"
+  else
+    echo "FAIL pre-script skip signal" >&2
+    fail=1
+  fi
+  rm -rf "${temp_dir}"
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -361,7 +385,7 @@ The \`/fs-review\` command only reviews open pull requests.
   printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
     --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
 
-  exit 0
+  request_skip "PR is ${STATE_LOWER}"
 fi
 
 # ---------------------------------------------------------------------------
@@ -386,7 +410,7 @@ if [[ -n "${REVIEW_SKIP_AUTHORS:-}" ]]; then
         printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
           --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
 
-        exit 0
+        request_skip "PR author is in REVIEW_SKIP_AUTHORS"
       fi
     done
   fi
@@ -455,7 +479,7 @@ See [agentic.md](${AGENTIC_TEMPLATE}).
   post_review_sticky_comment "${REPO_FULL_NAME}" "${PR_NUMBER}" "${_TOKEN}" "${_sticky_body}"
   rm -f "${_sticky_body}"
 
-  exit 0
+  request_skip "PR description is missing required sections: ${MISSING_HEADINGS}"
 fi
 
 # Run registered pre-review adapters, hydrate outputs from isolated workflow
