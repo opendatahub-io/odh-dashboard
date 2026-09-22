@@ -1,7 +1,13 @@
 import * as yaml from 'js-yaml';
+import dataRegistryPage from '../../../pages/dataRegistry/dataRegistryPage';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import {
+  addUserToProject,
+  deleteOpenShiftProject,
+  waitForUserProjectAccess,
+} from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
+import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   deleteDataRegistryBrowseAsset,
   seedDataRegistryBrowseAsset,
@@ -27,6 +33,12 @@ describe('Data Registry - Collection Details', () => {
         return createCleanProject(testProjectName).then(() => {
           projectCreated = true;
         });
+      })
+      .then(() => {
+        cy.step(`Grant ${LDAP_ADMIN_USER.USERNAME} access to ${testProjectName}`);
+        return addUserToProject(testProjectName, LDAP_ADMIN_USER.USERNAME, 'admin').then(() =>
+          waitForUserProjectAccess(testProjectName, LDAP_ADMIN_USER.USERNAME),
+        );
       })
       .then(() =>
         seedDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset),
@@ -59,145 +71,123 @@ describe('Data Registry - Collection Details', () => {
   });
 
   beforeEach(() => {
-    cy.visit('/');
-    cy.get('[data-testid="app-launcher"]').click();
-    cy.get('[data-testid="nav-item-ai-hub"]').click();
-    cy.get('[data-testid="nav-item-data"]').click();
-
-    // Select project
-    cy.get('[data-testid="project-selector"]').click();
-    cy.get(`[data-testid="project-option-${testData.project}"]`).click();
+    dataRegistryPage.navigate(testData.project, LDAP_ADMIN_USER);
+    dataRegistryPage.selectProject(testData.project);
   });
 
   it('should display collection detail page', () => {
     // Navigate to collection detail from breadcrumb on asset detail page
-    cy.get('[data-testid="registry-table"]').find('a').contains(testData.asset).click();
+    dataRegistryPage.openAsset(testData.asset);
 
-    cy.get('[data-testid="app-page-breadcrumb"]').find('a').contains(testData.collection).click();
+    dataRegistryPage.openCollectionFromBreadcrumb(testData.collection);
 
     // Verify collection detail page loaded
-    cy.get('[data-testid="app-page-title"]').should('contain', testData.collection);
-    cy.get('[data-testid="collection-type-badge"]').should('contain', 'Collection');
-    cy.get('[data-testid="collection-description"]').should('exist');
+    dataRegistryPage.findPageTitle().should('contain.text', testData.collection);
+    dataRegistryPage.findCollectionTypeBadge().should('contain.text', 'Collection');
+    dataRegistryPage.findCollectionDescription().should('exist');
   });
 
   it('should display collection details card with correct information', () => {
     // Navigate directly to collection detail
-    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
+    dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
 
     // Verify collection details card
-    cy.get('[data-testid="collection-details-card"]').should('exist');
-    cy.get('[data-testid="collection-detail-description-list"]').should('exist');
+    dataRegistryPage.findCollectionDetailsCard().should('exist');
+    dataRegistryPage.findCollectionDetailDescriptionList().should('exist');
 
     // Verify structured/unstructured counts
-    cy.get('[data-testid="collection-structured-count"]').should('exist');
-    cy.get('[data-testid="collection-unstructured-count"]').should('exist');
+    dataRegistryPage.findCollectionStructuredCount().should('exist');
+    dataRegistryPage.findCollectionUnstructuredCount().should('exist');
 
     // Verify owner
-    cy.get('[data-testid="collection-owner"]').should('exist');
+    dataRegistryPage.findCollectionOwner().should('exist');
 
     // Verify created timestamp
-    cy.get('[data-testid="collection-created-at"]').should('exist');
+    dataRegistryPage.findCollectionCreatedAt().should('exist');
   });
 
   it('should display data assets table', () => {
-    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
+    dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
 
     // Verify data assets card
-    cy.get('[data-testid="data-assets-card"]').should('exist');
-    cy.get('[data-testid="collection-assets-table"]').should('exist');
+    dataRegistryPage.findDataAssetsCard().should('exist');
+    dataRegistryPage.findCollectionAssetsTable().should('exist');
 
     // Verify table has headers
-    cy.get('[data-testid="collection-assets-table"]')
-      .find('th')
+    dataRegistryPage
+      .findCollectionAssetsTableHeaders()
       .should('contain', 'Name')
       .and('contain', 'Type')
       .and('contain', 'Format');
   });
 
   it('should navigate to asset detail from collection assets table', () => {
-    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
+    dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
 
     // Click on an asset name
-    cy.get('[data-testid="collection-assets-table"]').find('a').contains(testData.asset).click();
+    dataRegistryPage.findCollectionAssetLink(testData.asset).click();
 
     // Verify navigated to asset detail page
-    cy.url().should('include', `/tables/${testData.project}/${testData.collection}/`);
-    cy.get('[data-testid="asset-type-badge"]').should('contain', 'Data asset');
+    dataRegistryPage.shouldHaveAssetDetailUrl(testData.project, testData.collection);
+    dataRegistryPage.findAssetTypeBadge().should('contain.text', 'Data asset');
   });
 
   it('should show delete collection disabled when collection has assets', () => {
-    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
+    dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
 
     // Open actions menu
-    cy.get('[data-testid="collection-actions-toggle"]').click();
+    dataRegistryPage.findCollectionActionsToggle().click();
 
     // Verify delete is disabled
-    cy.get('[data-testid="collection-action-delete"]').should('have.attr', 'aria-disabled', 'true');
+    dataRegistryPage.findCollectionDeleteAction().should('have.attr', 'aria-disabled', 'true');
   });
 
   it('should open register data modal', () => {
-    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
+    dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
 
     // Open actions menu
-    cy.get('[data-testid="collection-actions-toggle"]').click();
+    dataRegistryPage.findCollectionActionsToggle().click();
 
     // Click register data
-    cy.get('[data-testid="collection-action-register-data"]').click();
+    dataRegistryPage.findCollectionRegisterDataAction().click();
 
     // Verify modal opened
-    cy.get('[data-testid="register-data-modal"]').should('be.visible');
+    dataRegistryPage.findRegisterDataModal().should('be.visible');
   });
 
   it('should open manage collections modal with all collections', () => {
-    cy.visit(`/ai-hub/data/browse/collections/${testData.project}/${testData.collection}`);
+    dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
 
     // Open actions menu
-    cy.get('[data-testid="collection-actions-toggle"]').click();
+    dataRegistryPage.findCollectionActionsToggle().click();
 
     // Click manage collections
-    cy.get('[data-testid="collection-action-manage-collections"]').click();
+    dataRegistryPage.findCollectionManageCollectionsAction().click();
 
     // Verify modal opened
-    cy.get('[data-testid="manage-collections-modal"]').should('be.visible');
+    dataRegistryPage.findManageCollectionsModal().should('be.visible');
 
     // Verify all collections are listed, not just current one
-    cy.get('[data-testid="collections-table"]')
-      .find('tbody tr')
-      .should('have.length.greaterThan', 1);
+    dataRegistryPage.findCollectionRows().should('have.length.greaterThan', 1);
   });
 
   it('should navigate to collection detail from manage collections modal', () => {
-    cy.visit('/ai-hub/data/browse');
-
-    // Select project
-    cy.get('[data-testid="project-selector"]').click();
-    cy.get(`[data-testid="project-option-${testData.project}"]`).click();
-
     // Open manage collections
-    cy.get('[data-testid="registry-kebab"]').click();
-    cy.get('[data-testid="manage-collections-action"]').click();
+    dataRegistryPage.openManageCollections();
 
     // Click on a collection name
-    cy.get('[data-testid="collections-table"]').find('a').contains(testData.collection).click();
+    dataRegistryPage.findCollectionLink(testData.collection).click();
 
     // Verify navigated to collection detail
-    cy.url().should('include', `/collections/${testData.project}/${testData.collection}`);
-    cy.get('[data-testid="collection-type-badge"]').should('contain', 'Collection');
+    dataRegistryPage.shouldHaveCollectionDetailUrl(testData.project, testData.collection);
+    dataRegistryPage.findCollectionTypeBadge().should('contain.text', 'Collection');
   });
 
   it('should show trash icon for delete in manage collections', () => {
-    cy.visit('/ai-hub/data/browse');
-
-    // Select project
-    cy.get('[data-testid="project-selector"]').click();
-    cy.get(`[data-testid="project-option-${testData.project}"]`).click();
-
     // Open manage collections
-    cy.get('[data-testid="registry-kebab"]').click();
-    cy.get('[data-testid="manage-collections-action"]').click();
+    dataRegistryPage.openManageCollections();
 
     // Verify trash icon buttons exist
-    cy.get('[data-testid^="collection-delete-"]').should('exist');
+    dataRegistryPage.findCollectionDeleteButtons().should('exist');
   });
 });

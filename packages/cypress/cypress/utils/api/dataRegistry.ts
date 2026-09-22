@@ -43,6 +43,28 @@ const deleteDataRegistryResource = (url: string, resourceDescription: string): C
       }
     });
 
+const verifyDataRegistryResourceExists = (
+  url: string,
+  resourceDescription: string,
+): Cypress.Chainable =>
+  getOCToken()
+    .then((token) =>
+      cy.request({
+        method: 'GET',
+        url,
+        headers: requestHeaders(token),
+        failOnStatusCode: false,
+        log: false,
+      }),
+    )
+    .then((response) => {
+      if (response.status !== 200) {
+        throw new Error(
+          `Failed to verify Data Registry ${resourceDescription}: HTTP ${response.status}`,
+        );
+      }
+    });
+
 /**
  * Creates the table used by the live Data Registry browse tests when it is not already present.
  * Returns true only when this helper created the asset, allowing cleanup to preserve pre-existing data.
@@ -125,6 +147,16 @@ export const deleteDataRegistryBrowseAsset = (
 ): Cypress.Chainable => deleteDataRegistryAsset(project, collection, assetName);
 
 /**
+ * Verifies that a Data Registry asset exists in the backend.
+ */
+export const verifyDataRegistryAssetExists = (
+  project: string,
+  collection: string,
+  assetName: string,
+): Cypress.Chainable =>
+  verifyDataRegistryResourceExists(assetUrl(project, collection, assetName), `asset ${assetName}`);
+
+/**
  * Deletes a Data Registry collection. Missing collections are treated as already cleaned up.
  */
 export const deleteDataRegistryCollection = (
@@ -132,3 +164,12 @@ export const deleteDataRegistryCollection = (
   collection: string,
 ): Cypress.Chainable =>
   deleteDataRegistryResource(collectionUrl(project, collection), `collection ${collection}`);
+
+/**
+ * Verifies that a Data Registry collection exists in the backend.
+ */
+export const verifyDataRegistryCollectionExists = (
+  project: string,
+  collection: string,
+): Cypress.Chainable =>
+  verifyDataRegistryResourceExists(collectionUrl(project, collection), `collection ${collection}`);

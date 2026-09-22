@@ -1,5 +1,5 @@
 import * as yaml from 'js-yaml';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
+import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import dataRegistryPage from '../../../pages/dataRegistry/dataRegistryPage';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import {
@@ -21,6 +21,8 @@ import {
   deleteDataRegistryBrowseAsset,
   deleteDataRegistryCollection,
   seedDataRegistryBrowseAsset,
+  verifyDataRegistryAssetExists,
+  verifyDataRegistryCollectionExists,
 } from '../../../utils/api/dataRegistry';
 
 const crudUuid = generateTestUUID();
@@ -36,7 +38,7 @@ const navigateToDataRegistry = (project: string): void => {
   cy.clearCookies();
   cy.clearLocalStorage();
   cy.intercept('GET', '**/data-registry/api/v1/namespaces').as('dataRegistryNamespaces');
-  dataRegistryPage.navigate(undefined, HTPASSWD_CLUSTER_ADMIN_USER);
+  dataRegistryPage.navigate(project, LDAP_ADMIN_USER);
   cy.wait('@dataRegistryNamespaces').then(({ response }) => {
     const namespaces = (response?.body as { data?: Array<{ name?: string }> } | undefined)?.data
       ?.map((namespace) => namespace.name)
@@ -75,13 +77,9 @@ describe('Data Registry browse flow', () => {
         });
       })
       .then(() => {
-        cy.step(`Grant ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME} access to ${testProjectName}`);
-        return addUserToProject(
-          testProjectName,
-          HTPASSWD_CLUSTER_ADMIN_USER.USERNAME,
-          'admin',
-        ).then(() =>
-          waitForUserProjectAccess(testProjectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME),
+        cy.step(`Grant ${LDAP_ADMIN_USER.USERNAME} access to ${testProjectName}`);
+        return addUserToProject(testProjectName, LDAP_ADMIN_USER.USERNAME, 'admin').then(() =>
+          waitForUserProjectAccess(testProjectName, LDAP_ADMIN_USER.USERNAME),
         );
       })
       .then(() => {
@@ -170,13 +168,11 @@ describe('Data Registry browse flow', () => {
   });
 
   it(
-    'should browse a collection and its asset through the live Data Registry backend',
-    { tags: ['@Dashboard', '@DataRegistry', '@Smoke'] },
+    'should browse and create, update, and delete Data Registry collections and assets',
+    { tags: ['@Dashboard', '@DataRegistry', '@Smoke', '@SmokeSet1'] },
     () => {
       cy.step('Log in as an administrator');
       navigateToDataRegistry(testData.project);
-
-      cy.step(`Select the ${testData.project} project`);
       dataRegistryPage.selectProject(testData.project);
 
       cy.step(`Open the ${testData.asset} data asset`);
@@ -195,14 +191,8 @@ describe('Data Registry browse flow', () => {
       dataRegistryPage.findCollectionTypeBadge().should('contain.text', 'Collection');
       dataRegistryPage.findCollectionDetailsCard().should('be.visible');
       dataRegistryPage.findCollectionAssetsTable().should('be.visible');
-    },
-  );
 
-  it(
-    'should create, update, and delete a data registry collection and asset',
-    { tags: ['@Dashboard', '@DataRegistry', '@Smoke'] },
-    () => {
-      cy.step('Log in as an administrator');
+      cy.step(`Return to ${testData.project} to exercise Data Registry CRUD`);
       navigateToDataRegistry(testData.project);
       dataRegistryPage.selectProject(testData.project);
 
@@ -220,6 +210,7 @@ describe('Data Registry browse flow', () => {
           crudCollectionCreated = true;
         });
       dataRegistryPage.findCollectionLink(crudCollectionName).should('be.visible');
+      verifyDataRegistryCollectionExists(testData.project, crudCollectionName);
       dataRegistryPage.closeManageCollections();
 
       cy.step(`Register the ${crudAssetName} asset in ${crudCollectionName}`);
@@ -236,6 +227,7 @@ describe('Data Registry browse flow', () => {
           crudAssetCreated = true;
         });
       dataRegistryPage.findAssetLink(crudAssetName).should('be.visible');
+      verifyDataRegistryAssetExists(testData.project, crudCollectionName, crudAssetName);
 
       cy.step(`Update the ${crudAssetName} asset description`);
       dataRegistryPage.openAsset(crudAssetName);

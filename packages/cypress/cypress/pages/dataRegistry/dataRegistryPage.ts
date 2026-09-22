@@ -7,6 +7,16 @@ class DataRegistryPage {
     this.findProjectSelector().should('be.visible');
   }
 
+  navigateToCollection(project: string, collection: string, credentials?: UserAuthConfig) {
+    cy.visitWithLogin(
+      `/ai-hub/data/browse/collections/${encodeURIComponent(project)}/${encodeURIComponent(
+        collection,
+      )}`,
+      credentials,
+    );
+    this.findPageTitle().should('be.visible');
+  }
+
   visit(project: string) {
     cy.visit(`/data-registry?project=${project}`);
   }
@@ -59,6 +69,14 @@ class DataRegistryPage {
     return this.findCollectionsTable().findByRole('link', { name: collectionName });
   }
 
+  findCollectionRows() {
+    return this.findCollectionsTable().find('tbody tr');
+  }
+
+  findCollectionDeleteButtons() {
+    return cy.findAllByTestId(/^collection-delete-/);
+  }
+
   findCreateCollectionButton() {
     return this.findManageCollectionsModal().findByTestId('create-collection-button');
   }
@@ -97,6 +115,22 @@ class DataRegistryPage {
 
   findDeleteCollectionConfirmButton() {
     return this.findDeleteCollectionModal().findByTestId('confirm-delete-button');
+  }
+
+  findCollectionActionsToggle() {
+    return cy.findByTestId('collection-actions-toggle');
+  }
+
+  findCollectionDeleteAction() {
+    return cy.findByTestId('collection-action-delete');
+  }
+
+  findCollectionRegisterDataAction() {
+    return cy.findByTestId('collection-action-register-data');
+  }
+
+  findCollectionManageCollectionsAction() {
+    return cy.findByTestId('collection-action-manage-collections');
   }
 
   findRegisterDataModal() {
@@ -192,6 +226,56 @@ class DataRegistryPage {
 
   findCollectionAssetsTable() {
     return cy.findByTestId('collection-assets-table');
+  }
+
+  findDataAssetsCard() {
+    return cy.findByTestId('data-assets-card');
+  }
+
+  findCollectionDetailDescriptionList() {
+    return cy.findByTestId('collection-detail-description-list');
+  }
+
+  findCollectionAssetsTableHeaders() {
+    return this.findCollectionAssetsTable().find('th');
+  }
+
+  findCollectionAssetLink(assetName: string) {
+    return this.findCollectionAssetsTable().findByRole('link', { name: assetName });
+  }
+
+  findCollectionDescription() {
+    return cy.findByTestId('collection-description');
+  }
+
+  findCollectionStructuredCount() {
+    return cy.findByTestId('collection-structured-count');
+  }
+
+  findCollectionUnstructuredCount() {
+    return cy.findByTestId('collection-unstructured-count');
+  }
+
+  findCollectionOwner() {
+    return cy.findByTestId('collection-owner');
+  }
+
+  findCollectionCreatedAt() {
+    return cy.findByTestId('collection-created-at');
+  }
+
+  shouldHaveAssetDetailUrl(project: string, collection: string) {
+    cy.url().should(
+      'include',
+      `/tables/${encodeURIComponent(project)}/${encodeURIComponent(collection)}/`,
+    );
+  }
+
+  shouldHaveCollectionDetailUrl(project: string, collection: string) {
+    cy.url().should(
+      'include',
+      `/collections/${encodeURIComponent(project)}/${encodeURIComponent(collection)}`,
+    );
   }
 
   findCollectionTypeBadge() {
