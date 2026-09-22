@@ -65,7 +65,10 @@ const ConnectionTypeDetails: React.FC = () => {
       empty={loaded && !connectionType}
       emptyMessage="Connection type not found"
     >
-      <PageSection data-connection-type-id={connectionType?.metadata.id}>
+      <PageSection
+        data-testid="connection-type-details"
+        data-connection-type-id={connectionType?.metadata.id}
+      >
         {connectionType && <ConnectionTypeValues connectionType={connectionType} />}
       </PageSection>
     </ApplicationsPage>

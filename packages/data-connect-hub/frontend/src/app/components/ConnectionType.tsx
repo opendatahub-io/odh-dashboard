@@ -58,7 +58,7 @@ const KnownConnectionTypes: Record<string, KnownConnectionType> = {
     group: 'other',
   },
   huggingface: {
-    id: 'elasticsearch',
+    id: 'huggingface',
     icon: <RhUiAiExperienceIcon />,
     group: 'other',
   },
@@ -170,10 +170,15 @@ type ConnectionTypeIconProps = {
 };
 const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType, iconProps }) => {
   const provider = connectionType.resource.provider;
-  const mappedIcon = KnownConnectionTypes[provider]?.icon ?? <DataSourceIcon />;
+  const knownConnectionType = KnownConnectionTypes[provider];
+  const mappedIcon = knownConnectionType?.icon ?? <DataSourceIcon />;
 
   return (
-    <Icon size="sm" {...iconProps}>
+    <Icon
+      size="sm"
+      data-testid={knownConnectionType ? 'connection-type-icon' : 'connection-type-icon-fallback'}
+      {...iconProps}
+    >
       {mappedIcon}
     </Icon>
   );
@@ -189,7 +194,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType 
   )}${search}`;
   const handleClick = useLinkClickHandler(detailsPath);
   return (
-    <Card id={rootId} isClickable style={{ aspectRatio: '4 / 3' }}>
+    <Card id={rootId} data-testid={rootId} isClickable style={{ aspectRatio: '4 / 3' }}>
       <CardHeader
         selectableActions={{
           to: detailsPath,

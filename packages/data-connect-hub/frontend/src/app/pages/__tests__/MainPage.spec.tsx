@@ -82,6 +82,15 @@ jest.mock('~/app/pages/ConnectionsTab', () => ({
   default: (props: { namespace: string; isActive?: boolean }) => mockConnectionsTab(props),
 }));
 
+const mockConnectionTypesTab = jest.fn(({ namespace }: { namespace: string }) => (
+  <div data-testid="connection-types-tab">{namespace}</div>
+));
+
+jest.mock('~/app/pages/ConnectionTypesTab', () => ({
+  __esModule: true,
+  default: (props: { namespace: string }) => mockConnectionTypesTab(props),
+}));
+
 jest.mock('~/app/pages/ConnectionTypeDetails', () => ({
   __esModule: true,
   default: () => <div data-testid="connection-type-details" />,
