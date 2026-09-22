@@ -16,12 +16,16 @@
   --pf-v6-c-label--BackgroundColor: var(--pf-t--global--background--color--primary--default);
   --pf-v6-c-label--BorderColor: var(--pf-t--global--border--color--default);
   --pf-v6-c-label--BorderRadius: var(--pf-t--global--border--radius--small);
-  --pf-v6-c-label--Gap: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-label--Gap: var(--pf-t--global--spacer--lg);
   --pf-v6-c-label--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
   --pf-v6-c-label--PaddingBlockStart: var(--pf-t--global--spacer--sm);
   --pf-v6-c-label--PaddingInlineEnd: var(--pf-t--global--spacer--md);
   --pf-v6-c-label--PaddingInlineStart: var(--pf-t--global--spacer--md);
   max-inline-size: calc(var(--pf-t--global--spacer--2xl) * 6.625);
+}
+
+.gen-ai-document-attachment--staged {
+  --pf-v6-c-label--PaddingInlineEnd: var(--pf-t--global--spacer--lg);
 }
 
 .gen-ai-document-attachment__icon {
@@ -43,7 +47,7 @@
 
 .gen-ai-document-attachment__details {
   display: grid;
-  gap: var(--pf-t--global--spacer--xs);
+  gap: 0;
   text-align: left;
 }
 

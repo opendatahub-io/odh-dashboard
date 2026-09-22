@@ -435,7 +435,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             {documentAttachments.map((attachment) => (
               <Label
                 key={attachment.file_id}
-                className="gen-ai-document-attachment"
+                className="gen-ai-document-attachment gen-ai-document-attachment--staged"
                 icon={
                   <span className="gen-ai-document-attachment__icon">
                     <img src={RhUiResourceIcon} alt="" />

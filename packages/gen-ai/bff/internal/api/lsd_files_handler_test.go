@@ -1155,6 +1155,8 @@ func TestLlamaStackDocumentUploadHandler(t *testing.T) {
 		assert.Equal(t, "notes.txt", body.Data.Filename)
 		assert.Equal(t, "text/plain", body.Data.ContentType)
 		assert.Equal(t, "extracted document text", body.Data.Text)
+		require.Len(t, client.UploadFileParams, 1)
+		assert.Equal(t, playgroundDocumentUploadPurpose, client.UploadFileParams[0].Purpose)
 	})
 
 	t.Run("rejects scanned PDFs with too little extracted text", func(t *testing.T) {
