@@ -64,7 +64,8 @@ const extensions: (
       featureFlags: [GUARDRAILS],
       requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
       customCondition: ({ dscStatus }) =>
-        !!dscStatus?.conditions.some((c) => c.type === 'TrustyAIReady' && c.status === 'True'),
+        Array.isArray(dscStatus?.conditions) &&
+        dscStatus.conditions.some((c) => c.type === 'TrustyAIReady' && c.status === 'True'),
     },
   },
   {

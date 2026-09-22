@@ -133,6 +133,16 @@ describe('guardrails area extension', () => {
     });
     expect(result).toBe(false);
   });
+
+  it('should return false when DSC conditions are absent', () => {
+    const area = findGuardrailsArea();
+    const result = area.properties.customCondition!({
+      dashboardConfigSpec: {} as never,
+      dscStatus: { components: {} } as never,
+      dsciStatus: null,
+    });
+    expect(result).toBe(false);
+  });
 });
 
 const makeDsciStatus = (conditions: K8sCondition[]) => ({ conditions }) as never;
