@@ -199,7 +199,10 @@ func TestValidateModuleAPIResponse(t *testing.T) {
 	}{
 		{name: "JSON success", statusCode: http.StatusOK, contentType: "application/json; charset=utf-8", body: `{"items":[]}`},
 		{name: "vendor JSON success", statusCode: http.StatusOK, contentType: "application/problem+json", body: `{"detail":"ok"}`},
-		{name: "unauthorized API response", statusCode: http.StatusUnauthorized, contentType: "text/plain", body: "Unauthorized", wantErr: true},
+		{name: "Model Catalog unauthorized response", statusCode: http.StatusUnauthorized, contentType: "application/json", body: `{"code":"unauthorized","message":"permission denied"}`},
+		{name: "plain-text unauthorized response", statusCode: http.StatusUnauthorized, contentType: "text/plain", body: "Unauthorized", wantErr: true},
+		{name: "malformed unauthorized response", statusCode: http.StatusUnauthorized, contentType: "application/json", body: `{`, wantErr: true},
+		{name: "incomplete unauthorized response", statusCode: http.StatusUnauthorized, contentType: "application/json", body: `{"code":"unauthorized"}`, wantErr: true},
 		{name: "forbidden API response", statusCode: http.StatusForbidden, body: "Forbidden", wantErr: true},
 		{name: "Dashboard SPA collision", statusCode: http.StatusOK, contentType: "text/html; charset=utf-8", body: "<!DOCTYPE html><html></html>", wantErr: true},
 		{name: "HTML body without content type", statusCode: http.StatusForbidden, body: "\ufeff  <HTML><body>Forbidden</body></HTML>", wantErr: true},

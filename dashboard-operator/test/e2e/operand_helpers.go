@@ -189,7 +189,7 @@ func routeResponseHealthy(statusCode int) bool {
 }
 
 func validateModuleAPIResponse(statusCode int, contentType string, body []byte) error {
-	if statusCode != http.StatusOK {
+	if statusCode != http.StatusOK && statusCode != http.StatusUnauthorized {
 		return fmt.Errorf("unexpected module API status %d", statusCode)
 	}
 
@@ -204,6 +204,20 @@ func validateModuleAPIResponse(statusCode int, contentType string, body []byte) 
 	}
 	if mediaType == "text/html" || bodyStartsWithHTML(body) {
 		return fmt.Errorf("module API response is Dashboard HTML (status %d, content type %q)", statusCode, contentType)
+	}
+
+	if statusCode == http.StatusUnauthorized {
+		if mediaType != "application/json" {
+			return fmt.Errorf("unauthorized module API response has non-JSON content type %q", contentType)
+		}
+		var apiError struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		}
+		if err := json.Unmarshal(body, &apiError); err != nil || apiError.Code == "" || apiError.Message == "" {
+			return fmt.Errorf("unauthorized module API response is not a Model Catalog error")
+		}
+		return nil
 	}
 
 	if mediaType != "application/json" && !strings.HasSuffix(mediaType, "+json") {
