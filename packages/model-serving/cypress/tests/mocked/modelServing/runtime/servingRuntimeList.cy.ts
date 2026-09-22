@@ -78,6 +78,7 @@ type HandlersProps = {
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
   templates?: boolean;
+  nimWizard?: boolean;
 };
 
 const initIntercepts = ({
@@ -119,6 +120,7 @@ const initIntercepts = ({
   disableNIMConfig = true,
   projectEnableNIM: enableNIM = false,
   DscComponents,
+  nimWizard = false,
 }: HandlersProps) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -140,6 +142,7 @@ const initIntercepts = ({
       disableProjectScoped,
       disableKServeMetrics,
       disableNIMModelServing: disableNIMConfig,
+      nimWizard,
     }),
   );
   cy.interceptK8s(ODHDashboardConfigModel, mockDashboardConfig({}));

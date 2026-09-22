@@ -17,6 +17,7 @@ import { QUOTA_USAGE_ACCELERATOR_TABLE, QUOTA_USAGE_ACCELERATOR_TABLE_COLUMNS } 
 import {
   QuotaUsageAcceleratorRow,
   QuotaUsageSummary,
+  QuotaNodeType,
   QUOTA_USAGE_METER_VARIANT,
 } from '../../types';
 
@@ -24,6 +25,7 @@ type QuotaUsageAcceleratorTableProps = {
   rows: QuotaUsageAcceleratorRow[];
   summary: QuotaUsageSummary;
   error?: Error;
+  nodeType?: QuotaNodeType;
 };
 
 const normalizeModelTestId = (model: string): string =>
@@ -33,6 +35,7 @@ const QuotaUsageAcceleratorTable: React.FC<QuotaUsageAcceleratorTableProps> = ({
   rows,
   summary,
   error,
+  nodeType,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [filterText, setFilterText] = React.useState('');
@@ -132,7 +135,14 @@ const QuotaUsageAcceleratorTable: React.FC<QuotaUsageAcceleratorTableProps> = ({
           </Tr>
         );
       }}
-      emptyTableView={<DashboardEmptyTableView onClearFilters={() => setFilterText('')} />}
+      emptyTableView={
+        <DashboardEmptyTableView
+          bodyText=""
+          titleText="No results"
+          showClearFilters={false}
+          onClearFilters={() => setFilterText('')}
+        />
+      }
     />
   );
 
@@ -140,11 +150,13 @@ const QuotaUsageAcceleratorTable: React.FC<QuotaUsageAcceleratorTableProps> = ({
     <QuotaUsageAccordionSection
       id="quota-usage-accelerator-table"
       title={QUOTA_USAGE_ACCELERATOR_TABLE.acceleratorTableTitle}
+      nodeType={nodeType}
       isExpanded={isExpanded}
       onToggle={() => setIsExpanded((expanded) => !expanded)}
       data-testid="quota-usage-accelerator-table-section"
+      contentClassName="pf-v6-u-p-0"
     >
-      <Content component="p">{QUOTA_USAGE_ACCELERATOR_TABLE.acceleratorTableSubtitle} </Content>
+      <Content component="p">{QUOTA_USAGE_ACCELERATOR_TABLE.acceleratorTableSubtitle}</Content>
       {body}
     </QuotaUsageAccordionSection>
   );

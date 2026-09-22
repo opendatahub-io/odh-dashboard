@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
 import SampleQAEntry, {
+  MetricScores,
   RetrievedContextSection,
 } from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
 
@@ -25,7 +26,7 @@ describe('SampleQAEntry', () => {
           { text: 'Legacy context', document_key: '/mnt/data/legacy/document.txt' },
         ])}
         questionNumber={1}
-        allMetricNames={['unitxt:faithfulness']}
+        allMetricNames={[{ name: 'faithfulness', evaluator: 'unitxt' }]}
       />,
     );
 
@@ -62,7 +63,7 @@ describe('SampleQAEntry', () => {
       <SampleQAEntry
         result={result([])}
         questionNumber={1}
-        allMetricNames={['unitxt:faithfulness']}
+        allMetricNames={[{ name: 'faithfulness', evaluator: 'unitxt' }]}
       />,
     );
 
@@ -74,11 +75,47 @@ describe('SampleQAEntry', () => {
       <SampleQAEntry
         result={result([])}
         questionNumber={1}
-        allMetricNames={['unitxt:faithfulness']}
+        allMetricNames={[{ name: 'faithfulness', evaluator: 'unitxt' }]}
       />,
     );
 
     expect(screen.getByTestId('qa-metric-scores-q0')).toHaveTextContent('N/A');
     expect(screen.getByTestId('qa-metric-scores-q0')).not.toHaveTextContent(': 0');
+  });
+
+  it('should include the evaluator in metric score labels', () => {
+    render(
+      <SampleQAEntry
+        result={{
+          ...result([]),
+          metrics: [{ name: 'faithfulness', evaluator: 'ragas', score: 0.77 }],
+        }}
+        questionNumber={1}
+        allMetricNames={[{ name: 'faithfulness', evaluator: 'ragas' }]}
+      />,
+    );
+
+    expect(screen.getByTestId('qa-metric-scores-q0')).toHaveTextContent(
+      'Answer faithfulness (ragas): 0.770',
+    );
+  });
+
+  it('should show N/A for duplicate normalized metric identities', () => {
+    render(
+      <MetricScores
+        metrics={[
+          { name: 'faithfulness', evaluator: 'unitxt', score: 0.77 },
+          { name: ' Faithfulness ', evaluator: ' UNITXT ', score: 0.88 },
+        ]}
+        testId="duplicate-metric-scores"
+      />,
+    );
+
+    expect(screen.getByTestId('duplicate-metric-scores')).toHaveTextContent(
+      'Answer faithfulness (unitxt): N/A',
+    );
+    expect(screen.getByTestId('duplicate-metric-scores').querySelectorAll('strong')).toHaveLength(
+      1,
+    );
   });
 });

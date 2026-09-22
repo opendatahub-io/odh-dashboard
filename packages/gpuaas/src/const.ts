@@ -9,8 +9,10 @@ export const KUEUE_HELP_POPOVER_BODY =
   "This page shows data from projects managed by Kueue. Projects without a local queue aren't part of queue-based resource management.";
 export const KUEUE_HELP_VIEW_PROJECTS_LINK = 'View projects not managed by Kueue';
 export const NON_KUEUE_PROJECTS_MODAL_TITLE = 'Projects not managed by Kueue';
-export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION =
-  'Data from the following projects is not displayed on the Infrastructure page because they do not use Kueue for workload admission.';
+export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_PREFIX =
+  'Data from the following projects is not displayed on the';
+export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_SUFFIX =
+  'page because they do not use Kueue for workload admission.';
 export const NON_KUEUE_PROJECT_STATUS_LABEL = 'not Kueue-managed';
 
 export const CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE = 'Workloads';
@@ -46,6 +48,7 @@ export const clusterQueueWorkloadsFilterPlaceholders: Record<
 };
 
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
+export const QUOTA_USAGE_SEARCH_TELEMETRY_DEBOUNCE = 300;
 
 /** Pass to useFetch refreshRate to disable polling; initial load + manual refresh only. */
 export const INFRASTRUCTURE_MANUAL_REFRESH_ONLY = -1;
@@ -73,14 +76,15 @@ export const QUOTA_USAGE_ERROR_TITLE = 'Error loading cluster queue data';
 
 export const QUOTA_UNASSIGNED_NODE_ID = 'quota-unassigned';
 export const QUOTA_UNASSIGNED_LABEL = 'Unassigned';
-export const QUOTA_UNASSIGNED_TOOLTIP = 'Cluster queues not assigned to a cohort.';
+export const QUOTA_UNASSIGNED_DESCRIPTION =
+  'Cluster queues appear here until they are assigned to a cohort.';
 export const QUOTA_USAGE_TREE_DRAWER_PANEL_ID = 'quota-usage-tree-drawer-panel';
 
 export const QUOTA_USAGE_SUMMARY = {
   title: 'Summary',
   workloads: 'Workloads',
   acceleratorTableTitle: 'Accelerator usage',
-  viewKueueProjects: 'View Kueue projects',
+  viewKueueProjects: 'View projects',
   capacity: 'Accelerators allocated',
   compute: 'Accelerator compute',
   memory: 'Accelerator memory',
@@ -153,11 +157,13 @@ export const QUOTA_USAGE_METER = {
 export const QUOTA_USAGE_BORROWING = {
   enabledLabel: 'Borrowing enabled',
   label: (count: number, cohortName: string): string =>
-    `Borrowing ${count} ${cohortName} accelerators`,
-  popoverBorrowingLabel: 'Borrowing:',
-  popoverSinceLabel: 'Since:',
+    `Borrowing ${count} ${cohortName} accelerator${count === 1 ? '' : 's'}`,
+  popoverBorrowingLabel: 'Currently borrowing:',
+  popoverSinceLabel: (count: number): string =>
+    `Borrowing accelerator${count === 1 ? '' : 's'} since:`,
   popoverModelLine: (count: number, model: string): string => `${count} x ${model}`,
-  cohortCalloutSuffix: (cohortName: string): string => ` is borrowing ${cohortName} accelerators`,
+  cohortCalloutPrefix: (count: number): string =>
+    ` is borrowing ${count} accelerator${count === 1 ? '' : 's'} from `,
 } as const;
 
 export const INFRASTRUCTURE_SECTIONS = [

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   Accordion,
   AccordionContent,
@@ -9,9 +10,16 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
+import {
+  GPUAAS_EVENTS,
+  QUOTA_USAGE_DETAIL_SECTION_NAMES_BY_ID,
+  QUOTA_USAGE_DETAIL_SECTION_IDS,
+  QUOTA_NODE_TYPE_TRACKING,
+} from '../../tracking/gpuaasTrackingConstants';
+import { QUOTA_NODE_TYPE, QuotaNodeType } from '../../types';
 
 type QuotaUsageAccordionSectionProps = {
-  id: string;
+  id: (typeof QUOTA_USAGE_DETAIL_SECTION_IDS)[keyof typeof QUOTA_USAGE_DETAIL_SECTION_IDS];
   title: React.ReactNode;
   headerActions?: React.ReactNode;
   isExpanded: boolean;
@@ -19,6 +27,8 @@ type QuotaUsageAccordionSectionProps = {
   'data-testid'?: string;
   children: React.ReactNode;
   isSummary?: boolean;
+  contentClassName?: string;
+  nodeType?: QuotaNodeType;
 };
 
 const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
@@ -30,6 +40,8 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
   'data-testid': testId,
   children,
   isSummary = false,
+  contentClassName,
+  nodeType = QUOTA_NODE_TYPE.clusterQueue,
 }) => {
   const accordion = (
     <Accordion
@@ -45,7 +57,17 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
           className="pf-v6-u-w-100"
         >
           <FlexItem className="pf-v6-u-flex-fill pf-v6-u-min-width-0">
-            <AccordionToggle id={`${id}-toggle`} onClick={onToggle}>
+            <AccordionToggle
+              id={`${id}-toggle`}
+              onClick={() => {
+                fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_DETAIL_SECTION_TOGGLED, {
+                  sectionName: QUOTA_USAGE_DETAIL_SECTION_NAMES_BY_ID[id],
+                  isExpanded: !isExpanded,
+                  nodeType: QUOTA_NODE_TYPE_TRACKING[nodeType],
+                });
+                onToggle();
+              }}
+            >
               <Content component="h4">{title}</Content>
             </AccordionToggle>
           </FlexItem>
@@ -55,7 +77,11 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
         </Flex>
         <AccordionContent
           id={isSummary ? undefined : `${id}-content`}
-          className={isSummary ? 'gpuaas-quota-usage-summary-content' : undefined}
+          className={
+            [isSummary ? 'gpuaas-quota-usage-summary-content' : undefined, contentClassName]
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
         >
           {children}
         </AccordionContent>
@@ -72,7 +98,7 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
       variant="secondary"
       isPlain
       id={`${id}-content`}
-      className="pf-v6-u-w-100 pf-v6-u-py-xs"
+      className="pf-v6-u-w-100"
       data-testid={testId}
     >
       {accordion}

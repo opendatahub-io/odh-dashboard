@@ -1058,6 +1058,19 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-deployment-resourceName');
   }
 
+  getGeneratedResourceName(): Cypress.Chainable<string> {
+    return this.findResourceNameInput()
+      .should('be.visible')
+      .invoke('val')
+      .then((value) => {
+        const resourceName = value?.toString();
+        if (!resourceName) {
+          throw new Error('Model resource name was not generated');
+        }
+        return resourceName;
+      });
+  }
+
   findModelFormatSelect() {
     return cy.findByTestId('model-framework-select');
   }
@@ -1267,6 +1280,22 @@ class ModelServingWizard extends Wizard {
 
   findPrefillAlert() {
     return cy.findByTestId('prefill-alert');
+  }
+
+  findHfApiKeyField() {
+    return cy.findByTestId('hf-api-key-field');
+  }
+
+  findHfApiKeyInput() {
+    return cy.findByTestId('hf-api-key-input');
+  }
+
+  findHfGatedAccessAlert() {
+    return cy.findByTestId('hf-gated-access-alert');
+  }
+
+  findHfApiKeyConfiguredHelper() {
+    return cy.findByTestId('hf-api-key-configured-helper');
   }
 
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {

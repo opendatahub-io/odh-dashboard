@@ -7,7 +7,7 @@ import {
   parsePatternArtifact,
 } from '~/app/hooks/patternSchema';
 import { normalizePattern } from '~/app/hooks/useAutoragResults';
-import { getOptimizedScore } from '~/app/utilities/utils';
+import { getOptimizedScore } from '~/app/utilities/metricUtils';
 import { LegacyPatternSchema } from '~/app/hooks/legacyPattern';
 
 const baseSettings = {

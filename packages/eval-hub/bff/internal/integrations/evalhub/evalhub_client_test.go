@@ -28,6 +28,29 @@ func TestEvalHubClient_HealthCheck(t *testing.T) {
 	assert.Equal(t, "healthy", resp.Status)
 }
 
+func TestNewEvalHubClientWithTransport_PreservesTLSServiceName(t *testing.T) {
+	var baseTransport *http.Transport
+	client := NewEvalHubClientWithTransport(
+		"https://evalhub.test-ns.svc.cluster.local:8443",
+		"",
+		false,
+		nil,
+		"/api/v1",
+		func(base http.RoundTripper) http.RoundTripper {
+			var ok bool
+			baseTransport, ok = base.(*http.Transport)
+			require.True(t, ok)
+			return base
+		},
+	)
+
+	require.NotNil(t, client)
+	require.NotNil(t, baseTransport)
+	require.NotNil(t, baseTransport.TLSClientConfig)
+	assert.Equal(t, "evalhub.test-ns.svc.cluster.local", baseTransport.TLSClientConfig.ServerName)
+	assert.False(t, baseTransport.TLSClientConfig.InsecureSkipVerify)
+}
+
 func TestEvalHubClient_HealthCheck_RequiresNamespace(t *testing.T) {
 	client := NewEvalHubClient("http://example.invalid", "", false, nil, "/api/v1")
 	_, err := client.HealthCheck(context.Background(), "")
@@ -296,6 +319,7 @@ func TestEvalHubClient_GetEvaluationJobLogs(t *testing.T) {
 		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "text/plain", r.Header.Get("Accept"))
 		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("X-Log-Truncated", "true")
 		_, _ = w.Write([]byte(logContent))
 	}))
 	defer server.Close()
@@ -304,7 +328,28 @@ func TestEvalHubClient_GetEvaluationJobLogs(t *testing.T) {
 	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
 
 	require.NoError(t, err)
-	assert.Equal(t, logContent, result)
+	assert.Equal(t, logContent, result.Logs)
+	assert.True(t, result.Truncated)
+}
+
+func TestEvalHubClient_GetEvaluationJobLogs_ReadsTruncationTrailer(t *testing.T) {
+	logContent := "=== Job Logs ===\n[2026-03-01] Starting evaluation...\n[2026-03-01] Done.\n"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Trailer", "X-Log-Truncated")
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(logContent))
+		w.Header().Set("X-Log-Truncated", "true")
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
+
+	require.NoError(t, err)
+	assert.Equal(t, logContent, result.Logs)
+	assert.True(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_WithParams(t *testing.T) {
@@ -326,7 +371,8 @@ func TestEvalHubClient_GetEvaluationJobLogs_WithParams(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, "logs", result)
+	assert.Equal(t, "logs", result.Logs)
+	assert.False(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_EmptyNamespace(t *testing.T) {
@@ -380,6 +426,7 @@ func TestEvalHubClient_GetEvaluationJobBenchmarkLogs(t *testing.T) {
 		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "text/plain", r.Header.Get("Accept"))
 		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("X-Log-Truncated", "false")
 		_, _ = w.Write([]byte(logContent))
 	}))
 	defer server.Close()
@@ -388,7 +435,8 @@ func TestEvalHubClient_GetEvaluationJobBenchmarkLogs(t *testing.T) {
 	result, err := client.GetEvaluationJobBenchmarkLogs(context.Background(), "job-1", 0, "my-ns", GetJobLogsParams{})
 
 	require.NoError(t, err)
-	assert.Equal(t, logContent, result)
+	assert.Equal(t, logContent, result.Logs)
+	assert.False(t, result.Truncated)
 }
 
 func TestEvalHubClient_GetEvaluationJobBenchmarkLogs_EmptyNamespace(t *testing.T) {
@@ -402,7 +450,6 @@ func TestEvalHubClient_GetEvaluationJobBenchmarkLogs_EmptyNamespace(t *testing.T
 }
 
 func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.T) {
-	const maxLogResponseSize = 10 * 1024 * 1024
 	oversizedBody := strings.Repeat("x", maxLogResponseSize+1)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -414,6 +461,53 @@ func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
 	_, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
+}
+
+func TestEvalHubClient_GetEvaluationJobLogs_AcceptsResponseOverUpstreamLimit(t *testing.T) {
+	const upstreamMaxLogResponseSize = 50 * 1024 * 1024
+	body := strings.Repeat("x", upstreamMaxLogResponseSize+1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(body))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
+
+	require.NoError(t, err)
+	assert.Equal(t, body, result.Logs)
+}
+
+func TestEvalHubClient_CreateEvaluationJob_RejectsOversizedResponse(t *testing.T) {
+	oversizedBody := strings.Repeat("x", maxPostResponseSize+1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(oversizedBody))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	_, err := client.CreateEvaluationJob(context.Background(), "my-ns", CreateEvaluationJobRequest{})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
+}
+
+func TestEvalHubClient_CancelEvaluationJob_RejectsOversizedResponse(t *testing.T) {
+	oversizedBody := strings.Repeat("x", maxDeleteResponseSize+1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(oversizedBody))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	err := client.CancelEvaluationJob(context.Background(), "job-1", "my-ns", false)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
