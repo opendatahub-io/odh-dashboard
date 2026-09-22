@@ -1,11 +1,31 @@
 // Modules -------------------------------------------------------------------->
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardBody, Icon } from '@patternfly/react-core';
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  CardTitle,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Icon,
+  Timestamp,
+  TimestampTooltipVariant,
+} from '@patternfly/react-core';
 import type { IconComponentProps } from '@patternfly/react-core';
 import { useLinkClickHandler, useLocation } from 'react-router-dom';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import type { Identified, Iconed, ConnectionType, ConnectionTypeGroup } from '~/app/types';
+import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
+import type {
+  Identified,
+  Iconed,
+  ConnectionType,
+  ConnectionTypeGroup,
+  Labelled,
+  Valued,
+} from '~/app/types';
 
 import DataSourceIcon from '@patternfly/react-icons/dist/esm/icons/data-source-icon';
 import LinkIcon from '@patternfly/react-icons/dist/esm/icons/link-icon';
@@ -19,6 +39,14 @@ import RhUiStorageIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-storag
 type KnownConnectionType = Identified<string> &
   Iconed<React.ReactNode> & {
     group: ConnectionTypeGroup;
+  };
+
+type ValueRenderer = (c: ConnectionType) => React.ReactNode;
+
+type RenderedConnectionTypeValue = Identified<string> &
+  Labelled<string> &
+  Valued<ValueRenderer> & {
+    shouldRender?: boolean;
   };
 
 // Globals -------------------------------------------------------------------->
@@ -76,6 +104,62 @@ const KnownConnectionTypes: Record<string, KnownConnectionType> = {
   },
 };
 
+const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> = {
+  category: {
+    id: 'category',
+    label: 'Category',
+    value: () => null,
+    shouldRender: false,
+  },
+  license: {
+    id: 'license',
+    label: 'License',
+    value: () => null,
+    shouldRender: false,
+  },
+  source: {
+    id: 'source',
+    label: 'Source',
+    value: () => null,
+    shouldRender: false,
+  },
+  tags: {
+    id: 'tags',
+    label: 'Tags',
+    value: () => null,
+    shouldRender: false,
+  },
+  provider: {
+    id: 'provider',
+    label: 'Provider',
+    value: (connectionType) => connectionType.resource.provider,
+  },
+  created: {
+    id: 'created',
+    label: 'Created',
+    value: (connectionType) => {
+      const createdAt = new Date(connectionType?.metadata.created_at ?? '');
+      return (
+        <Timestamp date={createdAt} tooltip={{ variant: TimestampTooltipVariant.default }}>
+          {relativeTime(Date.now(), createdAt.getTime())}
+        </Timestamp>
+      );
+    },
+  },
+  last_modified: {
+    id: 'last_modified',
+    label: 'Last modified',
+    value: (connectionType) => {
+      const updatedAt = new Date(connectionType?.metadata.updated_at ?? '');
+      return (
+        <Timestamp date={updatedAt} tooltip={{ variant: TimestampTooltipVariant.default }}>
+          {relativeTime(Date.now(), updatedAt.getTime())}
+        </Timestamp>
+      );
+    },
+  },
+};
+
 // Private -------------------------------------------------------------------->
 
 // Components ----------------------------------------------------------------->
@@ -123,11 +207,28 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({ connectionType 
   );
 };
 
+type ConnectionTypeValuesProps = { connectionType: ConnectionType };
+const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionType }) => (
+  <DescriptionList>
+    {Object.values(renderedConnectionTypeValues)
+      .filter((v) => v.shouldRender !== false)
+      .map((renderedValue) => (
+        <DescriptionListGroup key={renderedValue.id}>
+          <DescriptionListTerm>{renderedValue.label}</DescriptionListTerm>
+          <DescriptionListDescription>
+            {renderedValue.value(connectionType)}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ))}
+  </DescriptionList>
+);
+
 // Public --------------------------------------------------------------------->
 
 export {
   KnownConnectionTypes,
+  ConnectionTypeIcon,
   ConnectionTypeCardIdentifier,
   ConnectionTypeCard,
-  ConnectionTypeIcon,
+  ConnectionTypeValues,
 };
