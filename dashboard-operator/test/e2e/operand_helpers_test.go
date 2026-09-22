@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -86,6 +87,25 @@ func TestHTTPRouteAdmitted(t *testing.T) {
 	require.False(t, httpRouteAdmitted(missing))
 }
 
+func TestHTTPRouteMatchesPathPrefix(t *testing.T) {
+	prefixType := gatewayv1.PathMatchPathPrefix
+	exactType := gatewayv1.PathMatchExact
+	catalogValue := "/catalog/"
+	catalogPath := gatewayv1.HTTPPathMatch{
+		Type:  &prefixType,
+		Value: &catalogValue,
+	}
+	route := &gatewayv1.HTTPRoute{Spec: gatewayv1.HTTPRouteSpec{Rules: []gatewayv1.HTTPRouteRule{{
+		Matches: []gatewayv1.HTTPRouteMatch{{Path: &catalogPath}},
+	}}}}
+
+	require.True(t, httpRouteMatchesPathPrefix(route, "/catalog/"))
+	require.False(t, httpRouteMatchesPathPrefix(route, "/other/"))
+
+	route.Spec.Rules[0].Matches[0].Path.Type = &exactType
+	require.False(t, httpRouteMatchesPathPrefix(route, "/catalog/"))
+}
+
 func TestPDBSelectsDeployment(t *testing.T) {
 	deployment := &appsv1.Deployment{Spec: appsv1.DeploymentSpec{Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"deployment": "odh-dashboard"}}}}}
 	pdb := &policyv1.PodDisruptionBudget{Spec: policyv1.PodDisruptionBudgetSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"deployment": "odh-dashboard"}}}}
@@ -166,6 +186,43 @@ func TestRouteResponseHealthy(t *testing.T) {
 	}
 	for _, statusCode := range []int{0, 201, 404, 499, 503} {
 		require.False(t, routeResponseHealthy(statusCode), "status %d", statusCode)
+	}
+}
+
+func TestValidateModuleAPIResponse(t *testing.T) {
+	tests := []struct {
+		name        string
+		statusCode  int
+		contentType string
+		body        string
+		wantErr     bool
+	}{
+		{name: "JSON success", statusCode: http.StatusOK, contentType: "application/json; charset=utf-8", body: `{"items":[]}`},
+		{name: "vendor JSON success", statusCode: http.StatusOK, contentType: "application/problem+json", body: `{"detail":"ok"}`},
+		{name: "Model Catalog unauthorized response", statusCode: http.StatusUnauthorized, contentType: "application/json", body: `{"code":"unauthorized","message":"permission denied"}`},
+		{name: "plain-text unauthorized response", statusCode: http.StatusUnauthorized, contentType: "text/plain", body: "Unauthorized", wantErr: true},
+		{name: "malformed unauthorized response", statusCode: http.StatusUnauthorized, contentType: "application/json", body: `{`, wantErr: true},
+		{name: "incomplete unauthorized response", statusCode: http.StatusUnauthorized, contentType: "application/json", body: `{"code":"unauthorized"}`, wantErr: true},
+		{name: "forbidden API response", statusCode: http.StatusForbidden, body: "Forbidden", wantErr: true},
+		{name: "Dashboard SPA collision", statusCode: http.StatusOK, contentType: "text/html; charset=utf-8", body: "<!DOCTYPE html><html></html>", wantErr: true},
+		{name: "HTML body without content type", statusCode: http.StatusForbidden, body: "\ufeff  <HTML><body>Forbidden</body></HTML>", wantErr: true},
+		{name: "invalid JSON", statusCode: http.StatusOK, contentType: "application/json", body: "not JSON", wantErr: true},
+		{name: "non-JSON success", statusCode: http.StatusOK, contentType: "text/plain", body: "ok", wantErr: true},
+		{name: "redirect", statusCode: http.StatusFound, contentType: "text/html", wantErr: true},
+		{name: "not found", statusCode: http.StatusNotFound, contentType: "application/json", body: `{}`, wantErr: true},
+		{name: "server error", statusCode: http.StatusInternalServerError, contentType: "application/json", body: `{}`, wantErr: true},
+		{name: "malformed content type", statusCode: http.StatusOK, contentType: "application/json; charset", body: `{}`, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateModuleAPIResponse(tt.statusCode, tt.contentType, []byte(tt.body))
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
 	}
 }
 

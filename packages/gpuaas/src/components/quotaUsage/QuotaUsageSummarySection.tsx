@@ -10,6 +10,7 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import QuotaUsageAccordionSection from './QuotaUsageAccordionSection';
 import QuotaUsageMeter from './QuotaUsageMeter';
 import { QUOTA_USAGE_BORROWING, QUOTA_USAGE_SUMMARY } from '../../const';
@@ -25,6 +26,7 @@ import {
 import { ModelGpuCount } from '../../utils/hardwareModels';
 import { formatBorrowingSinceDate } from '../../utils/borrowingLending';
 import { summarizeQuotaUsageWorkloads } from '../../utils/quotaUsageAggregation';
+import { GPUAAS_EVENTS } from '../../tracking/gpuaasTrackingConstants';
 
 type QuotaUsageSummarySectionProps = {
   summary: QuotaUsageSummary;
@@ -127,7 +129,16 @@ const BorrowingInfo: React.FC<{
 
   return (
     <Popover bodyContent={popoverBody}>
-      <Button variant="link" isInline data-testid="quota-usage-borrowing-link">
+      <Button
+        variant="link"
+        isInline
+        data-testid="quota-usage-borrowing-link"
+        onClick={() => {
+          fireMiscTrackingEvent(GPUAAS_EVENTS.BORROWING_POPOVER_LINK_SELECTED, {
+            gpusBorrowing: borrowedCount,
+          });
+        }}
+      >
         {QUOTA_USAGE_BORROWING.label(borrowedCount, cohortName)}
       </Button>
     </Popover>
@@ -273,6 +284,7 @@ const QuotaUsageSummarySection: React.FC<QuotaUsageSummarySectionProps> = ({
       isSummary
       id="quota-usage-summary"
       isExpanded={isExpanded}
+      nodeType={selectionType ?? QUOTA_NODE_TYPE.clusterQueue}
       onToggle={() => setIsExpanded((expanded) => !expanded)}
       data-testid="quota-usage-summary-section"
       title={QUOTA_USAGE_SUMMARY.title}

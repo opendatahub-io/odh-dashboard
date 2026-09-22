@@ -12,20 +12,25 @@ delete that singleton resource.
 ## Prerequisites
 
 - A cluster with dashboard-operator and the Dashboard CRD installed.
+- For platform-contract conformance, the dashboard-operator validating webhook
+  must be enabled with valid TLS, a populated CA bundle, and ready Service
+  endpoints.
 - The platform controller that normally creates `default-dashboard` scaled down
   for lifecycle scenarios, so it cannot recreate the singleton during cleanup.
 - No existing `default-dashboard` for the lifecycle scenario. The create helper
   refuses to adopt or modify an existing singleton.
 - A dedicated, existing applications namespace configured on the
   dashboard-operator for namespaced operand resources.
-- A kubeconfig stored in one file.
+- A kubeconfig stored in one file with a bearer token accepted by the Gateway.
 - A configured Gateway whose externally reachable hostname is known.
+- An admitted `model-catalog` HTTPRoute in the applications namespace, backed
+  by an enabled Model Catalog operand, for gateway sub-path conformance checks.
 - RBAC to get the test Namespace and Dashboard CRD; get, create, patch, and
   delete Dashboards; list, get, patch, and delete Deployments and Pods; get and
   list Services, PodDisruptionBudgets, HTTPRoutes, and Endpoints; get
   ServiceAccounts and NetworkPolicies; create, get, and delete ConfigMaps; get
-  the `openshift-service-ca.crt` ConfigMap; and create the `pods/portforward`
-  subresource in the test namespace.
+  the `openshift-service-ca.crt` ConfigMap; create the `pods/portforward`
+  subresource in the test namespace; and list ValidatingWebhookConfigurations.
 
 Set the required environment variables:
 
@@ -53,6 +58,13 @@ Dashboard CRD, and its served API version. It then creates one E2E-owned
 apply its resources, and shares that fixture across the package. After the test
 run, it deletes only that exact UID and reports cleanup failures. The framework
 verifies the CRD but never installs it.
+
+The contract scenario additionally requires `status.releases` to report
+semantic versions for both `dashboard` and `platform`. Build the operator image
+with a semantic `OPERATOR_VERSION` (the development default may be `unknown` or
+a Git SHA), and configure the operator's `odh-dashboard-config` ConfigMap with
+a semantic `platformVersion`. The test treats a missing webhook or version as a
+failed deployment contract; it does not skip those assertions.
 
 ## Run Locally
 
@@ -82,6 +94,12 @@ sidecar-to-standalone cases are therefore represented by standalone resource,
 legacy-sidecar cleanup, federation, and idempotency coverage. Restoring literal
 mode-switch coverage requires a historical release test and is not claimed by
 this suite.
+
+Run only the platform-contract conformance scenario with:
+
+```bash
+make test-e2e E2E_TEST_ARGS='-run ^TestE2E_PlatformContractConformance$'
+```
 
 The equivalent direct command is:
 
@@ -141,6 +159,9 @@ avoid relying on execution order.
 The package validates that all owned operand Deployments become available, all
 owned Services publish ready endpoints, the Dashboard HTTPRoute is admitted and
 externally reachable, each standalone BFF returns HTTP 200 from `/healthcheck`,
+the `/catalog/` sibling HTTPRoute wins over the Dashboard catch-all and returns
+a successful Model Catalog JSON response or a validated Model Catalog JSON
+`401` response rather than Dashboard SPA HTML, redirects, or unrelated statuses,
 and the core PodDisruptionBudget selects ready Dashboard pods.
 
 The BFF checks use the HTTPS Service ports declared by the current module

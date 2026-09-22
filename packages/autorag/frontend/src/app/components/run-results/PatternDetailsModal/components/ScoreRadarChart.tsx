@@ -12,6 +12,7 @@ import type { AutoRAGEvaluationMetricResult, MetricReference } from '~/app/types
 import { getCSSVar } from '~/app/utilities/utils';
 import { metricLabel } from '~/app/utilities/metricUtils';
 import { formatRadarLabel, metricValues } from './radarChartUtils';
+import { getRadarChartTheme } from './radarChartTheme';
 
 let echartsRegistered = false;
 
@@ -28,7 +29,9 @@ const ScoreRadarChart: React.FC<ScoreRadarChartProps> = ({ metrics, allMetricNam
 
   const labelColor = getCSSVar('--pf-t--global--text--color--regular', '#151515');
   const splitLineColor = getCSSVar('--pf-t--global--border--color--default', '#d2d2d2');
-  const seriesColor = chartColorBlue300.var;
+  const seriesColor = getCSSVar(chartColorBlue300.name, chartColorBlue300.value);
+  const areaColor = getCSSVar(chartColorBlue100.name, chartColorBlue100.value);
+  const theme = React.useMemo(() => getRadarChartTheme(), []);
 
   const option = React.useMemo(
     () => ({
@@ -55,7 +58,7 @@ const ScoreRadarChart: React.FC<ScoreRadarChartProps> = ({ metrics, allMetricNam
           ],
           lineStyle: { color: seriesColor },
           itemStyle: { color: seriesColor },
-          areaStyle: { color: chartColorBlue100.var, opacity: 0.3 },
+          areaStyle: { color: areaColor, opacity: 0.3 },
           symbol: 'circle',
           symbolSize: 6,
         },
@@ -65,12 +68,12 @@ const ScoreRadarChart: React.FC<ScoreRadarChartProps> = ({ metrics, allMetricNam
         appendToBody: true,
       },
     }),
-    [metrics, allMetricNames, labelColor, splitLineColor, seriesColor],
+    [metrics, allMetricNames, labelColor, splitLineColor, seriesColor, areaColor],
   );
 
   return (
     <Charts
-      themeColor="blue"
+      theme={theme}
       nodeSelector="html"
       height={280}
       width={420}
