@@ -26,7 +26,12 @@ import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
 import type { CreatePolicyRequest, UpdatePolicyRequest } from '~/app/types/auth-policies';
-import { MaaSAuthPolicy, MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
+import {
+  MaaSAuthPolicy,
+  MaaSModelRefSummary,
+  MaaSSubscription,
+  SYSTEM_AUTHENTICATED_GROUP,
+} from '~/app/types/subscriptions';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import {
@@ -244,6 +249,16 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups or type to add a new group"
           />
+          {selectedGroupNames.includes(SYSTEM_AUTHENTICATED_GROUP) && (
+            <FormHelperText data-testid="system-authenticated-warning">
+              <HelperText>
+                <HelperTextItem variant="warning">
+                  Are you sure you want to use the <code>{SYSTEM_AUTHENTICATED_GROUP}</code> group?
+                  This will provide access for all authenticated users.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
           {groupsValidationError && (
             <FormHelperText>
               <HelperText>
