@@ -134,7 +134,14 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
   it(
     'Send a message with an attached image to test vision model inference',
     {
-      tags: ['@GenAI', '@Playground', '@Multimodal', '@Inference', '@VisionModel'],
+      tags: [
+        '@GenAI',
+        '@Playground',
+        '@Multimodal',
+        '@Inference',
+        '@VisionModel',
+        '@FeatureFlagged',
+      ],
     },
     () => {
       cy.step('Navigate to Gen AI playground');
