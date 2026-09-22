@@ -1,29 +1,26 @@
-import { HF_TOKEN_ENV_NAME } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
+import {
+  HF_TOKEN_ENV_NAME,
+  HF_TOKEN_SECRET_ANNOTATION,
+} from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import { mockLLMInferenceServiceK8sResource } from '../__mocks__/mockLLMInferenceServiceK8sResource';
-import { applyHfTokenEnvVar, extractHuggingFaceApiKeyFromEnv } from '../hfTokenSecret';
+import { applyHfTokenServiceAccount, extractHuggingFaceApiKey } from '../hfTokenSecret';
 
 describe('llmd hfTokenSecret', () => {
-  it('should apply HF_TOKEN secretKeyRef on the main container env', () => {
+  it('should apply template.serviceAccountName and secret annotation', () => {
     const deployment = mockLLMInferenceServiceK8sResource({});
 
-    const result = applyHfTokenEnvVar(deployment, 'hf-secret');
+    const result = applyHfTokenServiceAccount(deployment, 'hf-secret', 'test-model-hf-sa');
 
-    expect(result.spec.template?.containers?.[0]?.env).toEqual(
-      expect.arrayContaining([
-        {
-          name: HF_TOKEN_ENV_NAME,
-          valueFrom: {
-            secretKeyRef: {
-              name: 'hf-secret',
-              key: HF_TOKEN_ENV_NAME,
-            },
-          },
-        },
-      ]),
-    );
+    expect(result.spec.template?.serviceAccountName).toBe('test-model-hf-sa');
+    expect(result.metadata.annotations?.[HF_TOKEN_SECRET_ANNOTATION]).toBe('hf-secret');
+    expect(
+      result.spec.template?.containers
+        ?.find((container) => container.name === 'main')
+        ?.env?.find((env) => env.name === HF_TOKEN_ENV_NAME),
+    ).toBeUndefined();
   });
 
-  it('should replace an existing HF_TOKEN env var', () => {
+  it('should strip a legacy HF_TOKEN env var when applying the ServiceAccount', () => {
     const deployment = mockLLMInferenceServiceK8sResource({});
     deployment.spec.template = {
       containers: [
@@ -39,23 +36,35 @@ describe('llmd hfTokenSecret', () => {
                 },
               },
             },
+            { name: 'OTHER', value: 'value' },
           ],
         },
       ],
     };
 
-    const result = applyHfTokenEnvVar(deployment, 'new-secret');
-    const hfEnv = result.spec.template?.containers?.[0]?.env?.find(
-      (envVar) => envVar.name === HF_TOKEN_ENV_NAME,
-    );
+    const result = applyHfTokenServiceAccount(deployment, 'new-secret', 'test-model-hf-sa');
+    const mainEnv = result.spec.template?.containers?.find(
+      (container) => container.name === 'main',
+    )?.env;
 
-    expect(hfEnv?.valueFrom?.secretKeyRef).toEqual({
-      name: 'new-secret',
-      key: HF_TOKEN_ENV_NAME,
+    expect(result.spec.template?.serviceAccountName).toBe('test-model-hf-sa');
+    expect(mainEnv).toEqual([{ name: 'OTHER', value: 'value' }]);
+  });
+
+  it('should extract configured HF token from the secret annotation', () => {
+    const deployment = mockLLMInferenceServiceK8sResource({});
+    deployment.metadata.annotations = {
+      ...deployment.metadata.annotations,
+      [HF_TOKEN_SECRET_ANNOTATION]: 'hf-secret',
+    };
+
+    expect(extractHuggingFaceApiKey(deployment)).toEqual({
+      token: '',
+      configuredSecretName: 'hf-secret',
     });
   });
 
-  it('should extract configured HF token secret name from main container env', () => {
+  it('should fall back to legacy env extract when annotation is missing', () => {
     const deployment = mockLLMInferenceServiceK8sResource({});
     deployment.spec.template = {
       containers: [
@@ -76,33 +85,9 @@ describe('llmd hfTokenSecret', () => {
       ],
     };
 
-    expect(extractHuggingFaceApiKeyFromEnv(deployment)).toEqual({
+    expect(extractHuggingFaceApiKey(deployment)).toEqual({
       token: '',
       configuredSecretName: 'hf-secret',
     });
-  });
-
-  it('should ignore HF_TOKEN env vars with mismatched secretKeyRef key', () => {
-    const deployment = mockLLMInferenceServiceK8sResource({});
-    deployment.spec.template = {
-      containers: [
-        {
-          name: 'main',
-          env: [
-            {
-              name: HF_TOKEN_ENV_NAME,
-              valueFrom: {
-                secretKeyRef: {
-                  name: 'hf-secret',
-                  key: 'token',
-                },
-              },
-            },
-          ],
-        },
-      ],
-    };
-
-    expect(extractHuggingFaceApiKeyFromEnv(deployment)).toBeNull();
   });
 });

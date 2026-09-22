@@ -4,6 +4,9 @@ export const HF_TOKEN_ENV_NAME = 'HF_TOKEN';
 
 export const HF_TOKEN_DASHBOARD_LABEL = 'opendatahub.io/dashboard';
 
+/** Tracks the HF token Secret name on the deployment for edit / rotate flows. */
+export const HF_TOKEN_SECRET_ANNOTATION = 'opendatahub.io/hf-token-secret';
+
 export type HfTokenEnvVar = {
   name: string;
   valueFrom?: {
@@ -27,3 +30,6 @@ export const getConfiguredHfTokenSecretName = (envVars?: HfTokenEnvVar[]): strin
 
   return hfEnv?.valueFrom?.secretKeyRef?.name;
 };
+
+export const getHfTokenServiceAccountName = (deploymentK8sName: string): string =>
+  `${deploymentK8sName}-hf-sa`;
