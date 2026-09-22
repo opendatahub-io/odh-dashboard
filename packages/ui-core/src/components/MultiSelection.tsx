@@ -344,7 +344,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       setActiveAndFocusedItem(indexToFocus);
     }
   };
-
+  
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const focusedItem = focusedItemIndex !== null ? visibleOptions[focusedItemIndex] : null;
     switch (event.key) {
@@ -364,9 +364,22 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         }
         break;
       }
-      case 'Tab':
+      case 'Tab': {
+        if (!isOpen) {
+          break;
+        }
+        // Prefer the focused option; if none (e.g. after typing), create the new value on Tab.
+        const itemToSelect =
+          focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled
+            ? focusedItem
+            : (createOption ?? null);
+        if (itemToSelect) {
+          // Do not refocus so default Tab can move to the next field.
+          onSelect(itemToSelect, false);
+        }
         closeMenu();
         break;
+      }
       case 'Escape':
         if (isOpen) {
           event.preventDefault();
@@ -417,7 +430,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     );
   };
 
-  const onSelect = (menuItem?: SelectionOptions) => {
+  const onSelect = (menuItem?: SelectionOptions, refocusInput = true) => {
     if (menuItem?.isAriaDisabled || menuItem?.isDisabled) {
       return;
     }
@@ -434,7 +447,9 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       setInputValue('');
       resetActiveAndFocusedItem();
     }
-    textInputRef.current?.focus();
+    if (refocusInput) {
+      textInputRef.current?.focus();
+    }
   };
 
   const showSelectionError = selectionRequired && !hasSelections;

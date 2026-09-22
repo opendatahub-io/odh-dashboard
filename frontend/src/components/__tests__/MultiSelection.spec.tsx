@@ -570,4 +570,31 @@ describe('MultiSelection', () => {
       ]),
     );
   });
+
+  it('should add a creatable option when Tab is pressed after typing a new value', async () => {
+    const setValue = jest.fn();
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Groups"
+        value={defaultOptions}
+        setValue={setValue}
+        isCreatable
+        createOptionMessage={(value) => `Add group "${value}"`}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Groups' });
+
+    await act(async () => {
+      fireEvent.change(combobox, { target: { value: 'tab-group' } });
+      fireEvent.keyDown(combobox, { key: 'Tab' });
+    });
+
+    expect(setValue).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'tab-group', name: 'tab-group', selected: true }),
+      ]),
+    );
+  });
 });
