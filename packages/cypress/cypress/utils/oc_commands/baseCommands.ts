@@ -194,8 +194,6 @@ export const patchOpenShiftResource = (
   });
 };
 
-type PodReference = { namespace: string; name: string };
-
 /**
  * Wait for a specific pod to become ready across all namespaces.
  *
@@ -209,35 +207,18 @@ export const waitForPodReady = (
   timeout = '10s',
   namespace?: string,
   waitTimeBeforeParsing = 10000,
-): Cypress.Chainable<PodReference[]> => {
+): Cypress.Chainable<CommandLineResult> => {
   const namespaceFlag = namespace ? `-n ${namespace}` : '-A';
 
   const findPodsCommand = `oc get pods ${namespaceFlag} -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name" --no-headers | grep ${podNameContains}`;
   cy.log(`Finding pods with command: ${findPodsCommand}`);
 
-  const timeoutMatch = timeout.match(/^(\d+)(ms|s|m|h)$/);
-  if (!timeoutMatch) {
-    throw new Error(`Invalid timeout "${timeout}". Expected a number followed by ms, s, m, or h`);
-  }
-  if (!Number.isFinite(waitTimeBeforeParsing) || waitTimeBeforeParsing <= 0) {
-    throw new Error('waitTimeBeforeParsing must be a positive number');
-  }
-  const [, timeoutValue, timeoutUnit] = timeoutMatch;
-  const parsedTimeoutValue = Number(timeoutValue);
-  if (!Number.isFinite(parsedTimeoutValue)) {
-    throw new Error(`Invalid timeout "${timeout}". The numeric value must be finite`);
-  }
+  const [, timeoutValue, timeoutUnit] = timeout.match(/^(\d+)(ms|s|m|h)$/) ?? [];
   const timeoutMs =
-    parsedTimeoutValue *
+    Number(timeoutValue) *
     ({ ms: 1, s: 1000, m: 60000, h: 3600000 } as Record<string, number>)[timeoutUnit];
-  if (!Number.isFinite(timeoutMs)) {
-    throw new Error(`Invalid timeout "${timeout}". The calculated milliseconds must be finite`);
-  }
   const pollIntervalMs = Math.min(waitTimeBeforeParsing, 2000);
   const maxAttempts = Math.max(1, Math.floor(timeoutMs / pollIntervalMs) + 1);
-  if (!Number.isSafeInteger(maxAttempts)) {
-    throw new Error(`Invalid timeout "${timeout}". The calculated polling attempts are too large`);
-  }
 
   return pollUntilSuccess(findPodsCommand, `pod matching ${podNameContains}`, {
     maxAttempts,
@@ -258,7 +239,7 @@ export const waitForPodReady = (
         cy.log(`Error parsing line: "${line}"`);
         return null;
       })
-      .filter((pod): pod is PodReference => pod !== null);
+      .filter((pod): pod is { namespace: string; name: string } => pod !== null);
 
     cy.log(`Found ${pods.length} matching pods`);
 
@@ -266,14 +247,17 @@ export const waitForPodReady = (
       throw new Error(`No pods matching ${podNameContains} found`);
     }
 
-    return cy.wrap(pods).each((pod: PodReference) => {
-      const { namespace: podNamespace, name: podName } = pod;
+    return cy.wrap(pods).each((pod) => {
+      const { namespace: podNamespace, name: podName } = pod as unknown as {
+        namespace: string;
+        name: string;
+      };
 
       const waitForPodCommand = `oc wait --for=condition=Ready pod/${podName} -n ${podNamespace} --timeout=${timeout}`;
       cy.log(`Executing command to wait for pod readiness: ${waitForPodCommand}`);
 
       return cy.exec(waitForPodCommand, { timeout: 300000 });
-    }) as Cypress.Chainable<PodReference[]>;
+    }) as unknown as Cypress.Chainable<CommandLineResult>;
   });
 };
 
