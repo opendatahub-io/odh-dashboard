@@ -18,8 +18,10 @@ delete that singleton resource.
   refuses to adopt or modify an existing singleton.
 - A dedicated, existing applications namespace configured on the
   dashboard-operator for namespaced operand resources.
-- A kubeconfig stored in one file.
+- A kubeconfig stored in one file with a bearer token accepted by the Gateway.
 - A configured Gateway whose externally reachable hostname is known.
+- An admitted `model-catalog` HTTPRoute in the applications namespace, backed
+  by an enabled Model Catalog operand, for gateway sub-path conformance checks.
 - RBAC to get the test Namespace and Dashboard CRD; get, create, patch, and
   delete Dashboards; list, get, patch, and delete Deployments and Pods; get and
   list Services, PodDisruptionBudgets, HTTPRoutes, and Endpoints; get
@@ -141,6 +143,9 @@ avoid relying on execution order.
 The package validates that all owned operand Deployments become available, all
 owned Services publish ready endpoints, the Dashboard HTTPRoute is admitted and
 externally reachable, each standalone BFF returns HTTP 200 from `/healthcheck`,
+the `/catalog/` sibling HTTPRoute wins over the Dashboard catch-all and returns
+a successful Model Catalog JSON response or a validated Model Catalog JSON
+`401` response rather than Dashboard SPA HTML, redirects, or unrelated statuses,
 and the core PodDisruptionBudget selects ready Dashboard pods.
 
 The BFF checks use the HTTPS Service ports declared by the current module
