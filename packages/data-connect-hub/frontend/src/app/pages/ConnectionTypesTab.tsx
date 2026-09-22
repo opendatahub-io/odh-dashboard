@@ -94,7 +94,6 @@ const connectionGroups: Record<ConnectionTypeGroup, ConnectionGroup> = {
 
 const localFeatureFlags = {
   showOnlyInstalled: false,
-  connectionGroups: true,
   filters: false,
 };
 
@@ -138,6 +137,19 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
 
   // Helpers ------------------------------------------------------------------>
 
+  const isEmpty = connectionTypes.length === 0;
+
+  const shouldShowConnectionType = React.useCallback(
+    (connectionType: ConnectionType) => {
+      if (typeof searchTerm === 'string' && searchTerm.length) {
+        const renderedConnectionTypeValues = `${connectionType.resource.name} ${connectionType.resource.description}`;
+        return renderedConnectionTypeValues.includes(searchTerm);
+      }
+      return true;
+    },
+    [searchTerm],
+  );
+
   const connectionTypesByGroup = React.useMemo<
     Record<ConnectionTypeGroup, ConnectionType[]>
   >(() => {
@@ -157,15 +169,25 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
     return groupedConnectionTypes;
   }, [connectionTypes]);
 
-  const isEmpty = connectionTypes.length === 0;
+  const connectionTypesByGroupToRender = React.useMemo<
+    Record<ConnectionTypeGroup, ConnectionType[]>
+  >(() => {
+    const filteredConnectionTypes: Record<ConnectionTypeGroup, ConnectionType[]> = {
+      all: [],
+      red_hat: [],
+      partner: [],
+      other: [],
+    };
+    Object.values(connectionGroups).forEach(({ id: connectionTypeGroup }) => {
+      filteredConnectionTypes[connectionTypeGroup] =
+        connectionTypesByGroup[connectionTypeGroup].filter(shouldShowConnectionType);
+    });
+    return filteredConnectionTypes;
+  }, [connectionTypesByGroup, shouldShowConnectionType]);
 
-  const shouldShowConnectionType = (connectionType: ConnectionType) => {
-    if (typeof searchTerm === 'string' && searchTerm.length) {
-      const renderedConnectionTypeValues = `${connectionType.resource.name} ${connectionType.resource.description}`;
-      return renderedConnectionTypeValues.includes(searchTerm);
-    }
-    return true;
-  };
+  const shouldRenderEmptySearchState = Object.values(connectionTypesByGroupToRender).every(
+    (renderedConnectionTypes) => renderedConnectionTypes.length === 0,
+  );
 
   // Rendering ---------------------------------------------------------------->
 
@@ -178,6 +200,16 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
       <EmptyStateBody>
         Browse available data connection types and use them to create new data connections
       </EmptyStateBody>
+    </EmptyState>
+  );
+
+  const emptySearchState = (
+    <EmptyState
+      headingLevel="h3"
+      icon={() => <img src={emptyStateImage} alt="" width={108} height={108} />}
+      titleText="No matching data connection types"
+    >
+      <EmptyStateBody>No data connection types match your search or filter</EmptyStateBody>
     </EmptyState>
   );
 
@@ -245,54 +277,31 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
           />
         )}
       </StackItem>
-      {localFeatureFlags.connectionGroups && (
-        <StackItem className="pf-v6-u-mb-md">
-          <ToggleGroup aria-label="Connection groups">
-            {Object.values(defaults.toolbar.groups)
-              .filter((group) => connectionTypesByGroup[group.id].length)
-              .map((group) => (
-                <ToggleGroupItem
-                  key={`ConnectionTypesTab-toolbar-group-item--${group.id}`}
-                  buttonId={`ConnectionTypesTab-toolbar-group-item--${group.id}`}
-                  text={group.label}
-                  isSelected={selectedConnectionGroup === group.id}
-                  onChange={(event, isSelected: boolean) => {
-                    if (!isSelected) {
-                      setSelectedConnectionGroup(defaults.toolbar.groups.all.id);
-                    } else {
-                      setSelectedConnectionGroup(group.id);
-                    }
-                  }}
-                />
-              ))}
-          </ToggleGroup>
-        </StackItem>
-      )}
+      <StackItem className="pf-v6-u-mb-md">
+        <ToggleGroup aria-label="Connection groups">
+          {Object.values(defaults.toolbar.groups)
+            .filter((group) => connectionTypesByGroup[group.id].length)
+            .map((group) => (
+              <ToggleGroupItem
+                key={`ConnectionTypesTab-toolbar-group-item--${group.id}`}
+                buttonId={`ConnectionTypesTab-toolbar-group-item--${group.id}`}
+                text={group.label}
+                isSelected={selectedConnectionGroup === group.id}
+                onChange={(event, isSelected: boolean) => {
+                  if (!isSelected) {
+                    setSelectedConnectionGroup(defaults.toolbar.groups.all.id);
+                  } else {
+                    setSelectedConnectionGroup(group.id);
+                  }
+                }}
+              />
+            ))}
+        </ToggleGroup>
+      </StackItem>
     </Stack>
   );
 
-  const connectionTypesCatalog = (
-    <Sidebar hasBorder hasGutter>
-      {localFeatureFlags.filters && sidebarPanel}
-      <SidebarContent>
-        <Stack>
-          {toolbar}
-          <Gallery hasGutter maxWidths={{ default: '350px' }}>
-            {connectionTypes.filter(shouldShowConnectionType).map((connectionType) => (
-              <ConnectionTypeCard
-                key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
-                connectionType={connectionType}
-              />
-            ))}
-          </Gallery>
-        </Stack>
-      </SidebarContent>
-    </Sidebar>
-  );
-
-  // TODO [ Gustavo ] We should make this the only way we render the groups - since we have it now
-  //  + we need to consider search filter and empty state for the group title rendering + search
-  const connectionTypesCatalogWithGroups = (
+  const catalog = (
     <Sidebar hasBorder hasGutter>
       {localFeatureFlags.filters && sidebarPanel}
       <SidebarContent>
@@ -300,8 +309,7 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
           {toolbar}
           {Object.values(defaults.toolbar.groups)
             .filter((group) => group.renderGroupSection !== false)
-            .filter((group) => connectionTypesByGroup[group.id].length)
-            .filter((group) => connectionTypesByGroup[group.id].some(shouldShowConnectionType))
+            .filter((group) => connectionTypesByGroupToRender[group.id].length)
             .filter((group) => {
               if (selectedConnectionGroup !== 'all') {
                 return group.id === selectedConnectionGroup;
@@ -315,14 +323,12 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
                   {group.description}
                 </Content>
                 <Gallery hasGutter maxWidths={{ default: '350px' }} className="pf-v6-u-mb-lg">
-                  {connectionTypesByGroup[group.id]
-                    .filter(shouldShowConnectionType)
-                    .map((connectionType) => (
-                      <ConnectionTypeCard
-                        key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
-                        connectionType={connectionType}
-                      />
-                    ))}
+                  {connectionTypesByGroupToRender[group.id].map((connectionType) => (
+                    <ConnectionTypeCard
+                      key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
+                      connectionType={connectionType}
+                    />
+                  ))}
                 </Gallery>
               </React.Fragment>
             ))}
@@ -338,17 +344,9 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
         available catalogs to easily connect your projects to external storage, databases, and
         services.
       </p>
+      {!isEmpty && typesLoaded && !typesError && catalog}
+      {!isEmpty && searchTerm && shouldRenderEmptySearchState && emptySearchState}
       {isEmpty && emptyState}
-      {!localFeatureFlags.connectionGroups &&
-        !isEmpty &&
-        typesLoaded &&
-        !typesError &&
-        connectionTypesCatalog}
-      {localFeatureFlags.connectionGroups &&
-        !isEmpty &&
-        typesLoaded &&
-        !typesError &&
-        connectionTypesCatalogWithGroups}
     </PageSection>
   );
 };
