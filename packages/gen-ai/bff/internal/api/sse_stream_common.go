@@ -74,7 +74,7 @@ type writer interface {
 
 const maxStreamingDeltaPreviewRunes = 256
 
-func addStreamingDeltaTraceEvent(ctx context.Context, event *StreamingEvent, chunkIndex int) {
+func addStreamingDeltaTraceEvent(ctx context.Context, event *StreamingEvent, chunkIndex int, includePreview bool) {
 	span := trace.SpanFromContext(ctx)
 	if !span.IsRecording() || event == nil {
 		return
@@ -88,14 +88,18 @@ func addStreamingDeltaTraceEvent(ctx context.Context, event *StreamingEvent, chu
 		delta = event.Refusal
 	}
 
-	span.AddEvent(event.Type, trace.WithAttributes(
+	attrs := []attribute.KeyValue{
 		attribute.Int("gen_ai.streaming.chunk.index", chunkIndex),
 		attribute.Int64("gen_ai.streaming.sequence_number", event.SequenceNumber),
 		attribute.String("gen_ai.streaming.item_id", event.ItemID),
 		attribute.Int("gen_ai.streaming.chunk.bytes", len(delta)),
 		attribute.Int("gen_ai.streaming.chunk.characters", utf8.RuneCountInString(delta)),
-		attribute.String("gen_ai.streaming.chunk.preview", truncateRunes(delta, maxStreamingDeltaPreviewRunes)),
-	))
+	}
+	if includePreview {
+		attrs = append(attrs, attribute.String("gen_ai.streaming.chunk.preview", truncateRunes(delta, maxStreamingDeltaPreviewRunes)))
+	}
+
+	span.AddEvent(event.Type, trace.WithAttributes(attrs...))
 }
 
 func truncateRunes(value string, maxRunes int) string {
@@ -214,9 +218,9 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 		isDelta := streamingEvent.Type == "response.output_text.delta" || streamingEvent.Type == "response.reasoning_text.delta"
 		if isDelta {
 			streamingDeltaChunkIndex++
-			addStreamingDeltaTraceEvent(ctx, streamingEvent, streamingDeltaChunkIndex)
 			if cfg.OnDelta != nil {
-				// Async moderation path: buffer and chunk
+				// Async moderation path: buffer and chunk. Do not record preview text
+				// because the delta may still be blocked before it is sent to the client.
 				toSend, shouldContinue, err := cfg.OnDelta(streamingEvent)
 				if err != nil {
 					return err
@@ -224,6 +228,7 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 				if !shouldContinue {
 					return nil
 				}
+				addStreamingDeltaTraceEvent(ctx, streamingEvent, streamingDeltaChunkIndex, false)
 				if toSend != nil {
 					if err := sendEvents(toSend); err != nil {
 						return err
@@ -231,6 +236,7 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 				}
 			} else {
 				// Regular streaming: send immediately
+				addStreamingDeltaTraceEvent(ctx, streamingEvent, streamingDeltaChunkIndex, true)
 				eventData, err := json.Marshal(streamingEvent)
 				if err != nil {
 					logger.Error("Failed to marshal streaming event",
