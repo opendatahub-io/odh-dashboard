@@ -301,6 +301,7 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
           {Object.values(defaults.toolbar.groups)
             .filter((group) => group.renderGroupSection !== false)
             .filter((group) => connectionTypesByGroup[group.id].length)
+            .filter((group) => connectionTypesByGroup[group.id].some(shouldShowConnectionType))
             .filter((group) => {
               if (selectedConnectionGroup !== 'all') {
                 return group.id === selectedConnectionGroup;
