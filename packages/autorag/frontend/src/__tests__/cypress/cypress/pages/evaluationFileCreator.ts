@@ -91,6 +91,21 @@ class FileExplorer {
   }
 }
 
+class AutoragConfigurePage {
+  selectMaaSSecret(secretName: string) {
+    cy.findByTestId('maas-secret-selector').click();
+    cy.findByRole('option', { name: new RegExp(secretName, 'i') }).click();
+  }
+
+  selectStorageSecret(secretName: string) {
+    cy.findByTestId('aws-secret-selector').should('exist').click();
+    cy.findByTestId('aws-secret-selector').find('input').type(secretName);
+    cy.findByRole('option', { name: new RegExp(secretName, 'i') })
+      .should('be.visible')
+      .click();
+  }
+}
+
 class EvaluationFileSelector {
   find() {
     return cy.findByTestId('evaluation-file-selector');
@@ -116,3 +131,4 @@ class EvaluationFileSelector {
 export const evaluationFileCreator = new EvaluationFileCreator();
 export const evaluationFileSelector = new EvaluationFileSelector();
 export const fileExplorer = new FileExplorer();
+export const autoragConfigurePage = new AutoragConfigurePage();
