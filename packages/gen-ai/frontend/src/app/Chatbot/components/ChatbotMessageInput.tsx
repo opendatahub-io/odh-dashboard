@@ -4,6 +4,7 @@ import {
   AlertActionCloseButton,
   DropEvent,
   Flex,
+  Icon,
   Label,
   MenuItem,
   MenuList,
@@ -66,6 +67,8 @@ interface ChatbotMessageInputProps {
   documentAttachments?: DocumentAttachment[];
   onRemoveDocument?: (fileID: string) => void;
   onViewDocument?: (attachment: DocumentAttachment) => void;
+  isDocumentUploading?: boolean;
+  documentUploadCount?: number;
   isDocumentUploadDisabled?: boolean;
   shouldShowPdfTextExtractionNotice?: boolean;
 }
@@ -97,6 +100,8 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   documentAttachments = [],
   onRemoveDocument,
   onViewDocument,
+  isDocumentUploading = false,
+  documentUploadCount = 1,
   isDocumentUploadDisabled = false,
   shouldShowPdfTextExtractionNotice = false,
 }) => {
@@ -424,13 +429,30 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           )}
         </div>
       )}
+      {isDocumentUploading && (
+        <Flex
+          className="gen-ai-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm"
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentCenter' }}
+          gap={{ default: 'gapSm' }}
+          aria-busy
+          data-testid="document-attachment-loading"
+        >
+          <Icon
+            isInProgress
+            size="md"
+            defaultProgressArialabel={`Adding ${documentUploadCount === 1 ? 'document' : 'documents'}`}
+          />
+          <span>Adding {documentUploadCount === 1 ? 'Document' : 'Documents'}…</span>
+        </Flex>
+      )}
       {documentAttachments.length > 0 && (
         <>
           <Flex
             className="gen-ai-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm pf-v6-u-pl-lg"
             flexWrap={{ default: 'wrap' }}
             gap={{ default: 'gapSm' }}
-            aria-busy={isAudioActive}
+            aria-busy={isAudioActive || isDocumentUploading}
           >
             {documentAttachments.map((attachment) => (
               <Label
