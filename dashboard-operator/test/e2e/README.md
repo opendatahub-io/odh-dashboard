@@ -102,14 +102,19 @@ docker run --rm \
   `-push.yaml` build `quay.io/opendatahub/odh-dashboard-operator-e2e` with a
   `pr-<N>` tag on every PR that touches `test/e2e/`, `api/`, or `Dockerfile.e2e`.
   The shiftleft runner picks up that `pr-<N>` test image automatically.
-- **Cluster + test run** — the existing `.tekton/early-gate-ci-build.yaml` and
-  `early-gate-ci-test.yaml` (triggered by the `/early-gate-test` PR comment,
-  gated by the `early-gate` label) hand off to the odh-konflux-central
-  `early-gate-component-pipeline.yaml` / `early-gate-test-pipeline.yaml`, which
-  provision a ROSA HCP cluster via Jenkins and invoke shiftleft. The
-  **component** pipeline (not the operator/OLM pipeline) is correct here because
-  the dashboard-operator ships as a module via the platform operator/DSC rather
-  than as its own OLM bundle.
+- **Cluster + test run** — the existing early-gate PipelineRuns are triggered by
+  two **separate** PR comments, both gated by the `early-gate` label. Run them in
+  order — the build must complete before the test run:
+    1. `/early-gate` (or `/early-gate-build`) triggers
+       `.tekton/early-gate-ci-build.yaml`, which hands off to the
+       odh-konflux-central `early-gate-component-pipeline.yaml`.
+    2. `/early-gate-test` triggers `.tekton/early-gate-ci-test.yaml`, which hands
+       off to the odh-konflux-central `early-gate-test-pipeline.yaml`.
+
+  Together these provision a ROSA HCP cluster via Jenkins and invoke shiftleft.
+  The **component** pipeline (not the operator/OLM pipeline) is correct here
+  because the dashboard-operator ships as a module via the platform operator/DSC
+  rather than as its own OLM bundle.
 
 ### Shiftleft contract (what the runner provides / expects)
 
