@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'packages/data-registry/**'
+      - 'packages/cypress/**'
       - '.github/workflows/data-registry-frontend-tests.yml'
       - '.github/actions/module-caches/**'
       - '!LICENSE*'
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - 'packages/data-registry/**'
+      - 'packages/cypress/**'
       - '.github/workflows/data-registry-frontend-tests.yml'
       - '.github/actions/module-caches/**'
       - '!LICENSE*'
@@ -51,6 +53,38 @@ jobs:
         working-directory: packages/data-registry/frontend
         run: npm install && npx --no-install cypress install
 
+      - name: Lint
+        working-directory: packages/data-registry/frontend
+        run: npm run test:lint
+
+      - name: Type check
+        working-directory: packages/data-registry/frontend
+        run: npm run test:type-check
+
+      - name: Unit tests (Jest)
+        working-directory: packages/data-registry/frontend
+        run: npm run test:unit
+
       - name: Cypress mock tests
         working-directory: packages/data-registry/frontend
         run: npm run test:cypress-ci
+
+      - name: Run clean
+        working-directory: packages/data-registry/frontend
+        run: npm run build:clean
+
+      - name: Run build
+        working-directory: packages/data-registry/frontend
+        run: npm run build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/data-registry/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
