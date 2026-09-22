@@ -7,8 +7,17 @@ import {
   ModalHeader,
   ModalVariant,
 } from '@patternfly/react-core';
-import CreateExternalProviderForm from './CreateExternalProviderForm';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
+import { countNonEmptyConfigPairs } from '~/app/utilities/configPairs';
+import {
+  ExternalProviderAddedProperties,
+  MaaSEvents,
+  convertStringToExternalModelProviderType,
+} from '~/app/types/event-tracking';
 import { useCreateExternalProviderForm } from './useCreateExternalProviderForm';
+import CreateExternalProviderForm from './CreateExternalProviderForm';
 
 type CreateExternalProviderModalProps = {
   namespace: string;
@@ -56,7 +65,18 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
         <Button
           key="cancel"
           variant="link"
-          onClick={() => onClose()}
+          onClick={() => {
+            onClose();
+            fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
+              outcome: TrackingOutcome.cancel,
+              success: false,
+              providerType: convertStringToExternalModelProviderType(form.formData.provider),
+              authMechanism: convertStringToAuthMechanism(form.formData.authMechanism),
+              hasCreatedSecret: form.formData.isNewSecret,
+              hasDescription: form.nameDescData.description.trim() !== '',
+              countOfConfigPairs: countNonEmptyConfigPairs(form.configPairs),
+            } satisfies ExternalProviderAddedProperties);
+          }}
           isDisabled={form.isSubmitting}
           data-testid="create-external-provider-cancel"
         >

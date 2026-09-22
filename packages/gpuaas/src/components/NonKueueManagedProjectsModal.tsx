@@ -20,7 +20,8 @@ import type { SortableData } from '@odh-dashboard/ui-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { getDisplayNameFromK8sResource, type ProjectKind } from '@odh-dashboard/k8s-core';
 import {
-  NON_KUEUE_PROJECTS_MODAL_DESCRIPTION,
+  NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_PREFIX,
+  NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_SUFFIX,
   NON_KUEUE_PROJECTS_MODAL_TITLE,
   NON_KUEUE_PROJECT_STATUS_LABEL,
 } from '../const';
@@ -82,7 +83,12 @@ const NonKueueManagedProjectsModal: React.FC<NonKueueManagedProjectsModalProps> 
       <ModalHeader
         title={NON_KUEUE_PROJECTS_MODAL_TITLE}
         labelId="non-kueue-managed-projects-modal-title"
-        description={NON_KUEUE_PROJECTS_MODAL_DESCRIPTION}
+        description={
+          <>
+            {NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_PREFIX} <strong>Infrastructure</strong>{' '}
+            {NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_SUFFIX}
+          </>
+        }
       />
       <ModalBody>
         {error && (
@@ -123,7 +129,10 @@ const NonKueueManagedProjectsModal: React.FC<NonKueueManagedProjectsModalProps> 
             emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
             onClearFilters={onClearFilters}
             rowRenderer={(project) => (
-              <Tr key={project.metadata.uid ?? project.metadata.name}>
+              <Tr
+                key={project.metadata.uid ?? project.metadata.name}
+                data-testid={`non-kueue-managed-projects-row-${project.metadata.name}`}
+              >
                 <Td dataLabel="Name">{getDisplayNameFromK8sResource(project)}</Td>
                 <Td dataLabel="Status">
                   <Label color="grey">{NON_KUEUE_PROJECT_STATUS_LABEL}</Label>

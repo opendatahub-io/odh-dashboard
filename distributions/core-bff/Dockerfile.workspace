@@ -17,6 +17,9 @@ FROM ${NODE_BASE_IMAGE} AS ui-builder
 
 ARG UI_SOURCE_CODE
 ARG MODULE_NAME
+# core-bff is a HOST distribution: both its own frontend and the bundled MaaS Consumer Portal
+# are standalone/host builds that must emit an index.html (see the assertion in the final stage).
+# Do NOT default to federated here — each workspace's own .env drives DEPLOYMENT_MODE=standalone.
 ARG DEPLOYMENT_MODE
 ARG PLATFORM_MODE
 

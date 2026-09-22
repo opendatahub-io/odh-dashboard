@@ -9,10 +9,8 @@ import {
 import { recordToConfigPairs } from './providerReferenceUtils';
 
 const PROVIDER_REFERENCE_PATH_PATTERN = /^\/.*/;
-
 /** Resolved automatically from Target model ID; not required in provider/model config. */
 const PROVIDER_REFERENCE_PATH_MODEL_PLACEHOLDER = 'model';
-
 const PATH_PLACEHOLDER_PATTERN = /\{([^{}]+)\}/g;
 
 export type ProviderReferenceHelperVariant = 'add' | 'edit';
@@ -21,6 +19,14 @@ export type ProviderReferenceFormData = {
   apiFormat: ProviderReferenceApiFormat;
   path: string;
   targetModel: string;
+  weight: number;
+  configPairs: ConfigPair[];
+};
+
+export type InitialProviderReferenceFormData = {
+  apiFormat: ProviderReferenceApiFormat | undefined;
+  path: string | undefined;
+  targetModel: string | undefined;
   weight: number;
   configPairs: ConfigPair[];
 };
@@ -143,17 +149,13 @@ export const validateProviderRefPathPlaceholders = (
     recordToConfigPairs(modelConfig),
   );
 
-/** True when a required field is empty — used to disable Add/Save. */
-export const isProviderReferenceFormIncomplete = (form: ProviderReferenceFormData): boolean =>
-  !form.targetModel.trim() || !form.path.trim();
-
 export const getProviderReferenceFieldErrors = (
-  form: ProviderReferenceFormData,
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
   context?: ProviderReferenceValidationContext,
 ): ProviderReferenceFieldErrors => {
   const errors: ProviderReferenceFieldErrors = {};
 
-  const trimmedTargetModel = form.targetModel.trim();
+  const trimmedTargetModel = form.targetModel?.trim();
   if (!trimmedTargetModel) {
     errors.targetModel = 'Target model ID is required';
   } else {
@@ -166,12 +168,12 @@ export const getProviderReferenceFieldErrors = (
     }
   }
 
-  const pathError = validateProviderReferencePath(form.path);
+  const pathError = validateProviderReferencePath(form.path ?? '');
   if (pathError) {
     errors.path = pathError;
   } else {
     const placeholderError = validateProviderReferencePathPlaceholders(
-      form.path,
+      form.path ?? '',
       context?.inheritedConfig,
       form.configPairs,
     );
@@ -183,26 +185,29 @@ export const getProviderReferenceFieldErrors = (
   return errors;
 };
 
+export const isProviderReferenceFormIncomplete = (
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
+  context?: ProviderReferenceValidationContext,
+): boolean =>
+  !form.apiFormat || Object.keys(getProviderReferenceFieldErrors(form, context)).length > 0;
+
+/** Field errors for display — after blur, or immediately when the field has a value. */
 export const getVisibleProviderReferenceFieldErrors = (
+  form: ProviderReferenceFormData | InitialProviderReferenceFormData,
   errors: ProviderReferenceFieldErrors,
   touched: ProviderReferenceFieldTouched,
 ): ProviderReferenceFieldErrors => {
   const visible: ProviderReferenceFieldErrors = {};
 
-  if (touched.targetModel && errors.targetModel) {
+  if (errors.targetModel && (touched.targetModel || form.targetModel?.trim())) {
     visible.targetModel = errors.targetModel;
   }
-  if (touched.path && errors.path) {
+  if (errors.path && (touched.path || form.path?.trim())) {
     visible.path = errors.path;
   }
 
   return visible;
 };
-
-export const hasProviderReferenceFieldErrors = (
-  form: ProviderReferenceFormData,
-  context?: ProviderReferenceValidationContext,
-): boolean => Object.keys(getProviderReferenceFieldErrors(form, context)).length > 0;
 
 export const validateProviderReferenceForm = (
   form: ProviderReferenceFormData,
@@ -210,12 +215,6 @@ export const validateProviderReferenceForm = (
 ): string | undefined => {
   if (!form.apiFormat.trim()) {
     return 'API format is required';
-  }
-  if (isProviderReferenceFormIncomplete(form)) {
-    if (!form.targetModel.trim()) {
-      return 'Target model ID is required';
-    }
-    return 'Path is required';
   }
   const fieldErrors = getProviderReferenceFieldErrors(form, context);
   if (fieldErrors.targetModel) {

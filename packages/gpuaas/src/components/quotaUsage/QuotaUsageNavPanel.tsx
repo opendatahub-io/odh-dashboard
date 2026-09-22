@@ -8,9 +8,15 @@ import {
   ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import QuotaUsageTreeView from './QuotaUsageTreeView';
 import './QuotaUsageNavPanel.scss';
+import { QUOTA_USAGE_SEARCH_TELEMETRY_DEBOUNCE } from '../../const';
 import { QuotaSelection, QuotaTreeNode } from '../../types';
+import {
+  GPUAAS_EVENTS,
+  QUOTA_USAGE_INTERACTION_TYPES,
+} from '../../tracking/gpuaasTrackingConstants';
 import {
   collectAllExpandableNodeIds,
   collectExpandedNodeIds,
@@ -40,18 +46,43 @@ type QuotaUsageNavPanelProps = {
   tree: QuotaTreeNode[];
   selection?: QuotaSelection;
   onSelectionChange: (selection: QuotaSelection) => void;
+  tabLoadedAt: React.MutableRefObject<number>;
 };
 
 const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
   tree,
   selection,
   onSelectionChange,
+  tabLoadedAt,
 }) => {
   const [searchValue, setSearchValue] = React.useState('');
   const [allExpanded, setAllExpanded] = React.useState<boolean | undefined>(true);
   const [expandedNodeIds, setExpandedNodeIds] = React.useState<Set<string>>(() => new Set());
+  const searchTelemetryTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
   const allExpandedRef = React.useRef(allExpanded);
   allExpandedRef.current = allExpanded;
+
+  React.useEffect(
+    () => () => {
+      clearTimeout(searchTelemetryTimeoutRef.current);
+    },
+    [],
+  );
+
+  const trackSearch = (value: string) => {
+    clearTimeout(searchTelemetryTimeoutRef.current);
+    searchTelemetryTimeoutRef.current = setTimeout(() => {
+      const matchCount = filterQuotaTreeByName(tree, value).length;
+      fireMiscTrackingEvent(GPUAAS_EVENTS.COHORT_TREE_SEARCH_APPLIED, {
+        matchCount,
+        isEmptyResult: matchCount === 0,
+      });
+      fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+        interactionType: QUOTA_USAGE_INTERACTION_TYPES.treeSearch,
+        secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
+      });
+    }, QUOTA_USAGE_SEARCH_TELEMETRY_DEBOUNCE);
+  };
 
   React.useEffect(() => {
     if (!selection || allExpandedRef.current !== undefined) {
@@ -95,6 +126,12 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
   }
 
   const handleToggleExpandAll = React.useCallback(() => {
+    const isExpanded = allExpanded === false;
+    fireMiscTrackingEvent(GPUAAS_EVENTS.COHORT_TREE_EXPAND_COLLAPSE_ALL_SELECTED, { isExpanded });
+    fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+      interactionType: QUOTA_USAGE_INTERACTION_TYPES.expandCollapseAll,
+      secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
+    });
     if (allExpanded === false) {
       setExpandedNodeIds(collectAllExpandableNodeIds(filteredTree));
       setAllExpanded(true);
@@ -102,7 +139,7 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
     }
     setAllExpanded(false);
     setExpandedNodeIds(new Set());
-  }, [allExpanded, filteredTree]);
+  }, [allExpanded, filteredTree, tabLoadedAt]);
 
   const selectedNodeId = selection ? nodeIdFromSelection(selection) : undefined;
 
@@ -119,9 +156,13 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
           setExpandedNodeIds((prev) => new Set([...prev, ...ancestors]));
         }
         onSelectionChange(nextSelection);
+        fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+          interactionType: QUOTA_USAGE_INTERACTION_TYPES.treeSelect,
+          secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
+        });
       }
     },
-    [onSelectionChange, tree],
+    [onSelectionChange, tabLoadedAt, tree],
   );
 
   const handleExpand = React.useCallback((nodeId: string) => {
@@ -158,8 +199,24 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
           <SearchInput
             placeholder="Search by name"
             value={searchValue}
-            onChange={(_event, value) => setSearchValue(value)}
-            onClear={() => setSearchValue('')}
+            onChange={(_event, value) => {
+              setSearchValue(value);
+              if (value.trim()) {
+                trackSearch(value);
+              }
+            }}
+            onClear={() => {
+              clearTimeout(searchTelemetryTimeoutRef.current);
+              setSearchValue('');
+              fireMiscTrackingEvent(GPUAAS_EVENTS.COHORT_TREE_SEARCH_APPLIED, {
+                matchCount: tree.length,
+                isEmptyResult: tree.length === 0,
+              });
+              fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+                interactionType: QUOTA_USAGE_INTERACTION_TYPES.treeSearch,
+                secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
+              });
+            }}
             aria-label="Search by name"
             style={fullWidthStyle}
             inputProps={{ 'data-testid': 'quota-usage-nav-search' }}

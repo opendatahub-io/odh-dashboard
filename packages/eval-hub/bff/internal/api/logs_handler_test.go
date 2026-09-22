@@ -23,6 +23,7 @@ func TestGetEvaluationJobLogsHandler(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Equal(t, "text/plain; charset=utf-8", response.Header.Get("Content-Type"))
+	assert.Equal(t, "false", response.Header.Get("X-Log-Truncated"))
 	assert.Contains(t, body, "eval-job-001")
 	assert.Contains(t, body, "Starting evaluation")
 }
@@ -40,6 +41,23 @@ func TestGetEvaluationJobLogsHandlerWithQueryParams(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Contains(t, body, "eval-job-001")
+}
+
+func TestGetEvaluationJobLogsHandlerAcceptsAllLines(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+	mockClient.SetLogsTruncated(true)
+
+	body, response, err := setupApiTestWithEvalHubRaw(
+		http.MethodGet,
+		ApiPathPrefix+"/evaluations/jobs/eval-job-001/logs?namespace=test-ns&tail_lines=-1",
+		nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "true", response.Header.Get("X-Log-Truncated"))
+	assert.Contains(t, body, "Starting evaluation")
 }
 
 func TestGetEvaluationJobLogsHandlerMissingNamespace(t *testing.T) {
@@ -78,6 +96,7 @@ func TestGetEvaluationJobLogsHandlerInvalidTailLines(t *testing.T) {
 		value string
 	}{
 		{"negative", "-10"},
+		{"below-all-lines", "-2"},
 		{"non-integer", "abc"},
 		{"float", "3.5"},
 	} {
@@ -142,6 +161,7 @@ func TestGetEvaluationJobBenchmarkLogsHandler(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Equal(t, "text/plain; charset=utf-8", response.Header.Get("Content-Type"))
+	assert.Equal(t, "false", response.Header.Get("X-Log-Truncated"))
 	assert.Contains(t, body, "eval-job-001")
 	assert.Contains(t, body, "benchmark 0")
 }
@@ -158,6 +178,23 @@ func TestGetEvaluationJobBenchmarkLogsHandlerInvalidIndex(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+}
+
+func TestGetEvaluationJobBenchmarkLogsHandlerAcceptsAllLines(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+	mockClient.SetLogsTruncated(true)
+
+	body, response, err := setupApiTestWithEvalHubRaw(
+		http.MethodGet,
+		ApiPathPrefix+"/evaluations/jobs/eval-job-001/benchmarks/0/logs?namespace=test-ns&tail_lines=-1",
+		nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "true", response.Header.Get("X-Log-Truncated"))
+	assert.Contains(t, body, "Running benchmark")
 }
 
 func TestGetEvaluationJobBenchmarkLogsHandlerNegativeIndex(t *testing.T) {
