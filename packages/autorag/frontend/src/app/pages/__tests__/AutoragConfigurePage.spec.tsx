@@ -2425,7 +2425,7 @@ describe('AutoragConfigurePage', () => {
         await navigateToConfigure();
 
         expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-          'Faithfulness (Unitxt/RAGAS)',
+          'Faithfulness (Unitxt)',
         );
       });
 

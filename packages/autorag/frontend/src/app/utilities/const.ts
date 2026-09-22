@@ -70,12 +70,12 @@ export const DEFAULT_OPTIMIZATION_METRIC = RAG_METRIC_CUSTOM_OVERALL_SCORE;
 /** Shared labels for the two qualified faithfulness metrics. */
 export const QUALIFIED_METRIC_LABELS = {
   [RAG_METRIC_UNITXT_FAITHFULNESS]: {
-    configuration: 'Faithfulness (Unitxt/RAGAS)',
-    results: 'Answer faithfulness (unitxt/ragas)',
+    configuration: 'Faithfulness (Unitxt)',
+    results: 'Faithfulness (Unitxt)',
   },
   [RAG_METRIC_RAGAS_FAITHFULNESS]: {
-    configuration: 'Faithfulness (Unitxt/RAGAS)',
-    results: 'Answer faithfulness (unitxt/ragas)',
+    configuration: 'Faithfulness (RAGAS)',
+    results: 'Faithfulness (RAGAS)',
   },
 } as const;
 

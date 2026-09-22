@@ -1281,7 +1281,7 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByTestId('preset-radio-speed'));
 
       expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-        'Faithfulness (Unitxt/RAGAS)',
+        'Faithfulness (Unitxt)',
       );
     });
 
@@ -1294,7 +1294,7 @@ describe('AutoragConfigure', () => {
 
       const expectedMetrics = [
         ['custom:overall_score', 'Overall score'],
-        ['unitxt:faithfulness', 'Faithfulness (Unitxt/RAGAS)'],
+        ['unitxt:faithfulness', 'Faithfulness (Unitxt)'],
         ['unitxt:answer_correctness', 'Answer correctness (Unitxt)'],
       ];
       await waitFor(() => {
@@ -1318,9 +1318,9 @@ describe('AutoragConfigure', () => {
 
       const expectedMetrics = [
         ['custom:overall_score', 'Overall score'],
-        ['unitxt:faithfulness', 'Faithfulness (Unitxt/RAGAS)'],
+        ['unitxt:faithfulness', 'Faithfulness (Unitxt)'],
         ['unitxt:answer_correctness', 'Answer correctness (Unitxt)'],
-        ['ragas:faithfulness', 'Faithfulness (Unitxt/RAGAS)'],
+        ['ragas:faithfulness', 'Faithfulness (RAGAS)'],
         ['ragas:answer_relevancy', 'Answer relevancy (RAGAS)'],
         ['ragas:context_precision', 'Context precision (RAGAS)'],
         ['ragas:context_recall', 'Context recall (RAGAS)'],

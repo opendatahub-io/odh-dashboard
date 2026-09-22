@@ -307,7 +307,7 @@ describe('getPipelineSummaryDetails', () => {
     );
 
     expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe(
-      'Answer faithfulness (unitxt/ragas)',
+      'Faithfulness (RAGAS)',
     );
   });
 
@@ -315,12 +315,12 @@ describe('getPipelineSummaryDetails', () => {
     {
       runtimeMetric: 'unitxt:faithfulness',
       optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
-      expectedLabel: 'Answer faithfulness (unitxt/ragas)',
+      expectedLabel: 'Faithfulness (Unitxt)',
     },
     {
       runtimeMetric: 'ragas:faithfulness',
       optimizationMetric: { name: 'faithfulness', evaluator: 'ragas' },
-      expectedLabel: 'Answer faithfulness (unitxt/ragas)',
+      expectedLabel: 'Faithfulness (RAGAS)',
     },
   ])(
     'renders qualified runtime metric $runtimeMetric',
