@@ -32,9 +32,10 @@ describe('TrainingJobStatusModal', () => {
       status: TrainingJobState.PAUSED,
       suspend: true,
     });
-    Object.assign(job.metadata.annotations, {
+    job.metadata.annotations = {
+      ...job.metadata.annotations,
       'openshift.io/display-name': 'Friendly training job',
-    });
+    };
 
     render(
       <TrainingJobStatusModal job={job} jobStatus={TrainingJobState.PAUSED} onClose={jest.fn()} />,
