@@ -12,6 +12,7 @@ import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage
 import ViewMySubscriptionPage from './pages/keys-and-subs/mySubscriptions/ViewMySubscriptionPage';
 import { MaaSGovernanceProvider } from './context/MaaSGovernanceContext';
 import MaaSGovernancePage from './pages/maas-governance/MaaSGovernancePage';
+import { KeysAndSubsProvider } from './context/KeysAndSubsContext';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
@@ -37,20 +38,24 @@ const AppRoutes: React.FC = () => {
   }
   if (isKeysAndSubs) {
     return (
-      <Routes>
-        <Route path="/" element={<ApiKeysAndSubscriptionsPage />} />
-        <Route path="/:tab" element={<ApiKeysAndSubscriptionsPage />} />
-        <Route path="/subscriptions/:subscriptionName" element={<ViewMySubscriptionPage />} />
-        <Route path="*" element={<Navigate to={`${URL_PREFIX}/keys-and-subs`} replace />} />
-      </Routes>
+      <KeysAndSubsProvider>
+        <Routes>
+          <Route path="/" element={<ApiKeysAndSubscriptionsPage />} />
+          <Route path="/:tab" element={<ApiKeysAndSubscriptionsPage />} />
+          <Route path="/subscriptions/:subscriptionName" element={<ViewMySubscriptionPage />} />
+          <Route path="*" element={<Navigate to={`${URL_PREFIX}/keys-and-subs`} replace />} />
+        </Routes>
+      </KeysAndSubsProvider>
     );
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<ApiKeysAndSubscriptionsPage />} />
-      <Route path="*" element={<Navigate to={`${URL_PREFIX}/tokens`} replace />} />
-    </Routes>
+    <KeysAndSubsProvider>
+      <Routes>
+        <Route path="/" element={<ApiKeysAndSubscriptionsPage />} />
+        <Route path="*" element={<Navigate to={`${URL_PREFIX}/tokens`} replace />} />
+      </Routes>
+    </KeysAndSubsProvider>
   );
 };
 
