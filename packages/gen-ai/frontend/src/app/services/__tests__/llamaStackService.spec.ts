@@ -494,6 +494,30 @@ describe('llamaStackService', () => {
     });
 
     describe('streaming', () => {
+      it('uses the streaming path when no text callback is provided', async () => {
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+        );
+
+        expect(result.content).toBe('Hello');
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockedRestCREATE).not.toHaveBeenCalled();
+      });
+
       it('should handle streaming response successfully', async () => {
         const mockStreamData = jest.fn();
 

@@ -733,12 +733,12 @@ export const createResponse =
       abortSignal?: AbortSignal;
     } = {},
   ): Promise<SimplifiedResponseData> => {
-    if (data.stream && opts.onStreamData) {
+    if (data.stream) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
       return streamCreateResponse(
         url,
         data,
-        opts.onStreamData,
+        opts.onStreamData ?? (() => undefined),
         opts.onToolCall,
         opts.abortSignal,
         opts.headers,
