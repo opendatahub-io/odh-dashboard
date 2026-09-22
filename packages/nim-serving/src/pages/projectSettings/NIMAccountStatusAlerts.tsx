@@ -24,6 +24,14 @@ const NIMAccountStatusAlerts: React.FC<NIMAccountStatusAlertsProps> = ({
         </Alert>
       );
     case NIMAccountStatus.ERROR:
+      if (errorMessages.length === 1 && errorMessages[0] === 'api key failed validation') {
+        return (
+          <Alert variant="danger" isInline title="Invalid API key">
+            Your NVIDIA NIM API key is either expired or entered correctly. To enable NVIDIA NIM,
+            replace the key with a valid one.
+          </Alert>
+        );
+      }
       return (
         <Alert variant="danger" isInline title="Validation failed">
           {errorMessages.length > 0 ? errorMessages.join('; ') : 'API key failed validation.'}
