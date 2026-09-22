@@ -452,6 +452,21 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const [isDocumentUploading, setIsDocumentUploading] = React.useState(false);
   const [viewedDocument, setViewedDocument] = React.useState<DocumentAttachment | null>(null);
 
+  React.useEffect(() => {
+    if (!viewedDocument) {
+      return undefined;
+    }
+
+    const closeOnBackdropClick = (event: MouseEvent) => {
+      if (event.target instanceof Element && !event.target.closest('.pf-v6-c-modal-box')) {
+        setViewedDocument(null);
+      }
+    };
+
+    document.addEventListener('mousedown', closeOnBackdropClick);
+    return () => document.removeEventListener('mousedown', closeOnBackdropClick);
+  }, [viewedDocument]);
+
   // Revoke unsent image preview blob URL on unmount
   React.useEffect(
     () => () => {
@@ -1079,6 +1094,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
           documentAttachments={documentAttachments}
+          onViewDocument={setViewedDocument}
           showWelcomePrompt
           welcomeContent={
             !isCompareMode &&

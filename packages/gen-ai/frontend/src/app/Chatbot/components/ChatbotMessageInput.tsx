@@ -22,6 +22,7 @@ import {
 } from '~/app/Chatbot/const';
 import { DocumentAttachment } from '~/app/types';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
+import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
 import './ChatbotMessageInput.scss';
@@ -110,19 +111,6 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   const isAudioActive = audioPhase === 'uploading' || audioPhase === 'transcribing';
   const showAudioChip = isAudioActive || audioPhase === 'ready';
 
-  const documentTypeLabel = (filename: string) => {
-    const extension = filename.slice(filename.lastIndexOf('.') + 1).toLowerCase();
-    const labels: Record<string, string> = {
-      pdf: 'PDF',
-      txt: 'TXT',
-      md: 'MD',
-      csv: 'CSV',
-      docx: 'DOC',
-      pptx: 'PPT',
-    };
-    return labels[extension] ?? 'DOCUMENT';
-  };
-
   // PatternFly MessageBar only reads the `value` prop at mount time (internal useState).
   // When messageBarValue changes programmatically (e.g. from transcription), we must
   // force-sync the textarea via native setter + event dispatch.
@@ -190,7 +178,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       }
       if (file.size > VISION_UPLOAD_CONFIG.MAX_FILE_SIZE) {
         setValidationError(
-          `${file.name} exceeds maximum size of ${VISION_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)} MB. Try a smaller file.`,
+          `${file.name} exceeds maximum size of ${
+            VISION_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)
+          } MB. Try a smaller file.`,
         );
         return;
       }
@@ -222,7 +212,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       }
       if (file.size > AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE) {
         setValidationError(
-          `${file.name} exceeds maximum size of ${AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)} MB. Try a smaller file.`,
+          `${file.name} exceeds maximum size of ${
+            AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE / (1024 * 1024)
+          } MB. Try a smaller file.`,
         );
         return;
       }
@@ -459,7 +451,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
                     {attachment.filename}
                   </span>
                   <span className="gen-ai-document-attachment__type">
-                    {documentTypeLabel(attachment.filename)}
+                    {getDocumentAttachmentTypeLabel(attachment.filename)}
                   </span>
                 </span>
               </Label>

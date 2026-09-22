@@ -368,7 +368,19 @@ jest.mock('@patternfly/react-core', () => {
       isOpen?: boolean;
       'data-testid'?: string;
     }) =>
-      isOpen ? React.createElement('div', { 'data-testid': testId || 'modal' }, children) : null,
+      isOpen
+        ? React.createElement(
+            'div',
+            {
+              'data-testid': 'modal-backdrop',
+            },
+            React.createElement(
+              'div',
+              { className: 'pf-v6-c-modal-box', 'data-testid': testId || 'modal' },
+              children,
+            ),
+          )
+        : null,
     ModalHeader: ({ title }: { title: string }) => React.createElement('div', null, title),
     ModalBody: ({ children }: { children: unknown }) => React.createElement('div', null, children),
     ModalFooter: ({ children }: { children: unknown }) =>
@@ -640,6 +652,31 @@ describe('ChatbotPlayground — document upload and messaging', () => {
   });
 
   describe('handleAttach — document upload', () => {
+    it('closes the extracted text modal when its backdrop is clicked', () => {
+      renderPlayground();
+
+      const configInstanceProps = mockChatbotConfigInstanceProps.mock.calls.at(-1)?.[0] as {
+        onViewDocument: (attachment: DocumentAttachment) => void;
+      };
+      const attachment: DocumentAttachment = {
+        // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+        file_id: 'document-notes.txt',
+        filename: 'notes.txt',
+        // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+        content_type: 'text/plain',
+        size: 42,
+        text: 'Extracted document content',
+      };
+
+      act(() => configInstanceProps.onViewDocument(attachment));
+
+      expect(screen.getByTestId('document-extracted-text-modal')).toBeInTheDocument();
+
+      fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
+
+      expect(screen.queryByTestId('document-extracted-text-modal')).not.toBeInTheDocument();
+    });
+
     it('uploads each document through the extraction API', async () => {
       renderPlayground();
 
