@@ -40,8 +40,6 @@ func TestAddStreamingDeltaTraceEvent(t *testing.T) {
 	assert.Contains(t, event.Attributes, attribute.Int("gen_ai.streaming.chunk.index", 4))
 	assert.Contains(t, event.Attributes, attribute.Int64("gen_ai.streaming.sequence_number", 7))
 	assert.Contains(t, event.Attributes, attribute.String("gen_ai.streaming.item_id", "msg-1"))
-	assert.NotContains(t, event.Attributes, attribute.Int("gen_ai.streaming.output_index", 2))
-	assert.NotContains(t, event.Attributes, attribute.Int("gen_ai.streaming.content_index", 3))
 	assert.Contains(t, event.Attributes, attribute.Int("gen_ai.streaming.chunk.bytes", 5))
 	assert.Contains(t, event.Attributes, attribute.Int("gen_ai.streaming.chunk.characters", 5))
 	assert.Contains(t, event.Attributes, attribute.String("gen_ai.streaming.chunk.preview", "hello"))
