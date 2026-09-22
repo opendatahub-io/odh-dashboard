@@ -21,17 +21,26 @@ const renderModal = (description?: string) => {
     ...job.metadata.annotations,
     ...(description !== undefined && { 'openshift.io/description': description }),
   };
-
   return render(
     <TrainingJobStatusModal job={job} jobStatus={TrainingJobState.PAUSED} onClose={jest.fn()} />,
   );
 };
 
 describe('TrainingJobStatusModal', () => {
-  it('should display the training job name in the modal title', () => {
-    renderModal();
+  it('should display the training job display name in the modal title', () => {
+    const job = mockTrainJobK8sResource({
+      status: TrainingJobState.PAUSED,
+      suspend: true,
+    });
+    Object.assign(job.metadata.annotations, {
+      'openshift.io/display-name': 'Friendly training job',
+    });
 
-    expect(screen.getByText('test-train-job status')).toBeInTheDocument();
+    render(
+      <TrainingJobStatusModal job={job} jobStatus={TrainingJobState.PAUSED} onClose={jest.fn()} />,
+    );
+
+    expect(screen.getByText('Friendly training job status')).toBeInTheDocument();
   });
 
   it('should display the training job description in the modal header', () => {

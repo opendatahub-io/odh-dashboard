@@ -87,8 +87,8 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   isToggling = false,
 }) => {
   const status = jobStatus || getTrainingJobStatusSync(job);
-  const trainingJobDisplayName = getDisplayNameFromK8sResource(job);
-  const trainingJobDescription = getDescriptionFromK8sResource(job).trim();
+  const displayName = getDisplayNameFromK8sResource(job);
+  const description = getDescriptionFromK8sResource(job).trim();
   const [workloads, workloadLoaded] = useWorkloadForTrainJob(job);
   const workload = React.useMemo(() => {
     if (!workloadLoaded || workloads.length === 0) return null;
@@ -269,19 +269,19 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
       <ModalHeader
         data-testid="training-job-status-modal-header"
         description={
-          trainingJobDescription ? (
+          description ? (
             <Content
               component="p"
               data-testid="training-job-status-modal-description"
               style={{ color: Gray60.value }}
             >
-              {trainingJobDescription}
+              {description}
             </Content>
           ) : undefined
         }
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>{`${trainingJobDisplayName} status`}</FlexItem>
+            <FlexItem>{displayName} status</FlexItem>
             <TrainingJobStatus job={job} jobStatus={status} showProgressBar={false} />
           </Flex>
         }
