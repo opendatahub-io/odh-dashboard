@@ -3108,6 +3108,9 @@ importers:
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../plugin-core
+      '@odh-dashboard/ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
     devDependencies:
       '@odh-dashboard/app-config':
         specifier: workspace:*
