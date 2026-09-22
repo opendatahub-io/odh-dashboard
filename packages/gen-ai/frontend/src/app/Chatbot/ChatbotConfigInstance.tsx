@@ -50,6 +50,7 @@ interface ChatbotConfigInstanceProps {
   hasAudioInCurrentMessage?: boolean;
   hasAudioInConversation?: boolean;
   onViewTrace?: (traceId: string) => void;
+  onViewDocument?: (attachment: DocumentAttachment) => void;
   documentAttachments?: DocumentAttachment[];
 }
 
@@ -73,6 +74,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   hasAudioInCurrentMessage,
   hasAudioInConversation,
   onViewTrace,
+  onViewDocument,
   documentAttachments,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
@@ -236,6 +238,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         placeholderContent={placeholderBotContentProp ?? PLACEHOLDER_BOT_CONTENT}
         hasImagesInConversation={hasImagesInConversation}
         onViewTrace={onViewTrace}
+        onViewDocument={onViewDocument}
         compareMode={isCompareMode}
         configID={configIndex === 0 ? 'default' : String(configIndex)}
       />

@@ -61,6 +61,11 @@ export type ChatbotMessageProps = MessageProps & {
   /** True only after the stream has reached its terminal event. */
   isToolCallStreamComplete?: boolean;
   attachmentWarning?: 'general' | 'near-limit' | 'context-exceeded';
+  /**
+   * Full document metadata retained with the sent message so its attachment
+   * card can reopen the extracted text that was included in the prompt.
+   */
+  documentAttachments?: DocumentAttachment[];
 };
 
 const DEFAULT_CONTEXT_WINDOW_TOKENS = 8192;
@@ -446,6 +451,7 @@ const useChatbotMessages = ({
           id: file_id,
           name: filename,
         })),
+        documentAttachments,
       }),
       ...(Object.keys(extraContent).length > 0 && { extraContent }),
     };
