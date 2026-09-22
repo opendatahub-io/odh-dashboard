@@ -543,4 +543,31 @@ describe('MultiSelection', () => {
     expect(first).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: 'Remove Connection 1' })).toBeInTheDocument();
   });
+
+  it('should add a creatable option when Enter is pressed after typing a new value', async () => {
+    const setValue = jest.fn();
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Groups"
+        value={defaultOptions}
+        setValue={setValue}
+        isCreatable
+        createOptionMessage={(value) => `Add group "${value}"`}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Groups' });
+
+    await act(async () => {
+      fireEvent.change(combobox, { target: { value: 'new-group' } });
+      fireEvent.keyDown(combobox, { key: 'Enter' });
+    });
+
+    expect(setValue).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'new-group', name: 'new-group', selected: true }),
+      ]),
+    );
+  });
 });

@@ -348,15 +348,22 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const focusedItem = focusedItemIndex !== null ? visibleOptions[focusedItemIndex] : null;
     switch (event.key) {
-      case 'Enter':
+      case 'Enter': {
         event.preventDefault();
-        if (isOpen && focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled) {
-          onSelect(focusedItem);
-        }
         if (!isOpen) {
           openMenu(true);
+          break;
+        }
+        // Prefer the focused option; if none (e.g. after typing), create the new value on Enter.
+        const itemToSelect =
+          focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled
+            ? focusedItem
+            : (createOption ?? null);
+        if (itemToSelect) {
+          onSelect(itemToSelect);
         }
         break;
+      }
       case 'Tab':
         closeMenu();
         break;
