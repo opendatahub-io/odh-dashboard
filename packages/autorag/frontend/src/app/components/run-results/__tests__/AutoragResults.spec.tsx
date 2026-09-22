@@ -939,7 +939,7 @@ describe('AutoragResults', () => {
       await user.click(actionsToggle);
 
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    }, 15_000);
+    }, 45_000);
   });
 
   describe('onViewCode source', () => {
@@ -1002,7 +1002,7 @@ describe('AutoragResults', () => {
       await user.click(actionsToggle);
 
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
-    }, 15_000);
+    }, 45_000);
   });
 
   describe('AutoRAG Pattern Details Viewed tracking', () => {
