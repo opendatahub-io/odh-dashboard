@@ -289,7 +289,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             ))}
           </ToggleGroup>
         )}
-        <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+        <DrawerActions
+          className="pf-v6-u-align-self-center pf-v6-u-align-items-center pf-v6-u-mt-0"
+          style={{ gap: 'var(--pf-t--global--spacer--sm)' }}
+        >
           {agentConfigManagementEnabled && !isCompareMode && (
             <Button
               variant="secondary"
@@ -305,7 +308,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       </DrawerHead>
       <DrawerPanelBody
         style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-        hasNoPadding
       >
         <ToggleGroup
           isFill
