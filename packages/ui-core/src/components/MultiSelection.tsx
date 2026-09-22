@@ -344,7 +344,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       setActiveAndFocusedItem(indexToFocus);
     }
   };
-  
+
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const focusedItem = focusedItemIndex !== null ? visibleOptions[focusedItemIndex] : null;
     switch (event.key) {
