@@ -67,6 +67,18 @@ export const RAG_METRIC_ANSWER_RELEVANCE = 'answer_relevance';
 
 export const DEFAULT_OPTIMIZATION_METRIC = RAG_METRIC_CUSTOM_OVERALL_SCORE;
 
+/** Shared labels for the two qualified faithfulness metrics. */
+export const QUALIFIED_METRIC_LABELS = {
+  [RAG_METRIC_UNITXT_FAITHFULNESS]: {
+    configuration: 'Faithfulness (Unitxt/RAGAS)',
+    results: 'Answer faithfulness (unitxt/ragas)',
+  },
+  [RAG_METRIC_RAGAS_FAITHFULNESS]: {
+    configuration: 'Faithfulness (Unitxt/RAGAS)',
+    results: 'Answer faithfulness (unitxt/ragas)',
+  },
+} as const;
+
 export const OPTIMIZATION_METRICS_BY_PRESET = {
   [PRESET_FASTER]: [
     RAG_METRIC_UNITXT_FAITHFULNESS,
@@ -105,6 +117,19 @@ export const normalizeRestoredOptimizationMetric = (
   metric: unknown,
   preset: string,
 ): (typeof OPTIMIZATION_METRICS)[number] => {
+  const normalized = getRestoredOptimizationMetric(metric, preset);
+  const allowedMetrics = getOptimizationMetricsForPreset(preset);
+  return normalized && allowedMetrics.includes(normalized)
+    ? normalized
+    : DEFAULT_OPTIMIZATION_METRIC;
+};
+
+const getRestoredOptimizationMetric = (
+  metric: unknown,
+  preset: string,
+): OptimizationMetric | undefined => {
+  // Bare values are historical runtime values accepted only while restoring a run. New create
+  // requests continue to use the qualified schema enum.
   const legacyMetricMap: Record<string, OptimizationMetric> = {
     faithfulness:
       preset === PRESET_BETTER_QUALITY
@@ -117,18 +142,23 @@ export const normalizeRestoredOptimizationMetric = (
     typeof metric === 'string'
       ? (legacyMetricMap[metric] ?? OPTIMIZATION_METRICS.find((value) => value === metric))
       : undefined;
-  const allowedMetrics = getOptimizationMetricsForPreset(preset);
-  return normalized && allowedMetrics.includes(normalized)
-    ? normalized
-    : DEFAULT_OPTIMIZATION_METRIC;
+  return normalized;
+};
+
+/** Whether a persisted metric can be restored without falling back to the default. */
+export const isRestoredOptimizationMetricSupported = (metric: unknown, preset: string): boolean => {
+  const normalized = getRestoredOptimizationMetric(metric, preset);
+  return normalized !== undefined && getOptimizationMetricsForPreset(preset).includes(normalized);
 };
 
 /** Human-readable labels for optimization metric values. */
 export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
-  [RAG_METRIC_UNITXT_FAITHFULNESS]: 'Faithfulness (Unitxt)',
+  [RAG_METRIC_UNITXT_FAITHFULNESS]:
+    QUALIFIED_METRIC_LABELS[RAG_METRIC_UNITXT_FAITHFULNESS].configuration,
   [RAG_METRIC_UNITXT_ANSWER_CORRECTNESS]: 'Answer correctness (Unitxt)',
   [RAG_METRIC_CUSTOM_OVERALL_SCORE]: 'Overall score',
-  [RAG_METRIC_RAGAS_FAITHFULNESS]: 'Faithfulness (RAGAS)',
+  [RAG_METRIC_RAGAS_FAITHFULNESS]:
+    QUALIFIED_METRIC_LABELS[RAG_METRIC_RAGAS_FAITHFULNESS].configuration,
   [RAG_METRIC_RAGAS_ANSWER_RELEVANCY]: 'Answer relevancy (RAGAS)',
   [RAG_METRIC_RAGAS_CONTEXT_PRECISION]: 'Context precision (RAGAS)',
   [RAG_METRIC_RAGAS_CONTEXT_RECALL]: 'Context recall (RAGAS)',

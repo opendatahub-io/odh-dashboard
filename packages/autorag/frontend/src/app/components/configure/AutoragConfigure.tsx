@@ -79,6 +79,7 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
+  DEFAULT_OPTIMIZATION_METRIC,
   OPTIMIZATION_METRIC_LABELS,
   OPTIMIZATION_METRICS,
   getOptimizationMetricsForPreset,
@@ -951,7 +952,7 @@ function AutoragConfigure({
                                         optimizationMetric,
                                       )
                                     ) {
-                                      setValue('optimization_metric', 'custom:overall_score');
+                                      setValue('optimization_metric', DEFAULT_OPTIMIZATION_METRIC);
                                     }
                                   }}
                                   data-testid={`preset-radio-${presetValue}`}

@@ -228,6 +228,8 @@ export type RagOptimizationMetric =
   | 'contextRecall'
   | 'contextCorrectness';
 
+export type RagOptimizationMetricEvaluator = 'unitxt' | 'ragas' | 'custom';
+
 /* eslint-disable camelcase -- keys mirror the schema's snake_case optimization_metric values */
 const RAG_OPTIMIZATION_METRIC_MAP: Record<string, RagOptimizationMetric> = {
   [RAG_METRIC_CUSTOM_OVERALL_SCORE]: 'overallScore',
@@ -255,6 +257,19 @@ export const mapOptimizationMetric = (metric: string): RagOptimizationMetric | u
     ? RAG_OPTIMIZATION_METRIC_MAP[metric]
     : undefined;
 
+/** Maps a qualified optimization metric to its bounded evaluator dimension. */
+export const mapOptimizationMetricEvaluator = (
+  metric: string,
+): RagOptimizationMetricEvaluator | undefined => {
+  if (mapOptimizationMetric(metric) === undefined) {
+    return undefined;
+  }
+  const evaluator = metric.split(':', 1)[0];
+  return evaluator === 'unitxt' || evaluator === 'ragas' || evaluator === 'custom'
+    ? evaluator
+    : undefined;
+};
+
 export type RunTriggeredProperties = {
   /**
    * Only known when the corresponding source was actually (re)selected in this session — see
@@ -265,6 +280,7 @@ export type RunTriggeredProperties = {
   /** See {@link RunTriggeredProperties.knowledgeSourceType} — same caveat applies. */
   evaluationSourceType?: EvaluationSourceType;
   optimizationMetric?: RagOptimizationMetric;
+  optimizationMetricEvaluator?: RagOptimizationMetricEvaluator;
   /** See {@link RunTriggeredProperties.knowledgeSourceType} — same caveat applies. */
   vectorDatabase?: VectorStoreProviderType;
   countOfModels: number;
@@ -335,6 +351,7 @@ export type RunReconfiguredProperties = {
   /** See {@link RunReconfiguredProperties.knowledgeSourceType} — same caveat applies. */
   evaluationSourceType?: EvaluationSourceType;
   optimizationMetric?: RagOptimizationMetric;
+  optimizationMetricEvaluator?: RagOptimizationMetricEvaluator;
   /** See {@link RunReconfiguredProperties.knowledgeSourceType} — same caveat applies. */
   vectorDatabase?: VectorStoreProviderType;
   countOfFoundationModels: number;

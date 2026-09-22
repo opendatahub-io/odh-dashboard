@@ -284,7 +284,7 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should format optimization metric with human-readable label', () => {
     renderPanel();
-    expect(screen.getByText('Answer faithfulness (unitxt)')).toBeInTheDocument();
+    expect(screen.getByText('Answer faithfulness (unitxt/ragas)')).toBeInTheDocument();
   });
 
   it('should format context_correctness metric with human-readable label', () => {
@@ -319,7 +319,7 @@ describe('AutoragInputParametersPanel', () => {
       },
     );
 
-    expect(screen.getByText('Answer faithfulness (ragas)')).toBeInTheDocument();
+    expect(screen.getByText('Answer faithfulness (unitxt/ragas)')).toBeInTheDocument();
   });
 
   it('should render model configuration with counts', () => {

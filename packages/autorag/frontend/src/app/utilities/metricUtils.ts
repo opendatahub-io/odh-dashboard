@@ -4,7 +4,7 @@ import type {
   MetricReference,
   NormalizedMetricReference,
 } from '~/app/types/autoragPattern';
-import { DEFAULT_OPTIMIZATION_METRIC } from './const';
+import { DEFAULT_OPTIMIZATION_METRIC, QUALIFIED_METRIC_LABELS } from './const';
 
 /** Opaque key for UI maps, React keys, and table column keys. Never parse this outside this file. */
 export type MetricKey = string;
@@ -90,7 +90,15 @@ export function findUniqueMetric<T extends MetricReference>(
 export function metricLabel(reference: MetricReference): string {
   const parsedReference =
     reference.evaluator === undefined ? parseMetricReference(reference.name) : reference;
-  const label = formatMetricName(normalizeMetricReference(parsedReference).name);
+  const normalizedReference = normalizeMetricReference(parsedReference);
+  const qualifiedMetric = `${normalizedReference.evaluator ?? ''}:${normalizedReference.name}`;
+  const qualifiedLabel = Object.entries(QUALIFIED_METRIC_LABELS).find(
+    ([metric]) => metric === qualifiedMetric,
+  )?.[1].results;
+  if (qualifiedLabel) {
+    return qualifiedLabel;
+  }
+  const label = formatMetricName(normalizedReference.name);
   const evaluator = parsedReference.evaluator?.trim();
   return evaluator ? `${label} (${evaluator})` : label;
 }

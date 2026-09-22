@@ -33,6 +33,7 @@ import {
   getVectorStoreProviderTypeFromSecretData,
   isAutoragResultsNavigationState,
   mapOptimizationMetric,
+  mapOptimizationMetricEvaluator,
   toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
@@ -340,12 +341,27 @@ describe('mapOptimizationMetric', () => {
   });
 });
 
+describe('mapOptimizationMetricEvaluator', () => {
+  it('should distinguish Unitxt and RAGAS faithfulness evaluators', () => {
+    expect(mapOptimizationMetricEvaluator('unitxt:faithfulness')).toBe('unitxt');
+    expect(mapOptimizationMetricEvaluator('ragas:faithfulness')).toBe('ragas');
+  });
+
+  it('should map custom overall score and reject unqualified metrics', () => {
+    expect(mapOptimizationMetricEvaluator('custom:overall_score')).toBe('custom');
+    expect(mapOptimizationMetricEvaluator('faithfulness')).toBeUndefined();
+    expect(mapOptimizationMetricEvaluator('custom:unsupported')).toBeUndefined();
+    expect(mapOptimizationMetricEvaluator('')).toBeUndefined();
+  });
+});
+
 describe('fireAutoragRunTriggered', () => {
   it('should fire with success: true and the full derived run configuration', () => {
     fireAutoragRunTriggered({
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
+      optimizationMetricEvaluator: 'custom',
       vectorDatabase: 'milvus',
       countOfModels: 3,
       countOfKnowledgeDocuments: 1,
@@ -361,6 +377,7 @@ describe('fireAutoragRunTriggered', () => {
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
+      optimizationMetricEvaluator: 'custom',
       vectorDatabase: 'milvus',
       countOfModels: 3,
       countOfKnowledgeDocuments: 1,

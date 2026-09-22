@@ -1257,6 +1257,7 @@ describe('AutoragConfigurePage', () => {
           evaluationSourceType: undefined,
           vectorDatabase: undefined,
           optimizationMetric: 'overallScore',
+          optimizationMetricEvaluator: 'custom',
           countOfModels: 2,
           countOfKnowledgeDocuments: 1,
           countOfEvaluationDocuments: 1,
@@ -1493,6 +1494,7 @@ describe('AutoragConfigurePage', () => {
           knowledgeSourceType: undefined,
           evaluationSourceType: undefined,
           optimizationMetric: 'answerFaithfulness',
+          optimizationMetricEvaluator: 'unitxt',
           vectorDatabase: undefined,
           countOfFoundationModels: 2,
           countOfEmbeddingModels: 1,
@@ -2423,7 +2425,7 @@ describe('AutoragConfigurePage', () => {
         await navigateToConfigure();
 
         expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-          'Faithfulness (Unitxt)',
+          'Faithfulness (Unitxt/RAGAS)',
         );
       });
 

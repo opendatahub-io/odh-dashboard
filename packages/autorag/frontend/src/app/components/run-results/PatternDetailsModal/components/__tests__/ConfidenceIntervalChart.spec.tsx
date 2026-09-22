@@ -39,16 +39,15 @@ describe('ConfidenceIntervalChart', () => {
 
       expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
       expect(screen.getByTestId('ci-track-faithfulness-ragas')).toBeInTheDocument();
-      expect(screen.getByText('Answer faithfulness (unitxt)')).toBeInTheDocument();
-      expect(screen.getByText('Answer faithfulness (ragas)')).toBeInTheDocument();
+      expect(screen.getAllByText('Answer faithfulness (unitxt/ragas)')).toHaveLength(2);
       expect(
         Array.from(container.querySelectorAll('.autorag-ci-track__label')).map((label) =>
           label.textContent.trim(),
         ),
       ).toEqual([
         'Answer correctness (unitxt)',
-        'Answer faithfulness (ragas)',
-        'Answer faithfulness (unitxt)',
+        'Answer faithfulness (unitxt/ragas)',
+        'Answer faithfulness (unitxt/ragas)',
         'Context recall (ragas)',
       ]);
     });

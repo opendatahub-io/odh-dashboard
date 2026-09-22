@@ -73,11 +73,11 @@ describe('metricUtils', () => {
 
   it('renders labels with and without evaluator qualifiers', () => {
     expect(metricLabel({ name: 'faithfulness', evaluator: 'ragas' })).toBe(
-      'Answer faithfulness (ragas)',
+      'Answer faithfulness (unitxt/ragas)',
     );
     expect(metricLabel({ name: 'faithfulness' })).toBe('Answer faithfulness');
     expect(metricLabel({ name: ' Faithfulness ', evaluator: ' RAGAS ' })).toBe(
-      'Answer faithfulness (RAGAS)',
+      'Answer faithfulness (unitxt/ragas)',
     );
   });
 

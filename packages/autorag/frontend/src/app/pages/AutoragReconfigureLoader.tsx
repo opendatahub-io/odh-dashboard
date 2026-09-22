@@ -18,6 +18,7 @@ import {
   DEFAULT_OPTIMIZATION_METRIC,
   PRESET_FASTER,
   REQUIRED_CONNECTION_SECRET_KEYS,
+  isRestoredOptimizationMetricSupported,
   normalizeRestoredOptimizationMetric,
 } from '~/app/utilities/const';
 import { parseErrorStatus, generateReconfigureName } from '~/app/utilities/utils';
@@ -87,6 +88,12 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
   let hasInvalidFields = !hasLegacyRuntimeParameters(params) && !hasCurrentRuntimeShape(params);
   const restoredPresetResult = configureBase.shape.preset.safeParse(params.preset);
   const restoredPreset = restoredPresetResult.success ? restoredPresetResult.data : PRESET_FASTER;
+  if (
+    'optimization_metric' in params &&
+    !isRestoredOptimizationMetricSupported(params.optimization_metric, restoredPreset)
+  ) {
+    hasInvalidFields = true;
+  }
   const restoredMetric = normalizeRestoredOptimizationMetric(
     params.optimization_metric ?? DEFAULT_OPTIMIZATION_METRIC,
     restoredPreset,

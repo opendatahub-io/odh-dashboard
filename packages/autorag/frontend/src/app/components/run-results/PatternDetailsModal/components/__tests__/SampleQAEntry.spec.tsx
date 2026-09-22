@@ -96,7 +96,7 @@ describe('SampleQAEntry', () => {
     );
 
     expect(screen.getByTestId('qa-metric-scores-q0')).toHaveTextContent(
-      'Answer faithfulness (ragas): 0.770',
+      'Answer faithfulness (unitxt/ragas): 0.770',
     );
   });
 
@@ -112,7 +112,7 @@ describe('SampleQAEntry', () => {
     );
 
     expect(screen.getByTestId('duplicate-metric-scores')).toHaveTextContent(
-      'Answer faithfulness (unitxt): N/A',
+      'Answer faithfulness (unitxt/ragas): N/A',
     );
     expect(screen.getByTestId('duplicate-metric-scores').querySelectorAll('strong')).toHaveLength(
       1,

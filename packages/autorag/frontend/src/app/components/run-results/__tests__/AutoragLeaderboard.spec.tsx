@@ -890,13 +890,13 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const optimizedHeader = screen.getByTestId('metric-header-faithfulness-ragas');
-      expect(optimizedHeader).toHaveTextContent('Answer faithfulness (ragas)');
+      expect(optimizedHeader).toHaveTextContent('Answer faithfulness (unitxt/ragas)');
       expect(within(optimizedHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
 
       showAllColumns();
 
-      expect(screen.getByText('Answer faithfulness (unitxt)')).toBeInTheDocument();
+      expect(screen.getAllByText('Answer faithfulness (unitxt/ragas)')).toHaveLength(2);
       expect(screen.getByTestId('metric-faithfulness-unitxt-1')).toHaveTextContent('0.618');
       expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
     });
@@ -1004,7 +1004,7 @@ describe('AutoragLeaderboard component', () => {
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       expect(
-        screen.getByRole('checkbox', { name: 'Answer faithfulness (unitxt)' }),
+        screen.getByRole('checkbox', { name: 'Answer faithfulness (unitxt/ragas)' }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole('checkbox', { name: 'Answer faithfulness (custom)' }),
@@ -1014,7 +1014,7 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       expect(
-        screen.getByRole('columnheader', { name: /Answer faithfulness \(unitxt\)/i }),
+        screen.getByRole('columnheader', { name: /Answer faithfulness \(unitxt\/ragas\)/i }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole('columnheader', { name: /Answer faithfulness \(custom\)/i }),
