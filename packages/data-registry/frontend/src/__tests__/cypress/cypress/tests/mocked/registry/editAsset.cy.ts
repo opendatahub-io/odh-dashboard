@@ -1,22 +1,21 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
-import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { editAssetModal } from '~/__tests__/cypress/cypress/pages/editAssetModal';
 
 const REGISTRY_API = '/data-registry/api/v1';
+const MAIN_API = '/data-registry/api/v1';
 
 const initIntercepts = () => {
-  cy.interceptApi(
-    'GET /api/:apiVersion/user',
-    { path: { apiVersion: CLIENT_API_VERSION } },
-    mockUserSettings({ userId: 'test-user' }),
-  );
-  cy.interceptApi('GET /api/:apiVersion/namespaces', { path: { apiVersion: CLIENT_API_VERSION } }, [
-    mockNamespace({ name: 'test-project' }),
-  ]);
+  cy.intercept('GET', `${MAIN_API}/user`, {
+    body: mockModArchResponse(mockUserSettings({ userId: 'test-user' })),
+  });
+  cy.intercept('GET', `${MAIN_API}/namespaces`, {
+    body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
+  });
 };
 
 describe('Edit Table Asset', () => {
@@ -284,7 +283,7 @@ describe('Edit Volume Asset', () => {
     properties: {
       description: 'Training document storage',
       'content-type': 'application/pdf',
-      purpose: 'training',
+      volume_purpose: 'training',
     },
   });
 

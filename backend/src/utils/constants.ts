@@ -115,6 +115,7 @@ export const blankDashboardCR: DashboardConfig = {
       connectionTest: false,
       modelCapabilities: false,
       observabilityDashboard: true,
+      nimWizard: true,
     },
     notebookController: {
       enabled: true,
