@@ -1,8 +1,8 @@
 package constants
 
 const (
-	// TraceParentHeader is the W3C trace context header propagated through OGX
-	// passthrough calls so proxy requests stay attached to the Playground trace.
+	// TraceParentHeader is the W3C trace context header required to keep
+	// BFF → OGX → proxy/model spans attached to one Playground MLflow trace.
 	TraceParentHeader = "traceparent"
 
 	// TraceStateHeader is the optional W3C trace state header propagated with
