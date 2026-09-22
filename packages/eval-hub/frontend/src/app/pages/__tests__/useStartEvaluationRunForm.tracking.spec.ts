@@ -280,6 +280,24 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
 
       expect(renderResult.result.current.threshold).toBe(70);
     });
+
+    it('should convert the default threshold to the newly selected metric scale', () => {
+      const mixedScaleBenchmark: FlatBenchmark = {
+        ...mockBenchmark,
+        metrics: ['pct_stereotype', 'likelihood_diff'],
+        primary_score: { metric: 'pct_stereotype', lower_is_better: false },
+        pass_criteria: { threshold: 0.6 },
+      };
+      const renderResult = renderForm({ benchmark: mixedScaleBenchmark });
+
+      expect(renderResult.result.current.threshold).toBe(60);
+
+      act(() => {
+        renderResult.result.current.handlePrimaryMetricChange('likelihood_diff');
+      });
+
+      expect(renderResult.result.current.threshold).toBe(0.6);
+    });
   });
 
   describe('Evaluations Run Parameter Changed', () => {

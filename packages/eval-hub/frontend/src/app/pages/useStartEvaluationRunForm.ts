@@ -71,18 +71,26 @@ export function useStartEvaluationRunForm({
   const availableMetrics = React.useMemo(() => benchmark?.metrics ?? [], [benchmark]);
   const defaultPrimaryMetric = benchmark?.primary_score?.metric ?? availableMetrics[0];
 
-  const defaultThreshold = React.useMemo(() => {
-    if (collection?.pass_criteria) {
-      return normalizeThreshold(collection.pass_criteria.threshold);
-    }
-    if (collection) {
-      return DEFAULT_SUITE_THRESHOLD;
-    }
-    if (benchmark?.pass_criteria) {
-      return getThresholdInputValue(benchmark.pass_criteria.threshold, defaultPrimaryMetric);
-    }
-    return 0;
-  }, [benchmark, collection, defaultPrimaryMetric]);
+  const getDefaultThresholdForMetric = React.useCallback(
+    (metric?: string) => {
+      if (collection?.pass_criteria) {
+        return normalizeThreshold(collection.pass_criteria.threshold);
+      }
+      if (collection) {
+        return DEFAULT_SUITE_THRESHOLD;
+      }
+      if (benchmark?.pass_criteria) {
+        return getThresholdInputValue(benchmark.pass_criteria.threshold, metric);
+      }
+      return 0;
+    },
+    [benchmark, collection],
+  );
+
+  const defaultThreshold = React.useMemo(
+    () => getDefaultThresholdForMetric(defaultPrimaryMetric),
+    [defaultPrimaryMetric, getDefaultThresholdForMetric],
+  );
 
   const benchmarkDisplayNameRef = React.useRef('');
 
@@ -125,7 +133,7 @@ export function useStartEvaluationRunForm({
       setPrimaryMetric(metric);
       setPrimaryMetricTouched(true);
       if (metricChanged) {
-        setThreshold(defaultThreshold);
+        setThreshold(getDefaultThresholdForMetric(metric));
         setThresholdTouched(true);
       }
 
@@ -136,7 +144,7 @@ export function useStartEvaluationRunForm({
       };
       fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
     },
-    [defaultPrimaryMetric, defaultThreshold, primaryMetric],
+    [defaultPrimaryMetric, getDefaultThresholdForMetric, primaryMetric],
   );
 
   // ── Evaluation name ─────────────────────────────────────────────────

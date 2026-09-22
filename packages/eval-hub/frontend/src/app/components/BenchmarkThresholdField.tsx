@@ -9,7 +9,11 @@ import {
   type SliderOnChangeEvent,
 } from '@patternfly/react-core';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
-import { getMetricUnit, isPercentageMetric } from '~/app/utilities/evaluationUtils';
+import {
+  getMetricUnit,
+  isPercentageMetric,
+  isWholeNumberThresholdMetric,
+} from '~/app/utilities/evaluationUtils';
 import './BenchmarkThresholdField.scss';
 
 type BenchmarkThresholdFieldProps = {
@@ -32,6 +36,7 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
   metric,
 }) => {
   const isPercentage = isPercentageMetric(metric);
+  const isWholeNumber = isWholeNumberThresholdMetric(metric);
   const metricUnit = getMetricUnit(metric);
   const [sliderValue, setSliderValue] = React.useState(value);
   const [inputValue, setInputValue] = React.useState(value);
@@ -78,12 +83,12 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
       return;
     }
 
-    const resolved = Math.round(parsedValue);
+    const resolved = isWholeNumber ? Math.round(parsedValue) : parsedValue;
     setRawInputValue(String(resolved));
     if (resolved !== value) {
       onChange(resolved);
     }
-  }, [onChange, rawInputValue, value]);
+  }, [isWholeNumber, onChange, rawInputValue, value]);
 
   const rawMetricInput = (
     <InputGroup className="pf-v6-u-w-50">
@@ -93,14 +98,14 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
           data-testid={fieldId}
           type="number"
           min={0}
-          step={1}
+          step={isWholeNumber ? 1 : 'any'}
           value={rawInputValue}
           aria-label={label}
           onChange={(_event, newValue) => setRawInputValue(newValue)}
           onBlur={handleRawInputBlur}
         />
       </InputGroupItem>
-      <InputGroupText isPlain>{metricUnit}</InputGroupText>
+      {metricUnit && <InputGroupText isPlain>{metricUnit}</InputGroupText>}
     </InputGroup>
   );
 
@@ -120,7 +125,8 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
       }
       fieldId={fieldId}
     >
-      {/* Percentage metrics use a normalized 0-100 slider; raw metrics have provider-defined scales with no universal maximum. */}
+      {/* Percentage metrics use a normalized 0-100 slider. Known rate and latency thresholds
+          use whole-number inputs; other raw metrics retain their provider-defined decimal scale. */}
       {isPercentage ? (
         <Slider
           data-testid={fieldId}

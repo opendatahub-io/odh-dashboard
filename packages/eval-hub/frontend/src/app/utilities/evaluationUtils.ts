@@ -75,8 +75,49 @@ export const formatAsPercentage = (value: number): string =>
   Number.isFinite(value) ? `${Math.round(value * 100)}%` : '-';
 
 // EvalHub currently provides the metric name but not its display format. Keep the
-// known non-percentage metrics here until the API exposes unit metadata.
+// known percentage metrics here until the API exposes unit metadata. New metrics
+// should only be added when the provider contract confirms that the value is a
+// percentage represented as a 0–1 ratio.
 /* eslint-disable camelcase */
+const PERCENTAGE_METRICS: ReadonlySet<string> = new Set([
+  'acc',
+  'acc_norm',
+  'accuracy',
+  'accuracy/accuracy',
+  'Accuracy/accuracy',
+  'accuracy_amb',
+  'accuracy_ambig',
+  'accuracy_disamb',
+  'accuracy_disambig',
+  'attack_success_rate',
+  'bias_score',
+  'choice/accuracy',
+  'ethics_cm_acc',
+  'exact_match',
+  'f1',
+  'f1_score',
+  'gender_bias_score',
+  'hhh_acc',
+  'injection_successful_percentage',
+  'inst_level_loose_acc',
+  'inst_level_strict_acc',
+  'mc1',
+  'mc1_acc',
+  'mc2',
+  'pass@1',
+  'pattern/accuracy',
+  'pct_stereotype',
+  'prompt_level_loose_acc',
+  'prompt_level_strict_acc',
+  'refusal_rate',
+  'schema_compliance',
+  'telelogs_scorer/accuracy',
+  'telelogs_scorer/maj_at_k',
+  'telemath_scorer/accuracy',
+  'toxicity_score',
+]);
+
+// Known non-percentage metrics retain their provider-defined units.
 const METRIC_UNITS: Record<string, string> = {
   mean_itl_ms: 'ms',
   mean_ttft_ms: 'ms',
@@ -84,29 +125,41 @@ const METRIC_UNITS: Record<string, string> = {
   prompt_tokens_per_second: 'prompt tokens/s',
   requests_per_second: 'requests/s',
 };
+
+const WHOLE_NUMBER_THRESHOLD_METRICS: ReadonlySet<string> = new Set([
+  'mean_itl_ms',
+  'mean_ttft_ms',
+  'output_tokens_per_second',
+  'prompt_tokens_per_second',
+  'requests_per_second',
+]);
 /* eslint-enable camelcase */
 
 export const getMetricUnit = (metric?: string): string | undefined =>
   metric ? METRIC_UNITS[metric] : undefined;
 
-// Metrics without a known unit retain EvalHub's existing percentage semantics. This is also the
-// safe fallback for providers whose primary metric metadata is incomplete, such as Inspect AI.
-export const isPercentageMetric = (metric?: string): boolean => getMetricUnit(metric) === undefined;
+// An omitted metric is reserved for normalized collection-level aggregate scores. Named metrics
+// must be explicitly listed above; unknown metrics are displayed as flat values for safety.
+export const isPercentageMetric = (metric?: string): boolean =>
+  metric === undefined || PERCENTAGE_METRICS.has(metric);
+
+export const isWholeNumberThresholdMetric = (metric?: string): boolean =>
+  metric !== undefined && WHOLE_NUMBER_THRESHOLD_METRICS.has(metric);
 
 const formatMetricNumber = (value: number): string =>
   Number.isFinite(value) ? Number(value.toFixed(2)).toString() : '-';
 
 export const formatMetricValue = (value: number, metric?: string, includeUnit = true): string => {
-  const unit = getMetricUnit(metric);
-  if (!unit) {
+  if (isPercentageMetric(metric)) {
     return formatAsPercentage(value);
   }
   if (!Number.isFinite(value)) {
     return '-';
   }
 
+  const unit = getMetricUnit(metric);
   const formattedValue = formatMetricNumber(value);
-  return includeUnit ? `${formattedValue} ${unit}` : formattedValue;
+  return includeUnit && unit ? `${formattedValue} ${unit}` : formattedValue;
 };
 
 const getBenchmarkConfig = (
@@ -167,15 +220,25 @@ export const formatBenchmarkScore = (
 };
 
 export const getResultScore = (job: EvaluationJob, includeMetricUnit = true): string => {
+  const jobBenchmarks = getJobBenchmarks(job);
+  const isBenchmarkSuite = Boolean(job.collection) || jobBenchmarks.length > 1;
   const resultBenchmark = job.results.benchmarks?.[0];
   const resolvedIndex = resultBenchmark?.benchmark_index ?? 0;
   const configBenchmark = resultBenchmark
     ? getBenchmarkConfig(job, resultBenchmark.id, resolvedIndex)
-    : getJobBenchmarks(job)[0];
+    : jobBenchmarks[0];
   const primaryMetric = configBenchmark?.primary_score?.metric;
   const score = job.results.test?.score;
+
+  if (!isBenchmarkSuite && resultBenchmark) {
+    const benchmarkScore = formatBenchmarkScore(resultBenchmark, primaryMetric, includeMetricUnit);
+    if (benchmarkScore !== null) {
+      return benchmarkScore;
+    }
+  }
+
   if (score != null && Number.isFinite(score)) {
-    return job.collection
+    return isBenchmarkSuite
       ? formatAsPercentage(score)
       : formatMetricValue(score, primaryMetric, includeMetricUnit);
   }
@@ -310,10 +373,18 @@ export const normalizeThreshold = (threshold: number): number =>
   threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);
 
 export const getThresholdInputValue = (threshold: number, metric?: string): number =>
-  isPercentageMetric(metric) ? normalizeThreshold(threshold) : Math.round(threshold);
+  isPercentageMetric(metric)
+    ? normalizeThreshold(threshold)
+    : isWholeNumberThresholdMetric(metric)
+      ? Math.round(threshold)
+      : threshold;
 
 export const getThresholdRequestValue = (threshold: number, metric?: string): number =>
-  isPercentageMetric(metric) ? threshold / 100 : Math.round(threshold);
+  isPercentageMetric(metric)
+    ? threshold / 100
+    : isWholeNumberThresholdMetric(metric)
+      ? Math.round(threshold)
+      : threshold;
 
 export const formatThresholdValue = (value: number, metric?: string): string => {
   if (!Number.isFinite(value)) {

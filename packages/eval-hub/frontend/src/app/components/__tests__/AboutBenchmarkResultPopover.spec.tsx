@@ -79,7 +79,7 @@ describe('AboutBenchmarkResultPopover', () => {
   it('should display the primary metric name and direction', () => {
     renderPopover();
     fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-    expect(screen.getByText('Acc Norm · Higher is better')).toBeInTheDocument();
+    expect(screen.getByText('Accuracy (normalized) · Higher is better')).toBeInTheDocument();
   });
 
   it('should display the score and threshold', () => {
@@ -113,7 +113,7 @@ describe('AboutBenchmarkResultPopover', () => {
   it('should fall back to derived text when no interpretation metadata exists', () => {
     renderPopover({}, null);
     fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-    expect(screen.getByText('Acc Norm; higher is better.')).toBeInTheDocument();
+    expect(screen.getByText('Accuracy (normalized); higher is better.')).toBeInTheDocument();
   });
 
   it('should display "Lower is better" for lower_is_better metrics', () => {
@@ -140,8 +140,8 @@ describe('AboutBenchmarkResultPopover', () => {
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-    expect(screen.getByText('Toxicity Score · Lower is better')).toBeInTheDocument();
-    expect(screen.getByText('Toxicity Score; lower is better.')).toBeInTheDocument();
+    expect(screen.getByText('Toxicity score · Lower is better')).toBeInTheDocument();
+    expect(screen.getByText('Toxicity score; lower is better.')).toBeInTheDocument();
   });
 
   describe('providerDirection fallback logic', () => {
@@ -160,7 +160,7 @@ describe('AboutBenchmarkResultPopover', () => {
       };
       renderPopover({}, provider);
       fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-      expect(screen.getByText('Acc Norm · Lower is better')).toBeInTheDocument();
+      expect(screen.getByText('Accuracy (normalized) · Lower is better')).toBeInTheDocument();
     });
 
     it('should fall back to job config direction when provider metric does not match', () => {
@@ -179,7 +179,7 @@ describe('AboutBenchmarkResultPopover', () => {
       renderPopover({}, provider);
       fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
       // Job benchmarkConfig has lower_is_better: false for acc_norm
-      expect(screen.getByText('Acc Norm · Higher is better')).toBeInTheDocument();
+      expect(screen.getByText('Accuracy (normalized) · Higher is better')).toBeInTheDocument();
     });
 
     it('should fall back to job config direction when provider benchmark has no primary_score', () => {
@@ -189,7 +189,7 @@ describe('AboutBenchmarkResultPopover', () => {
       };
       renderPopover({}, provider);
       fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-      expect(screen.getByText('Acc Norm · Higher is better')).toBeInTheDocument();
+      expect(screen.getByText('Accuracy (normalized) · Higher is better')).toBeInTheDocument();
     });
   });
 

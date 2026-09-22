@@ -124,7 +124,7 @@ const EvaluationResultsPage: React.FC = () => {
     if (!job) {
       return '-';
     }
-    return getResultScore(job, false);
+    return getResultScore(job);
   }, [job]);
 
   const mlflowExperimentId = job?.resource.mlflow_experiment_id;
@@ -248,7 +248,7 @@ const EvaluationResultsPage: React.FC = () => {
                     content={
                       job.collection
                         ? 'Weighted average based on the primary metric score of the benchmark runs and the benchmark weights.'
-                        : 'Normalised score based on the primary metric score of the benchmark run.'
+                        : "Value of the benchmark run's primary metric."
                     }
                   />
                 </FlexItem>

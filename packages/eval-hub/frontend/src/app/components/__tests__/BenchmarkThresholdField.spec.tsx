@@ -47,6 +47,39 @@ describe('BenchmarkThresholdField', () => {
     expect(onChange).toHaveBeenCalledWith(1250);
   });
 
+  it('should render Inspect accuracy thresholds with a percentage slider', () => {
+    render(<BenchmarkThresholdField value={75} metric="Accuracy/accuracy" onChange={jest.fn()} />);
+
+    const slider = screen.getByRole('slider');
+    expect(slider).toHaveAttribute('aria-valuemin', '0');
+    expect(slider).toHaveAttribute('aria-valuemax', '100');
+    expect(slider).toHaveAttribute('aria-valuenow', '75');
+    expect(screen.getByRole('spinbutton', { name: 'Benchmark threshold' })).toHaveValue(75);
+  });
+
+  it('should preserve decimal thresholds for flat metrics', () => {
+    const onChange = jest.fn();
+    render(<BenchmarkThresholdField value={0.05} metric="Accuracy/stderr" onChange={onChange} />);
+
+    const input = screen.getByRole('spinbutton', { name: 'Benchmark threshold' });
+    expect(input).toHaveValue(0.05);
+    expect(input).toHaveAttribute('step', 'any');
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: '0.025' } });
+    fireEvent.blur(input);
+    expect(input).toHaveValue(0.025);
+    expect(onChange).toHaveBeenCalledWith(0.025);
+  });
+
+  it('should render unknown metric thresholds as flat numeric inputs without a unit', () => {
+    render(<BenchmarkThresholdField value={0.52} metric="custom_metric" onChange={jest.fn()} />);
+
+    expect(screen.getByRole('spinbutton', { name: 'Benchmark threshold' })).toHaveValue(0.52);
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    expect(screen.queryByText('custom_metric')).not.toBeInTheDocument();
+  });
+
   it('should display 0 and 100 boundary labels', () => {
     render(<BenchmarkThresholdField value={50} onChange={jest.fn()} />);
 

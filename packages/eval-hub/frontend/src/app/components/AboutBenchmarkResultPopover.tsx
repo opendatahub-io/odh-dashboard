@@ -8,6 +8,7 @@ import {
   getBenchmarkDisplayName,
   getJobBenchmarks,
 } from '~/app/utilities/evaluationUtils';
+import { getMetricDisplayName } from '~/app/components/benchmarkUtils';
 
 type AboutBenchmarkResultPopoverProps = {
   benchmarkId: string;
@@ -50,6 +51,7 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   const directionLabel = lowerIsBetter ? 'Lower is better' : 'Higher is better';
   const benchmarkInterpretation = providerBenchmark?.agent?.result_interpretation;
   const providerInterpretation = provider?.agent?.result_interpretation;
+  const primaryMetricDisplayName = getMetricDisplayName(primaryMetricName);
 
   let bodyText: string;
   if (benchmarkInterpretation) {
@@ -57,7 +59,7 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   } else if (providerInterpretation?.length) {
     bodyText = providerInterpretation.join(' ');
   } else {
-    bodyText = `${getBenchmarkDisplayName(primaryMetricName)}; ${lowerIsBetter ? 'lower' : 'higher'} is better.`;
+    bodyText = `${primaryMetricDisplayName}; ${lowerIsBetter ? 'lower' : 'higher'} is better.`;
   }
 
   const score = result ? formatBenchmarkScore(result, primaryMetricName) : undefined;
@@ -75,7 +77,7 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
         <>
           <Content component="p">
             <strong>
-              {getBenchmarkDisplayName(primaryMetricName)} · {directionLabel}
+              {primaryMetricDisplayName} · {directionLabel}
             </strong>
           </Content>
           <Content component="p" className="pf-v6-u-mt-sm">
