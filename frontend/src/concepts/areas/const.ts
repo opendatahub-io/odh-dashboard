@@ -12,7 +12,6 @@ export const techPreviewFlags = {
   autorag: false,
   guardrails: false,
   modelAsService: true,
-  externalModels: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   mcpRegistry: false,
@@ -35,7 +34,6 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  nimWizard: false,
   nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
@@ -79,6 +77,7 @@ export const modelServingFlags = {
   disablePerformanceMetrics: false,
   disableTrustyBiasMetrics: false,
   disableLLMd: false,
+  nimWizard: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 4: Advanced AI/ML Features & Pipelines
@@ -288,9 +287,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_GEN_AI]: {
     featureFlags: ['genAiStudio'],
-  },
-  [SupportedArea.EXTERNAL_MODELS]: {
-    featureFlags: ['externalModels'],
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],

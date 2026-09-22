@@ -1,15 +1,5 @@
-import type { AutoRAGEvaluationMetricResult } from '~/app/types/autoragPattern';
-import { formatMetricName } from '~/app/utilities/utils';
-
-export const metricIdentity = (metric: AutoRAGEvaluationMetricResult): string =>
-  `${metric.evaluator}:${metric.name}`;
-
-export const formatMetricIdentity = (identity: string): string => {
-  const separator = identity.indexOf(':');
-  const evaluator = identity.slice(0, separator);
-  const name = identity.slice(separator + 1);
-  return `${formatMetricName(name)} (${evaluator})`;
-};
+import type { AutoRAGEvaluationMetricResult, MetricReference } from '~/app/types/autoragPattern';
+import { groupMetricsByKey, metricKey } from '~/app/utilities/metricUtils';
 
 /**
  * Collect the union of all metric names across multiple Q&A evaluation results,
@@ -17,15 +7,15 @@ export const formatMetricIdentity = (identity: string): string => {
  */
 export function collectAllMetricNames(
   results: { metrics: AutoRAGEvaluationMetricResult[] }[],
-): string[] {
+): MetricReference[] {
   const seen = new Set<string>();
-  const names: string[] = [];
+  const names: MetricReference[] = [];
   for (const result of results) {
     for (const m of result.metrics) {
-      const identity = metricIdentity(m);
-      if (!seen.has(identity)) {
-        seen.add(identity);
-        names.push(identity);
+      const key = metricKey(m);
+      if (!seen.has(key)) {
+        seen.add(key);
+        names.push({ name: m.name, evaluator: m.evaluator });
       }
     }
   }
@@ -34,11 +24,15 @@ export function collectAllMetricNames(
 
 export function metricValues(
   metrics: AutoRAGEvaluationMetricResult[],
-  allMetricNames: string[],
+  allMetricNames: MetricReference[],
 ): (number | undefined)[] {
-  const byIdentity = new Map(metrics.map((m) => [metricIdentity(m), m.score]));
-  return allMetricNames.map((identity) => {
-    const score = byIdentity.get(identity);
+  const byKey = groupMetricsByKey(metrics);
+  return allMetricNames.map((metric) => {
+    const group = byKey.get(metricKey(metric));
+    if (!group || group.length !== 1) {
+      return undefined;
+    }
+    const { score } = group[0];
     return typeof score === 'number' && Number.isFinite(score) ? score : undefined;
   });
 }

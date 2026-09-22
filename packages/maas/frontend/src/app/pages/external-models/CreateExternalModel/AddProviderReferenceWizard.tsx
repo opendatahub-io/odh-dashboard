@@ -1,22 +1,35 @@
 import React from 'react';
 import { Modal, ModalVariant, Wizard, WizardHeader, WizardStep } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useCreateExternalProviderForm } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
 import { isAuthMechanism } from '~/app/pages/external-providers/validation';
 import { toCreateExternalProviderRequest } from '~/app/pages/external-providers/utils';
 import {
-  getProviderReferenceFieldErrors,
   getVisibleProviderReferenceFieldErrors,
-  hasProviderReferenceFieldErrors,
+  getProviderReferenceFieldErrors,
   isProviderReferenceFormIncomplete,
   ProviderReferenceFieldTouched,
   ProviderReferenceFormData,
+  InitialProviderReferenceFormData,
 } from '~/app/pages/external-models/validations';
 import { configPairsToRecord } from '~/app/utilities/configPairs';
+import {
+  PROVIDER_REFERENCE_API_FORMATS,
+  ProviderSource,
+  type ProviderSourceType,
+} from '~/app/pages/external-models/const';
+import {
+  convertStringToExternalModelProviderSource,
+  MaaSEvents,
+  ExternalModelProviderContext,
+  ExternalModelWizardProviderSourceSelectedProperties,
+} from '~/app/types/event-tracking';
+import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
 import ProviderReferenceStep2Form from './ProviderReferenceStep2Form';
 import AddProviderReferenceWizardFooter from './AddProviderReferenceWizardFooter';
-import SelectProviderStep, { ProviderSourceType } from './SelectProviderStep';
+import SelectProviderStep from './SelectProviderStep';
 
 type AddProviderReferenceWizardProps = {
   isOpen: boolean;
@@ -24,11 +37,12 @@ type AddProviderReferenceWizardProps = {
   externalProviders: ExternalProvider[];
   onClose: () => void;
   onAdd: (providerRef: ProviderRef) => void;
+  eventContext: ExternalModelProviderContext;
 };
 
-const emptyConfigureForm = (): ProviderReferenceFormData => ({
-  apiFormat: 'openai-chat',
-  path: '/v1/chat/completions',
+const emptyConfigureForm = (): InitialProviderReferenceFormData => ({
+  apiFormat: undefined,
+  path: '',
   targetModel: '',
   weight: 1,
   configPairs: [],
@@ -45,22 +59,25 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   externalProviders,
   onClose,
   onAdd,
+  eventContext,
 }) => {
   const { refreshExternalProviders, refreshSecrets } = useExternalModelsContext();
   const createProviderForm = useCreateExternalProviderForm(namespace);
 
-  const [providerSource, setProviderSource] = React.useState<ProviderSourceType>('existing');
+  const [providerSource, setProviderSource] = React.useState<ProviderSourceType>(
+    ProviderSource.EXISTING,
+  );
   const [providerName, setProviderName] = React.useState('');
   const [createdProviderOverride, setCreatedProviderOverride] = React.useState<
     ExternalProvider | undefined
   >();
   const [configureForm, setConfigureForm] =
-    React.useState<ProviderReferenceFormData>(emptyConfigureForm);
+    React.useState<InitialProviderReferenceFormData>(emptyConfigureForm);
   const [fieldTouched, setFieldTouched] = React.useState<ProviderReferenceFieldTouched>({});
 
   React.useEffect(() => {
     if (isOpen) {
-      setProviderSource('existing');
+      setProviderSource(ProviderSource.EXISTING);
       setProviderName('');
       setCreatedProviderOverride(undefined);
       setConfigureForm(emptyConfigureForm());
@@ -77,19 +94,27 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
       setCreatedProviderOverride(undefined);
       setProviderName('');
 
-      if (source === 'create-new') {
+      fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PROVIDER_SOURCE_SELECTED, {
+        providerSource: convertStringToExternalModelProviderSource(source),
+        context: eventContext,
+        hasExistingProviders: externalProviders.length > 0,
+      } satisfies ExternalModelWizardProviderSourceSelectedProperties);
+
+      if (source === ProviderSource.CREATE_NEW) {
         createProviderForm.reset();
       }
     },
-    [createProviderForm],
+    [createProviderForm, externalProviders, eventContext],
   );
 
   const isStepOneValid =
-    providerSource === 'existing' ? providerName.trim() !== '' : createProviderForm.isFormValid;
+    providerSource === ProviderSource.EXISTING
+      ? providerName.trim() !== ''
+      : createProviderForm.isFormValid;
 
   const selectedProvider = React.useMemo(() => {
     if (
-      providerSource === 'create-new' &&
+      providerSource === ProviderSource.CREATE_NEW &&
       createdProviderOverride &&
       createdProviderOverride.name === providerName
     ) {
@@ -103,9 +128,10 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
     [selectedProvider?.config],
   );
 
-  const isAddDisabled = isProviderReferenceFormIncomplete(configureForm);
+  const isAddDisabled = isProviderReferenceFormIncomplete(configureForm, validationContext);
   const configureFieldErrors = getProviderReferenceFieldErrors(configureForm, validationContext);
   const visibleFieldErrors = getVisibleProviderReferenceFieldErrors(
+    configureForm,
     configureFieldErrors,
     fieldTouched,
   );
@@ -145,7 +171,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   }, [createProviderForm, namespace]);
 
   const handleNext = React.useCallback(async (): Promise<boolean> => {
-    if (providerSource !== 'create-new') {
+    if (providerSource !== ProviderSource.CREATE_NEW) {
       setCreatedProviderOverride(undefined);
       return true;
     }
@@ -160,15 +186,32 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
     return true;
   }, [buildPendingProvider, providerSource]);
 
+  const trackingProviderType = React.useMemo(
+    () =>
+      selectedProvider?.provider ??
+      (providerSource === ProviderSource.CREATE_NEW ? createProviderForm.formData.provider : ''),
+    [selectedProvider?.provider, providerSource, createProviderForm.formData.provider],
+  );
+
+  const trackingAuthMechanism = React.useMemo(
+    () =>
+      selectedProvider?.authMechanism ??
+      convertStringToAuthMechanism(createProviderForm.formData.authMechanism),
+    [selectedProvider?.authMechanism, createProviderForm.formData.authMechanism],
+  );
+
+  const trackingHasCreatedSecret =
+    providerSource === ProviderSource.CREATE_NEW && createProviderForm.formData.isNewSecret;
+
   const handleAdd = React.useCallback(async (): Promise<boolean> => {
     setFieldTouched(allConfigureFieldsTouched());
-    if (!isStepOneValid || hasProviderReferenceFieldErrors(configureForm, validationContext)) {
+    if (!isStepOneValid || isProviderReferenceFormIncomplete(configureForm, validationContext)) {
       return false;
     }
 
     let resolvedProviderName = providerName.trim();
 
-    if (providerSource === 'create-new') {
+    if (providerSource === ProviderSource.CREATE_NEW) {
       const createdProviderName = await createProviderForm.submit();
       if (!createdProviderName) {
         return false;
@@ -180,9 +223,9 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
 
     onAdd({
       providerName: resolvedProviderName,
-      apiFormat: configureForm.apiFormat.trim(),
-      path: configureForm.path.trim(),
-      targetModel: configureForm.targetModel.trim(),
+      apiFormat: configureForm.apiFormat?.trim() ?? '',
+      path: configureForm.path?.trim() ?? '',
+      targetModel: configureForm.targetModel?.trim() ?? '',
       weight: configureForm.weight,
       config: configPairsToRecord(configureForm.configPairs),
     });
@@ -207,12 +250,38 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         isNextDisabled={!isStepOneValid}
         isAddDisabled={isAddDisabled}
         isAddLoading={createProviderForm.isSubmitting}
-        submitLabel="Add"
+        submitLabel="Create"
         onAdd={handleAdd}
         onNext={handleNext}
+        providerSource={providerSource}
+        providerType={trackingProviderType}
+        apiFormat={configureForm.apiFormat?.trim() ?? ''}
+        authMechanism={trackingAuthMechanism}
+        hasCreatedSecret={trackingHasCreatedSecret}
+        hasPathOverride={
+          !!configureForm.apiFormat &&
+          configureForm.path?.trim() !==
+            PROVIDER_REFERENCE_API_FORMATS[configureForm.apiFormat].defaultPath
+        }
+        countOfConfigOverrides={configureForm.configPairs.length}
+        context={eventContext}
       />
     ),
-    [createProviderForm.isSubmitting, handleAdd, handleNext, isAddDisabled, isStepOneValid],
+    [
+      createProviderForm.isSubmitting,
+      handleAdd,
+      handleNext,
+      isAddDisabled,
+      isStepOneValid,
+      providerSource,
+      configureForm.apiFormat,
+      configureForm.configPairs.length,
+      configureForm.path,
+      trackingAuthMechanism,
+      trackingHasCreatedSecret,
+      trackingProviderType,
+      eventContext,
+    ],
   );
 
   return (
@@ -228,15 +297,16 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         onClose={onClose}
         header={
           <WizardHeader
-            title="Add provider reference"
+            title="Create provider reference"
             titleId="add-provider-reference-wizard-title"
             onClose={onClose}
             closeButtonAriaLabel="Close wizard"
+            description="Create a provider reference to define this model's relationship to a provider. "
           />
         }
         footer={wizardFooter}
       >
-        <WizardStep name="Select provider" id="select-provider-step">
+        <WizardStep name="Provider" id="select-provider-step">
           <SelectProviderStep
             namespace={namespace}
             providerSource={providerSource}
@@ -247,7 +317,11 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
             createProviderForm={createProviderForm}
           />
         </WizardStep>
-        <WizardStep name="Configure model" id="configure-model-step" isDisabled={!isStepOneValid}>
+        <WizardStep
+          name="Model configuration"
+          id="configure-model-step"
+          isDisabled={!isStepOneValid}
+        >
           <ProviderReferenceStep2Form
             form={configureForm}
             selectedProvider={selectedProvider}
@@ -256,8 +330,12 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
             onTargetModelBlur={() => handleFieldTouch('targetModel')}
             onPathBlur={() => handleFieldTouch('path')}
             createProviderSubmitError={
-              providerSource === 'create-new' ? createProviderForm.submitError : undefined
+              providerSource === ProviderSource.CREATE_NEW
+                ? createProviderForm.submitError
+                : undefined
             }
+            providerSource={convertStringToExternalModelProviderSource(providerSource)}
+            context={eventContext}
           />
         </WizardStep>
       </Wizard>

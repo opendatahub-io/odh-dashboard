@@ -11,6 +11,7 @@ export const volumeToAsset = (volume: VolumeInfo, collection: string): AssetResp
   // Also remove the volume-prefixed metadata properties since we map them to standard names below
   const displayProperties = { ...volume.properties };
   delete displayProperties.description;
+  delete displayProperties['connection-ref'];
   delete displayProperties.registered_by;
   delete displayProperties.updated_by;
   delete displayProperties.location;

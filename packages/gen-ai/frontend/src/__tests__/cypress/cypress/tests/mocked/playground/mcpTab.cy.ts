@@ -314,8 +314,8 @@ describe('Playground - MCP Servers', () => {
         namespace,
         serverName: github.name,
         servers: [
-          { name: github.name, status: 'healthy' },
-          { name: kubernetes.name, status: 'healthy' },
+          { name: github.name, status: 'healthy', url: github.url },
+          { name: kubernetes.name, status: 'healthy', url: kubernetes.url },
         ],
       });
 

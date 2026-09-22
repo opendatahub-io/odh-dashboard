@@ -2,7 +2,7 @@
 import { createDataConnection } from './dataConnection';
 import { ensureAdminOcSession } from './baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
-import type { DataConnectionReplacements } from '../../types';
+import type { CommandLineResult, DataConnectionReplacements } from '../../types';
 import { createCleanProject } from '../projectChecker';
 import { failOnDeploymentStatus } from '../failEarly';
 
@@ -96,6 +96,29 @@ type ConditionCheckOptions = {
   checkStopped?: boolean;
   requireLoadedState?: boolean;
 };
+
+/**
+ * Gets the project-scoped ServingRuntime referenced by an InferenceService.
+ */
+export const getInferenceServiceServingRuntimeName = (
+  inferenceServiceName: string,
+  namespace: string,
+): Cypress.Chainable<string> =>
+  cy
+    .exec(
+      `oc get inferenceservice ${inferenceServiceName} -n ${namespace} -o jsonpath='{.spec.predictor.model.runtime}'`,
+    )
+    .then((result: CommandLineResult) => {
+      const servingRuntimeName = result.stdout.trim();
+
+      if (!servingRuntimeName) {
+        throw new Error(
+          `InferenceService ${inferenceServiceName} does not reference a project-scoped ServingRuntime`,
+        );
+      }
+
+      return cy.wrap(servingRuntimeName);
+    });
 
 /**
  * Safely get a string value, defaulting to an empty string

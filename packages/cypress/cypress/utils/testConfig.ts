@@ -96,11 +96,14 @@ const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 const OCP_API_URL = testConfig?.OCP_API_URL;
 
-// OGX / MaaS connection settings (AutoRAG secrets use MAAS_* keys; OGX_* remains a fallback URL)
-const OGX_URL = testConfig?.OGX_URL;
-const OGX_API_KEY = testConfig?.OGX_API_KEY;
+// MaaS connection settings
 const MAAS_URL = testConfig?.MAAS_URL;
 const MAAS_API_KEY = testConfig?.MAAS_API_KEY;
+const MAAS_GENERATION_MODEL_ID = testConfig?.MAAS_GENERATION_MODEL_ID;
+const MAAS_EMBEDDING_MODEL_ID = testConfig?.MAAS_EMBEDDING_MODEL_ID;
+
+// Hugging Face API key for catalog source e2e tests
+const HF_API_KEY = testConfig?.HF_API_KEY;
 
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
@@ -122,10 +125,11 @@ export const cypressEnv = {
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
   OCP_API_URL,
-  OGX_URL,
-  OGX_API_KEY,
   MAAS_URL,
   MAAS_API_KEY,
+  HF_API_KEY,
+  MAAS_GENERATION_MODEL_ID,
+  MAAS_EMBEDDING_MODEL_ID,
   CLUSTER_AUTH,
 };
 

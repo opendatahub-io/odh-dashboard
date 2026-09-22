@@ -2,8 +2,8 @@
 # Vendored from fullsend-ai/agents scripts/pre-review.sh
 # @ 91f61f3441baedf3f912c9afd4bd574c98793b96 (harness review.yaml base).
 #
-# Local change from the stock script: hydrate the trusted Jira snapshot. The
-# sandbox receives that sanitized context file, never Jira credentials.
+# Local change from the stock script: hydrate registered host-adapter artifacts.
+# The sandbox receives sanitized adapter envelopes only, never credentials.
 #
 # Usage:
 #   pre-review.sh              # CI / harness pre_script
@@ -17,7 +17,104 @@
 #   GITHUB_PR_URL  — must be a valid GitHub pull request URL
 set -euo pipefail
 
+REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FULLSEND_CONFIG_DIR="${FULLSEND_DIR:-${_SCRIPT_DIR}/..}"
+
+# Post or update the review sticky via fullsend (bot + marker, keep_history from config).
+post_review_sticky_comment() {
+  local repo="$1"
+  local pr="$2"
+  local token="$3"
+  local body_file="$4"
+
+  fullsend post-comment \
+    --repo "${repo}" \
+    --number "${pr}" \
+    --token "${token}" \
+    --marker "${REVIEW_STICKY_MARKER}" \
+    --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
+    --result "${body_file}"
+}
+
+# Prints the required agentic-template sections that are absent or only hold
+# placeholders. Shared by the review gate and the earlier adapter gate so the
+# two cannot disagree about which PRs get reviewed.
+missing_required_headings() {
+  REVIEW_PR_BODY="$1" python3 <<'PY'
+import os, re
+
+body = os.environ.get("REVIEW_PR_BODY") or ""
+PLACEHOLDER = re.compile(r"^(n/a|na|tbd|todo|none|\.|-|—|\s*)$", re.I)
+
+def section_deficient(name):
+    pat = re.compile(rf"(?im)^#{{2,3}}\s*{re.escape(name)}\s*$")
+    match = pat.search(body)
+    if not match:
+        return name
+    rest = body[match.end():]
+    nxt = re.search(r"(?im)^#{{2,3}}\s+\S", rest)
+    text = (rest[: nxt.start()] if nxt else rest).strip()
+    if not text:
+        return name
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        return name
+    if all(PLACEHOLDER.match(ln) for ln in lines):
+        return name
+    return ""
+
+missing = [section_deficient(h) for h in ("Problem", "Solution", "Evidence")]
+print(", ".join([m for m in missing if m]))
+PY
+}
+
+# Run by the adapter-plan workflow job, before any paid adapter. Applies the
+# review gates below to the same PR so a review that will be skipped does not
+# first buy a CodeRabbit review. Fails open: if the PR cannot be read, the
+# adapters run and the review-time gate decides.
+adapter_gate() {
+  local decision="true" reason="" pr_json state body missing
+  if [[ "${PR_NUMBER:-}" =~ ^[1-9][0-9]*$ && "${REPO_FULL_NAME:-}" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]] \
+    && pr_json="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json state,body 2>/dev/null)"; then
+    state="$(jq -r '.state // empty' <<<"${pr_json}")"
+    body="$(jq -r '.body // empty' <<<"${pr_json}")"
+    if [[ -n "${state}" && "${state}" != "OPEN" ]]; then
+      decision="false"
+      reason="PR is $(printf '%s' "${state}" | tr '[:upper:]' '[:lower:]')"
+    else
+      missing="$(missing_required_headings "${body}")"
+      if [[ -n "${missing}" ]]; then
+        decision="false"
+        reason="PR description is missing required sections: ${missing}"
+      fi
+    fi
+  else
+    echo "::warning::Could not read PR #${PR_NUMBER:-?}; running host adapters and leaving the skip decision to the review"
+  fi
+  if [[ "${decision}" == "false" ]]; then
+    echo "::notice::Skipping host adapters — ${reason}"
+  fi
+  if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+    echo "run_adapters=${decision}" >> "${GITHUB_OUTPUT}"
+  else
+    echo "run_adapters=${decision}"
+  fi
+}
+
+# `fullsend run` treats a bare exit 0 as "proceed": it still builds the sandbox
+# and runs the agent. A skip only takes effect when written to the pre-script
+# output file (prescript-output v1, ADR 0072). The guard keeps an older CLI that
+# does not export the variable failing open instead of crashing on `>> ""`.
+request_skip() {
+  local reason
+  reason="$(printf '%s' "$1" | tr -d '[:cntrl:]')"
+  if [[ -n "${FULLSEND_PRESCRIPT_OUTPUT:-}" ]]; then
+    printf 'skipped=true\nreason=%s\n' "${reason}" >> "${FULLSEND_PRESCRIPT_OUTPUT}"
+  fi
+  exit 0
+}
 
 normalize_dispatch_context() {
   local work_item_url
@@ -47,8 +144,161 @@ validate_dimension_registry() {
   "${_SCRIPT_DIR}/validate-dimensions.sh"
 }
 
+validate_adapter_registry() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  local runner setup_runner
+  if ! jq -e '
+    (.dimensions | type == "array") and
+    (([.dimensions[] | select(.kind == "cli-adapter") | .id] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
+    (([.dimensions[] | select(.kind == "cli-adapter") | .producer_file] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
+    (([.dimensions[] | select(.kind == "cli-adapter" and .host.execution == "workflow") | .host.artifact_name] | unique | length) ==
+      ([.dimensions[] | select(.kind == "cli-adapter" and .host.execution == "workflow")] | length)) and
+    all(
+      .dimensions[] | select(.kind == "cli-adapter");
+      (.id | type == "string" and test("^[a-z0-9][a-z0-9-]*$")) and
+      (.output | type == "string" and test("^(context|findings|check:[a-z0-9-]+)$")) and
+      (.runner | type == "string" and test("^scripts/[A-Za-z0-9._/-]+\\.sh$")) and
+      (.producer_file | type == "string" and test("^\\.run/[A-Za-z0-9._-]+\\.json$")) and
+      (.host.execution == "workflow" or .host.execution == "pre_review") and
+      (if .host.execution == "workflow" then
+        (.host.artifact_name | type == "string" and test("^[A-Za-z0-9._{}-]+$") and contains("{pr_number}")) and
+        (.host.artifact_file | type == "string" and test("^[A-Za-z0-9._-]+\\.json$")) and
+        (.host.artifact_file == (.producer_file | split("/") | last)) and
+        (.host.checkout_pr | type == "boolean") and
+        (.host.setup_runner | type == "string" and
+          (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
+        all(
+          [.host.credentials.url_secret, .host.credentials.username_secret, .host.credentials.token_secret][];
+          type == "string" and test("^[A-Z][A-Z0-9_]*$")
+        )
+      else true end)
+    )
+  ' "${registry}" >/dev/null; then
+    return 1
+  fi
+
+  while IFS=$'\t' read -r runner setup_runner; do
+    [[ -f "${_SCRIPT_DIR}/../${runner}" ]] || return 1
+    [[ -z "${setup_runner}" || -f "${_SCRIPT_DIR}/../${setup_runner}" ]] || return 1
+  done < <(jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter")
+    | [.runner, (.host.setup_runner // "")]
+    | @tsv
+  ' "${registry}")
+}
+
+adapter_rows() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter")
+    | [.id, .producer_file, .output]
+    | @tsv
+  ' "${registry}"
+}
+
+workflow_adapter_rows() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter" and .host.execution == "workflow")
+    | [.id, .producer_file, .host.artifact_name, .host.artifact_file, .output]
+    | @tsv
+  ' "${registry}"
+}
+
+aggregate_cli_adapters() {
+  local run_dir="${_SCRIPT_DIR}/../.run"
+  local id producer_file declared_output file
+  local files=()
+
+  while IFS=$'\t' read -r id producer_file declared_output; do
+    file="${_SCRIPT_DIR}/../${producer_file}"
+    [[ -f "${file}" ]] && files+=("${file}")
+  done < <(adapter_rows)
+
+  mkdir -p "${run_dir}"
+  if ((${#files[@]} == 0)); then
+    printf '[]\n' > "${run_dir}/collected.json"
+  else
+    jq -s '[.[] | select(
+      type == "object" and
+      .kind == "cli-adapter" and
+      (.output | type == "string")
+    )]' \
+      "${files[@]}" > "${run_dir}/collected.json"
+  fi
+}
+
+run_pre_review_adapters() {
+  local runner
+  while IFS= read -r runner; do
+    [[ -n "${runner}" ]] && bash "${_SCRIPT_DIR}/../${runner}"
+  done < <(jq -r '
+    [.dimensions[]
+      | select(.kind == "cli-adapter" and .host.execution == "pre_review")
+      | .runner]
+    | unique[]
+  ' "${_SCRIPT_DIR}/../dimensions.json")
+}
+
+hydrate_workflow_adapters() {
+  local id producer_file artifact_template artifact_file declared_output artifact_name
+  local artifact_dir source_file destination_file
+
+  if ! validate_adapter_registry; then
+    echo "::error::Invalid cli-adapter host metadata in .fullsend/dimensions.json"
+    return 1
+  fi
+
+  while IFS=$'\t' read -r id producer_file artifact_template artifact_file declared_output; do
+    artifact_name="${artifact_template//\{pr_number\}/${PR_NUMBER}}"
+    artifact_dir="$(mktemp -d)"
+    source_file="${artifact_dir}/${artifact_file}"
+    destination_file="${_SCRIPT_DIR}/../${producer_file}"
+    rm -f "${destination_file}"
+
+    if GH_TOKEN="${_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
+      --repo "${REPO_FULL_NAME}" \
+      --name "${artifact_name}" \
+      --dir "${artifact_dir}" >/dev/null 2>&1; then
+      if [[ -f "${source_file}" ]] && jq -e --arg id "${id}" --arg output "${declared_output}" '
+        type == "object" and
+        .id == $id and
+        .dimension == $id and
+        .kind == "cli-adapter" and
+        .output == $output and
+        (.output != "findings" or (.findings | type == "array"))
+      ' "${source_file}" >/dev/null; then
+        mkdir -p "$(dirname "${destination_file}")"
+        cp "${source_file}" "${destination_file}"
+        echo "Loaded sanitized ${id} adapter output from workflow artifact ${artifact_name}"
+      else
+        echo "::warning::Adapter artifact ${artifact_name} did not contain a valid ${artifact_file} envelope"
+      fi
+    else
+      echo "::warning::Could not download adapter artifact ${artifact_name}; continuing without ${id}"
+    fi
+    rm -rf "${artifact_dir}"
+  done < <(workflow_adapter_rows)
+}
+
+prepare_cli_adapters() {
+  validate_adapter_registry
+  run_pre_review_adapters
+  if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
+    hydrate_workflow_adapters
+  fi
+  aggregate_cli_adapters
+}
+
 run_self_test() {
   local fail=0
+  local original_script_dir="${_SCRIPT_DIR}"
+  local temp_dir
   if ! validate_skill_links; then
     echo "FAIL pre-context: canonical Fullsend skill-link validation failed" >&2
     fail=1
@@ -69,6 +319,65 @@ run_self_test() {
   else
     echo "PASS pre-context matrix dispatch normalization"
   fi
+  temp_dir="$(mktemp -d)"
+  _SCRIPT_DIR="${temp_dir}/scripts"
+  mkdir -p "${_SCRIPT_DIR}/../.run"
+  printf '%s\n' '{"dimensions":[{"id":"jira-snapshot","kind":"cli-adapter","output":"context","producer_file":".run/jira.json","host":{"artifact_name":"jira-{pr_number}","artifact_file":"jira.json"}},{"id":"coderabbit","kind":"cli-adapter","output":"findings","producer_file":".run/coderabbit.json","host":{"artifact_name":"coderabbit-{pr_number}","artifact_file":"coderabbit.json"}}]}' > "${_SCRIPT_DIR}/../dimensions.json"
+  printf '%s\n' '{"id":"jira-snapshot","dimension":"jira-snapshot","kind":"cli-adapter","output":"context","status":"ok"}' > "${_SCRIPT_DIR}/../.run/jira.json"
+  printf '%s\n' '{"id":"coderabbit","dimension":"coderabbit","kind":"cli-adapter","output":"findings","status":"ok","findings":[{"severity":"medium","file":"src/example.ts"}]}' > "${_SCRIPT_DIR}/../.run/coderabbit.json"
+  aggregate_cli_adapters
+  if jq -e '
+    length == 2 and
+    (map(select(.output == "context" and .dimension == "jira-snapshot")) | length == 1) and
+    (map(select(.output == "findings" and .dimension == "coderabbit"))[0].findings[0].file == "src/example.ts")
+  ' \
+    "${_SCRIPT_DIR}/../.run/collected.json" >/dev/null; then
+    echo "PASS cli-adapter aggregation"
+  else
+    echo "FAIL cli-adapter aggregation" >&2
+    fail=1
+  fi
+  _SCRIPT_DIR="${original_script_dir}"
+  rm -rf "${temp_dir}"
+  if validate_adapter_registry; then
+    echo "PASS cli-adapter registry validation"
+  else
+    echo "FAIL cli-adapter registry validation" >&2
+    fail=1
+  fi
+  temp_dir="$(mktemp -d)"
+  : > "${temp_dir}/prescript.out"
+  if (FULLSEND_PRESCRIPT_OUTPUT="${temp_dir}/prescript.out" request_skip $'missing: Problem\r\nskipped=false') \
+    && [[ "$(cat "${temp_dir}/prescript.out")" == $'skipped=true\nreason=missing: Problemskipped=false' ]] \
+    && (unset FULLSEND_PRESCRIPT_OUTPUT; request_skip "no output file"); then
+    echo "PASS pre-script skip signal"
+  else
+    echo "FAIL pre-script skip signal" >&2
+    fail=1
+  fi
+  rm -rf "${temp_dir}"
+  local complete_body placeholder_body
+  complete_body=$'## Problem\nAdapters bill before the gate.\n\n## Solution\nGate earlier.\n\n## Evidence\nRun 35736972467.'
+  placeholder_body=$'## Problem\nReal text.\n\n## Solution\nTBD\n'
+  # The gh stub returns canned PR JSON, or fails when given none.
+  _gate_with() {
+    local json="$1"
+    (
+      gh() { [[ -n "${json}" ]] && printf '%s' "${json}"; }
+      unset GITHUB_OUTPUT
+      PR_NUMBER=1 REPO_FULL_NAME=o/r adapter_gate
+    ) | grep '^run_adapters='
+  }
+  if [[ "$(_gate_with "$(jq -cn --arg b "${complete_body}" '{state:"OPEN",body:$b}')")" == "run_adapters=true" ]] \
+    && [[ "$(_gate_with "$(jq -cn --arg b "${placeholder_body}" '{state:"OPEN",body:$b}')")" == "run_adapters=false" ]] \
+    && [[ "$(_gate_with "$(jq -cn --arg b "${complete_body}" '{state:"MERGED",body:$b}')")" == "run_adapters=false" ]] \
+    && [[ "$(_gate_with "")" == "run_adapters=true" ]] \
+    && [[ "$(missing_required_headings "${placeholder_body}")" == "Solution, Evidence" ]]; then
+    echo "PASS adapter readiness gate"
+  else
+    echo "FAIL adapter readiness gate" >&2
+    fail=1
+  fi
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -78,6 +387,20 @@ run_self_test() {
 if [[ "${1:-}" == "--self-test" ]]; then
   run_self_test
   exit 0
+fi
+
+if [[ "${1:-}" == "--validate-adapters" ]]; then
+  validate_adapter_registry
+  exit 0
+fi
+
+if [[ "${1:-}" == "--adapter-gate" ]]; then
+  adapter_gate
+  exit 0
+fi
+
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+  return 0 2>/dev/null || exit 0
 fi
 
 normalize_dispatch_context
@@ -154,7 +477,7 @@ The \`/fs-review\` command only reviews open pull requests.
   printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
     --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
 
-  exit 0
+  request_skip "PR is ${STATE_LOWER}"
 fi
 
 # ---------------------------------------------------------------------------
@@ -179,7 +502,7 @@ if [[ -n "${REVIEW_SKIP_AUTHORS:-}" ]]; then
         printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
           --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
 
-        exit 0
+        request_skip "PR author is in REVIEW_SKIP_AUTHORS"
       fi
     done
   fi
@@ -189,37 +512,45 @@ fi
 # Fetch title/body for trusted Jira-key parsing.
 # ---------------------------------------------------------------------------
 PR_VIEW="$(GH_TOKEN="${_TOKEN}" gh pr view "${PR_NUMBER}" \
-  --repo "${REPO_FULL_NAME}" --json title,body 2>/dev/null || true)"
+  --repo "${REPO_FULL_NAME}" --json title,body,headRefOid 2>/dev/null || true)"
 PR_TITLE="$(printf '%s' "${PR_VIEW}" | jq -r '.title // empty')"
 PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
+PR_HEAD_SHA="$(printf '%s' "${PR_VIEW}" | jq -r '.headRefOid // empty')"
+if [[ ! "${PR_HEAD_SHA}" =~ ^[0-9a-fA-F]{40}$ ]]; then
+  echo "::error::PR head SHA is missing or invalid (expected 40 hexadecimal characters), got: '${PR_HEAD_SHA:-}'"
+  exit 1
+fi
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
-# The pinned reusable dispatcher currently forwards Jira credentials only to
-# its generic matrix runner, not to the normal review job. The trusted shim
-# therefore fetches Jira before dispatch and uploads only the sanitized JSON
-# snapshot. Hydrate that artifact on the host before CLI producers run; Jira
-# credentials never enter this process or the sandbox.
-if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
-  _JIRA_ARTIFACT="fullsend-jira-context-${PR_NUMBER}"
-  _JIRA_ARTIFACT_DIR="$(mktemp -d)"
-  if GH_TOKEN="${_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
-    --repo "${REPO_FULL_NAME}" \
-    --name "${_JIRA_ARTIFACT}" \
-    --dir "${_JIRA_ARTIFACT_DIR}" >/dev/null 2>&1; then
-    _JIRA_ARTIFACT_FILE="${_JIRA_ARTIFACT_DIR}/jira.json"
-    if [[ -f "${_JIRA_ARTIFACT_FILE}" ]]; then
-      mkdir -p "${_SCRIPT_DIR}/../.run"
-      cp "${_JIRA_ARTIFACT_FILE}" "${_SCRIPT_DIR}/../.run/jira.json"
-      export FULLSEND_JIRA_SNAPSHOT_READY=1
-      echo "Loaded sanitized Jira snapshot from workflow artifact ${_JIRA_ARTIFACT}"
-    else
-      echo "::warning::Jira context artifact did not contain jira.json"
-    fi
-  else
-    echo "::warning::Could not download Jira context artifact ${_JIRA_ARTIFACT}; continuing without Jira context"
-  fi
-  rm -rf "${_JIRA_ARTIFACT_DIR}"
+MISSING_HEADINGS="$(missing_required_headings "${PR_BODY}")"
+
+if [[ -n "${MISSING_HEADINGS}" ]]; then
+  echo "::notice::PR #${PR_NUMBER} missing or placeholder headings (${MISSING_HEADINGS}) — skipping review"
+  SHORT_SHA="${PR_HEAD_SHA:0:7}"
+  [[ -z "${SHORT_SHA}" ]] && SHORT_SHA="unknown"
+  AGENTIC_TEMPLATE="https://github.com/opendatahub-io/odh-dashboard/blob/main/.github/PULL_REQUEST_TEMPLATE/agentic.md"
+  COMMENT_BODY="<!-- **Head SHA:** ${PR_HEAD_SHA} -->
+
+Finished Review · \`skipped\` · Commit: \`${SHORT_SHA}\`
+
+Review did not run. Fill required sections with real content (not N/A / TBD): ${MISSING_HEADINGS}.
+
+See [agentic.md](${AGENTIC_TEMPLATE}).
+
+<sub>Posted by <a href=\"https://github.com/fullsend-ai/fullsend\">fullsend</a> pre-review check</sub>"
+
+  _sticky_body="$(mktemp)"
+  printf '%s' "${COMMENT_BODY}" > "${_sticky_body}"
+  post_review_sticky_comment "${REPO_FULL_NAME}" "${PR_NUMBER}" "${_TOKEN}" "${_sticky_body}"
+  rm -f "${_sticky_body}"
+
+  request_skip "PR description is missing required sections: ${MISSING_HEADINGS}"
 fi
+
+# Run registered pre-review adapters, hydrate outputs from isolated workflow
+# adapter jobs, and collect every resulting envelope generically. Adapter
+# credentials never enter the sandbox.
+prepare_cli_adapters
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"
