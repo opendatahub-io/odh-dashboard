@@ -98,11 +98,11 @@ E2E_BFF_PORT ?= 8080
 
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_TOKEN=FAKE_BEARER_TOKEN LLAMA_STACK_URL="" MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_TOKEN=FAKE_BEARER_TOKEN LLAMA_STACK_URL="" MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh"
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " LLAMA_STACK_URL=$(LLAMA_STACK_URL) GATEWAY_DOMAIN=$(GATEWAY_DOMAIN) NEMO_GUARDRAILS_URL=$(NEMO_GUARDRAILS_URL) MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " LLAMA_STACK_URL=$(LLAMA_STACK_URL) GATEWAY_DOMAIN=$(GATEWAY_DOMAIN) NEMO_GUARDRAILS_URL=$(NEMO_GUARDRAILS_URL) MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh"
 
 .PHONY: dev-start-mock-debug
 dev-start-mock-debug: ## Run frontend, gen-ai BFF (mocks + debugger), and MLflow BFF with real inter-BFF

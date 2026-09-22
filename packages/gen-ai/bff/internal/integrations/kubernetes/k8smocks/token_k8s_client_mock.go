@@ -543,7 +543,7 @@ server:
 			},
 		},
 		Spec: ogxapi.OGXServerSpec{
-			Distribution: ogxapi.DistributionSpec{Name: "rh-dev"},
+			Distribution: ogxapi.DistributionSpec{Name: "rh"},
 			OverrideConfig: &ogxapi.ConfigMapKeyRef{
 				Name: "llama-stack-config",
 				Key:  constants.LlamaStackConfigYAMLKey,
