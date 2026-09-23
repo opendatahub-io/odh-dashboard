@@ -471,7 +471,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -548,8 +548,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -1102,7 +1102,7 @@ importers:
         version: link:../packages/tsconfig
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.5.17
-        version: 0.5.17(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)
+        version: 0.5.17(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
@@ -1117,7 +1117,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(react-refresh@0.18.0)
       '@types/dompurify':
         specifier: ^3.2.0
         version: 3.2.0
@@ -1179,8 +1179,8 @@ importers:
         specifier: ^7.6.5
         version: 7.6.5
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -1508,7 +1508,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -1582,8 +1582,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -1902,7 +1902,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -1982,8 +1982,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -2283,7 +2283,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -2360,8 +2360,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -2908,7 +2908,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -2988,8 +2988,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -3199,7 +3199,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -3270,8 +3270,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -3600,7 +3600,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -3677,8 +3677,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -3982,7 +3982,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -4047,8 +4047,8 @@ importers:
         specifier: ^3.5.4
         version: 3.5.4
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -4648,7 +4648,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -4725,8 +4725,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -5027,7 +5027,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -5104,8 +5104,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -5446,7 +5446,7 @@ importers:
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)
+        version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -5517,8 +5517,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
       react-refresh:
-        specifier: ^0.14.2
-        version: 0.14.2
+        specifier: ^0.18.0
+        version: 0.18.0
       regenerator-runtime:
         specifier: ^0.14.1
         version: 0.14.1
@@ -15128,10 +15128,6 @@ packages:
     peerDependencies:
       postcss: '>=8.5.23 <9.0.0'
 
-  postcss-selector-parser@7.1.5:
-    resolution: {integrity: sha512-KvvtD7SrlBP7dlgkBghEE3r84CABm5SmV2aNcG4oCA+qDnJ/tvKonFVvwWAyyWUEwxuNawdfEAZKP9zM3oZ2Uw==}
-    engines: {node: '>=4'}
-
   postcss-selector-parser@7.1.6:
     resolution: {integrity: sha512-7qASPzhKF2l2KLboRZux8CCTRMdGiV08vWmyKzPz22qZ7ZjQBOeY7rNzNoCLSUiftJ7HUq0GERHmxw/t0dCdMw==}
     engines: {node: '>=4'}
@@ -15458,8 +15454,8 @@ packages:
       redux:
         optional: true
 
-  react-refresh@0.14.2:
-    resolution: {integrity: sha512-jCvmsr+1IUSMUyzOkRcvnVbX3ZYC6g9TDrDbFuFmRDq7PD4yaGbLKNQL6k2jnArV8hjYxh7hVhAZB6s9HDGpZA==}
+  react-refresh@0.18.0:
+    resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
     engines: {node: '>=0.10.0'}
 
   react-resizable@3.2.0:
@@ -20980,14 +20976,14 @@ snapshots:
 
   '@pkgr/core@0.3.6': {}
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.5.17(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)':
+  '@pmmmwh/react-refresh-webpack-plugin@0.5.17(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)':
     dependencies:
       ansi-html: 0.0.9
       core-js-pure: 3.50.0
       error-stack-parser: 2.1.4
       html-entities: 2.6.0
       loader-utils: 2.0.4
-      react-refresh: 0.14.2
+      react-refresh: 0.18.0
       schema-utils: 4.3.3
       source-map: 0.7.6
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.28)(uglify-js@3.19.3)(webpack-cli@6.0.1)
@@ -21374,15 +21370,15 @@ snapshots:
 
   '@rspack/lite-tapable@1.1.5': {}
 
-  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(react-refresh@0.14.2)':
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(react-refresh@0.18.0)':
     dependencies:
-      react-refresh: 0.14.2
+      react-refresh: 0.18.0
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@0.24.1)
 
-  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.14.2)':
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-refresh@0.18.0)':
     dependencies:
-      react-refresh: 0.14.2
+      react-refresh: 0.18.0
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@2.8.2)
 
@@ -29299,13 +29295,13 @@ snapshots:
   postcss-calc@10.1.1(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
       postcss-value-parser: 4.2.0
 
   postcss-calc@10.1.1(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
       postcss-value-parser: 4.2.0
     optional: true
 
@@ -29342,12 +29338,12 @@ snapshots:
   postcss-discard-comments@7.0.8(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-discard-comments@7.0.8(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-discard-duplicates@7.0.4(postcss@8.5.26):
@@ -29396,7 +29392,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssnano-utils: 5.0.3(postcss@8.5.26)
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-merge-rules@7.0.11(postcss@8.5.28):
     dependencies:
@@ -29404,7 +29400,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssnano-utils: 5.0.3(postcss@8.5.28)
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-minify-font-values@7.0.3(postcss@8.5.26):
@@ -29454,7 +29450,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssesc: 3.0.0
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-minify-selectors@7.1.2(postcss@8.5.28):
     dependencies:
@@ -29462,7 +29458,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssesc: 3.0.0
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-modules-extract-imports@3.1.0(postcss@8.5.28):
@@ -29622,11 +29618,6 @@ snapshots:
       postcss-value-parser: 4.2.0
     optional: true
 
-  postcss-selector-parser@7.1.5:
-    dependencies:
-      cssesc: 3.0.0
-      util-deprecate: 1.0.2
-
   postcss-selector-parser@7.1.6:
     dependencies:
       cssesc: 3.0.0
@@ -29648,12 +29639,12 @@ snapshots:
   postcss-unique-selectors@7.0.7(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-unique-selectors@7.0.7(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-value-parser@4.2.0: {}
@@ -29992,7 +29983,7 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       redux: 4.2.1
 
-  react-refresh@0.14.2: {}
+  react-refresh@0.18.0: {}
 
   react-resizable@3.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
@@ -31005,13 +30996,13 @@ snapshots:
     dependencies:
       browserslist: 4.28.9
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   stylehacks@7.0.11(postcss@8.5.28):
     dependencies:
       browserslist: 4.28.9
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   stylis@4.2.0: {}
