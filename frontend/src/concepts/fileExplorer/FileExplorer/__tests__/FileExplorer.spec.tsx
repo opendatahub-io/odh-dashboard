@@ -99,6 +99,44 @@ describe('FileExplorer', () => {
       });
     });
 
+    it('should hide file details during upload and restore them after progress closes', async () => {
+      let resolveUpload!: (results: { key: string }[]) => void;
+      const uploadPromise = new Promise<{ key: string }[]>((resolve) => {
+        resolveUpload = resolve;
+      });
+      const uploadFiles = jest.fn().mockReturnValue(uploadPromise);
+      render(<FileExplorer {...defaultProps} selection="checkbox" upload={{ uploadFiles }} />);
+
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row).getByRole('checkbox'));
+
+      const detailsPanel = screen.getByTestId('file-explorer-details-panel');
+      expect(within(detailsPanel).getByText('Name')).toBeInTheDocument();
+      expect(within(detailsPanel).getByTestId('file-explorer-selected-files')).toHaveTextContent(
+        'file-1.json',
+      );
+
+      fireEvent.change(screen.getByTestId('file-explorer-upload-input'), {
+        target: { files: [new File(['data'], 'uploaded.csv', { type: 'text/csv' })] },
+      });
+
+      expect(within(detailsPanel).queryByText('Name')).not.toBeInTheDocument();
+      expect(within(detailsPanel).getByTestId('file-explorer-selected-files')).toHaveTextContent(
+        'file-1.json',
+      );
+
+      resolveUpload([{ key: '/uploaded.csv' }]);
+      await waitFor(() =>
+        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100'),
+      );
+      fireEvent.click(screen.getByTestId('file-explorer-close-upload-progress-btn'));
+
+      expect(within(detailsPanel).getByText('Name')).toBeInTheDocument();
+      expect(within(detailsPanel).getByTestId('file-explorer-selected-files')).toHaveTextContent(
+        'file-1.json',
+      );
+    });
+
     it('should open progress automatically for native picker selections', async () => {
       const uploadFiles = jest.fn().mockResolvedValue([{ key: '/uploaded.csv' }]);
       render(
@@ -122,6 +160,148 @@ describe('FileExplorer', () => {
       await waitFor(() => expect(screen.getByText('/uploaded.csv')).toBeInTheDocument());
       expect(uploadFiles).toHaveBeenCalledWith([file], '');
       expect(screen.queryByText('Drag and drop files here')).not.toBeInTheDocument();
+    });
+
+    it('should show the local filename while an upload is pending', () => {
+      const uploadFiles = jest.fn(
+        () =>
+          new Promise<{ key: string }[]>((resolve) => {
+            void resolve;
+          }),
+      );
+      render(<FileExplorer {...defaultProps} upload={{ uploadFiles }} />);
+
+      const file = new File(['data'], 'pending.csv', { type: 'text/csv' });
+      fireEvent.change(screen.getByTestId('file-explorer-upload-input'), {
+        target: { files: [file] },
+      });
+
+      const progress = screen.getByRole('progressbar');
+      const uploadList = within(screen.getByTestId('file-explorer-upload-panel')).getByRole('list');
+      expect(within(uploadList).getAllByRole('listitem')).toHaveLength(1);
+      expect(screen.getByText('pending.csv')).toBeInTheDocument();
+      expect(progress).toHaveAttribute('aria-valuenow', '0');
+      expect(progress).not.toHaveAttribute('aria-describedby');
+      expect(progress.closest('.pf-v6-c-progress')).toHaveClass('pf-v6-c-progress');
+      expect(progress.closest('.pf-v6-c-progress')).toContainElement(
+        document.querySelector('.pf-v6-c-progress__description'),
+      );
+      expect(document.querySelector('.pf-v6-c-progress__description')).toHaveClass('pf-m-truncate');
+    });
+
+    it('should prevent closing while an upload is active', () => {
+      const uploadFiles = jest.fn(() => {
+        return new Promise<{ key: string }[]>((resolve) => {
+          void resolve;
+        });
+      });
+      render(<FileExplorer {...defaultProps} upload={{ uploadFiles }} />);
+
+      fireEvent.change(screen.getByTestId('file-explorer-upload-input'), {
+        target: { files: [new File(['data'], 'pending.csv', { type: 'text/csv' })] },
+      });
+
+      expect(screen.getByTestId('file-explorer-close-upload-progress-btn')).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(mockOnClose).not.toHaveBeenCalled();
+    });
+
+    it('should show the resolved key and success progress after an upload completes', async () => {
+      const uploadFiles = jest.fn().mockResolvedValue([{ key: '/uploaded-1.csv' }]);
+      render(<FileExplorer {...defaultProps} upload={{ uploadFiles }} />);
+
+      fireEvent.change(screen.getByTestId('file-explorer-upload-input'), {
+        target: { files: [new File(['data'], 'uploaded.csv', { type: 'text/csv' })] },
+      });
+
+      const progress = await screen.findByRole('progressbar');
+      await waitFor(() => expect(progress).toHaveAttribute('aria-valuenow', '100'));
+      expect(screen.getByText('uploaded.csv')).toBeInTheDocument();
+      expect(screen.getByText('/uploaded-1.csv')).toBeInTheDocument();
+      expect(progress.closest('.pf-v6-c-progress')).toHaveClass('pf-m-success');
+      const helperTextId = progress.getAttribute('aria-describedby');
+      expect(helperTextId).toBeTruthy();
+      expect(document.getElementById(helperTextId as string)).toHaveTextContent('/uploaded-1.csv');
+    });
+
+    it('should show validation errors as associated helper text', () => {
+      const uploadFiles = jest.fn();
+      render(<FileExplorer {...defaultProps} upload={{ uploadFiles, picker: { maxSize: 1 } }} />);
+
+      fireEvent.change(screen.getByTestId('file-explorer-upload-input'), {
+        target: { files: [new File(['too large'], 'large.csv', { type: 'text/csv' })] },
+      });
+
+      const progress = screen.getByRole('progressbar');
+      const helperTextId = progress.getAttribute('aria-describedby');
+      expect(helperTextId).toBeTruthy();
+      expect(document.getElementById(helperTextId as string)).toHaveTextContent(
+        'File is too large.',
+      );
+      expect(progress).toHaveAttribute('aria-valuenow', '100');
+      expect(progress.closest('.pf-v6-c-progress')).toHaveClass('pf-m-danger');
+      expect(uploadFiles).not.toHaveBeenCalled();
+    });
+
+    it('should show a concise helper message when an upload is rejected', async () => {
+      const uploadFiles = jest.fn().mockRejectedValue(new Error('request failed'));
+      render(<FileExplorer {...defaultProps} upload={{ uploadFiles }} />);
+
+      fireEvent.change(screen.getByTestId('file-explorer-upload-input'), {
+        target: { files: [new File(['data'], 'failed.csv', { type: 'text/csv' })] },
+      });
+
+      const progress = await screen.findByRole('progressbar');
+      await waitFor(() => expect(progress).toHaveAttribute('aria-valuenow', '100'));
+      expect(screen.getByText('failed.csv')).toBeInTheDocument();
+      const helperTextId = progress.getAttribute('aria-describedby');
+      expect(document.getElementById(helperTextId as string)).toHaveTextContent(
+        'Unable to upload file.',
+      );
+    });
+
+    it('should clear upload history when the progress panel is closed and reopen it cleanly', async () => {
+      const uploadFiles = jest.fn().mockResolvedValue([{ key: '/uploaded.csv' }]);
+      render(<FileExplorer {...defaultProps} upload={{ uploadFiles }} />);
+      const input = screen.getByTestId('file-explorer-upload-input');
+
+      fireEvent.change(input, {
+        target: { files: [new File(['data'], 'first.csv', { type: 'text/csv' })] },
+      });
+      await waitFor(() => expect(screen.getByText('/uploaded.csv')).toBeInTheDocument());
+      fireEvent.click(screen.getByTestId('file-explorer-close-upload-progress-btn'));
+
+      expect(screen.queryByTestId('file-explorer-upload-panel')).not.toBeInTheDocument();
+      fireEvent.change(input, {
+        target: { files: [new File(['data'], 'second.csv', { type: 'text/csv' })] },
+      });
+
+      expect(screen.getByText('second.csv')).toBeInTheDocument();
+      expect(screen.queryByText('first.csv')).not.toBeInTheDocument();
+    });
+
+    it('should disable upload while loading and enable it for an empty ready folder', () => {
+      const upload = { uploadFiles: jest.fn() };
+      const { rerender } = render(
+        <FileExplorer {...defaultProps} loading upload={upload} files={[]} />,
+      );
+      expect(screen.getByTestId('file-explorer-upload-button')).toBeDisabled();
+
+      rerender(<FileExplorer {...defaultProps} upload={upload} files={[]} />);
+      expect(screen.getByTestId('file-explorer-upload-button')).toBeEnabled();
+    });
+
+    it('should disable upload when no usable source is selected', () => {
+      render(
+        <FileExplorer
+          {...defaultProps}
+          source={undefined}
+          sources={mockSources(1)}
+          upload={{ uploadFiles: jest.fn() }}
+        />,
+      );
+
+      expect(screen.getByTestId('file-explorer-upload-button')).toBeDisabled();
     });
 
     it('should not open progress by clicking the upload button alone', () => {
@@ -902,6 +1082,23 @@ describe('FileExplorer', () => {
       fireEvent.click(closeButton);
 
       expect(mockOnClose).toHaveBeenCalled();
+    });
+
+    it('should clear upload history when the modal is closed and reopened', async () => {
+      const uploadFiles = jest.fn().mockResolvedValue([{ key: '/uploaded.csv' }]);
+      const { rerender } = render(<FileExplorer {...defaultProps} upload={{ uploadFiles }} />);
+
+      fireEvent.change(screen.getByTestId('file-explorer-upload-input'), {
+        target: { files: [new File(['data'], 'uploaded.csv', { type: 'text/csv' })] },
+      });
+      await waitFor(() => expect(screen.getByText('/uploaded.csv')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(screen.queryByTestId('file-explorer-upload-panel')).not.toBeInTheDocument();
+
+      rerender(<FileExplorer {...defaultProps} upload={{ uploadFiles }} isOpen={false} />);
+      rerender(<FileExplorer {...defaultProps} upload={{ uploadFiles }} />);
+      expect(screen.queryByTestId('file-explorer-upload-panel')).not.toBeInTheDocument();
     });
   });
   describe('table row kebab actions', () => {

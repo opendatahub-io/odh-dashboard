@@ -50,6 +50,8 @@ import {
   FlexItem,
   Label,
   LabelGroup,
+  List,
+  ListItem,
   MenuToggle,
   Modal, // eslint-disable-line @odh-dashboard/no-restricted-imports
   ModalBody, // eslint-disable-line @odh-dashboard/no-restricted-imports
@@ -57,12 +59,13 @@ import {
   ModalHeader, // eslint-disable-line @odh-dashboard/no-restricted-imports
   Pagination,
   type PaginationProps,
+  Progress,
   SearchInput,
   Skeleton,
   Tooltip,
   Truncate,
-  MultipleFileUploadStatus,
-  MultipleFileUploadStatusItem,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import {
   OuterScrollContainer,
@@ -84,6 +87,7 @@ import {
   TimesIcon,
   TrashIcon,
   RhUiInformationFillIcon,
+  FileUploadIcon,
 } from '@patternfly/react-icons';
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type {
@@ -829,6 +833,7 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 interface DetailsPanelProps {
   selectedFiles?: ExplorerFiles;
   filesToView?: ExplorerFiles;
+  hideDetails?: boolean;
   onViewDetails: (file: ExplorerFile) => void;
   onRemoveSelection: (file: ExplorerFile) => void;
   onClearAllSelections: () => void;
@@ -837,6 +842,7 @@ interface DetailsPanelProps {
 const DetailsPanel: React.FC<DetailsPanelProps> = ({
   selectedFiles,
   filesToView,
+  hideDetails = false,
   onViewDetails,
   onRemoveSelection,
   onClearAllSelections,
@@ -916,8 +922,8 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
 
   return (
     <Card isFullHeight isCompact data-testid="file-explorer-details-panel">
-      {shouldRender.details && detailsSubCard}
-      {shouldRender.details && shouldRender.selected && <Divider />}
+      {shouldRender.details && !hideDetails ? detailsSubCard : null}
+      {shouldRender.details && !hideDetails && shouldRender.selected ? <Divider /> : null}
       {shouldRender.selected && selectedFilesSubCard}
     </Card>
   );
@@ -1018,8 +1024,8 @@ interface FileExplorerProps {
 
 type UploadStatus = {
   id: string;
-  file: File;
-  fileName: string;
+  originalFileName: string;
+  resolvedKey?: string;
   progress: number;
   variant?: 'danger' | 'success' | 'warning';
   helperText?: ReactNode;
@@ -1065,6 +1071,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const uploadSequenceRef = useRef(0);
 
+  const clearUploadHistory = useCallback(() => {
+    setIsProgressPanelOpen(false);
+    setUploadStatuses([]);
+  }, []);
+
   // Consider introducing a FileExplorerContext if prop drilling deepens.
   // Revisit when: a child component needs to pass props through to its own children,
   // or the FileExplorer prop list exceeds ~15-20 props. Currently manageable at 1 level deep.
@@ -1073,13 +1084,20 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const charWarningTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(charWarningTimerRef.current), []);
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setSelectedFiles([]);
     setFilesToView([]);
     setSearchQuery('');
-    setIsProgressPanelOpen(false);
-    setUploadStatuses([]);
-  };
+    clearUploadHistory();
+  }, [clearUploadHistory]);
+
+  const previousIsOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (previousIsOpenRef.current && !isOpen) {
+      resetState();
+    }
+    previousIsOpenRef.current = isOpen;
+  }, [isOpen, resetState]);
 
   const handleUploadFiles = useCallback(
     (uploadFiles: File[]) => {
@@ -1104,8 +1122,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         }
         return {
           id: ids[index],
-          file,
-          fileName: file.name,
+          originalFileName: file.name,
           progress: validationError ? 100 : 0,
           variant: validationError ? ('danger' as const) : undefined,
           helperText: validationError,
@@ -1130,7 +1147,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 currentStatus.id === statusId
                   ? {
                       ...currentStatus,
-                      fileName: result.key,
+                      resolvedKey: result.key,
                       progress: 100,
                       variant: 'success',
                     }
@@ -1267,6 +1284,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const shouldRenderProgressPanel = Boolean(upload && isProgressPanelOpen && uploadStatuses.length);
   const shouldRenderSidePanel = shouldRenderProgressPanel || shouldRenderDetails.panel;
   const isUploading = uploadStatuses.some((status) => status.variant === undefined);
+  const isUploadReady = Boolean(upload && !loading && !isEmpty && (!sources || source));
 
   const gridTemplateAreas = shouldRenderDetails.panel
     ? shouldRenderProgressPanel
@@ -1288,7 +1306,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       onClose(event);
       resetState();
     },
-    [isUploading, onClose],
+    [isUploading, onClose, resetState],
   );
 
   const shouldRenderSelectionPill =
@@ -1397,17 +1415,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               )}
               {upload && (
                 <FlexItem>
-                  <Tooltip content="Upload files to current folder">
-                    <Button
-                      variant="secondary"
-                      aria-label="Upload files"
-                      data-testid="file-explorer-upload-button"
-                      isDisabled={isUploading}
-                      onClick={() => uploadInputRef.current?.click()}
-                    >
-                      Upload files
-                    </Button>
-                  </Tooltip>
+                  <Button
+                    variant="secondary"
+                    icon={<FileUploadIcon />}
+                    aria-label="Add files to this folder"
+                    data-testid="file-explorer-upload-button"
+                    isDisabled={!isUploadReady || isUploading}
+                    onClick={() => uploadInputRef.current?.click()}
+                  >
+                    Add files to this folder
+                  </Button>
                   <input
                     ref={uploadInputRef}
                     type="file"
@@ -1513,6 +1530,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   <DetailsPanel
                     selectedFiles={selectedFiles}
                     filesToView={filesToView}
+                    hideDetails={shouldRenderProgressPanel}
                     onViewDetails={handleViewDetails}
                     onRemoveSelection={handleRemoveSelection}
                     onClearAllSelections={handleClearAllSelections}
@@ -1540,32 +1558,56 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                             aria-label="Close upload progress"
                             data-testid="file-explorer-close-upload-progress-btn"
                             isDisabled={isUploading}
-                            onClick={() => setIsProgressPanelOpen(false)}
+                            onClick={clearUploadHistory}
                           />
                         ),
                       }}
                     >
                       <CardTitle>Upload progress</CardTitle>
                     </CardHeader>
-                    <CardBody style={{ minHeight: 0, overflowY: 'auto' }}>
-                      <MultipleFileUploadStatus
-                        aria-label="Upload status"
-                        statusToggleText="Upload history"
-                      >
-                        {uploadStatuses.map((status) => (
-                          <MultipleFileUploadStatusItem
-                            key={status.id}
-                            fileName={status.fileName}
-                            file={status.file}
-                            fileSize={status.file.size}
-                            progressValue={status.progress}
-                            progressVariant={status.variant}
-                            progressAriaLabel={`${status.fileName} upload progress`}
-                            progressHelperText={status.helperText}
-                            customFileHandler={() => undefined}
-                          />
-                        ))}
-                      </MultipleFileUploadStatus>
+                    <CardBody className="pf-v6-u-pt-sm" style={{ minHeight: 0, overflowY: 'auto' }}>
+                      <List isPlain isBordered>
+                        {uploadStatuses.toReversed().map((status) => {
+                          const helperTextId = `${status.id}-helper-text`;
+                          const hasError = status.variant === 'danger' && !!status.helperText;
+
+                          return (
+                            <ListItem key={status.id}>
+                              <Progress
+                                id={status.id}
+                                title={
+                                  <Truncate content={status.originalFileName} position="middle" />
+                                }
+                                value={status.progress}
+                                variant={status.variant}
+                                aria-describedby={
+                                  hasError || status.variant === 'success'
+                                    ? helperTextId
+                                    : undefined
+                                }
+                                helperText={
+                                  status.variant === 'success' && status.resolvedKey ? (
+                                    <HelperText id={helperTextId}>
+                                      <HelperTextItem>
+                                        <Truncate
+                                          content={`S3 key: ${status.resolvedKey}`}
+                                          position="middle"
+                                        />
+                                      </HelperTextItem>
+                                    </HelperText>
+                                  ) : hasError ? (
+                                    <HelperText id={helperTextId}>
+                                      <HelperTextItem variant="error">
+                                        {status.helperText}
+                                      </HelperTextItem>
+                                    </HelperText>
+                                  ) : undefined
+                                }
+                              />
+                            </ListItem>
+                          );
+                        })}
+                      </List>
                     </CardBody>
                   </Card>
                 </div>
