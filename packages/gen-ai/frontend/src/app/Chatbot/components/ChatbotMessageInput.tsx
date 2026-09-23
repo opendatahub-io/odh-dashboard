@@ -249,7 +249,11 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         )?.[1];
         const resolvedMime = file.type || extensionMime || '';
         if (file.size > DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE) {
-          errors.push(`${file.name}: ${ERROR_MESSAGES.FILE_TOO_LARGE}`);
+          errors.push(
+            `${file.name}: File size exceeds ${
+              DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE / (1024 * 1024)
+            }MB`,
+          );
         } else if (!allowedExtensions.includes(extension) || !allowedMimes.includes(resolvedMime)) {
           errors.push(
             `${file.name}: File type not supported. Accepted types: ${DOCUMENT_ATTACHMENT_CONFIG.ACCEPTED_EXTENSIONS}`,

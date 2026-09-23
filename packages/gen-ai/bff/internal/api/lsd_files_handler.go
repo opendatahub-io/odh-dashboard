@@ -63,12 +63,12 @@ func isSupportedDocument(filename, contentType string) bool {
 // Responses request as input_text so every model can answer about a document.
 func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// Multipart framing contributes a small amount of overhead beyond the
-	// enforced 10 MB file limit.
-	r.Body = http.MaxBytesReader(w, r.Body, constants.FileUploadMaxBodySize+(1<<20))
-	if err := r.ParseMultipartForm(constants.FileUploadMaxBodySize); err != nil {
+	// enforced 50 MB direct-document limit.
+	r.Body = http.MaxBytesReader(w, r.Body, constants.DocumentAttachmentMaxBodySize+(1<<20))
+	if err := r.ParseMultipartForm(constants.DocumentAttachmentMaxBodySize); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			app.payloadTooLargeResponse(w, r, constants.FileUploadMaxBodySize)
+			app.payloadTooLargeResponse(w, r, constants.DocumentAttachmentMaxBodySize)
 			return
 		}
 		app.badRequestResponse(w, r, fmt.Errorf("failed to parse document upload: %w", err))
@@ -86,8 +86,8 @@ func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 	defer file.Close()
-	if header.Size > constants.FileUploadMaxBodySize {
-		app.payloadTooLargeResponse(w, r, constants.FileUploadMaxBodySize)
+	if header.Size > constants.DocumentAttachmentMaxBodySize {
+		app.payloadTooLargeResponse(w, r, constants.DocumentAttachmentMaxBodySize)
 		return
 	}
 	contentType, _, err := mime.ParseMediaType(header.Header.Get("Content-Type"))
