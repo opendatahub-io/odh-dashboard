@@ -22,7 +22,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 	}{
 		{
 			name:    "default spec — all modules deployed",
-      wantLen: 11,
+			wantLen: 11,
 			spec:    v1alpha1.DashboardSpec{},
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry":  v1alpha1.ModulePhaseDeployed,
@@ -34,8 +34,8 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"autorag":        v1alpha1.ModulePhaseDeployed,
 				"agentOps":       v1alpha1.ModulePhaseDeployed,
 				"notebooks":      v1alpha1.ModulePhaseDeployed,
-        "dataRegistry": v1alpha1.ModulePhaseDeployed,
-        "dataConnectHub": v1alpha1.ModulePhaseDeployed,
+				"dataRegistry":   v1alpha1.ModulePhaseDeployed,
+				"dataConnectHub": v1alpha1.ModulePhaseDeployed,
 			},
 		},
 		{
@@ -83,7 +83,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 					"agentOps":       {State: v1alpha1.ModuleDisabled},
 					"notebooks":      {State: v1alpha1.ModuleDisabled},
 					"dataRegistry":   {State: v1alpha1.ModuleDisabled},
-          "dataConnectHub": {State: v1alpha1.ModuleDisabled},
+					"dataConnectHub": {State: v1alpha1.ModuleDisabled},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
@@ -97,7 +97,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"agentOps":       v1alpha1.ModulePhaseDisabled,
 				"notebooks":      v1alpha1.ModulePhaseDisabled,
 				"dataRegistry":   v1alpha1.ModulePhaseDisabled,
-        "dataConnectHub": v1alpha1.ModulePhaseDisabled,
+				"dataConnectHub": v1alpha1.ModulePhaseDisabled,
 			},
 		},
 		{
@@ -467,7 +467,7 @@ func TestModuleNames(t *testing.T) {
 	names := ModuleNames()
 	assert.Equal(t, []string{
 		"agentOps", "automl", "autorag",
-        "dataConnectHub", "dataRegistry",
+		"dataConnectHub", "dataRegistry",
 		"evalHub", "genAi",
 		"maas", "mlflow", "modelRegistry", "notebooks",
 	}, names)
