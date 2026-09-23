@@ -21,7 +21,7 @@ import { featureMetricsOverview } from '../../../pages/featureStore/featureMetri
 import { isRHOAI } from '../../../utils/oc_commands/applications';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
-import { AWS_BUCKETS } from '../../../utils/s3Buckets';
+import { getFeastS3Config } from '../../../utils/oc_commands/feastS3';
 
 describe('Feature Store Page Validation', () => {
   let testData: FeatureStoreTestData;
@@ -87,14 +87,7 @@ describe('Feature Store Page Validation', () => {
         })
         .then(() => {
           return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
-            const buckets =
-              (Cypress.env('AWS_PIPELINES') as typeof AWS_BUCKETS | undefined) ?? AWS_BUCKETS;
-            const { NAME: awsBucketName } = buckets.BUCKET_1;
-            if (!awsBucketName) {
-              throw new Error(
-                'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml before running E2E.',
-              );
-            }
+            const { bucket: registryBucket } = getFeastS3Config();
 
             return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
               namespaces: [projectName],
@@ -102,7 +95,7 @@ describe('Feature Store Page Validation', () => {
               return createSavedDatasetViaSdk(projectName, testData.feastInstanceName, {
                 name: testData.datasetName,
                 project: testData.feastCreditScoringProject,
-                storagePath: `s3://${awsBucketName}/feast-test/${projectName}/credit_scoring_local/datasets/${testData.datasetName}.parquet`,
+                storagePath: `s3://${registryBucket}/feast-test/${projectName}/credit_scoring_local/datasets/${testData.datasetName}.parquet`,
                 featureServiceName: testData.featureServiceName,
               }).then(() => {
                 return getMetricsResourceCounts(routeUrl, testData.feastCreditScoringProject).then(
