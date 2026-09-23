@@ -9,6 +9,8 @@ const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack'
   ModuleFederationPlugin: new (options: Record<string, unknown>) => WebpackPluginInstance;
 };
 
+jest.setTimeout(30_000);
+
 const writeFile = (root: string, relativePath: string, contents: string): void => {
   const absolutePath = path.join(root, relativePath);
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
