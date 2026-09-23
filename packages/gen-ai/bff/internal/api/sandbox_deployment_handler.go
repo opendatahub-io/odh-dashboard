@@ -251,6 +251,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		Image:                   ogxImage,
 		MaaSGatewayURL:          app.config.MaaSURL,
 		AgentConfigJSON:         string(agentConfigJSON),
+		OGXModelID:              kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
 		SystemPrompt:            systemPrompt,
 		MCPServersJSON:          string(mcpServersJSON),
 		MCPAuthSecrets:          mcpAuthSecrets,

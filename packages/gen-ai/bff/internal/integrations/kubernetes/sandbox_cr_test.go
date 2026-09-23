@@ -36,6 +36,21 @@ func TestBuildSandboxEnvVarsIncludesResolvedSystemPrompt(t *testing.T) {
 	t.Fatal("AGENT_SYSTEM_PROMPT not found")
 }
 
+func TestBuildSandboxEnvVarsIncludesOGXModelID(t *testing.T) {
+	const modelID = "passthrough-llm/openai-gpt-4o-mini"
+
+	vars := buildSandboxEnvVars(SandboxCROptions{OGXModelID: modelID}, "pgvector", "pgvector-secret")
+
+	for _, raw := range vars {
+		variable := raw.(map[string]interface{})
+		if variable["name"] == "AGENT_OGX_MODEL_ID" {
+			assert.Equal(t, modelID, variable["value"])
+			return
+		}
+	}
+	t.Fatal("AGENT_OGX_MODEL_ID not found")
+}
+
 func TestBuildSandboxEnvVarsIncludesMCPServerConfiguration(t *testing.T) {
 	vars := buildSandboxEnvVars(SandboxCROptions{
 		MCPServersJSON: `[{"server_label":"github","server_url":"https://example.com/mcp","authorization_env_var":"MCP_AUTH_1"}]`,

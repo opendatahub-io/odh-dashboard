@@ -44,6 +44,8 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `"application/json"`)
 
 	// Selected MCP servers are injected into every OGX Responses API request.
+	assert.Contains(t, script, `AGENT_OGX_MODEL_ID`)
+	assert.Contains(t, script, `request["model"] = AGENT_OGX_MODEL_ID`)
 	assert.Contains(t, script, `AGENT_SYSTEM_PROMPT`)
 	assert.Contains(t, script, `request["instructions"] = AGENT_SYSTEM_PROMPT`)
 	assert.Contains(t, script, `AGENT_MCP_SERVERS_JSON`)

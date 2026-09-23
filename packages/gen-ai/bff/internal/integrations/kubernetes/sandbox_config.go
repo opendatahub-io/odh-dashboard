@@ -9,6 +9,12 @@ import (
 
 const sandboxPassthroughProviderID = "passthrough-llm"
 
+// SandboxOGXModelID returns the provider-qualified model ID that OGX expects on
+// Responses API requests for the model registered by BuildSandboxLlamaStackConfig.
+func SandboxOGXModelID(modelID string) string {
+	return sandboxPassthroughProviderID + "/" + modelID
+}
+
 // sandboxDefaultEmbeddingDimension is the output dimension of the default inline embedding model
 // (ibm-granite/granite-embedding-125m-english via sentence-transformers).
 const sandboxDefaultEmbeddingDimension = 768

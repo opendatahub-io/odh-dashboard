@@ -86,6 +86,10 @@ func TestBuildSandboxLlamaStackConfig_MaaSModelWithVectorStore(t *testing.T) {
 	assert.Contains(t, yamlOut, modelID)
 }
 
+func TestSandboxOGXModelID(t *testing.T) {
+	assert.Equal(t, "passthrough-llm/openai-gpt-4o-mini", kubernetes.SandboxOGXModelID("openai-gpt-4o-mini"))
+}
+
 func TestBuildSandboxLlamaStackConfig_NoVectorStores(t *testing.T) {
 	profile := &models.AgentProfile{
 		Spec: models.AgentProfileSpec{

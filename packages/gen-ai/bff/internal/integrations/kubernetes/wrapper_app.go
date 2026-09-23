@@ -18,6 +18,7 @@ from ogx.core.server.server import create_app
 MAAS_GATEWAY_URL = os.environ["MAAS_GATEWAY_URL"]
 MAAS_SUBSCRIPTION = os.environ["MAAS_SUBSCRIPTION"]
 AGENT_CONFIG_JSON = os.environ["AGENT_CONFIG_JSON"]
+AGENT_OGX_MODEL_ID = os.environ["AGENT_OGX_MODEL_ID"]
 AGENT_SYSTEM_PROMPT = os.environ.get("AGENT_SYSTEM_PROMPT", "")
 MCP_SERVERS = json.loads(os.environ.get("AGENT_MCP_SERVERS_JSON", "[]"))
 
@@ -132,7 +133,7 @@ class MCPServerMiddleware:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or scope["method"] != "POST" or scope["path"] != "/v1/responses" or (not MCP_SERVERS and not AGENT_SYSTEM_PROMPT):
+        if scope["type"] != "http" or scope["method"] != "POST" or scope["path"] != "/v1/responses":
             await self.app(scope, receive, send)
             return
 
@@ -145,6 +146,9 @@ class MCPServerMiddleware:
 
         try:
             request = json.loads(body)
+            # Agent deployments expose exactly one LLM. Do not let callers select
+            # a different OGX model through the public Responses API.
+            request["model"] = AGENT_OGX_MODEL_ID
             if AGENT_SYSTEM_PROMPT:
                 # The deployment's resolved MLflow system message takes precedence over
                 # caller-supplied instructions.
