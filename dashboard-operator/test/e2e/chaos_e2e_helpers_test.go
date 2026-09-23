@@ -155,12 +155,13 @@ func startChaosFault(ctx context.Context, experiment *chaosv1alpha1.ChaosExperim
 		return nil, nil, fmt.Errorf("validate %s injector: %w", experiment.Spec.Injection.Type, err)
 	}
 	cleanup, events, err := injector.Inject(ctx, experiment.Spec.Injection, namespace)
-	if err != nil {
-		return nil, events, fmt.Errorf("inject %s fault: %w", experiment.Spec.Injection.Type, err)
-	}
-	return &activeChaosFault{
+	fault := &activeChaosFault{
 		injector: injector, experiment: experiment, cleanup: cleanup, namespace: namespace, active: true,
-	}, events, nil
+	}
+	if err != nil {
+		return fault, events, fmt.Errorf("inject %s fault: %w", experiment.Spec.Injection.Type, err)
+	}
+	return fault, events, nil
 }
 
 func (fault *activeChaosFault) revert() error {

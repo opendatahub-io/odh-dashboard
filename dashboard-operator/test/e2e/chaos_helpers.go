@@ -7,6 +7,7 @@ import (
 
 	chaosv1alpha1 "github.com/opendatahub-io/operator-chaos/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -78,5 +79,5 @@ func injectionTargetedBaselinePod(events []chaosv1alpha1.InjectionEvent, baselin
 }
 
 func evictionBlocked(err error) bool {
-	return apierrors.IsTooManyRequests(err)
+	return apierrors.IsTooManyRequests(err) && apierrors.HasStatusCause(err, policyv1.DisruptionBudgetCause)
 }

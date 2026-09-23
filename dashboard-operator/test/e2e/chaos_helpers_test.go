@@ -7,6 +7,7 @@ import (
 	chaosv1alpha1 "github.com/opendatahub-io/operator-chaos/api/v1alpha1"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -85,7 +86,9 @@ func TestInjectionTargetedBaselinePod(t *testing.T) {
 
 func TestEvictionBlocked(t *testing.T) {
 	blocked := apierrors.NewTooManyRequests("blocked by disruption budget", 0)
+	blocked.ErrStatus.Details = &metav1.StatusDetails{Causes: []metav1.StatusCause{{Type: policyv1.DisruptionBudgetCause}}}
 	require.True(t, evictionBlocked(blocked))
+	require.False(t, evictionBlocked(apierrors.NewTooManyRequests("API priority and fairness throttle", 1)))
 	require.False(t, evictionBlocked(errors.New("connection refused")))
 	require.False(t, evictionBlocked(apierrors.NewForbidden(
 		schema.GroupResource{Group: "policy", Resource: "pods/eviction"}, "pod", errors.New("forbidden"),

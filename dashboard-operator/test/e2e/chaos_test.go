@@ -40,8 +40,10 @@ func TestE2EOperatorChaos(t *testing.T) {
 		require.NoError(t, err)
 
 		fault, events, err := startChaosFault(context.Background(), experiment, target.namespace)
+		if fault != nil {
+			t.Cleanup(func() { require.NoError(t, fault.revert()) })
+		}
 		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, fault.revert()) })
 		require.True(t, injectionTargetedBaselinePod(events, baseline.names), "PodKill must report a pre-injection controller pod it deleted")
 
 		replacement, err := waitForReplacementControllerPod(target, baseline.uids, experiment.ResolvedRecoveryTimeout())
@@ -64,8 +66,10 @@ func TestE2EOperatorChaos(t *testing.T) {
 		coreKey := client.ObjectKey{Namespace: coreDeployment.Namespace, Name: coreDeployment.Name}
 
 		fault, events, err := startChaosFault(context.Background(), experiment, target.namespace)
+		if fault != nil {
+			t.Cleanup(func() { require.NoError(t, fault.revert()) })
+		}
 		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, fault.revert()) })
 		require.Len(t, events, 1)
 		require.Equal(t, chaosv1alpha1.NetworkPartition, events[0].Type)
 		require.Equal(t, "created", events[0].Action)
@@ -92,8 +96,10 @@ func TestE2EOperatorChaos(t *testing.T) {
 		require.Equal(t, chaosv1alpha1.PDBBlock, experiment.Spec.Injection.Type)
 
 		fault, events, err := startChaosFault(context.Background(), experiment, target.namespace)
+		if fault != nil {
+			t.Cleanup(func() { require.NoError(t, fault.revert()) })
+		}
 		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, fault.revert()) })
 		require.Len(t, events, 1)
 		require.Equal(t, chaosv1alpha1.PDBBlock, events[0].Type)
 		pdbName := events[0].Details["pdbName"]
