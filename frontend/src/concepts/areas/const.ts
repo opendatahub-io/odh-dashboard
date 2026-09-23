@@ -313,7 +313,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.RUNTIME_CATALOG]: {
     // Tech preview — not in OdhDashboardConfig CRD yet. Off by default.
     featureFlags: ['runtimeCatalog'],
-    reliantAreas: [SupportedArea.MODEL_SERVING, SupportedArea.K_SERVE],
+    reliantAreas: [SupportedArea.MODEL_SERVING, SupportedArea.K_SERVE, SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
     featureFlags: ['dataConnectHub'],
