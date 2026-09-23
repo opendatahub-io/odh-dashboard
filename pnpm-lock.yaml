@@ -422,7 +422,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.13
+        version: 3.4.15
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -1008,7 +1008,7 @@ importers:
         version: 3.6.0
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.13
+        version: 3.4.15
       google-protobuf:
         specifier: ^3.21.4
         version: 3.21.4
@@ -1119,8 +1119,8 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(react-refresh@0.14.2)
       '@types/dompurify':
-        specifier: ^2.4.0
-        version: 2.4.0
+        specifier: ^3.2.0
+        version: 3.2.0
       '@types/google-protobuf':
         specifier: ^3.15.12
         version: 3.15.12
@@ -1376,7 +1376,7 @@ importers:
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.13
+        version: 3.4.15
       marked:
         specifier: ^15.0.12
         version: 15.0.12
@@ -1832,7 +1832,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.13
+        version: 3.4.15
       es-toolkit:
         specifier: ^1.44.0
         version: 1.51.0
@@ -2210,7 +2210,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.13
+        version: 3.4.15
       echarts:
         specifier: ^5.6.0
         version: 5.6.0
@@ -3545,7 +3545,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.13
+        version: 3.4.15
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -4590,7 +4590,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.13
+        version: 3.4.15
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -4972,7 +4972,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.13
+        version: 3.4.15
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -9499,8 +9499,9 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
-  '@types/dompurify@2.4.0':
-    resolution: {integrity: sha512-IDBwO5IZhrKvHFUl+clZxgf3hn2b/lU6H1KaBShPkQyGJUQ0xwebezIPSuiyGwfz1UzJWQl4M7BDxtHtCCPlTg==}
+  '@types/dompurify@3.2.0':
+    resolution: {integrity: sha512-Fgg31wv9QbLDA0SpTOXO3MaxySc4DKGLi8sna4/Utjo4r3ZRPdCt4UQee8BWr+Q5z21yifghREPJGYaEOEIACg==}
+    deprecated: This is a stub types definition. dompurify provides its own type definitions, so you do not need this installed.
 
   '@types/ejs@3.1.5':
     resolution: {integrity: sha512-nv+GSx77ZtXiJzwKdsASqi+YQ5Z7vwHsTP0JY2SiQgjGckkBRKZnk8nIM+7oUZ1VCtuTz0+By4qVR7fqzp/Dfg==}
@@ -11629,6 +11630,9 @@ packages:
 
   dompurify@3.4.13:
     resolution: {integrity: sha512-2vmYIoqjze2d+kakP8S/nS5shfsl587kzwEjcGlTdiksUVgFHnFCsLYDVj/JNqJVOQZGSYBTmuycv0PodwmnMQ==}
+
+  dompurify@3.4.15:
+    resolution: {integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==}
 
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
@@ -20361,7 +20365,7 @@ snapshots:
   '@patternfly/quickstarts@6.5.0(@patternfly/react-core@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      dompurify: 3.4.13
+      dompurify: 3.4.15
       history: 5.3.0
       marked: 15.0.12
       react: 18.3.1
@@ -21901,9 +21905,9 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
-  '@types/dompurify@2.4.0':
+  '@types/dompurify@3.2.0':
     dependencies:
-      '@types/trusted-types': 2.0.7
+      dompurify: 3.4.15
 
   '@types/ejs@3.1.5': {}
 
@@ -22138,7 +22142,8 @@ snapshots:
 
   '@types/tough-cookie@4.0.5': {}
 
-  '@types/trusted-types@2.0.7': {}
+  '@types/trusted-types@2.0.7':
+    optional: true
 
   '@types/underscore@1.13.0': {}
 
@@ -24287,6 +24292,10 @@ snapshots:
       domelementtype: 2.3.0
 
   dompurify@3.4.13:
+    optionalDependencies:
+      '@types/trusted-types': 2.0.7
+
+  dompurify@3.4.15:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -28629,7 +28638,7 @@ snapshots:
 
   monaco-editor@0.54.0:
     dependencies:
-      dompurify: 3.4.13
+      dompurify: 3.4.15
       marked: 14.0.0
 
   mrmime@2.0.1: {}
@@ -29366,7 +29375,7 @@ snapshots:
       '@posthog/core': 1.48.2
       '@posthog/types': 1.404.1
       core-js: 3.50.0
-      dompurify: 3.4.13
+      dompurify: 3.4.15
       fflate: 0.4.9
       preact: 10.29.8
       query-selector-shadow-dom: 1.0.1
