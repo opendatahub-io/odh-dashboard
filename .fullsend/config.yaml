@@ -14,6 +14,19 @@ agents:
     # Dashboard overlay; the base harness still supplies Fullsend's review skills.
     - name: review
       source: harness/review.yaml
+      # Keep non-review roles on the production default while using Pi's
+      # provider routing for the review canary.
+      runtime: pi
+      model: openai/gpt-5.6-luna
+      subagents:
+          challenger: anthropic-vertex/claude-opus-4-6
+          correctness: google-vertex/gemini-3.1-pro-preview
+          cross-repo-contracts: google-vertex/gemini-3.1-pro-preview
+          docs-currency: google-vertex/gemini-3-flash-preview
+          intent-coherence: openai/gpt-5.6-luna
+          security: anthropic-vertex/claude-opus-4-6
+          security-triage: openai/gpt-5.6-luna
+          style-conventions: google-vertex/gemini-3-flash-preview
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/
