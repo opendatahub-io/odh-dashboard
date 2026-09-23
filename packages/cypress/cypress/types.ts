@@ -785,6 +785,8 @@ export type CustomEndpointTestData = {
     template: string;
     commitMessage: string;
     testMessageWithPrompt: string;
+    variableName: string;
+    variableValue: string;
   };
   prompt2: {
     name: string;
@@ -816,7 +818,7 @@ export type CustomEndpointTestData = {
   };
 };
 
-/** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
+/** Shared fixture fields used by the Eval Hub E2E tests. */
 export type EvalHubTestData = {
   projectNamePrefix: string;
   evalHubCrName: string;
@@ -826,8 +828,8 @@ export type EvalHubTestData = {
   benchmarkCardTitle: string;
   /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
   inferenceModelName: string;
-  /** Default experiment name pre-filled in the create-evaluation form. */
-  defaultExperimentName: string;
+  /** MLflow experiment name entered when starting an evaluation. */
+  mlflowExperimentName: string;
   /** JSON object string merged into benchmark parameters (valid JSON object). */
   additionalBenchmarkParams: string;
   /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */
@@ -838,17 +840,22 @@ export type EvalHubTestData = {
   servingRuntimeYamlPath: string;
   /** Fixture path for the HardwareProfile CR. */
   hardwareProfileResourceYamlPath: string;
-  /** `metadata.name` of the HardwareProfile (used for cleanup). */
-  hardwareProfileName: string;
+};
+
+export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
+  /** Resource ID of the benchmark suite / collection to select (matches `collection.resource.id`). */
+  collectionId: string;
+  /** Display name of the collection shown in the start-evaluation form after selection. */
+  collectionName: string;
+  /** Benchmark result IDs expected from the selected collection. */
+  expectedBenchmarkIds: string[];
 };
 
 export type ModelCatalogSourceTestData = {
-  sourceName: string;
-  redhatAiSourceId: string;
-  sourceName2: string;
-  redhatAiSourceId2: string;
-  sourceName3: string;
-  redhatAiSourceId3: string;
+  validatedSourceName: string;
+  validatedSourceId: string;
+  otherSourceName: string;
+  otherSourceId: string;
   toolCallingLabel: string;
   toolCallingArg: string;
   /** Catalog card title of a model that has servingConfig tool-calling args. */

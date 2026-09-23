@@ -17,25 +17,45 @@
 #   GITHUB_PR_URL  — must be a valid GitHub pull request URL
 set -euo pipefail
 
-REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
-
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FULLSEND_CONFIG_DIR="${FULLSEND_DIR:-${_SCRIPT_DIR}/..}"
 
-# Post or update the review sticky via fullsend (bot + marker, keep_history from config).
-post_review_sticky_comment() {
-  local repo="$1"
-  local pr="$2"
-  local token="$3"
-  local body_file="$4"
+# Run by the adapter-plan workflow job, before any paid adapter. Skips adapters
+# on closed/merged PRs so a review that will be skipped does not first buy a
+# CodeRabbit review. Fails open: if the PR cannot be read, adapters run and the
+# review-time gate decides.
+adapter_gate() {
+  local decision="true" reason="" pr_json state
+  if [[ "${PR_NUMBER:-}" =~ ^[1-9][0-9]*$ && "${REPO_FULL_NAME:-}" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]] \
+    && pr_json="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json state 2>/dev/null)"; then
+    state="$(jq -r '.state // empty' <<<"${pr_json}")"
+    if [[ -n "${state}" && "${state}" != "OPEN" ]]; then
+      decision="false"
+      reason="PR is $(printf '%s' "${state}" | tr '[:upper:]' '[:lower:]')"
+    fi
+  else
+    echo "::warning::Could not read PR #${PR_NUMBER:-?}; running host adapters and leaving the skip decision to the review"
+  fi
+  if [[ "${decision}" == "false" ]]; then
+    echo "::notice::Skipping host adapters — ${reason}"
+  fi
+  if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+    echo "run_adapters=${decision}" >> "${GITHUB_OUTPUT}"
+  else
+    echo "run_adapters=${decision}"
+  fi
+}
 
-  fullsend post-comment \
-    --repo "${repo}" \
-    --number "${pr}" \
-    --token "${token}" \
-    --marker "${REVIEW_STICKY_MARKER}" \
-    --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
-    --result "${body_file}"
+# `fullsend run` treats a bare exit 0 as "proceed": it still builds the sandbox
+# and runs the agent. A skip only takes effect when written to the pre-script
+# output file (prescript-output v1, ADR 0072). The guard keeps an older CLI that
+# does not export the variable failing open instead of crashing on `>> ""`.
+request_skip() {
+  local reason
+  reason="$(printf '%s' "$1" | tr -d '[:cntrl:]')"
+  if [[ -n "${FULLSEND_PRESCRIPT_OUTPUT:-}" ]]; then
+    printf 'skipped=true\nreason=%s\n' "${reason}" >> "${FULLSEND_PRESCRIPT_OUTPUT}"
+  fi
+  exit 0
 }
 
 normalize_dispatch_context() {
@@ -267,6 +287,34 @@ run_self_test() {
     echo "FAIL cli-adapter registry validation" >&2
     fail=1
   fi
+  temp_dir="$(mktemp -d)"
+  : > "${temp_dir}/prescript.out"
+  if (FULLSEND_PRESCRIPT_OUTPUT="${temp_dir}/prescript.out" request_skip $'missing: Problem\r\nskipped=false') \
+    && [[ "$(cat "${temp_dir}/prescript.out")" == $'skipped=true\nreason=missing: Problemskipped=false' ]] \
+    && (unset FULLSEND_PRESCRIPT_OUTPUT; request_skip "no output file"); then
+    echo "PASS pre-script skip signal"
+  else
+    echo "FAIL pre-script skip signal" >&2
+    fail=1
+  fi
+  rm -rf "${temp_dir}"
+  # The gh stub returns canned PR JSON, or fails when given none.
+  _gate_with() {
+    local json="$1"
+    (
+      gh() { [[ -n "${json}" ]] && printf '%s' "${json}"; }
+      unset GITHUB_OUTPUT
+      PR_NUMBER=1 REPO_FULL_NAME=o/r adapter_gate
+    ) | grep '^run_adapters='
+  }
+  if [[ "$(_gate_with "$(jq -cn '{state:"OPEN"}')")" == "run_adapters=true" ]] \
+    && [[ "$(_gate_with "$(jq -cn '{state:"MERGED"}')")" == "run_adapters=false" ]] \
+    && [[ "$(_gate_with "")" == "run_adapters=true" ]]; then
+    echo "PASS adapter readiness gate"
+  else
+    echo "FAIL adapter readiness gate" >&2
+    fail=1
+  fi
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -280,6 +328,11 @@ fi
 
 if [[ "${1:-}" == "--validate-adapters" ]]; then
   validate_adapter_registry
+  exit 0
+fi
+
+if [[ "${1:-}" == "--adapter-gate" ]]; then
+  adapter_gate
   exit 0
 fi
 
@@ -361,7 +414,7 @@ The \`/fs-review\` command only reviews open pull requests.
   printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
     --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
 
-  exit 0
+  request_skip "PR is ${STATE_LOWER}"
 fi
 
 # ---------------------------------------------------------------------------
@@ -386,7 +439,7 @@ if [[ -n "${REVIEW_SKIP_AUTHORS:-}" ]]; then
         printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
           --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
 
-        exit 0
+        request_skip "PR author is in REVIEW_SKIP_AUTHORS"
       fi
     done
   fi
@@ -406,57 +459,6 @@ if [[ ! "${PR_HEAD_SHA}" =~ ^[0-9a-fA-F]{40}$ ]]; then
 fi
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
-
-MISSING_HEADINGS="$(REVIEW_PR_BODY="${PR_BODY}" python3 <<'PY'
-import os, re
-
-body = os.environ.get("REVIEW_PR_BODY") or ""
-PLACEHOLDER = re.compile(r"^(n/a|na|tbd|todo|none|\.|-|—|\s*)$", re.I)
-
-def section_deficient(name):
-    pat = re.compile(rf"(?im)^#{{2,3}}\s*{re.escape(name)}\s*$")
-    match = pat.search(body)
-    if not match:
-        return name
-    rest = body[match.end():]
-    nxt = re.search(r"(?im)^#{{2,3}}\s+\S", rest)
-    text = (rest[: nxt.start()] if nxt else rest).strip()
-    if not text:
-        return name
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    if not lines:
-        return name
-    if all(PLACEHOLDER.match(ln) for ln in lines):
-        return name
-    return ""
-
-missing = [section_deficient(h) for h in ("Problem", "Solution", "Evidence")]
-print(", ".join([m for m in missing if m]))
-PY
-)"
-
-if [[ -n "${MISSING_HEADINGS}" ]]; then
-  echo "::notice::PR #${PR_NUMBER} missing or placeholder headings (${MISSING_HEADINGS}) — skipping review"
-  SHORT_SHA="${PR_HEAD_SHA:0:7}"
-  [[ -z "${SHORT_SHA}" ]] && SHORT_SHA="unknown"
-  AGENTIC_TEMPLATE="https://github.com/opendatahub-io/odh-dashboard/blob/main/.github/PULL_REQUEST_TEMPLATE/agentic.md"
-  COMMENT_BODY="<!-- **Head SHA:** ${PR_HEAD_SHA} -->
-
-Finished Review · \`skipped\` · Commit: \`${SHORT_SHA}\`
-
-Review did not run. Fill required sections with real content (not N/A / TBD): ${MISSING_HEADINGS}.
-
-See [agentic.md](${AGENTIC_TEMPLATE}).
-
-<sub>Posted by <a href=\"https://github.com/fullsend-ai/fullsend\">fullsend</a> pre-review check</sub>"
-
-  _sticky_body="$(mktemp)"
-  printf '%s' "${COMMENT_BODY}" > "${_sticky_body}"
-  post_review_sticky_comment "${REPO_FULL_NAME}" "${PR_NUMBER}" "${_TOKEN}" "${_sticky_body}"
-  rm -f "${_sticky_body}"
-
-  exit 0
-fi
 
 # Run registered pre-review adapters, hydrate outputs from isolated workflow
 # adapter jobs, and collect every resulting envelope generically. Adapter

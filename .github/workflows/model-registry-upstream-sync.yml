@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-          # Do not write GITHUB_TOKEN into .git/config before npm/upstream scripts run.
+          # Do not write GITHUB_TOKEN into .git/config before package-manager/upstream scripts run.
           persist-credentials: false
 
       - name: Configure git identity
@@ -58,13 +58,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Module caches (root)
-        uses: ./.github/actions/module-caches
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -139,7 +134,7 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          npm run update-subtree -w "${{ env.PACKAGE_NAME }}" 2>&1 | tee sync-output.txt
+          pnpm --filter "${{ env.PACKAGE_NAME }}" run update-subtree 2>&1 | tee sync-output.txt
 
       - name: Detect sync outcome
         id: outcome
@@ -196,7 +191,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit \
               -m "WIP: model-registry upstream sync conflict (resolve before merge)" \
-              -m "Automated sync stopped with conflicts. Resolve markers, then continue with: npm run update-subtree -w packages/model-registry -- --continue"
+              -m "Automated sync stopped with conflicts. Resolve markers, then continue with: pnpm --filter @odh-dashboard/model-registry run update-subtree --continue"
           elif [[ "$(git rev-list --count origin/main..HEAD)" -eq 0 ]]; then
             echo "::error::Conflict detected but nothing to commit for PR"
             exit 1
@@ -366,7 +361,7 @@ jobs:
           - Upstream tip: \`${{ needs.sync.outputs.upstream_tip }}\`
           - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-          Resolve manually with \`/upstream-sync model-registry\` (or \`npm run update-subtree -w packages/model-registry\`), then open a PR.
+          Resolve manually with \`/upstream-sync model-registry\` (or \`pnpm --filter @odh-dashboard/model-registry run update-subtree\`), then open a PR.
 
           <details><summary>Sync log (tail)</summary>
 
@@ -486,7 +481,7 @@ jobs:
           * \`npm run test:type-check\`
           * \`npm run test:unit\`
 
-          Continue the subtree sync with \`npm run update-subtree -w packages/model-registry -- --continue\` as needed."
+          Continue the subtree sync with \`pnpm --filter @odh-dashboard/model-registry run update-subtree --continue\` as needed."
           else
             TESTED_SECTION="## How Has This Been Tested?
 
