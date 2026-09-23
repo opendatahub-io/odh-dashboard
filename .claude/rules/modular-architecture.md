@@ -60,7 +60,7 @@ Packages can define their own extension points in `frontend/src/odh/extension-po
 ## How packages register as plugins
 
 1. Package exports `./extensions` in `package.json` `exports` field
-2. `discoverPluginPackages.js` discovers them via `npm query .workspace`
+2. `discoverPluginPackages.js` discovers them via `scripts/query-workspace-packages.js`, which reads `pnpm-workspace.yaml`
 3. At build time, `GenerateExtensionsPlugin` creates `plugin-extensions.ts` importing all package extensions
 4. At runtime, federated modules load extensions via `loadRemote('{name}/extensions')`
 5. `ExtensibilityContextProvider` creates a `PluginStore` with all extensions

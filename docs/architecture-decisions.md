@@ -4,7 +4,7 @@ Key architectural decisions for the ODH Dashboard monorepo. For formal ADRs, see
 
 ## Why Monorepo?
 
-**Decision**: Use npm workspaces + Turbo monorepo structure
+**Decision**: Use pnpm workspaces + Turbo monorepo structure (see [ADR 0004](adr/0004-use-pnpm-workspaces.md))
 
 **Rationale**:
 - **Code sharing**: Shared utilities, types, and components across features

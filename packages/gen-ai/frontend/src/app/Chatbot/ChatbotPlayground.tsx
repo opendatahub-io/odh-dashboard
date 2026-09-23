@@ -43,7 +43,7 @@ import {
 } from '~/app/utilities/utils';
 import useCapabilityOnboarding from '~/app/hooks/useCapabilityOnboarding';
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
-import { TokenInfo, ResponseMetrics, MCPServerFromAPI } from '~/app/types';
+import { TokenInfo, MCPServerFromAPI } from '~/app/types';
 import type { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -84,10 +84,6 @@ interface ComparePaneWrapperProps {
   displayLabel: string;
   onClose: () => void;
   children: React.ReactNode;
-  /** Metrics from the last response (latency, tokens, TTFT) */
-  metrics?: ResponseMetrics | null;
-  /** Whether a response is currently being generated */
-  isLoading?: boolean;
   isSettingsOpen?: boolean;
   isActiveConfig?: boolean;
 }
@@ -97,8 +93,6 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   displayLabel,
   onClose,
   children,
-  metrics,
-  isLoading,
   isSettingsOpen,
   isActiveConfig,
 }) => (
@@ -106,8 +100,6 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
     configId={configId}
     displayLabel={displayLabel}
     onClose={onClose}
-    metrics={metrics}
-    isLoading={isLoading}
     isSettingsOpen={isSettingsOpen}
     isActiveConfig={isActiveConfig}
   >
@@ -339,9 +331,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
   const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
   const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
-  const [metricsStates, setMetricsStates] = React.useState<Map<string, ResponseMetrics | null>>(
-    new Map(),
-  );
 
   // Vision image upload state
   const [imageUploadState, setImageUploadState] = React.useState<ImageUploadState>({
@@ -474,15 +463,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         }
         const next = new Map(prev);
         next.set(configIdParam, hook.isMessageSendButtonDisabled);
-        return next;
-      });
-      // Track metrics for pane header display
-      setMetricsStates((prev) => {
-        if (prev.get(configIdParam) === hook.lastResponseMetrics) {
-          return prev;
-        }
-        const next = new Map(prev);
-        next.set(configIdParam, hook.lastResponseMetrics);
         return next;
       });
     },
@@ -840,10 +820,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   React.useEffect(() => {
     const shouldClear = Boolean(
       location.state?.mcpServers ||
-        location.state?.model ||
-        location.state?.mcpServerStatuses ||
-        location.state?.openSettingsToTab ||
-        location.state?.vectorStoreId,
+      location.state?.model ||
+      location.state?.mcpServerStatuses ||
+      location.state?.openSettingsToTab ||
+      location.state?.vectorStoreId,
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
@@ -891,15 +871,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       setDisabledStates((prev) => {
         const next = new Map(prev);
         staleKeys.forEach((key) => next.delete(key));
-        return next;
-      });
-
-      // Remove from metrics states
-      setMetricsStates((prev) => {
-        const next = new Map(prev);
-        staleKeys.forEach((key) => {
-          next.delete(key);
-        });
         return next;
       });
     }
@@ -1171,8 +1142,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 {/* Single mode header */}
                 {!isCompareMode && !isEmbedded && (
                   <ChatbotPaneHeader
-                    metrics={metricsStates.get(primaryConfigId)}
-                    isLoading={loadingStates.get(primaryConfigId)}
                     hasDivider
                     isDarkMode={isDarkMode}
                     agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
@@ -1205,8 +1174,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                             configId={configId}
                             displayLabel={getConfigDisplayLabel(index)}
                             onClose={() => setPendingCloseConfigId(configId)}
-                            metrics={metricsStates.get(configId)}
-                            isLoading={loadingStates.get(configId)}
                             isSettingsOpen={isDrawerExpanded}
                             isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
                           >
