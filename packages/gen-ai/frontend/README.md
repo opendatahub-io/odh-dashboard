@@ -5,59 +5,59 @@ This project is a chatbot UI built with PatternFly, React, and TypeScript. It pr
 ## Quick-start
 
 ```bash
-git https://github.com/opendatahub-io/gen-ai.git
-cd gen-ai
-npm install && npm run start:dev
+# Run from the odh-dashboard repository root
+pnpm install
+cd packages/gen-ai/frontend
+pnpm run start:dev
 ```
 
 ## Development scripts
 
 ```sh
-# Install development/build dependencies
-npm install
+# Dependencies are installed from the repository root; see Quick-start above
 
 # Start the development server
-npm run start:dev
+pnpm run start:dev
 
 # Run a production build (outputs to "dist" dir)
-npm run build
+pnpm run build
 
 # Run the test suite
-npm run test
+pnpm run test
 
 # Run the test suite with coverage
-npm run test:coverage
+pnpm run test:coverage
 
 # Run the linter
-npm run lint
+pnpm run lint
 
 # Run the code formatter
-npm run format
+pnpm run format
 
 # Launch a tool to inspect the bundle size
-npm run bundle-profile:analyze
+pnpm run bundle-profile:analyze
 
 # Start the express server (run a production build first)
-npm run start
+pnpm run start
 
 # Run type checking without emitting files
-npm run type-check
+pnpm run type-check
 
 # Run all CI checks (type checking, linting, and test coverage)
-npm run ci-checks
+pnpm run ci-checks
 
 # Clean the dist directory
-npm run clean
+pnpm run clean
 
 # Generate a rspack bundle profile
-npm run build:bundle-profile
+pnpm run build:bundle-profile
 
 # Build a production bundle and serve it from the mock BFF
-npm run cypress:server:build
-npm run cypress:server
+pnpm run cypress:server:build
+pnpm run cypress:server
 
 # Build, serve via mock BFF, and run Cypress mock tests (CI)
-npm run test:cypress-ci
+pnpm run test:cypress-ci
 ```
 
 ## Configurations
@@ -116,7 +116,7 @@ When importing CSS from a third-party package for the first time, you may encoun
 
 ## Multi environment configuration
 
-This project uses [dotenv-webpack](https://www.npmjs.com/package/dotenv-webpack) for exposing environment variables to your code. Either export them at the system level like `export MY_ENV_VAR=http://dev.myendpoint.com && npm run start:dev` or simply drop a `.env` file in the root that contains your key-value pairs like below:
+This project uses [dotenv-webpack](https://www.npmjs.com/package/dotenv-webpack) for exposing environment variables to your code. Either export them at the system level like `export MY_ENV_VAR=http://dev.myendpoint.com && pnpm run start:dev` or simply drop a `.env` file in the root that contains your key-value pairs like below:
 
 ```sh
 ENV_1=http://1.myendpoint.com

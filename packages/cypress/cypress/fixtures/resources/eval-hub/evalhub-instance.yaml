@@ -18,13 +18,8 @@ type: Opaque
 # MLflow service (same convention as RHOAI: Service/mlflow in applications namespace). The TrustyAI
 # operator may not inject this after the MLflow CR is created later; set explicitly or restart EvalHub
 # once MLflow exists if jobs fail with message_code mlflow_required_for_experiment.
-# For each evaluation namespace (e.g. test-eval), TrustyAI expects RoleBindings created by the
-# operator — mirror evalhub-odh for `redhat-ods-applications:evalhub-service`:
-# - trustyai-service-operator-evalhub-job-config (ConfigMaps for jobs)
-# - trustyai-service-operator-evalhub-jobs-writer (batch/jobs)
-# - trustyai-service-operator-evalhub-mlflow-access (MLflow experiments API)
-# and (once SA exists) bind trustyai-service-operator-evalhub-mlflow-jobs-access to the tenant's
-# evalhub-*-job SA. Manual `test-eval`: `oc create rolebinding ...` for each ClusterRole above.
+# The Cypress tenant setup reads each tenant's evalhub-discovery ConfigMap and binds the selected
+# EvalHub service account to the job-config and jobs-writer ClusterRoles in that disposable tenant.
 apiVersion: trustyai.opendatahub.io/v1alpha1
 kind: EvalHub
 metadata:

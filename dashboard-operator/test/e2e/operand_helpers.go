@@ -1,8 +1,13 @@
 package e2e
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"mime"
+	"net/http"
 	"sort"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -123,6 +128,21 @@ func httpRouteAdmitted(route *gatewayv1.HTTPRoute) bool {
 	return false
 }
 
+func httpRouteMatchesPathPrefix(route *gatewayv1.HTTPRoute, prefix string) bool {
+	for _, rule := range route.Spec.Rules {
+		for _, match := range rule.Matches {
+			if match.Path == nil || match.Path.Value == nil || string(*match.Path.Value) != prefix {
+				continue
+			}
+			if match.Path.Type == nil || *match.Path.Type == gatewayv1.PathMatchPathPrefix {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func pdbSelectsDeployment(pdb *policyv1.PodDisruptionBudget, deployment *appsv1.Deployment) (bool, error) {
 	if pdb.Spec.Selector == nil {
 		return false, nil
@@ -166,6 +186,54 @@ func routeResponseHealthy(statusCode int) bool {
 	default:
 		return false
 	}
+}
+
+func validateModuleAPIResponse(statusCode int, contentType string, body []byte) error {
+	if statusCode != http.StatusOK && statusCode != http.StatusUnauthorized {
+		return fmt.Errorf("unexpected module API status %d", statusCode)
+	}
+
+	mediaType := ""
+	if contentType != "" {
+		var err error
+		mediaType, _, err = mime.ParseMediaType(contentType)
+		if err != nil {
+			return fmt.Errorf("parse module API content type %q: %w", contentType, err)
+		}
+		mediaType = strings.ToLower(mediaType)
+	}
+	if mediaType == "text/html" || bodyStartsWithHTML(body) {
+		return fmt.Errorf("module API response is Dashboard HTML (status %d, content type %q)", statusCode, contentType)
+	}
+
+	if statusCode == http.StatusUnauthorized {
+		if mediaType != "application/json" {
+			return fmt.Errorf("unauthorized module API response has non-JSON content type %q", contentType)
+		}
+		var apiError struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		}
+		if err := json.Unmarshal(body, &apiError); err != nil || apiError.Code == "" || apiError.Message == "" {
+			return fmt.Errorf("unauthorized module API response is not a Model Catalog error")
+		}
+		return nil
+	}
+
+	if mediaType != "application/json" && !strings.HasSuffix(mediaType, "+json") {
+		return fmt.Errorf("successful module API response has non-JSON content type %q", contentType)
+	}
+	if !json.Valid(body) {
+		return fmt.Errorf("successful module API response is not valid JSON")
+	}
+
+	return nil
+}
+
+func bodyStartsWithHTML(body []byte) bool {
+	trimmed := bytes.TrimSpace(bytes.TrimPrefix(body, []byte{0xef, 0xbb, 0xbf}))
+	trimmed = bytes.ToLower(trimmed)
+	return bytes.HasPrefix(trimmed, []byte("<!doctype html")) || bytes.HasPrefix(trimmed, []byte("<html"))
 }
 
 func missingOperandResources(inventory operandInventory) []string {

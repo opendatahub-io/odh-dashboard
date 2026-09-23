@@ -91,10 +91,10 @@ This means if you're already logged into the cluster via `oc login`, the proxy i
 
 ```bash
 # Suppress all but errors
-E2E_PROXY_LOG_LEVEL=error npm run test:cypress:e2e
+E2E_PROXY_LOG_LEVEL=error pnpm run test:cypress:e2e
 
 # Full request-level tracing
-E2E_PROXY_LOG_LEVEL=debug npm run test:cypress:e2e
+E2E_PROXY_LOG_LEVEL=debug pnpm run test:cypress:e2e
 ```
 
 The proxy loads `.env` files from the repo root using the same hierarchical logic as the backend (`.env.development.local` → `.env.development` → `.env.local` → `.env`).

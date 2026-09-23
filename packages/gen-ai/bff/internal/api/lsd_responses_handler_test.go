@@ -2133,30 +2133,9 @@ func TestMockRAGCitationPipeline(t *testing.T) {
 
 }
 
-// TestIsEventTypeSupported_ReasoningEvents verifies reasoning event types are supported
-func TestIsEventTypeSupported_ReasoningEvents(t *testing.T) {
-	t.Run("should support response.reasoning_text.delta", func(t *testing.T) {
-		assert.True(t, isEventTypeSupported("response.reasoning_text.delta"))
-	})
-
-	t.Run("should support response.reasoning_text.done", func(t *testing.T) {
-		assert.True(t, isEventTypeSupported("response.reasoning_text.done"))
-	})
-
-	t.Run("should still support existing event types", func(t *testing.T) {
-		assert.True(t, isEventTypeSupported("response.output_text.delta"))
-		assert.True(t, isEventTypeSupported("response.completed"))
-		assert.True(t, isEventTypeSupported("response.created"))
-	})
-
-	t.Run("should not support unknown event types", func(t *testing.T) {
-		assert.False(t, isEventTypeSupported("response.unknown"))
-		assert.False(t, isEventTypeSupported(""))
-	})
-}
-
-// TestConvertToStreamingEvent_ReasoningEvents verifies reasoning events are correctly converted
-func TestConvertToStreamingEvent_ReasoningEvents(t *testing.T) {
+// TestConvertToStreamingEvent verifies events are forwarded without filtering or
+// dropping fields that the UI needs to render tool calls and other output items.
+func TestConvertToStreamingEvent(t *testing.T) {
 	t.Run("should convert reasoning_text.delta with delta field", func(t *testing.T) {
 		event := map[string]interface{}{
 			"type":            "response.reasoning_text.delta",
@@ -2191,15 +2170,90 @@ func TestConvertToStreamingEvent_ReasoningEvents(t *testing.T) {
 		assert.Equal(t, "msg_123", result.ItemID)
 	})
 
-	t.Run("should still filter unsupported event types", func(t *testing.T) {
+	t.Run("should preserve unknown event types and their payload", func(t *testing.T) {
 		event := map[string]interface{}{
 			"type":            "response.unknown_event",
 			"sequence_number": float64(1),
 			"output_index":    float64(0),
+			"custom_payload": map[string]interface{}{
+				"value": "preserved for the UI",
+			},
 		}
 
 		result := convertToStreamingEvent(event)
-		assert.Nil(t, result, "unsupported event type should be filtered out")
+		require.NotNil(t, result)
+
+		forwarded, err := json.Marshal(result)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"type":"response.unknown_event","sequence_number":1,"output_index":0,"custom_payload":{"value":"preserved for the UI"}}`, string(forwarded))
+	})
+
+	t.Run("should preserve tool output items", func(t *testing.T) {
+		event := map[string]interface{}{
+			"type":            "response.output_item.added",
+			"sequence_number": float64(2),
+			"output_index":    float64(0),
+			"item": map[string]interface{}{
+				"id":           "mcpc_123",
+				"type":         "mcp_call",
+				"server_label": "weather",
+				"name":         "get_forecast",
+				"arguments":    `{"city":"Toronto"}`,
+			},
+		}
+
+		result := convertToStreamingEvent(event)
+		require.NotNil(t, result)
+
+		forwarded, err := json.Marshal(result)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"mcpc_123","type":"mcp_call","server_label":"weather","name":"get_forecast","arguments":"{\"city\":\"Toronto\"}"}}`, string(forwarded))
+	})
+
+	t.Run("should use the original SDK event JSON", func(t *testing.T) {
+		var event responses.ResponseStreamEventUnion
+		err := json.Unmarshal([]byte(`{"type":"response.file_search_call.in_progress","sequence_number":11,"item_id":"fs_123","output_index":0}`), &event)
+		require.NoError(t, err)
+
+		result := convertToStreamingEvent(event)
+		require.NotNil(t, result)
+
+		forwarded, err := json.Marshal(result)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"type":"response.file_search_call.in_progress","sequence_number":11,"item_id":"fs_123","output_index":0}`, string(forwarded))
+	})
+}
+
+func TestSyncProcessedResponse(t *testing.T) {
+	t.Run("should preserve large integer values in the raw completed event", func(t *testing.T) {
+		event := StreamingEvent{
+			raw: []byte(`{"response":{"output":[{"type":"message","content":[{"type":"output_text","text":"original"}]}],"large_integer":9007199254740993}}`),
+			Response: &ResponseData{
+				Output: []OutputItem{{
+					Type: "message",
+					Content: []ContentItem{{
+						Type: "output_text",
+						Text: "processed",
+					}},
+				}},
+			},
+		}
+
+		event.syncProcessedResponse()
+
+		assert.Contains(t, string(event.raw), `"large_integer":9007199254740993`)
+		assert.Contains(t, string(event.raw), `"text":"processed"`)
+	})
+
+	t.Run("should reject raw events with trailing JSON", func(t *testing.T) {
+		event := StreamingEvent{
+			raw:      []byte(`{"response":{"output":[]}} {"trailing":true}`),
+			Response: &ResponseData{},
+		}
+
+		event.syncProcessedResponse()
+
+		assert.Nil(t, event.raw)
 	})
 }
 

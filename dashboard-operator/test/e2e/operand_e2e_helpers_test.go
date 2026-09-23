@@ -202,6 +202,52 @@ func waitForAdmittedHTTPRoute(
 	return admitted, nil
 }
 
+func waitForAdmittedHTTPRouteByName(
+	c client.Client,
+	namespace string,
+	name string,
+	timeout time.Duration,
+) (*gatewayv1.HTTPRoute, error) {
+	return waitForAdmittedHTTPRouteByNames(c, namespace, []string{name}, timeout)
+}
+
+func waitForAdmittedHTTPRouteByNames(
+	c client.Client,
+	namespace string,
+	names []string,
+	timeout time.Duration,
+) (*gatewayv1.HTTPRoute, error) {
+	var admitted *gatewayv1.HTTPRoute
+	err := wait.PollUntilContextTimeout(
+		context.Background(),
+		e2ePollInterval,
+		timeout,
+		true,
+		func(ctx context.Context) (bool, error) {
+			for _, name := range names {
+				route := &gatewayv1.HTTPRoute{}
+				key := client.ObjectKey{Namespace: namespace, Name: name}
+				if err := c.Get(ctx, key, route); err != nil {
+					if apierrors.IsNotFound(err) {
+						continue
+					}
+					return false, err
+				}
+				if !httpRouteAdmitted(route) {
+					continue
+				}
+				admitted = route.DeepCopy()
+				return true, nil
+			}
+			return false, nil
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("wait for an admitted HTTPRoute named %s in namespace %s: %w", strings.Join(names, " or "), namespace, err)
+	}
+	return admitted, nil
+}
+
 func readyPodForService(ctx context.Context, c client.Client, service *corev1.Service) (*corev1.Pod, error) {
 	if len(service.Spec.Selector) == 0 {
 		return nil, fmt.Errorf("service %s/%s has no selector", service.Namespace, service.Name)

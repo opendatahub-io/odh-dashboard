@@ -91,7 +91,7 @@ describe('CollectionDetailView', () => {
     const table1Link = screen.getByText('table1').closest('a');
     expect(table1Link).toHaveAttribute(
       'href',
-      '/ai-hub/data/browse/tables/demo-user-1/test-collection/table1',
+      '/ai-hub/data/browse/assets/table/demo-user-1/test-collection/table1',
     );
   });
 
@@ -105,7 +105,7 @@ describe('CollectionDetailView', () => {
     const volume1Link = screen.getByText('volume1').closest('a');
     expect(volume1Link).toHaveAttribute(
       'href',
-      '/ai-hub/data/browse/volumes/demo-user-1/test-collection/volume1',
+      '/ai-hub/data/browse/assets/volume/demo-user-1/test-collection/volume1',
     );
   });
 
