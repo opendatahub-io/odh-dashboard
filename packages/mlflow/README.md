@@ -74,7 +74,7 @@ The following environment variables are used to configure the deployment and dev
 ### `MLFLOW_URL`
 
 - **Description**: URL of the MLflow tracking server to connect to. Only needed for remote MLflow mode.
-- **Default Value**: *(empty — in mock mode, the BFF auto-starts a local MLflow instance)*
+- **Default Value**: _(empty — in mock mode, the BFF auto-starts a local MLflow instance)_
 - **Example**: `MLFLOW_URL=https://my-mlflow-server.example.com`
 
 ### `INSECURE_SKIP_VERIFY`
@@ -108,22 +108,27 @@ The following Makefile targets are used to build and push the Docker images. The
 ### Build Commands
 
 - **`docker-build`**: Builds the Docker image for the UI platform.
+
   - Command: `make docker-build`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables.
 
 - **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
+
   - Command: `make docker-buildx`
   - This command uses `IMG_UI` and `PLATFORM` environment variables.
 
 - **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
+
   - Command: `make docker-build-standalone`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables.
 
 - **`docker-build-federated`**: Builds the Docker image for the UI platform **in federated mode**.
+
   - Command: `make docker-build-federated`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI_FEDERATED` environment variables.
 
 - **`docker-buildx-standalone`**: Builds the Docker image with buildX for multiarch support **in standalone mode**.
+
   - Command: `make docker-buildx-standalone`
   - This command uses `IMG_UI_STANDALONE` and `PLATFORM` environment variables.
 
@@ -134,10 +139,12 @@ The following Makefile targets are used to build and push the Docker images. The
 ### Push Commands
 
 - **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
+
   - Command: `make docker-push`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables.
 
 - **`docker-push-standalone`**: Pushes the Docker image for the UI service to the container registry **in standalone mode**.
+
   - Command: `make docker-push-standalone`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables.
 

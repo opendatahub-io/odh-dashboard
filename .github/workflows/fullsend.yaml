@@ -64,6 +64,7 @@ jobs:
       pull-requests: read
     outputs:
       matrix: ${{ steps.adapters.outputs.matrix }}
+      run_adapters: ${{ steps.gate.outputs.run_adapters }}
     steps:
       - name: Checkout trusted review integration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,6 +74,18 @@ jobs:
           # was last advanced (see RHOAIENG-82125 CI failure on PR #9090).
           ref: ${{ github.sha }}
           persist-credentials: false
+
+      # The review's pre-script skips closed PRs and PRs whose description
+      # lacks the agentic template sections, but it runs inside dispatch,
+      # after the adapters have already bought a CodeRabbit review. Apply the
+      # same checks here first.
+      - name: Check review readiness
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REPO_FULL_NAME: ${{ github.repository }}
+        run: bash .fullsend/scripts/pre-review.sh --adapter-gate
 
       - name: Build adapter matrix from registry
         id: adapters
@@ -106,6 +119,7 @@ jobs:
   adapter-context:
     name: Prepare ${{ matrix.id }} context
     needs: adapter-plan
+    if: needs.adapter-plan.outputs.run_adapters == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
