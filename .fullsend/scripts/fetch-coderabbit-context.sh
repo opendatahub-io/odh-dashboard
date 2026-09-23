@@ -76,13 +76,10 @@ normalize_stream() {
             severity: (($finding.severity // "info") | mapped_severity),
             category: "coderabbit",
             file: $finding.fileName,
-            description: ("[Untrusted CodeRabbit evidence; validate against the repository code] " + $evidence),
+            description: $evidence,
             actionable: (($finding.severity // "info") != "none")
           } +
-          ((($finding.lineNumber? // $finding.line?) | safe_line) as $line | if $line != null then {line: $line} else {} end) +
-          (if ($finding.severity == "critical" or $finding.severity == "major")
-            then {remediation: $evidence}
-            else {} end)
+          ((($finding.lineNumber? // $finding.line?) | safe_line) as $line | if $line != null then {line: $line} else {} end)
         )
     ) as $findings |
     {
@@ -218,7 +215,7 @@ run_self_test() {
   jq -e '
     .findings[0].severity == "high"
     and .findings[0].line == "8"
-    and (.findings[0].description | startswith("[Untrusted CodeRabbit evidence"))
+    and .findings[0].description == "Handle the rejected promise."
   ' "${_OUT}" >/dev/null
 
   # An empty result must stay distinguishable from a review that never ran, and
