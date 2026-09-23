@@ -103,7 +103,7 @@ const collectOdhClosure = (
   return visited;
 };
 
-const expandSharedExports = (
+const validateAndExpandSharedExports = (
   packageNames: Set<string>,
   byName: Map<string, WorkspacePackageInfo>,
 ): Set<string> => {
@@ -114,9 +114,13 @@ const expandSharedExports = (
     for (const exportPath of pkg?.['module-federation-shared'] ?? []) {
       const isExplicitExport = exportPath.startsWith('./') && !exportPath.includes('*');
       if (!isExplicitExport || pkg?.exports?.[exportPath] == null) {
+        const validExports = Object.keys(pkg?.exports ?? {}).filter(
+          (candidate) => candidate.startsWith('./') && !candidate.includes('*'),
+        );
         throw new Error(
           `${packageName} declares invalid module-federation-shared export "${exportPath}". ` +
-            'Entries must be explicit paths from the package exports map.',
+            'Entries must be explicit paths from the package exports map. ' +
+            `Valid explicit exports: ${validExports.join(', ') || '(none)'}.`,
         );
       }
       moduleNames.add(`${packageName}/${exportPath.slice(2)}`);
@@ -155,8 +159,8 @@ const getRuntimeOdhPackages = (packages?: WorkspacePackageInfo[]): RuntimeOdhPac
 
   const hostProvidedPackages = collectOdhClosure([...hostDeps, ...extensionPackages], byName);
   const allPackages = collectOdhClosure([...hostProvidedPackages, ...federatedPackages], byName);
-  const hostProvided = expandSharedExports(hostProvidedPackages, byName);
-  const all = expandSharedExports(allPackages, byName);
+  const hostProvided = validateAndExpandSharedExports(hostProvidedPackages, byName);
+  const all = validateAndExpandSharedExports(allPackages, byName);
 
   return { all, hostProvided };
 };
