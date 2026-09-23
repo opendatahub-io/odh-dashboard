@@ -481,6 +481,13 @@ func (r *DashboardReconciler) reconcileDeployment(
 		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
 	}
 
+	if err := r.reconcileRHOAIDashboardConfigDefaults(ctx); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("DashboardConfigDefaultFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile dashboard config defaults: %w", err)
+	}
+
 	nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
 	if err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -1043,6 +1050,9 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		)
 
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
+		return err
+	}
+	if err := addOdhDashboardConfigWatch(mgr.GetRESTMapper(), controllerBuilder, r); err != nil {
 		return err
 	}
 
