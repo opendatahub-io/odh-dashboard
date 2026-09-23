@@ -352,10 +352,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -558,10 +558,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -761,10 +761,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -891,10 +891,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -1189,10 +1189,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.100.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.8
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -1592,10 +1592,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -1992,10 +1992,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -2370,10 +2370,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -2998,10 +2998,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -3280,10 +3280,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -3687,10 +3687,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -4060,10 +4060,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -4738,10 +4738,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -5114,10 +5114,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.7
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -5527,10 +5527,10 @@ importers:
         version: 1.0.1
       sass:
         specifier: ^1.87.0
-        version: 1.102.0
+        version: 1.104.0
       sass-loader:
         specifier: ^16.0.0
-        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+        version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.104.1)
@@ -14888,6 +14888,10 @@ packages:
     resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
     engines: {node: '>=12'}
 
+  picomatch@4.0.7:
+    resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
+    engines: {node: '>=12'}
+
   pidtree@0.3.1:
     resolution: {integrity: sha512-qQbW94hLHEqCg7nhby4yRC7G2+jYHY4Rguc2bjw7Uug4GIJuu1tvf2uHaZv5Q8zdt+WKJ6qK1FOI6amaWUo5FA==}
     engines: {node: '>=0.10'}
@@ -15803,8 +15807,8 @@ packages:
       webpack:
         optional: true
 
-  sass@1.102.0:
-    resolution: {integrity: sha512-NSOyTnaQF7rTAEOtI2fwb386vL+akyiQLBZu8Na7hXCb+umJy0GAqlcMIaqACZ6Z1VgTBS4K9PG6B3IdjHGJsw==}
+  sass@1.104.0:
+    resolution: {integrity: sha512-btHMApW2bgolvClhRW8AlQJzgI9lUB3pPSofBQQT+E46GWvf9o0TVQ13SYv5riWZVFyPN+JNz3TKW9XhBlc10w==}
     engines: {node: '>=20.19.0'}
     hasBin: true
 
@@ -20345,7 +20349,7 @@ snapshots:
       detect-libc: 2.1.2
       is-glob: 4.0.3
       node-addon-api: 7.1.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
     optionalDependencies:
       '@parcel/watcher-android-arm64': 2.6.0
       '@parcel/watcher-darwin-arm64': 2.6.0
@@ -29151,6 +29155,9 @@ snapshots:
 
   picomatch@4.0.5: {}
 
+  picomatch@4.0.7:
+    optional: true
+
   pidtree@0.3.1: {}
 
   pify@2.3.0: {}
@@ -30141,23 +30148,23 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sass-loader@16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(sass@1.102.0)(webpack@5.104.1):
+  sass-loader@16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(sass@1.104.0)(webpack@5.104.1):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@0.24.1)
-      sass: 1.102.0
+      sass: 1.104.0
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.26)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
-  sass-loader@16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1):
+  sass-loader@16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.0)(webpack@5.104.1):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@2.8.2)
-      sass: 1.102.0
+      sass: 1.104.0
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.26)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
-  sass@1.102.0:
+  sass@1.104.0:
     dependencies:
       chokidar: 5.0.0
       immutable: 5.1.9
