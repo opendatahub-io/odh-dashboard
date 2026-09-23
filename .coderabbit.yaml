@@ -18,6 +18,9 @@ reviews:
     auto_pause_after_reviewed_commits: 0
     # Mergify merge-queue drafts are speculative CI targets, not review targets.
     drafts: false
+    # Skip when Fullsend owns the review (avoids duplicate AI review noise).
+    labels:
+      - "!fullsend"
     ignore_usernames:
       - "mergify[bot]"
   # ── Path filters (additive to baseline) ─────────────────────────
