@@ -164,7 +164,26 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       cy.step('Type a message and send');
       const message = testData.inference.visionTestMessage;
       genAiPlayground.findMessageInput().type(message);
+      cy.intercept('POST', '**/api/v1/lsd/responses**').as('createResponse');
       genAiPlayground.findSendButton().click();
+      cy.wait('@createResponse')
+        .its('request.body.input')
+        .should('be.an', 'array')
+        .and((input: unknown[]) => {
+          expect(
+            input.some((part) => {
+              if (typeof part !== 'object' || part === null) {
+                return false;
+              }
+              const inputPart = part as Record<string, unknown>;
+              return (
+                inputPart.type === 'input_image' &&
+                typeof inputPart.file_id === 'string' &&
+                inputPart.file_id.trim().length > 0
+              );
+            }),
+          ).to.equal(true);
+        });
 
       cy.step('Verify user message appears in chat');
       genAiPlayground.findAllUserMessages().should('contain.text', message);
