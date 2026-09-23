@@ -1,19 +1,11 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import * as areasModule from '@odh-dashboard/plugin-core/areas';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connections/ManageConnectionsModal';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import * as connectionTestService from '#~/services/connectionTestService';
-
-jest.mock('@odh-dashboard/plugin-core/areas', () => ({
-  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
-  useIsAreaAvailable: jest.fn().mockReturnValue({ status: true }),
-}));
-
-const mockUseIsAreaAvailable = jest.mocked(areasModule.useIsAreaAvailable);
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
@@ -927,44 +919,8 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
     expect(callArgs.fieldValues.requiredField).toBe('some-value');
     expect(callArgs.fieldValues).not.toHaveProperty('optionalField');
   });
-});
 
-describe('ManageConnectionModal feature flag', () => {
-  const onCloseMock = jest.fn();
-  const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
-
-  it('should hide test connection UI when feature flag is disabled', () => {
-    mockUseIsAreaAvailable.mockReturnValue({ status: false } as ReturnType<
-      typeof areasModule.useIsAreaAvailable
-    >);
-
-    render(
-      <ManageConnectionModal
-        project={mockProjectK8sResource({})}
-        onClose={onCloseMock}
-        onSubmit={onSubmitMock}
-        connectionTypes={[
-          mockConnectionTypeConfigMapObj({
-            name: 's3',
-            fields: [{ type: 'short-text', name: 'Endpoint', envVar: 'endpoint', properties: {} }],
-          }),
-        ]}
-      />,
-    );
-
-    expect(screen.queryByTestId('test-connection-button')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('connection-test-label-not-tested')).not.toBeInTheDocument();
-
-    mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
-      typeof areasModule.useIsAreaAvailable
-    >);
-  });
-
-  it('should show test connection UI when feature flag is enabled', () => {
-    mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
-      typeof areasModule.useIsAreaAvailable
-    >);
-
+  it('should show test connection UI', () => {
     render(
       <ManageConnectionModal
         project={mockProjectK8sResource({})}
