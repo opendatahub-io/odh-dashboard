@@ -1052,9 +1052,12 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
 		return err
 	}
-	addOdhDashboardConfigWatch(controllerBuilder, r)
+	dashboardController, err := controllerBuilder.Build(r)
+	if err != nil {
+		return err
+	}
 
-	return controllerBuilder.Complete(r)
+	return addOdhDashboardConfigWatch(mgr, dashboardController, r)
 }
 
 // addOptionalOwnedResourceWatches adds watches for APIs used only by the MaaS

@@ -3,18 +3,21 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 
@@ -22,6 +25,8 @@ import (
 )
 
 const odhDashboardConfigName = "odh-dashboard-config"
+
+const odhDashboardConfigDiscoveryInterval = 10 * time.Second
 
 var odhDashboardConfigGVK = schema.GroupVersionKind{
 	Group:   "opendatahub.io",
@@ -115,20 +120,43 @@ func (r *DashboardReconciler) odhDashboardConfigPredicate() predicate.Predicate 
 }
 
 func addOdhDashboardConfigWatch(
-	controllerBuilder *builder.Builder,
+	mgr manager.Manager,
+	dashboardController ctrlcontroller.Controller,
 	r *DashboardReconciler,
-) {
+) error {
 	if r.Platform != cluster.SelfManagedRhoai {
-		return
+		return nil
 	}
 
-	// Register the source even if REST discovery has not observed the CRD yet.
-	// controller-runtime's Kind source retries informer creation until the API
-	// becomes discoverable, avoiding a permanent watch gap after a transient
-	// startup discovery miss.
-	controllerBuilder.Watches(
-		newOdhDashboardConfig(),
-		handler.EnqueueRequestsFromMapFunc(r.mapOdhDashboardConfigToDashboard),
-		builder.WithPredicates(r.odhDashboardConfigPredicate()),
-	)
+	return mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+		logger := log.FromContext(ctx).WithName("odh-dashboard-config-watch")
+		ticker := time.NewTicker(odhDashboardConfigDiscoveryInterval)
+		defer ticker.Stop()
+
+		for {
+			available, err := apiResourceAvailable(mgr.GetRESTMapper(), odhDashboardConfigGVK)
+			if err != nil {
+				logger.Error(err, "Unable to discover OdhDashboardConfig API; will retry")
+			} else if available {
+				var config client.Object = newOdhDashboardConfig()
+				if err := dashboardController.Watch(source.Kind(
+					mgr.GetCache(),
+					config,
+					handler.EnqueueRequestsFromMapFunc(r.mapOdhDashboardConfigToDashboard),
+					r.odhDashboardConfigPredicate(),
+				)); err != nil {
+					return fmt.Errorf("start OdhDashboardConfig watch: %w", err)
+				}
+				logger.Info("Registered OdhDashboardConfig watch")
+				<-ctx.Done()
+				return nil
+			}
+
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-ticker.C:
+			}
+		}
+	}))
 }

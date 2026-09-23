@@ -4,21 +4,88 @@ package controller_test
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
 var odhDashboardConfigGVK = schema.GroupVersionKind{
 	Group: "opendatahub.io", Version: "v1alpha", Kind: "OdhDashboardConfig",
+}
+
+// TestIntegration_RHOAIControllerStartsWithoutOdhDashboardConfigCRD guards the
+// fresh-install path. The Dashboard controller must be able to reconcile and
+// install its manifests before the optional OdhDashboardConfig watch exists.
+func TestIntegration_RHOAIControllerStartsWithoutOdhDashboardConfigCRD(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(s))
+	require.NoError(t, v1alpha1.AddToScheme(s))
+
+	localEnv := &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		Scheme:            s,
+	}
+	cfg, err := localEnv.Start()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, localEnv.Stop()) })
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme:                 s,
+		Metrics:                metricsserver.Options{BindAddress: "0"},
+		HealthProbeBindAddress: "0",
+	})
+	require.NoError(t, err)
+
+	const namespace = "startup-without-dashboard-config-crd"
+	require.NoError(t, ctrlpkg.SetupWithManager(mgr, ctrlpkg.Options{
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.SelfManagedRhoai,
+		Namespace:             namespace,
+		ApplicationsNamespace: namespace,
+	}))
+
+	directClient, err := client.New(cfg, client.Options{Scheme: s})
+	require.NoError(t, err)
+	require.NoError(t, directClient.Create(context.Background(), &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: namespace},
+	}))
+	dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName}}
+	require.NoError(t, directClient.Create(context.Background(), dashboard))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	managerErr := make(chan error, 1)
+	go func() { managerErr <- mgr.Start(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		require.NoError(t, <-managerErr)
+	})
+
+	require.Eventually(t, func() bool {
+		current := &v1alpha1.Dashboard{}
+		if err := directClient.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, current); err != nil {
+			return false
+		}
+		return len(current.Finalizers) > 0
+	}, 10*time.Second, 100*time.Millisecond, "Dashboard controller did not start without OdhDashboardConfig CRD")
 }
 
 // TestIntegration_RHOAIDashboardConfigDefault verifies the backend-first race:
