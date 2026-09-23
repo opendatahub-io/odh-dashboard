@@ -1490,7 +1490,7 @@ BFF_MAAS_DEV_URL=http://localhost:8081/api/v1 MAAS_URL=http://localhost:8081 \
   LLAMA_STACK_URL=http://localhost:8321 make run LOG_LEVEL=debug
 
 # Terminal 3: Frontend
-cd packages/gen-ai/frontend && npm run start:dev
+cd packages/gen-ai/frontend && pnpm run start:dev
 
 # Terminal 4: Port-forward Llama Stack
 oc port-forward -n <namespace> svc/lsd-genai-playground-service 8321:8321
