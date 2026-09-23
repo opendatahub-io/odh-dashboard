@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
+import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import type { PipelineVisualizationData } from './types';
 
 /**
@@ -26,9 +27,21 @@ export const useTreeViewData = (
         ? selectedRecord.name
         : undefined;
 
+    const rankablePatterns: Record<string, AutoragPattern> = {};
+    for (const [key, pattern] of Object.entries(safePatterns)) {
+      try {
+        if (Array.isArray(pattern.evaluation.metrics)) {
+          rankablePatterns[key] = pattern;
+        }
+      } catch {
+        // Invalid hydrated pattern records are omitted from ranking.
+      }
+    }
+
     return {
       selectedPattern,
       winnerPatternLabel,
       stageMapNodes,
+      patternRanks: computePatternRankMap(rankablePatterns),
     };
   }, [patterns, stageMapNodes, bestPatternKey, stageMapBestPattern]);

@@ -67,6 +67,12 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     () => canShowPatternsExpandToggle(treeViewData.stageMapNodes),
     [treeViewData.stageMapNodes],
   );
+  const patternCount = React.useMemo(
+    () =>
+      treeViewData.stageMapNodes?.filter((node) => /__pattern__branch-\d+$/.test(node.id)).length ??
+      0,
+    [treeViewData.stageMapNodes],
+  );
 
   const winnerResolved = statusFilter === 'completed' && !!treeViewData.selectedPattern;
 
@@ -85,9 +91,10 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     () => ({
       patternsExpanded,
       showToggle: showPatternsToggle,
+      patternCount,
       onToggle: () => setPatternsExpanded((prev) => !prev),
     }),
-    [patternsExpanded, showPatternsToggle],
+    [patternsExpanded, showPatternsToggle, patternCount],
   );
 
   const showTreeLoadingState = treeLoadingMode != null;

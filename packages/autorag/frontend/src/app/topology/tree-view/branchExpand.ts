@@ -3,6 +3,8 @@ import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 /** Mirrors stageMapStatus.BRANCHING_STAGE_ID without importing PF topology. */
 const BRANCHING_STAGE_ID = 'optimize_templates';
 
+export type PatternRankMap = Record<string, number>;
+
 export type BranchExpandOptions = {
   /** When false (default), show shared spine + winner branch only. */
   patternsExpanded: boolean;
@@ -13,6 +15,8 @@ export type BranchExpandOptions = {
   winnerResolved: boolean;
   winnerPatternLabel?: string;
   winnerPatternKey?: string;
+  /** Leaderboard ranks keyed by pattern name/key — badges 1–3 on expanded pattern results. */
+  patternRanks?: PatternRankMap;
 };
 
 const BRANCH_STARTED_STATUSES = new Set(['InProgress', 'Succeeded', 'Failed', 'Cancelled']);
@@ -83,6 +87,28 @@ export const canShowPatternsExpandToggle = (
 
 export const isBranchingStageNodeId = (nodeId: string): boolean =>
   nodeId.endsWith(`__${BRANCHING_STAGE_ID}`);
+
+export const resolvePatternRank = (
+  patternNode: PipelineNodeModelExpanded,
+  patternRanks: PatternRankMap | undefined,
+): 1 | 2 | 3 | undefined => {
+  if (!patternRanks) {
+    return undefined;
+  }
+  const nodeValues = [patternNode.label, patternNode.id].filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  );
+  for (const [key, rank] of Object.entries(patternRanks)) {
+    if (rank !== 1 && rank !== 2 && rank !== 3) {
+      continue;
+    }
+    const normalizedKey = normalizeMatchKey(key);
+    if (nodeValues.some((value) => valuesLooselyMatch(normalizeMatchKey(value), normalizedKey))) {
+      return rank;
+    }
+  }
+  return undefined;
+};
 
 export const matchesWinnerPattern = (
   patternNode: PipelineNodeModelExpanded,

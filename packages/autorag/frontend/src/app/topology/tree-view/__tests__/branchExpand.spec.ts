@@ -14,6 +14,7 @@ import {
   canShowPatternsExpandToggle,
   isBranchingStageNodeId,
   matchesWinnerPattern,
+  resolvePatternRank,
   resolveVisibleBranchIndices,
   resolveWinnerBranchIndex,
 } from '~/app/topology/tree-view/branchExpand';
@@ -104,5 +105,16 @@ describe('branchExpand', () => {
     expect(
       resolveVisibleBranchIndices([0, 1], branches, { ...options, patternsExpanded: true }),
     ).toEqual([0, 1]);
+  });
+
+  it('should resolve top-3 pattern ranks from the leaderboard map', () => {
+    const node = makeNode('rag__pattern__branch-1', 'Pattern H');
+    expect(
+      resolvePatternRank(node, {
+        'Pattern H': 2,
+        'Pattern A': 1,
+      }),
+    ).toBe(2);
+    expect(resolvePatternRank(node, { 'Pattern A': 1 })).toBeUndefined();
   });
 });
