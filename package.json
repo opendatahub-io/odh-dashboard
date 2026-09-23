@@ -141,6 +141,10 @@
     "tmp": "^0.2.6",
     "qs": "^6.16.0",
     "browserslist": "^4.29.0",
-    "js-cookie": "^3.0.7"
+    "js-cookie": "^3.0.7",
+    "fflate": "^0.4.9",
+    "baseline-browser-mapping": "^2.11.0",
+    "compression": "^1.8.2",
+    "adm-zip": "0.6.1"
   }
 }
