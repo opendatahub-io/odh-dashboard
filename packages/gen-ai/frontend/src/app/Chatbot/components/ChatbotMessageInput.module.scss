@@ -1,4 +1,4 @@
-.gen-ai-document-attachments {
+.documentAttachments {
   padding-top: var(--pf-t--global--spacer--md);
   position: relative;
 
@@ -12,7 +12,7 @@
   }
 }
 
-.gen-ai-document-attachment.pf-v6-c-label {
+.documentAttachment:global(.pf-v6-c-label) {
   --pf-v6-c-label--BackgroundColor: var(--pf-t--global--background--color--primary--default);
   --pf-v6-c-label--BorderColor: var(--pf-t--global--border--color--default);
   --pf-v6-c-label--BorderRadius: var(--pf-t--global--border--radius--small);
@@ -21,23 +21,24 @@
   --pf-v6-c-label--PaddingBlockStart: var(--pf-t--global--spacer--sm);
   --pf-v6-c-label--PaddingInlineEnd: var(--pf-t--global--spacer--md);
   --pf-v6-c-label--PaddingInlineStart: var(--pf-t--global--spacer--md);
+
   max-inline-size: calc(var(--pf-t--global--spacer--2xl) * 6.625);
 }
 
-.gen-ai-document-attachment--staged {
+.staged {
   --pf-v6-c-label--PaddingInlineEnd: var(--pf-t--global--spacer--lg);
 }
 
-.gen-ai-document-attachment__icon {
+.icon {
   align-items: center;
   background-color: var(--pf-t--global--icon--color--status--custom--default);
+  block-size: var(--pf-t--global--spacer--lg);
   border-radius: var(--pf-t--global--border--radius--small);
   color: var(--pf-t--global--background--color--primary--default);
   display: inline-flex;
+  flex: none;
   inline-size: var(--pf-t--global--spacer--lg);
   justify-content: center;
-  block-size: var(--pf-t--global--spacer--lg);
-  flex: none;
 
   img {
     block-size: var(--pf-t--global--icon--size--font--body--default);
@@ -45,17 +46,17 @@
   }
 }
 
-.gen-ai-document-attachment__details {
+.details {
   display: grid;
   gap: 0;
   text-align: left;
 }
 
-.gen-ai-document-attachment__filename {
+.filename {
   font-size: var(--pf-t--global--font--size--sm);
 }
 
-.gen-ai-document-attachment__type {
+.type {
   color: var(--pf-t--global--text--color--subtle);
   font-size: var(--pf-t--global--font--size--xs);
   font-weight: var(--pf-t--global--font--weight--body--bold);

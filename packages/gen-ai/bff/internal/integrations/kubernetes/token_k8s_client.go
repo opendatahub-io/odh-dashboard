@@ -91,6 +91,14 @@ const (
 
 	officeMIMETypesConfigMapContents = `import mimetypes
 
+# Preserve OGX's optional OpenTelemetry auto-instrumentation hook when it is
+# available in the image. Python imports this module after the standard site
+# initialization, so importing the original hook here keeps both customizations.
+try:
+    from opentelemetry.instrumentation.auto_instrumentation import sitecustomize as _otel_sitecustomize
+except ImportError:
+    pass
+
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx")
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx")
 `
@@ -1868,11 +1876,32 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	// for Office documents. The supported OGX image does not register Office
 	// mappings, so provide them as a small, isolated sitecustomize module.
 	officeMIMETypesConfigMap := newOfficeMIMETypesConfigMap(namespace)
+	officeMIMEConfigMapCreated := false
 	if err := kc.Client.Create(ctx, officeMIMETypesConfigMap); err != nil {
-		if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
-			kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap creation failure", "error", deleteErr, "namespace", namespace)
+		if apierrors.IsAlreadyExists(err) {
+			if getErr := kc.Client.Get(ctx, types.NamespacedName{Name: officeMIMETypesConfigMap.Name, Namespace: namespace}, officeMIMETypesConfigMap); getErr != nil {
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap lookup failure", "error", deleteErr, "namespace", namespace)
+				}
+				return nil, rollbackPgvector(fmt.Errorf("failed to retrieve existing Office MIME types ConfigMap: %w", getErr))
+			}
+		} else {
+			if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+				kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap creation failure", "error", deleteErr, "namespace", namespace)
+			}
+			return nil, rollbackPgvector(fmt.Errorf("failed to create Office MIME types ConfigMap: %w", err))
 		}
-		return nil, rollbackPgvector(fmt.Errorf("failed to create Office MIME types ConfigMap: %w", err))
+	} else {
+		officeMIMEConfigMapCreated = true
+	}
+
+	cleanupOfficeMIMEConfigMap := func() {
+		if !officeMIMEConfigMapCreated {
+			return
+		}
+		if deleteErr := kc.Client.Delete(ctx, officeMIMETypesConfigMap); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+			kc.Logger.Warn("failed to clean up Office MIME types ConfigMap", "error", deleteErr, "namespace", namespace)
+		}
 	}
 
 	// Prefer the DSCI-managed bundle. A newly created E2E namespace may not yet
@@ -1896,6 +1925,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 		if err := kc.Client.Create(ctx, caBundle); err != nil {
 			if !apierrors.IsAlreadyExists(err) {
+				cleanupOfficeMIMEConfigMap()
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after CA bundle creation failure", "error", deleteErr, "namespace", namespace)
+				}
 				return nil, rollbackPgvector(fmt.Errorf("failed to create CA trust ConfigMap: %w", err))
 			}
 		} else {
@@ -1919,6 +1952,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	if kc.EnvConfig.GatewayDomain != "" {
 		routerCABundleName, created, err := kc.ensureOGXGatewayCABundle(ctx, namespace)
 		if err != nil {
+			cleanupOfficeMIMEConfigMap()
+			if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+				kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after gateway CA bundle failure", "error", deleteErr, "namespace", namespace)
+			}
 			return nil, rollbackPgvector(err)
 		}
 		routerCABundleCreated = created
@@ -1995,9 +2032,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		} else {
 			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
 		}
-		if deleteErr := kc.Client.Delete(ctx, officeMIMETypesConfigMap); deleteErr != nil {
-			kc.Logger.Error("failed to clean up Office MIME types ConfigMap after OGXServer creation failure", "error", deleteErr, "namespace", namespace)
-		}
+		cleanupOfficeMIMEConfigMap()
 		if fallbackCABundleCreated {
 			if deleteErr := kc.Client.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: caBundleConfigMapName, Namespace: namespace}}); deleteErr != nil {
 				kc.Logger.Error("failed to clean up fallback CA bundle after OGXServer creation failure", "error", deleteErr, "namespace", namespace)

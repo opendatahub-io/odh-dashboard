@@ -42,7 +42,7 @@ import {
 } from '~/app/utilities/utils';
 import useCapabilityOnboarding from '~/app/hooks/useCapabilityOnboarding';
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
-import { DocumentAttachment, TokenInfo, ResponseMetrics, MCPServerFromAPI } from '~/app/types';
+import { DocumentAttachment, TokenInfo, MCPServerFromAPI } from '~/app/types';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import type { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
@@ -637,14 +637,14 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       }
       setDocumentUploadCount(acceptedFiles.length);
       setIsDocumentUploading(true);
+      const uploaded: DocumentAttachment[] = [];
+      const cachedDocuments = new Map(
+        loadDocumentCache(documentStorageKey).map((attachment) => [
+          attachment.fingerprint,
+          attachment,
+        ]),
+      );
       try {
-        const uploaded: DocumentAttachment[] = [];
-        const cachedDocuments = new Map(
-          loadDocumentCache(documentStorageKey).map((attachment) => [
-            attachment.fingerprint,
-            attachment,
-          ]),
-        );
         for (const file of acceptedFiles) {
           const cached = cachedDocuments.get(documentFingerprint(file));
           if (cached) {
@@ -662,12 +662,26 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             fingerprint: documentFingerprint(file),
           });
         }
-        persistDocumentCache(documentStorageKey, Array.from(cachedDocuments.values()));
-        setDocumentAttachments((current) => [...current, ...uploaded]);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Document extraction failed.';
         alertManagement.onShowErrorAlert(message, 'Document upload error');
       } finally {
+        persistDocumentCache(documentStorageKey, Array.from(cachedDocuments.values()));
+        if (uploaded.length > 0) {
+          setDocumentAttachments((current) => {
+            const attachmentIDs = new Set(current.map((attachment) => attachment.file_id));
+            return [
+              ...current,
+              ...uploaded.filter((attachment) => {
+                if (attachmentIDs.has(attachment.file_id)) {
+                  return false;
+                }
+                attachmentIDs.add(attachment.file_id);
+                return true;
+              }),
+            ];
+          });
+        }
         setIsDocumentUploading(false);
         setDocumentUploadCount(0);
       }

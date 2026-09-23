@@ -644,13 +644,10 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-documents'));
 
       const input = screen.getByTestId('document-file-input') as HTMLInputElement;
-      const bigFile = new File(
-        ['x'.repeat(DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE + 1)],
-        'huge.txt',
-        {
-          type: 'text/plain',
-        },
-      );
+      const bigFile = new File(['x'], 'huge.txt', { type: 'text/plain' });
+      Object.defineProperty(bigFile, 'size', {
+        value: DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE + 1,
+      });
       Object.defineProperty(input, 'files', { value: [bigFile], configurable: true });
       fireEvent.change(input);
 

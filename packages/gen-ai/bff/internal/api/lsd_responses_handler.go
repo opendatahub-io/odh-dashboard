@@ -666,7 +666,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content.TextContent()})
 				}
 			}
-			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input.TextContent()})
+			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: inputWithDocuments.TextContent()})
 		}
 
 		// For non-streaming requests, run input moderation now (HTTP error responses)

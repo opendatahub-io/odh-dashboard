@@ -531,11 +531,24 @@ const useChatbotMessages = ({
           }),
         chat_context: messages
           .filter((msg) => msg.content && !msg.errorClassification)
-          .map((msg) => ({
-            role:
-              msg.role === ChatMessageRole.USER ? ChatMessageRole.USER : ChatMessageRole.ASSISTANT,
-            content: multimodalContentRef.current.get(msg.id!) || msg.content || '',
-          }))
+          .map((msg) => {
+            const content = multimodalContentRef.current.get(msg.id!) || msg.content || '';
+            const attachmentText = msg.documentAttachments
+              ?.map((attachment) => attachment.text)
+              .filter(Boolean)
+              .join('\n\n');
+
+            return {
+              role:
+                msg.role === ChatMessageRole.USER
+                  ? ChatMessageRole.USER
+                  : ChatMessageRole.ASSISTANT,
+              content:
+                typeof content === 'string' && attachmentText
+                  ? [content, attachmentText].filter(Boolean).join('\n\n')
+                  : content,
+            };
+          })
           .filter((msg) => msg.content),
         instructions: systemInstruction,
         stream: isStreamingEnabled,

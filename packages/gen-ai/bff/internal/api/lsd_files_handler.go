@@ -24,8 +24,9 @@ import (
 type FileUploadResponse = llamastack.APIResponse
 
 const (
-	scannedPDFMinimumTextCharacters = 50
-	playgroundDocumentUploadPurpose = "assistants"
+	scannedPDFMinimumTextCharacters        = 50
+	playgroundDocumentUploadPurpose        = "assistants"
+	documentAttachmentMultipartMemoryLimit = 8 << 20 // 8MB
 )
 
 var supportedDocumentMIMETypes = map[string][]string{
@@ -44,17 +45,28 @@ type DocumentUploadResponse struct {
 	Text        string `json:"text"`
 }
 
-func isSupportedDocument(filename, contentType string) bool {
+func normalizeDocumentContentType(filename, contentType string) (string, bool) {
 	allowedTypes, ok := supportedDocumentMIMETypes[strings.ToLower(filepath.Ext(filename))]
 	if !ok {
-		return false
+		return "", false
 	}
 	for _, allowedType := range allowedTypes {
 		if contentType == allowedType {
-			return true
+			return contentType, true
 		}
 	}
-	return false
+
+	switch strings.ToLower(filepath.Ext(filename)) {
+	case ".csv":
+		if contentType == "application/vnd.ms-excel" {
+			return "text/csv", true
+		}
+	case ".md":
+		if contentType == "text/x-markdown" {
+			return "text/markdown", true
+		}
+	}
+	return "", false
 }
 
 // LlamaStackDocumentUploadHandler stores a text-based Playground attachment in
@@ -65,7 +77,7 @@ func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.R
 	// Multipart framing contributes a small amount of overhead beyond the
 	// enforced 50 MB direct-document limit.
 	r.Body = http.MaxBytesReader(w, r.Body, constants.DocumentAttachmentMaxBodySize+(1<<20))
-	if err := r.ParseMultipartForm(constants.DocumentAttachmentMaxBodySize); err != nil {
+	if err := r.ParseMultipartForm(documentAttachmentMultipartMemoryLimit); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			app.payloadTooLargeResponse(w, r, constants.DocumentAttachmentMaxBodySize)
@@ -95,7 +107,8 @@ func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.R
 		app.badRequestResponse(w, r, errors.New("invalid document content type"))
 		return
 	}
-	if !isSupportedDocument(header.Filename, contentType) {
+	normalizedContentType, supported := normalizeDocumentContentType(header.Filename, contentType)
+	if !supported {
 		app.badRequestResponse(w, r, fmt.Errorf("unsupported document type %q", header.Filename))
 		return
 	}
@@ -106,7 +119,7 @@ func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 	upload, err := client.UploadFile(r.Context(), llamastack.UploadFileParams{
-		Reader: file, Filename: header.Filename, ContentType: contentType, Purpose: playgroundDocumentUploadPurpose,
+		Reader: file, Filename: header.Filename, ContentType: normalizedContentType, Purpose: playgroundDocumentUploadPurpose,
 	})
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
@@ -141,7 +154,7 @@ func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.R
 	}
 
 	err = app.WriteJSON(w, http.StatusOK, llamastack.APIResponse{Data: DocumentUploadResponse{
-		ID: upload.FileID, Filename: header.Filename, ContentType: contentType, Text: document.Text,
+		ID: upload.FileID, Filename: header.Filename, ContentType: normalizedContentType, Text: document.Text,
 	}}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

@@ -26,7 +26,7 @@ import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscripti
 import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
-import './ChatbotMessageInput.scss';
+import * as styles from './ChatbotMessageInput.module.scss';
 
 export interface ImageUploadState {
   uploading: boolean;
@@ -247,7 +247,8 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         const extensionMime = Object.entries(DOCUMENT_ATTACHMENT_CONFIG.EXTENSION_TO_MIME).find(
           ([candidateExtension]) => candidateExtension === extension,
         )?.[1];
-        const resolvedMime = file.type || extensionMime || '';
+        const resolvedMime =
+          file.type && allowedMimes.includes(file.type) ? file.type : extensionMime || '';
         if (file.size > DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE) {
           errors.push(
             `${file.name}: File size exceeds ${
@@ -435,7 +436,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       )}
       {isDocumentUploading && (
         <Flex
-          className="gen-ai-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm"
+          className={`${styles.documentAttachments} pf-v6-u-w-100 pf-v6-u-pb-sm`}
           alignItems={{ default: 'alignItemsCenter' }}
           justifyContent={{ default: 'justifyContentCenter' }}
           gap={{ default: 'gapSm' }}
@@ -453,7 +454,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       {documentAttachments.length > 0 && (
         <>
           <Flex
-            className="gen-ai-document-attachments pf-v6-u-w-100 pf-v6-u-pb-sm pf-v6-u-pl-lg"
+            className={`${styles.documentAttachments} pf-v6-u-w-100 pf-v6-u-pb-sm pf-v6-u-pl-lg`}
             flexWrap={{ default: 'wrap' }}
             gap={{ default: 'gapSm' }}
             aria-busy={isAudioActive || isDocumentUploading}
@@ -461,9 +462,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
             {documentAttachments.map((attachment) => (
               <Label
                 key={attachment.file_id}
-                className="gen-ai-document-attachment gen-ai-document-attachment--staged"
+                className={`${styles.documentAttachment} ${styles.staged}`}
                 icon={
-                  <span className="gen-ai-document-attachment__icon">
+                  <span className={styles.icon}>
                     <img src={RhUiResourceIcon} alt="" />
                   </span>
                 }
@@ -472,11 +473,9 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
                 variant="outline"
                 data-testid={`document-attachment-${attachment.file_id}`}
               >
-                <span className="gen-ai-document-attachment__details">
-                  <span className="gen-ai-document-attachment__filename">
-                    {attachment.filename}
-                  </span>
-                  <span className="gen-ai-document-attachment__type">
+                <span className={styles.details}>
+                  <span className={styles.filename}>{attachment.filename}</span>
+                  <span className={styles.type}>
                     {getDocumentAttachmentTypeLabel(attachment.filename)}
                   </span>
                 </span>

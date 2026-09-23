@@ -779,7 +779,7 @@ func (c *LlamaStackClient) ProcessFile(ctx context.Context, fileID string) (*Pro
 		return nil, result
 	}
 
-	payload, err := decodeProcessFileJob(response.Body)
+	payload, err := decodeProcessFileJob(io.LimitReader(response.Body, constants.ResponsesMaxBodySize+1))
 	response.Body.Close()
 	if err != nil {
 		return nil, err
@@ -812,7 +812,7 @@ func (c *LlamaStackClient) ProcessFile(ctx context.Context, fileID string) (*Pro
 			result.Component = ComponentOGX
 			return nil, result
 		}
-		payload, err = decodeProcessFileJob(response.Body)
+		payload, err = decodeProcessFileJob(io.LimitReader(response.Body, constants.ResponsesMaxBodySize+1))
 		response.Body.Close()
 		if err != nil {
 			return nil, err
@@ -833,6 +833,15 @@ func (c *LlamaStackClient) ProcessFile(ctx context.Context, fileID string) (*Pro
 	for _, chunk := range payload.Result.Chunks {
 		if chunk.Content == "" {
 			continue
+		}
+		additionalBytes := len(chunk.Content)
+		if text.Len() > 0 {
+			additionalBytes++
+		}
+		if text.Len()+additionalBytes > constants.ResponsesMaxBodySize {
+			result := NewLlamaStackError("file_processing_failed", "extracted document text exceeds the supported size", http.StatusRequestEntityTooLarge)
+			result.Component = ComponentOGX
+			return nil, result
 		}
 		if text.Len() > 0 {
 			text.WriteString("\n")
