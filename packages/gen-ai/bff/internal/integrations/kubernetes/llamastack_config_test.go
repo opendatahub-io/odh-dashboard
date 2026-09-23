@@ -362,7 +362,7 @@ func TestGetModelProviderInfo_EnvVarCleaning(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	// URL should have env var cleaned (${env.VLLM_MAX_TOKENS_N:=4096} should not appear)
+	// URL should have environment variable placeholders cleaned before it is returned.
 	assert.NotContains(t, result.URL, "${env.", "URL should not contain environment variable placeholders")
 	assert.NotContains(t, result.URL, ":=", "URL should not contain default value syntax")
 }
@@ -1079,197 +1079,16 @@ storage:
 	})
 }
 
-func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
-	t.Run("should include max_tokens in model configuration when provided", func(t *testing.T) {
-		config := NewDefaultLlamaStackConfig()
-		maxTokens := 8192
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil, false)
+func TestAddVLLMProviderAndModel_DoesNotConfigureInstallationMaxTokens(t *testing.T) {
+	config := NewDefaultLlamaStackConfig()
+	config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil)
 
-		yamlStr, err := config.ToYAML()
-		require.NoError(t, err)
+	yamlStr, err := config.ToYAML()
+	require.NoError(t, err)
 
-		// Verify max_tokens is in the YAML
-		assert.Contains(t, yamlStr, "max_tokens: 8192")
-
-		// Parse back and verify
-		var parsedConfig LlamaStackConfig
-		err = parsedConfig.FromYAML(yamlStr)
-		require.NoError(t, err)
-
-		// Find the model we added
-		var foundModel *Model
-		for i := range parsedConfig.RegisteredResources.Models {
-			if parsedConfig.RegisteredResources.Models[i].ModelID == "test-model" {
-				foundModel = &parsedConfig.RegisteredResources.Models[i]
-				break
-			}
-		}
-		require.NotNil(t, foundModel, "Model should be found in parsed config")
-		assert.NotNil(t, foundModel.MaxTokens, "MaxTokens should be set")
-		assert.Equal(t, 8192, *foundModel.MaxTokens)
-
-		// Verify provider-level max_tokens uses indexed env var (actual value comes from deployment env var)
-		var foundProvider *Provider
-		for i := range parsedConfig.Providers.Inference {
-			if parsedConfig.Providers.Inference[i].ProviderID == "test-provider" {
-				foundProvider = &parsedConfig.Providers.Inference[i]
-				break
-			}
-		}
-		require.NotNil(t, foundProvider, "Provider should be found in parsed config")
-		providerMaxTokens, ok := foundProvider.Config["max_tokens"]
-		require.True(t, ok, "Provider config should contain max_tokens")
-		assert.Equal(t, "${env.VLLM_MAX_TOKENS_1:=4096}", providerMaxTokens)
-	})
-
-	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
-		config := NewDefaultLlamaStackConfig()
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil, nil, false)
-
-		yamlStr, err := config.ToYAML()
-		require.NoError(t, err)
-
-		// Verify provider-level uses indexed env var template
-		assert.Contains(t, yamlStr, "${env.VLLM_MAX_TOKENS_1:=4096}")
-
-		// Parse back and verify
-		var parsedConfig LlamaStackConfig
-		err = parsedConfig.FromYAML(yamlStr)
-		require.NoError(t, err)
-
-		// Find the model we added
-		var foundModel *Model
-		for i := range parsedConfig.RegisteredResources.Models {
-			if parsedConfig.RegisteredResources.Models[i].ModelID == "test-model" {
-				foundModel = &parsedConfig.RegisteredResources.Models[i]
-				break
-			}
-		}
-		require.NotNil(t, foundModel, "Model should be found in parsed config")
-		assert.Nil(t, foundModel.MaxTokens, "MaxTokens should be nil when not provided")
-	})
-
-	t.Run("should use per-provider indexed env var for max_tokens in provider config", func(t *testing.T) {
-		config := NewDefaultLlamaStackConfig()
-		maxTokens := 2048
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil, false)
-
-		yamlStr, err := config.ToYAML()
-		require.NoError(t, err)
-
-		// Provider config should reference indexed env var, not shared one
-		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}")
-		assert.NotContains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS:=4096}")
-	})
-
-	t.Run("should use different indexed env vars for multiple providers", func(t *testing.T) {
-		config := NewDefaultLlamaStackConfig()
-		maxTokens1 := 4096
-		maxTokens2 := 16384
-		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil, false)
-		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil, false)
-
-		yamlStr, err := config.ToYAML()
-		require.NoError(t, err)
-
-		// Each provider should have its own indexed env var
-		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}")
-		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_2:=4096}")
-	})
-
-	t.Run("should support multiple models with different max_tokens values", func(t *testing.T) {
-		config := NewDefaultLlamaStackConfig()
-		maxTokens1 := 4096
-		maxTokens2 := 16384
-		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil, false)
-		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil, false)
-
-		yamlStr, err := config.ToYAML()
-		require.NoError(t, err)
-
-		// Verify both max_tokens values are in the YAML (model-level)
-		assert.Contains(t, yamlStr, "max_tokens: 4096")
-		assert.Contains(t, yamlStr, "max_tokens: 16384")
-
-		// Parse back and verify
-		var parsedConfig LlamaStackConfig
-		err = parsedConfig.FromYAML(yamlStr)
-		require.NoError(t, err)
-
-		// Find both models
-		model1Found := false
-		model2Found := false
-		for i := range parsedConfig.RegisteredResources.Models {
-			model := &parsedConfig.RegisteredResources.Models[i]
-			if model.ModelID == "test-model-1" {
-				model1Found = true
-				assert.NotNil(t, model.MaxTokens)
-				assert.Equal(t, 4096, *model.MaxTokens)
-			}
-			if model.ModelID == "test-model-2" {
-				model2Found = true
-				assert.NotNil(t, model.MaxTokens)
-				assert.Equal(t, 16384, *model.MaxTokens)
-			}
-		}
-		assert.True(t, model1Found, "Model 1 should be found")
-		assert.True(t, model2Found, "Model 2 should be found")
-	})
-
-	t.Run("should omit provider-level max_tokens when skipProviderMaxTokens is true", func(t *testing.T) {
-		config := NewDefaultLlamaStackConfig()
-		config.AddVLLMProviderAndModel("maas-provider", "https://maas.example.com/v1", 0, "maas-model", "llm", nil, nil, nil, true)
-
-		yamlStr, err := config.ToYAML()
-		require.NoError(t, err)
-
-		// Provider config should NOT contain max_tokens env var template
-		assert.NotContains(t, yamlStr, "VLLM_MAX_TOKENS")
-
-		var parsedConfig LlamaStackConfig
-		err = parsedConfig.FromYAML(yamlStr)
-		require.NoError(t, err)
-
-		var foundProvider *Provider
-		for i := range parsedConfig.Providers.Inference {
-			if parsedConfig.Providers.Inference[i].ProviderID == "maas-provider" {
-				foundProvider = &parsedConfig.Providers.Inference[i]
-				break
-			}
-		}
-		require.NotNil(t, foundProvider, "Provider should be found in parsed config")
-		_, hasMaxTokens := foundProvider.Config["max_tokens"]
-		assert.False(t, hasMaxTokens, "Provider config should not contain max_tokens when skipped")
-	})
-
-	t.Run("should still set model-level max_tokens even when provider-level is skipped", func(t *testing.T) {
-		config := NewDefaultLlamaStackConfig()
-		maxTokens := 8192
-		config.AddVLLMProviderAndModel("maas-provider", "https://maas.example.com/v1", 0, "maas-model", "llm", nil, &maxTokens, nil, true)
-
-		yamlStr, err := config.ToYAML()
-		require.NoError(t, err)
-
-		// Model-level max_tokens should still be present
-		assert.Contains(t, yamlStr, "max_tokens: 8192")
-		// Provider-level should not
-		assert.NotContains(t, yamlStr, "VLLM_MAX_TOKENS")
-
-		var parsedConfig LlamaStackConfig
-		err = parsedConfig.FromYAML(yamlStr)
-		require.NoError(t, err)
-
-		var foundModel *Model
-		for i := range parsedConfig.RegisteredResources.Models {
-			if parsedConfig.RegisteredResources.Models[i].ModelID == "maas-model" {
-				foundModel = &parsedConfig.RegisteredResources.Models[i]
-				break
-			}
-		}
-		require.NotNil(t, foundModel, "Model should be found in parsed config")
-		assert.NotNil(t, foundModel.MaxTokens, "Model-level MaxTokens should still be set")
-		assert.Equal(t, 8192, *foundModel.MaxTokens)
-	})
+	assert.NotContains(t, yamlStr, "VLLM_MAX_TOKENS")
+	assert.NotContains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS")
+	assert.NotContains(t, yamlStr, "\n    max_tokens:")
 }
 
 func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
@@ -1285,7 +1104,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 	t.Run("should set embedding_dimension in metadata when provided for embedding model", func(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
 		embDim := 1536
-		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, &embDim, false)
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, &embDim)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
@@ -1303,7 +1122,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 
 	t.Run("should default embedding_dimension to 128 when not provided for embedding model", func(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
-		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, nil, false)
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
@@ -1321,7 +1140,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 	t.Run("should preserve pre-existing metadata embedding_dimension when no user value provided", func(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
 		existingMetadata := map[string]interface{}{"embedding_dimension": 768}
-		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, nil, false)
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
@@ -1338,7 +1157,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
 		existingMetadata := map[string]interface{}{"embedding_dimension": 768}
 		userDim := 3072
-		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, &userDim, false)
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, &userDim)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
@@ -1354,7 +1173,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 	t.Run("should not set embedding_dimension for llm models", func(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
 		embDim := 1536
-		cfg.AddVLLMProviderAndModel("llm-provider", "https://llm.example.com/v1", 0, "llm-model", "llm", nil, nil, &embDim, false)
+		cfg.AddVLLMProviderAndModel("llm-provider", "https://llm.example.com/v1", 0, "llm-model", "llm", nil, &embDim)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
