@@ -1,3 +1,5 @@
+# Operand NetworkPolicy for the Eval Hub BFF/UI. Least-privilege ingress/egress per
+# HPSTRAT-104 / operand contract RHOAIENG-90747 (R3-R5).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -10,6 +12,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Gateway / router -> Eval Hub UI.
     - ports:
         - port: 8543
           protocol: TCP
@@ -18,6 +21,7 @@ spec:
             matchLabels:
               network.openshift.io/policy-group: ingress
   egress:
+    # Cluster DNS resolution.
     - to:
         - namespaceSelector:
             matchLabels:
@@ -27,12 +31,9 @@ spec:
           protocol: UDP
         - port: 5353
           protocol: TCP
-    - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-      ports:
-        - port: 6443
-          protocol: TCP
+    # Model catalog served by the model-registry BFF (scoped intent). Note: the
+    # broad in-cluster rule below currently supersedes this, but it documents a
+    # known least-privilege peer.
     - to:
         - podSelector:
             matchLabels:
@@ -40,8 +41,29 @@ spec:
       ports:
         - port: 8043
           protocol: TCP
+    # KNOWN LIMITATION (RHOAIENG-93715): Eval Hub egress cannot be scoped to a
+    # fixed set of peers/ports. Eval Hub verifies USER-PROVIDED internal model and
+    # agent URLs, and those services expose arbitrary ports depending on how they
+    # were deployed (8080 is common but not guaranteed); it also uses 8443 to reach
+    # the Eval Hub service and to load MLflow views. Restricting egress to a fixed
+    # port set would break valid in-cluster endpoints, especially in disconnected
+    # clusters. Allow broad in-cluster egress as a documented reduced-posture
+    # exception per operand contract R5 (RHOAIENG-90747). A platform-team exception
+    # has been requested for this case (see PR #9766 discussion).
+    # TODO(eval-hub): tighten once user-endpoint destinations are constrained
+    # (tracked in RHOAIENG-93715).
     - to:
         - namespaceSelector: {}
+    # Kubernetes API server. NetworkPolicy cannot select the API server endpoints
+    # (host-networked, dynamic IP/port); documented R5 limitation.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 6443
+          protocol: TCP
+    # External / off-cluster HTTP(S) to user-configurable, hostname-based endpoints
+    # that cannot be expressed as NetworkPolicy peers; documented R5 limitation.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
