@@ -54,7 +54,11 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelServerTemplate: CodeRef<
       (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
     >;
-    extractHuggingFaceApiKey?: CodeRef<(deployment: D) => HuggingFaceApiKeyFieldData | null>;
+    extractHuggingFaceApiKey?: CodeRef<
+      (
+        deployment: D,
+      ) => HuggingFaceApiKeyFieldData | null | Promise<HuggingFaceApiKeyFieldData | null>
+    >;
     validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
 >;

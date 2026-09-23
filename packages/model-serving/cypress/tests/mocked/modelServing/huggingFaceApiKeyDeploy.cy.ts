@@ -19,7 +19,7 @@ import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/mod
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared/types';
 import {
   HF_TOKEN_ENV_NAME,
-  HF_TOKEN_SECRET_ANNOTATION,
+  HF_TOKEN_DASHBOARD_LABEL,
 } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
@@ -271,6 +271,7 @@ const initDeployIntercepts = () => {
       body: mockInferenceServiceK8sResource({
         name: MODEL_NAME,
         modelType: ServingRuntimeModelType.GENERATIVE,
+        serviceAccountName: `${MODEL_NAME}-hf-sa`,
       }),
     },
   ).as('createInferenceService');
@@ -292,6 +293,8 @@ const initDeployIntercepts = () => {
           name: HF_TOKEN_SECRET_NAME,
           namespace: 'test-project',
           data: {},
+          labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
+          data: { [HF_TOKEN_ENV_NAME]: 'dG9rZW4=' },
         }),
       });
       return;
@@ -332,7 +335,8 @@ const initDeployIntercepts = () => {
       body: mockCustomSecretK8sResource({
         name: HF_TOKEN_SECRET_NAME,
         namespace: 'test-project',
-        data: {},
+        data: { [HF_TOKEN_ENV_NAME]: 'dG9rZW4=' },
+        labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
       }),
     },
   );
@@ -346,11 +350,19 @@ const initDeployIntercepts = () => {
         metadata: {
           name: req.body.metadata?.name ?? `${MODEL_NAME}-sa`,
           namespace: 'test-project',
+          labels: req.body.metadata?.labels,
         },
         secrets: req.body.secrets,
       },
     });
   }).as('createServiceAccount');
+
+  cy.interceptK8s('PUT', { model: ServiceAccountModel, ns: 'test-project' }, (req) => {
+    req.reply({
+      statusCode: 200,
+      body: req.body,
+    });
+  }).as('replaceServiceAccount');
 
   cy.interceptK8s(
     'POST',
@@ -572,9 +584,9 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
       expect(isvcCreates[0].request.body.spec.predictor.serviceAccountName).to.equal(
         `${MODEL_NAME}-hf-sa`,
       );
-      expect(isvcCreates[0].request.body.metadata.annotations).to.containSubset({
-        [HF_TOKEN_SECRET_ANNOTATION]: HF_TOKEN_SECRET_NAME,
-      });
+      expect(isvcCreates[0].request.body.metadata.annotations).not.to.have.property(
+        'opendatahub.io/hf-token-secret',
+      );
       expect(
         isvcCreates[0].request.body.spec.predictor.model.env?.find(
           (env) => env.name === HF_TOKEN_ENV_NAME,
@@ -595,9 +607,6 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
           storageUri: MODEL_URI,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
-          additionalAnnotations: {
-            [HF_TOKEN_SECRET_ANNOTATION]: HF_TOKEN_SECRET_NAME,
-          },
           serviceAccountName: 'test-inference-service-hf-sa',
           env: [],
         }),
@@ -611,6 +620,27 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
         }),
       ]),
     );
+    cy.interceptK8s(
+      'GET',
+      {
+        model: ServiceAccountModel,
+        ns: 'test-project',
+        name: 'test-inference-service-hf-sa',
+      },
+      {
+        statusCode: 200,
+        body: {
+          apiVersion: 'v1',
+          kind: 'ServiceAccount',
+          metadata: {
+            name: 'test-inference-service-hf-sa',
+            namespace: 'test-project',
+            labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
+          },
+          secrets: [{ name: HF_TOKEN_SECRET_NAME }],
+        },
+      },
+    );
     cy.interceptK8sList(
       { model: SecretModel, ns: 'test-project' },
       mockK8sResourceList([
@@ -618,9 +648,23 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
         mockCustomSecretK8sResource({
           name: HF_TOKEN_SECRET_NAME,
           namespace: 'test-project',
-          data: {},
+          data: { [HF_TOKEN_ENV_NAME]: 'dG9rZW4=' },
+          labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
         }),
       ]),
+    );
+    cy.interceptK8s(
+      'GET',
+      { model: SecretModel, ns: 'test-project', name: HF_TOKEN_SECRET_NAME },
+      {
+        statusCode: 200,
+        body: mockCustomSecretK8sResource({
+          name: HF_TOKEN_SECRET_NAME,
+          namespace: 'test-project',
+          data: { [HF_TOKEN_ENV_NAME]: 'dG9rZW4=' },
+          labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
+        }),
+      },
     );
 
     modelServingGlobal.visit('test-project');
