@@ -279,7 +279,7 @@ importers:
         version: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)
       tsx:
         specifier: ^4.23.12
-        version: 4.23.12
+        version: 4.23.13
       wait-on:
         specifier: ^7.2.0
         version: 7.2.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -2810,7 +2810,7 @@ importers:
         version: 3.0.2
       tsx:
         specifier: ^4.23.12
-        version: 4.23.12
+        version: 4.23.13
       wait-on:
         specifier: ^7.2.0
         version: 7.2.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -5815,19 +5815,19 @@ importers:
         version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
       '@perses-dev/loki-plugin':
         specifier: v0.6.0-rc.2
-        version: 0.6.0-rc.2(cf69ce365eee4dc82b44b785a2a0f404)
+        version: 0.6.0-rc.2(868b97823211e3075bef08965bf8b980)
       '@perses-dev/plugin-system':
         specifier: ^0.54.0-beta.10
         version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
       '@perses-dev/prometheus-plugin':
         specifier: v0.58.0-beta.3
-        version: 0.58.0-beta.3(60393a74ec86dda043598f5b954a8cde)
+        version: 0.58.0-beta.3(c0a0e75dba4f5d04eaf48d91acff428c)
       '@perses-dev/stat-chart-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(de0cc1d23bb6f7ebeddad252868af895)
+        version: 0.13.0-rc.1(6618929f2c52190ddc187cf3bac46e68)
       '@perses-dev/table-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(0937b2d04357216ecde5069e91ee5ebd)
+        version: 0.13.0-rc.1(1ac34e031cf649acc2c199d219422529)
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -16581,8 +16581,8 @@ packages:
     resolution: {integrity: sha512-LxhtAkPDTkVCMQjt2h6eBVY28KCjikZqZfMcC15YBeNjkgUpdCfBu5HoiOTDu86v6smE8yOjyEktJ8hlbANHQA==}
     engines: {node: '>=0.6.x'}
 
-  tsx@4.23.12:
-    resolution: {integrity: sha512-FDf4L4sYzKtzWYhU/Xm0AQFdTjdIxNo9ElTf2mxXM6k8YMHXzYUe4yODVaXP4V9uMFbVg8c0qyBccK2OOxb45Q==}
+  tsx@4.23.13:
+    resolution: {integrity: sha512-BL5MGkRln6aDYhb0xbQlEAGw743BaZYWdbWtdJOBriYJboKgUUYCadFp2/FpBBZquBC/ezNBn7wMMPx7FDZUDw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -20816,7 +20816,7 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/loki-plugin@0.6.0-rc.2(cf69ce365eee4dc82b44b785a2a0f404)':
+  '@perses-dev/loki-plugin@0.6.0-rc.2(868b97823211e3075bef08965bf8b980)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -20831,6 +20831,7 @@ snapshots:
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       react: 18.3.1
@@ -20889,7 +20890,7 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/prometheus-plugin@0.58.0-beta.3(60393a74ec86dda043598f5b954a8cde)':
+  '@perses-dev/prometheus-plugin@0.58.0-beta.3(c0a0e75dba4f5d04eaf48d91acff428c)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -20907,6 +20908,7 @@ snapshots:
       color-hash: 2.0.2
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       qs: 6.15.3
@@ -20932,7 +20934,7 @@ snapshots:
       mathjs: 15.2.0
       zod: 3.25.76
 
-  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(de0cc1d23bb6f7ebeddad252868af895)':
+  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(6618929f2c52190ddc187cf3bac46e68)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -20944,13 +20946,14 @@ snapshots:
       chroma-js: 3.2.0
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@perses-dev/table-plugin@0.13.0-rc.1(0937b2d04357216ecde5069e91ee5ebd)':
+  '@perses-dev/table-plugin@0.13.0-rc.1(1ac34e031cf649acc2c199d219422529)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -20963,6 +20966,7 @@ snapshots:
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -31083,7 +31087,7 @@ snapshots:
 
   tsscmp@1.0.6: {}
 
-  tsx@4.23.12:
+  tsx@4.23.13:
     dependencies:
       esbuild: 0.28.2
     optionalDependencies:
