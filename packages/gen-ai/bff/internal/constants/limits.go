@@ -18,8 +18,7 @@ const (
 	FileUploadMaxBodySize = 10 << 20 // 10MB
 
 	// DocumentAttachmentMaxBodySize caps direct Playground document attachments.
-	// Files larger than 10MB are accepted with a client-side advisory; 50MB is the
-	// enforced server-side safety limit.
+	// Files larger than 50MB are rejected before document text extraction.
 	DocumentAttachmentMaxBodySize = 50 << 20 // 50MB
 
 	// DocumentExtractionTimeout bounds the OGX file-processors call after a

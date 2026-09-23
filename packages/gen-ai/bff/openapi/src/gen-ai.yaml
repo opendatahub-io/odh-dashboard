@@ -1459,7 +1459,7 @@ paths:
       configured file processor. The returned text is sent as input_text in a
       Responses request, so the document can be used with any text model.
       Supported formats are PDF, TXT, Markdown, CSV, DOCX, and PPTX;
-      the maximum upload size is 10MB. Image-only PDFs are rejected.
+      the maximum upload size is 50MB. Image-only PDFs are rejected.
     post:
       tags:
         - Files
@@ -1481,7 +1481,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: Text-based document to extract (maximum 10MB)
+                  description: Text-based document to extract (maximum 50MB)
       responses:
         '200':
           $ref: '#/components/responses/DocumentUploadResponse'
@@ -1490,7 +1490,19 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '413':
-          description: File size exceeds 10MB limit
+          description: File size exceeds 50MB limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: OGX file processor did not return a result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: Document text extraction timed out
           content:
             application/json:
               schema:

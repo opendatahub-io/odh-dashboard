@@ -629,6 +629,38 @@ describe('useChatbotMessages', () => {
       });
     });
 
+    it('should include sent document text in conversation history for follow-up messages', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document',
+          filename: 'notes.txt',
+          text: 'The project owner is Ada.',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(
+          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Summarize these notes');
+      });
+      await act(async () => {
+        await result.current.handleMessageSend('Who owns the project?');
+      });
+
+      const secondCall = mockCreateResponse.mock.calls[1][0];
+      expect(secondCall.chat_context![0]).toMatchObject({
+        role: 'user',
+        content: 'Summarize these notes\n\nThe project owner is Ada.',
+      });
+    });
+
     it('should handle empty system instruction correctly', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 

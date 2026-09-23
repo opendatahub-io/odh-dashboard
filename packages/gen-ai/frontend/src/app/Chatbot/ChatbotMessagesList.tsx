@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, Button, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
@@ -14,7 +14,7 @@ import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
 import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
 import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
 import './ChatbotMessagesList.scss';
-import './components/ChatbotMessageInput.scss';
+import * as styles from './components/ChatbotMessageInput.module.scss';
 
 type ChatbotMessagesListProps = {
   messageList: ChatbotMessageProps[];
@@ -111,9 +111,9 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                   {documentAttachments.map((attachment) => (
                     <Label
                       key={attachment.file_id}
-                      className="gen-ai-document-attachment gen-ai-document-attachment--sent"
+                      className={styles.documentAttachment}
                       icon={
-                        <span className="gen-ai-document-attachment__icon">
+                        <span className={styles.icon}>
                           <img src={RhUiResourceIcon} alt="" />
                         </span>
                       }
@@ -121,11 +121,9 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                       variant="outline"
                       data-testid={`sent-document-attachment-${attachment.file_id}`}
                     >
-                      <span className="gen-ai-document-attachment__details">
-                        <span className="gen-ai-document-attachment__filename">
-                          {attachment.filename}
-                        </span>
-                        <span className="gen-ai-document-attachment__type">
+                      <span className={styles.details}>
+                        <span className={styles.filename}>{attachment.filename}</span>
+                        <span className={styles.type}>
                           {getDocumentAttachmentTypeLabel(attachment.filename)}
                         </span>
                       </span>
