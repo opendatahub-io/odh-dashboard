@@ -9,12 +9,11 @@ import { getConnectionTypeDisplayName } from '#~/concepts/connectionTypes/utils'
 
 export const getColumns = (
   connectionTypes?: ConnectionTypeConfigMapObj[],
-  showStatusColumn = false,
 ): SortableData<Connection>[] => [
   {
     field: 'name',
     label: 'Name',
-    width: showStatusColumn ? 25 : 30,
+    width: 25,
     sortable: (a, b) =>
       (a.metadata.annotations['openshift.io/display-name'] ?? '').localeCompare(
         b.metadata.annotations['openshift.io/display-name'] ?? '',
@@ -39,27 +38,23 @@ export const getColumns = (
   {
     field: 'connections',
     label: 'Connected resources',
-    width: showStatusColumn ? 15 : 20,
+    width: 15,
     sortable: false,
   },
-  ...(showStatusColumn
-    ? ([
-        {
-          field: 'status',
-          label: 'Status',
-          width: 15 as const,
-          sortable: (a: Connection, b: Connection) => {
-            const statusA =
-              a.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS] ||
-              ConnectionTestStatus.NOT_TESTED;
-            const statusB =
-              b.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS] ||
-              ConnectionTestStatus.NOT_TESTED;
-            return statusA.localeCompare(statusB);
-          },
-        },
-      ] satisfies SortableData<Connection>[])
-    : []),
+  {
+    field: 'status',
+    label: 'Status',
+    width: 15 as const,
+    sortable: (a: Connection, b: Connection) => {
+      const statusA =
+        a.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS] ||
+        ConnectionTestStatus.NOT_TESTED;
+      const statusB =
+        b.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS] ||
+        ConnectionTestStatus.NOT_TESTED;
+      return statusA.localeCompare(statusB);
+    },
+  },
   {
     field: 'kebab',
     label: '',
