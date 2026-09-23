@@ -21,6 +21,21 @@ func TestBuildSandboxEnvVarsIncludesAgentConfigSnapshot(t *testing.T) {
 	t.Fatal("AGENT_CONFIG_JSON not found")
 }
 
+func TestBuildSandboxEnvVarsIncludesResolvedSystemPrompt(t *testing.T) {
+	const systemPrompt = "You are a concise assistant."
+
+	vars := buildSandboxEnvVars(SandboxCROptions{SystemPrompt: systemPrompt}, "pgvector", "pgvector-secret")
+
+	for _, raw := range vars {
+		variable := raw.(map[string]interface{})
+		if variable["name"] == "AGENT_SYSTEM_PROMPT" {
+			assert.Equal(t, systemPrompt, variable["value"])
+			return
+		}
+	}
+	t.Fatal("AGENT_SYSTEM_PROMPT not found")
+}
+
 func TestBuildSandboxEnvVarsIncludesMCPServerConfiguration(t *testing.T) {
 	vars := buildSandboxEnvVars(SandboxCROptions{
 		MCPServersJSON: `[{"server_label":"github","server_url":"https://example.com/mcp","authorization_env_var":"MCP_AUTH_1"}]`,

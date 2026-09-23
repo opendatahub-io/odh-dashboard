@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -107,6 +109,16 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		app.serverErrorResponse(w, r, err)
+		return
+	}
+	systemPrompt, err := app.resolveSandboxSystemPrompt(ctx, namespace, profile.Spec.Prompt)
+	if err != nil {
+		var bffErr *bffclient.BFFClientError
+		if errors.As(err, &bffErr) {
+			app.handleBFFClientError(w, r, err)
+		} else {
+			app.badRequestResponse(w, r, err)
+		}
 		return
 	}
 
@@ -239,6 +251,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		Image:                   ogxImage,
 		MaaSGatewayURL:          app.config.MaaSURL,
 		AgentConfigJSON:         string(agentConfigJSON),
+		SystemPrompt:            systemPrompt,
 		MCPServersJSON:          string(mcpServersJSON),
 		MCPAuthSecrets:          mcpAuthSecrets,
 		PgvectorHost:            app.config.PgvectorHost,

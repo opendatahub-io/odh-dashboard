@@ -41,6 +41,8 @@ type SandboxCROptions struct {
 	// AgentConfigJSON is the immutable AgentProfile snapshot exposed by the agent's
 	// authenticated /internal/agent_config endpoint.
 	AgentConfigJSON string
+	// SystemPrompt is the resolved MLflow system message applied to every Responses API request.
+	SystemPrompt string
 	// MCPServersJSON describes selected MCP servers without embedding credentials.
 	MCPServersJSON string
 	MCPAuthSecrets []SandboxSecretEnvVar
@@ -214,6 +216,7 @@ func buildSandboxEnvVars(opts SandboxCROptions, pgvectorHost, pgvectorSecret str
 		sandboxEnvVar("MAAS_GATEWAY_URL", opts.MaaSGatewayURL),
 		sandboxEnvVar("MAAS_SUBSCRIPTION", opts.MaaSSubscription),
 		sandboxEnvVar("AGENT_CONFIG_JSON", opts.AgentConfigJSON),
+		sandboxEnvVar("AGENT_SYSTEM_PROMPT", opts.SystemPrompt),
 		sandboxEnvVar("AGENT_MCP_SERVERS_JSON", opts.MCPServersJSON),
 		sandboxEnvVar(pgvector.HostEnvVar, pgvectorHost),
 		sandboxEnvVar(pgvector.PortEnvVar, strconv.Itoa(pgvector.DefaultPort)),
