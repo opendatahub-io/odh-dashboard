@@ -292,9 +292,8 @@ const initDeployIntercepts = () => {
         body: mockCustomSecretK8sResource({
           name: HF_TOKEN_SECRET_NAME,
           namespace: 'test-project',
-          data: {},
-          labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
           data: { [HF_TOKEN_ENV_NAME]: 'dG9rZW4=' },
+          labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
         }),
       });
       return;
