@@ -442,6 +442,25 @@ def render_location(result, finding, server_url):
 def clean(text):
     return suppress_mentions(str(text or "").strip())
 
+def render_remediation(text):
+    """A one-line remediation stays inline; a patch snippet gets a fenced block.
+
+    CodeRabbit's suggestions[] are code, so flattening them to one bullet makes
+    them unreadable. List continuation needs four-space indentation, and the
+    fence is padded past any backticks inside the snippet.
+    """
+    body = suppress_mentions(str(text or "").strip())
+    if not body:
+        return []
+    if "\n" not in body:
+        return [f"  - Remediation: {body}"]
+    longest = max((len(m) for m in re.findall(r"`+", body)), default=0)
+    fence = "`" * max(3, longest + 1)
+    out = ["  - Remediation:", "", f"    {fence}"]
+    out += [f"    {line}" if line.strip() else "" for line in body.split("\n")]
+    out += [f"    {fence}", ""]
+    return out
+
 def table_cell(text):
     return clean(text).replace("|", "\\|").replace("\n", " ")
 
@@ -661,7 +680,7 @@ def render_body(result, previous_md, action):
                 if finding.get("why"):
                     lines.append(f"  - Why: {clean(finding.get('why'))}")
                 if finding.get("remediation"):
-                    lines.append(f"  - Remediation: {clean(finding.get('remediation'))}")
+                    lines += render_remediation(finding.get("remediation"))
     elif action == "approve":
         lines += ["", "Looks good to me."]
 
