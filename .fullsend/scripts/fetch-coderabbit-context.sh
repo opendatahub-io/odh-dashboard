@@ -37,6 +37,25 @@ normalize_stream() {
   jq -s --argjson max_findings "${_MAX_FINDINGS}" '
     def clean:
       if type == "string" then gsub("[[:cntrl:]]"; " ") | .[0:4000] else "" end;
+    # suggestions[] are patch snippets, so newlines are content. Clean each
+    # line instead of flattening the block.
+    def clean_block:
+      if type == "string"
+      then (split("\n") | map(gsub("[[:cntrl:]]"; " ")) | join("\n")) | .[0:4000]
+      else "" end;
+    # CodeRabbit documents suggestions as string[], but the CLI reference gives
+    # no type and the schema doc that does is stale. Accept a bare string too,
+    # and ignore any other shape: a jq type error here would fail the whole
+    # envelope and lose every finding in it.
+    def suggestion_text:
+      (.suggestions? // null) as $s
+      | (if ($s | type) == "array" then $s
+         elif ($s | type) == "string" then [$s]
+         else [] end)
+      | map(select(type == "string") | clean_block | sub("\\s+$"; ""))
+      | map(select(length > 0))
+      | join("\n\n")
+      | .[0:4000];
     # CodeRabbit findings are untrusted external evidence. Ignore a response
     # that contains no readable prose, rather than asking Fullsend to assess
     # a sequence of isolated characters or punctuation.
@@ -76,13 +95,11 @@ normalize_stream() {
             severity: (($finding.severity // "info") | mapped_severity),
             category: "coderabbit",
             file: $finding.fileName,
-            description: ("[Untrusted CodeRabbit evidence; validate against the repository code] " + $evidence),
+            description: $evidence,
             actionable: (($finding.severity // "info") != "none")
           } +
           ((($finding.lineNumber? // $finding.line?) | safe_line) as $line | if $line != null then {line: $line} else {} end) +
-          (if ($finding.severity == "critical" or $finding.severity == "major")
-            then {remediation: $evidence}
-            else {} end)
+          (($finding | suggestion_text) as $fix | if $fix != "" then {remediation: $fix} else {} end)
         )
     ) as $findings |
     {
@@ -218,7 +235,24 @@ run_self_test() {
   jq -e '
     .findings[0].severity == "high"
     and .findings[0].line == "8"
-    and (.findings[0].description | startswith("[Untrusted CodeRabbit evidence"))
+    and .findings[0].description == "Handle the rejected promise."
+  ' "${_OUT}" >/dev/null
+
+  # suggestions[] is string[] of patch snippets (CodeRabbit's agent event
+  # schema). Newlines inside a snippet are content, not formatting.
+  printf '%s\n' \
+    '{"type":"finding","severity":"major","fileName":"a.ts","codegenInstructions":"Guard the empty list.","suggestions":["if (!items.length) {\nreturn null;\n}","const safe = items ?? [];"]}' \
+    '{"type":"finding","severity":"minor","fileName":"b.ts","codegenInstructions":"No snippet offered here.","suggestions":[]}' \
+    '{"type":"finding","severity":"minor","fileName":"c.ts","codegenInstructions":"A bare string instead of an array.","suggestions":"const safe = items ?? [];"}' \
+    '{"type":"finding","severity":"minor","fileName":"d.ts","codegenInstructions":"An unexpected shape is ignored, not fatal.","suggestions":{"patch":"x"}}' \
+    '{"type":"complete","status":"completed"}' > "${temp_dir}/fix.ndjson"
+  normalize_stream "${temp_dir}/fix.ndjson"
+  jq -e '
+    (.findings | length == 4)
+    and .findings[0].remediation == "if (!items.length) {\nreturn null;\n}\n\nconst safe = items ?? [];"
+    and (.findings[1] | has("remediation") | not)
+    and .findings[2].remediation == "const safe = items ?? [];"
+    and (.findings[3] | has("remediation") | not)
   ' "${_OUT}" >/dev/null
 
   # An empty result must stay distinguishable from a review that never ran, and
