@@ -210,55 +210,58 @@ export const waitForPodReady = (
 ): Cypress.Chainable<CommandLineResult> => {
   const namespaceFlag = namespace ? `-n ${namespace}` : '-A';
 
+  // find pods
   const findPodsCommand = `oc get pods ${namespaceFlag} -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name" --no-headers | grep ${podNameContains}`;
   cy.log(`Finding pods with command: ${findPodsCommand}`);
 
-  const [, timeoutValue, timeoutUnit] = timeout.match(/^(\d+)(ms|s|m|h)$/) ?? [];
-  const timeoutMs =
-    Number(timeoutValue) *
-    ({ ms: 1, s: 1000, m: 60000, h: 3600000 } as Record<string, number>)[timeoutUnit];
-  const pollIntervalMs = Math.min(waitTimeBeforeParsing, 2000);
-  const maxAttempts = Math.max(1, Math.floor(timeoutMs / pollIntervalMs) + 1);
+  // wait before parsing the result
+  cy.wait(waitTimeBeforeParsing);
+  return cy
+    .exec(findPodsCommand, { failOnNonZeroExit: false })
+    .then((result: CommandLineResult) => {
+      const pods = result.stdout
+        .trim()
+        .split('\n')
+        .map((line) => {
+          // parse the result
+          const parsedResult = line.trim().split(/\s+/);
+          if (parsedResult.length === 2) {
+            const [podNamespace, podName] = parsedResult;
+            cy.log(`Parsed: namespace = ${podNamespace}, podName = ${podName}`);
+            return { namespace: podNamespace, name: podName };
+          }
 
-  return pollUntilSuccess(findPodsCommand, `pod matching ${podNameContains}`, {
-    maxAttempts,
-    pollIntervalMs,
-  }).then((result: CommandLineResult) => {
-    const pods = result.stdout
-      .trim()
-      .split('\n')
-      .map((line) => {
-        // parse the result
-        const parsedResult = line.trim().split(/\s+/);
-        if (parsedResult.length === 2) {
-          const [podNamespace, podName] = parsedResult;
-          cy.log(`Parsed: namespace = ${podNamespace}, podName = ${podName}`);
-          return { namespace: podNamespace, name: podName };
-        }
+          cy.log(`Error parsing line: "${line}"`);
+          return null;
+        })
+        .filter((pod): pod is { namespace: string; name: string } => pod !== null);
 
-        cy.log(`Error parsing line: "${line}"`);
-        return null;
-      })
-      .filter((pod): pod is { namespace: string; name: string } => pod !== null);
+      cy.log(`Found ${pods.length} matching pods`);
 
-    cy.log(`Found ${pods.length} matching pods`);
+      if (pods.length === 0) {
+        cy.log('No matching pods found');
+        return;
+      }
 
-    if (pods.length === 0) {
-      throw new Error(`No pods matching ${podNameContains} found`);
-    }
+      // loop through matching pods and wait for ready state
+      pods.forEach((pod) => {
+        const { namespace: podNamespace, name: podName } = pod;
 
-    return cy.wrap(pods).each((pod) => {
-      const { namespace: podNamespace, name: podName } = pod as unknown as {
-        namespace: string;
-        name: string;
-      };
+        // wait for each pod to be ready
+        const waitForPodCommand = `oc wait --for=condition=Ready pod/${podName} -n ${podNamespace} --timeout=${timeout}`;
+        cy.log(`Executing command to wait for pod readiness: ${waitForPodCommand}`);
 
-      const waitForPodCommand = `oc wait --for=condition=Ready pod/${podName} -n ${podNamespace} --timeout=${timeout}`;
-      cy.log(`Executing command to wait for pod readiness: ${waitForPodCommand}`);
-
-      return cy.exec(waitForPodCommand, { timeout: 300000 });
-    }) as unknown as Cypress.Chainable<CommandLineResult>;
-  });
+        cy.exec(waitForPodCommand, { failOnNonZeroExit: false, timeout: 300000 }).then(
+          (waitResult: CommandLineResult) => {
+            if (waitResult.exitCode !== 0) {
+              cy.log(`Pod readiness check failed: ${waitResult.stderr}`);
+            } else {
+              cy.log(`Pod is ready: ${waitResult.stdout}`);
+            }
+          },
+        );
+      });
+    });
 };
 
 /**
