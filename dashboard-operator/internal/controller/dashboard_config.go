@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -117,27 +115,20 @@ func (r *DashboardReconciler) odhDashboardConfigPredicate() predicate.Predicate 
 }
 
 func addOdhDashboardConfigWatch(
-	mapper meta.RESTMapper,
 	controllerBuilder *builder.Builder,
 	r *DashboardReconciler,
-) error {
+) {
 	if r.Platform != cluster.SelfManagedRhoai {
-		return nil
+		return
 	}
 
-	available, err := apiResourceAvailable(mapper, odhDashboardConfigGVK)
-	if err != nil {
-		return fmt.Errorf("discovering %s API: %w", odhDashboardConfigGVK, err)
-	}
-	if !available {
-		ctrl.Log.Info("OdhDashboardConfig API is unavailable; skipping default watch", "groupVersionKind", odhDashboardConfigGVK.String())
-		return nil
-	}
-
+	// Register the source even if REST discovery has not observed the CRD yet.
+	// controller-runtime's Kind source retries informer creation until the API
+	// becomes discoverable, avoiding a permanent watch gap after a transient
+	// startup discovery miss.
 	controllerBuilder.Watches(
 		newOdhDashboardConfig(),
 		handler.EnqueueRequestsFromMapFunc(r.mapOdhDashboardConfigToDashboard),
 		builder.WithPredicates(r.odhDashboardConfigPredicate()),
 	)
-	return nil
 }

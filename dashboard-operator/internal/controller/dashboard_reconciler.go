@@ -1052,9 +1052,7 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
 		return err
 	}
-	if err := addOdhDashboardConfigWatch(mgr.GetRESTMapper(), controllerBuilder, r); err != nil {
-		return err
-	}
+	addOdhDashboardConfigWatch(controllerBuilder, r)
 
 	return controllerBuilder.Complete(r)
 }
