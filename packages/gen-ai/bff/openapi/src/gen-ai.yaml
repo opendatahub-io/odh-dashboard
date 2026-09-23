@@ -2209,6 +2209,57 @@ paths:
   # AGENT PROFILES ENDPOINTS
   # =============================================================================
 
+  /gen-ai/api/v1/agent-deployments:
+    post:
+      tags:
+        - AgentDeployments
+      operationId: createAgentDeployment
+      summary: Create an agent Sandbox deployment
+      description: >-
+        Creates immutable deployment resources from an AgentProfile snapshot: OGX and wrapper
+        ConfigMaps, optional MCP credential Secrets, a Sandbox, Service, and Route.
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentDeploymentCreateRequest'
+      responses:
+        '201':
+          description: Agent deployment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentDeploymentCreateResponseEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient permissions to create deployment resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: AgentProfile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: A deployment resource already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /gen-ai/api/v1/agent-profiles:
     get:
       tags:
@@ -5212,6 +5263,64 @@ components:
     # AGENT PROFILES SCHEMAS
     # =============================================================================
 
+    AgentDeploymentCreateRequest:
+      type: object
+      required:
+        - name
+        - agentProfileId
+      properties:
+        name:
+          type: string
+          description: Human-readable base name for the deployment
+          example: 'support-agent'
+        description:
+          type: string
+          description: Optional deployment description
+        agentProfileId:
+          type: string
+          format: uuid
+          description: UUID of the AgentProfile to snapshot
+        mcpServerAuth:
+          type: object
+          additionalProperties:
+            type: string
+          description: >-
+            Optional deployment-only MCP authorization values keyed by selected server ID.
+            Values are stored in generated Secrets and are never returned by this API.
+
+    AgentDeploymentCreateResponse:
+      type: object
+      required:
+        - llamaStackConfigMapName
+        - wrapperAppConfigMapName
+        - sandboxName
+        - namespace
+        - routeUrl
+        - agentProfileId
+      properties:
+        llamaStackConfigMapName:
+          type: string
+        wrapperAppConfigMapName:
+          type: string
+        sandboxName:
+          type: string
+        namespace:
+          type: string
+        routeUrl:
+          type: string
+          format: uri
+        agentProfileId:
+          type: string
+          format: uuid
+
+    AgentDeploymentCreateResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AgentDeploymentCreateResponse'
+
     AgentProfileCreateRequest:
       type: object
       required:
@@ -6620,6 +6729,8 @@ tags:
     description: |
       Agent profile configuration management — create, retrieve, update, and delete
       agent configurations stored as ConfigMaps with naming pattern: agent-profile-{uuid}
+  - name: AgentDeployments
+    description: Agent Sandbox deployment creation operations
 
   # =============================================================================
   # LLAMASTACK DISTRIBUTION (LSD) OPERATIONS

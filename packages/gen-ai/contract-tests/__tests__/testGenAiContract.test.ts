@@ -108,4 +108,25 @@ describe('Gen AI API Contract Tests', () => {
       });
     });
   });
+
+  describe('Agent Deployments Endpoint', () => {
+    it('should create a stateful mock agent deployment', async () => {
+      const result = await apiClient.post('/gen-ai/api/v1/agent-deployments?namespace=llama-stack', {
+        name: 'mock-agent',
+        agentProfileId: '11111111-1111-1111-1111-111111111111',
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1agent-deployments/post/responses/201/content/application~1json/schema',
+        status: 201,
+      });
+      expect(result.success).toBe(true);
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+      const response = result.response.data as { data: { routeUrl: string } };
+      expect(response.data.routeUrl).toMatch(
+        /^https:\/\/mock-agent-[a-f0-9]{4}-llama-stack\.apps\.example\.com$/,
+      );
+    });
+  });
 });

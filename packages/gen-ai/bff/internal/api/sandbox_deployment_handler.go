@@ -22,6 +22,8 @@ type AgentDeploymentCreateEnvelope = Envelope[models.AgentDeploymentCreateRespon
 
 const sandboxRollbackTimeout = 30 * time.Second
 
+const mockSandboxOGXImage = "example.com/ogx:mock"
+
 // CreateAgentDeploymentHandler handles POST /api/v1/agent-deployments.
 // It loads the agent profile, builds the llama-stack-config ConfigMap from the profile's
 // model and vector store configuration, and creates it in the target namespace.
@@ -201,6 +203,11 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 
 	// Require the OGX core image — injected by the operator via RELATED_IMAGE_OGX_CORE.
 	ogxImage := app.config.OGXCoreImage
+	if ogxImage == "" && app.config.MockK8sClient {
+		// Mock mode persists a simulated Sandbox but never starts a pod, so it does
+		// not receive the operator-injected RELATED_IMAGE_OGX_CORE environment value.
+		ogxImage = mockSandboxOGXImage
+	}
 	if ogxImage == "" {
 		rollback()
 		app.serverErrorResponse(w, r, &integrations.HTTPError{
