@@ -5,7 +5,7 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { waitForResource, waitForPodReady } from '../../../utils/oc_commands/baseCommands';
+import { waitForResource } from '../../../utils/oc_commands/baseCommands';
 import {
   enableExternalProviders,
   disableExternalProviders,
@@ -35,8 +35,6 @@ type MultimodalTestData = {
     endpointUrl: string;
     configMapName: string;
     lsdServiceName: string;
-    lsdPodPrefix: string;
-    lsdPodReadyTimeout: string;
   };
 };
 
@@ -110,15 +108,8 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.model.lsdServiceName, projectName);
 
-      cy.step('Wait for LSD pod to be fully ready');
-      waitForPodReady(
-        testData.model.lsdPodPrefix,
-        testData.model.lsdPodReadyTimeout,
-        projectName,
-      ).then(() => {
-        cy.step('Wait for vision model to be registered in LSD');
-        waitForModelInLSD(testData.model.lsdServiceName, testData.model.modelId, projectName);
-      });
+      cy.step('Wait for vision model to be registered in LSD');
+      waitForModelInLSD(testData.model.lsdServiceName, testData.model.modelId, projectName, 60);
     });
   });
 

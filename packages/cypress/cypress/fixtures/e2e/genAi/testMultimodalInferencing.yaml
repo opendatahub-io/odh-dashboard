@@ -16,5 +16,3 @@ model:
   endpointUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/'
   configMapName: 'llama-stack-config'
   lsdServiceName: 'lsd-genai-playground-service'
-  lsdPodPrefix: 'lsd-genai-playground'
-  lsdPodReadyTimeout: '120s'
