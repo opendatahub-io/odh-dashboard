@@ -1201,8 +1201,18 @@ func TestLlamaStackDocumentUploadHandler(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "unsupported document type")
 	})
 
-	t.Run("rejects a document exceeding the 10MB limit", func(t *testing.T) {
-		req, _ := newRequest(t, "large.txt", "text/plain", strings.Repeat("x", 11<<20))
+	t.Run("accepts a document below the 50MB limit", func(t *testing.T) {
+		req, client := newRequest(t, "large.txt", "text/plain", strings.Repeat("x", 11<<20))
+		client.ProcessFileResult = &llamastack.ProcessedDocument{Text: "extracted document text"}
+		rr := httptest.NewRecorder()
+
+		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("rejects a document exceeding the 50MB limit", func(t *testing.T) {
+		req, _ := newRequest(t, "large.txt", "text/plain", strings.Repeat("x", 51<<20))
 		rr := httptest.NewRecorder()
 
 		newApp().LlamaStackDocumentUploadHandler(rr, req, nil)

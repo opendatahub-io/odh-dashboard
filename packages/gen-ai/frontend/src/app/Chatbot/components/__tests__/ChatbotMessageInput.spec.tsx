@@ -636,7 +636,7 @@ describe('ChatbotMessageInput', () => {
       expect(onDocumentAttach).not.toHaveBeenCalled();
     });
 
-    it('rejects oversized files and shows validation error', async () => {
+    it('rejects files exceeding the 50MB limit and shows validation error', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
 
@@ -644,10 +644,13 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-documents'));
 
       const input = screen.getByTestId('document-file-input') as HTMLInputElement;
-      // 11MB file exceeds 10MB limit
-      const bigFile = new File(['x'.repeat(11 * 1024 * 1024)], 'huge.txt', {
-        type: 'text/plain',
-      });
+      const bigFile = new File(
+        ['x'.repeat(DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE + 1)],
+        'huge.txt',
+        {
+          type: 'text/plain',
+        },
+      );
       Object.defineProperty(input, 'files', { value: [bigFile], configurable: true });
       fireEvent.change(input);
 

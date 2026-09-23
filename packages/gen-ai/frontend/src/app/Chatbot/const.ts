@@ -47,7 +47,7 @@ export const FILE_UPLOAD_CONFIG = {
 // FILE_UPLOAD_CONFIG, these files are extracted and sent as text input rather
 // than ingested into a vector store.
 export const DOCUMENT_ATTACHMENT_CONFIG = {
-  MAX_FILE_SIZE: 10 * 1024 * 1024,
+  MAX_FILE_SIZE: 50 * 1024 * 1024,
   ALLOWED_MIME_TYPES: [
     'application/pdf',
     'text/plain',
