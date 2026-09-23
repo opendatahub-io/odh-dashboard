@@ -219,10 +219,9 @@ describe('Evaluation Results Page - Non-percentage primary metric', () => {
     initIntercepts({ job: guidellmJob });
   });
 
-  it('should display a unitless result with the metric unit in benchmark details', () => {
+  it('should display the result and threshold with the metric unit', () => {
     evaluationResultsPage.visit(NAMESPACE, guidellmJob.resource.id);
-    evaluationResultsPage.findScoreValue().should('contain.text', '41.38');
-    evaluationResultsPage.findScoreValue().should('not.contain.text', 'output tokens/s');
+    evaluationResultsPage.findScoreValue().should('have.text', '41.38 output tokens/s');
     evaluationResultsPage.findBenchmarkDetailsInfo().should('contain.text', '10 output tokens/s');
   });
 });
