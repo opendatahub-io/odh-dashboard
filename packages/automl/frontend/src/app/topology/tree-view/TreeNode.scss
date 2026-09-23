@@ -8,25 +8,73 @@
   }
 }
 
+
 .automl-tree-node__status-spinner {
   animation: automl-tree-node-spin 1.5s linear infinite;
   transform-origin: center;
   transform-box: fill-box;
 }
 
-.automl-tree-node__status-pulse-ring {
-  transform-origin: center;
-  transform-box: fill-box;
+.automl-tree-node__active-badge {
+  overflow: visible;
+
+  .automl-tree-node__status-spinner {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+}
+
+@keyframes automl-tree-node-active-core {
+  0%,
+  100% {
+    fill: #0066cc;
+  }
+
+  50% {
+    fill: #8ec8f7;
+  }
+}
+
+.automl-tree-node__active-corridor-ring {
+  fill: none;
+  stroke: #0066cc;
+  filter: drop-shadow(0 0 2px rgba(0, 102, 204, 0.22));
+}
+
+.automl-tree-node__active-corridor-core {
+  fill: #0066cc;
+  animation: automl-tree-node-active-core 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.automl-tree-node-layer {
+  overflow: visible;
 }
 
 .automl-tree-node__caption {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: var(--pf-t--global--spacer--sm);
   width: 100%;
   min-width: 0;
   pointer-events: none;
+
+  &--column-header {
+    height: 100%;
+    justify-content: flex-end;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+  }
+
+  &--row-label {
+    height: 100%;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0;
+  }
 }
 
 .automl-tree-node__label {
@@ -49,14 +97,52 @@
     overflow-wrap: anywhere;
   }
 
+  &--with-subtitle {
+    gap: var(--pf-t--global--spacer--xs);
+
+    > div:first-child {
+      overflow-wrap: normal;
+      word-break: normal;
+      white-space: nowrap;
+    }
+  }
+
   &--selected {
     font-weight: 600;
   }
+
+  &--column-header {
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+    color: var(--pf-t--global--text--color--regular);
+    font-size: var(--pf-t--global--font--size--body--md);
+    white-space: normal;
+    gap: 0;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+
+    > div:first-child,
+    > div {
+      width: 100%;
+      overflow-wrap: normal;
+      word-break: normal;
+      text-align: center;
+    }
+  }
+
+  &--row-label {
+    align-items: flex-end;
+    justify-content: center;
+    text-align: end;
+    color: var(--pf-t--global--text--color--regular);
+    white-space: nowrap;
+    background-color: var(--pf-t--global--background--color--primary--default);
+  }
 }
 
-/* PF non-status grey label — winner designation under model/pattern name. */
-.automl-tree-node__winner-label {
-  text-transform: capitalize;
+.automl-tree-node__winner-subtitle {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--body--sm);
 }
 
 .automl-tree-node__models-toggle {
@@ -64,63 +150,113 @@
   justify-content: center;
   pointer-events: auto;
 
-  /* Neutral pill — override PF secondary brand tokens to match design gray. */
+  /* Neutral pill — PF v6 Button tokens; nested selector beats .pf-m-secondary aliases (~6.5). */
   .pf-v6-c-button.pf-m-secondary {
-    --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--sm);
+    --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--md);
     --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
     --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
     --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
     --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
-    --pf-v6-c-button--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--Color: var(--pf-t--global--text--color--link--default);
     --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
-    --pf-v6-c-button--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--hover--Color: var(--pf-t--global--text--color--link--hover);
     --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
-    --pf-v6-c-button--m-clicked--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-clicked--Color: var(--pf-t--global--text--color--link--clicked);
     --pf-v6-c-button--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
-    --pf-v6-c-button--m-secondary--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--Color: var(--pf-t--global--text--color--link--default);
     --pf-v6-c-button--m-secondary--BorderColor: var(--pf-t--global--border--color--default);
-    --pf-v6-c-button--m-secondary--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--hover--Color: var(--pf-t--global--text--color--link--hover);
     --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
-    --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
-    --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+    --pf-v6-c-button--m-secondary--m-clicked--Color: var(
+      --pf-t--global--text--color--link--clicked
+    );
+    --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(
+      --pf-t--global--border--color--clicked
+    );
 
     white-space: nowrap;
   }
 }
 
-/* Design: saturated brand-blue star + ring on white (not pale nonstatus blue). */
-.automl-tree-node__winner-star {
-  --pf-topology__node__decorator__bg--Fill: var(--pf-t--global--background--color--primary--default);
-  --pf-topology__node__decorator__bg--Stroke: var(--pf-t--global--border--color--brand--default);
-  --pf-topology__node_decorator--Color: var(--pf-t--global--icon--color--brand--default);
+/* Winner chrome: gold for rank 1, burnt orange for rank 2, bright orange for rank 3. */
+.automl-tree-node--winner {
+  --automl-tree-node--winner--Color: #c4610e;
+  --pf-topology__node--Color: var(--automl-tree-node--winner--Color);
 
-  .pf-topology__node__decorator__bg {
-    fill: var(--pf-topology__node__decorator__bg--Fill);
-    stroke: var(--pf-topology__node__decorator__bg--Stroke);
-    stroke-width: 1;
+  .pf-topology__node__background {
+    fill: var(--pf-t--global--background--color--primary--default);
+    stroke: var(--automl-tree-node--winner--Color);
+    stroke-width: 1.5;
   }
 }
 
-.automl-tree-node__winner-star-icon {
-  color: var(--pf-t--global--icon--color--brand--default);
-  fill: currentcolor;
+.automl-tree-node--winner-1 {
+  --automl-tree-node--winner--Color: var(--pf-t--global--color--status--warning--200);
+  --pf-topology__node--Color: var(--automl-tree-node--winner--Color);
 }
 
-/* Active stage decorator: outlined badge + spinning sync icon. */
-.automl-tree-node__status-decorator-active {
-  --pf-topology__node__decorator__bg--Fill: var(--pf-t--global--background--color--primary--default);
-  --pf-topology__node__decorator__bg--Stroke: var(--pf-t--global--border--color--brand--default);
-  --pf-topology__node_decorator--Color: var(--pf-t--global--icon--color--brand--default);
+.automl-tree-node--winner-2 {
+  --automl-tree-node--winner--Color: #c4610e;
+  --pf-topology__node--Color: var(--automl-tree-node--winner--Color);
+}
 
-  .pf-topology__node__decorator__bg {
-    fill: var(--pf-topology__node__decorator__bg--Fill);
-    stroke: var(--pf-topology__node__decorator__bg--Stroke);
+.automl-tree-node--winner-3 {
+  --automl-tree-node--winner--Color: var(--pf-t--global--color--nonstatus--orange--300);
+  --pf-topology__node--Color: var(--automl-tree-node--winner--Color);
+}
+
+.automl-tree-node__winner-badge--star .automl-tree-node__winner-badge-disc {
+  fill: var(--pf-t--global--color--status--warning--200);
+  stroke: none;
+}
+
+.automl-tree-node__winner-badge--rank-2 .automl-tree-node__winner-badge-disc {
+  fill: #c4610e;
+  stroke: none;
+}
+
+.automl-tree-node__winner-badge--rank-3 .automl-tree-node__winner-badge-disc {
+  fill: var(--pf-t--global--color--nonstatus--orange--300);
+  stroke: none;
+}
+
+.automl-tree-node__winner-badge-icon,
+.automl-tree-node__winner-badge-text {
+  color: var(--pf-t--global--icon--color--inverse);
+  fill: var(--pf-t--global--icon--color--inverse);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+.automl-tree-node__column-rule {
+  stroke: #d2d2d2;
+  stroke-width: 1px;
+}
+
+.automl-tree-node-layer > .automl-tree-node__active-badge {
+  pointer-events: none;
+}
+
+.automl-tree-node__active-badge-mask {
+  fill: #ffffff;
+  stroke: none;
+}
+
+.automl-tree-node__active-badge-disc {
+  fill: #0066cc;
+  stroke: #ffffff;
+  stroke-width: 2px;
+}
+
+.automl-tree-node__active-badge-icon {
+  color: #ffffff;
+  fill: #ffffff;
+
+  svg,
+  path {
+    color: #ffffff;
+    fill: #ffffff;
   }
-}
-
-.automl-tree-node__status-decorator-active-icon {
-  color: var(--pf-t--global--icon--color--brand--default);
-  fill: currentcolor;
 }
 
 /*
@@ -132,48 +268,148 @@
 
   .pf-topology__node__background {
     cursor: pointer;
+    fill: var(--pf-t--global--background--color--primary--default);
   }
 
+  /* @patternfly/react-topology ~6.5 topology-components status modifier tokens */
   &.pf-m-success {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
-
-    .pf-topology__node__background {
-      stroke: var(--pf-t--global--border--color--status--success--default);
-      stroke-width: 1;
-    }
+    --pf-topology__node--m-success--Background--Fill: var(
+      --pf-t--global--background--color--primary--default
+    );
+    --pf-topology__node--m-success--Background--Stroke: var(
+      --pf-t--global--border--color--status--success--default
+    );
   }
 
-  &.pf-m-danger {
-    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--danger--default);
+  &.pf-m-danger,
+  &--failed {
+    --pf-topology__node--Color: #c9190d;
+    --pf-topology__node--m-danger--Background--Stroke: #c9190d;
 
     .pf-topology__node__background {
-      stroke: var(--pf-t--global--color--status--danger--default);
-      stroke-width: 1;
+      fill: #ffffff;
+      stroke: #c9190d;
+      stroke-width: 1.5;
     }
   }
 
   &.pf-m-info {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--brand--default);
+    --pf-topology__node--m-info--Background--Stroke: var(
+      --pf-t--global--border--color--nonstatus--blue--default
+    );
+  }
+
+  &--pending {
+    --pf-topology__node__background--Fill: transparent;
+    --pf-topology__node__background--Stroke: transparent;
+    --pf-topology__node__background--StrokeWidth: 0;
 
     .pf-topology__node__background {
-      stroke: var(--pf-t--global--border--color--nonstatus--blue--default);
-      stroke-width: 1;
+      fill: none;
+      stroke: none;
+      filter: none;
     }
   }
 
-  /*
-   * Status-only badge draws its own ring. Must beat &.pf-m-success|danger|info
-   * (.automl-tree-node.pf-m-* is more specific than &--status-only alone).
-   */
-  &--status-only.pf-m-success,
-  &--status-only.pf-m-danger,
-  &--status-only.pf-m-info,
-  &--status-only {
+  &--success {
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
+
+    .pf-topology__node__background {
+      fill: var(--pf-t--global--background--color--primary--default);
+      stroke: var(--pf-t--global--border--color--status--success--default);
+      stroke-width: 1.5;
+    }
+  }
+
+  &--active.pf-m-info,
+  &--active {
+    --pf-topology__node--Color: #0066cc;
+    --pf-topology__node--m-info--Background--Fill: #ffffff;
+    --pf-topology__node--m-info--Background--Stroke: #0066cc;
+  }
+
+  &--active .pf-topology__node__background {
+    fill: #ffffff;
+    stroke: #0066cc;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 8px rgba(0, 102, 204, 0.35));
+  }
+
+  &--failed .pf-topology__node__background,
+  &--failed .automl-tree-node__status-badge--failed-section {
+    filter: drop-shadow(0 0 3px #c9190d);
+  }
+
+  &--just-completed.pf-m-success {
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
+    --pf-topology__node--m-success--Background--Stroke: var(
+      --pf-t--global--border--color--status--success--default
+    );
+  }
+
+  &--annotation {
+    cursor: default;
+
+    --pf-topology__node__background--Fill: transparent;
+    --pf-topology__node__background--Stroke: transparent;
+
     .pf-topology__node__background {
       fill: transparent;
       stroke: transparent;
+      pointer-events: none;
     }
   }
+
+  /* Status-only badge draws its own ring — hide DefaultNode background chrome. */
+  &--status-only {
+    --pf-topology__node__background--Fill: transparent;
+    --pf-topology__node__background--Stroke: transparent;
+
+    &.pf-m-success {
+      --pf-topology__node--m-success--Background--Fill: transparent;
+      --pf-topology__node--m-success--Background--Stroke: transparent;
+    }
+
+    &.pf-m-danger {
+      --pf-topology__node--m-danger--Background--Fill: transparent;
+      --pf-topology__node--m-danger--Background--Stroke: transparent;
+    }
+
+    &.pf-m-info {
+      --pf-topology__node--m-info--Background--Fill: transparent;
+      --pf-topology__node--m-info--Background--Stroke: transparent;
+    }
+  }
+}
+
+.automl-tree-node-layer > .automl-tree-node__failed-badge {
+  pointer-events: none;
+}
+
+.automl-tree-node__failed-badge-disc {
+  fill: #ffffff;
+  stroke: #c9190d;
+  stroke-width: 3px;
+}
+
+.automl-tree-node__failed-badge-icon {
+  color: #c9190d;
+  fill: #c9190d;
+
+  svg,
+  path {
+    color: #c9190d;
+    fill: #c9190d;
+  }
+}
+
+.automl-tree-node__pending-ring {
+  fill: var(--pf-t--global--background--color--primary--default, #ffffff);
+  stroke: var(--pf-t--global--border--color--subtle, #8a8d90);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
 }
 
 .automl-tree-node__task-icon {
@@ -183,13 +419,24 @@
   svg {
     color: inherit;
     fill: currentcolor;
+    display: block;
+    overflow: visible;
   }
-}
 
-/* Pending hourglass — sand/caps filled; outline paths keep inline fill/stroke from PendingHourglassGlyph. */
-.automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass path:not(.automl-tree-node__pending-hourglass-outline),
-.automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass rect {
-  fill: var(--pf-t--global--icon--color--disabled);
+  &--pending {
+    color: #737679;
+    fill: #737679;
+
+    svg {
+      color: #737679;
+      fill: #737679;
+    }
+  }
+
+  &--active svg {
+    display: block;
+    overflow: visible;
+  }
 }
 
 /* Running sync in branch-step badge. */
@@ -247,8 +494,17 @@
     animation: none;
   }
 
+  .automl-tree-node__active-corridor-core {
+    animation: none;
+    fill: #0066cc;
+  }
+
   .automl-tree-node__status-pulse-ring {
     transform: scale(1);
     opacity: 0.75;
+  }
+
+  .automl-tree-node--active .pf-topology__node__background {
+    filter: drop-shadow(0 0 8px rgba(0, 102, 204, 0.35));
   }
 }

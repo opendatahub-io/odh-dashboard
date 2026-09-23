@@ -1,26 +1,41 @@
 import { DEFAULT_SPACER_NODE_TYPE, NodeShape, type EdgeModel } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
+import { getModelRowLabel } from '~/app/topology/stageMapLabels';
 import {
   type BranchExpandOptions,
-  isBranchingStageNodeId,
   matchesWinnerModel,
+  resolveModelRank,
   resolveVisibleBranchIndices,
 } from './branchExpand';
 import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
+import { ROW_LABEL_GAP, ROW_LABEL_WIDTH } from './treeEdgePath';
 import type { TreeNodeData } from './TreeNode';
-import { isBranchStepNodeId } from './stageMapStepMetadata';
-import { runStatusToTreeStepState, treeStepStateToNodeStatus } from './treeStepState';
+import { isBranchStepNodeId, parseStageMapNodeId } from './stageMapStepMetadata';
+import {
+  runStatusToTreeStepState,
+  treeStepStateToNodeStatus,
+  type TreeStepState,
+} from './treeStepState';
 
 /** Circle diameter for PatternFly DefaultNode custom nodes (dense pipeline layout). */
-const STANDARD_NODE_SIZE = 48;
+const STANDARD_NODE_SIZE = 40;
 /** Branch steps match status-badge scale (design: smaller than stage nodes). */
-const BRANCH_STEP_NODE_SIZE = 28;
+const BRANCH_STEP_NODE_SIZE = 32;
 const X_START = 40;
 const X_GAP = 120;
 const Y_CENTER = 200;
 const Y_PIPELINE_GAP = 110;
+const COLUMN_HEADER_Y_OFFSET = 72;
+/** Horizontal run for fan-out curves before the model row-label column. */
+const FAN_OUT_RUN = 140;
+const COLUMN_RULE_HEIGHT = 2;
+const TOGGLE_Y_OFFSET = 60;
+/** Extra drop on the collapsed spine so the toggle clears task captions. */
+const COLLAPSED_TOGGLE_Y_OFFSET = 120;
+const MODEL_RESULT_HEADER = 'Model result';
+const MODELS_TOGGLE_NODE_ID = 'automl-models-toggle';
 
 /** Safe digit-only branch token check (no overlapping quantifiers). */
 const isBranchToken = (value: string): boolean => /^branch-\d+$/.test(value);
@@ -138,22 +153,42 @@ const calculatePipelineYPositions = (modelCount: number): number[] => {
   return Array.from({ length: modelCount }, (_, i) => startY + i * Y_PIPELINE_GAP);
 };
 
+const nextStepState = (
+  topologyNode: PipelineNodeModelExpanded,
+  predecessorFailed: boolean,
+): TreeStepState => {
+  const stepState = runStatusToTreeStepState(topologyNode.data?.runStatus);
+  if (predecessorFailed && (stepState === 'pending' || stepState === 'unreached')) {
+    return 'unreached';
+  }
+  return stepState;
+};
+
 const createTreeNode = (
   topologyNode: PipelineNodeModelExpanded,
   x: number,
   y: number,
+  stepState: TreeStepState,
   dataExtras?: Partial<TreeNodeData>,
 ): TreeNodeModel => {
-  const stepState = runStatusToTreeStepState(topologyNode.data?.runStatus);
-  const label = dataExtras?.label ?? topologyNode.label;
   const isBranchStep = isBranchStepNodeId(topologyNode.id);
   const nodeSize = isBranchStep ? BRANCH_STEP_NODE_SIZE : STANDARD_NODE_SIZE;
   // Keep node centers aligned with standard-sized neighbors on the spine.
   const originOffset = (STANDARD_NODE_SIZE - nodeSize) / 2;
+  const data: TreeNodeData = {
+    stepState,
+    activeIconVariant: topologyNode.data?.activeIconVariant,
+    ...dataExtras,
+  };
+  if (dataExtras?.hideLabel) {
+    data.label = undefined;
+  } else if (data.label === undefined) {
+    data.label = topologyNode.label;
+  }
   return {
     id: topologyNode.id,
     type: TREE_NODE_TYPE,
-    label,
+    label: data.label ?? '',
     x: x + originOffset,
     y: y + originOffset,
     width: nodeSize,
@@ -162,52 +197,104 @@ const createTreeNode = (
     // PF status does not draw green label boxes.
     shape: NodeShape.circle,
     status: treeStepStateToNodeStatus(stepState),
-    data: {
-      label,
-      stepState,
-      activeIconVariant: topologyNode.data?.activeIconVariant,
-      ...dataExtras,
-    },
+    data,
   };
 };
+
+const createAnnotationNode = (
+  id: string,
+  x: number,
+  y: number,
+  data: TreeNodeData,
+): TreeNodeModel => ({
+  id,
+  type: TREE_NODE_TYPE,
+  label: data.label ?? '',
+  x,
+  y,
+  width: STANDARD_NODE_SIZE,
+  height: STANDARD_NODE_SIZE,
+  shape:
+    data.nodeRole === 'column-rule' || data.nodeRole === 'column-header'
+      ? NodeShape.rect
+      : NodeShape.circle,
+  status: treeStepStateToNodeStatus(data.stepState),
+  data,
+});
 
 const modelTerminusExtras = (
   topologyNode: PipelineNodeModelExpanded,
   options: BranchExpandOptions | undefined,
   isCollapsedSpine: boolean,
-): Partial<TreeNodeData> | undefined => {
+  hideLabel: boolean,
+): Partial<TreeNodeData> => {
+  const extras: Partial<TreeNodeData> = {};
+  if (hideLabel) {
+    extras.hideLabel = true;
+  }
   if (!options || !topologyNode.id.includes('__model__')) {
-    return undefined;
+    return extras;
+  }
+
+  const winnerRank = resolveModelRank(topologyNode, options.modelRanks);
+  if (winnerRank) {
+    extras.winnerRank = winnerRank;
+    extras.showWinnerStar = winnerRank === 1;
   }
 
   const isWinner = matchesWinnerModel(topologyNode, options);
-
-  // Succeeded + matched winner branch: model name + "Winner" subtitle + star.
-  if (options.winnerResolved && isWinner) {
-    return {
-      label: options.winnerModelLabel ?? topologyNode.label,
-      labelSubtitle: 'Winner',
-      showWinnerStar: true,
-    };
+  let collapsedRowLabel: string | undefined;
+  if (isCollapsedSpine) {
+    const collapsedBranchIndex = getBranchIndex(topologyNode.id);
+    collapsedRowLabel =
+      collapsedBranchIndex === undefined ? 'Model' : getModelRowLabel(collapsedBranchIndex);
   }
 
-  // Collapsed spine without a winner match: generic label + winner badge, no star.
-  if (isCollapsedSpine) {
+  // Collapsed spine: "Model N" over "winner" — do not use the API display name here.
+  if (collapsedRowLabel !== undefined) {
+    if (options.winnerResolved && isWinner) {
+      return {
+        ...extras,
+        label: collapsedRowLabel,
+        labelSubtitle: 'winner',
+        showWinnerStar: true,
+        winnerRank: extras.winnerRank ?? 1,
+      };
+    }
     return {
-      label: 'Model',
-      labelSubtitle: 'Winner',
+      ...extras,
+      winnerRank: undefined,
+      label: collapsedRowLabel,
+      labelSubtitle: 'winner',
       showWinnerStar: false,
     };
   }
 
-  return undefined;
+  // Succeeded + matched winner branch (expanded): model name + "winner" subtitle + star.
+  if (options.winnerResolved && isWinner) {
+    return {
+      ...extras,
+      label: options.winnerModelLabel ?? topologyNode.label,
+      labelSubtitle: 'winner',
+      showWinnerStar: true,
+      winnerRank: extras.winnerRank ?? 1,
+    };
+  }
+
+  return extras;
 };
 
-const createEdge = (id: string, source: string, target: string): EdgeModel => ({
+const createEdge = (
+  id: string,
+  source: string,
+  target: string,
+  data?: EdgeModel['data'],
+): EdgeModel => ({
   id,
   type: TREE_EDGE_TYPE,
   source,
   target,
+  ...(data ? { data } : {}),
 });
 
 /**
@@ -228,20 +315,22 @@ export const transformStageMapNodesToTree = (
   };
   const visibleBranchIndices = resolveVisibleBranchIndices(branchIndices, branches, expandOptions);
   const isCollapsedSpine = !expandOptions.modelsExpanded && branchIndices.length > 1;
+  const hideExpandedBranchLabels = options?.modelsExpanded === true && branchIndices.length > 1;
+  const includeAuxNodes = options != null && branchIndices.length > 1;
 
   let currentX: number = X_START;
   const linearPreIds: string[] = [];
+  let predecessorFailed = false;
 
   linearPre.forEach((topologyNode, index) => {
     linearPreIds.push(topologyNode.id);
-    nodes.push(
-      createTreeNode(
-        topologyNode,
-        currentX,
-        Y_CENTER,
-        isBranchingStageNodeId(topologyNode.id) ? { showModelsToggle: true } : undefined,
-      ),
-    );
+    const stepState = nextStepState(topologyNode, predecessorFailed);
+    if (stepState === 'failed') {
+      predecessorFailed = true;
+    } else if (stepState === 'completed' || stepState === 'active') {
+      predecessorFailed = false;
+    }
+    nodes.push(createTreeNode(topologyNode, currentX, Y_CENTER, stepState));
     currentX += X_GAP;
     if (index > 0) {
       edges.push(createEdge(`e-linear-${index}`, linearPreIds[index - 1], topologyNode.id));
@@ -250,24 +339,77 @@ export const transformStageMapNodesToTree = (
 
   const branchSourceId = linearPreIds[linearPreIds.length - 1];
   const branchTailIds: string[] = [];
-  const pipelineStartX = currentX + X_GAP * 0.2;
+  const originOffset = (STANDARD_NODE_SIZE - BRANCH_STEP_NODE_SIZE) / 2;
+  const needsFanOutLane = expandOptions.modelsExpanded && branchIndices.length > 1;
+  const pipelineStartX = needsFanOutLane
+    ? currentX +
+      FAN_OUT_RUN +
+      ROW_LABEL_WIDTH +
+      ROW_LABEL_GAP -
+      (X_GAP - STANDARD_NODE_SIZE) -
+      originOffset
+    : currentX;
   const displayYPositions = calculatePipelineYPositions(visibleBranchIndices.length);
+  const columnXs: { id: string; label: string; x: number }[] = [];
+  const rowLabels: { id: string; label: string; y: number }[] = [];
+  let toggleMidX = pipelineStartX;
+  let toggleMaxY = Y_CENTER;
 
   visibleBranchIndices.forEach((branchIndex, positionIndex) => {
     const branchNodes = branches.get(branchIndex) ?? [];
     const pipelineY = displayYPositions[positionIndex] ?? Y_CENTER;
     let stepX = pipelineStartX;
     const branchNodeIds: string[] = [];
+    let branchFailed = predecessorFailed;
+    const rowLabel = getModelRowLabel(branchIndex);
+
+    if (hideExpandedBranchLabels && rowLabel) {
+      rowLabels.push({
+        id: `automl-row-label-${branchIndex}`,
+        label: rowLabel,
+        y: pipelineY,
+      });
+    }
 
     branchNodes.forEach((topologyNode, stepIndex) => {
-      nodes.push(
-        createTreeNode(
-          topologyNode,
-          stepX,
-          pipelineY,
-          modelTerminusExtras(topologyNode, expandOptions, isCollapsedSpine),
-        ),
+      const stepState = nextStepState(topologyNode, branchFailed);
+      if (stepState === 'failed') {
+        branchFailed = true;
+      } else if (stepState === 'completed' || stepState === 'active') {
+        branchFailed = false;
+      }
+      const isModelTerminus = topologyNode.id.includes('__model__');
+      const created = createTreeNode(
+        topologyNode,
+        stepX,
+        pipelineY,
+        stepState,
+        isModelTerminus
+          ? modelTerminusExtras(
+              topologyNode,
+              expandOptions,
+              isCollapsedSpine,
+              hideExpandedBranchLabels,
+            )
+          : hideExpandedBranchLabels
+            ? { hideLabel: true }
+            : undefined,
       );
+      nodes.push(created);
+      if (hideExpandedBranchLabels && positionIndex === 0) {
+        const parsed = parseStageMapNodeId(topologyNode.id);
+        const headerLabel =
+          parsed?.type === 'branch_step'
+            ? topologyNode.label
+            : isModelTerminus
+              ? MODEL_RESULT_HEADER
+              : topologyNode.label;
+        columnXs.push({
+          id: `automl-col-header-${parsed?.type === 'branch_step' ? parsed.stepId : 'model'}`,
+          label: headerLabel ?? '',
+          x: (created.x ?? 0) + (created.width ?? STANDARD_NODE_SIZE) / 2 - X_GAP / 2,
+        });
+      }
       branchNodeIds.push(topologyNode.id);
       stepX += X_GAP;
       if (stepIndex > 0) {
@@ -282,7 +424,14 @@ export const transformStageMapNodesToTree = (
     });
 
     if (branchSourceId && branchNodeIds[0]) {
-      edges.push(createEdge(`e-pre-to-branch-${branchIndex}`, branchSourceId, branchNodeIds[0]));
+      edges.push(
+        createEdge(
+          `e-pre-to-branch-${branchIndex}`,
+          branchSourceId,
+          branchNodeIds[0],
+          hideExpandedBranchLabels ? { clearLabelLane: true } : undefined,
+        ),
+      );
     }
 
     const tailId = branchNodeIds[branchNodeIds.length - 1];
@@ -293,6 +442,8 @@ export const transformStageMapNodesToTree = (
     if (stepX > currentX) {
       currentX = stepX;
     }
+    toggleMaxY = Math.max(toggleMaxY, pipelineY);
+    toggleMidX = pipelineStartX + ((stepX - X_GAP - pipelineStartX) / 2 || 0);
   });
 
   // When every branch index is invalid (nodes fall into postBranch), connect from the pre-branch
@@ -301,12 +452,21 @@ export const transformStageMapNodesToTree = (
     branchTailIds.push(branchSourceId);
   }
 
-  currentX += X_GAP * 0.5;
+  if (needsFanOutLane) {
+    currentX += X_GAP * 0.5;
+  }
   const postBranchIds: string[] = [];
+  let postFailed = predecessorFailed;
 
   postBranch.forEach((topologyNode, index) => {
     postBranchIds.push(topologyNode.id);
-    nodes.push(createTreeNode(topologyNode, currentX, Y_CENTER));
+    const stepState = nextStepState(topologyNode, postFailed);
+    if (stepState === 'failed') {
+      postFailed = true;
+    } else if (stepState === 'completed' || stepState === 'active') {
+      postFailed = false;
+    }
+    nodes.push(createTreeNode(topologyNode, currentX, Y_CENTER, stepState));
     currentX += X_GAP;
     if (index > 0) {
       edges.push(createEdge(`e-post-${index}`, postBranchIds[index - 1], topologyNode.id));
@@ -317,6 +477,69 @@ export const transformStageMapNodesToTree = (
     branchTailIds.forEach((tailId, index) => {
       edges.push(createEdge(`e-converge-${index}`, tailId, postBranchIds[0]));
     });
+  }
+
+  if (includeAuxNodes) {
+    const headerY =
+      Math.min(...displayYPositions, Y_CENTER) - COLUMN_HEADER_Y_OFFSET - STANDARD_NODE_SIZE;
+    const headerRuleWidth =
+      columnXs.length === 0 || !columnXs[0]
+        ? undefined
+        : columnXs[columnXs.length - 1].x - columnXs[0].x + X_GAP;
+    columnXs.forEach((column) => {
+      nodes.push({
+        ...createAnnotationNode(column.id, column.x, headerY, {
+          stepState: 'pending',
+          label: column.label,
+          nodeRole: 'column-header',
+        }),
+        width: X_GAP,
+      });
+    });
+    if (headerRuleWidth !== undefined && columnXs[0]) {
+      nodes.push({
+        ...createAnnotationNode(
+          'automl-col-header-rule',
+          columnXs[0].x,
+          headerY + STANDARD_NODE_SIZE,
+          {
+            stepState: 'pending',
+            nodeRole: 'column-rule',
+          },
+        ),
+        width: headerRuleWidth,
+        height: COLUMN_RULE_HEIGHT,
+      });
+    }
+    rowLabels.forEach((row) => {
+      const firstDotLeft = pipelineStartX + originOffset;
+      nodes.push({
+        ...createAnnotationNode(
+          row.id,
+          firstDotLeft - ROW_LABEL_GAP - ROW_LABEL_WIDTH,
+          row.y + originOffset,
+          {
+            stepState: 'pending',
+            label: row.label,
+            nodeRole: 'row-label',
+          },
+        ),
+        width: ROW_LABEL_WIDTH,
+        height: BRANCH_STEP_NODE_SIZE,
+      });
+    });
+    nodes.push(
+      createAnnotationNode(
+        MODELS_TOGGLE_NODE_ID,
+        toggleMidX,
+        toggleMaxY + (isCollapsedSpine ? COLLAPSED_TOGGLE_Y_OFFSET : TOGGLE_Y_OFFSET),
+        {
+          stepState: 'pending',
+          nodeRole: 'models-toggle',
+          showModelsToggle: true,
+        },
+      ),
+    );
   }
 
   return { nodes, edges };

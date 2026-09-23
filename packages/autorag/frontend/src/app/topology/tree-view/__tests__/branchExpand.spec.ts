@@ -12,7 +12,9 @@ import { RunStatus } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import {
   canShowPatternsExpandToggle,
+  countPatternBranches,
   isBranchingStageNodeId,
+  isPatternTerminusId,
   matchesWinnerPattern,
   resolvePatternRank,
   resolveVisibleBranchIndices,
@@ -116,5 +118,19 @@ describe('branchExpand', () => {
       }),
     ).toBe(2);
     expect(resolvePatternRank(node, { 'Pattern A': 1 })).toBeUndefined();
+  });
+
+  it('should not count fan-in spacer ids as pattern branches', () => {
+    const spacerId = 'rag__pattern__branch-0|rag__pattern__branch-1|rag__pattern__branch-2';
+    expect(isPatternTerminusId('rag__pattern__branch-0')).toBe(true);
+    expect(isPatternTerminusId(spacerId)).toBe(false);
+    expect(
+      countPatternBranches([
+        makeNode('rag__pattern__branch-0', 'Pattern A'),
+        makeNode('rag__pattern__branch-1', 'Pattern B'),
+        makeNode('rag__pattern__branch-2', 'Pattern C'),
+        makeNode(spacerId, ''),
+      ]),
+    ).toBe(3);
   });
 });

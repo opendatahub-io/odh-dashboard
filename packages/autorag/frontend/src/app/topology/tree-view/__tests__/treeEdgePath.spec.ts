@@ -22,7 +22,7 @@ describe('buildTreeEdgePath', () => {
     const path = buildTreeEdgePath({ x: 0, y: 176, width: 48, height: 48 }, target, {
       clearX: fanOutLabelClearX(target.x),
     });
-    expect(path).toBe('M 48 200 C 120 200, 120 300, 192 300 M 280 300 L 300 300');
+    expect(path).toBe('M 48 200 C 128 200, 128 300, 208 300 M 276 300 L 300 300');
   });
 
   it('returns an empty path when nodes occupy the same point', () => {

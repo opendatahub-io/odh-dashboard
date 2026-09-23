@@ -99,7 +99,14 @@ function AutomlResults(): React.JSX.Element {
   }, [useStageMap, stageMapNodes, fallbackNodes]);
 
   // Tree view data
-  const treeViewData = useTreeViewData(models, treeSourceNodes, bestModelKey, stageMapBestModel);
+  const treeViewData = useTreeViewData(
+    models,
+    treeSourceNodes,
+    bestModelKey,
+    stageMapBestModel,
+    parameters?.task_type,
+    parameters?.eval_metric,
+  );
 
   const runIsTerminal = isRunInTerminalState(runState);
   const stageMapPublished = isTaskSucceeded(pipelineRun);

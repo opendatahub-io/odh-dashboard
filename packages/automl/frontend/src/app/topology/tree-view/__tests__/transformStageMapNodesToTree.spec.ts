@@ -3,6 +3,7 @@ jest.mock('@patternfly/react-topology', () => ({
   DEFAULT_SPACER_NODE_TYPE: 'DEFAULT_SPACER_NODE',
   NodeShape: {
     circle: 'circle',
+    rect: 'rect',
   },
   NodeStatus: {
     default: 'default',
@@ -131,7 +132,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(modelSelection?.data.stepState).toBe('active');
     expect(modelSelection?.shape).toBe('circle');
     expect(modelSelection?.status).toBe('info');
-    expect(modelSelection?.width).toBe(48);
+    expect(modelSelection?.width).toBe(40);
 
     const loadData = nodes.find((node) => node.id === 'training__load_data');
     expect(loadData?.data.stepState).toBe('completed');
@@ -158,7 +159,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(runStatusToTreeStepState(RunStatus.Succeeded)).toBe('completed');
     expect(runStatusToTreeStepState(RunStatus.InProgress)).toBe('active');
     expect(runStatusToTreeStepState(RunStatus.Failed)).toBe('failed');
-    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('pending');
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
   });
 
@@ -301,12 +302,23 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('xgboost');
-    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.label).toBe('Model 1');
+    expect(modelNodes[0].data.labelSubtitle).toBe('winner');
     expect(modelNodes[0].data.showWinnerStar).toBe(true);
+    expect(nodes.find((node) => node.id === 'automl-models-toggle')?.data.showModelsToggle).toBe(
+      true,
+    );
     expect(
       nodes.find((node) => node.id === 'training__model_selection')?.data.showModelsToggle,
-    ).toBe(true);
+    ).toBeUndefined();
+    const firstBranch = nodes.find(
+      (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
+    );
+    expect(firstBranch?.width).toBe(32);
+    expect(modelNodes[0].width).toBe(40);
+    const optimize = nodes.find((node) => node.id === 'training__load_data');
+    const toggle = nodes.find((node) => node.id === 'automl-models-toggle');
+    expect((toggle?.y ?? 0) - (optimize?.y ?? 0)).toBe(120);
   });
 
   it('labels the collapsed terminus as Model winner when the winner is unresolved', () => {
@@ -318,8 +330,8 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Model');
-    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.label).toBe('Model 1');
+    expect(modelNodes[0].data.labelSubtitle).toBe('winner');
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
 
@@ -334,8 +346,8 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Model');
-    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.label).toBe('Model 1');
+    expect(modelNodes[0].data.labelSubtitle).toBe('winner');
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
 
@@ -350,14 +362,14 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Best Model Display Name');
-    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.label).toBe('Model 1');
+    expect(modelNodes[0].data.labelSubtitle).toBe('winner');
     expect(modelNodes[0].data.showWinnerStar).toBe(true);
   });
 
   it('expands all model branches when modelsExpanded is true', () => {
     const topologyNodes = buildStageMapTopology(makeStageMap([training]));
-    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+    const { nodes, edges } = transformStageMapNodesToTree(topologyNodes, {
       modelsExpanded: true,
       winnerResolved: true,
       winnerModelLabel: 'lightgbm',
@@ -365,9 +377,29 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(2);
-    const winner = modelNodes.find((node) => node.data.label === 'lightgbm');
-    expect(winner?.data.labelSubtitle).toBe('Winner');
-    expect(winner?.data.showWinnerStar).toBe(true);
+    const winner = modelNodes.find((node) => node.data.showWinnerStar);
+    expect(winner?.data.hideLabel).toBe(true);
+    expect(winner?.data.labelSubtitle).toBe('winner');
+    expect(nodes.some((node) => node.data.nodeRole === 'column-header')).toBe(true);
+    expect(nodes.some((node) => node.data.nodeRole === 'column-rule')).toBe(true);
+    const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
+    expect(rowLabels.map((node) => node.data.label)).toEqual(['Model 1', 'Model 2']);
+    expect(rowLabels.every((node) => node.width === 68)).toBe(true);
+    expect(rowLabels.every((node) => node.height === 32)).toBe(true);
+    const firstBranchNodes = nodes.filter(
+      (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
+    );
+    const firstBranchX = Math.min(...firstBranchNodes.map((node) => node.x));
+    const rowLabelRight = (rowLabels[0]?.x ?? 0) + (rowLabels[0]?.width ?? 0);
+    expect(firstBranchX - rowLabelRight).toBe(24);
+    expect(
+      edges
+        .filter((edge) => edge.id.startsWith('e-pre-to-branch-'))
+        .every((edge) => edge.data?.clearLabelLane === true),
+    ).toBe(true);
+    expect(
+      nodes.find((node) => node.data.nodeRole === 'models-toggle')?.data.showModelsToggle,
+    ).toBe(true);
   });
 
   it('keeps the winner star when expanded even if the leaderboard key has a suffix', () => {
@@ -391,8 +423,25 @@ describe('transformStageMapNodesToTree', () => {
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(2);
     const winner = modelNodes.find((node) => node.data.showWinnerStar === true);
-    expect(winner?.data.label).toBe('ExtraTreesMSE_B AG_L1_FULL');
-    expect(winner?.data.labelSubtitle).toBe('Winner');
+    expect(winner?.data.hideLabel).toBe(true);
+    expect(winner?.data.labelSubtitle).toBe('winner');
     expect(modelNodes.filter((node) => node.data.showWinnerStar).length).toBe(1);
+  });
+
+  it('should mark later pending stages unreached after an earlier failure', () => {
+    const failedMap = makeStageMap([
+      makeComponent('training', [
+        makeStage('load_data', { status: 'failed' }),
+        makeStage('model_selection'),
+        makeStage('build_leaderboard'),
+      ]),
+    ]);
+    const topologyNodes = buildStageMapTopology(failedMap);
+    const { nodes } = transformStageMapNodesToTree(topologyNodes);
+
+    expect(nodes.find((node) => node.id === 'training__load_data')?.data.stepState).toBe('failed');
+    expect(nodes.find((node) => node.id === 'training__model_selection')?.data.stepState).toBe(
+      'unreached',
+    );
   });
 });

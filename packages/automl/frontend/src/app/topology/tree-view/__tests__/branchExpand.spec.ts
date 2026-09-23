@@ -12,8 +12,11 @@ import { RunStatus } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import {
   canShowModelsExpandToggle,
+  countModelBranches,
   isBranchingStageNodeId,
+  isModelTerminusId,
   matchesWinnerModel,
+  resolveModelRank,
   resolveVisibleBranchIndices,
   resolveWinnerBranchIndex,
 } from '~/app/topology/tree-view/branchExpand';
@@ -94,5 +97,31 @@ describe('branchExpand', () => {
     expect(
       resolveVisibleBranchIndices([0, 1], branches, { ...options, modelsExpanded: true }),
     ).toEqual([0, 1]);
+  });
+
+  it('should resolve top-3 model ranks from the leaderboard map', () => {
+    const node = makeNode('training__model__branch-1', 'lightgbm');
+    expect(
+      resolveModelRank(node, {
+        lightgbm: 2,
+        xgboost: 1,
+      }),
+    ).toBe(2);
+    expect(resolveModelRank(node, { xgboost: 1 })).toBeUndefined();
+  });
+
+  it('should not count fan-in spacer ids as model branches', () => {
+    const spacerId =
+      'training__model__branch-0|training__model__branch-1|training__model__branch-2';
+    expect(isModelTerminusId('training__model__branch-0')).toBe(true);
+    expect(isModelTerminusId(spacerId)).toBe(false);
+    expect(
+      countModelBranches([
+        makeNode('training__model__branch-0', 'xgboost'),
+        makeNode('training__model__branch-1', 'lightgbm'),
+        makeNode('training__model__branch-2', 'catboost'),
+        makeNode(spacerId, ''),
+      ]),
+    ).toBe(3);
   });
 });

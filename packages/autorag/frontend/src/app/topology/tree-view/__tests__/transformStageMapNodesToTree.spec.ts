@@ -331,6 +331,8 @@ describe('transformStageMapNodesToTree', () => {
     expect(nodes.find((node) => node.id === 'rag_optimization__build_leaderboard')?.width).toBe(40);
     expect(firstBranch.width).toBe(32);
     expect(firstBranch.x - optimize.x).toBeLessThanOrEqual(130);
+    const toggle = nodes.find((node) => node.id === 'autorag-patterns-toggle');
+    expect((toggle?.y ?? 0) - (optimize.y ?? 0)).toBe(120);
   });
 
   it('labels the collapsed terminus as Pattern winner when the winner is unresolved', () => {
@@ -382,7 +384,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(rowLabels.map((node) => node.data.label)).toEqual(['Pattern 1', 'Pattern 2']);
     const rowLabelXs = [...new Set(rowLabels.map((node) => node.x))];
     expect(rowLabelXs).toHaveLength(1);
-    expect(rowLabels.every((node) => node.width === 88)).toBe(true);
+    expect(rowLabels.every((node) => node.width === 68)).toBe(true);
     expect(rowLabels.every((node) => node.height === 32)).toBe(true);
     const firstBranchNodes = nodes.filter(
       (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
@@ -395,7 +397,7 @@ describe('transformStageMapNodesToTree', () => {
     ).toBe(true);
     const rowLabelRight = (rowLabels[0]?.x ?? 0) + (rowLabels[0]?.width ?? 0);
     expect(rowLabelRight).toBeLessThan(firstBranchX);
-    expect(firstBranchX - rowLabelRight).toBeGreaterThanOrEqual(20);
+    expect(firstBranchX - rowLabelRight).toBe(24);
     const lastLinear = nodes.find((node) => node.id === 'rag_optimization__optimize_templates');
     expect(lastLinear).toBeDefined();
     expect(rowLabels[0]?.x ?? 0).toBeGreaterThan(
@@ -418,6 +420,9 @@ describe('transformStageMapNodesToTree', () => {
     expect(
       nodes.find((node) => node.data.nodeRole === 'patterns-toggle')?.data.showPatternsToggle,
     ).toBe(true);
+    const lastRow = firstBranchNodes.reduce((lowest, node) => (node.y > lowest.y ? node : lowest));
+    const expandedToggle = nodes.find((node) => node.data.nodeRole === 'patterns-toggle');
+    expect((expandedToggle?.y ?? 0) - lastRow.y).toBe(56);
   });
 
   it('should mark later pending stages unreached after an earlier failure', () => {

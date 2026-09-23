@@ -2,8 +2,8 @@ import { getCaptionHeightBounds } from '~/app/topology/tree-view/treeCaptionHeig
 
 describe('getCaptionHeightBounds', () => {
   it('should return toggle bounds when expand toggle is shown', () => {
-    expect(getCaptionHeightBounds(true, false)).toEqual({ min: 80, max: 120 });
-    expect(getCaptionHeightBounds(true, true)).toEqual({ min: 80, max: 120 });
+    expect(getCaptionHeightBounds(true, false)).toEqual({ min: 40, max: 64 });
+    expect(getCaptionHeightBounds(true, true)).toEqual({ min: 40, max: 64 });
   });
 
   it('should return subtitle bounds when winner subtitle is shown without toggle', () => {

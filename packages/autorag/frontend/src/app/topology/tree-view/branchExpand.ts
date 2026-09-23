@@ -53,7 +53,17 @@ const valuesLooselyMatch = (left: string, right: string): boolean => {
   return true;
 };
 
-const isPatternTerminusId = (nodeId: string): boolean => /__pattern__branch-\d+$/.test(nodeId);
+/** `{component}__pattern__branch-{N}` — excludes fan-in spacer ids that join termini with `|`. */
+export const isPatternTerminusId = (nodeId: string): boolean => {
+  const parts = nodeId.split('__');
+  return (
+    parts.length === 3 && !!parts[0] && parts[1] === 'pattern' && /^branch-\d+$/.test(parts[2])
+  );
+};
+
+export const countPatternBranches = (
+  topologyNodes: PipelineNodeModelExpanded[] | undefined,
+): number => topologyNodes?.filter((node) => isPatternTerminusId(node.id)).length ?? 0;
 
 const isAnyBranchNodeId = (nodeId: string): boolean =>
   /__step__.+__branch-\d+$/.test(nodeId) ||

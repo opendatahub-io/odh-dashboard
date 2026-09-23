@@ -72,7 +72,7 @@
   &--row-label {
     height: 100%;
     justify-content: center;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 0;
   }
 }
@@ -131,12 +131,11 @@
   }
 
   &--row-label {
-    align-items: flex-start;
+    align-items: flex-end;
     justify-content: center;
-    text-align: start;
+    text-align: end;
     color: var(--pf-t--global--text--color--regular);
     white-space: nowrap;
-    padding-inline-end: var(--pf-t--global--spacer--sm);
     background-color: var(--pf-t--global--background--color--primary--default);
   }
 }
@@ -179,9 +178,9 @@
   }
 }
 
-/* Winner chrome: gold for rank 1, orange for ranks 2–3. */
+/* Winner chrome: gold for rank 1, burnt orange for rank 2, bright orange for rank 3. */
 .autorag-tree-node--winner {
-  --autorag-tree-node--winner--Color: var(--pf-t--global--color--nonstatus--orange--300);
+  --autorag-tree-node--winner--Color: #c4610e;
   --pf-topology__node--Color: var(--autorag-tree-node--winner--Color);
 
   .pf-topology__node__background {
@@ -196,7 +195,12 @@
   --pf-topology__node--Color: var(--autorag-tree-node--winner--Color);
 }
 
-.autorag-tree-node--winner-23 {
+.autorag-tree-node--winner-2 {
+  --autorag-tree-node--winner--Color: #c4610e;
+  --pf-topology__node--Color: var(--autorag-tree-node--winner--Color);
+}
+
+.autorag-tree-node--winner-3 {
   --autorag-tree-node--winner--Color: var(--pf-t--global--color--nonstatus--orange--300);
   --pf-topology__node--Color: var(--autorag-tree-node--winner--Color);
 }
@@ -206,7 +210,12 @@
   stroke: none;
 }
 
-.autorag-tree-node__winner-badge--rank .autorag-tree-node__winner-badge-disc {
+.autorag-tree-node__winner-badge--rank-2 .autorag-tree-node__winner-badge-disc {
+  fill: #c4610e;
+  stroke: none;
+}
+
+.autorag-tree-node__winner-badge--rank-3 .autorag-tree-node__winner-badge-disc {
   fill: var(--pf-t--global--color--nonstatus--orange--300);
   stroke: none;
 }

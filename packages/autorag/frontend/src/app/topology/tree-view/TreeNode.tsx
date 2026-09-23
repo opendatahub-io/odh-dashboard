@@ -64,6 +64,8 @@ type TreeNodeProps = {
 
 const DANGER_RED = '#c9190d';
 const INFO_BLUE = '#0066cc';
+/** Rank 2: PF v6 orange-300 is too bright vs design; orange-400 is too dark. */
+const WINNER_RANK_2_ORANGE = '#c4610e';
 
 /** Task glyph colors — completed uses status success so dark theme stays in token. */
 const TASK_ICON_COLORS: Record<ReturnType<typeof resolveTreeNodeVisualState>, string> = {
@@ -72,11 +74,18 @@ const TASK_ICON_COLORS: Record<ReturnType<typeof resolveTreeNodeVisualState>, st
   failed: DANGER_RED,
   active: INFO_BLUE,
   pending: iconColorSubtle.var,
-  winner: colorNonstatusOrange.var,
+  winner: WINNER_RANK_2_ORANGE,
 };
 
-const winnerTaskIconColor = (rank?: WinnerRank): string =>
-  rank === 1 ? colorStatusWarningGold.var : colorNonstatusOrange.var;
+const winnerTaskIconColor = (rank?: WinnerRank): string => {
+  if (rank === 1) {
+    return colorStatusWarningGold.var;
+  }
+  if (rank === 3) {
+    return colorNonstatusOrange.var;
+  }
+  return WINNER_RANK_2_ORANGE;
+};
 
 const STATUS_BADGE_ARIA_LABELS: Record<TreeNodeData['stepState'], string> = {
   pending: 'Pending',
@@ -428,43 +437,51 @@ const FailedNodeBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
 FailedNodeBadge.displayName = 'FailedNodeBadge';
 
 /** Filled rank badge at the top-left: gold star for 1, orange 2/3. */
-const WinnerRankBadge: React.FC<{ rank: WinnerRank }> = React.memo(({ rank }) => {
-  const isStar = rank === 1;
-  const iconSize = WINNER_BADGE_RADIUS * 1.35;
-  return (
-    <g
-      className={cx(
-        'autorag-tree-node__winner-badge',
-        isStar ? 'autorag-tree-node__winner-badge--star' : 'autorag-tree-node__winner-badge--rank',
-      )}
-      transform={`translate(${WINNER_BADGE_RADIUS}, ${WINNER_BADGE_RADIUS})`}
-      data-testid={`winner-rank-badge-${rank}`}
-      role="img"
-      aria-label={isStar ? 'Pattern winner' : `Pattern winner ${rank}`}
-    >
-      <circle className="autorag-tree-node__winner-badge-disc" r={WINNER_BADGE_RADIUS} />
-      {isStar ? (
-        <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
-          <StarIcon
-            className="autorag-tree-node__winner-badge-icon"
-            width={iconSize}
-            height={iconSize}
-            color={iconColorInverse.var}
-            style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
-          />
-        </g>
-      ) : (
-        <text
-          className="autorag-tree-node__winner-badge-text"
-          textAnchor="middle"
-          dominantBaseline="central"
-        >
-          {rank}
-        </text>
-      )}
-    </g>
-  );
-});
+const WinnerRankBadge: React.FC<{ rank: WinnerRank; size: number }> = React.memo(
+  ({ rank, size }) => {
+    const isStar = rank === 1;
+    const iconSize = WINNER_BADGE_RADIUS * 1.35;
+    // Center on the upper-left stroke (same 45° point as the failed badge).
+    const pos = (size / 2) * (1 - Math.SQRT1_2);
+    return (
+      <g
+        className={cx(
+          'autorag-tree-node__winner-badge',
+          isStar
+            ? 'autorag-tree-node__winner-badge--star'
+            : rank === 3
+              ? 'autorag-tree-node__winner-badge--rank-3'
+              : 'autorag-tree-node__winner-badge--rank-2',
+        )}
+        transform={`translate(${pos}, ${pos})`}
+        data-testid={`winner-rank-badge-${rank}`}
+        role="img"
+        aria-label={isStar ? 'Pattern winner' : `Pattern winner ${rank}`}
+      >
+        <circle className="autorag-tree-node__winner-badge-disc" r={WINNER_BADGE_RADIUS} />
+        {isStar ? (
+          <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
+            <StarIcon
+              className="autorag-tree-node__winner-badge-icon"
+              width={iconSize}
+              height={iconSize}
+              color={iconColorInverse.var}
+              style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
+            />
+          </g>
+        ) : (
+          <text
+            className="autorag-tree-node__winner-badge-text"
+            textAnchor="middle"
+            dominantBaseline="central"
+          >
+            {rank}
+          </text>
+        )}
+      </g>
+    );
+  },
+);
 WinnerRankBadge.displayName = 'WinnerRankBadge';
 
 const TreeNodeInner: React.FC<{
@@ -523,7 +540,7 @@ const TreeNodeInner: React.FC<{
     expandToggleExpanded: patternsExpand?.patternsExpanded,
     isColumnHeader,
   });
-  const labelY = height + 4 + (branchStep ? (40 - height) / 2 : 0);
+  const labelY = showPatternsToggle ? 0 : height + 4 + (branchStep ? (40 - height) / 2 : 0);
 
   const attachments = React.useMemo(() => {
     if (!showsTaskIcon) {
@@ -598,7 +615,8 @@ const TreeNodeInner: React.FC<{
           visualState === 'failed' && 'autorag-tree-node--failed',
           visualState === 'winner' && 'autorag-tree-node--winner',
           visualState === 'winner' && winnerRank === 1 && 'autorag-tree-node--winner-1',
-          visualState === 'winner' && winnerRank !== 1 && 'autorag-tree-node--winner-23',
+          visualState === 'winner' && winnerRank === 2 && 'autorag-tree-node--winner-2',
+          visualState === 'winner' && winnerRank === 3 && 'autorag-tree-node--winner-3',
         )}
         element={node}
         nodeStatus={showsTaskIcon ? nodeStatus : undefined}
@@ -715,9 +733,9 @@ const TreeNodeInner: React.FC<{
       {visualState === 'active' && showsTaskIcon ? <ActiveNodeBadge node={node} /> : null}
       {visualState === 'failed' && showsTaskIcon ? <FailedNodeBadge size={width} /> : null}
       {winnerRank ? (
-        <WinnerRankBadge rank={winnerRank} />
+        <WinnerRankBadge rank={winnerRank} size={width} />
       ) : showWinnerStar ? (
-        <WinnerRankBadge rank={1} />
+        <WinnerRankBadge rank={1} size={width} />
       ) : null}
     </g>
   );

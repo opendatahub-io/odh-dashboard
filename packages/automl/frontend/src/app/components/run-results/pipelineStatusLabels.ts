@@ -123,6 +123,7 @@ export const mapStepStateToLabelAppearance = (
     case 'failed':
       return mapPipelineStatusToLabelAppearance('error');
     case 'unreached':
+      return { color: 'yellow' };
     case 'pending':
     default:
       return { color: 'purple' };
@@ -138,6 +139,7 @@ export const getStepStateLabel = (stepState: TreeNodeData['stepState']): Pipelin
     case 'failed':
       return { text: 'Failed', ...mapStepStateToLabelAppearance('failed') };
     case 'unreached':
+      return { text: 'Not attempted', ...mapStepStateToLabelAppearance('unreached') };
     case 'pending':
     default:
       return { text: 'Pending', ...mapStepStateToLabelAppearance('pending') };

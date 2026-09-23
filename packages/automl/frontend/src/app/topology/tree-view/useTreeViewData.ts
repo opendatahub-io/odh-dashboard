@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
+import { computeRankMap } from '~/app/utilities/utils';
 import type { PipelineVisualizationData } from './types';
 
 /**
@@ -11,6 +12,8 @@ export const useTreeViewData = (
   stageMapNodes?: PipelineNodeModelExpanded[],
   bestModelKey?: string,
   stageMapBestModel?: string,
+  taskType?: string,
+  evalMetric?: string,
 ): PipelineVisualizationData =>
   React.useMemo(() => {
     const safeModels = models ?? {};
@@ -31,5 +34,6 @@ export const useTreeViewData = (
       selectedModel,
       winnerModelLabel,
       stageMapNodes,
+      modelRanks: computeRankMap(safeModels, taskType ?? '', evalMetric, selectedModel),
     };
-  }, [models, stageMapNodes, bestModelKey, stageMapBestModel]);
+  }, [models, stageMapNodes, bestModelKey, stageMapBestModel, taskType, evalMetric]);

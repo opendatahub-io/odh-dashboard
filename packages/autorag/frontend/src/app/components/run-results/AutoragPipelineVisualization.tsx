@@ -12,7 +12,10 @@ import {
 import React from 'react';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
-import { canShowPatternsExpandToggle } from '~/app/topology/tree-view/branchExpand';
+import {
+  canShowPatternsExpandToggle,
+  countPatternBranches,
+} from '~/app/topology/tree-view/branchExpand';
 import { PatternsExpandProvider } from '~/app/topology/tree-view/PatternsExpandContext';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import {
@@ -68,9 +71,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     [treeViewData.stageMapNodes],
   );
   const patternCount = React.useMemo(
-    () =>
-      treeViewData.stageMapNodes?.filter((node) => /__pattern__branch-\d+$/.test(node.id)).length ??
-      0,
+    () => countPatternBranches(treeViewData.stageMapNodes),
     [treeViewData.stageMapNodes],
   );
 

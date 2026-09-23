@@ -6,8 +6,8 @@ export type TreeEdgeBounds = {
 };
 
 /** Row-label column — keep in sync with transformStageMapNodesToTree placement. */
-export const ROW_LABEL_WIDTH = 88;
-export const ROW_LABEL_GAP = 20;
+export const ROW_LABEL_WIDTH = 68;
+export const ROW_LABEL_GAP = 24;
 
 export type TreeEdgePathOptions = {
   /**

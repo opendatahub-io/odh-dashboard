@@ -7,7 +7,7 @@ export const getCaptionHeightBounds = (
   isColumnHeader = false,
 ): { min: number; max: number } => {
   if (showExpandToggle) {
-    return { min: 80, max: 120 };
+    return { min: 40, max: 64 };
   }
   if (isColumnHeader) {
     return { min: 44, max: 72 };

@@ -10,7 +10,7 @@ import {
   RhUiInstallIcon,
   RhUiMonitoringIcon,
   SearchIcon,
-  StarIcon,
+  RhUiStarIcon,
 } from '@patternfly/react-icons';
 import {
   DEFAULT_TASK_ICON,
@@ -28,7 +28,7 @@ describe('resolveTaskIconForNodeId', () => {
     expect(resolveTaskIconForNodeId('training__model_selection')).toBe(RhUiDistributeIcon);
     expect(resolveTaskIconForNodeId('training__refit_full')).toBe(RhUiMonitoringIcon);
     expect(resolveTaskIconForNodeId('training__refit_and_evaluate')).toBe(RhUiMonitoringIcon);
-    expect(resolveTaskIconForNodeId('training__build_leaderboard')).toBe(StarIcon);
+    expect(resolveTaskIconForNodeId('training__build_leaderboard')).toBe(RhUiStarIcon);
   });
 
   it('maps branch step IDs including evaluation aliases', () => {

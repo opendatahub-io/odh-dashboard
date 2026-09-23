@@ -31,7 +31,9 @@ const COLUMN_HEADER_Y_OFFSET = 72;
 /** Horizontal run for fan-out curves before the pattern row-label column. */
 const FAN_OUT_RUN = 140;
 const COLUMN_RULE_HEIGHT = 2;
-const TOGGLE_Y_OFFSET = 80;
+const TOGGLE_Y_OFFSET = 60;
+/** Extra drop on the collapsed spine so the toggle clears task captions. */
+const COLLAPSED_TOGGLE_Y_OFFSET = 120;
 const PATTERN_RESULT_HEADER = 'Pattern result';
 const PATTERNS_TOGGLE_NODE_ID = 'autorag-patterns-toggle';
 
@@ -527,11 +529,16 @@ export const transformStageMapNodesToTree = (
       });
     });
     nodes.push(
-      createAnnotationNode(PATTERNS_TOGGLE_NODE_ID, toggleMidX, toggleMaxY + TOGGLE_Y_OFFSET, {
-        stepState: 'pending',
-        nodeRole: 'patterns-toggle',
-        showPatternsToggle: true,
-      }),
+      createAnnotationNode(
+        PATTERNS_TOGGLE_NODE_ID,
+        toggleMidX,
+        toggleMaxY + (isCollapsedSpine ? COLLAPSED_TOGGLE_Y_OFFSET : TOGGLE_Y_OFFSET),
+        {
+          stepState: 'pending',
+          nodeRole: 'patterns-toggle',
+          showPatternsToggle: true,
+        },
+      ),
     );
   }
 
