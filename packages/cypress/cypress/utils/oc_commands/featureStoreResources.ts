@@ -373,12 +373,9 @@ export const createFeatureStoreCR = (namespace: string, feastInstanceName: strin
   cy.fixture('resources/yaml/feast.yaml').then((yamlTemplate) => {
     const s3 = getFeastS3Config();
 
-    // Feast needs the S3 endpoint explicitly when it runs against an internal
-    // S3-compatible store in a disconnected cluster. AWS keeps its normal
-    // regional endpoint resolution when no endpoint is configured.
     const s3EndpointEnv = s3.endpoint
       ? `FEAST_S3_ENDPOINT_URL: ${JSON.stringify(s3.endpoint)}`
-      : '# No S3 endpoint override configured';
+      : '';
 
     const variables: Record<string, string> = {
       awsAccessKey: s3.accessKeyId,

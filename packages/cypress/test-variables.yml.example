@@ -25,12 +25,6 @@ OCP_ADMIN_USER:
 S3:
   AWS_ACCESS_KEY_ID: access_key
   AWS_SECRET_ACCESS_KEY: secret_key
-  # PEM-encoded CA the S3 endpoint is served with. On disconnected clusters the pipeline
-  # sets this (and rewrites the BUCKET endpoints) to the injected MinIO. Leave empty for AWS.
-  # AWS_CA_BUNDLE: |
-  #   -----BEGIN CERTIFICATE-----
-  #   ...
-  #   -----END CERTIFICATE-----
   BUCKET_1:
     NAME: bucket-1-name
     REGION: bucket-1-region
@@ -43,11 +37,6 @@ S3:
     NAME: model-bucket-name
     REGION: model-bucket-region
     ENDPOINT: https://model-bucket-endpoint.com/
-
-# Feature Store registry uses S3.BUCKET_1 via an AWS CLI pod. On disconnected clusters the
-# pipeline points BUCKET_1 (and AWS_CA_BUNDLE) at the injected MinIO; no test change needed.
-# Optional mirrored AWS CLI image for disconnected clusters:
-# AWS_CLI_IMAGE: registry.example.com/mirror/amazon/aws-cli@sha256:<digest>
 
 PIP_INDEX_URL: https://pypi.org/simple
 PIP_TRUSTED_HOST: pypi.org
