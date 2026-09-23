@@ -358,8 +358,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         const itemToSelect =
           focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled
             ? focusedItem
-            : visibleOptions.find((option) => !option.isAriaDisabled && !option.isDisabled) ??
-              createOption;
+            : inputValue.trim()
+              ? (visibleOptions.find((option) => !option.isAriaDisabled && !option.isDisabled) ??
+                createOption)
+              : undefined;
 
         if (itemToSelect) {
           onSelect(itemToSelect);
@@ -374,8 +376,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         const itemToSelect =
           focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled
             ? focusedItem
-            : visibleOptions.find((option) => !option.isAriaDisabled && !option.isDisabled) ??
-              createOption;
+            : inputValue.trim()
+              ? (visibleOptions.find((option) => !option.isAriaDisabled && !option.isDisabled) ??
+                createOption)
+              : undefined;
         if (itemToSelect) {
           // Do not refocus so default Tab can move to the next field.
           onSelect(itemToSelect, false);
