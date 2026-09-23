@@ -380,7 +380,10 @@ func TestUpdateServerSuccess(t *testing.T) {
 
 	mockClient.On("UpdateMCPServer", tmock.Anything, "my-server", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPServerOption) bool {
 		return len(opts) == 1 // display name only
-	})).Return(&mcpregistry.MCPServer{Name: "my-server", DisplayName: displayName, CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+	})).Return(&mcpregistry.MCPServer{Name: "my-server"}, nil)
+	mockClient.On("GetMCPServer", tmock.Anything, "my-server").Return(&mcpregistry.MCPServer{
+		Name: "my-server", DisplayName: displayName, CreationTimestamp: now, LastUpdatedTimestamp: now,
+	}, nil)
 
 	repo := NewMCPRegistryRepository()
 	ctx := contextWithMockClient(mockClient)
@@ -401,6 +404,7 @@ func TestUpdateServerAllFields(t *testing.T) {
 	mockClient.On("UpdateMCPServer", tmock.Anything, "my-server", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPServerOption) bool {
 		return len(opts) == 3
 	})).Return(&mcpregistry.MCPServer{Name: "my-server"}, nil)
+	mockClient.On("GetMCPServer", tmock.Anything, "my-server").Return(&mcpregistry.MCPServer{Name: "my-server"}, nil)
 
 	repo := NewMCPRegistryRepository()
 	ctx := contextWithMockClient(mockClient)
@@ -421,6 +425,7 @@ func TestUpdateServerNoFieldsSet(t *testing.T) {
 	mockClient.On("UpdateMCPServer", tmock.Anything, "my-server", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPServerOption) bool {
 		return len(opts) == 0
 	})).Return(&mcpregistry.MCPServer{Name: "my-server"}, nil)
+	mockClient.On("GetMCPServer", tmock.Anything, "my-server").Return(&mcpregistry.MCPServer{Name: "my-server"}, nil)
 
 	repo := NewMCPRegistryRepository()
 	ctx := contextWithMockClient(mockClient)
@@ -1108,7 +1113,8 @@ func TestUpdateAccessEndpointSuccess(t *testing.T) {
 
 	mockClient.On("UpdateMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPAccessEndpointOption) bool {
 		return len(opts) == 1 // URL only
-	})).Return(&mcpregistry.MCPAccessEndpoint{
+	})).Return(&mcpregistry.MCPAccessEndpoint{ID: "ep-1", ServerName: "my-server"}, nil)
+	mockClient.On("GetMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1").Return(&mcpregistry.MCPAccessEndpoint{
 		ID: "ep-1", ServerName: "my-server", EndpointURL: url,
 		CreationTimestamp: now, LastUpdatedTimestamp: now,
 	}, nil)
@@ -1133,6 +1139,7 @@ func TestUpdateAccessEndpointAllFields(t *testing.T) {
 	mockClient.On("UpdateMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPAccessEndpointOption) bool {
 		return len(opts) == 4
 	})).Return(&mcpregistry.MCPAccessEndpoint{ID: "ep-1", ServerName: "my-server"}, nil)
+	mockClient.On("GetMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1").Return(&mcpregistry.MCPAccessEndpoint{ID: "ep-1", ServerName: "my-server"}, nil)
 
 	repo := NewMCPRegistryRepository()
 	ctx := contextWithMockClient(mockClient)

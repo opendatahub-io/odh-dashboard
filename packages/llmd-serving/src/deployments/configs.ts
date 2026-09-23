@@ -3,7 +3,7 @@ import {
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
 import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { CONFIG_TYPE_LABEL, type LLMdDeployment, LLMInferenceServiceConfigKind } from '../types';
 import {
   createLLMInferenceServiceConfig,

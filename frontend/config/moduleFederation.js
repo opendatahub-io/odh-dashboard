@@ -1,7 +1,8 @@
+const path = require('path');
 const { execSync } = require('child_process');
 const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
-const { WORKSPACE_QUERY_SCRIPT } = require('../../scripts/workspace-query-path');
 
+const WORKSPACE_QUERY_SCRIPT = path.resolve(__dirname, '../../scripts/query-workspace-packages.js');
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
 
 /**

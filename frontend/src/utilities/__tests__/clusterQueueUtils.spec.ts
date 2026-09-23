@@ -1,8 +1,8 @@
-import { ClusterQueueKind, WorkloadKind } from '#~/k8sTypes';
 import {
   getAllConsumedResources,
   getAssignedFlavorFromWorkload,
-} from '#~/utilities/clusterQueueUtils';
+} from '@odh-dashboard/ui-core/utilities/clusterQueueUtils';
+import { ClusterQueueKind, WorkloadKind } from '#~/k8sTypes';
 
 const COVERED_RESOURCES = ['cpu', 'memory', 'nvidia.com/gpu'];
 const DEFAULT_FLAVOR = 'default-flavor';

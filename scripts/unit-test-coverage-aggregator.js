@@ -478,7 +478,7 @@ function main() {
 
   // Merge coverage files
   const mergedCoverageFile = path.join(rootCoverageDir, 'coverage-final.json');
-  const nycMergeCommand = `npx nyc merge ${tempCoverageDir} ${mergedCoverageFile}`;
+  const nycMergeCommand = `pnpm exec nyc merge ${tempCoverageDir} ${mergedCoverageFile}`;
 
   console.log(`Executing: ${nycMergeCommand}`);
   const mergeResult = execCommand(nycMergeCommand);
@@ -490,22 +490,22 @@ function main() {
   console.log('Generating coverage reports...');
 
   // Generate HTML report
-  const htmlReportCommand = `npx nyc report --reporter=html --report-dir=${rootCoverageDir}/html --temp-dir=${tempCoverageDir}`;
+  const htmlReportCommand = `pnpm exec nyc report --reporter=html --report-dir=${rootCoverageDir}/html --temp-dir=${tempCoverageDir}`;
   console.log(`Executing: ${htmlReportCommand}`);
   execCommand(htmlReportCommand);
 
   // Generate lcov report
-  const lcovReportCommand = `npx nyc report --reporter=lcov --report-dir=${rootCoverageDir} --temp-dir=${tempCoverageDir}`;
+  const lcovReportCommand = `pnpm exec nyc report --reporter=lcov --report-dir=${rootCoverageDir} --temp-dir=${tempCoverageDir}`;
   console.log(`Executing: ${lcovReportCommand}`);
   execCommand(lcovReportCommand);
 
   // Generate text summary
-  const textReportCommand = `npx nyc report --reporter=text --temp-dir=${tempCoverageDir}`;
+  const textReportCommand = `pnpm exec nyc report --reporter=text --temp-dir=${tempCoverageDir}`;
   console.log(`Executing: ${textReportCommand}`);
   execCommand(textReportCommand);
 
   // Generate JSON summary
-  const jsonReportCommand = `npx nyc report --reporter=json-summary --report-dir=${rootCoverageDir} --temp-dir=${tempCoverageDir}`;
+  const jsonReportCommand = `pnpm exec nyc report --reporter=json-summary --report-dir=${rootCoverageDir} --temp-dir=${tempCoverageDir}`;
   console.log(`Executing: ${jsonReportCommand}`);
   execCommand(jsonReportCommand);
 

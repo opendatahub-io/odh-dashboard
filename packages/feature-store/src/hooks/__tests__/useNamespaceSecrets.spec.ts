@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { SecretModel } from '@odh-dashboard/internal/api/models';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import useNamespaceSecrets from '../useNamespaceSecrets';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({

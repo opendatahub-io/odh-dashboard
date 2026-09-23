@@ -160,11 +160,11 @@ func normalizeFederationEntries(entries []moduleFederationEntry) ([]normalizedPr
 }
 
 // validateProxyEntries rejects duplicate paths, reserved-route collisions, and invalid service refs.
-func validateProxyEntries(entries []normalizedProxyEntry) error {
+func validateProxyEntries(entries []normalizedProxyEntry, authTokenHeader string) error {
 	if err := validateProxyPaths(entries); err != nil {
 		return err
 	}
-	return validateServiceRefs(entries)
+	return validateServiceRefs(entries, authTokenHeader)
 }
 
 func validateProxyPaths(entries []normalizedProxyEntry) error {
@@ -172,8 +172,17 @@ func validateProxyPaths(entries []normalizedProxyEntry) error {
 		if e.service.Path == "" {
 			return fmt.Errorf("entry %s has empty proxy path", e.entryName)
 		}
+		if e.service.Path == "/" {
+			return fmt.Errorf("entry %s uses root path / which conflicts with the SPA catch-all", e.entryName)
+		}
 		if !strings.HasPrefix(e.service.Path, "/") {
 			return fmt.Errorf("entry %s has non-rooted proxy path %s (must start with /)", e.entryName, e.service.Path)
+		}
+		if strings.HasSuffix(e.service.Path, "/") {
+			return fmt.Errorf("entry %s has trailing slash in proxy path %s (will be appended automatically)", e.entryName, e.service.Path)
+		}
+		if strings.ContainsAny(e.service.Path, "{}") {
+			return fmt.Errorf("entry %s has http.ServeMux wildcard syntax in proxy path %s", e.entryName, e.service.Path)
 		}
 	}
 
@@ -186,14 +195,13 @@ func validateProxyPaths(entries []normalizedProxyEntry) error {
 	}
 
 	for _, e := range entries {
-		pathWithSlash := e.service.Path + "/"
-		prefixedPath := PathPrefix + pathWithSlash
+		prefixedPath := PathPrefix + e.service.Path
 
 		for _, reserved := range reservedBFFPrefixes {
-			if strings.HasPrefix(pathWithSlash, reserved) || strings.HasPrefix(reserved, pathWithSlash) {
+			if proxyPathsOverlap(e.service.Path, reserved) {
 				return fmt.Errorf("module proxy path %s in entry %s collides with reserved BFF route %s", e.service.Path, e.entryName, reserved)
 			}
-			if reserved != PathPrefix+"/" && (strings.HasPrefix(prefixedPath, reserved) || strings.HasPrefix(reserved, prefixedPath)) {
+			if reserved != PathPrefix+"/" && strings.TrimSuffix(prefixedPath, "/") == strings.TrimSuffix(reserved, "/") {
 				return fmt.Errorf("module proxy path %s in entry %s collides with reserved BFF route %s (via %s prefix)", e.service.Path, e.entryName, reserved, PathPrefix)
 			}
 		}
@@ -202,7 +210,15 @@ func validateProxyPaths(entries []normalizedProxyEntry) error {
 	return nil
 }
 
-func validateServiceRefs(entries []normalizedProxyEntry) error {
+// proxyPathsOverlap reports whether two proxy paths share a complete path segment.
+func proxyPathsOverlap(a, b string) bool {
+	a = strings.TrimSuffix(a, "/")
+	b = strings.TrimSuffix(b, "/")
+
+	return a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/")
+}
+
+func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string) error {
 	for _, e := range entries {
 		if e.service.Service.Name == "" {
 			return fmt.Errorf("entry %s has empty service name", e.entryName)
@@ -216,14 +232,17 @@ func validateServiceRefs(entries []normalizedProxyEntry) error {
 		if !rfc1123Label.MatchString(e.service.Service.Namespace) {
 			return fmt.Errorf("entry %s has invalid service namespace %q (must be a valid RFC 1123 label)", e.entryName, e.service.Service.Namespace)
 		}
-		if e.service.Service.Port == 0 {
-			return fmt.Errorf("entry %s has zero service port", e.entryName)
+		if e.service.Service.Port <= 0 || e.service.Service.Port > 65535 {
+			return fmt.Errorf("entry %s has invalid service port %d (must be 1-65535)", e.entryName, e.service.Service.Port)
 		}
 
 		if e.service.Authorize {
 			for k := range e.service.Headers {
 				if strings.EqualFold(k, constants.HeaderAuthorization) {
 					return fmt.Errorf("entry %s sets a custom Authorization header while authorize is enabled; these conflict", e.entryName)
+				}
+				if authTokenHeader != "" && strings.EqualFold(k, authTokenHeader) {
+					return fmt.Errorf("entry %s sets a custom %s header while authorize is enabled; the server-resolved token takes precedence", e.entryName, authTokenHeader)
 				}
 			}
 		}
@@ -255,6 +274,8 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		cfg.SSRFAllowedHosts = []string{targetURL.Hostname()}
 	}
 
+	customHeaders := entry.service.Headers
+
 	if entry.service.Authorize {
 		cfg.AuthHeaderFn = func(r *http.Request) string {
 			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -263,12 +284,48 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 			}
 			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
 		}
-	}
 
-	if len(entry.service.Headers) > 0 {
-		headers := entry.service.Headers
+		// Re-inject the validated user token in the ingress auth header
+		// (default: x-forwarded-access-token). mod-arch BFFs (maas, gen-ai, ...)
+		// read the token from this header, not the Kubernetes-style Authorization
+		// header that AuthHeaderFn sets. The inbound value is stripped by
+		// SensitiveIngressHeaders (StripHeaders) so a client cannot spoof it;
+		// SetOutboundHeadersFn runs after stripping (see proxy.rewriteFunc), so
+		// the value set here is the trusted, server-resolved token. Both headers
+		// are forwarded so upstreams reading either convention authenticate.
+		//
+		// This injection also covers the case where the configured auth header IS
+		// the standard Authorization header: SensitiveIngressHeaders appends the
+		// configured header to StripHeaders, so the "Bearer <token>" value set by
+		// AuthHeaderFn would otherwise be stripped and never reach the upstream.
+		// Because SetOutboundHeadersFn runs after stripping, re-injecting here (with
+		// the "Bearer " prefix for the Authorization header, raw otherwise) restores
+		// the trusted token regardless of which header is configured.
+		authTokenHeader := app.config.AuthTokenHeader
+		if authTokenHeader != "" || len(customHeaders) > 0 {
+			isAuthorizationHeader := strings.EqualFold(authTokenHeader, constants.HeaderAuthorization)
+			cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
+				// Apply custom headers first so the server-resolved token set below
+				// is authoritative and cannot be overridden by a static config value.
+				for k, v := range customHeaders {
+					outH.Set(k, v)
+				}
+				if authTokenHeader != "" {
+					if identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
+						if token := identity.ResolveToken(app.devFallbackToken); token != "" {
+							if isAuthorizationHeader {
+								outH.Set(authTokenHeader, k8s.BearerTokenPrefix+token)
+							} else {
+								outH.Set(authTokenHeader, token)
+							}
+						}
+					}
+				}
+			}
+		}
+	} else if len(customHeaders) > 0 {
 		cfg.SetOutboundHeadersFn = func(_ *http.Request, outH http.Header) {
-			for k, v := range headers {
+			for k, v := range customHeaders {
 				outH.Set(k, v)
 			}
 		}
@@ -294,7 +351,7 @@ func (app *App) initModuleProxies() error {
 		return nil
 	}
 
-	if err := validateProxyEntries(normalized); err != nil {
+	if err := validateProxyEntries(normalized, app.config.AuthTokenHeader); err != nil {
 		return err
 	}
 

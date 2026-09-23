@@ -85,6 +85,7 @@ export type {
   WorkloadCondition,
   CohortKind,
   ResourceFlavorKind,
+  ServiceAccountKind,
   ServiceKind,
   NIMAccountKind,
   ConfigSecretItem,

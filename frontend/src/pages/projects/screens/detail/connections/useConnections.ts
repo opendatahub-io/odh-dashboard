@@ -5,7 +5,7 @@ import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { getSecretsByLabel } from '#~/api';
+import { getSecretsByLabel } from '@odh-dashboard/k8s-core/api/secrets';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 import { isConnection } from '#~/concepts/connectionTypes/utils';

@@ -65,6 +65,9 @@ func (m *mockPipelinesService) ListPipelines(context.Context, string, string) (*
 func (m *mockPipelinesService) GetPipelineVersion(context.Context, string, string, string) (*pipelines.PipelineVersion, error) {
 	return nil, nil
 }
+func (m *mockPipelinesService) GetPipelineInputParameters(context.Context, string, string, string) ([]string, error) {
+	return nil, nil
+}
 func (m *mockPipelinesService) ListPipelineVersions(context.Context, string, string) (*pipelines.PipelineVersionsResponse, error) {
 	return nil, nil
 }
@@ -196,6 +199,14 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		}
 	})
 
+	t.Run("single-item timeseries does not require an ID column", func(t *testing.T) {
+		req := validTimeSeriesRequest()
+		req.IDColumn = nil
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries); err != nil {
+			t.Fatalf("single-item timeseries should be valid: %v", err)
+		}
+	})
+
 	t.Run("missing timeseries-specific required fields", func(t *testing.T) {
 		req := validTimeSeriesRequest()
 		req.Target = nil
@@ -204,8 +215,8 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if !strings.Contains(err.Error(), "target") || !strings.Contains(err.Error(), "id_column") {
-			t.Errorf("error should mention target and id_column: %v", err)
+		if !strings.Contains(err.Error(), "target") {
+			t.Errorf("error should mention target: %v", err)
 		}
 	})
 
@@ -981,10 +992,10 @@ func TestHasAllRequiredAutoMLPipelines(t *testing.T) {
 	})
 }
 
-func TestNewPipelinesRepository_DefaultVersion(t *testing.T) {
+func TestNewPipelinesRepository_PipelineVersion(t *testing.T) {
 	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{})
-	if repo.config.DefaultPipelineVersion != constants.DefaultPipelineVersionSuffix {
-		t.Errorf("DefaultPipelineVersion = %q, want %q", repo.config.DefaultPipelineVersion, constants.DefaultPipelineVersionSuffix)
+	if repo.config.DefaultPipelineVersion != "" {
+		t.Errorf("DefaultPipelineVersion = %q, want empty for newest version selection", repo.config.DefaultPipelineVersion)
 	}
 
 	repo2 := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{DefaultPipelineVersion: "custom"})

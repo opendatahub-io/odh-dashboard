@@ -21,6 +21,7 @@ import {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
+import { isDashboardManagedHfTokenEnvVar } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
 import { VLLM_ADDITIONAL_ARGS } from '../const';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 import {
@@ -159,7 +160,9 @@ export const extractEnvironmentVariables = (
   const envVars =
     llmdDeployment.model.spec.template?.containers
       ?.find((container) => container.name === 'main')
-      ?.env?.filter((env) => env.name !== VLLM_ADDITIONAL_ARGS) || [];
+      ?.env?.filter(
+        (env) => env.name !== VLLM_ADDITIONAL_ARGS && !isDashboardManagedHfTokenEnvVar(env),
+      ) || [];
   return {
     enabled: envVars.length > 0,
     variables: envVars.map((envVar) => ({

@@ -15,7 +15,8 @@ export type UseExternalModelsNamespaceResult = {
 };
 
 export function useExternalModelsNamespace(): UseExternalModelsNamespaceResult {
-  const { namespace: urlNamespace } = useParams<{ namespace?: string }>();
+  const params = useParams<{ namespace?: string }>();
+  const urlNamespace = params.namespace;
   const { namespaces, namespacesLoaded, preferredNamespace, namespacesLoadError } =
     useNamespaceSelector();
 

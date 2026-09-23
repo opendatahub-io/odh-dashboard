@@ -25,7 +25,7 @@ jest.mock('@odh-dashboard/internal/utilities/useWatchHardwareProfiles', () => ({
   useWatchHardwareProfiles: jest.fn(() => [[], true, undefined]),
 }));
 
-jest.mock('@odh-dashboard/internal/redux/selectors', () => ({
+jest.mock('@odh-dashboard/plugin-core', () => ({
   useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
 }));
 

@@ -7,14 +7,13 @@ import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts } from './workbenchTestUtils';
 import { AccessMode } from '../../../../types';
 import {
-  ConfigMapModel,
   ImageStreamModel,
   NotebookModel,
   PVCModel,
-  SecretModel,
   HardwareProfileModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';

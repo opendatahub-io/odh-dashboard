@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
-      - "pnpm-lock.yaml"
+      - 'pnpm-lock.yaml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -63,7 +63,8 @@ jobs:
       - name: Setup pnpm
         uses: ./.github/actions/pnpm-setup
         with:
-          node-version: "22"
+          node-version: '22'
+          install-dependencies: 'false'
 
       - name: Run pnpm audit on head
         id: audit
@@ -86,7 +87,17 @@ jobs:
             exit 1
           fi
 
-          jq -r '[.advisories // {} | to_entries[].value | .github_advisory_id // .url] | unique | .[]' audit-head.json | sort > head-ids.txt
+          if jq -e 'has("error") and (.error != null)' audit-head.json >/dev/null 2>&1; then
+            echo "::error::pnpm audit failed in ${AUDIT_DIR}: $(jq -r '.error.message // .error.code // "unknown error"' audit-head.json)"
+            exit 1
+          fi
+
+          if ! jq -e 'has("advisories")' audit-head.json >/dev/null 2>&1; then
+            echo "::error::pnpm audit returned an unexpected JSON shape in ${AUDIT_DIR}"
+            exit 1
+          fi
+
+          jq -r '[.advisories | to_entries[].value | select(.severity == "high" or .severity == "critical") | .github_advisory_id // .url | sub("^https://github.com/advisories/"; "")] | unique | .[]' audit-head.json | sort > head-ids.txt
 
           echo "Advisory IDs on head:"
           cat head-ids.txt
@@ -108,8 +119,9 @@ jobs:
             touch "base/base-ids.txt"
           else
             cd base
-            PNPM_VERSION=$(jq -r '.packageManager | sub("^pnpm@"; "")' package.json)
-            npm install -g "pnpm@${PNPM_VERSION}"
+            # The head job already installed the PR-pinned pnpm binary. Reuse it
+            # to read the base lockfile instead of bootstrapping another manager.
+            pnpm --version
             set +e
             pnpm audit --prod --audit-level=high --json > audit-base.json 2>audit-base.err
             set -e
@@ -119,12 +131,22 @@ jobs:
             fi
 
             if ! jq empty audit-base.json 2>/dev/null; then
-              echo "::warning::pnpm audit produced invalid JSON on base; treating as zero advisories"
+              echo "::error::pnpm audit produced invalid JSON on base"
               [ -s audit-base.err ] && cat audit-base.err
-              touch base-ids.txt
-            else
-              jq -r '[.advisories // {} | to_entries[].value | .github_advisory_id // .url] | unique | .[]' audit-base.json | sort > base-ids.txt
+              exit 1
             fi
+
+            if jq -e 'has("error") and (.error != null)' audit-base.json >/dev/null 2>&1; then
+              echo "::error::pnpm audit failed on base: $(jq -r '.error.message // .error.code // "unknown error"' audit-base.json)"
+              exit 1
+            fi
+
+            if ! jq -e 'has("advisories")' audit-base.json >/dev/null 2>&1; then
+              echo "::error::pnpm audit returned an unexpected JSON shape on base"
+              exit 1
+            fi
+
+            jq -r '[.advisories | to_entries[].value | select(.severity == "high" or .severity == "critical") | .github_advisory_id // .url | sub("^https://github.com/advisories/"; "")] | unique | .[]' audit-base.json | sort > base-ids.txt
           fi
 
           echo "Advisory IDs on base:"

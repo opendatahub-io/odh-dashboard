@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - "packages/maas/**"
+      - ".github/workflows/maas-bff-tests.yml"
+      - ".github/actions/pnpm-setup/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -12,15 +14,21 @@ on:
     paths:
       - "packages/maas/**"
       - ".github/workflows/maas-bff-tests.yml"
+      - ".github/actions/pnpm-setup/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
       - "!**.md"
 
+env:
+  NODE_VERSION: 22
+
 jobs:
-  test:
+  bff-test:
     name: MaaS BFF Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
@@ -43,6 +51,37 @@ jobs:
 
       - name: Check if there are uncommitted file changes
         working-directory: packages/maas
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
+
+  frontend-test:
+    name: MaaS Frontend Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Unit tests (Jest)
+        working-directory: packages/maas/frontend
+        run: pnpm run test:unit
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/maas/frontend
         run: |
           clean=$(git status --porcelain)
           if [[ -z "$clean" ]]; then

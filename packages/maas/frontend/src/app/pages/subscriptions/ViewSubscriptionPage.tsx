@@ -35,6 +35,8 @@ import {
   EventTrackingEditSource,
   MaaSEvents,
   EventTrackingContext,
+  MaaSResourceDeletedProperties,
+  MaaSGovernanceYamlViewedProperties,
 } from '~/app/types/event-tracking';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
@@ -87,7 +89,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: subscription.phase ?? '',
                 outcome: TrackingOutcome.submit,
-              });
+              } satisfies MaaSResourceDeletedProperties);
               navigate(backUrl);
             } else {
               fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
@@ -95,7 +97,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: subscription.phase ?? '',
                 outcome: TrackingOutcome.cancel,
-              });
+              } satisfies MaaSResourceDeletedProperties);
             }
           }}
         />
@@ -157,7 +159,7 @@ const ViewSubscriptionPage: React.FC = () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 context: EventTrackingContext.DETAILS,
-              });
+              } satisfies MaaSGovernanceYamlViewedProperties);
             }
           }}
         >

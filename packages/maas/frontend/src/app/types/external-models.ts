@@ -81,7 +81,18 @@ export type ExternalProvider = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  lastTransitionTime?: string;
+  conditionType?: string;
+  status?: string;
 };
+
+export enum ProviderTypes {
+  OpenAI = 'OpenAI',
+  Anthropic = 'Anthropic',
+  AWSBedrock = 'AWS Bedrock',
+  Azure = 'Azure',
+  GoogleVertexAI = 'Google Vertex AI',
+}
 
 export type CreateExternalProviderRequest = {
   name: string;
@@ -101,11 +112,13 @@ export type UpdateExternalProviderRequest = {
   endpointUrl?: string;
   authMechanism?: AuthMechanism;
   credentialSecretRef?: string;
+  provider?: string;
   config?: Record<string, string>;
 };
 
 export type SecretSummary = {
   name: string;
+  displayName?: string;
 };
 
 export type CreateSecretRequest = {

@@ -1,9 +1,12 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalModel } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
+import { ExternalModelDeletedProperties, MaaSEvents } from '~/app/types/event-tracking';
+import { convertStringToPhaseStatus } from '~/app/utilities/phaseLabelUtils';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -14,7 +17,7 @@ import {
 } from './const';
 import { ExternalModelsTable } from './ExternalModelsTable';
 import ExternalModelsToolBar from './ExternalModelsToolBar';
-import ExternalModelsProjectSelector from './ExternalModelsProjectSelector';
+import MaaSExternalResourcesProjectSelector from './MaaSExternalResourcesProjectSelector';
 import { filterExternalModelsByKeyword } from './utils';
 import DeleteExternalModelModal from './DeleteExternalModelModal';
 
@@ -58,7 +61,12 @@ const AllExternalModelsPage: React.FC = () => {
 
   return (
     <>
-      {resolvedNamespace && <ExternalModelsProjectSelector namespace={resolvedNamespace} />}
+      {resolvedNamespace && (
+        <MaaSExternalResourcesProjectSelector
+          namespace={resolvedNamespace}
+          pathFunction={deploymentsExternalPath}
+        />
+      )}
       <ApplicationsPage
         loaded={namespacesLoaded && (noProjects || externalModelsLoaded || !!externalModelsError)}
         loadError={namespacesLoadError || externalModelsError}
@@ -77,11 +85,15 @@ const AllExternalModelsPage: React.FC = () => {
             onClearFilters={onClearFilters}
             setDeleteExternalModel={setDeleteExternalModel}
             toolbarContent={
-              <ExternalModelsToolBar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+              <ExternalModelsToolBar
+                namespace={resolvedNamespace}
+                filterData={filterData}
+                onFilterUpdate={onFilterUpdate}
+              />
             }
             emptyTableView={
               filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
-                <EmptyExternalModelsPage />
+                <EmptyExternalModelsPage namespace={resolvedNamespace} />
               )
             }
           />
@@ -90,10 +102,23 @@ const AllExternalModelsPage: React.FC = () => {
           <DeleteExternalModelModal
             externalModel={deleteExternalModel}
             onClose={(deleted) => {
-              setDeleteExternalModel(undefined);
               if (deleted) {
                 refreshExternalModels();
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_DELETED, {
+                  outcome: TrackingOutcome.submit,
+                  success: true,
+                  modelStatus: convertStringToPhaseStatus(deleteExternalModel.phase),
+                  providerCount: deleteExternalModel.providerRefs.length,
+                } satisfies ExternalModelDeletedProperties);
+              } else {
+                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_DELETED, {
+                  outcome: TrackingOutcome.cancel,
+                  success: false,
+                  modelStatus: convertStringToPhaseStatus(deleteExternalModel.phase),
+                  providerCount: deleteExternalModel.providerRefs.length,
+                } satisfies ExternalModelDeletedProperties);
               }
+              setDeleteExternalModel(undefined);
             }}
           />
         )}

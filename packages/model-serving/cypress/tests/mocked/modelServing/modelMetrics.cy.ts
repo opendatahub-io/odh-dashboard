@@ -38,12 +38,11 @@ import {
 import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { TrustyAIApplicationsModel } from '@odh-dashboard/trustyai/api/model';
+import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
-  ConfigMapModel,
   InferenceServiceModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';

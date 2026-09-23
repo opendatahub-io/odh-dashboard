@@ -5,7 +5,7 @@ import { pageNotfound } from '../../../pages/pageNotFound';
 describe('Verify Model Catalog Settings Access Control', () => {
   it(
     'Admin user can access Model catalog settings',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'] },
     () => {
       cy.step('Log into the application as admin with aiCatalogSettings flag enabled');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -20,7 +20,7 @@ describe('Verify Model Catalog Settings Access Control', () => {
 
   it(
     'Non-admin user cannot access Model catalog settings',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'] },
     () => {
       cy.step('Log into the application as non-admin user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

@@ -1,5 +1,5 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { LocalQueueModel, ClusterQueueModel } from '@odh-dashboard/internal/api/models/kueue';
+import { LocalQueueModel, ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { LocalQueueKind, ClusterQueueKind } from '@odh-dashboard/k8s-core';
 import { getLocalQueue, getClusterQueue } from '../queue';
 

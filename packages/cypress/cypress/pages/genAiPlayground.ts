@@ -9,11 +9,18 @@ const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false';
 const GEN_AI_ALL_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
+const GEN_AI_MCP_REGISTRY_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
     cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_DEV_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+  }
+
+  navigateAndWaitForModelSelector(projectName: string) {
+    this.navigate(projectName);
+    this.findModelToggleButton({ timeout: 120000 }).should('be.visible');
   }
 
   navigateToAssets(projectName: string) {
@@ -60,6 +67,12 @@ class GenAiPlayground {
     cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
 
+  navigateToPlaygroundWithMCPRegistry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_MCP_REGISTRY_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
   findEmptyState() {
     return cy.findByTestId('empty-state');
   }
@@ -80,8 +93,8 @@ class GenAiPlayground {
     return cy.findByTestId('modal-submit-button');
   }
 
-  findModelToggleButton() {
-    return cy.findByTestId('settings-model-selector-toggle');
+  findModelToggleButton(options?: { timeout?: number }) {
+    return cy.findByTestId('settings-model-selector-toggle', options);
   }
 
   findMessageInput() {
@@ -130,9 +143,9 @@ class GenAiPlayground {
       .should('be.checked');
   }
 
-  selectModelFromDropdown(modelName: string) {
+  selectModelFromDropdown(modelName: string, options?: { timeout?: number }) {
     this.findModelToggleButton().click();
-    cy.get('[role="menuitem"]').contains(modelName).click();
+    cy.contains('[role="menuitem"]', modelName, options).should('be.visible').click();
   }
 
   verifyModelIsSelected(modelName: string) {
@@ -500,22 +513,43 @@ class GenAiPlayground {
   }
 
   findMCPServersTable(options?: { timeout?: number }) {
-    return cy.findByTestId('mcp-servers-panel-table', options);
+    // Points to the Manual Connection section table
+    return cy.findByTestId('mcp-manual-servers-table', options);
   }
 
-  findMCPServerRow(serverName: string) {
-    return this.findMCPServersTable({ timeout: 30000 }).contains('tr', serverName);
+  findMCPRegisteredServersTable(options?: { timeout?: number }) {
+    return cy.findByTestId('mcp-registered-servers-table', options);
   }
 
-  findMCPServerCheckbox(serverName: string) {
+  findMCPServerRow(serverNameOrUrl: string) {
+    // If a URL is passed (starts with "http"), use the URL-based data-testid on the
+    // checkbox cell — server.id === apiServer.url, so each checkbox carries the full URL.
+    // This is resilient to display-name changes caused by the BFF surfacing the same server
+    // via the MLflow registry (where the registry display_name may differ from the
+    // configmap key).  Falls back to text-content search for short names / short display names.
+    if (serverNameOrUrl.startsWith('http')) {
+      return cy
+        .get(`[data-testid="mcp-server-checkbox-${serverNameOrUrl}"]`, { timeout: 30000 })
+        .closest('tr');
+    }
+    // cy.contains(selector, text) searches the entire document for elements matching
+    // the selector that contain the text — works correctly across both section tables.
+    return cy.contains(
+      '[data-testid="mcp-registered-servers-table"] tr, [data-testid="mcp-manual-servers-table"] tr',
+      serverNameOrUrl,
+      { timeout: 30000 },
+    );
+  }
+
+  findMCPServerCheckbox(serverNameOrUrl: string) {
     // Prefix selector is safe — scoped to a single <tr> via findMCPServerRow
-    return this.findMCPServerRow(serverName)
+    return this.findMCPServerRow(serverNameOrUrl)
       .find('[data-testid^="mcp-server-checkbox-"]')
       .find('input[type="checkbox"]');
   }
 
-  selectMCPServer(serverName: string) {
-    return this.findMCPServerCheckbox(serverName).then(($checkbox) => {
+  selectMCPServer(serverNameOrUrl: string) {
+    return this.findMCPServerCheckbox(serverNameOrUrl).then(($checkbox) => {
       if (!$checkbox.is(':checked')) {
         cy.wrap($checkbox).check({ force: true });
       }
@@ -533,6 +567,63 @@ class GenAiPlayground {
   closeMCPSuccessModal() {
     this.findMCPSuccessModalSaveButton().should('be.visible').click();
     cy.findByTestId('mcp-server-success-modal').should('not.exist');
+  }
+
+  // MCP Registry section methods
+  findMCPRegisteredSection() {
+    return cy.findByTestId('mcp-registered-section');
+  }
+
+  findMCPRegisteredToggle() {
+    return cy.findByTestId('mcp-registered-toggle');
+  }
+
+  findMCPRegisteredCountBadge() {
+    return cy.findByTestId('mcp-registered-count-badge');
+  }
+
+  findMCPRegisteredKebab() {
+    return cy.findByTestId('mcp-registered-kebab');
+  }
+
+  findMCPManageServersLink() {
+    return cy.findByTestId('mcp-manage-servers-link');
+  }
+
+  findMCPManualSection() {
+    return cy.findByTestId('mcp-manual-section');
+  }
+
+  findMCPManualToggle() {
+    return cy.findByTestId('mcp-manual-toggle');
+  }
+
+  findMCPManualEmptyState() {
+    return cy.findByTestId('mcp-manual-empty-state');
+  }
+
+  /** Open the settings panel (if not already open) and click the MCP tab. */
+  openMCPTab() {
+    this.ensureSettingsPanelOpen();
+    this.findMCPTab().should('be.visible').click();
+  }
+
+  /**
+   * Select an MCP server, wait for auto-connect, and close the success modal.
+   * @param serverNameOrUrl — display name or full URL passed to `selectMCPServer`.
+   */
+  connectMCPServer(serverNameOrUrl: string) {
+    this.selectMCPServer(serverNameOrUrl);
+    this.findMCPSuccessModal({ timeout: 30000 }).should('be.visible');
+    this.closeMCPSuccessModal();
+  }
+
+  /** Send a message, wait for streaming to finish, and assert a response exists. */
+  sendAndVerifyMCPResponse(question: string) {
+    this.findMessageInput().should('be.enabled').and('be.visible');
+    this.sendMessage(question);
+    this.waitForStreamingComplete({ timeout: 120000 });
+    this.findAssistantMessage({ timeout: 30000 }).should('exist').and('not.be.empty');
   }
 }
 

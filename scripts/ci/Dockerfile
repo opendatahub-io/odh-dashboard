@@ -94,7 +94,7 @@ RUN python3.11 -m ensurepip --upgrade && \
 RUN dnf clean all
 RUN rm -rf /var/cache/yum
 
-# Copy full repository (excluding files from .dockerignore) so npm workspaces can resolve properly
+# Copy full repository (excluding files from .dockerignore) so the pnpm workspace can resolve properly
 WORKDIR $USER_HOME
 COPY . .
 RUN chown -R $USER:0 $USER_HOME
@@ -129,7 +129,8 @@ RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     nvm use $NODE_VERSION && \
     npm install -g pnpm@11.22.0 && \
     pnpm install --frozen-lockfile && \
-    rm -rf node_modules"
+    rm -rf node_modules && \
+    find frontend backend packages distributions -type d -name node_modules -prune -exec rm -rf '{}' +"
 
 # Install Cypress and additional NodeJS packages globally
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \

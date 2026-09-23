@@ -1,4 +1,5 @@
-import { deletePipelineCR, deleteSecret, getPipelinesCR } from '#~/api';
+import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { deletePipelineCR, getPipelinesCR } from '#~/api';
 import {
   DSPA_SECRET_NAME,
   ExternalDatabaseSecret,

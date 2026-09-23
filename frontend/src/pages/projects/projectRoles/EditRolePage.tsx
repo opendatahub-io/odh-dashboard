@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { Navigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { getRole } from '#~/api';
+import { getRole } from '@odh-dashboard/k8s-core/api/roles';
 import { RoleKind } from '#~/k8sTypes';
 import CreateRolePage from './CreateRolePage';
 

@@ -35,7 +35,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -342,6 +341,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		var validYAML []byte
 
 		BeforeEach(func() {
+			//nolint:modernize
 			validYAML = []byte(fmt.Sprintf(`
 apiVersion: kubeflow.org/v1beta1
 kind: WorkspaceKind
@@ -356,8 +356,6 @@ spec:
     logo:
       url: "https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg"
   podTemplate:
-    serviceAccount:
-      name: "default-editor"
     volumeMounts:
       home: "/home/jovyan"
     ports:
@@ -973,7 +971,7 @@ metadata:
 			Expect(getData.Spawner.Deprecated).NotTo(BeNil())
 
 			By("toggling deprecated to true")
-			getData.Spawner.Deprecated = ptr.To(true)
+			getData.Spawner.Deprecated = new(true)
 			dataJSON, err := json.Marshal(getData)
 			Expect(err).NotTo(HaveOccurred())
 			updateBody := fmt.Sprintf(`{"data": %s}`, string(dataJSON))
@@ -990,7 +988,6 @@ metadata:
 			By("verifying immutable fields are unchanged in K8s")
 			wsk := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: wskName}, wsk)).To(Succeed())
-			Expect(wsk.Spec.PodTemplate.ServiceAccount.Name).To(Equal("default-editor"))
 			Expect(wsk.Spec.PodTemplate.VolumeMounts.Home).To(Equal("/home/jovyan"))
 		})
 
@@ -1000,7 +997,7 @@ metadata:
 
 			By("setting hidden on the first imageConfig option")
 			Expect(getData.PodTemplate.Options.ImageConfig.Values).NotTo(BeEmpty())
-			getData.PodTemplate.Options.ImageConfig.Values[0].Spawner.Hidden = ptr.To(false)
+			getData.PodTemplate.Options.ImageConfig.Values[0].Spawner.Hidden = new(false)
 
 			dataJSON, err := json.Marshal(getData)
 			Expect(err).NotTo(HaveOccurred())
@@ -1027,7 +1024,7 @@ metadata:
 					Id: "new_image_option",
 					Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 						DisplayName: "new-image:v1.0.0",
-						Description: ptr.To("A new image option"),
+						Description: new("A new image option"),
 					},
 					Spec: kubefloworgv1beta1.ImageConfigSpec{
 						Image: "ghcr.io/kubeflow/new-image:v1.0.0",
@@ -1071,7 +1068,7 @@ metadata:
 					Id: "new_pod_option",
 					Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 						DisplayName: "New Pod Config",
-						Description: ptr.To("A new pod config option"),
+						Description: new("A new pod config option"),
 					},
 					Spec: kubefloworgv1beta1.PodConfigSpec{
 						Resources: &corev1.ResourceRequirements{
@@ -1101,6 +1098,93 @@ metadata:
 			Expect(lastOption.Id).To(Equal("new_pod_option"))
 			Expect(lastOption.Spawner.DisplayName).To(Equal("New Pod Config"))
 			Expect(lastOption.Spec.Resources).NotTo(BeNil())
+		})
+
+		It("should add activityRules and persist the change", func() {
+			By("getting current data")
+			getData := getWorkspaceKindData(wskName)
+			Expect(getData.ActivityRules).To(BeEmpty())
+
+			By("adding activity rules")
+			getData.ActivityRules = []kubefloworgv1beta1.ActivityRule{
+				{
+					Config: kubefloworgv1beta1.ActivityRuleConfig{
+						SecondsSinceActive: 3600,
+					},
+					Effect: kubefloworgv1beta1.ActivityRuleEffect{
+						PauseWorkspace: new(true),
+					},
+				},
+			}
+
+			dataJSON, err := json.Marshal(getData)
+			Expect(err).NotTo(HaveOccurred())
+			updateBody := fmt.Sprintf(`{"data": %s}`, string(dataJSON))
+
+			By("executing update")
+			rr := doUpdate(wskName, updateBody)
+			Expect(rr.Result().StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the change persists via GET")
+			updatedData := getWorkspaceKindData(wskName)
+			Expect(updatedData.ActivityRules).To(HaveLen(1))
+			Expect(updatedData.ActivityRules[0].Config.SecondsSinceActive).To(Equal(int32(3600)))
+			Expect(updatedData.ActivityRules[0].Effect.PauseWorkspace).NotTo(BeNil())
+			Expect(*updatedData.ActivityRules[0].Effect.PauseWorkspace).To(BeTrue())
+
+			By("verifying the CRD was updated in Kubernetes")
+			wsk := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: wskName}, wsk)).To(Succeed())
+			Expect(wsk.Spec.ActivityRules).To(HaveLen(1))
+			Expect(wsk.Spec.ActivityRules[0].Config.SecondsSinceActive).To(Equal(int32(3600)))
+		})
+
+		It("should edit existing activityRules and persist the change", func() {
+			By("getting current data (has 1 rule from previous test)")
+			getData := getWorkspaceKindData(wskName)
+			Expect(getData.ActivityRules).To(HaveLen(1))
+
+			By("modifying the existing rule's timeout")
+			getData.ActivityRules[0].Config.SecondsSinceActive = 7200
+
+			dataJSON, err := json.Marshal(getData)
+			Expect(err).NotTo(HaveOccurred())
+			updateBody := fmt.Sprintf(`{"data": %s}`, string(dataJSON))
+
+			By("executing update")
+			rr := doUpdate(wskName, updateBody)
+			Expect(rr.Result().StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the change persists via GET")
+			updatedData := getWorkspaceKindData(wskName)
+			Expect(updatedData.ActivityRules).To(HaveLen(1))
+			Expect(updatedData.ActivityRules[0].Config.SecondsSinceActive).To(Equal(int32(7200)))
+		})
+
+		It("should clear activityRules when omitted from update", func() {
+			By("getting current data (has 1 rule from previous test)")
+			getData := getWorkspaceKindData(wskName)
+			Expect(getData.ActivityRules).To(HaveLen(1))
+
+			By("setting activityRules to nil to simulate omission")
+			getData.ActivityRules = nil
+
+			dataJSON, err := json.Marshal(getData)
+			Expect(err).NotTo(HaveOccurred())
+			updateBody := fmt.Sprintf(`{"data": %s}`, string(dataJSON))
+
+			By("executing update")
+			rr := doUpdate(wskName, updateBody)
+			Expect(rr.Result().StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying activityRules are cleared via GET")
+			updatedData := getWorkspaceKindData(wskName)
+			Expect(updatedData.ActivityRules).To(BeEmpty())
+
+			By("verifying the CRD was updated in Kubernetes")
+			wsk := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: wskName}, wsk)).To(Succeed())
+			Expect(wsk.Spec.ActivityRules).To(BeEmpty())
 		})
 
 		It("should return 404 for a non-existent WorkspaceKind", func() {

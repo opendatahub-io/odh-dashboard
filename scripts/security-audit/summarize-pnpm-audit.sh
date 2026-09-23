@@ -57,7 +57,7 @@ jq -c --arg dir "$DIR" --arg mode "$MODE" '
     end;
 
   def is_direct:
-    (.findings // [] | any(.paths[]? | test("^\\.>[^>]+$")));
+    (.findings // [] | any(.paths[]? | test("^[^>]+>[^>]+$")));
 
   def advisory_urls:
     [ (.url // empty), (.github_advisory_id // empty | select(startswith("GHSA-")) | "https://github.com/advisories/" + .) ]
@@ -67,8 +67,34 @@ jq -c --arg dir "$DIR" --arg mode "$MODE" '
   def primary_id:
     (.github_advisory_id // .url // .module_name);
 
+  def installed_majors:
+    [(.findings // [])[].version
+     | tostring
+     | try (capture("^v?(?<major>[0-9]+)").major | tonumber) catch empty]
+    | unique;
+
+  # pnpm reports patched ranges rather than npm audit-style fixAvailable metadata.
+  # Compare each installed major with lower bounds from patched ranges so a fix
+  # such as 3.x -> >=4.x remains in the major-only triage bucket.
+  def patched_majors:
+    [(.patched_versions // "")
+     | scan(">=?\\s*v?([0-9]+)")
+     | .[0]
+     | tonumber]
+    | unique;
+
+  def is_major_only:
+    (installed_majors) as $installed
+    | (patched_majors) as $patched
+    | ($installed | length) > 0
+      and ($patched | length) > 0
+      and ([$installed[] as $installed_major
+            | $patched[]
+            | select(. == $installed_major)] | length) == 0;
+
   def bucket:
     if (.patched_versions // "") == "" or (.patched_versions // "") == "<0.0.0" then "no_fix"
+    elif is_major_only then "major"
     else "actionable"
     end;
 
@@ -93,7 +119,7 @@ jq -c --arg dir "$DIR" --arg mode "$MODE" '
           isDirect: is_direct,
           bucket: bucket,
           fixVersion: fix_version,
-          isSemVerMajor: false,
+          isSemVerMajor: is_major_only,
           advisories: advisory_urls,
           id: primary_id,
           rootWorkspace: ($dir == ".")

@@ -319,7 +319,7 @@ export type PipelineVersionKF = PipelineCoreResourceKF & {
 };
 
 export type ArgoWorkflowPipelineVersion = Omit<PipelineVersionKF, 'pipeline_spec'> & {
-  pipeline_spec: K8sResourceCommon & Record<string, unknown>;
+  pipeline_spec: K8sResourceCommon;
 };
 
 export type UrlKF = {

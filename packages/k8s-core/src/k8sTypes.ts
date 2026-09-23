@@ -99,7 +99,6 @@ export type K8sDSGResource = K8sResourceCommon & {
       }>;
     name: string;
   };
-  spec?: Record<string, unknown>;
 };
 
 export type TemplateParameter = {
@@ -151,7 +150,6 @@ export type ProjectKind = K8sResourceCommon & {
     labels?: Partial<DashboardLabels> & Partial<ModelServingProjectLabels>;
     name: string;
   };
-  spec?: Record<string, unknown>;
   status?: {
     phase: 'Active' | 'Terminating';
   };
@@ -182,7 +180,6 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
     };
     storageClassName?: string;
     volumeMode: 'Filesystem' | 'Block';
-    volumeName?: string;
   };
   status?: {
     phase: string;
@@ -197,12 +194,12 @@ export type PodKind = K8sResourceCommon & {
   metadata: {
     name: string;
   };
-  spec: PodSpec & Record<string, unknown>;
+  spec: PodSpec;
   status?: {
     phase: string;
     conditions?: K8sCondition[];
     containerStatuses?: PodContainerStatus[];
-  } & Record<string, unknown>;
+  };
 };
 
 export type TemplateKind = K8sResourceCommon & {
@@ -231,7 +228,7 @@ export type HardwareProfileKind = K8sResourceCommon & {
   spec: {
     identifiers?: Identifier[];
     scheduling?: HardwareProfileScheduling;
-  } & Record<string, unknown>;
+  };
 };
 
 /**
@@ -299,7 +296,6 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
@@ -327,6 +323,7 @@ export type DashboardCommonConfig = {
   modelCapabilities?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
+  dataConnectHub?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -352,10 +349,6 @@ export type DashboardConfigKind = K8sResourceCommon & {
         externalProviders?: boolean;
         clusterDomains?: string[];
       };
-    };
-    groupsConfig?: {
-      adminGroups?: string;
-      allowedGroups?: string;
     };
   };
 };
@@ -492,7 +485,7 @@ export type NotebookKind = K8sResourceCommon & {
       terminated?: { [key: string]: string };
     };
     readyReplicas?: number;
-  } & Record<string, unknown>;
+  };
 };
 
 export type RoleBindingSubject = {
@@ -529,6 +522,17 @@ export type RoleBindingKind = K8sResourceCommon & {
   };
   subjects?: RoleBindingSubject[];
   roleRef: RoleBindingRoleRef;
+};
+
+export type ServiceAccountKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+    namespace: string;
+  };
+  secrets?: {
+    name: string;
+  }[];
 };
 
 export type TrustyAIKind = K8sResourceCommon & {
@@ -613,6 +617,8 @@ export type ClusterQueueKind = K8sResourceCommon & {
         resources: {
           name: ContainerResourceAttributes;
           nominalQuota: string | number;
+          borrowingLimit?: string | number;
+          lendingLimit?: string | number;
         }[];
       }[];
     }[];
@@ -972,7 +978,7 @@ export type ServiceKind = K8sResourceCommon & {
     selector: {
       app: string;
       component: string;
-    } & Record<string, string>;
+    };
     ports: {
       name?: string;
       protocol?: string;
@@ -980,8 +986,7 @@ export type ServiceKind = K8sResourceCommon & {
       port?: number;
       targetPort?: number | string;
     }[];
-  } & Record<string, unknown>;
-  status?: Record<string, unknown>;
+  };
 };
 
 export type NIMAccountKind = K8sResourceCommon & {
@@ -1004,7 +1009,6 @@ export type NIMAccountKind = K8sResourceCommon & {
     nimPullSecret?: {
       name: string;
     };
-    lastAccountCheck?: string;
     conditions?: K8sCondition[];
   };
 };
@@ -1028,13 +1032,7 @@ export type RouteKind = K8sResourceCommon & {
       name: string;
       weight: number;
     };
-    tls?: {
-      termination?: string;
-      insecureEdgeTerminationPolicy?: string;
-    };
-    wildcardPolicy?: string;
   };
-  status?: Record<string, unknown>;
 };
 
 export type OdhApplication = {

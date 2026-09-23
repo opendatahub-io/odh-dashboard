@@ -22,7 +22,7 @@ COPY --chown=default:root ${SOURCE_CODE} /usr/src/app
 # Change file ownership to the assemble user
 USER default
 
-RUN pnpm install --frozen-lockfile
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 ENV TURBO_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=--max-old-space-size=8192

@@ -30,13 +30,13 @@
     "@patternfly/react-styles": "~6.5.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.2"
+    "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*",
     "@rspack/cli": "2.1.10",
-    "@rspack/core": "2.1.10",
+    "@rspack/core": "2.2.4",
     "@rspack/dev-server": "^2.1.0",
     "css-loader": "^7.1.4",
     "file-loader": "^6.2.0",

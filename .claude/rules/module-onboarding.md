@@ -10,10 +10,10 @@ paths:
 
 > **Canonical docs** — read these first:
 > - [docs/onboard-modular-architecture.md](../../docs/onboard-modular-architecture.md) — quickstart using `mod-arch-installer`
-> - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy, webpack setup
+> - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy, rspack setup
 > - [docs/extensibility.md](../../docs/extensibility.md) — extension points, code refs, feature gating
 
-The quickstart in `docs/onboard-modular-architecture.md` uses `npx mod-arch-installer -n <name>` to scaffold a new module. This rule provides the full manual reference and checklist beyond what the installer covers.
+The quickstart in `docs/onboard-modular-architecture.md` uses `pnpm dlx mod-arch-installer -n <name>` to scaffold a new module. This rule provides the full manual reference and checklist beyond what the installer covers.
 
 ## Template
 
@@ -73,13 +73,7 @@ For federated modules (with their own dev server and/or BFF), add `module-federa
 }
 ```
 
-Add `install:module` script if the package has its own `node_modules`:
-
-```json
-"scripts": {
-  "install:module": "npm install --prefix frontend"
-}
-```
+Do not add a package-local install script. First-party frontends are members of the root pnpm workspace; run `pnpm install` from the repository root so the shared lockfile remains authoritative. Upstream subtree frontends are the exception and retain their own npm lockfiles.
 
 ### 3. Configure the port
 
@@ -88,7 +82,7 @@ Each package needs a unique port. See [docs/onboard-modular-architecture.md § C
 To see current port assignments and detect conflicts, run:
 
 ```bash
-npm run validate:ports
+pnpm run validate:ports
 ```
 
 The source of truth for each package is:
@@ -108,7 +102,7 @@ packages/<name>/
 │   ├── package.json
 │   ├── config/
 │   │   ├── moduleFederation.js
-│   │   └── webpack.{common,dev,prod}.js
+│   │   └── rspack.{common,dev,prod}.js
 │   └── src/
 │       ├── odh/
 │       │   ├── extensions.ts       # Extension definitions
@@ -187,12 +181,34 @@ Add the area to `frontend/src/concepts/areas/types.ts` and configure it in `fron
 
 See [docs/onboard-modular-architecture.md § Add Feature Flag](../../docs/onboard-modular-architecture.md#4-add-feature-flag) for the feature flag setup.
 
-### 7. Webpack config (federated modules)
+### 7. Rspack config (federated modules)
 
-Copy from an existing module (e.g., `packages/gen-ai/frontend/config/`). See [docs/module-federation.md § Webpack Configuration](../../docs/module-federation.md#webpack-configuration) for the full config template. Key points:
+Copy from an existing module (e.g., `packages/gen-ai/frontend/config/`). See [docs/module-federation.md § Rspack Configuration](../../docs/module-federation.md#rspack-configuration) for the full config template.
+
+Use `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (`packages/app-config/src/rspack/OdhFederationPlugin.ts`).
+
+```javascript
+// packages/<name>/frontend/config/moduleFederation.js
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
+
+module.exports = {
+  moduleFederationPlugins: [
+    new OdhFederationPlugin({
+      name: 'myModule', // must match package.json module-federation.name
+      isHost: process.env.DEPLOYMENT_MODE === 'standalone',
+      exposes: {
+        './extensions': './src/odh/extensions',
+        './extension-points': './src/odh/extension-points',
+      },
+    }),
+  ],
+};
+```
+
+Key points:
 
 - Expose `./extensions` and optionally `./extension-points`
-- Shared singletons must match the host
+- Shared singletons are applied by `OdhFederationPlugin` — do not maintain a manual React / PatternFly / ODH `shared` map
 - Set `runtime: false` and `output.publicPath = 'auto'`
 - Dev server port must be unique
 
@@ -207,11 +223,11 @@ Follow patterns from existing BFFs (gen-ai, maas, automl). See the [bff-go rule]
 - OpenAPI spec in `bff/openapi/src/<name>.yaml`
 - Mock flags for testing (`--mock-k8s-client`, etc.)
 
-### 9. Run `npm install` and verify
+### 9. Run `pnpm install` and verify
 
 ```bash
-npm install          # picks up new workspace package
-npm run dev          # start host (backend + frontend)
+pnpm install          # picks up new workspace package
+pnpm run dev          # start host (backend + frontend)
 # In another terminal:
 cd packages/<name> && make dev-start-federated
 ```
@@ -235,10 +251,10 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] Unique port assigned and configured in `Makefile` + `package.json`
 - [ ] `extensions.ts` with area, nav, and route extensions
 - [ ] `SupportedArea` enum entry + area config
-- [ ] Webpack config with correct shared singletons (if federated)
+- [ ] Rspack config with `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (if federated)
 - [ ] BFF with `/healthcheck` and OpenAPI spec (if applicable)
 - [ ] Unit tests in `__tests__/`
 - [ ] E2E tests in `packages/cypress/cypress/tests/e2e/<name>/`
 - [ ] Contract tests (if BFF)
 - [ ] `Dockerfile.workspace` for container builds
-- [ ] `npm install` from repo root succeeds
+- [ ] `pnpm install` from repo root succeeds

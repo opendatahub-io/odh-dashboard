@@ -17,7 +17,10 @@ FROM ${NODE_BASE_IMAGE} AS ui-builder
 
 ARG UI_SOURCE_CODE
 ARG MODULE_NAME
-ARG DEPLOYMENT_MODE
+ARG DEPLOYMENT_MODE=federated
+# Promote the build arg to an env var so the frontend build compiles in federated
+# Module Federation mode by default (host provides shared @odh-dashboard/* + framework packages).
+ENV DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
 ARG PLATFORM_MODE
 
 WORKDIR /usr/src/workspace
@@ -29,6 +32,7 @@ COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
+COPY --chown=default:root packages/analytics/ ./packages/analytics/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 COPY --chown=default:root packages/app-config/ ./packages/app-config/
 COPY --chown=default:root packages/foundation/ ./packages/foundation/
@@ -49,7 +53,7 @@ USER default
 
 # Install pnpm and workspace dependencies
 RUN npm install -g pnpm@11.22.0
-RUN pnpm install --frozen-lockfile
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 # Build the module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
@@ -66,11 +70,13 @@ WORKDIR /usr/src/app
 
 # Copy the Go Modules manifests
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 
 # Download dependencies
 RUN go mod download
 
 # Copy the go source files
+COPY pkg/tls/ /pkg/tls/
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 

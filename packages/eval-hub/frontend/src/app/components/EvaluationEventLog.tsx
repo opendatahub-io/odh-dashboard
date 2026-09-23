@@ -29,6 +29,7 @@ import {
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { useEvaluationJobLogs } from '~/app/hooks/useEvaluationJobLogs';
+import { useNotification } from '~/app/hooks/useNotification';
 import {
   getEvaluationJobLogs,
   getEvaluationJobBenchmarkLogs,
@@ -39,8 +40,12 @@ import './EvaluationEventLog.scss';
 
 const ALL_BENCHMARKS = 'all';
 const LOG_VIEWER_TAIL_LINES = 500;
-const LOG_DOWNLOAD_MAX_LINES = 10_000;
-const LOG_DOWNLOAD_MAX_LINES_DISPLAY = LOG_DOWNLOAD_MAX_LINES.toLocaleString();
+const LOG_DOWNLOAD_TAIL_LINES = -1;
+const LOG_DOWNLOAD_TOOLTIP = 'Downloads include all available log lines; server limits may apply.';
+const LOG_DOWNLOAD_TAIL_NOTICE = 'Download full log (server limits may apply)';
+const LOG_DOWNLOAD_TRUNCATED_TITLE = 'Log download truncated';
+const LOG_DOWNLOAD_TRUNCATED_MESSAGE =
+  'The server truncated the log because of size or time limits. The downloaded file contains the available partial log.';
 
 type LogLevelFilter = 'all' | 'warnings' | 'errors';
 
@@ -290,6 +295,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
   const downloadAbortRef = React.useRef<AbortController>();
+  const notification = useNotification();
 
   const benchmarkIndex = React.useMemo(() => {
     if (selectedBenchmark === ALL_BENCHMARKS) {
@@ -314,15 +320,18 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
     setDownloadError(undefined);
     try {
       // eslint-disable-next-line camelcase
-      const downloadParams = { tail_lines: LOG_DOWNLOAD_MAX_LINES };
+      const downloadParams = { tail_lines: LOG_DOWNLOAD_TAIL_LINES };
       const fetcher =
         benchmarkIndex != null
           ? getEvaluationJobBenchmarkLogs('', namespace, jobId, benchmarkIndex, downloadParams)
           : getEvaluationJobLogs('', namespace, jobId, downloadParams);
-      const fullLogs = await fetcher(controller.signal);
+      const { logs: fullLogs, truncated } = await fetcher(controller.signal);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const bmSuffix = benchmarkIndex != null ? `-benchmark-${benchmarkIndex}` : '';
       downloadString(`${evaluationName}${bmSuffix}-logs-${timestamp}.log`, fullLogs);
+      if (truncated) {
+        notification.warning(LOG_DOWNLOAD_TRUNCATED_TITLE, LOG_DOWNLOAD_TRUNCATED_MESSAGE);
+      }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         return;
@@ -333,7 +342,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
         setDownloading(false);
       }
     }
-  }, [namespace, jobId, evaluationName, benchmarkIndex]);
+  }, [namespace, jobId, evaluationName, benchmarkIndex, notification]);
 
   React.useEffect(() => () => downloadAbortRef.current?.abort(), []);
 
@@ -467,7 +476,11 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
                   <SelectOption value={ALL_BENCHMARKS}>All benchmarks</SelectOption>
                   {benchmarks.map((bm) =>
                     bm.benchmark_index != null ? (
-                      <SelectOption key={bm.key} value={String(bm.benchmark_index)}>
+                      <SelectOption
+                        key={bm.key}
+                        value={String(bm.benchmark_index)}
+                        data-testid={`benchmark-log-option-${bm.id}`}
+                      >
                         {bm.id}
                       </SelectOption>
                     ) : null,
@@ -559,9 +572,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
             </Tooltip>
           </FlexItem>
           <FlexItem align={{ default: 'alignRight' }}>
-            <Tooltip
-              content={`Only the ${LOG_DOWNLOAD_MAX_LINES_DISPLAY} most recent lines of the log file can be downloaded`}
-            >
+            <Tooltip content={LOG_DOWNLOAD_TOOLTIP}>
               <Button
                 variant="link"
                 aria-label="Download log"
@@ -684,7 +695,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
                       onClick={handleDownload}
                       isDisabled={downloading}
                     >
-                      Download full log (up to {LOG_DOWNLOAD_MAX_LINES_DISPLAY} lines)
+                      {LOG_DOWNLOAD_TAIL_NOTICE}
                     </Button>
                     {isInProgress ? (
                       <Button variant="link" isInline onClick={handleRefresh}>

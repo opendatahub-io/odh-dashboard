@@ -1,7 +1,7 @@
 import { waitFor } from '@testing-library/dom';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared/types/deploy-prefill';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';

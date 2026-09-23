@@ -45,12 +45,12 @@ const findMonorepoRoot = (): string => {
   }
   throw new Error(
     `Could not locate monorepo root from ${process.cwd()}. ` +
-      'Ensure webpack is invoked from a directory within the monorepo.',
+      'Ensure the bundler is invoked from a directory within the monorepo.',
   );
 };
 
 /**
- * Read `dependencies` from the package.json in `startDir` (webpack `compiler.options.context`).
+ * Read `dependencies` from the package.json in `startDir` (bundler `compiler.options.context`).
  */
 const collectDependenciesFromContext = (startDir: string): Record<string, string> =>
   readPackageJson(startDir)?.dependencies ?? {};
@@ -61,12 +61,13 @@ const getWorkspacePackages = (root: string): WorkspacePackageInfo[] => {
     const stdout = execFileSync('node', [scriptPath], {
       encoding: 'utf8',
       cwd: root,
+      shell: process.platform === 'win32',
     });
     const packages: WorkspacePackageInfo[] = JSON.parse(stdout);
     if (packages.length === 0) {
       throw new Error(
         `Workspace query returned no packages (cwd: ${root}). ` +
-          'Ensure pnpm install has been run and the workspace is properly configured.',
+          'Ensure pnpm is available and the workspace is properly configured.',
       );
     }
     return packages;

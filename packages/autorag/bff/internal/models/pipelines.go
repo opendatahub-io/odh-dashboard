@@ -56,18 +56,19 @@ type CreateAutoRAGRunRequest struct {
 	TestDataKey                string   `json:"test_data_key"`
 	InputDataSecretName        string   `json:"input_data_secret_name"`
 	InputDataBucketName        string   `json:"input_data_bucket_name"`
-	InputDataKey               string   `json:"input_data_key"`
-	OGXSecretName              string   `json:"ogx_secret_name"`
+	InputDataKeys              []string `json:"input_data_keys"`
+	MaaSSecretName             string   `json:"maas_secret_name"`
 	Preset                     *string  `json:"preset,omitempty"`
-	EmbeddingsModels           []string `json:"embedding_models,omitempty"`
-	GenerationModels           []string `json:"generation_models,omitempty"`
+	EmbeddingsModels           []string `json:"embedding_models"`
+	GenerationModels           []string `json:"generation_models"`
 	OptimizationMetric         string   `json:"optimization_metric,omitempty"`
-	VectorIOProviderID         string   `json:"vector_io_provider_id,omitempty"`
+	VectorDBSecretName         string   `json:"vector_db_secret_name"`
 	OptimizationMaxRagPatterns *int     `json:"optimization_max_rag_patterns,omitempty"`
 }
 
 // CreateIndexingPipelineRunRequest is the BFF-level input for creating a documents-indexing-pipeline run.
-// Parameters come from pattern.indexing.pipeline_spec.parameters and are forwarded to KFP.
+// Parameters come from pattern.indexing.pipeline_spec.parameters and are filtered against the
+// discovered pipeline version before being submitted to KFP.
 type CreateIndexingPipelineRunRequest struct {
 	DisplayName string         `json:"display_name"`
 	Description string         `json:"description,omitempty"`

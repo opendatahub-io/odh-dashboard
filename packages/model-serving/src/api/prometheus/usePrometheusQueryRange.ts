@@ -7,7 +7,7 @@ import baseUsePrometheusQueryRange, {
   type PrometheusPostFn,
   type ResponsePredicate,
 } from '@odh-dashboard/ui-core/utilities/metrics/usePrometheusQueryRange';
-import axios from '@odh-dashboard/internal/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 export type { ResponsePredicate } from '@odh-dashboard/ui-core/utilities/metrics/usePrometheusQueryRange';
 export {
@@ -23,7 +23,7 @@ const axiosPost: PrometheusPostFn = (url, body) =>
 /**
  * Model-serving wrapper that binds the dashboard's authenticated axios instance to
  * the ui-core base hook. The transport is sourced from the host frontend
- * (`@odh-dashboard/internal/utilities/axios`) so requests keep cookies, CSRF, and
+ * (`./axios`) so requests keep cookies, CSRF, and
  * `x-odh-feature-flags`.
  */
 const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(

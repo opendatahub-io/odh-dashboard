@@ -2,13 +2,13 @@ import * as React from 'react';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { Table } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
   ConnectionTestStatus,
   CONNECTION_TEST_ANNOTATIONS,
 } from '#~/concepts/connectionTypes/types';
-import { SecretModel } from '#~/api/models';
 import { testConnection } from '#~/services/connectionTestService';
 import {
   fireConnectionTestInitiated,

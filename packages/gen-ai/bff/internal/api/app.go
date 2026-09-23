@@ -11,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
@@ -79,6 +80,10 @@ type App struct {
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
 	clusterDomain           string
+	sandboxMu               sync.RWMutex
+	sandboxesAvailable      bool
+	sandboxWatcherDone      chan struct{}
+	sandboxWatcherWg        sync.WaitGroup
 	fileUploadJobTracker    *services.FileUploadJobTracker
 	// cleanupFuncs holds shutdown callbacks for mock processes (envtest, MLflow, LlamaStack)
 	cleanupFuncs []func()
@@ -358,6 +363,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
+	// GatewayDomain is used to construct the base_url for the remote::passthrough
+	// provider in OGX configs
+	if cfg.GatewayDomain == "" {
+		logger.Warn("GATEWAY_DOMAIN is not configured — passthrough provider routing for no-restart of OGX will not be available")
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
@@ -379,6 +390,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		fileUploadJobTracker:    fileUploadJobTracker,
 		cleanupFuncs:            cleanupFuncs,
 	}
+
+	// Seed sandbox availability synchronously at startup, then keep it current via watcher.
+	if cfg.MockK8sClient {
+		app.sandboxesAvailable = true
+		logger.Info("Mock mode: assuming agent sandbox CRD is available")
+	} else {
+		app.refreshSandboxState()
+		app.startSandboxWatcher()
+	}
+
 	return app, nil
 }
 
@@ -403,6 +424,12 @@ func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+
+	if app.sandboxWatcherDone != nil {
+		close(app.sandboxWatcherDone)
+		app.sandboxWatcherWg.Wait()
+	}
+
 	for i := len(app.cleanupFuncs) - 1; i >= 0; i-- {
 		app.cleanupFuncs[i]()
 	}
@@ -500,9 +527,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.NemoGuardrailsStatusPath, app.AttachNamespace(app.NemoGuardrailsStatusHandler))
 
 	// MCP Client endpoints
-	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.MCPToolsHandler))
-	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.MCPStatusHandler))
-	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.MCPListHandler))
+	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
+	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
+	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.RequireAccessToService(app.MCPListHandler)))
 
 	// External Vector Stores
 	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.VectorStoresAAHandler))
@@ -539,14 +566,12 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
 	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
-	// Auth is handled by InjectRequestIdentity middleware (JWT forwarded by OGX via
-	// X-OGX-Provider-Data → forward_headers → x-forwarded-access-token).
-	// No AttachNamespace/RequireAccessToService: namespace is in the URL path.
-	// No AttachBFFMaaSClient: MaaS fetch is best-effort inside the handler and must not
-	// block the endpoint with a 503 when the MaaS BFF is not configured.
-	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.GenAIProxyNSModelsHandler)
-	apiRouter.POST(constants.GenAIProxyNSChatCompletionsPath, app.GenAIProxyNSChatCompletionsHandler)
-	apiRouter.POST(constants.GenAIProxyNSEmbeddingsPath, app.GenAIProxyNSEmbeddingsHandler)
+	// OGX forwards the user JWT via Authorization: Bearer (from passthrough_api_key
+	// in X-OGX-Provider-Data). InjectRequestIdentity extracts it via the Bearer fallback.
+	// All proxy endpoints require auth (SAR check via RequireAccessToService).
+	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.AttachNamespaceFromPath(app.RequireAccessToService(app.GenAIProxyNSModelsHandler)))
+	apiRouter.POST(constants.GenAIProxyNSChatCompletionsPath, app.AttachNamespaceFromPath(app.RequireAccessToService(app.GenAIProxyNSChatCompletionsHandler)))
+	apiRouter.POST(constants.GenAIProxyNSEmbeddingsPath, app.AttachNamespaceFromPath(app.RequireAccessToService(app.GenAIProxyNSEmbeddingsHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

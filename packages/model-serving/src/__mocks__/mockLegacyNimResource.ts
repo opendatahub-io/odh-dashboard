@@ -6,7 +6,10 @@ import type {
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import {
+  mockPVCK8sResource,
+  MockResourceConfigType,
+} from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
@@ -227,12 +230,12 @@ export const mockNimProject = ({
   return project;
 };
 
-export const mockNimModelPVC = (): PersistentVolumeClaimKind => {
-  const pvc = mockPVCK8sResource({
+export const mockNimModelPVC = (options: MockResourceConfigType = {}): PersistentVolumeClaimKind =>
+  mockPVCK8sResource({
     name: 'nim-pvc',
+    ...options,
+    annotations: { ...options.annotations, 'dashboard.opendatahub.io/nim-pvc': 'true' },
   });
-  return pvc;
-};
 
 export const mockNimServingResource = (
   resource: ConfigMapKind | SecretKind,

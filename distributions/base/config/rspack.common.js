@@ -26,12 +26,14 @@ const isImagesDirSvg = (input) =>
  * @param {string} [options.distributionSrcDir] - Source directory for the distribution. Defaults to base's src/.
  * @param {string} [options.outputDir] - Output directory. Defaults to <distributionSrcDir>/../public.
  * @param {string} [options.title] - HTML page title. Defaults to 'App Shell'.
+ * @param {string} [options.publicPath] - Asset base path. Defaults to '/'.
  * @param {string[]} [options.additionalIncludes] - Extra directories to compile with swc-loader.
  */
 module.exports = ({
   distributionSrcDir = BASE_SRC_DIR,
   outputDir,
   title = 'App Shell',
+  publicPath = '/',
   additionalIncludes = [],
 } = {}) => {
   const normalizedDistDir = path.resolve(distributionSrcDir);
@@ -139,7 +141,7 @@ module.exports = ({
     output: {
       filename: '[name].js',
       path: resolvedOutputDir,
-      publicPath: '/',
+      publicPath,
     },
     plugins: [
       new rspack.HtmlRspackPlugin({

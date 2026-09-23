@@ -1,13 +1,10 @@
-import { clearGenAiNamespacePersistence } from '~/__tests__/cypress/cypress/support/helpers/namespacePersistence';
-
 class AIAssetsPage {
   visit(namespace?: string, queryParams?: Record<string, string>): void {
     const qs = queryParams ? `?${new URLSearchParams(queryParams).toString()}` : '';
-    const visitOptions = { onBeforeLoad: clearGenAiNamespacePersistence };
     if (namespace) {
-      cy.visit(`/gen-ai-studio/assets/${namespace}${qs}`, visitOptions);
+      cy.visit(`/gen-ai-studio/assets/${namespace}${qs}`);
     } else {
-      cy.visit(`/gen-ai-studio/assets${qs}`, visitOptions);
+      cy.visit(`/gen-ai-studio/assets${qs}`);
     }
     this.waitForPageLoad();
   }
@@ -24,12 +21,28 @@ class AIAssetsPage {
   }
 
   findMCPServersTab(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('ai-assets-tab-ai-assets-mcp-servers-tab');
+    return cy.findByTestId('ai-assets-tab-mcpservers');
   }
 
   switchToMCPServersTab(): void {
     this.findMCPServersTab().click();
     this.waitForTabLoad();
+  }
+
+  findMCPServersTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-servers-table');
+  }
+
+  findMCPServerRow(serverName: string): Cypress.Chainable<JQuery<HTMLTableRowElement>> {
+    return this.findMCPServersTable().contains('tr', serverName);
+  }
+
+  findMCPServerCheckbox(serverName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findMCPServerRow(serverName).findByRole('checkbox');
+  }
+
+  findTryInPlaygroundButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('try-in-playground-button');
   }
 
   findAgentProfilesTab(): Cypress.Chainable<JQuery<HTMLElement>> {

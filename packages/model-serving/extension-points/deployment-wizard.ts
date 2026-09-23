@@ -12,7 +12,11 @@ import type {
   WizardField,
   ModelLocationData,
 } from '../src/shared/types/form-data';
-import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type {
+  HuggingFaceApiKeyFieldData,
+  ModelTypeFieldData,
+  ModelServerSelectFieldData,
+} from '../src/shared/wizard-fields';
 import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
@@ -50,6 +54,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelServerTemplate: CodeRef<
       (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
     >;
+    extractHuggingFaceApiKey?: CodeRef<(deployment: D) => HuggingFaceApiKeyFieldData | null>;
     validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
 >;
@@ -319,6 +324,7 @@ export type WizardTrackingPropertiesExtension<D extends Deployment = Deployment>
     getProperties: CodeRef<
       (
         wizardState: WizardFormData['state'],
+        externalData?: ExternalDataMap,
       ) => Record<string, string | number | boolean | undefined>
     >;
   }

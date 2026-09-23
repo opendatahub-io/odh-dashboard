@@ -28,7 +28,8 @@ import {
   featureViewRoute,
 } from '../../../routes.ts';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext.tsx';
-import { FsObjectType, getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
+import { getFsObjectTypeLabel } from '../../../utils/featureStoreObjects.tsx';
+import FeatureStoreObjectIcon from '../../../components/FeatureStoreObjectIcon';
 
 export interface FeatureStoreLineageNodePopoverProps {
   node: LineageNode | null;
@@ -36,16 +37,6 @@ export interface FeatureStoreLineageNodePopoverProps {
   onClose: () => void;
   featureViewName?: string;
 }
-
-const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
-  const typeLabels: Record<FsObjectType, string> = {
-    entity: 'Entity details',
-    data_source: 'Data source details',
-    feature_view: 'Feature view details',
-    feature_service: 'Feature service details',
-  };
-  return typeLabels[fsObjectType] || fsObjectType;
-};
 
 const goToDetailsPage = (node: LineageNode, project: string): string | undefined => {
   const { fsObjectTypes } = node;
@@ -152,7 +143,9 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
           onMouseDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <FlexItem>{getEntityTypeIcon(node.entityType)}</FlexItem>
+          <FlexItem>
+            <FeatureStoreObjectIcon objectType={node.fsObjectTypes} useTypedColors />
+          </FlexItem>
           <FlexItem>{node.label}</FlexItem>
         </Flex>
       }

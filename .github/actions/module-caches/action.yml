@@ -1,0 +1,58 @@
+name: Module caches
+description: Restores and saves the workspace node_modules and Cypress binary caches. Runs pnpm install when the cache is not an exact hit.
+inputs:
+  node-version:
+    description: Node.js version used for cache key generation.
+    required: true
+  force-install:
+    description: Whether to run installs even when caches are exact hits.
+    required: false
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Set Cypress cache to workspace-local path
+      shell: bash
+      run: echo "CYPRESS_CACHE_FOLDER=${{ github.workspace }}/.cache/Cypress" >> "$GITHUB_ENV"
+    - name: Verify pinned pnpm version
+      shell: bash
+      run: |
+        pkg_manager="$(jq -r .packageManager package.json)"
+        if [[ ! "$pkg_manager" =~ ^pnpm@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::Invalid packageManager field: must match pnpm@MAJOR.MINOR.PATCH"
+          exit 1
+        fi
+        expected="${pkg_manager#pnpm@}"
+        if [[ "$(pnpm --version)" != "$expected" ]]; then
+          echo "::error::Expected pnpm $expected, found $(pnpm --version)"
+          exit 1
+        fi
+    - name: Root node_modules cache
+      id: root-cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: |
+          node_modules
+          backend/node_modules
+          frontend/node_modules
+          frontend/src/node_modules
+          packages/*/node_modules
+          packages/*/*/node_modules
+          packages/model-registry/upstream/frontend/node_modules
+          distributions/*/node_modules
+          distributions/*/*/node_modules
+          .cache/Cypress
+        key: ${{ runner.os }}-${{ inputs.node-version }}-pnpm-root-modules-${{ hashFiles('.npmrc', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'backend/**/package.json', 'frontend/**/package.json', 'packages/*/package.json', 'packages/*/frontend/package.json', 'packages/*/ui/package.json', 'packages/*/cypress/package.json', 'packages/model-registry/upstream/frontend/package.json', 'packages/model-registry/upstream/frontend/package-lock.json', 'distributions/*/package.json', 'distributions/*/frontend/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.node-version }}-pnpm-root-modules-
+    - name: Export module cache status
+      shell: bash
+      run: echo "MODULE_CACHE_HIT=${{ steps.root-cache.outputs.cache-hit }}" >> "$GITHUB_ENV"
+    - name: Install root dependencies
+      if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile
+    - name: Ensure Cypress binary is installed
+      if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: pnpm exec cypress install

@@ -16,10 +16,9 @@ import {
 } from '@patternfly/react-core';
 import { ArrowRightIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext, ProjectObjectType } from '@odh-dashboard/ui-core';
 import { KnownLabels, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import TypedObjectIcon from '@odh-dashboard/ui-core/design/TypedObjectIcon';
-import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
 import { useModelRegistryFilter } from './useModelRegistryFilter';

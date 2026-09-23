@@ -68,7 +68,7 @@ The system is implemented using a multi-container architecture with modern web t
 
 ### Frontend Container (React 18 + TypeScript)
 - **UI Framework**: PatternFly-based React application using `@patternfly/chatbot` components
-- **Build System**: Webpack 5 with TypeScript compilation, hot-reload, and asset optimization
+- **Build System**: Rspack with TypeScript compilation, hot-reload, and asset optimization
 - **API Communication**: Dual approach with axios HTTP client and llama-stack-client npm package
 - **State Management**: React Context API for authentication state (no Redux)
 - **Routing**: React Router v7 for client-side navigation
@@ -101,7 +101,7 @@ The system is implemented using a multi-container architecture with modern web t
 - **Development Mode**: Configurable mock clients for all services with factory-based creation
 
 ### Modular UI Deployment (ODH Dashboard Integration)
-- **Module Federation**: Deployed as a federated module within ODH Dashboard using Webpack 5 Module Federation
+- **Module Federation**: Deployed as a federated module within ODH Dashboard using Module Federation
 - **Multi-Container Pod**: Runs as a sidecar container alongside the main ODH Dashboard in the same Kubernetes pod
 - **Shared Resources**: Uses shared TLS certificates, ConfigMaps, and service networking
 - **Federation Config**: Configured via `federation-configmap.yaml` with routing rules and remote entry points

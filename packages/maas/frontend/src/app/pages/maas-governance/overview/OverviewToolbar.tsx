@@ -4,7 +4,11 @@ import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { EventTrackingFilterAttribute, MaaSEvents } from '~/app/types/event-tracking';
+import {
+  EventTrackingFilterAttribute,
+  MaaSEvents,
+  MaaSGovernanceOverviewFilteredProperties,
+} from '~/app/types/event-tracking';
 import { OverviewFilterDataType, OverviewFilterOptions, overviewFilterOptions } from './const';
 
 type OverviewToolbarProps = {
@@ -37,7 +41,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.MODEL,
-              });
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />
@@ -54,7 +58,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.PROJECT,
-              });
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />
@@ -71,7 +75,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.GROUP,
-              });
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />
@@ -88,7 +92,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.SUBSCRIPTION,
-              });
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />
@@ -105,7 +109,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.POLICY,
-              });
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />

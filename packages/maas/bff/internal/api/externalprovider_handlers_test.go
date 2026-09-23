@@ -29,7 +29,7 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 		Expect(actual.Data[0].DisplayName).NotTo(BeEmpty())
 	})
 
-	It("creates an ExternalProvider", func() {
+	It("creates an ExternalProvider (mock)", func() {
 		name := fmt.Sprintf("test-provider-%d", GinkgoRandomSeed())
 		actual, rs, err := setupMockApiTest[Envelope[*models.ExternalProviderSummary, None]](
 			http.MethodPost,
@@ -59,7 +59,43 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 		Expect(actual.Data.CredentialSecretRef).To(Equal("test-api-key"))
 	})
 
-	It("updates an ExternalProvider", func() {
+	It("rejects whitespace-only provider updates (mock)", func() {
+		_, rs, err := setupMockApiTest[Envelope[*models.ExternalProviderSummary, None]](
+			http.MethodPut,
+			"/api/v1/externalprovider/maas-models/openai-prod",
+			Envelope[models.UpdateExternalProviderRequest, None]{
+				Data: models.UpdateExternalProviderRequest{
+					Provider: "   ",
+				},
+			},
+			k8Factory,
+			identity,
+		)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+	})
+
+	It("trims provider values on update (mock)", func() {
+		actual, rs, err := setupMockApiTest[Envelope[*models.ExternalProviderSummary, None]](
+			http.MethodPut,
+			"/api/v1/externalprovider/maas-models/openai-prod",
+			Envelope[models.UpdateExternalProviderRequest, None]{
+				Data: models.UpdateExternalProviderRequest{
+					Provider: "  anthropic  ",
+				},
+			},
+			k8Factory,
+			identity,
+		)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rs.StatusCode).To(Equal(http.StatusOK))
+		Expect(actual.Data).NotTo(BeNil())
+		Expect(actual.Data.Provider).To(Equal("anthropic"))
+	})
+
+	It("updates an ExternalProvider (mock)", func() {
 		displayName := "Updated OpenAI"
 		actual, rs, err := setupMockApiTest[Envelope[*models.ExternalProviderSummary, None]](
 			http.MethodPut,
@@ -67,6 +103,7 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 			Envelope[models.UpdateExternalProviderRequest, None]{
 				Data: models.UpdateExternalProviderRequest{
 					DisplayName: &displayName,
+					Provider:    "anthropic",
 				},
 			},
 			k8Factory,
@@ -78,9 +115,10 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 		Expect(actual.Data).NotTo(BeNil())
 		Expect(actual.Data.Name).To(Equal("openai-prod"))
 		Expect(actual.Data.DisplayName).To(Equal(displayName))
+		Expect(actual.Data.Provider).To(Equal("anthropic"))
 	})
 
-	It("deletes an ExternalProvider", func() {
+	It("deletes an ExternalProvider (mock)", func() {
 		_, rs, err := setupMockApiTest[Envelope[None, None]](
 			http.MethodDelete,
 			"/api/v1/externalprovider/maas-models/openai-prod",
@@ -89,6 +127,65 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 			identity,
 		)
 
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rs.StatusCode).To(Equal(http.StatusOK))
+	})
+
+	It("creates, updates, and deletes an ExternalProvider on the cluster", func() {
+		name := fmt.Sprintf("live-ep-%d", GinkgoRandomSeed())
+		const namespace = "maas-models"
+
+		created, rs, err := setupApiTest[Envelope[*models.ExternalProviderSummary, None]](
+			http.MethodPost,
+			"/api/v1/externalprovider",
+			Envelope[models.CreateExternalProviderRequest, None]{
+				Data: models.CreateExternalProviderRequest{
+					Name:                name,
+					Namespace:           namespace,
+					DisplayName:         "Live Provider",
+					EndpointUrl:         "api.example.com",
+					AuthMechanism:       models.AuthMechanismAPIKey,
+					CredentialSecretRef: "test-api-key",
+					Provider:            "openai",
+					Config:              map[string]string{"organization": "live-org"},
+				},
+			},
+			k8Factory,
+			identity,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rs.StatusCode).To(Equal(http.StatusCreated))
+		Expect(created.Data).NotTo(BeNil())
+		Expect(created.Data.Name).To(Equal(name))
+
+		displayName := "Updated Live Provider"
+		updated, rs, err := setupApiTest[Envelope[*models.ExternalProviderSummary, None]](
+			http.MethodPut,
+			fmt.Sprintf("/api/v1/externalprovider/%s/%s", namespace, name),
+			Envelope[models.UpdateExternalProviderRequest, None]{
+				Data: models.UpdateExternalProviderRequest{
+					DisplayName: &displayName,
+					EndpointUrl: "api.updated.example.com",
+					Provider:    "anthropic",
+				},
+			},
+			k8Factory,
+			identity,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rs.StatusCode).To(Equal(http.StatusOK))
+		Expect(updated.Data).NotTo(BeNil())
+		Expect(updated.Data.DisplayName).To(Equal(displayName))
+		Expect(updated.Data.EndpointUrl).To(Equal("api.updated.example.com"))
+		Expect(updated.Data.Provider).To(Equal("anthropic"))
+
+		_, rs, err = setupApiTest[Envelope[None, None]](
+			http.MethodDelete,
+			fmt.Sprintf("/api/v1/externalprovider/%s/%s", namespace, name),
+			nil,
+			k8Factory,
+			identity,
+		)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 	})

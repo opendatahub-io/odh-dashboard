@@ -3,7 +3,7 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { getConfigMap } from '@odh-dashboard/internal/api';
+import { getConfigMap } from '@odh-dashboard/k8s-core/api/configMaps';
 import { KSERVE_METRICS_CONFIG_MAP_NAME_SUFFIX } from './const';
 import { KserveMetricsConfigMapKind } from './types';
 import { isKserveMetricsConfigMapKind } from './utils';

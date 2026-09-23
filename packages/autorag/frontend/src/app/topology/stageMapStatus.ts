@@ -26,6 +26,7 @@ export const translateStageStatus = (status?: string): RunStatus | undefined => 
     case 'completed':
       return RunStatus.Succeeded;
     case 'started':
+    case 'running':
       return RunStatus.InProgress;
     case 'failed':
       return RunStatus.Failed;

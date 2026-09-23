@@ -39,6 +39,7 @@ import {
   t_global_color_status_warning_300 as WarningColor,
   t_global_color_nonstatus_purple_400 as PurpleColor,
   t_global_font_weight_body_bold as BoldWeight,
+  t_color_gray_60 as Gray60,
 } from '@patternfly/react-tokens';
 import {
   CheckCircleIcon,
@@ -48,30 +49,31 @@ import {
   InProgressIcon,
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
-import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
+import { getDescriptionFromK8sResource, type PodContainerStatus } from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import { ClusterQueueModel } from '#~/api/models/kueue';
-import { EventStatus, NotebookStatus } from '#~/types';
-import { EventKind, NotebookKind } from '#~/k8sTypes';
-import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
-import useClusterQueue from '#~/utilities/useClusterQueue';
-import useAssignedFlavor from '#~/utilities/useAssignedFlavor';
-import { getAllConsumedResources } from '#~/utilities/clusterQueueUtils';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { getClusterQueueNameFromLocalQueues } from '#~/pages/hardwareProfiles/utils';
-import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
+import useClusterQueue from '@odh-dashboard/ui-core/hooks/useClusterQueue';
+import useAssignedFlavor from '@odh-dashboard/ui-core/hooks/useAssignedFlavor';
+import { getAllConsumedResources } from '@odh-dashboard/ui-core/utilities/clusterQueueUtils';
 import {
   KueueWorkloadStatus,
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
-} from '#~/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/types';
 import {
   getHumanReadableKueueMessage,
   getRequeuedMessage,
   formatQueuePosition,
-} from '#~/concepts/kueue/messageUtils';
-import { KUEUE_QUEUE_LABEL, getKueueStatusInfo } from '#~/concepts/kueue/index';
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { getClusterQueueNameFromLocalQueues } from '#~/pages/hardwareProfiles/utils';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
+import { EventKind, NotebookKind } from '#~/k8sTypes';
+import { EventStatus, NotebookStatus } from '#~/types';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
@@ -155,6 +157,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
+  const workbenchDescription = notebook ? getDescriptionFromK8sResource(notebook).trim() : '';
   const notebookProgress = useNotebookProgress(
     notebook,
     isRunning,
@@ -652,6 +655,17 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     >
       <ModalHeader
         data-testid="notebook-status-modal-header"
+        description={
+          workbenchDescription ? (
+            <Content
+              component="p"
+              data-testid="notebook-status-modal-description"
+              style={{ color: Gray60.value }}
+            >
+              {workbenchDescription}
+            </Content>
+          ) : undefined
+        }
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>
