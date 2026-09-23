@@ -850,12 +850,10 @@ export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCard
 };
 
 export type ModelCatalogSourceTestData = {
-  sourceName: string;
-  redhatAiSourceId: string;
-  sourceName2: string;
-  redhatAiSourceId2: string;
-  sourceName3: string;
-  redhatAiSourceId3: string;
+  validatedSourceName: string;
+  validatedSourceId: string;
+  otherSourceName: string;
+  otherSourceId: string;
   toolCallingLabel: string;
   toolCallingArg: string;
   /** Catalog card title of a model that has servingConfig tool-calling args. */
