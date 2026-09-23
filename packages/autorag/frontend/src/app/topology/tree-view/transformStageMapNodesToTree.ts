@@ -21,8 +21,10 @@ import {
 
 /** Circle diameter for PatternFly DefaultNode custom nodes (dense pipeline layout). */
 const STANDARD_NODE_SIZE = 40;
-/** Branch steps match status-badge scale (design: smaller than stage nodes). */
-const BRANCH_STEP_NODE_SIZE = 32;
+/** Branch corridor dots — half the stage-node diameter (collapsed spine design). */
+const BRANCH_STEP_NODE_SIZE = 20;
+/** Row-label box stays tall enough for "Pattern N" while the dots shrink. */
+const ROW_LABEL_HEIGHT = 32;
 const X_START = 40;
 const X_GAP = 120;
 const Y_CENTER = 200;
@@ -513,11 +515,12 @@ export const transformStageMapNodesToTree = (
     }
     rowLabels.forEach((row) => {
       const firstDotLeft = pipelineStartX + originOffset;
+      const rowLabelOffset = (STANDARD_NODE_SIZE - ROW_LABEL_HEIGHT) / 2;
       nodes.push({
         ...createAnnotationNode(
           row.id,
           firstDotLeft - ROW_LABEL_GAP - ROW_LABEL_WIDTH,
-          row.y + originOffset,
+          row.y + rowLabelOffset,
           {
             stepState: 'pending',
             label: row.label,
@@ -525,7 +528,7 @@ export const transformStageMapNodesToTree = (
           },
         ),
         width: ROW_LABEL_WIDTH,
-        height: BRANCH_STEP_NODE_SIZE,
+        height: ROW_LABEL_HEIGHT,
       });
     });
     nodes.push(

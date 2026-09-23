@@ -235,16 +235,27 @@ const StatusOnlyPendingDot: React.FC<{ size: number }> = React.memo(({ size }) =
 });
 StatusOnlyPendingDot.displayName = 'StatusOnlyPendingDot';
 
-/** Resting success branch corridor: solid success disk. */
-const StatusOnlySuccessDot: React.FC<{ size: number }> = React.memo(({ size }) => (
-  <SpineDot
-    size={size}
-    className="automl-tree-node__status-badge automl-tree-node__status-badge--success-dot"
-    ringColor={borderColorStatusSuccess.var}
-    coreColor={colorStatusSuccess.var}
-    showConnectors
-  />
-));
+/** Resting success branch corridor: thin ring, white gap, small filled core. */
+const StatusOnlySuccessDot: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const center = size / 2;
+  const ringWidth = 1;
+  const outerR = Math.max(0, center - ringWidth / 2);
+  const innerR = Math.max(2, size * 0.3);
+  const white = backgroundColorPrimary.var;
+  return (
+    <g className="automl-tree-node__status-badge automl-tree-node__status-badge--success-dot">
+      <circle cx={center} cy={center} r={center} style={{ fill: white }} />
+      <circle
+        cx={center}
+        cy={center}
+        r={outerR}
+        fill="none"
+        style={{ stroke: borderColorStatusSuccess.var, strokeWidth: ringWidth }}
+      />
+      <circle cx={center} cy={center} r={innerR} style={{ fill: colorStatusSuccess.var }} />
+    </g>
+  );
+});
 StatusOnlySuccessDot.displayName = 'StatusOnlySuccessDot';
 
 /** Completed branch corridor dot (design): green check badge on the spine. */

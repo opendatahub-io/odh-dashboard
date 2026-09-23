@@ -329,7 +329,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(optimize.width).toBe(40);
     expect(patternNodes[0].width).toBe(40);
     expect(nodes.find((node) => node.id === 'rag_optimization__build_leaderboard')?.width).toBe(40);
-    expect(firstBranch.width).toBe(32);
+    expect(firstBranch.width).toBe(20);
     expect(firstBranch.x - optimize.x).toBeLessThanOrEqual(130);
     const toggle = nodes.find((node) => node.id === 'autorag-patterns-toggle');
     expect((toggle?.y ?? 0) - (optimize.y ?? 0)).toBe(120);
@@ -391,9 +391,13 @@ describe('transformStageMapNodesToTree', () => {
     );
     const firstBranchX = Math.min(...firstBranchNodes.map((node) => node.x));
     expect(
-      rowLabels.every((label) =>
-        firstBranchNodes.some((node) => node.x === firstBranchX && node.y === label.y),
-      ),
+      rowLabels.every((label) => {
+        const labelCenterY = (label.y ?? 0) + (label.height ?? 0) / 2;
+        return firstBranchNodes.some((node) => {
+          const nodeCenterY = (node.y ?? 0) + (node.height ?? 0) / 2;
+          return node.x === firstBranchX && nodeCenterY === labelCenterY;
+        });
+      }),
     ).toBe(true);
     const rowLabelRight = (rowLabels[0]?.x ?? 0) + (rowLabels[0]?.width ?? 0);
     expect(rowLabelRight).toBeLessThan(firstBranchX);
@@ -422,7 +426,7 @@ describe('transformStageMapNodesToTree', () => {
     ).toBe(true);
     const lastRow = firstBranchNodes.reduce((lowest, node) => (node.y > lowest.y ? node : lowest));
     const expandedToggle = nodes.find((node) => node.data.nodeRole === 'patterns-toggle');
-    expect((expandedToggle?.y ?? 0) - lastRow.y).toBe(56);
+    expect((expandedToggle?.y ?? 0) - lastRow.y).toBe(50);
   });
 
   it('should mark later pending stages unreached after an earlier failure', () => {

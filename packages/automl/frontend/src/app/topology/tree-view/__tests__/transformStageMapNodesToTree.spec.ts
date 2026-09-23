@@ -314,7 +314,7 @@ describe('transformStageMapNodesToTree', () => {
     const firstBranch = nodes.find(
       (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
     );
-    expect(firstBranch?.width).toBe(32);
+    expect(firstBranch?.width).toBe(20);
     expect(modelNodes[0].width).toBe(40);
     const optimize = nodes.find((node) => node.id === 'training__load_data');
     const toggle = nodes.find((node) => node.id === 'automl-models-toggle');

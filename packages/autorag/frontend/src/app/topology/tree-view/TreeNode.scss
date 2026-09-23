@@ -186,7 +186,7 @@
   .pf-topology__node__background {
     fill: var(--pf-t--global--background--color--primary--default);
     stroke: var(--autorag-tree-node--winner--Color);
-    stroke-width: 1.5;
+    stroke-width: var(--pf-t--global--border--width--extra-strong);
   }
 }
 
@@ -319,7 +319,7 @@
     .pf-topology__node__background {
       fill: var(--pf-t--global--background--color--primary--default);
       stroke: var(--pf-t--global--border--color--status--success--default);
-      stroke-width: 1.5;
+      stroke-width: var(--pf-t--global--border--width--extra-strong);
     }
   }
 
