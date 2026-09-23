@@ -33,6 +33,13 @@ jest.mock('child_process', () => ({
       {
         name: '@odh-dashboard/plugin-core',
         dependencies: { '@odh-dashboard/internal': '*' },
+        exports: {
+          './areas': './src/areas/index.ts',
+          './host-api': './src/host-api/index.ts',
+          './integrations': './src/integrations/index.ts',
+          './routing': './src/routing/index.ts',
+        },
+        'module-federation-shared': ['./areas', './host-api', './integrations'],
       },
       {
         name: '@odh-dashboard/ui-core',
@@ -123,6 +130,41 @@ describe('getRuntimeOdhPackages', () => {
     expect(all.has('@odh-dashboard/llmd-serving')).toBe(true);
     expect(hostProvided.has('@odh-dashboard/llmd-serving')).toBe(true);
   });
+
+  it('should share only explicitly declared package export subpaths', () => {
+    const { all, hostProvided } = getRuntimeOdhPackages();
+
+    for (const name of [
+      '@odh-dashboard/plugin-core/areas',
+      '@odh-dashboard/plugin-core/host-api',
+      '@odh-dashboard/plugin-core/integrations',
+    ]) {
+      expect(all.has(name)).toBe(true);
+      expect(hostProvided.has(name)).toBe(true);
+    }
+    expect(all.has('@odh-dashboard/plugin-core/routing')).toBe(false);
+  });
+
+  it.each(['./*', 'context', './missing'])(
+    'should reject invalid shared export %s',
+    (sharedExport) => {
+      const packages: WorkspacePackageInfo[] = [
+        {
+          name: 'odh-dashboard-frontend',
+          dependencies: { '@odh-dashboard/contexts': '*' },
+        },
+        {
+          name: '@odh-dashboard/contexts',
+          exports: { './context': './src/context.ts' },
+          'module-federation-shared': [sharedExport],
+        },
+      ];
+
+      expect(() => getRuntimeOdhPackages(packages)).toThrow(
+        `@odh-dashboard/contexts declares invalid module-federation-shared export "${sharedExport}"`,
+      );
+    },
+  );
 
   it('includes federated modules in all but not hostProvided when host cannot own them', () => {
     const { all, hostProvided } = getRuntimeOdhPackages();
@@ -275,6 +317,11 @@ describe('OdhFederationPlugin share policy', () => {
     expect(lastConfig?.shared.react.import).toBeUndefined();
     expect(lastConfig?.shared['react-dom']).toBeUndefined();
     expect(lastConfig?.shared['@odh-dashboard/internal'].import).toBeUndefined();
+    expect(lastConfig?.shared['@odh-dashboard/plugin-core/host-api']).toEqual({
+      singleton: true,
+      requiredVersion: '*',
+    });
+    expect(lastConfig?.shared['@odh-dashboard/plugin-core/routing']).toBeUndefined();
     expect(lastConfig?.shared['@patternfly/react-table'].eager).toBeUndefined();
   });
 
@@ -299,6 +346,12 @@ describe('OdhFederationPlugin share policy', () => {
     expect(lastConfig?.shared['@odh-dashboard/internal']).toEqual(
       expect.objectContaining({ singleton: true, requiredVersion: '*', import: false }),
     );
+    expect(lastConfig?.shared['@odh-dashboard/plugin-core/host-api']).toEqual({
+      singleton: true,
+      requiredVersion: '*',
+      import: false,
+    });
+    expect(lastConfig?.shared['@odh-dashboard/plugin-core/routing']).toBeUndefined();
     expect(lastConfig?.shared['@odh-dashboard/maas'].import).toBeUndefined();
     expect(lastConfig?.shared['@patternfly/react-table'].import).toBeUndefined();
   });

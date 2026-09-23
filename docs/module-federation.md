@@ -40,6 +40,30 @@ The plugin configures shared modules, singleton flags, and version constraints s
 | PatternFly | `@patternfly/react-core`, `@patternfly/react-styles`, `@patternfly/react-tokens`, `@patternfly/react-icons`, `@patternfly/react-table`, `@patternfly/react-templates`, `@patternfly/react-topology`, `@patternfly/react-code-editor`, `@patternfly/react-charts`, `@patternfly/chatbot`, `@patternfly/react-component-groups`, `@patternfly/react-drag-drop`, `@patternfly/react-log-viewer`, `@patternfly/quickstarts`, `@patternfly/react-catalog-view-extension` | Singleton. `@patternfly/react-core` and `@patternfly/react-styles` are eager when `isHost`; federated remotes use `import: false` for those two; other listed packages allow remote fallback |
 | ODH packages | Discovered by `scripts/query-workspace-packages.js`, which reads `pnpm-workspace.yaml` | Shared as singletons. **Host-provided** (host `@odh-dashboard/*` dependency closure + packages that export `./extensions`): federated remotes use `import: false`. **Federated-only** packages (and their deps that are not host-provided): shared as singletons with import/fallback allowed |
 
+Package roots and package export subpaths are distinct Module Federation requests. Sharing
+`@odh-dashboard/example` does not also share `@odh-dashboard/example/context`. A package that owns
+stateful exports, such as React contexts, must opt those export subpaths into sharing:
+
+```json
+{
+  "exports": {
+    ".": "./src/index.ts",
+    "./context": "./src/context/index.ts"
+  },
+  "module-federation-shared": ["./context"]
+}
+```
+
+Every `module-federation-shared` entry must be an explicit `./` path present in the package's
+`exports` map. Wildcards are rejected. The host and remotes then share both the package root and
+the declared subpath as singleton entries. Host-provided subpaths also use `import: false` in
+federated remotes.
+
+Separate root and subpath share keys do not by themselves create separate state. When a package
+root re-exports the subpath, both host-provided factories resolve the same module in the host
+compilation and therefore the same context objects. Declaring the subpath is still required so a
+remote import of that subpath is intercepted instead of bundled locally.
+
 #### Remotes and `import: false`
 
 When `isHost` is false (federated remote), the plugin sets `import: false` on modules that must come from the host: React, routers, OpenShift SDK, `@patternfly/react-core`, `@patternfly/react-styles`, and host-provided ODH packages. Other shared PatternFly packages and federated-only `@odh-dashboard/*` packages remain singleton but may fall back to a remote-bundled copy. When `isHost` is true (dashboard host, or a standalone remote), the plugin enables eager sharing for must-share modules and leaves `import` at the Module Federation default (`true`) so the build can bundle its own copy.
@@ -389,7 +413,8 @@ When creating a new `@odh-dashboard/*` library package that will be consumed by 
 
 1. Add the package to the monorepo under `packages/`. pnpm workspaces will hoist it into `node_modules/@odh-dashboard/`.
 2. For remotes to use `import: false` against it, the package must be host-provided: either appear in the host's `@odh-dashboard/*` dependency closure, or export `./extensions` (included in the host via the virtual `plugin-extensions` module). Otherwise it is only shared as a singleton with import/fallback if reached from a federated package's dependency tree.
-3. Ensure the consumer's `rspack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
+3. If an exported subpath owns state that must be identical across the host and remotes, such as a React context, list its explicit `./subpath` export in `module-federation-shared`. Do not add testing, mock, or unrelated stateless exports merely to share every subpath.
+4. Ensure the consumer's `rspack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
 
 ## Troubleshooting
 
@@ -400,3 +425,5 @@ When creating a new `@odh-dashboard/*` library package that will be consumed by 
 3. **Proxy issues**: Check that the backend service is running and accessible
 4. **Asset loading issues**: If you see failing requests for `__federation_expose_` files without the module name in the path, add `output.publicPath = 'auto'` to your rspack configuration
 5. **Module parse failed for `@odh-dashboard/*` packages**: Ensure `rspack.common.js` uses `exclude: [/node_modules\/(?!@odh-dashboard)/]` instead of `exclude: [/node_modules/]` in the TS/JS rule
+6. **Invalid `module-federation-shared` export**: Use an explicit `./subpath` that exists in the package's `exports` map. Wildcards and undeclared exports fail the build.
+7. **Context provider is present but consumers receive the default value**: Confirm the provider and consumer import requests are both shared. A shared package root does not intercept `package/subpath`; declare the state-owning subpath in `module-federation-shared` and verify the federated remote receives `import: false` for it.
