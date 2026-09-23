@@ -38,21 +38,33 @@ END{
 
 /**
  * Helper to update YAML using awk — no yq, jq, or Python required.
- * Returns a command that reads YAML from stdin, sets enabled=true for the given source, and outputs the modified YAML.
+ * Returns a command that reads YAML from stdin, enables the given source, and outputs the
+ * modified YAML. If the source only exists in the default ConfigMap, appends a user override.
  *
  * @param sourceId The catalog source ID to update
  * @returns A command string that can be used in a pipeline
  */
 const getYamlUpdateCommand = (sourceId: string): string => {
   // Use awk to set enabled=true for the matching source — no yq or Python required.
-  // Buffers each catalog entry, identifies it by id, then patches the enabled field
-  // before flushing. Handles both field orderings (enabled before or after id).
+  // Buffers each catalog entry, identifies it by id, then patches or adds the enabled field
+  // before flushing. Appends a minimal user override when no matching entry exists.
   return `awk -v target="${sourceId}" '
 /^[[:space:]]*-[[:space:]]/{flush_buf();buflen=0;delete buf;in_entry=1;entry_id=""}
 in_entry{buflen++;buf[buflen]=$0;if(/id:/){tmp=$0;sub(/.*id:[[:space:]]*/,"",tmp);entry_id=tmp}next}
 {flush_buf();print}
-END{flush_buf()}
-function flush_buf(  i,line){for(i=1;i<=buflen;i++){line=buf[i];if(entry_id==target&&line~/enabled:/){sub(/enabled:[[:space:]]*[^[:space:]]*/,"enabled: true",line)};print line};buflen=0;delete buf;entry_id=""}
+END{flush_buf();if(!found){print "  - id: " target;print "    enabled: true"}}
+function flush_buf(  i,line,is_target,has_enabled){
+  if(buflen==0){return}
+  is_target=(entry_id==target)
+  if(is_target){found=1;for(i=1;i<=buflen;i++){if(buf[i]~/enabled:/){has_enabled=1}}}
+  for(i=1;i<=buflen;i++){
+    line=buf[i]
+    if(is_target&&line~/enabled:/){sub(/enabled:[[:space:]]*[^[:space:]]*/,"enabled: true",line)}
+    print line
+  }
+  if(is_target&&!has_enabled){print "    enabled: true"}
+  buflen=0;delete buf;entry_id=""
+}
 '`;
 };
 
@@ -241,26 +253,45 @@ export const verifyModelCatalogSourceEnabled = (
 
 /**
  * Check if a specific model catalog source is currently enabled.
- * Checks the default-catalog-sources ConfigMap for the source's enabled status.
+ * Checks model-catalog-sources for a user override before falling back to
+ * default-catalog-sources for the source's enabled status.
  * @param sourceId The ID of the source to check (e.g., 'redhat_ai_validated_models')
  * @returns A Cypress chainable that resolves with true if enabled, false otherwise.
  */
 export const isModelCatalogSourceEnabled = (sourceId: string): Cypress.Chainable<boolean> => {
   const namespace = getModelRegistryNamespace();
   const parseCmd = getYamlParseCommand(sourceId);
-  const command = `oc get configmap default-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
+  const userCommand = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' 2>/dev/null | ${parseCmd}`;
+  const defaultCommand = `oc get configmap default-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
-  return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.exitCode !== 0) {
-      const maskedStderr = maskSensitiveInfo(result.stderr);
+  return execWithOutput(userCommand, 30).then((userResult: CommandLineResult) => {
+    if (userResult.exitCode !== 0) {
+      const maskedStderr = maskSensitiveInfo(userResult.stderr);
       cy.log(`ERROR: Failed to check source enabled status`);
       cy.log(`stderr: ${maskedStderr}`);
       return cy.wrap(false);
     }
-    const sourceStatus = result.stdout.trim();
-    const isEnabled = sourceStatus !== 'missing' && sourceStatus !== 'false';
-    cy.log(`Source ${sourceId} is currently enabled: ${isEnabled}`);
-    return cy.wrap(isEnabled);
+
+    const userStatus = userResult.stdout.trim();
+    if (userStatus !== 'missing' && userStatus !== 'default') {
+      const isEnabled = userStatus !== 'false';
+      cy.log(`Source ${sourceId} is currently enabled: ${isEnabled} (from user configmap)`);
+      return cy.wrap(isEnabled);
+    }
+
+    return execWithOutput(defaultCommand, 30).then((defaultResult: CommandLineResult) => {
+      if (defaultResult.exitCode !== 0) {
+        const maskedStderr = maskSensitiveInfo(defaultResult.stderr);
+        cy.log(`ERROR: Failed to check source enabled status`);
+        cy.log(`stderr: ${maskedStderr}`);
+        return cy.wrap(false);
+      }
+
+      const defaultStatus = defaultResult.stdout.trim();
+      const isEnabled = defaultStatus !== 'missing' && defaultStatus !== 'false';
+      cy.log(`Source ${sourceId} is currently enabled: ${isEnabled} (from default configmap)`);
+      return cy.wrap(isEnabled);
+    });
   });
 };
 
