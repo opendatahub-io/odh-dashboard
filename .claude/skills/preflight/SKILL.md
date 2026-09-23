@@ -91,7 +91,7 @@ If any are missing, stop and tell the user what to install. These are non-negoti
 
 Optional tools (check but don't block):
 - `coderabbit` — needed only if user selects CodeRabbit review
-- `npm` / `npx` — needed only for local lint/type-check/test runs
+- `pnpm` — needed for local lint/type-check/test runs
 
 ## Step 1: Gather context
 

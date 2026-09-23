@@ -13,7 +13,10 @@ interface WorkspacePackage {
 }
 
 const getWorkspacePackages = (): WorkspacePackage[] => {
-  const stdout = execSync('npm query .workspace --json', { encoding: 'utf8' });
+  const cypressPkgPath = path.resolve(__dirname, '../..');
+  const repoRoot = path.resolve(cypressPkgPath, '../..');
+  const scriptPath = path.join(repoRoot, 'scripts/query-workspace-packages.js');
+  const stdout = execSync(`node "${scriptPath}"`, { encoding: 'utf8', cwd: repoRoot });
   return JSON.parse(stdout);
 };
 
@@ -37,6 +40,7 @@ const getWorkspacePackages = (): WorkspacePackage[] => {
  */
 export const getCypressTestPatterns = (type: 'mocked' | 'e2e' = 'mocked'): string[] => {
   const cypressPkgPath = path.resolve(__dirname, '../..');
+  const repoRoot = path.resolve(cypressPkgPath, '../..');
   const packages = getWorkspacePackages();
 
   return packages
@@ -44,7 +48,8 @@ export const getCypressTestPatterns = (type: 'mocked' | 'e2e' = 'mocked'): strin
       if (!pkg.cypress?.[type]) {
         return null;
       }
-      const relativePkgPath = path.relative(cypressPkgPath, pkg.path);
+      const absolutePkgPath = path.resolve(repoRoot, pkg.path);
+      const relativePkgPath = path.relative(cypressPkgPath, absolutePkgPath);
       return path.join(relativePkgPath, pkg.cypress[type]);
     })
     .filter((x) => x != null);

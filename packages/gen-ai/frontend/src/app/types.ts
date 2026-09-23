@@ -19,7 +19,6 @@ export type LSDInstallModel = {
   model_name: string;
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
   model_type?: LlamaModelType; // Optional model type
-  max_tokens?: number; // Optional per-model token limit (128-128000), only for llm
   embedding_dimension?: number; // Optional embedding vector size (128-3072000), only for embedding
 };
 
@@ -79,8 +78,7 @@ export enum ChatMessageRole {
 }
 
 export type InputContentPart =
-  | { type: 'input_text'; text: string }
-  | { type: 'input_image'; file_id: string };
+  { type: 'input_text'; text: string } | { type: 'input_image'; file_id: string };
 
 export type ChatContextMessage = {
   role: ChatMessageRole;
