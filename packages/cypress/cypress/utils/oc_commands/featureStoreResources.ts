@@ -1,5 +1,6 @@
+import * as yaml from 'js-yaml';
+import { getFeastS3Config, isAwsS3Endpoint } from './feastS3';
 import { applyOpenShiftYaml, pollUntilSuccess, waitForPodReady } from '../oc_commands/baseCommands';
-import { AWS_BUCKETS } from '../s3Buckets';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const trimOcJsonpath = (stdout: string): string => stdout.trim().replace(/^'|'$/g, '');
@@ -341,6 +342,28 @@ const assertFeastOperatorReady = (): Cypress.Chainable => {
 };
 
 /**
+ * A non-AWS S3 endpoint (injected MinIO on disconnected clusters) has no DynamoDB, so
+ * swap the DynamoDB online store in the rendered template for Feast's local file store
+ * and drop the DynamoDB secret.
+ */
+const useFileOnlineStore = (renderedYaml: string): string => {
+  const docs = yaml.loadAll(renderedYaml).filter(Boolean) as Record<string, unknown>[];
+  const isDynamoSecret = (doc: Record<string, unknown>) =>
+    doc.kind === 'Secret' &&
+    (doc.metadata as { name?: string } | undefined)?.name === 'feast-online-store-secret';
+  return docs
+    .filter((doc) => !isDynamoSecret(doc))
+    .map((doc) => {
+      if (doc.kind === 'FeatureStore') {
+        const spec = doc.spec as { services: { onlineStore: { persistence: unknown } } };
+        spec.services.onlineStore.persistence = { file: { path: '/feast-data/online_store.db' } };
+      }
+      return yaml.dump(doc);
+    })
+    .join('---\n');
+};
+
+/**
  * Creates Feature Store custom resource by applying a YAML template.
  * This function dynamically replaces placeholders in the template with actual values and applies it.
  *
@@ -348,32 +371,32 @@ const assertFeastOperatorReady = (): Cypress.Chainable => {
  */
 export const createFeatureStoreCR = (namespace: string, feastInstanceName: string): void => {
   cy.fixture('resources/yaml/feast.yaml').then((yamlTemplate) => {
-    const buckets = (Cypress.env('AWS_PIPELINES') as typeof AWS_BUCKETS | undefined) ?? AWS_BUCKETS;
-    const {
-      AWS_ACCESS_KEY_ID: awsAccessKey,
-      AWS_SECRET_ACCESS_KEY: awsSecretKey,
-      BUCKET_1: { NAME: awsBucketName, REGION: awsDefaultRegion },
-    } = buckets;
+    const s3 = getFeastS3Config();
 
-    if (!awsBucketName) {
-      throw new Error(
-        'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml before running E2E.',
-      );
-    }
+    // Feast needs the S3 endpoint explicitly when it runs against an internal
+    // S3-compatible store in a disconnected cluster. AWS keeps its normal
+    // regional endpoint resolution when no endpoint is configured.
+    const s3EndpointEnv = s3.endpoint
+      ? `FEAST_S3_ENDPOINT_URL: ${JSON.stringify(s3.endpoint)}`
+      : '# No S3 endpoint override configured';
 
     const variables: Record<string, string> = {
-      awsAccessKey,
-      awsSecretKey,
-      awsBucketName,
-      awsDefaultRegion,
+      awsAccessKey: s3.accessKeyId,
+      awsSecretKey: s3.secretAccessKey,
+      awsBucketName: s3.bucket,
+      awsDefaultRegion: s3.region,
+      s3EndpointEnv,
       namespace,
     };
 
     // Replace placeholders in YAML with actual values
-    const yamlContent = Object.entries(variables).reduce(
+    const renderedYaml = Object.entries(variables).reduce(
       (content, [key, value]) => content.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value),
       yamlTemplate,
     );
+    const yamlContent = isAwsS3Endpoint(s3.endpoint)
+      ? renderedYaml
+      : useFileOnlineStore(renderedYaml);
     return assertFeastOperatorReady().then(() => {
       // Apply the modified YAML
       applyOpenShiftYaml(yamlContent);
