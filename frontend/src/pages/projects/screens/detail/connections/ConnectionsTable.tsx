@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { Table } from '@odh-dashboard/ui-core';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   Connection,
@@ -33,7 +32,6 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
   refreshConnections,
   setManageConnectionModal,
 }) => {
-  const isConnectionTestEnabled = useIsAreaAvailable(SupportedArea.CONNECTION_TEST).status;
   const [deleteConnection, setDeleteConnection] = React.useState<Connection>();
   const [testingConnections, setTestingConnections] = React.useState<Map<string, AbortController>>(
     () => new Map(),
@@ -41,10 +39,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
   const testingConnectionsRef = React.useRef(testingConnections);
   testingConnectionsRef.current = testingConnections;
 
-  const columns = React.useMemo(
-    () => getColumns(connectionTypes, isConnectionTestEnabled),
-    [connectionTypes, isConnectionTestEnabled],
-  );
+  const columns = React.useMemo(() => getColumns(connectionTypes), [connectionTypes]);
 
   React.useEffect(
     () => () => {
@@ -198,8 +193,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
             key={connection.metadata.name}
             obj={connection}
             connectionTypes={connectionTypes}
-            isTesting={isConnectionTestEnabled && testingConnections.has(connection.metadata.name)}
-            showStatusCell={isConnectionTestEnabled}
+            isTesting={testingConnections.has(connection.metadata.name)}
             onEditConnection={handleEditConnection}
             kebabActions={[
               {
@@ -208,17 +202,13 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
                   handleEditConnection(connection);
                 },
               },
-              ...(isConnectionTestEnabled
-                ? [
-                    {
-                      title: <span data-testid="test-connection-action">Verify</span>,
-                      onClick: () => {
-                        handleTestConnection(connection);
-                      },
-                      isDisabled: testingConnections.has(connection.metadata.name),
-                    },
-                  ]
-                : []),
+              {
+                title: <span data-testid="test-connection-action">Verify</span>,
+                onClick: () => {
+                  handleTestConnection(connection);
+                },
+                isDisabled: testingConnections.has(connection.metadata.name),
+              },
               { isSeparator: true },
               {
                 title: <span data-testid="delete-connection-action">Delete</span>,

@@ -73,7 +73,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const genAiTracingAvailable = config.genAiTracing ?? false;
   const promptManagementAvailable = config.promptManagement ?? false;
   const globalProjectPromptsAvailable = config.globalProjectPrompts ?? false;
-  const connectionTestAvailable = config.connectionTest ?? false;
   const mcpRegistryAvailable = config.mcpRegistry ?? false;
   const llmdTemplatesAvailable = config.llmdTemplates ?? false;
   const vllmDeploymentOnMaaSAvailable = config.vLLMDeploymentOnMaaS ?? false;
@@ -107,12 +106,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
               'Define what users can do within a project by creating and assigning roles.',
             flagName: 'roleManagement',
             available: roleManagementAvailable,
-          },
-          {
-            title: 'Connection test',
-            description: 'Test S3, URI, and OCI connections before saving.',
-            flagName: 'connectionTest',
-            available: connectionTestAvailable,
           },
         ],
       },
@@ -331,7 +324,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       genAiTracingAvailable,
       promptManagementAvailable,
       globalProjectPromptsAvailable,
-      connectionTestAvailable,
       mcpRegistryAvailable,
       llmdTemplatesAvailable,
       vllmDeploymentOnMaaSAvailable,

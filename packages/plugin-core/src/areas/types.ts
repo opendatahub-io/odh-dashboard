@@ -124,9 +124,6 @@ export enum SupportedArea {
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
 
-  /* Connection Test */
-  CONNECTION_TEST = 'connection-test',
-
   /* Model Capabilities */
   MODEL_CAPABILITIES = 'model-capabilities',
 

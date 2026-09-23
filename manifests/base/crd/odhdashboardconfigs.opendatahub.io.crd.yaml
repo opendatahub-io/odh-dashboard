@@ -231,9 +231,6 @@ spec:
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
-                    connectionTest:
-                      type: boolean
-                      description: 'When true, enables connection test functionality to verify credentials and connectivity for S3, URI, and OCI connections.'
                     nimWizard:
                       type: boolean
                       description: 'When true, replaces global NIM accounts with project NIM accounts and replaces the NIM deployment modal with the model deployment wizard.'
