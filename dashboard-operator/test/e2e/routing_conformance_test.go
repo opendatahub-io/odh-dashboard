@@ -76,6 +76,10 @@ func TestE2E_MaaSConsumerPortalRoutingConformance(t *testing.T) {
 
 	dashboard := &dashboardv1alpha1.Dashboard{}
 	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard))
+	for _, name := range []string{"maas", "genAi"} {
+		require.NotEqual(t, dashboardv1alpha1.ModuleDisabled, dashboard.Spec.Modules[name].State,
+			"MaaS Consumer Portal routing test requires module %q to be enabled in Dashboard spec.modules", name)
+	}
 	var originalPortalSpec *dashboardv1alpha1.MaaSConsumerPortalSpec
 	if dashboard.Spec.MaaSConsumerPortal != nil {
 		originalPortalSpec = dashboard.Spec.MaaSConsumerPortal.DeepCopy()

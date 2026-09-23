@@ -26,6 +26,7 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
@@ -41,10 +42,24 @@ func writeMaaSConsumerPortalManifest(t *testing.T, base string) {
 	require.NoError(t, os.CopyFS(destination, os.DirFS(source)))
 }
 
-// writeDashboardRouteManifest adds the RHOAI core route to the minimal
+// writeDashboardRouteManifest adds the rendered RHOAI core route to the minimal
 // integration fixture so a managed Dashboard exercises both shared routes.
 func writeDashboardRouteManifest(t *testing.T, base string) {
 	t.Helper()
+
+	source := filepath.Join("..", "..", "..", "manifests", "rhoai")
+	rendered, err := kustomize.NewEngine().Render(source, kustomize.WithNamespace(integrationNamespace))
+	require.NoError(t, err)
+	var routeManifest []byte
+	for i := range rendered {
+		resource := &rendered[i]
+		if resource.GetKind() == "HTTPRoute" && resource.GetName() == "rhods-dashboard" {
+			routeManifest, err = json.Marshal(resource.Object)
+			require.NoError(t, err)
+			break
+		}
+	}
+	require.NotEmpty(t, routeManifest, "RHOAI core HTTPRoute was not rendered")
 
 	overlay := filepath.Join(base, "rhoai")
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
@@ -53,24 +68,7 @@ resources:
   - configmap.yaml
   - httproute.yaml
 `), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(overlay, "httproute.yaml"), []byte(`apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: rhods-dashboard
-spec:
-  parentRefs:
-    - name: data-science-gateway
-      kind: Gateway
-      namespace: openshift-ingress
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: rhods-dashboard
-          port: 8443
-`), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "httproute.yaml"), routeManifest, 0644))
 }
 
 func cleanupMaaSConsumerPortalResources(t *testing.T, r *ctrlpkg.DashboardReconciler) {
