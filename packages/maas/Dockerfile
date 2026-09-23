@@ -19,10 +19,10 @@ WORKDIR /usr/src/app
 # Copy the source code to the container
 COPY ${UI_SOURCE_CODE} /usr/src/app
 
-# Install the dependencies and build
-RUN npm cache clean --force
-RUN npm ci
-RUN npm run build:prod
+# Install pnpm, dependencies, and build
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build:prod
 
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder

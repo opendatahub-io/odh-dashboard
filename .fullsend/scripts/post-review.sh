@@ -442,6 +442,25 @@ def render_location(result, finding, server_url):
 def clean(text):
     return suppress_mentions(str(text or "").strip())
 
+def render_remediation(text):
+    """A one-line remediation stays inline; a patch snippet gets a fenced block.
+
+    CodeRabbit's suggestions[] are code, so flattening them to one bullet makes
+    them unreadable. List continuation needs four-space indentation, and the
+    fence is padded past any backticks inside the snippet.
+    """
+    body = suppress_mentions(str(text or "").strip())
+    if not body:
+        return []
+    if "\n" not in body:
+        return [f"  - Remediation: {body}"]
+    longest = max((len(m) for m in re.findall(r"`+", body)), default=0)
+    fence = "`" * max(3, longest + 1)
+    out = ["  - Remediation:", "", f"    {fence}"]
+    out += [f"    {line}" if line.strip() else "" for line in body.split("\n")]
+    out += [f"    {fence}", ""]
+    return out
+
 def table_cell(text):
     return clean(text).replace("|", "\\|").replace("\n", " ")
 
@@ -662,7 +681,7 @@ def render_body(result, previous_md, action):
                 if finding.get("why"):
                     lines.append(f"  - Why: {clean(finding.get('why'))}")
                 if finding.get("remediation"):
-                    lines.append(f"  - Remediation: {clean(finding.get('remediation'))}")
+                    lines += render_remediation(finding.get("remediation"))
     elif action == "approve":
         lines += ["", "Looks good to me."]
 
@@ -973,6 +992,29 @@ run_self_test() {
     fail=1
   else
     echo "PASS producers table attributes findings and separates ran-clean from skipped"
+  fi
+
+  # A patch snippet must survive as code. Flattened to one bullet it is
+  # unreadable, and a fence shorter than the snippet's own backticks breaks out.
+  fix_finding='{"severity":"high","category":"coderabbit","dimension":"coderabbit","file":"a.ts","description":"Guard the empty list.","why":"The list can be empty.","remediation":"if (!items.length) {\n  return null;\n}\n\n```ts\nconst safe = items ?? [];\n```"}'
+  prose_finding='{"severity":"high","category":"correctness","dimension":"correctness","file":"b.ts","description":"Empty state throws.","why":"Unguarded map.","remediation":"Guard the list and add an empty-state test."}'
+  printf '%s' "{${common},\"findings\":[${fix_finding},${prose_finding}]}" > "${tmp}/fix.json"
+  transform_review_result "${tmp}/fix.json" > "${tmp}/fix-out.json"
+  body=$(jq -r .body "${tmp}/fix-out.json")
+  if ! grep -qE '^  - Remediation:$' <<<"${body}"; then
+    echo "FAIL remediation: multi-line snippet was not given its own block" >&2
+    fail=1
+  elif ! grep -qE '^    ````$' <<<"${body}"; then
+    echo "FAIL remediation: fence was not padded past the snippet's own backticks" >&2
+    fail=1
+  elif ! grep -qE '^      return null;$' <<<"${body}"; then
+    echo "FAIL remediation: snippet indentation was lost" >&2
+    fail=1
+  elif ! grep -qE '^  - Remediation: Guard the list and add an empty-state test\.$' <<<"${body}"; then
+    echo "FAIL remediation: single-line remediation should stay inline" >&2
+    fail=1
+  else
+    echo "PASS remediation renders snippets as code and prose inline"
   fi
 
   # Unmet criteria stay expanded; an all-clear set collapses.

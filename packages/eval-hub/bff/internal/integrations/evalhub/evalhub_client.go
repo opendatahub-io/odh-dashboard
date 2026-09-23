@@ -422,16 +422,31 @@ type EvalHubClient struct {
 
 // NewEvalHubClient creates a new client configured for EvalHub.
 func NewEvalHubClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) *EvalHubClient {
+	return NewEvalHubClientWithTransport(baseURL, authToken, insecureSkipVerify, rootCAs, apiPath, nil)
+}
+
+// NewEvalHubClientWithTransport creates a new client with an optional HTTP transport wrapper.
+func NewEvalHubClientWithTransport(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string, wrapTransport func(http.RoundTripper) http.RoundTripper) *EvalHubClient {
 	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
 	}
+	// The port-forward wrapper changes the connection address to localhost. Keep
+	// the original service hostname for TLS SNI and certificate verification.
+	if wrapTransport != nil {
+		if serviceURL, err := url.Parse(baseURL); err == nil && serviceURL.Scheme == "https" && serviceURL.Hostname() != "" {
+			tlsConfig.ServerName = serviceURL.Hostname()
+		}
+	}
+
+	var transport http.RoundTripper = &http.Transport{TLSClientConfig: tlsConfig}
+	if wrapTransport != nil {
+		transport = wrapTransport(transport)
+	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
-		Timeout: 2 * time.Minute,
+		Transport: transport,
+		Timeout:   2 * time.Minute,
 	}
 
 	return &EvalHubClient{
@@ -695,7 +710,26 @@ func tenantHeaders(namespace string) (map[string]string, error) {
 // get performs a typed GET request against the EvalHub API, using the same
 // HTTP client and TLS configuration that the openai.Client was initialised with.
 // extraHeaders is an optional map of additional HTTP headers to include in the request.
-const maxGetResponseSize = 50 * 1024 * 1024 // 50 MiB — accommodates paginated list responses
+const (
+	maxGetResponseSize    = 50 * 1024 * 1024 // 50 MiB — accommodates paginated list responses
+	maxPostResponseSize   = 10 * 1024 * 1024 // 10 MiB — accommodates one submitted evaluation job
+	maxDeleteResponseSize = 1 * 1024 * 1024  // 1 MiB — DELETE responses should be empty or a small error payload
+	// TODO: Remove this temporary BFF response-size guard when log responses
+	// stream directly to clients after the backend team exposes a normal
+	// X-Log-Truncated response header.
+	maxLogResponseSize = 64 * 1024 * 1024 // 64 MiB — includes headroom over the upstream limit
+)
+
+func readResponseBody(body io.Reader, maxSize int) ([]byte, error) {
+	responseBody, err := io.ReadAll(io.LimitReader(body, int64(maxSize)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(responseBody) > maxSize {
+		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxSize)
+	}
+	return responseBody, nil
+}
 
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
@@ -716,12 +750,9 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxGetResponseSize+1))
+	body, err := readResponseBody(resp.Body, maxGetResponseSize)
 	if err != nil {
 		return nil, err
-	}
-	if len(body) > maxGetResponseSize {
-		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxGetResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -765,7 +796,7 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := readResponseBody(resp.Body, maxPostResponseSize)
 	if err != nil {
 		return nil, err
 	}
@@ -805,7 +836,7 @@ func doRequest(c *EvalHubClient, ctx context.Context, method, path string, extra
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readResponseBody(resp.Body, maxDeleteResponseSize)
 	if err != nil {
 		return err
 	}
@@ -840,16 +871,9 @@ func getRaw(c *EvalHubClient, ctx context.Context, path string, extraHeaders map
 	}
 	defer resp.Body.Close()
 
-	// TODO: Remove this temporary BFF response-size guard when log responses
-	// stream directly to clients after the backend team exposes a normal
-	// X-Log-Truncated response header.
-	const maxLogResponseSize = 64 * 1024 * 1024 // 64 MiB; includes headroom over the upstream limit
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxLogResponseSize+1))
+	body, err := readResponseBody(resp.Body, maxLogResponseSize)
 	if err != nil {
 		return EvaluationJobLogsResponse{}, err
-	}
-	if len(body) > maxLogResponseSize {
-		return EvaluationJobLogsResponse{}, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxLogResponseSize)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return EvaluationJobLogsResponse{}, &httpError{

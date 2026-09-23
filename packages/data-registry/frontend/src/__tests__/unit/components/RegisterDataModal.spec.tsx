@@ -294,7 +294,7 @@ describe('RegisterDataModal', () => {
         // eslint-disable-next-line camelcase
         content_type: 'other',
         // eslint-disable-next-line camelcase
-        connection_ref: 'my-s3-connection',
+        connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
         owner: 'test-user',
       });
     });
@@ -338,7 +338,7 @@ describe('RegisterDataModal', () => {
         name: 'test-table',
         format: 'iceberg',
         // eslint-disable-next-line camelcase
-        connection_ref: 'my-s3-connection',
+        connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
         owner: 'test-user',
       });
     });
