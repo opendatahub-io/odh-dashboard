@@ -220,6 +220,7 @@ describe('AutoragConfigure', () => {
     openExplorer();
     fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
+    expect(screen.getByRole('button', { name: 'Replace files' })).toBeInTheDocument();
     expect(screen.getByText('test.txt')).toBeInTheDocument();
     expect(trackingMock).toHaveBeenCalledWith(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, {
       knowledgeSourceType: 's3',
@@ -233,7 +234,7 @@ describe('AutoragConfigure', () => {
     renderComponent();
     openExplorer();
     fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-    fireEvent.click(screen.getByRole('button', { name: 'Add files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Replace files' }));
     fireEvent.click(screen.getByTestId('file-explorer-cancel'));
 
     expect(screen.getByText('test.txt')).toBeInTheDocument();

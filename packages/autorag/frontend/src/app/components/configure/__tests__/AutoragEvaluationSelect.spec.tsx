@@ -185,6 +185,7 @@ describe('AutoragEvaluationSelect', () => {
       'title',
       'folder/selected.json',
     );
+    expect(screen.getByRole('button', { name: 'Replace file' })).toBeEnabled();
   });
 
   it('should open the JSON-only explorer from Add file', async () => {
@@ -194,6 +195,14 @@ describe('AutoragEvaluationSelect', () => {
     await user.click(screen.getByRole('button', { name: 'Add file' }));
     expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
     expect(screen.getByTestId('s3-namespace')).toHaveTextContent('test-namespace');
+  });
+
+  it('should open the JSON-only explorer from Replace file', async () => {
+    const user = userEvent.setup();
+    renderComponent({ test_data_secret_name: 'test-secret', test_data_key: 'existing.json' });
+
+    await user.click(screen.getByRole('button', { name: 'Replace file' }));
+    expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
   });
 
   it('should update test_data_key only after explicit S3 selection', async () => {
@@ -213,7 +222,7 @@ describe('AutoragEvaluationSelect', () => {
     const user = userEvent.setup();
     renderComponent({ test_data_secret_name: 'test-secret', test_data_key: 'existing.json' });
 
-    await user.click(screen.getByRole('button', { name: 'Add file' }));
+    await user.click(screen.getByRole('button', { name: 'Replace file' }));
     await user.click(screen.getByTestId('s3-close'));
     expect(screen.getByDisplayValue('existing.json')).toBeInTheDocument();
   });

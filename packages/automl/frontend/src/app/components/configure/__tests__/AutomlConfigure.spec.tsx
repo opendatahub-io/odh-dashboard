@@ -190,6 +190,7 @@ describe('AutomlConfigure', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add files' }));
     fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
+    expect(screen.getByRole('button', { name: 'Replace files' })).toBeInTheDocument();
     expect(screen.getByRole('grid', { name: 'Selected training data file' })).toBeInTheDocument();
     expect(screen.getByText('data.csv')).toBeInTheDocument();
     expect(trackingMock).toHaveBeenCalledWith(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, {
@@ -202,7 +203,7 @@ describe('AutomlConfigure', () => {
     fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
     fireEvent.click(screen.getByRole('button', { name: 'Add files' }));
     fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-    fireEvent.click(screen.getByRole('button', { name: 'Add files' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Replace files' }));
     fireEvent.click(screen.getByTestId('file-explorer-cancel'));
 
     expect(screen.getByText('data.csv')).toBeInTheDocument();

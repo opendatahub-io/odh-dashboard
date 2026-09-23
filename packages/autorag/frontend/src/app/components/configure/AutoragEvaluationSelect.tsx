@@ -46,6 +46,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   });
   const inputDataKey = inputDataKeys[0] ?? '';
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
+  const fileActionLabel = field.value ? 'Replace file' : 'Add file';
 
   const openExplorer = () => {
     setDropdownOpen(false);
@@ -95,10 +96,10 @@ function AutoragEvaluationSelect(): React.JSX.Element {
                   <MenuToggleAction
                     key="add-evaluation-file"
                     className="pf-v6-u-text-nowrap"
-                    aria-label="Add file"
+                    aria-label={fileActionLabel}
                     onClick={openExplorer}
                   >
-                    Add file
+                    {fileActionLabel}
                   </MenuToggleAction>,
                 ]}
                 aria-label="More evaluation file actions"

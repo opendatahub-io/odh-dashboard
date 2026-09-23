@@ -542,7 +542,9 @@ function AutomlConfigure({
                             onClick={() => setIsFileExplorerOpen(true)}
                             isDisabled={!canSelectFiles || formIsSubmitting}
                           >
-                            Add files
+                            {trainDataFileKey || selectedTrainingDataFile
+                              ? 'Replace files'
+                              : 'Add files'}
                           </Button>
                         </StackItem>
                         {selectedTrainingDataFile && (

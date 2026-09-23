@@ -480,7 +480,9 @@ function AutoragConfigure({
                             !inputDataSecretName || selectedSecret?.invalid || isSubmitting
                           }
                         >
-                          Add files
+                          {inputDataKeys.length || selectedInputDataFile
+                            ? 'Replace files'
+                            : 'Add files'}
                         </Button>
                       </StackItem>
                       {selectedInputDataFile && (
