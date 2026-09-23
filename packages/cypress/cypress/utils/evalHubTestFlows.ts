@@ -8,6 +8,10 @@ import {
 import { doesMlflowExperimentNameExist } from './oc_commands/mlflow';
 import { removeEvalHubTenantLabel } from './oc_commands/evalHubModelDeploy';
 import { cleanupEvalHubHardwareProfile } from './oc_commands/evalHubHardwareProfile';
+import {
+  assertEvalHubOfflineDataRequest,
+  interceptEvalHubOfflineDataRequest,
+} from './oc_commands/evalHubOfflineData';
 import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
 import { createEvaluationPage } from '../pages/evalHub/createEvaluationPage';
 import { evaluationResultsPage } from '../pages/evalHub/evaluationResultsPage';
@@ -431,7 +435,11 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
   }
 
   cy.step('Submit evaluation and confirm it appears in the list');
+  const usesOfflineData = interceptEvalHubOfflineDataRequest();
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
+  if (usesOfflineData) {
+    assertEvalHubOfflineDataRequest();
+  }
   cy.url({ timeout: 120000 }).should('not.include', '/create');
   evaluationsPage.findRunsTabContent({ timeout: 120000 }).should('be.visible');
   evaluationsPage
@@ -537,7 +545,11 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
   createEvaluationPage.findModelPickerToggle(modalId).should('contain.text', inferenceServiceName);
 
   cy.step('Submit evaluation and confirm it appears in the list');
+  const usesOfflineData = interceptEvalHubOfflineDataRequest();
   createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled').click();
+  if (usesOfflineData) {
+    assertEvalHubOfflineDataRequest();
+  }
   evaluationsPage.findRunsTabContent({ timeout: 120000 }).should('be.visible');
   evaluationsPage.findEvaluationsTable().should('contain', evaluationRunName);
 };
@@ -687,6 +699,7 @@ export const stopAndReconfigureEvaluation = (
   createEvaluationPage.findStartEvaluationForm({ timeout: 30000 }).should('exist');
   createEvaluationPage.findEvaluationNameInput().clear().type(reconfiguredRunName);
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
+  assertEvalHubOfflineDataRequest();
   cy.url({ timeout: 120000 }).should('not.include', '/reconfigure');
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');
   evaluationsPage

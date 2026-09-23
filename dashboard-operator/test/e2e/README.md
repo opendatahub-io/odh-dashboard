@@ -127,6 +127,71 @@ Embed small fixtures with `//go:embed`, or mount them at a path supplied by an
 environment variable. Do not depend on paths that exist only on a developer's
 machine.
 
+## Containerized Execution (early-gate shiftleft runner)
+
+The early-gate CI pipeline runs these tests on an ephemeral ROSA HCP cluster via
+its "shiftleft" runner, which executes a **containerized** copy of the test
+binary. `Dockerfile.e2e` (in `dashboard-operator/`) packages that image:
+
+```bash
+make e2e-image                       # docker build -f Dockerfile.e2e ..
+make e2e-image E2E_IMG=quay.io/<you>/odh-dashboard-operator-e2e:dev
+```
+
+The image contains the compiled `e2e.test` binary, `oc` + `kubectl`, and the
+Dashboard CRD under `/opt/e2e/crd/`. Run it against a cluster by mounting a
+kubeconfig and supplying the required env vars:
+
+```bash
+docker run --rm \
+  -v "$KUBECONFIG:/kubeconfig:ro" -e KUBECONFIG=/kubeconfig \
+  -e TEST_NAMESPACE=dashboard-operator-e2e \
+  quay.io/opendatahub/odh-dashboard-operator-e2e:latest \
+  -test.v -test.run TestE2EDashboardLifecycle
+```
+
+### CI flow
+
+- **Image build** — `.tekton/odh-dashboard-operator-e2e-pull-request.yaml` /
+  `-push.yaml` build `quay.io/opendatahub/odh-dashboard-operator-e2e` with a
+  `pr-<N>` tag on every PR that touches `test/e2e/`, `api/`, or `Dockerfile.e2e`.
+  The shiftleft runner picks up that `pr-<N>` test image automatically.
+- **Cluster + test run** — the existing early-gate PipelineRuns are triggered by
+  two **separate** PR comments, both gated by the `early-gate` label. Run them in
+  order — the build must complete before the test run:
+    1. `/early-gate` (or `/early-gate-build`) triggers
+       `.tekton/early-gate-ci-build.yaml`, which hands off to the
+       odh-konflux-central `early-gate-component-pipeline.yaml`.
+    2. `/early-gate-test` triggers `.tekton/early-gate-ci-test.yaml`, which hands
+       off to the odh-konflux-central `early-gate-test-pipeline.yaml`.
+
+  Together these provision a ROSA HCP cluster via Jenkins and invoke shiftleft.
+  The **component** pipeline (not the operator/OLM pipeline) is correct here
+  because the dashboard-operator ships as a module via the platform operator/DSC
+  rather than as its own OLM bundle.
+
+### Shiftleft contract (what the runner provides / expects)
+
+- A single-file `KUBECONFIG` for the provisioned cluster and a `TEST_NAMESPACE`.
+- Cluster RBAC (ServiceAccount + ClusterRole) covering the verbs listed under
+  [Prerequisites](#prerequisites).
+- JUnit XML results (e.g. run with `gotestsum`/`-test.v` and convert) surfaced
+  back to the PR as a status check.
+
+### DevOps handoff (owned outside this repo)
+
+These remain to be configured by DevTestOps before early-gate E2E is live:
+
+1. Per-component config in `red-hat-data-services/rhods-devops-infra`
+   (`resources/configs/components-testing/components/<name>/main.yaml`):
+   `metadata.earlyGateTestRunner: shiftleft`, the `image` reference
+   (`odh-dashboard-operator-e2e`), `image.args`, and
+   `qualityGatesMap.default.early-gate`.
+2. Konflux tenant registration of the `odh-dashboard-operator-e2e-ci` Component
+   (and its `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount) so the
+   `.tekton` E2E build PipelineRuns above actually run.
+3. ROSA HCP cluster-pool / Jenkins access for the component.
+
 ## Authoring Scenarios
 
 Files that connect to a cluster must use the `e2e` build tag. Pure helper logic

@@ -18,6 +18,7 @@ import { generateTestUUID } from './uuidGenerator';
 import { ensureAdminOcSession } from './oc_commands/baseCommands';
 import { ensureEvalHubCrReady, waitForEvaluationJobComplete } from './oc_commands/evalHubInstance';
 import { getEvalHubHardwareProfileName } from './oc_commands/evalHubHardwareProfile';
+import { provisionEvalHubOfflineDataSecret } from './oc_commands/evalHubOfflineData';
 import {
   grantEvalHubTenantAccess,
   setupTenantAndDeployModel,
@@ -93,6 +94,8 @@ export const createEvalHubBenchmarkSuiteScenario = (
       cy.step(`[Setup] Create tenant project: ${evaluationTenantProject}`);
       createCleanProject(evaluationTenantProject);
     });
+
+    cy.then(() => provisionEvalHubOfflineDataSecret(evaluationTenantProject));
 
     cy.then(() => {
       cy.step('[Setup] Deploy vLLM model and configure tenant access');

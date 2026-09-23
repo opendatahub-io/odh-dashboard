@@ -88,7 +88,6 @@ type Model struct {
 	ModelID         string                 `json:"model_id" yaml:"model_id"`
 	ProviderModelID string                 `json:"provider_model_id,omitempty" yaml:"provider_model_id,omitempty"`
 	ModelType       string                 `json:"model_type" yaml:"model_type"`
-	MaxTokens       *int                   `json:"max_tokens,omitempty" yaml:"max_tokens,omitempty"` // Optional per-model token limit
 	Metadata        map[string]interface{} `json:"metadata" yaml:"metadata"`
 }
 
@@ -479,17 +478,10 @@ func NewVLLMProvider(providerID string, url string) Provider {
 }
 
 // AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config.
-// When skipProviderMaxTokens is true, the provider-level max_tokens default is omitted from
-// the generated config. This is used for MaaS models where external providers enforce their
-// own generation limits, and including max_tokens causes errors with models that only accept
-// the newer max_completion_tokens parameter.
-func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, skipProviderMaxTokens bool) {
+func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, embeddingDimension *int) {
 	// Create provider config
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
-	if !skipProviderMaxTokens {
-		providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=4096}", index+1)
-	}
 	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
 
 	// Add provider
@@ -516,11 +508,6 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 		model = NewModel(modelID, providerID, modelType, metadata)
 	}
 
-	// Set per-model max_tokens if provided
-	if maxTokens != nil {
-		model.MaxTokens = maxTokens
-	}
-
 	// Set embedding_dimension for embedding models (only meaningful for embedding models)
 	if model.ModelType == "embedding" {
 		if model.Metadata == nil {
@@ -544,12 +531,12 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 // providerType must be the value stored in the gen-ai-aa-custom-model-endpoints ConfigMap (e.g. "remote::openai" or "remote::passthrough").
 // isClusterLocal should be true for in-cluster service URLs (*.svc.cluster.local); this disables TLS verification
 // since cluster services typically use self-signed certificates.
-func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType, providerType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, isClusterLocal bool) {
+func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType, providerType string, metadata map[string]interface{}, embeddingDimension *int, isClusterLocal bool) {
 	// Create provider config - minimal config for external models
 	// Full configuration (including secrets) is managed via the gen-ai-aa-custom-model-endpoints ConfigMap
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
-	// Note: api_token and max_tokens are NOT added here - managed via ConfigMap
+	// Note: api_token is managed via ConfigMap.
 
 	if isClusterLocal {
 		providerConfig["network"] = map[string]interface{}{
@@ -578,11 +565,6 @@ func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpoin
 		}
 	} else {
 		model = NewModel(modelID, providerID, modelType, metadata)
-	}
-
-	// Set per-model max_tokens if provided
-	if maxTokens != nil {
-		model.MaxTokens = maxTokens
 	}
 
 	// Set embedding_dimension for embedding models (only meaningful for embedding models)

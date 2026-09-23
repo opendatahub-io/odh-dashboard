@@ -5,7 +5,7 @@ on:
       - 'packages/data-registry/**'
       - 'packages/cypress/**'
       - '.github/workflows/data-registry-frontend-tests.yml'
-      - '.github/actions/module-caches/**'
+      - '.github/actions/pnpm-setup/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -16,7 +16,7 @@ on:
       - 'packages/data-registry/**'
       - 'packages/cypress/**'
       - '.github/workflows/data-registry-frontend-tests.yml'
-      - '.github/actions/module-caches/**'
+      - '.github/actions/pnpm-setup/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -36,50 +36,34 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: data-registry node_modules cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: packages/data-registry/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-data-registry-${{ hashFiles('packages/data-registry/frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-data-registry-
-
-      - name: Install data-registry dependencies
-        working-directory: packages/data-registry/frontend
-        run: npm install && npx --no-install cypress install
 
       - name: Lint
         working-directory: packages/data-registry/frontend
-        run: npm run test:lint
+        run: pnpm run test:lint
 
       - name: Type check
         working-directory: packages/data-registry/frontend
-        run: npm run test:type-check
+        run: pnpm run test:type-check
 
       - name: Unit tests (Jest)
         working-directory: packages/data-registry/frontend
-        run: npm run test:unit
+        run: pnpm run test:unit
 
       - name: Cypress mock tests
         working-directory: packages/data-registry/frontend
-        run: npm run test:cypress-ci
+        run: pnpm run test:cypress-ci
 
       - name: Run clean
         working-directory: packages/data-registry/frontend
-        run: npm run build:clean
+        run: pnpm run build:clean
 
       - name: Run build
         working-directory: packages/data-registry/frontend
-        run: npm run build
+        run: pnpm run build
 
       - name: Check if there are uncommitted file changes
         working-directory: packages/data-registry/frontend
