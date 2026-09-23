@@ -45,7 +45,7 @@ After editing `api/openapi/agent-ops.yaml`, sync the runtime copy:
 make sync-openapi
 ```
 
-`make test`, `make build`, and `npm run test:contract` (from `packages/agent-ops/`) run `check-openapi-sync` and fail if the two files differ.
+`make test`, `make build`, and `pnpm run test:contract` (from `packages/agent-ops/`) run `check-openapi-sync` and fail if the two files differ.
 
 **Local example** (default port 4000):
 

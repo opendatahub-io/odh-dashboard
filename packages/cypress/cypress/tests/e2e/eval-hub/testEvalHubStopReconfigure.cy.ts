@@ -22,6 +22,7 @@ import {
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
 import { getEvalHubHardwareProfileName } from '../../../utils/oc_commands/evalHubHardwareProfile';
+import { provisionEvalHubOfflineDataSecret } from '../../../utils/oc_commands/evalHubOfflineData';
 
 /**
  * Live-cluster Eval Hub E2E — stop and reconfigure flow.
@@ -76,6 +77,8 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
       cy.step(`[Setup] Create tenant project: ${evaluationTenantProject}`);
       createCleanProject(evaluationTenantProject);
     });
+
+    cy.then(() => provisionEvalHubOfflineDataSecret(evaluationTenantProject));
 
     cy.then(() => {
       cy.step('[Setup] Deploy vLLM model and configure tenant access');

@@ -20,14 +20,14 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: dev-start
-dev-start: ## Start in mock mode (BFF + dev server, no cluster needed)
-	npm run start:dev
+dev-start: ## Start in mock mode (BFF + rspack dev server, no cluster needed)
+	pnpm run start:dev
 
 ##@ Build
 
 .PHONY: build-frontend
 build-frontend: ## Build the RHAII frontend
-	npm run build
+	pnpm run build
 
 .PHONY: docker-build
 docker-build: ## Build container image
