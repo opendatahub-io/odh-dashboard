@@ -459,7 +459,7 @@ importers:
         version: link:../../../packages/jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -1105,7 +1105,7 @@ importers:
         version: 0.5.17(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(selfsigned@5.5.0))
@@ -1496,7 +1496,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -1890,7 +1890,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -2271,7 +2271,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -2896,7 +2896,7 @@ importers:
         version: link:../../app-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -3187,7 +3187,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -3588,7 +3588,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -3970,7 +3970,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -4636,7 +4636,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -5015,7 +5015,7 @@ importers:
         version: link:../../jest-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -5434,7 +5434,7 @@ importers:
         version: link:../../app-config
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
-        version: 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
       '@rspack/cli':
         specifier: 2.1.10
         version: 2.1.10(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
@@ -5815,19 +5815,19 @@ importers:
         version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
       '@perses-dev/loki-plugin':
         specifier: v0.6.0-rc.2
-        version: 0.6.0-rc.2(cf69ce365eee4dc82b44b785a2a0f404)
+        version: 0.6.0-rc.2(868b97823211e3075bef08965bf8b980)
       '@perses-dev/plugin-system':
         specifier: ^0.54.0-beta.10
         version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
       '@perses-dev/prometheus-plugin':
         specifier: v0.58.0-beta.3
-        version: 0.58.0-beta.3(60393a74ec86dda043598f5b954a8cde)
+        version: 0.58.0-beta.3(c0a0e75dba4f5d04eaf48d91acff428c)
       '@perses-dev/stat-chart-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(de0cc1d23bb6f7ebeddad252868af895)
+        version: 0.13.0-rc.1(6618929f2c52190ddc187cf3bac46e68)
       '@perses-dev/table-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(0937b2d04357216ecde5069e91ee5ebd)
+        version: 0.13.0-rc.1(1ac34e031cf649acc2c199d219422529)
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -8794,28 +8794,28 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  '@rsdoctor/client@1.6.2':
-    resolution: {integrity: sha512-6HngWsWIUcMoHD2ruCZLVbjeqA6Vh41xD3MQhTb/LQ1CWSpU7KVkvge0iV5JqLEv9EemSojIz5RhMRdg3AsCSA==}
+  '@rsdoctor/client@1.6.3':
+    resolution: {integrity: sha512-Vj1YCR8/amxlgjXn1rHOG56c6BBjEwiVM+qiQDRUBmn26oDxBsPwE0iCdn05ROyspepUXhuyE/4wBdYY7UtbUA==}
 
-  '@rsdoctor/core@1.6.2':
-    resolution: {integrity: sha512-YPf71epg7RDU3nT6Q3sI53y7xdksen6B/DTVCQl6mbMnG096r8Ilx0ggV9nXaa4vDOXZpiZZ+vGOhb5VeWFMMA==}
+  '@rsdoctor/core@1.6.3':
+    resolution: {integrity: sha512-P96dNevDmlMbHBZ+G9c3G3D2kC/Bx6bHgkTz0DIJcsA/6QKQCwHO5bGlBqVndOlIzNV2b8nONQdaMLUujq5iaw==}
 
-  '@rsdoctor/graph@1.6.2':
-    resolution: {integrity: sha512-EzwDKYs43UyZW/FmhQAZUqw3Z0lFA/b6XVq4OQRMUcMpNBmn/hxCDWUYUubRQEiCaqJthgl1Puu4anTJhof61g==}
+  '@rsdoctor/graph@1.6.3':
+    resolution: {integrity: sha512-lsW+DGiwSjeBt3sQh9eU9/kd1LjizjE+esrW7nud0cmRTzneHZ9TYM+v/WAaWlk2o7kvS7NEN7NLC/qqwKDZEQ==}
 
-  '@rsdoctor/rspack-plugin@1.6.2':
-    resolution: {integrity: sha512-vDRf/n6Uj6JkmolLFAG4rC115NMQ2W2T6OVjSiMU7oAds8yn1dtKzt8slL/OErCBl2p2sFcGZ1pGkdleZpFD/w==}
+  '@rsdoctor/rspack-plugin@1.6.3':
+    resolution: {integrity: sha512-pM80ts4BRN+iXSXA0YNXK5G6PvkiH0hytC91Ww8bcoDrdl3gIrx1inhFNmbwArDVNaRRFDFJDr/zyfatTMDr4Q==}
     peerDependencies:
       '@rspack/core': 2.2.4
     peerDependenciesMeta:
       '@rspack/core':
         optional: true
 
-  '@rsdoctor/sdk@1.6.2':
-    resolution: {integrity: sha512-wP26caE6hnYRQuDF5uyBXSKiBlwcOSEXtYoJRdG9ZMyf2rz0/8KWgKlp3V5Mtobf0zYlFnpi5H+8/JHfczdHVQ==}
+  '@rsdoctor/sdk@1.6.3':
+    resolution: {integrity: sha512-UX+j+Tapz4VxT7DV2YLKP8eFXjmxHDxBSMH+WJLu0GaZv/ljHTjk+h/aJF1kOlA3gdXmbvas2vBQzTuEI9rKww==}
 
-  '@rsdoctor/types@1.6.2':
-    resolution: {integrity: sha512-+giYQPsgpPyo8OCGM9qNrdZKc2oaU+gUsZ5cnpHgbD3zwgUDj39PGgnnRj3kc9BP4PFrhVrBIJUnVVG/v60Jxw==}
+  '@rsdoctor/types@1.6.3':
+    resolution: {integrity: sha512-iCivPceJuCkUtxMswrUsIbKdARGyCnw3e1QEf8nTNWygWmud1nM8kr1Y8ZaqJGbe/g7c1KZebWpN5/hzUbBHPw==}
     peerDependencies:
       '@rspack/core': 2.2.4
       webpack: 5.104.1
@@ -8825,8 +8825,8 @@ packages:
       webpack:
         optional: true
 
-  '@rsdoctor/utils@1.6.2':
-    resolution: {integrity: sha512-e6veT/5SdXxmTKV6K6Ay0S2LyvDMtedwaHIeRJNgT0a2T0esdAuL+O5q/jWqa33k9+Df+o+E/i2boX9CP3rYLA==}
+  '@rsdoctor/utils@1.6.3':
+    resolution: {integrity: sha512-xuZalAwSE8r/8Ro+N9RxyA+0OXvaSGXOaggmbmF89YGrYhQ4R3h05XvgZKQLtd//w8DxR6znUqb1xKp8a4NYDw==}
 
   '@rspack/binding-darwin-arm64@2.2.4':
     resolution: {integrity: sha512-PmwL+7nlD58tvGi2tUct2D6HzPsCeICvNpfgznzFjvrGlmPOm7pn5ahaevEf0C5QRHldf97qShekits4bzArsQ==}
@@ -10464,6 +10464,11 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  baseline-browser-mapping@2.11.21:
+    resolution: {integrity: sha512-uh8vpY/1/YyFkunIDFH/12p7/7VdPKA1hejMVEbdkEaWnUz0Hesvx5EbiU6XxjyHZIOju+ZMbQJkRh+es3/spQ==}
+    engines: {node: '>=6.0.0'}
+    hasBin: true
+
   basic-auth@2.0.1:
     resolution: {integrity: sha512-NF+epuEdnUYVlGuhaxbbq+dvJttwLnGY+YixlXlME5KpQ5W3CnXA5cVTneY3SPbPDRkcjMbifrwmFYcClgOZeg==}
     engines: {node: '>= 0.8'}
@@ -10536,6 +10541,11 @@ packages:
 
   browserslist@4.28.8:
     resolution: {integrity: sha512-V2NpofLblG64mfOtSgDhOJESZEGogzDMBv/q+W6oc4LXWP/q75eOXoOaaOu1EOadB9U4Bwx/e0yzbvwKH8zalA==}
+    engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
+    hasBin: true
+
+  browserslist@4.28.9:
+    resolution: {integrity: sha512-EWazOblFYUvlGZcfGhPUPmYh3nikUxBVb+y9MJun5f3hBi812X+8MSQTujLBtgK3cf51fJWbWfOjyeO954d+Eg==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
@@ -10636,6 +10646,9 @@ packages:
 
   caniuse-lite@1.0.30001809:
     resolution: {integrity: sha512-xxWVywk6a6Arlk+hymeycyn/VgqEfLDxupvhH/xiY5SJ/18kmi9o6MiO320DCUzypORHLtvh0I4i04tUhCNHNQ==}
+
+  caniuse-lite@1.0.30001810:
+    resolution: {integrity: sha512-TITQPUkaz+aVk5GL6NhOdwk1aEaNTSDPsGFWrTuhKGtjTF70jL/Oht2W4c6rXUe5fu7Ie19VIahAXHIIiWWNeg==}
 
   caseless@0.12.0:
     resolution: {integrity: sha512-4tYFyifaFfGacoiObjJegolkwSU4xQNGbVgUiNYVUxbQ2x2lUsFvY4hVgVzGiIe6WLOPqycWXA40l+PWsxthUw==}
@@ -11697,6 +11710,9 @@ packages:
   electron-to-chromium@1.5.408:
     resolution: {integrity: sha512-SLoprcYpJ/OH2v2ps0+N5biv9H4/KBT3+YmmDew64TwK5y9j2wv7pMOFY7IorVkyMtEyLSCRlXKLsNlakeAlPw==}
 
+  electron-to-chromium@1.5.425:
+    resolution: {integrity: sha512-QvPtl41EUOnuT1HBvMKgxXRIaHNcagBPs50u7VULzhZXaGfqTbZyE16LQsctZ/RQHlGu+FOWeDTR4mY6YbeF1g==}
+
   emittery@0.13.1:
     resolution: {integrity: sha512-DeWwawk6r5yR9jFgnDKYt4sLS0LmHJJi3ZOnb5/JdbYwj3nW+FxQnHIjhBKz8YLC7oRNPVM9NQ47I3CVx34eqQ==}
     engines: {node: '>=12'}
@@ -11725,8 +11741,8 @@ packages:
     resolution: {integrity: sha512-HqD3yTBfnBxIrbnM1DoD6Pcq8NECnh8d4As1Qgh0z5Gg3jRRIqijury0CL3ghu/edArpUYiYqQiDUQBIs4np3Q==}
     engines: {node: '>=10.0.0'}
 
-  engine.io@6.6.9:
-    resolution: {integrity: sha512-clKkw4C7nJ22mGgoVcCg6V/W/TxdNyIOTr89k2ONZu81qqkddPFDF0LXcbAwhzPD8DjkiRCjzuiO6Y+fkpD4vg==}
+  engine.io@6.6.10:
+    resolution: {integrity: sha512-9/lX2bdlizlCXMHRMOIm03VBQHQYC7VvydcxtTAUJRxNW1QzM/2PMFSmr6h/lCiMHcyCP6abK+t9Q+j4vekk8Q==}
     engines: {node: '>=10.2.0'}
 
   enhanced-resolve@5.24.5:
@@ -11803,6 +11819,9 @@ packages:
 
   es-toolkit@1.51.0:
     resolution: {integrity: sha512-zC2lQGkM7QX+Gm6iM3+WIdZJzthsEd14LvRNJneSO2hzyz/zNBENR8+YXWo1cKxgPBtV6ksPYHELbcwBRzmdCw==}
+
+  es-toolkit@1.52.0:
+    resolution: {integrity: sha512-XTNEJQh1tY1ZJVcf6ayP/2n4ZPyaHlW2FWs7xvw5ddPuhUVjLD3olQVQS7kf58JbAB48iL0uL/jerTrjtV3lDA==}
 
   es6-error@4.1.1:
     resolution: {integrity: sha512-Um/+FxMr9CISWh0bi5Zv0iOD+4cFh5qLeks1qhAopKVAJw3drgKbKySikp7wGhDL0HPeaja0P5ULZrxLkniUVg==}
@@ -12325,8 +12344,8 @@ packages:
   filelist@1.0.6:
     resolution: {integrity: sha512-5giy2PkLYY1cP39p17Ech+2xlpTRL9HLspOfEgm0L6CwBXBTgsK5ou0JtzYuepxkaQ/tvhCFIJ5uXo0OrM2DxA==}
 
-  filesize@11.0.22:
-    resolution: {integrity: sha512-RlCVs9CY+oSsRnNZn95J9vDXjNjOwddKyTFjOYtA4yxYVIxBnwiVVGJX+TFhsmu3uUf81JDGyijtYL9xgawlTw==}
+  filesize@11.0.23:
+    resolution: {integrity: sha512-EzB9Km94xm3V7szupSlcGVJpkvXWuNtSZmr7qBoj229q7lEJEEYGMk8gwGnA4ZTAGQmHZigTDEIuOfCQXec1fQ==}
     engines: {node: '>= 10.8.0'}
 
   fill-range@7.1.1:
@@ -14526,6 +14545,10 @@ packages:
 
   node-releases@2.0.53:
     resolution: {integrity: sha512-D9UOmYG3UH1V+ENW56t5QXBwJw1YEY18ruVeus89Rw+SyIgjPkCO84bRzO3uNIYosJbNwiabWVn48o3uJLjxFQ==}
+    engines: {node: '>=18'}
+
+  node-releases@2.0.55:
+    resolution: {integrity: sha512-mIrE/Cw9y+9Au6dS5vDKDhQza9YvG6w+ZrS6X+ZzA7yFW/soAeaups4Qzn1bL6g5FVy8WtP79+0j82oPIbqRjQ==}
     engines: {node: '>=18'}
 
   node-schedule@2.1.1:
@@ -16796,6 +16819,12 @@ packages:
 
   update-browserslist-db@1.3.1:
     resolution: {integrity: sha512-ZZ61DsRsOnakl74HAmp3oSN4aXUmEWXf+i/yv0h7tIBfICc3VdrFErQKUUKPgu3AMsTUMbcongALEN4l6GSUrQ==}
+    hasBin: true
+    peerDependencies:
+      browserslist: '>= 4.21.0'
+
+  update-browserslist-db@1.3.2:
+    resolution: {integrity: sha512-UQ+MSxlhRm1bzjhU+DcuXfjFO1FzNtqhK5+9Yvlp90ItDLk5vT932A0rFu619nf7RVS+Y/VeaUW1jaRDqZ8VJw==}
     hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
@@ -20816,7 +20845,7 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/loki-plugin@0.6.0-rc.2(cf69ce365eee4dc82b44b785a2a0f404)':
+  '@perses-dev/loki-plugin@0.6.0-rc.2(868b97823211e3075bef08965bf8b980)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -20831,6 +20860,7 @@ snapshots:
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       react: 18.3.1
@@ -20889,7 +20919,7 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/prometheus-plugin@0.58.0-beta.3(60393a74ec86dda043598f5b954a8cde)':
+  '@perses-dev/prometheus-plugin@0.58.0-beta.3(c0a0e75dba4f5d04eaf48d91acff428c)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -20907,6 +20937,7 @@ snapshots:
       color-hash: 2.0.2
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       qs: 6.15.3
@@ -20932,7 +20963,7 @@ snapshots:
       mathjs: 15.2.0
       zod: 3.25.76
 
-  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(de0cc1d23bb6f7ebeddad252868af895)':
+  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(6618929f2c52190ddc187cf3bac46e68)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -20944,13 +20975,14 @@ snapshots:
       chroma-js: 3.2.0
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@perses-dev/table-plugin@0.13.0-rc.1(0937b2d04357216ecde5069e91ee5ebd)':
+  '@perses-dev/table-plugin@0.13.0-rc.1(1ac34e031cf649acc2c199d219422529)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -20963,6 +20995,7 @@ snapshots:
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -21054,19 +21087,19 @@ snapshots:
       picocolors: 1.1.1
       source-map: 0.7.6
 
-  '@rsdoctor/client@1.6.2': {}
+  '@rsdoctor/client@1.6.3': {}
 
-  '@rsdoctor/core@1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/core@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
       '@rsbuild/plugin-check-syntax': 1.6.1
-      '@rsdoctor/graph': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/sdk': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
       '@rspack/resolver': 0.2.8(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       browserslist-load-config: 1.0.3
-      es-toolkit: 1.51.0
-      filesize: 11.0.22
+      es-toolkit: 1.52.0
+      filesize: 11.0.23
       fs-extra: 11.4.0
       semver: 7.8.5
       source-map: 0.7.6
@@ -21080,17 +21113,17 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/core@1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/core@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
       '@rsbuild/plugin-check-syntax': 1.6.1
-      '@rsdoctor/graph': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/sdk': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
       '@rspack/resolver': 0.2.8(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
       browserslist-load-config: 1.0.3
-      es-toolkit: 1.51.0
-      filesize: 11.0.22
+      es-toolkit: 1.52.0
+      filesize: 11.0.23
       fs-extra: 11.4.0
       semver: 7.8.5
       source-map: 0.7.6
@@ -21104,35 +21137,35 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/graph@1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
+  '@rsdoctor/graph@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      es-toolkit: 1.51.0
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      es-toolkit: 1.52.0
       path-browserify: 1.0.1
       source-map: 0.7.6
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
 
-  '@rsdoctor/graph@1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
+  '@rsdoctor/graph@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      es-toolkit: 1.51.0
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      es-toolkit: 1.52.0
       path-browserify: 1.0.1
       source-map: 0.7.6
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
 
-  '@rsdoctor/rspack-plugin@1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/rspack-plugin@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/core': 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/graph': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/sdk': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/core': 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@0.24.1)
     transitivePeerDependencies:
@@ -21144,13 +21177,13 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/rspack-plugin@1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/rspack-plugin@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/core': 1.6.2(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/graph': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/sdk': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/core': 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
     optionalDependencies:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@2.8.2)
     transitivePeerDependencies:
@@ -21162,12 +21195,12 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/sdk@1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/sdk@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/client': 1.6.2
-      '@rsdoctor/graph': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/client': 1.6.3
+      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
       launch-editor: 2.14.1
       safer-buffer: 2.1.2
       socket.io: 4.8.1(supports-color@8.1.1)
@@ -21179,12 +21212,12 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/sdk@1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
+  '@rsdoctor/sdk@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(supports-color@8.1.1)(webpack@5.104.1)':
     dependencies:
-      '@rsdoctor/client': 1.6.2
-      '@rsdoctor/graph': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
-      '@rsdoctor/utils': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/client': 1.6.3
+      '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/utils': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
       launch-editor: 2.14.1
       safer-buffer: 2.1.2
       socket.io: 4.8.1(supports-color@8.1.1)
@@ -21196,7 +21229,7 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/types@1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
+  '@rsdoctor/types@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
     dependencies:
       '@types/connect': 3.4.38
       '@types/estree': 1.0.5
@@ -21206,7 +21239,7 @@ snapshots:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@0.24.1)
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.26)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
-  '@rsdoctor/types@1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
+  '@rsdoctor/types@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
     dependencies:
       '@types/connect': 3.4.38
       '@types/estree': 1.0.5
@@ -21216,10 +21249,10 @@ snapshots:
       '@rspack/core': 2.2.4(@module-federation/runtime-tools@2.8.2)
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.26)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
-  '@rsdoctor/utils@1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
+  '@rsdoctor/utils@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1)
       '@types/estree': 1.0.5
       acorn: 8.18.0
       acorn-import-attributes: 1.9.5(acorn@8.18.0)
@@ -21237,10 +21270,10 @@ snapshots:
       - '@rspack/core'
       - webpack
 
-  '@rsdoctor/utils@1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
+  '@rsdoctor/utils@1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)':
     dependencies:
       '@babel/code-frame': 7.26.2
-      '@rsdoctor/types': 1.6.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      '@rsdoctor/types': 1.6.3(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
       '@types/estree': 1.0.5
       acorn: 8.18.0
       acorn-import-attributes: 1.9.5(acorn@8.18.0)
@@ -23063,6 +23096,8 @@ snapshots:
 
   baseline-browser-mapping@2.11.14: {}
 
+  baseline-browser-mapping@2.11.21: {}
+
   basic-auth@2.0.1:
     dependencies:
       safe-buffer: 5.1.2
@@ -23147,7 +23182,7 @@ snapshots:
 
   browserslist-to-es-version@1.4.2:
     dependencies:
-      browserslist: 4.28.8
+      browserslist: 4.28.9
 
   browserslist@4.28.8:
     dependencies:
@@ -23156,6 +23191,14 @@ snapshots:
       electron-to-chromium: 1.5.408
       node-releases: 2.0.53
       update-browserslist-db: 1.3.1(browserslist@4.28.8)
+
+  browserslist@4.28.9:
+    dependencies:
+      baseline-browser-mapping: 2.11.21
+      caniuse-lite: 1.0.30001810
+      electron-to-chromium: 1.5.425
+      node-releases: 2.0.55
+      update-browserslist-db: 1.3.2(browserslist@4.28.9)
 
   bs-logger@0.2.6:
     dependencies:
@@ -23254,6 +23297,8 @@ snapshots:
       lodash.uniq: 4.5.0
 
   caniuse-lite@1.0.30001809: {}
+
+  caniuse-lite@1.0.30001810: {}
 
   caseless@0.12.0: {}
 
@@ -24398,6 +24443,8 @@ snapshots:
 
   electron-to-chromium@1.5.408: {}
 
+  electron-to-chromium@1.5.425: {}
+
   emittery@0.13.1: {}
 
   emoji-regex@10.6.0: {}
@@ -24416,13 +24463,12 @@ snapshots:
 
   engine.io-parser@5.2.3: {}
 
-  engine.io@6.6.9(supports-color@8.1.1):
+  engine.io@6.6.10(supports-color@8.1.1):
     dependencies:
       '@types/cors': 2.8.19
       '@types/node': 22.20.1
       '@types/ws': 8.18.1
       accepts: 1.3.8
-      base64id: 2.0.0
       cookie: 0.7.2
       cors: 2.8.6
       debug: 4.4.3(supports-color@8.1.1)
@@ -24582,6 +24628,8 @@ snapshots:
       is-symbol: 1.1.1
 
   es-toolkit@1.51.0: {}
+
+  es-toolkit@1.52.0: {}
 
   es6-error@4.1.1: {}
 
@@ -25570,7 +25618,7 @@ snapshots:
     dependencies:
       minimatch: 5.1.9
 
-  filesize@11.0.22: {}
+  filesize@11.0.23: {}
 
   fill-range@7.1.1:
     dependencies:
@@ -28720,6 +28768,8 @@ snapshots:
 
   node-releases@2.0.53: {}
 
+  node-releases@2.0.55: {}
+
   node-schedule@2.1.1:
     dependencies:
       cron-parser: 4.9.0
@@ -30414,7 +30464,7 @@ snapshots:
       base64id: 2.0.0
       cors: 2.8.6
       debug: 4.3.7(supports-color@8.1.1)
-      engine.io: 6.6.9(supports-color@8.1.1)
+      engine.io: 6.6.10(supports-color@8.1.1)
       socket.io-adapter: 2.5.8(supports-color@8.1.1)
       socket.io-parser: 4.2.7(supports-color@8.1.1)
     transitivePeerDependencies:
@@ -31322,6 +31372,12 @@ snapshots:
   update-browserslist-db@1.3.1(browserslist@4.28.8):
     dependencies:
       browserslist: 4.28.8
+      escalade: 3.2.0
+      picocolors: 1.1.1
+
+  update-browserslist-db@1.3.2(browserslist@4.28.9):
+    dependencies:
+      browserslist: 4.28.9
       escalade: 3.2.0
       picocolors: 1.1.1
 
