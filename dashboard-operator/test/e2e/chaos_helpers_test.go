@@ -31,16 +31,21 @@ func TestDeploymentSelectorString(t *testing.T) {
 }
 
 func TestConfigureChaosExperiment(t *testing.T) {
+	twoReplicas := int32(2)
 	experiment := &chaosv1alpha1.ChaosExperiment{
 		Spec: chaosv1alpha1.ChaosExperimentSpec{
 			Target: chaosv1alpha1.TargetSpec{Resource: "Deployment/odh-dashboard"},
 			SteadyState: chaosv1alpha1.SteadyStateSpec{Checks: []chaosv1alpha1.SteadyStateCheck{{
 				Kind: "Deployment", Name: "odh-dashboard", Namespace: "opendatahub",
 			}}},
-			Injection: chaosv1alpha1.InjectionSpec{Parameters: map[string]string{"labelSelector": "deployment=odh-dashboard"}},
+			Injection:   chaosv1alpha1.InjectionSpec{Parameters: map[string]string{"labelSelector": "deployment=odh-dashboard"}},
+			BlastRadius: chaosv1alpha1.BlastRadiusSpec{MaxPodsAffected: 1},
 		},
 	}
-	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator"}}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator"},
+		Spec:       appsv1.DeploymentSpec{Replicas: &twoReplicas},
+	}
 
 	configureChaosExperiment(experiment, "test-ns", deployment, "app=dashboard-operator")
 	require.Equal(t, "Deployment/dashboard-operator", experiment.Spec.Target.Resource)
@@ -49,6 +54,17 @@ func TestConfigureChaosExperiment(t *testing.T) {
 	require.Equal(t, int32(1), experiment.Spec.BlastRadius.MaxPodsAffected)
 	require.Equal(t, "dashboard-operator", experiment.Spec.SteadyState.Checks[0].Name)
 	require.Equal(t, "test-ns", experiment.Spec.SteadyState.Checks[0].Namespace)
+}
+
+func TestValidateDeploymentBlastRadius(t *testing.T) {
+	twoReplicas := int32(2)
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator", Namespace: "operator-ns"},
+		Spec:       appsv1.DeploymentSpec{Replicas: &twoReplicas},
+	}
+
+	require.NoError(t, validateDeploymentBlastRadius(deployment, 2))
+	require.ErrorContains(t, validateDeploymentBlastRadius(deployment, 1), "exceeding experiment maxPodsAffected 1")
 }
 
 func TestConfigureChaosExperimentInitializesParameters(t *testing.T) {

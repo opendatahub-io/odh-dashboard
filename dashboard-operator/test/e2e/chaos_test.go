@@ -70,7 +70,9 @@ func TestE2EOperatorChaos(t *testing.T) {
 		require.Equal(t, chaosv1alpha1.NetworkPartition, events[0].Type)
 		require.Equal(t, "created", events[0].Action)
 		require.NoError(t, waitForChaosNetworkPolicy(events[0].Target, target.namespace, true))
-		waitForNetworkPolicyEnforcement()
+		replacement, err := restartControllerUnderPartition(target, experiment.ResolvedRecoveryTimeout())
+		require.NoError(t, err)
+		t.Logf("controller restarted under active NetworkPolicy: newUID=%s podIP=%s", replacement.UID, replacement.Status.PodIP)
 
 		require.NoError(t, removeOwnedCoreDeploymentLabel(context.Background(), coreKey))
 		require.NoError(t, assertDeploymentLabelAbsentFor(coreKey, partitionObservationTime),

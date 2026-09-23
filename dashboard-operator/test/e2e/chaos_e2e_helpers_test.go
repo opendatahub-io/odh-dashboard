@@ -35,7 +35,6 @@ const (
 	chaosCleanupTimeout       = 1 * time.Minute
 	chaosRecoveryTimeout      = 5 * time.Minute
 	partitionObservationTime  = 10 * time.Second
-	networkPolicySettleTime   = 5 * time.Second
 	chaosExperimentDirEnvName = "TEST_CHAOS_EXPERIMENT_DIR"
 )
 
@@ -125,6 +124,9 @@ func loadLiveChaosExperiment(fileName string, target *chaosTarget) (*chaosv1alph
 		return nil, fmt.Errorf("load chaos experiment %s: %w", fileName, err)
 	}
 	configureChaosExperiment(loaded, target.namespace, target.deployment, target.selector)
+	if err := validateDeploymentBlastRadius(target.deployment, loaded.Spec.BlastRadius.MaxPodsAffected); err != nil {
+		return nil, err
+	}
 	if validationErrors := experiment.Validate(loaded); len(validationErrors) > 0 {
 		return nil, fmt.Errorf("validate chaos experiment %s: %v", fileName, validationErrors)
 	}
@@ -255,6 +257,46 @@ func waitForReplacementControllerPod(target *chaosTarget, baselineUIDs map[types
 	return replacement, nil
 }
 
+func waitForNetworkedReplacementControllerPod(target *chaosTarget, baselineUIDs map[types.UID]struct{}, timeout time.Duration) (*corev1.Pod, error) {
+	var replacement *corev1.Pod
+	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, timeout, true, func(ctx context.Context) (bool, error) {
+		pods, err := controllerPods(ctx, target)
+		if err != nil {
+			return false, nil
+		}
+		for i := range pods {
+			if _, existed := baselineUIDs[pods[i].UID]; !existed && pods[i].Status.PodIP != "" {
+				replacement = pods[i].DeepCopy()
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("wait for a networked controller pod absent from the pre-partition UID baseline: %w", err)
+	}
+	return replacement, nil
+}
+
+func restartControllerUnderPartition(target *chaosTarget, timeout time.Duration) (*corev1.Pod, error) {
+	baseline, err := captureControllerPodBaseline(context.Background(), target)
+	if err != nil {
+		return nil, err
+	}
+	current, err := readyControllerPod(context.Background(), target)
+	if err != nil {
+		return nil, err
+	}
+	zero := int64(0)
+	if err := k8sClient.Delete(context.Background(), current, &client.DeleteOptions{
+		GracePeriodSeconds: &zero,
+		Preconditions:      &metav1.Preconditions{UID: &current.UID},
+	}); err != nil {
+		return nil, fmt.Errorf("restart controller pod %s/%s under NetworkPolicy: %w", current.Namespace, current.Name, err)
+	}
+	return waitForNetworkedReplacementControllerPod(target, baseline.uids, timeout)
+}
+
 func waitForReadyControllerPod(target *chaosTarget, timeout time.Duration) (*corev1.Pod, error) {
 	var readyPod *corev1.Pod
 	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, timeout, true, func(ctx context.Context) (bool, error) {
@@ -355,27 +397,25 @@ func waitForChaosPDB(name, namespace string, present bool) error {
 }
 
 func waitForResourcePresence(object client.Object, key client.ObjectKey, present bool) error {
+	var lastReadErr error
 	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, chaosCleanupTimeout, true, func(ctx context.Context) (bool, error) {
 		err := k8sClient.Get(ctx, key, object)
 		switch {
 		case err == nil:
+			lastReadErr = nil
 			return present, nil
 		case apierrors.IsNotFound(err):
+			lastReadErr = nil
 			return !present, nil
 		default:
-			return false, err
+			lastReadErr = err
+			return false, nil
 		}
 	})
 	if err != nil {
-		return fmt.Errorf("wait for %T %s presence=%t: %w", object, key, present, err)
+		return fmt.Errorf("wait for %T %s presence=%t: %w", object, key, present, errors.Join(err, lastReadErr))
 	}
 	return nil
-}
-
-func waitForNetworkPolicyEnforcement() {
-	timer := time.NewTimer(networkPolicySettleTime)
-	defer timer.Stop()
-	<-timer.C
 }
 
 func evictControllerPod(ctx context.Context, clientset kubernetes.Interface, pod *corev1.Pod) error {

@@ -43,11 +43,6 @@ func configureChaosExperiment(
 	}
 	experiment.Spec.Injection.Parameters["labelSelector"] = selector
 	experiment.Spec.BlastRadius.AllowedNamespaces = []string{namespace}
-	desiredReplicas := int32(1)
-	if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas > 0 {
-		desiredReplicas = *deployment.Spec.Replicas
-	}
-	experiment.Spec.BlastRadius.MaxPodsAffected = desiredReplicas
 
 	for i := range experiment.Spec.SteadyState.Checks {
 		check := &experiment.Spec.SteadyState.Checks[i]
@@ -56,6 +51,20 @@ func configureChaosExperiment(
 			check.Namespace = namespace
 		}
 	}
+}
+
+func validateDeploymentBlastRadius(deployment *appsv1.Deployment, maxPodsAffected int32) error {
+	desiredReplicas := int32(1)
+	if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas > 0 {
+		desiredReplicas = *deployment.Spec.Replicas
+	}
+	if desiredReplicas > maxPodsAffected {
+		return fmt.Errorf(
+			"deployment %s/%s has %d replicas, exceeding experiment maxPodsAffected %d",
+			deployment.Namespace, deployment.Name, desiredReplicas, maxPodsAffected,
+		)
+	}
+	return nil
 }
 
 func injectionTargetedBaselinePod(events []chaosv1alpha1.InjectionEvent, baselineNames map[string]struct{}) bool {
