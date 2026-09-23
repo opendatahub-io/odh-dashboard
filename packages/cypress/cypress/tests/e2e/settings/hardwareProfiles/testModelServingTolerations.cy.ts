@@ -181,7 +181,7 @@ describe('ModelServing - tolerations tests', () => {
       } else {
         inferenceServiceModal.selectPotentiallyDisabledProfile(
           testData.hardwareProfileDeploymentSize,
-          hardwareProfileResourceName,
+          testData.hardwareProfileName,
         );
         modelServingWizard.findModelFormatSelectOption(modelFormat).click();
         modelServingWizard.selectServingRuntimeOption(servingRuntime);
