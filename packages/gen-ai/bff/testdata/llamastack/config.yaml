@@ -24,8 +24,11 @@ providers:
         namespace: vector_io::milvus
         backend: kv_default
   file_processors:
-  - provider_id: auto
-    provider_type: inline::auto
+  # The test OGX environment does not install MarkItDown, which is required
+  # by inline::auto. Production configuration continues to use auto for Office
+  # document support; this replay fixture only needs PDF/text processing.
+  - provider_id: pypdf
+    provider_type: inline::pypdf
     config: {}
   files:
   - provider_id: localfs-files
