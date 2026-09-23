@@ -91,7 +91,7 @@ describe('hfTokenSecret', () => {
         resourceVersion: '123',
         labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
       },
-      data: { OTHER: 'value' },
+      data: { [HF_TOKEN_ENV_NAME]: 'existing-token', OTHER: 'value' },
     });
     mockReplaceSecret.mockResolvedValue({
       apiVersion: 'v1',

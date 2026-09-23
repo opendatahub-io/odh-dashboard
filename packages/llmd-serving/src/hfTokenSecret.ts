@@ -1,44 +1,49 @@
 import type { HuggingFaceApiKeyFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import {
-  getConfiguredHfTokenSecretName,
+  getHfTokenServiceAccountName,
   HF_TOKEN_ENV_NAME,
-  HF_TOKEN_SECRET_ANNOTATION,
 } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
-import type { LLMInferenceServiceKind } from './types';
-import { structuredCloneWithMainContainer } from './deployments/model';
-
-export {
+import {
+  getHfTokenSecretNameFromServiceAccount,
   resolveHfTokenSecretName,
   resolveHfTokenServiceAccountName,
 } from '@odh-dashboard/model-serving/shared/hfTokenSecret';
+import type { LLMInferenceServiceKind } from './types';
+import { structuredCloneWithMainContainer } from './deployments/model';
+
+export { resolveHfTokenSecretName, resolveHfTokenServiceAccountName };
 
 /**
- * Prefer SA + annotation (Option 1). Fall back to legacy main-container env for older deploys.
+ * Source of truth is the ServiceAccount (`{deployment}-hf-sa`) and its Secret refs.
  * LLMInferenceService has no official HF docs; template.serviceAccountName follows KServe samples.
  */
-export const extractHuggingFaceApiKey = (
+export const extractHuggingFaceApiKey = async (
   deployment: LLMInferenceServiceKind,
-): HuggingFaceApiKeyFieldData | null => {
-  const annotatedSecretName = deployment.metadata.annotations?.[HF_TOKEN_SECRET_ANNOTATION];
-  if (annotatedSecretName) {
-    return {
-      token: '',
-      configuredSecretName: annotatedSecretName,
-    };
+): Promise<HuggingFaceApiKeyFieldData | null> => {
+  const { name: deploymentName, namespace } = deployment.metadata;
+  const serviceAccountName = deployment.spec.template?.serviceAccountName;
+  if (!deploymentName || !namespace || !serviceAccountName) {
+    return null;
   }
-
-  const configuredSecretName = getConfiguredHfTokenSecretName(
-    deployment.spec.template?.containers?.find((container) => container.name === 'main')?.env,
-  );
-
-  if (!configuredSecretName) {
+  if (serviceAccountName !== getHfTokenServiceAccountName(deploymentName)) {
     return null;
   }
 
-  return {
-    token: '',
-    configuredSecretName,
-  };
+  try {
+    const configuredSecretName = await getHfTokenSecretNameFromServiceAccount(
+      serviceAccountName,
+      namespace,
+    );
+    if (!configuredSecretName) {
+      return null;
+    }
+    return {
+      token: '',
+      configuredSecretName,
+    };
+  } catch {
+    return null;
+  }
 };
 
 /**
@@ -55,10 +60,6 @@ export const applyHfTokenServiceAccount = (
   }
 
   const { result, mainContainer } = structuredCloneWithMainContainer(llmInferenceService);
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    [HF_TOKEN_SECRET_ANNOTATION]: secretName,
-  };
   result.spec.template = {
     ...result.spec.template,
     serviceAccountName,

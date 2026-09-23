@@ -1,44 +1,52 @@
 import type { HuggingFaceApiKeyFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import {
+  getHfTokenServiceAccountName,
   HF_TOKEN_ENV_NAME,
-  HF_TOKEN_SECRET_ANNOTATION,
-  isDashboardManagedHfTokenEnvVar,
 } from '@odh-dashboard/model-serving/shared/hfTokenConstants';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-
-export {
+import {
+  getHfTokenSecretNameFromServiceAccount,
   resolveHfTokenSecretName,
   resolveHfTokenServiceAccountName,
 } from '@odh-dashboard/model-serving/shared/hfTokenSecret';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+
+export { resolveHfTokenSecretName, resolveHfTokenServiceAccountName };
 
 /**
- * Prefer SA + annotation (Option 1). Fall back to legacy env secretKeyRef for older deploys.
+ * Source of truth is the ServiceAccount (`{deployment}-hf-sa`) and its Secret refs.
  */
-export const extractHuggingFaceApiKey = (
+export const extractHuggingFaceApiKey = async (
   deployment: InferenceServiceKind,
-): HuggingFaceApiKeyFieldData | null => {
-  const annotatedSecretName = deployment.metadata.annotations?.[HF_TOKEN_SECRET_ANNOTATION];
-  if (annotatedSecretName) {
-    return {
-      token: '',
-      configuredSecretName: annotatedSecretName,
-    };
+): Promise<HuggingFaceApiKeyFieldData | null> => {
+  const { name: deploymentName, namespace } = deployment.metadata;
+  const { serviceAccountName } = deployment.spec.predictor;
+  if (!deploymentName || !namespace || !serviceAccountName) {
+    return null;
   }
-
-  const hfEnv = deployment.spec.predictor.model?.env?.find(isDashboardManagedHfTokenEnvVar);
-  if (!hfEnv?.valueFrom?.secretKeyRef?.name) {
+  if (serviceAccountName !== getHfTokenServiceAccountName(deploymentName)) {
     return null;
   }
 
-  return {
-    token: '',
-    configuredSecretName: hfEnv.valueFrom.secretKeyRef.name,
-  };
+  try {
+    const configuredSecretName = await getHfTokenSecretNameFromServiceAccount(
+      serviceAccountName,
+      namespace,
+    );
+    if (!configuredSecretName) {
+      return null;
+    }
+    return {
+      token: '',
+      configuredSecretName,
+    };
+  } catch {
+    return null;
+  }
 };
 
 /**
- * KServe Option 1: set predictor.serviceAccountName and record the secret annotation.
- * Removes any legacy HF_TOKEN env var from the model container.
+ * KServe Option 1: set predictor.serviceAccountName.
+ * Removes any leftover HF_TOKEN env var from the model container.
  */
 export const applyHfTokenServiceAccount = (
   inferenceService: InferenceServiceKind,
@@ -50,10 +58,6 @@ export const applyHfTokenServiceAccount = (
   }
 
   const result = structuredClone(inferenceService);
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    [HF_TOKEN_SECRET_ANNOTATION]: secretName,
-  };
   result.spec.predictor.serviceAccountName = serviceAccountName;
 
   const existingEnv = result.spec.predictor.model?.env ?? [];

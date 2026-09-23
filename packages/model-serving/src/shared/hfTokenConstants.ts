@@ -4,9 +4,6 @@ export const HF_TOKEN_ENV_NAME = 'HF_TOKEN';
 
 export const HF_TOKEN_DASHBOARD_LABEL = 'opendatahub.io/dashboard';
 
-/** Tracks the HF token Secret name on the deployment for edit / rotate flows. */
-export const HF_TOKEN_SECRET_ANNOTATION = 'opendatahub.io/hf-token-secret';
-
 export type HfTokenEnvVar = {
   name: string;
   valueFrom?: {
@@ -23,7 +20,9 @@ export const isDashboardManagedHfTokenEnvVar = (envVar: HfTokenEnvVar): boolean 
   envVar.valueFrom.secretKeyRef.key === HF_TOKEN_ENV_NAME;
 
 export const isDashboardManagedHfTokenSecret = (secret: SecretKind): boolean =>
-  secret.metadata.labels?.[HF_TOKEN_DASHBOARD_LABEL] === 'true';
+  secret.metadata.labels?.[HF_TOKEN_DASHBOARD_LABEL] === 'true' &&
+  (secret.stringData?.[HF_TOKEN_ENV_NAME] !== undefined ||
+    secret.data?.[HF_TOKEN_ENV_NAME] !== undefined);
 
 export const getConfiguredHfTokenSecretName = (envVars?: HfTokenEnvVar[]): string | undefined => {
   const hfEnv = envVars?.find(isDashboardManagedHfTokenEnvVar);

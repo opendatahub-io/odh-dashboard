@@ -67,6 +67,38 @@ export const assembleHfTokenServiceAccount = (
   secrets: [{ name: secretName }],
 });
 
+/**
+ * Reads the dashboard-managed HF token Secret name from a ServiceAccount.
+ * Skips OpenShift-managed dockercfg/token refs by checking Secret labels.
+ */
+export const getHfTokenSecretNameFromServiceAccount = async (
+  serviceAccountName: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<string | undefined> => {
+  const serviceAccount = await getServiceAccount(serviceAccountName, namespace, opts);
+  if (serviceAccount.metadata.labels?.[HF_TOKEN_DASHBOARD_LABEL] !== 'true') {
+    return undefined;
+  }
+
+  const secretNames = (serviceAccount.secrets ?? [])
+    .map((secret) => secret.name)
+    .filter((name): name is string => Boolean(name));
+
+  for (const name of secretNames) {
+    try {
+      const secret = await getSecret(namespace, name, opts);
+      if (isDashboardManagedHfTokenSecret(secret)) {
+        return name;
+      }
+    } catch {
+      // Secret may have been deleted; keep scanning other refs.
+    }
+  }
+
+  return undefined;
+};
+
 export const resolveHfTokenSecretName = async (
   namespace: string,
   huggingFaceApiKey?: HuggingFaceApiKeyFieldData,

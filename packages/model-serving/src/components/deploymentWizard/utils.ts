@@ -30,7 +30,11 @@ import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
-import { patchHfTokenSecretOwnerReference } from '../../concepts/hfTokenSecretUtils';
+import { getHfTokenServiceAccountName } from '../../shared/hfTokenConstants';
+import {
+  patchHfTokenSecretOwnerReference,
+  patchHfTokenServiceAccountOwnerReference,
+} from '../../concepts/hfTokenSecretUtils';
 import type { HuggingFaceApiKeyFieldData } from '../../shared/wizard-fields';
 import type {
   Deployment,
@@ -99,7 +103,9 @@ export const deployModel = async (
   applyAllFieldDataFn?: DeploymentAssemblyFn,
   runPreDeploy?: RunPreDeployFns,
   runPostDeploy?: RunPostDeployFns,
-  extractHuggingFaceApiKey?: (deployment: Deployment) => HuggingFaceApiKeyFieldData | null,
+  extractHuggingFaceApiKey?: (
+    deployment: Deployment,
+  ) => HuggingFaceApiKeyFieldData | null | Promise<HuggingFaceApiKeyFieldData | null>,
 ): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
@@ -229,13 +235,28 @@ export const deployModel = async (
       false,
     );
   }
-  const hfSecretName = extractHuggingFaceApiKey?.(deploymentResult)?.configuredSecretName;
+  const hfApiKey = extractHuggingFaceApiKey
+    ? await Promise.resolve(extractHuggingFaceApiKey(deploymentResult))
+    : null;
+  const hfSecretName = hfApiKey?.configuredSecretName;
+  const deploymentUid = deploymentResult.model.metadata.uid ?? '';
+  const hfServiceAccountName =
+    hfSecretName && deploymentResult.model.metadata.name
+      ? getHfTokenServiceAccountName(deploymentResult.model.metadata.name)
+      : undefined;
   await patchHfTokenSecretOwnerReference(
     secretOps,
     projectName,
     deploymentResult.model,
     hfSecretName,
-    deploymentResult.model.metadata.uid ?? '',
+    deploymentUid,
+    false,
+  );
+  await patchHfTokenServiceAccountOwnerReference(
+    projectName,
+    deploymentResult.model,
+    hfServiceAccountName,
+    deploymentUid,
     false,
   );
   if (runPostDeploy) {
