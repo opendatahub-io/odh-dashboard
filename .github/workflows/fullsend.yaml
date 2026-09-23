@@ -75,10 +75,9 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
-      # The review's pre-script skips closed PRs and PRs whose description
-      # lacks the agentic template sections, but it runs inside dispatch,
+      # The review's pre-script skips closed PRs, but it runs inside dispatch,
       # after the adapters have already bought a CodeRabbit review. Apply the
-      # same checks here first.
+      # same state check here first.
       - name: Check review readiness
         id: gate
         env:
