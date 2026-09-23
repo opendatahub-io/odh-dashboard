@@ -98,6 +98,11 @@ def load_rating_policy():
                         else:
                             nested[nested_key] = nested_val
                     merged[key] = nested
+                elif isinstance(merged[key], list):
+                    # List-valued keys: accept list overrides only. A string
+                    # would be iterated character-by-character by _lower_set.
+                    if isinstance(value, list):
+                        merged[key] = value
                 else:
                     merged[key] = value
     merged["_blocking_severities"] = _lower_set(merged.get("blocking_finding_severities"))
@@ -126,7 +131,13 @@ def blocking_count(result):
 
 def needs_human(result):
     pa = result.get("product_ask") if isinstance(result.get("product_ask"), dict) else {}
-    if result.get("decision_needed") or pa.get("needs_human") or pa.get("status") == "mismatch-unjustified":
+    if result.get("decision_needed"):
+        return True
+    if "needs_human" in pa:
+        if pa.get("needs_human"):
+            return True
+    elif pa.get("status") == "mismatch-unjustified":
+        # Default true when the field is absent; honor explicit false.
         return True
     return any((f.get("category") or "").lower() == "protected-path" for f in (result.get("findings") or []))
 
@@ -414,8 +425,8 @@ def apply_product_ask(result):
         return result
     conf_rank = {"high": 0, "medium": 1, "low": 2}
     rules = (POLICY.get("product_ask") or {}).get("mismatch_unjustified") or {}
-    if rules.get("needs_human", True):
-        pa["needs_human"] = True
+    # Stamp policy so needs_human() can honor an explicit false.
+    pa["needs_human"] = bool(rules.get("needs_human", True))
     pa["justified_in_description"] = False
     floor = (rules.get("confidence_floor") or "low").lower()
     rated = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}

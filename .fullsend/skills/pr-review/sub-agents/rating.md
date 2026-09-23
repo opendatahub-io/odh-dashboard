@@ -159,8 +159,11 @@ referenced — not merely listed in several lockfiles.
 **Size is not a band.** Large isolated package work stays `medium` when
 focus holds. Tiny harness/workflow pins can still be `high`.
 
-**Reverts → `low` risk** (restore previously shipping state). Confidence
-still follows intent/evidence.
+**Reverts → `low` risk as baseline** when no higher risk dimension applies
+(restore previously shipping state). Reverts that remove authorization
+safeguards or restore data-loss paths retain the applicable higher rating;
+take the **max** justified risk band. Confidence still follows
+intent/evidence.
 
 ### Proportionate-proof bars
 
@@ -170,7 +173,7 @@ still follows intent/evidence.
 | Unit-testable UI/logic bug | Focused unit/component tests correlated to the bug |
 | Operator / routing | Live-cluster or envtest/e2e evidence in PR body or CI |
 | Lockfile / CVE override | Clear CVE list + which containers; build/lock verification; risk from **semver baseline** |
-| Revert | Link to bad commit + why; risk stays `low` |
+| Revert | Link to bad commit + why |
 | Harness / workflow | Config review + CLI/release notes; live e2e often absent → usually ≤`medium` confidence |
 
 ### Worked examples
@@ -195,5 +198,4 @@ still follows intent/evidence.
 2. Secrets across deploy packages → **high risk** (confidence still follows proof).
 3. Protected ≠ automatic `critical` risk (usually `high` risk + host needs_human).
 4. Thin description → confidence, not risk.
-5. Reverts → `low` risk even on operator/platform paths.
-6. Test-only multi-package can stay `medium` risk when runtime contracts are unchanged.
+5. Test-only multi-package can stay `medium` risk when runtime contracts are unchanged.
