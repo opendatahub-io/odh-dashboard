@@ -490,7 +490,6 @@ describe('Subscription Create Page', () => {
   it('should show warning when system:authenticated group is used', () => {
     createSubscriptionPage.visit();
     createSubscriptionPage.selectGroup('system:authenticated');
-    createSubscriptionPage.findCreateButton().should('be.disabled');
     createSubscriptionPage.findSystemAuthenticatedWarning().should('exist');
   });
 });

@@ -253,8 +253,8 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
             <FormHelperText data-testid="system-authenticated-warning">
               <HelperText>
                 <HelperTextItem variant="warning">
-                  Are you sure you want to use the <code>{SYSTEM_AUTHENTICATED_GROUP}</code> group?
-                  This will provide access for all authenticated users.
+                  The <code>system:authenticated</code> group provides access to all users on this
+                  cluster.
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>

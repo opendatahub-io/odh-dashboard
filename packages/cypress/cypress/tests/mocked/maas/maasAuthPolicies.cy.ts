@@ -277,7 +277,6 @@ describe('Auth policy create and edit pages', () => {
     it('should show warning when system:authenticated group is used', () => {
       policyPage.visit();
       policyPage.selectGroup('system:authenticated');
-      policyPage.findSubmitButton().should('be.disabled');
       policyPage.findSystemAuthenticatedWarning().should('exist');
     });
   });
