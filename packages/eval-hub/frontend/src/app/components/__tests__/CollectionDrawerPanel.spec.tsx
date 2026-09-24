@@ -255,7 +255,7 @@ describe('CollectionDrawerPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
 
-    expect(screen.getByText('85%')).toBeInTheDocument();
+    expect(screen.getByText('0.85')).toBeInTheDocument();
     expect(screen.queryByText('30%')).not.toBeInTheDocument();
     expect(screen.getByText('collection_metric')).toBeInTheDocument();
     expect(screen.queryByText('provider_metric')).not.toBeInTheDocument();
@@ -287,7 +287,7 @@ describe('CollectionDrawerPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
 
-    expect(screen.getByText('30%')).toBeInTheDocument();
+    expect(screen.getByText('0.3')).toBeInTheDocument();
     expect(screen.getByText('provider_metric')).toBeInTheDocument();
 
     const datasetLink = screen.getByRole('link', { name: /View benchmark dataset/i });

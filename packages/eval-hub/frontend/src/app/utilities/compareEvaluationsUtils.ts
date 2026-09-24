@@ -1,12 +1,12 @@
 import { EvaluationJob } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import {
-  formatAsPercentage,
   getBenchmarkDisplayName,
   getBenchmarkName,
   getBenchmarkResultScore,
   getEvaluationName,
   getJobBenchmarks,
+  getResultScore,
 } from '~/app/utilities/evaluationUtils';
 
 export type BenchmarkSelection = {
@@ -138,13 +138,7 @@ export const getCompareRunType = (job: EvaluationJob): CompareRunType =>
 export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string =>
   getEvaluationName(job);
 
-export const getCompareParentResultScore = (job: EvaluationJob): string => {
-  const score = job.results.test?.score;
-  if (score != null && Number.isFinite(score)) {
-    return formatAsPercentage(score);
-  }
-  return '-';
-};
+export const getCompareParentResultScore = (job: EvaluationJob): string => getResultScore(job);
 
 export const getCompareBenchmarkResultScore = (
   job: EvaluationJob,

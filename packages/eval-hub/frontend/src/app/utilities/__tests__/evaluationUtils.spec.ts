@@ -10,8 +10,13 @@ import {
   getResultScore,
   formatAsPercentage,
   formatBenchmarkScore,
+  formatMetricValue,
+  formatThresholdValue,
+  getThresholdInputValue,
+  getThresholdRequestValue,
   formatDate,
   formatDurationCompact,
+  isEvaluationJobComparable,
   isTerminalState,
   normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
@@ -291,12 +296,108 @@ describe('formatAsPercentage', () => {
   });
 });
 
+describe('formatMetricValue', () => {
+  it('should format percentage metrics as percentages', () => {
+    expect(formatMetricValue(0.85, 'acc')).toBe('85%');
+  });
+
+  it('should format Inspect accuracy metrics as percentages', () => {
+    expect(formatMetricValue(0.85, 'Accuracy/accuracy')).toBe('85%');
+    expect(formatMetricValue(0.85, 'accuracy/accuracy')).toBe('85%');
+    expect(formatMetricValue(0.35, 'injection_successful_percentage')).toBe('35%');
+    expect(formatMetricValue(0.15, 'pass@1')).toBe('15%');
+  });
+
+  it('should keep Inspect standard error metrics as flat values', () => {
+    expect(formatMetricValue(0.05, 'Accuracy/stderr')).toBe('0.05');
+  });
+
+  it('should format throughput metrics with their units', () => {
+    expect(formatMetricValue(41.377, 'output_tokens_per_second')).toBe('41.38 output tokens/s');
+  });
+
+  it('should format unknown metrics as flat values', () => {
+    expect(formatMetricValue(0.42, 'custom_metric')).toBe('0.42');
+    expect(formatMetricValue(0.52, 'auc')).toBe('0.52');
+    expect(formatMetricValue(0.52, 'faithfulness')).toBe('0.52');
+  });
+
+  it('should return dash for non-finite metric values', () => {
+    expect(formatMetricValue(Infinity, 'output_tokens_per_second')).toBe('-');
+  });
+});
+
+describe('formatThresholdValue', () => {
+  it('should format percentage thresholds using percentage semantics', () => {
+    expect(formatThresholdValue(0.5, 'acc')).toBe('50%');
+    expect(formatThresholdValue(90, 'acc')).toBe('90%');
+  });
+
+  it('should format non-percentage thresholds according to the metric', () => {
+    expect(formatThresholdValue(0.5, 'output_tokens_per_second')).toBe('0.5 output tokens/s');
+  });
+
+  it('should format unknown metric thresholds as flat values', () => {
+    expect(formatThresholdValue(0.5, 'custom_metric')).toBe('0.5');
+  });
+});
+
+describe('threshold metric conversions', () => {
+  it('should normalize raw metric thresholds to whole numbers for the form', () => {
+    expect(getThresholdInputValue(10, 'output_tokens_per_second')).toBe(10);
+    expect(getThresholdInputValue(10.4, 'output_tokens_per_second')).toBe(10);
+  });
+
+  it('should keep unknown metric thresholds on their raw scale in the form', () => {
+    expect(getThresholdInputValue(0.52, 'custom_metric')).toBe(0.52);
+    expect(getThresholdInputValue(0.55, 'auc')).toBe(0.55);
+    expect(getThresholdInputValue(0.5, 'faithfulness')).toBe(0.5);
+  });
+
+  it('should normalize raw metric thresholds to whole numbers in requests', () => {
+    expect(getThresholdRequestValue(10, 'output_tokens_per_second')).toBe(10);
+    expect(getThresholdRequestValue(10.6, 'output_tokens_per_second')).toBe(11);
+  });
+
+  it('should keep unknown metric thresholds on their raw scale in requests', () => {
+    expect(getThresholdRequestValue(0.52, 'custom_metric')).toBe(0.52);
+    expect(getThresholdRequestValue(0.55, 'auc')).toBe(0.55);
+    expect(getThresholdRequestValue(0.5, 'faithfulness')).toBe(0.5);
+  });
+
+  it('should convert percentage thresholds between request and form values', () => {
+    expect(getThresholdInputValue(0.75, 'accuracy')).toBe(75);
+    expect(getThresholdRequestValue(75, 'accuracy')).toBe(0.75);
+  });
+
+  it('should apply percentage threshold semantics to Inspect accuracy metrics', () => {
+    expect(getThresholdInputValue(0.75, 'Accuracy/accuracy')).toBe(75);
+    expect(getThresholdRequestValue(75, 'Accuracy/accuracy')).toBe(0.75);
+  });
+
+  it('should apply percentage threshold semantics to live rate metrics', () => {
+    expect(getThresholdInputValue(0.35, 'injection_successful_percentage')).toBe(35);
+    expect(getThresholdRequestValue(35, 'injection_successful_percentage')).toBe(0.35);
+    expect(getThresholdInputValue(0.6, 'schema_compliance')).toBe(60);
+    expect(getThresholdRequestValue(60, 'schema_compliance')).toBe(0.6);
+  });
+});
+
 describe('formatBenchmarkScore', () => {
   /* eslint-disable camelcase */
   it('should prefer test.primary_score over metrics', () => {
     expect(
       formatBenchmarkScore({ id: 'b1', test: { primary_score: 0.8 }, metrics: { acc: 0.5 } }),
     ).toBe('80%');
+  });
+
+  it('should format test primary scores according to the configured metric', () => {
+    expect(
+      formatBenchmarkScore(
+        { id: 'b1', test: { primary_score: 41.377 } },
+        'output_tokens_per_second',
+      ),
+    ).toBe('41.38 output tokens/s');
   });
 
   it('should use primaryMetric parameter when test is absent', () => {
@@ -339,6 +440,101 @@ describe('getResultScore', () => {
   it('should return percentage from top-level test score', () => {
     const job = mockEvaluationJob({ score: 0.85 });
     expect(getResultScore(job)).toBe('85%');
+  });
+
+  it('should prefer the benchmark-level result for a single benchmark evaluation', () => {
+    const job = mockEvaluationJob({ score: 0.42, benchmarkId: 'constant' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    job.results.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        metrics: { output_tokens_per_second: 86.2117 },
+        test: { primary_score: 86.2117, threshold: 10, pass: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    expect(getResultScore(job)).toBe('86.21 output tokens/s');
+  });
+
+  it('should format a top-level score according to the job primary metric', () => {
+    const job = mockEvaluationJob({ score: 41.377, benchmarkId: 'constant' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    job.results.benchmarks = [];
+    /* eslint-enable camelcase */
+    expect(getResultScore(job)).toBe('41.38 output tokens/s');
+  });
+
+  it('should use the aggregate score for a benchmark suite without collection metadata', () => {
+    const job = mockEvaluationJob({ score: 0.72, benchmarkId: 'bench-a' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'bench-a',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'acc', lower_is_better: false },
+      },
+      {
+        id: 'bench-b',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'acc', lower_is_better: false },
+      },
+    ];
+    job.results.benchmarks = [
+      { id: 'bench-a', test: { primary_score: 0.8 } },
+      { id: 'bench-b', test: { primary_score: 0.6 } },
+    ];
+    /* eslint-enable camelcase */
+
+    expect(getResultScore(job)).toBe('72%');
+  });
+
+  it('should keep collection aggregate scores normalized when the first benchmark is raw', () => {
+    const job = mockEvaluationJob({
+      score: 0.72,
+      collectionId: 'mixed-metric-suite',
+      benchmarkId: 'constant',
+    });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    expect(getResultScore(job)).toBe('72%');
+  });
+
+  it('should omit the raw metric unit when explicitly requested', () => {
+    const job = mockEvaluationJob({ score: 41.377, benchmarkId: 'constant' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+    expect(getResultScore(job, false)).toBe('41.38');
   });
 
   it('should round fractional percentages to nearest integer', () => {
@@ -414,7 +610,7 @@ describe('getResultScore', () => {
     expect(getResultScore(job)).toBe('25%');
   });
 
-  it('should use configured primary_score.metric from benchmark config', () => {
+  it('should use configured primary_score.metric from benchmark config without assuming percentage', () => {
     const job = mockEvaluationJob();
     job.benchmarks = [
       {
@@ -432,7 +628,7 @@ describe('getResultScore', () => {
         },
       ],
     };
-    expect(getResultScore(job)).toBe('42%');
+    expect(getResultScore(job)).toBe('0.42');
   });
 
   it('should match first result benchmark by resolved index when duplicate IDs have explicit benchmark_index', () => {
@@ -598,7 +794,7 @@ describe('getBenchmarkResultScore', () => {
     expect(getBenchmarkResultScore(job, 'quick')).toBe('0%');
   });
 
-  it('should use configured primary_score.metric from benchmark config', () => {
+  it('should use configured primary_score.metric from benchmark config without assuming percentage', () => {
     const job = mockEvaluationJob();
     job.benchmarks = [
       {
@@ -616,7 +812,7 @@ describe('getBenchmarkResultScore', () => {
         },
       ],
     };
-    expect(getBenchmarkResultScore(job, 'custom_bench')).toBe('65%');
+    expect(getBenchmarkResultScore(job, 'custom_bench')).toBe('0.65');
   });
 
   it('should select correct config when duplicate IDs have explicit benchmark_index', () => {
@@ -747,6 +943,29 @@ describe('isTerminalState', () => {
     },
   );
 });
+
+/* eslint-disable camelcase */
+describe('isEvaluationJobComparable', () => {
+  it('should require a completed job with MLflow experiment and run data', () => {
+    const job = mockEvaluationJob({ state: 'completed' });
+
+    expect(isEvaluationJobComparable(job)).toBe(false);
+
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'benchmark-1', mlflow_run_id: 'run-1' }];
+
+    expect(isEvaluationJobComparable(job)).toBe(true);
+  });
+
+  it('should reject non-terminal jobs even when MLflow data is present', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'benchmark-1', mlflow_run_id: 'run-1' }];
+
+    expect(isEvaluationJobComparable(job)).toBe(false);
+  });
+});
+/* eslint-enable camelcase */
 
 describe('formatDate', () => {
   it('should return dash for undefined input', () => {

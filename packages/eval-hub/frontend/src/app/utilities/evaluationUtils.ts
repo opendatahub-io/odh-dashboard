@@ -74,8 +74,107 @@ export const getBenchmarkDisplayName = (id: string): string =>
 export const formatAsPercentage = (value: number): string =>
   Number.isFinite(value) ? `${Math.round(value * 100)}%` : '-';
 
+// EvalHub currently provides the metric name but not its display format. Keep the
+// known percentage metrics here until the API exposes unit metadata. New metrics
+// should only be added when the provider contract confirms that the value is a
+// percentage represented as a 0–1 ratio.
+/* eslint-disable camelcase */
+const PERCENTAGE_METRICS: ReadonlySet<string> = new Set([
+  'acc',
+  'acc_norm',
+  'accuracy',
+  'accuracy/accuracy',
+  'Accuracy/accuracy',
+  'accuracy_amb',
+  'accuracy_ambig',
+  'accuracy_disamb',
+  'accuracy_disambig',
+  'attack_success_rate',
+  'bias_score',
+  'choice/accuracy',
+  'ethics_cm_acc',
+  'exact_match',
+  'f1',
+  'f1_score',
+  'gender_bias_score',
+  'hhh_acc',
+  'injection_successful_percentage',
+  'inst_level_loose_acc',
+  'inst_level_strict_acc',
+  'mc1',
+  'mc1_acc',
+  'mc2',
+  'pass@1',
+  'pattern/accuracy',
+  'pct_stereotype',
+  'prompt_level_loose_acc',
+  'prompt_level_strict_acc',
+  'refusal_rate',
+  'schema_compliance',
+  'telelogs_scorer/accuracy',
+  'telelogs_scorer/maj_at_k',
+  'telemath_scorer/accuracy',
+  'toxicity_score',
+]);
+
+// Known non-percentage metrics retain their provider-defined units.
+const METRIC_UNITS: Record<string, string> = {
+  mean_itl_ms: 'ms',
+  mean_ttft_ms: 'ms',
+  output_tokens_per_second: 'output tokens/s',
+  prompt_tokens_per_second: 'prompt tokens/s',
+  requests_per_second: 'requests/s',
+};
+
+const WHOLE_NUMBER_THRESHOLD_METRICS: ReadonlySet<string> = new Set([
+  'mean_itl_ms',
+  'mean_ttft_ms',
+  'output_tokens_per_second',
+  'prompt_tokens_per_second',
+  'requests_per_second',
+]);
+/* eslint-enable camelcase */
+
+export const getMetricUnit = (metric?: string): string | undefined =>
+  metric ? METRIC_UNITS[metric] : undefined;
+
+// An omitted metric is reserved for normalized collection-level aggregate scores. Named metrics
+// must be explicitly listed above; unknown metrics are displayed as flat values for safety.
+export const isPercentageMetric = (metric?: string): boolean =>
+  metric === undefined || PERCENTAGE_METRICS.has(metric);
+
+export const isWholeNumberThresholdMetric = (metric?: string): boolean =>
+  metric !== undefined && WHOLE_NUMBER_THRESHOLD_METRICS.has(metric);
+
+const formatMetricNumber = (value: number): string =>
+  Number.isFinite(value) ? Number(value.toFixed(2)).toString() : '-';
+
+export const formatMetricValue = (value: number, metric?: string, includeUnit = true): string => {
+  if (isPercentageMetric(metric)) {
+    return formatAsPercentage(value);
+  }
+  if (!Number.isFinite(value)) {
+    return '-';
+  }
+
+  const unit = getMetricUnit(metric);
+  const formattedValue = formatMetricNumber(value);
+  return includeUnit && unit ? `${formattedValue} ${unit}` : formattedValue;
+};
+
+const getBenchmarkConfig = (
+  job: EvaluationJob,
+  benchmarkId: string,
+  benchmarkIndex?: number,
+): NonNullable<EvaluationJob['benchmarks']>[number] | undefined =>
+  getJobBenchmarks(job).find(
+    (b, idx) =>
+      b.id === benchmarkId &&
+      (benchmarkIndex === undefined || (b.benchmark_index ?? idx) === benchmarkIndex),
+  );
+
 /**
- * Extract a display score from a benchmark result, returned as a formatted percentage.
+ * Extract a display score from a benchmark result, formatted according to its primary metric.
  *
  * Resolution order:
  *  1. `benchmark.test.primary_score` — populated by the eval service when the `test` object is present.
@@ -92,48 +191,62 @@ export const formatAsPercentage = (value: number): string =>
 export const formatBenchmarkScore = (
   benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
   primaryMetric?: string,
+  includeMetricUnit = true,
 ): string | null => {
   const primaryScore = benchmark.test?.primary_score;
   if (primaryScore != null && Number.isFinite(primaryScore)) {
-    return formatAsPercentage(primaryScore);
+    return formatMetricValue(primaryScore, primaryMetric, includeMetricUnit);
   }
   if (benchmark.metrics) {
     if (primaryMetric) {
       const configured = benchmark.metrics[primaryMetric];
       if (typeof configured === 'number' && Number.isFinite(configured)) {
-        return formatAsPercentage(configured);
+        return formatMetricValue(configured, primaryMetric, includeMetricUnit);
       }
     }
-    const candidates = [
-      benchmark.metrics.acc_norm,
-      benchmark.metrics.acc,
-      benchmark.metrics.attack_success_rate,
+    const candidates: { metric: string; value: unknown }[] = [
+      { metric: 'acc_norm', value: benchmark.metrics.acc_norm },
+      { metric: 'acc', value: benchmark.metrics.acc },
+      { metric: 'attack_success_rate', value: benchmark.metrics.attack_success_rate },
     ];
     const preferred = candidates.find(
-      (v): v is number => typeof v === 'number' && Number.isFinite(v),
+      ({ value }) => typeof value === 'number' && Number.isFinite(value),
     );
-    if (preferred !== undefined) {
-      return formatAsPercentage(preferred);
+    if (preferred !== undefined && typeof preferred.value === 'number') {
+      return formatMetricValue(preferred.value, preferred.metric, includeMetricUnit);
     }
   }
   return null;
 };
 
-export const getResultScore = (job: EvaluationJob): string => {
+export const getResultScore = (job: EvaluationJob, includeMetricUnit = true): string => {
+  const jobBenchmarks = getJobBenchmarks(job);
+  const isBenchmarkSuite = Boolean(job.collection) || jobBenchmarks.length > 1;
+  const resultBenchmark = job.results.benchmarks?.[0];
+  const resolvedIndex = resultBenchmark?.benchmark_index ?? 0;
+  const configBenchmark = resultBenchmark
+    ? getBenchmarkConfig(job, resultBenchmark.id, resolvedIndex)
+    : jobBenchmarks[0];
+  const primaryMetric = configBenchmark?.primary_score?.metric;
   const score = job.results.test?.score;
+
+  if (!isBenchmarkSuite && resultBenchmark) {
+    const benchmarkScore = formatBenchmarkScore(resultBenchmark, primaryMetric, includeMetricUnit);
+    if (benchmarkScore !== null) {
+      return benchmarkScore;
+    }
+  }
+
   if (score != null && Number.isFinite(score)) {
-    return formatAsPercentage(score);
+    return isBenchmarkSuite
+      ? formatAsPercentage(score)
+      : formatMetricValue(score, primaryMetric, includeMetricUnit);
   }
   if (job.collection) {
     return '-';
   }
-  if (job.results.benchmarks?.length) {
-    const resultBenchmark = job.results.benchmarks[0];
-    const resolvedIndex = resultBenchmark.benchmark_index ?? 0;
-    const configBenchmark = getJobBenchmarks(job).find(
-      (b, idx) => b.id === resultBenchmark.id && (b.benchmark_index ?? idx) === resolvedIndex,
-    );
-    return formatBenchmarkScore(resultBenchmark, configBenchmark?.primary_score?.metric) ?? '-';
+  if (resultBenchmark) {
+    return formatBenchmarkScore(resultBenchmark, primaryMetric, includeMetricUnit) ?? '-';
   }
   return '-';
 };
@@ -151,11 +264,7 @@ export const getBenchmarkResultScore = (
   if (!benchmark) {
     return '-';
   }
-  const configBenchmark = getJobBenchmarks(job).find(
-    (b, idx) =>
-      b.id === benchmarkId &&
-      (benchmarkIndex === undefined || (b.benchmark_index ?? idx) === benchmarkIndex),
-  );
+  const configBenchmark = getBenchmarkConfig(job, benchmarkId, benchmarkIndex);
   return formatBenchmarkScore(benchmark, configBenchmark?.primary_score?.metric) ?? '-';
 };
 
@@ -248,9 +357,11 @@ const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
 
 export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
 
-/** Only completed runs can be selected for compare. */
+/** Only completed runs with the MLflow data required by compare can be selected. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
-  job.status.state === 'completed';
+  job.status.state === 'completed' &&
+  Boolean(job.resource.mlflow_experiment_id) &&
+  Boolean(job.results.benchmarks?.some((benchmark) => Boolean(benchmark.mlflow_run_id)));
 
 export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
   benchmarks.filter((bm) => bm.status === 'failed').length;
@@ -260,3 +371,26 @@ export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): 
 // already in percentage form; thresholds ≤ 1 are multiplied by 100 to match the slider range.
 export const normalizeThreshold = (threshold: number): number =>
   threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);
+
+export const getThresholdInputValue = (threshold: number, metric?: string): number =>
+  isPercentageMetric(metric)
+    ? normalizeThreshold(threshold)
+    : isWholeNumberThresholdMetric(metric)
+      ? Math.round(threshold)
+      : threshold;
+
+export const getThresholdRequestValue = (threshold: number, metric?: string): number =>
+  isPercentageMetric(metric)
+    ? threshold / 100
+    : isWholeNumberThresholdMetric(metric)
+      ? Math.round(threshold)
+      : threshold;
+
+export const formatThresholdValue = (value: number, metric?: string): string => {
+  if (!Number.isFinite(value)) {
+    return '-';
+  }
+  return isPercentageMetric(metric)
+    ? `${normalizeThreshold(value)}%`
+    : formatMetricValue(value, metric);
+};

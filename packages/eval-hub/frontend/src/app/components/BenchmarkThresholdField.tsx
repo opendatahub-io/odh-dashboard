@@ -1,6 +1,19 @@
 import * as React from 'react';
-import { FormGroup, Slider, type SliderOnChangeEvent } from '@patternfly/react-core';
+import {
+  FormGroup,
+  InputGroup,
+  InputGroupItem,
+  InputGroupText,
+  Slider,
+  TextInput,
+  type SliderOnChangeEvent,
+} from '@patternfly/react-core';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
+import {
+  getMetricUnit,
+  isPercentageMetric,
+  isWholeNumberThresholdMetric,
+} from '~/app/utilities/evaluationUtils';
 import './BenchmarkThresholdField.scss';
 
 type BenchmarkThresholdFieldProps = {
@@ -10,6 +23,7 @@ type BenchmarkThresholdFieldProps = {
   description?: string;
   helpText?: string;
   fieldId?: string;
+  metric?: string;
 };
 
 const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
@@ -19,13 +33,19 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
   helpText,
   description = 'Set the minimum passing score for this evaluation. Results below this threshold will be marked as failing.',
   fieldId = 'benchmark-threshold',
+  metric,
 }) => {
+  const isPercentage = isPercentageMetric(metric);
+  const isWholeNumber = isWholeNumberThresholdMetric(metric);
+  const metricUnit = getMetricUnit(metric);
   const [sliderValue, setSliderValue] = React.useState(value);
   const [inputValue, setInputValue] = React.useState(value);
+  const [rawInputValue, setRawInputValue] = React.useState(String(value));
 
   React.useEffect(() => {
     setSliderValue(value);
     setInputValue(value);
+    setRawInputValue(String(value));
   }, [value]);
 
   const handleChange = React.useCallback(
@@ -56,6 +76,39 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
     [onChange],
   );
 
+  const handleRawInputBlur = React.useCallback(() => {
+    const parsedValue = Number(rawInputValue);
+    if (rawInputValue.trim() === '' || !Number.isFinite(parsedValue) || parsedValue < 0) {
+      setRawInputValue(String(value));
+      return;
+    }
+
+    const resolved = isWholeNumber ? Math.round(parsedValue) : parsedValue;
+    setRawInputValue(String(resolved));
+    if (resolved !== value) {
+      onChange(resolved);
+    }
+  }, [isWholeNumber, onChange, rawInputValue, value]);
+
+  const rawMetricInput = (
+    <InputGroup className="pf-v6-u-w-50">
+      <InputGroupItem isFill>
+        <TextInput
+          id={fieldId}
+          data-testid={fieldId}
+          type="number"
+          min={0}
+          step={isWholeNumber ? 1 : 'any'}
+          value={rawInputValue}
+          aria-label={label}
+          onChange={(_event, newValue) => setRawInputValue(newValue)}
+          onBlur={handleRawInputBlur}
+        />
+      </InputGroupItem>
+      {metricUnit && <InputGroupText isPlain>{metricUnit}</InputGroupText>}
+    </InputGroup>
+  );
+
   return (
     <FormGroup
       className="evalhub-form-group--with-description"
@@ -72,17 +125,23 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
       }
       fieldId={fieldId}
     >
-      <Slider
-        data-testid={fieldId}
-        min={0}
-        max={100}
-        value={sliderValue}
-        inputValue={inputValue}
-        onChange={handleChange}
-        isInputVisible
-        showBoundaries
-        inputAriaLabel={label}
-      />
+      {/* Percentage metrics use a normalized 0-100 slider. Known rate and latency thresholds
+          use whole-number inputs; other raw metrics retain their provider-defined decimal scale. */}
+      {isPercentage ? (
+        <Slider
+          data-testid={fieldId}
+          min={0}
+          max={100}
+          value={sliderValue}
+          inputValue={inputValue}
+          onChange={handleChange}
+          isInputVisible
+          showBoundaries
+          inputAriaLabel={label}
+        />
+      ) : (
+        rawMetricInput
+      )}
     </FormGroup>
   );
 };
