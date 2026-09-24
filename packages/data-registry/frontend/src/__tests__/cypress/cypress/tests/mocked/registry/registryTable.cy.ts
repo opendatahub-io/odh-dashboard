@@ -25,6 +25,7 @@ const mockAssetsResponse = {
       location: 's3://bucket/claims',
       description: 'Claims processing data',
       labels: ['production', 'claims'],
+      properties: { 'data-domain': 'claims' },
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -38,6 +39,7 @@ const mockAssetsResponse = {
       location: 'milvus://embeddings',
       description: 'Vector embeddings',
       labels: ['embeddings', 'production'],
+      properties: { 'data-domain': 'vector-search' },
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -60,7 +62,7 @@ const mockVolumesResponse = {
       'created-at': '2026-01-01',
       'updated-at': null,
       labels: ['source-docs'],
-      properties: { description: 'PDF documents' },
+      properties: { description: 'PDF documents', 'retention-class': 'long-term' },
       config: {},
     },
   ],
@@ -138,6 +140,13 @@ describe('Registry Table', () => {
     cy.findByTestId('asset-search').find('input').type('claims');
     cy.contains('claims-data').should('exist');
     cy.contains('embeddings').should('not.exist');
+  });
+
+  it('should filter assets by property key and value', () => {
+    visitWithData();
+    cy.findByTestId('asset-search').find('input').type('retention-class');
+    cy.contains('raw-docs').should('exist');
+    cy.contains('claims-data').should('not.exist');
   });
 
   it('should open manage collections modal', () => {
