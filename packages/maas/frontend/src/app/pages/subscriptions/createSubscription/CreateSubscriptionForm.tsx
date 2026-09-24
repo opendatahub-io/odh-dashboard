@@ -52,6 +52,7 @@ import {
   SubscriptionUpdatedErrorProperties,
   SubscriptionUpdatedSuccessProperties,
 } from '~/app/types/event-tracking';
+import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
@@ -405,14 +406,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             placeholder="Select groups"
           />
           {selectedGroupNames.includes(SYSTEM_AUTHENTICATED_GROUP) && (
-            <FormHelperText data-testid="system-authenticated-warning">
-              <HelperText>
-                <HelperTextItem variant="warning">
-                  The <code>system:authenticated</code> group provides access to all users on this
-                  this cluster.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
+            <SystemAuthenticatedWarning />
           )}
           {groupsTouched && getFieldValidation(['groups'], true).length > 0 && (
             <FormHelperText>

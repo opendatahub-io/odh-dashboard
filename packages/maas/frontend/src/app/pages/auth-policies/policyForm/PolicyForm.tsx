@@ -46,6 +46,7 @@ import {
   MaaSEvents,
 } from '~/app/types/event-tracking';
 import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
+import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
@@ -250,14 +251,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
             placeholder="Select groups or type to add a new group"
           />
           {selectedGroupNames.includes(SYSTEM_AUTHENTICATED_GROUP) && (
-            <FormHelperText data-testid="system-authenticated-warning">
-              <HelperText>
-                <HelperTextItem variant="warning">
-                  The <code>system:authenticated</code> group provides access to all users on this
-                  cluster.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
+            <SystemAuthenticatedWarning />
           )}
           {groupsValidationError && (
             <FormHelperText>
