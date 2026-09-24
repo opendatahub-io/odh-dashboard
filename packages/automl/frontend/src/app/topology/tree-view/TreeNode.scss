@@ -8,7 +8,6 @@
   }
 }
 
-
 .automl-tree-node__status-spinner {
   animation: automl-tree-node-spin 1.5s linear infinite;
   transform-origin: center;
@@ -27,22 +26,24 @@
 @keyframes automl-tree-node-active-core {
   0%,
   100% {
-    fill: #0066cc;
+    fill: var(--pf-t--global--color--status--info--default);
+    opacity: 1;
   }
 
   50% {
-    fill: #8ec8f7;
+    fill: var(--pf-t--global--color--status--info--default);
+    opacity: 0.55;
   }
 }
 
 .automl-tree-node__active-corridor-ring {
   fill: none;
-  stroke: #0066cc;
-  filter: drop-shadow(0 0 2px rgba(0, 102, 204, 0.22));
+  stroke: var(--pf-t--global--color--status--info--default);
+  filter: drop-shadow(0 0 2px var(--pf-t--global--color--status--info--default));
 }
 
 .automl-tree-node__active-corridor-core {
-  fill: #0066cc;
+  fill: var(--pf-t--global--color--status--info--default);
   animation: automl-tree-node-active-core 1.6s ease-in-out infinite;
   pointer-events: none;
 }
@@ -229,7 +230,7 @@
 }
 
 .automl-tree-node__column-rule {
-  stroke: #d2d2d2;
+  stroke: var(--pf-t--global--border--color--default);
   stroke-width: 1px;
 }
 
@@ -238,24 +239,24 @@
 }
 
 .automl-tree-node__active-badge-mask {
-  fill: #ffffff;
+  fill: var(--pf-t--global--background--color--primary--default);
   stroke: none;
 }
 
 .automl-tree-node__active-badge-disc {
-  fill: #0066cc;
-  stroke: #ffffff;
+  fill: var(--pf-t--global--color--status--info--default);
+  stroke: var(--pf-t--global--background--color--primary--default);
   stroke-width: 2px;
 }
 
 .automl-tree-node__active-badge-icon {
-  color: #ffffff;
-  fill: #ffffff;
+  color: var(--pf-t--global--icon--color--inverse);
+  fill: var(--pf-t--global--icon--color--inverse);
 
   svg,
   path {
-    color: #ffffff;
-    fill: #ffffff;
+    color: var(--pf-t--global--icon--color--inverse);
+    fill: var(--pf-t--global--icon--color--inverse);
   }
 }
 
@@ -284,20 +285,22 @@
 
   &.pf-m-danger,
   &--failed {
-    --pf-topology__node--Color: #c9190d;
-    --pf-topology__node--m-danger--Background--Stroke: #c9190d;
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--danger--default);
+    --pf-topology__node--m-danger--Background--Stroke: var(
+      --pf-t--global--border--color--status--danger--default
+    );
 
     .pf-topology__node__background {
-      fill: #ffffff;
-      stroke: #c9190d;
+      fill: var(--pf-t--global--background--color--primary--default);
+      stroke: var(--pf-t--global--border--color--status--danger--default);
       stroke-width: 1.5;
     }
   }
 
   &.pf-m-info {
-    --pf-topology__node--Color: var(--pf-t--global--icon--color--brand--default);
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--info--default);
     --pf-topology__node--m-info--Background--Stroke: var(
-      --pf-t--global--border--color--nonstatus--blue--default
+      --pf-t--global--color--status--info--default
     );
   }
 
@@ -325,21 +328,25 @@
 
   &--active.pf-m-info,
   &--active {
-    --pf-topology__node--Color: #0066cc;
-    --pf-topology__node--m-info--Background--Fill: #ffffff;
-    --pf-topology__node--m-info--Background--Stroke: #0066cc;
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--info--default);
+    --pf-topology__node--m-info--Background--Fill: var(
+      --pf-t--global--background--color--primary--default
+    );
+    --pf-topology__node--m-info--Background--Stroke: var(
+      --pf-t--global--color--status--info--default
+    );
   }
 
   &--active .pf-topology__node__background {
-    fill: #ffffff;
-    stroke: #0066cc;
+    fill: var(--pf-t--global--background--color--primary--default);
+    stroke: var(--pf-t--global--color--status--info--default);
     stroke-width: 2;
-    filter: drop-shadow(0 0 8px rgba(0, 102, 204, 0.35));
+    filter: drop-shadow(0 0 8px var(--pf-t--global--color--status--info--default));
   }
 
   &--failed .pf-topology__node__background,
   &--failed .automl-tree-node__status-badge--failed-section {
-    filter: drop-shadow(0 0 3px #c9190d);
+    filter: drop-shadow(0 0 3px var(--pf-t--global--color--status--danger--default));
   }
 
   &--just-completed.pf-m-success {
@@ -389,25 +396,25 @@
 }
 
 .automl-tree-node__failed-badge-disc {
-  fill: #ffffff;
-  stroke: #c9190d;
+  fill: var(--pf-t--global--background--color--primary--default);
+  stroke: var(--pf-t--global--border--color--status--danger--default);
   stroke-width: 3px;
 }
 
 .automl-tree-node__failed-badge-icon {
-  color: #c9190d;
-  fill: #c9190d;
+  color: var(--pf-t--global--icon--color--status--danger--default);
+  fill: var(--pf-t--global--icon--color--status--danger--default);
 
   svg,
   path {
-    color: #c9190d;
-    fill: #c9190d;
+    color: var(--pf-t--global--icon--color--status--danger--default);
+    fill: var(--pf-t--global--icon--color--status--danger--default);
   }
 }
 
 .automl-tree-node__pending-ring {
-  fill: var(--pf-t--global--background--color--primary--default, #ffffff);
-  stroke: var(--pf-t--global--border--color--subtle, #8a8d90);
+  fill: var(--pf-t--global--background--color--primary--default);
+  stroke: var(--pf-t--global--border--color--subtle);
   stroke-width: 2;
   stroke-dasharray: 4 4;
 }
@@ -424,12 +431,12 @@
   }
 
   &--pending {
-    color: #737679;
-    fill: #737679;
+    color: var(--pf-t--global--icon--color--disabled);
+    fill: var(--pf-t--global--icon--color--disabled);
 
     svg {
-      color: #737679;
-      fill: #737679;
+      color: var(--pf-t--global--icon--color--disabled);
+      fill: var(--pf-t--global--icon--color--disabled);
     }
   }
 
@@ -496,7 +503,7 @@
 
   .automl-tree-node__active-corridor-core {
     animation: none;
-    fill: #0066cc;
+    fill: var(--pf-t--global--color--status--info--default);
   }
 
   .automl-tree-node__status-pulse-ring {
@@ -505,6 +512,6 @@
   }
 
   .automl-tree-node--active .pf-topology__node__background {
-    filter: drop-shadow(0 0 8px rgba(0, 102, 204, 0.35));
+    filter: drop-shadow(0 0 8px var(--pf-t--global--color--status--info--default));
   }
 }

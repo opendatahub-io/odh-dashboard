@@ -523,7 +523,8 @@ const TreeNodeInner: React.FC<{
     nodeRole === 'column-header' || nodeRole === 'row-label' ? data?.label : undefined;
   const taskLabel = hideLabel || isAnnotation ? annotationLabel : (data?.label ?? node.getLabel());
   const labelSubtitle = hideLabel || isAnnotation ? undefined : data?.labelSubtitle;
-  const showWinnerStar = data?.showWinnerStar === true || winnerRank === 1;
+  const showWinnerStar =
+    visualState === 'winner' && (data?.showWinnerStar === true || winnerRank === 1);
   const nodeStatus =
     visualState === 'winner'
       ? undefined
@@ -653,7 +654,7 @@ const TreeNodeInner: React.FC<{
           data-branch-step={branchStep ? 'true' : 'false'}
           data-status-only={branchStep ? 'true' : 'false'}
           data-winner-star={showWinnerStar ? 'true' : 'false'}
-          data-winner-rank={winnerRank ? String(winnerRank) : undefined}
+          data-winner-rank={visualState === 'winner' && winnerRank ? String(winnerRank) : undefined}
           data-node-role={nodeRole}
         >
           {visualState === 'pending' && showsTaskIcon ? (
@@ -751,7 +752,7 @@ const TreeNodeInner: React.FC<{
       </DefaultNode>
       {visualState === 'active' && showsTaskIcon ? <ActiveNodeBadge node={node} /> : null}
       {visualState === 'failed' && showsTaskIcon ? <FailedNodeBadge size={width} /> : null}
-      {winnerRank ? (
+      {visualState === 'winner' && winnerRank ? (
         <WinnerRankBadge rank={winnerRank} size={width} />
       ) : showWinnerStar ? (
         <WinnerRankBadge rank={1} size={width} />

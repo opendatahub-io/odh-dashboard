@@ -223,6 +223,7 @@ export const buildStageMapTopology = (
           runAfterTasks: [branchPreviousNodeId],
           runStatus: branchPhaseStatus,
           activeIconVariant: resolvePatternTerminusActiveIconVariant(branchPhaseStatus),
+          patternKey: patternId,
         }),
       );
 

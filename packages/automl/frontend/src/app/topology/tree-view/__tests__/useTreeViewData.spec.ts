@@ -96,4 +96,21 @@ describe('useTreeViewData', () => {
 
     expect(result.current.selectedModel).toBe('model_b');
   });
+
+  it('should alias ranks by display name without replacing existing model-key ranks', () => {
+    const models = {
+      model_a: createModel('model_b'),
+      model_b: createModel('Display Name B'),
+      model_c: createModel('   '),
+    };
+
+    const { result } = renderHook(() => useTreeViewData(models));
+
+    expect(result.current.modelRanks).toEqual({
+      model_a: 1,
+      model_b: 2,
+      model_c: 3,
+      'Display Name B': 2,
+    });
+  });
 });

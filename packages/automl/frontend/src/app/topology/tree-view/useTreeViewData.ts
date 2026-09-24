@@ -29,11 +29,18 @@ export const useTreeViewData = (
       selectedRecord != null && typeof selectedRecord.name === 'string'
         ? selectedRecord.name
         : undefined;
+    const modelRanks = computeRankMap(safeModels, taskType ?? '', evalMetric, selectedModel);
+    for (const [modelKey, model] of Object.entries(safeModels)) {
+      const modelName = model.name;
+      if (modelName.trim().length > 0 && !Object.hasOwn(modelRanks, modelName)) {
+        modelRanks[modelName] = modelRanks[modelKey];
+      }
+    }
 
     return {
       selectedModel,
       winnerModelLabel,
       stageMapNodes,
-      modelRanks: computeRankMap(safeModels, taskType ?? '', evalMetric, selectedModel),
+      modelRanks,
     };
   }, [models, stageMapNodes, bestModelKey, stageMapBestModel, taskType, evalMetric]);

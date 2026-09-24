@@ -15,7 +15,7 @@ export type BranchExpandOptions = {
   winnerResolved: boolean;
   winnerPatternLabel?: string;
   winnerPatternKey?: string;
-  /** Leaderboard ranks keyed by pattern name/key — badges 1–3 on expanded pattern results. */
+  /** Leaderboard ranks keyed by pattern record key — badges 1–3 on expanded pattern results. */
   patternRanks?: PatternRankMap;
 };
 
@@ -102,22 +102,12 @@ export const resolvePatternRank = (
   patternNode: PipelineNodeModelExpanded,
   patternRanks: PatternRankMap | undefined,
 ): 1 | 2 | 3 | undefined => {
-  if (!patternRanks) {
+  const patternKey = patternNode.data?.patternKey;
+  if (!patternRanks || typeof patternKey !== 'string' || patternKey.length === 0) {
     return undefined;
   }
-  const nodeValues = [patternNode.label, patternNode.id].filter(
-    (value): value is string => typeof value === 'string' && value.length > 0,
-  );
-  for (const [key, rank] of Object.entries(patternRanks)) {
-    if (rank !== 1 && rank !== 2 && rank !== 3) {
-      continue;
-    }
-    const normalizedKey = normalizeMatchKey(key);
-    if (nodeValues.some((value) => valuesLooselyMatch(normalizeMatchKey(value), normalizedKey))) {
-      return rank;
-    }
-  }
-  return undefined;
+  const rank = patternRanks[patternKey];
+  return rank === 1 || rank === 2 || rank === 3 ? rank : undefined;
 };
 
 export const matchesWinnerPattern = (

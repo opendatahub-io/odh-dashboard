@@ -32,6 +32,7 @@ jest.mock('~/app/topology/utils', () => ({
     runAfterTasks,
     runStatus,
     activeIconVariant,
+    patternKey,
   }: {
     id: string;
     label: string;
@@ -39,6 +40,7 @@ jest.mock('~/app/topology/utils', () => ({
     runAfterTasks?: string[];
     runStatus?: string;
     activeIconVariant?: string;
+    patternKey?: string;
   }) => ({
     id,
     label,
@@ -46,7 +48,7 @@ jest.mock('~/app/topology/utils', () => ({
     width: 100,
     height: 30,
     runAfterTasks,
-    data: { pipelineTask, runStatus, activeIconVariant },
+    data: { pipelineTask, runStatus, activeIconVariant, patternKey },
   }),
 }));
 
@@ -246,6 +248,7 @@ describe('buildStageMapTopology', () => {
       expect(step2?.runAfterTasks).toEqual([step1!.id]);
       expect(step3?.runAfterTasks).toEqual([step2!.id]);
       expect(pattern?.runAfterTasks).toEqual([step3!.id]);
+      expect(pattern?.data?.patternKey).toBe('pattern_a');
     });
 
     it('should use step display names', () => {
