@@ -50,6 +50,13 @@ export const buildTreeEdgePath = (
   const isHorizontal = Math.abs(startY - endY) < 5;
 
   if (isHorizontal) {
+    const clearX = options?.clearX;
+    if (clearX && clearX.start > startX && clearX.end < endX) {
+      const clearStartY = startY + ((clearX.start - startX) / dx) * dy;
+      const clearEndY = startY + ((clearX.end - startX) / dx) * dy;
+      return `M ${startX} ${startY} L ${clearX.start} ${clearStartY} M ${clearX.end} ${clearEndY} L ${endX} ${endY}`;
+    }
+
     return `M ${startX} ${startY} L ${endX} ${endY}`;
   }
 

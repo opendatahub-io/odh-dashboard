@@ -102,6 +102,12 @@ export const resolveModelRank = (
   if (!modelRanks) {
     return undefined;
   }
+  const modelKey = modelNode.data?.modelKey;
+  if (modelKey !== undefined && Object.hasOwn(modelRanks, modelKey)) {
+    const exactRank = modelRanks[modelKey];
+    return exactRank === 1 || exactRank === 2 || exactRank === 3 ? exactRank : undefined;
+  }
+
   const nodeValues = [modelNode.label, modelNode.id].filter(
     (value): value is string => typeof value === 'string' && value.length > 0,
   );

@@ -161,7 +161,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(runStatusToTreeStepState(RunStatus.Succeeded)).toBe('completed');
     expect(runStatusToTreeStepState(RunStatus.InProgress)).toBe('active');
     expect(runStatusToTreeStepState(RunStatus.Failed)).toBe('failed');
-    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('pending');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
   });
 
@@ -433,7 +433,7 @@ describe('transformStageMapNodesToTree', () => {
     const failedMap = makeStageMap([
       makeComponent('rag_optimization', [
         makeStage('validate_inputs', { status: 'failed' }),
-        makeStage('optimize_templates'),
+        makeStage('optimize_templates', { status: 'skipped' }),
         makeStage('build_leaderboard'),
       ]),
     ]);
@@ -446,5 +446,20 @@ describe('transformStageMapNodesToTree', () => {
     expect(
       nodes.find((node) => node.id === 'rag_optimization__optimize_templates')?.data.stepState,
     ).toBe('unreached');
+  });
+
+  it('should keep a skipped stage pending when no earlier stage failed', () => {
+    const stageMap = makeStageMap([
+      makeComponent('rag_optimization', [
+        makeStage('validate_inputs', { status: 'completed' }),
+        makeStage('optimize_templates', { status: 'skipped' }),
+      ]),
+    ]);
+    const topologyNodes = buildStageMapTopology(stageMap);
+    const { nodes } = transformStageMapNodesToTree(topologyNodes);
+
+    expect(
+      nodes.find((node) => node.id === 'rag_optimization__optimize_templates')?.data.stepState,
+    ).toBe('pending');
   });
 });

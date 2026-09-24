@@ -66,8 +66,8 @@ describe('isTreeNodeData', () => {
 });
 
 describe('runStatusToTreeStepState', () => {
-  it('maps skipped runs to unreached (not attempted after an earlier failure)', () => {
-    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
+  it('maps skipped runs to pending until an earlier failure is known', () => {
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('pending');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
     expect(runStatusToTreeStepState(undefined)).toBe('pending');
   });

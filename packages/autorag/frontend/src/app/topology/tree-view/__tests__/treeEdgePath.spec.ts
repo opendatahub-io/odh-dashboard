@@ -9,6 +9,15 @@ describe('buildTreeEdgePath', () => {
     expect(path).toBe('M 48 24 L 120 24');
   });
 
+  it('skips the row-label column on horizontal edges', () => {
+    const path = buildTreeEdgePath(
+      { x: 0, y: 0, width: 48, height: 48 },
+      { x: 240, y: 0, width: 48, height: 48 },
+      { clearX: { start: 100, end: 160 } },
+    );
+    expect(path).toBe('M 48 24 L 100 24 M 160 24 L 240 24');
+  });
+
   it('flattens a fan into a horizontal run before the target', () => {
     const path = buildTreeEdgePath(
       { x: 0, y: 176, width: 48, height: 48 },

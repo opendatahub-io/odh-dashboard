@@ -199,6 +199,7 @@ export const buildStageMapTopology = (
           id: modelNodeId,
           label: modelLabel,
           pipelineTask: { type: 'task', name: modelLabel },
+          modelKey: modelId,
           runAfterTasks: [branchPreviousNodeId],
           runStatus: branchStatus,
         }),

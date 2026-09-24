@@ -113,4 +113,15 @@ describe('useTreeViewData', () => {
       'Display Name B': 2,
     });
   });
+
+  it('should preserve model-key ranks when display names are missing or non-string', () => {
+    const models = {
+      model_a: { ...createModel('Model A'), name: 42 },
+      model_b: { ...createModel('Model B'), name: undefined },
+    } as unknown as Record<string, AutomlModel>;
+
+    const { result } = renderHook(() => useTreeViewData(models));
+
+    expect(result.current.modelRanks).toEqual({ model_a: 1, model_b: 2 });
+  });
 });

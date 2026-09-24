@@ -411,7 +411,7 @@ export const transformStageMapNodesToTree = (
         columnXs.push({
           id: `autorag-col-header-${parsed?.type === 'branch_step' ? parsed.stepId : 'pattern'}`,
           label: headerLabel ?? '',
-          x: created.x + created.width / 2 - X_GAP / 2,
+          x: (created.x ?? 0) + (created.width ?? STANDARD_NODE_SIZE) / 2 - X_GAP / 2,
         });
       }
       branchNodeIds.push(topologyNode.id);

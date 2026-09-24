@@ -32,7 +32,11 @@ export const useTreeViewData = (
     const modelRanks = computeRankMap(safeModels, taskType ?? '', evalMetric, selectedModel);
     for (const [modelKey, model] of Object.entries(safeModels)) {
       const modelName = model.name;
-      if (modelName.trim().length > 0 && !Object.hasOwn(modelRanks, modelName)) {
+      if (
+        typeof modelName === 'string' &&
+        modelName.trim().length > 0 &&
+        !Object.hasOwn(modelRanks, modelName)
+      ) {
         modelRanks[modelName] = modelRanks[modelKey];
       }
     }

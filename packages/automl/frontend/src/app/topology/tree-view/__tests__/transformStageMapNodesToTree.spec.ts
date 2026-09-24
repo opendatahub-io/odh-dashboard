@@ -27,12 +27,14 @@ jest.mock('~/app/topology/utils', () => ({
     id,
     label,
     pipelineTask,
+    modelKey,
     runAfterTasks,
     runStatus,
   }: {
     id: string;
     label: string;
     pipelineTask: unknown;
+    modelKey?: string;
     runAfterTasks?: string[];
     runStatus?: string;
   }) => ({
@@ -42,7 +44,7 @@ jest.mock('~/app/topology/utils', () => ({
     width: 100,
     height: 30,
     runAfterTasks,
-    data: { pipelineTask, runStatus },
+    data: { pipelineTask, modelKey, runStatus },
   }),
 }));
 
@@ -159,7 +161,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(runStatusToTreeStepState(RunStatus.Succeeded)).toBe('completed');
     expect(runStatusToTreeStepState(RunStatus.InProgress)).toBe('active');
     expect(runStatusToTreeStepState(RunStatus.Failed)).toBe('failed');
-    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('pending');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
   });
 
@@ -321,6 +323,43 @@ describe('transformStageMapNodesToTree', () => {
     expect((toggle?.y ?? 0) - (optimize?.y ?? 0)).toBe(120);
   });
 
+  it('resolves model ranks by record key when display names collide', () => {
+    const duplicateNameTraining = makeComponent('training', [
+      makeStage('load_data', { status: 'completed' }),
+      makeStage('model_selection', {
+        status: 'completed',
+        selected_models: ['model_a', 'model_b'],
+      }),
+      makeStage('refit_full'),
+    ]);
+    const topologyNodes = buildStageMapTopology(
+      makeStageMap([duplicateNameTraining]),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        model_a: { name: 'Shared Name' },
+        model_b: { name: 'Shared Name' },
+      },
+    );
+
+    expect(
+      topologyNodes
+        .filter((node) => node.id.includes('__model__'))
+        .map((node) => node.data?.modelKey),
+    ).toEqual(['model_a', 'model_b']);
+
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: false,
+      modelRanks: { model_a: 1, model_b: 2, 'Shared Name': 1 },
+    });
+    expect(
+      nodes.filter((node) => node.id.includes('__model__')).map((node) => node.data.winnerRank),
+    ).toEqual([1, 2]);
+  });
+
   it('labels the collapsed terminus as Model winner when the winner is unresolved', () => {
     const topologyNodes = buildStageMapTopology(makeStageMap([training]));
     const { nodes } = transformStageMapNodesToTree(topologyNodes, {
@@ -432,7 +471,7 @@ describe('transformStageMapNodesToTree', () => {
     const failedMap = makeStageMap([
       makeComponent('training', [
         makeStage('load_data', { status: 'failed' }),
-        makeStage('model_selection'),
+        makeStage('model_selection', { status: 'skipped' }),
         makeStage('build_leaderboard'),
       ]),
     ]);
@@ -442,6 +481,21 @@ describe('transformStageMapNodesToTree', () => {
     expect(nodes.find((node) => node.id === 'training__load_data')?.data.stepState).toBe('failed');
     expect(nodes.find((node) => node.id === 'training__model_selection')?.data.stepState).toBe(
       'unreached',
+    );
+  });
+
+  it('should keep a skipped stage pending when no earlier stage failed', () => {
+    const stageMap = makeStageMap([
+      makeComponent('training', [
+        makeStage('load_data', { status: 'completed' }),
+        makeStage('model_selection', { status: 'skipped' }),
+      ]),
+    ]);
+    const topologyNodes = buildStageMapTopology(stageMap);
+    const { nodes } = transformStageMapNodesToTree(topologyNodes);
+
+    expect(nodes.find((node) => node.id === 'training__model_selection')?.data.stepState).toBe(
+      'pending',
     );
   });
 });
