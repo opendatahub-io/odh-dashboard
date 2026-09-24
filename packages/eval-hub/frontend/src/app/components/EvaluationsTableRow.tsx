@@ -173,7 +173,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const actions: IAction[] = [
     {
       title: 'View evaluation status',
-      onClick: () => onShowStatus(job),
+      onClick: () => onShowStatus(effectiveJob),
     },
     ...(canStop
       ? [
@@ -236,7 +236,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             isLoading={isKueueStatusLoading}
             isPreStartFailure={isPreStart}
             kueueWorkloadStatus={kueueWorkloadStatus}
-            onClick={() => onShowStatus(job)}
+            onClick={() => onShowStatus(effectiveJob)}
           />
           {(displayState === 'failed' || displayState === 'partially_failed') &&
           effectiveBenchmarks.length > 1 ? (

@@ -7,6 +7,24 @@ export const getEvaluationName = (job: EvaluationJob): string =>
 export const getEvaluationQueue = (job: EvaluationJob): string | undefined =>
   job.hardware_config?.queue?.name || job.status.queue || job.resource.queue;
 
+export const getLatestEvaluationJob = (
+  currentJob: EvaluationJob,
+  refreshedJob?: EvaluationJob,
+): EvaluationJob => {
+  if (!refreshedJob) {
+    return currentJob;
+  }
+
+  const currentUpdatedAt = currentJob.resource.updated_at
+    ? Date.parse(currentJob.resource.updated_at)
+    : 0;
+  const refreshedUpdatedAt = refreshedJob.resource.updated_at
+    ? Date.parse(refreshedJob.resource.updated_at)
+    : 0;
+
+  return refreshedUpdatedAt > currentUpdatedAt ? refreshedJob : currentJob;
+};
+
 export const isEvaluationJobQueued = (job: EvaluationJob): boolean =>
   job.status.state === 'pending' && Boolean(getEvaluationQueue(job));
 

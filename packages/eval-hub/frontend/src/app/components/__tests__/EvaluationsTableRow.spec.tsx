@@ -107,6 +107,17 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
   });
 
+  it('should open status using the latest polled job data', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    const polledJob = mockEvaluationJob({ state: 'running' });
+
+    renderJob(job, 0, polledJob);
+
+    fireEvent.click(within(screen.getByTestId('evaluation-status-button')).getByRole('button'));
+
+    expect(mockOnShowStatus).toHaveBeenCalledWith(polledJob);
+  });
+
   it('should disable the compare checkbox when evaluation is not completed', () => {
     renderRow({ state: 'running' });
     expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeDisabled();

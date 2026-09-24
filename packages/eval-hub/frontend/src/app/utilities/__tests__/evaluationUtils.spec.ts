@@ -15,6 +15,7 @@ import {
   formatDurationCompact,
   formatOrdinal,
   getEvaluationDisplayState,
+  getLatestEvaluationJob,
   getEvaluationQueue,
   isTerminalState,
   normalizeThreshold,
@@ -827,6 +828,18 @@ describe('getEvaluationQueue', () => {
     job.hardware_config = { queue: { name: 'gpu-default' } };
 
     expect(getEvaluationQueue(job)).toBe('gpu-default');
+  });
+});
+
+describe('getLatestEvaluationJob', () => {
+  it('should prefer refreshed job data only when it is newer', () => {
+    const currentJob = mockEvaluationJob({ state: 'pending' });
+    const refreshedJob = mockEvaluationJob({ state: 'running' });
+    // eslint-disable-next-line camelcase -- API field name.
+    refreshedJob.resource.updated_at = '2026-02-20T10:01:00Z';
+
+    expect(getLatestEvaluationJob(currentJob, refreshedJob)).toBe(refreshedJob);
+    expect(getLatestEvaluationJob(refreshedJob, currentJob)).toBe(refreshedJob);
   });
 });
 
