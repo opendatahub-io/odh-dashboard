@@ -145,7 +145,9 @@ describe('EvaluationStatusLabel', () => {
       />,
     );
 
-    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Inadmissible');
+    const label = screen.getByTestId('status-label-pending');
+    expect(label).toHaveTextContent('Inadmissible');
+    expect(label).toHaveClass('pf-m-warning', 'pf-m-outline');
   });
 
   it('should render Admitted when Kueue has admitted a pending evaluation', () => {

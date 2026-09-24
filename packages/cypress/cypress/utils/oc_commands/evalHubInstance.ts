@@ -274,6 +274,72 @@ const waitForEvaluationJobsCreated = (
   );
 };
 
+/** Checks the Kueue APIs and runtime before provisioning queue-backed EvalHub tests. */
+export const isEvalHubKueueAvailable = (): Cypress.Chainable<boolean> => {
+  const requiredCrds = [
+    'workloads.kueue.x-k8s.io',
+    'clusterqueues.kueue.x-k8s.io',
+    'localqueues.kueue.x-k8s.io',
+    'resourceflavors.kueue.x-k8s.io',
+  ];
+
+  return cy
+    .exec(`oc get crd ${requiredCrds.join(' ')} --ignore-not-found -o name`, {
+      failOnNonZeroExit: false,
+    })
+    .then((crdResult) => {
+      if (crdResult.exitCode !== 0) {
+        throw new Error(`Unable to check Kueue CRDs: ${crdResult.stderr || crdResult.stdout}`);
+      }
+
+      const installedCrds = crdResult.stdout.split(/\s+/);
+      const hasRequiredCrds = requiredCrds.every((crd) =>
+        installedCrds.some((item) => item.endsWith(`/${crd}`)),
+      );
+
+      return cy
+        .exec(
+          "oc get pods -A -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,IMAGES:.spec.containers[*].image' --no-headers",
+          { failOnNonZeroExit: false },
+        )
+        .then((podsResult) => {
+          if (podsResult.exitCode !== 0) {
+            throw new Error(
+              `Unable to check Kueue runtime: ${podsResult.stderr || podsResult.stdout}`,
+            );
+          }
+
+          const hasRunningController = podsResult.stdout.split('\n').some((line) => {
+            const [name, phase, images] = line.trim().split(/\s+/);
+            if (!name || !images || phase !== 'Running') {
+              return false;
+            }
+            return (
+              /kueue.*controller|controller.*kueue/i.test(name) ||
+              images
+                .split(',')
+                .some((image) => /\/kueue(?:-controller|-rhel\d+)?(?:[:@]|$)/i.test(image))
+            );
+          });
+          return hasRequiredCrds && hasRunningController;
+        });
+    });
+};
+
+/** Confirms that the submitted EvalHub run was scheduled through the selected LocalQueue. */
+export const waitForEvalHubKueueWorkload = (
+  namespace: string,
+  localQueueName: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get workloads -n ${assertNamespace(namespace)} -o json | ` +
+      `jq -e '[.items[] | select(.spec.queueName == "${assertNamespace(
+        localQueueName,
+      )}")] | length > 0'`,
+    `EvalHub Kueue Workload in LocalQueue ${localQueueName}`,
+    { maxAttempts: 24, pollIntervalMs: 5000 },
+  );
+
 /**
  * Polls until all evaluation Jobs in the namespace have reached a terminal state.
  *

@@ -41,7 +41,7 @@ const statusMap: Partial<
   },
   inadmissible: {
     label: 'Inadmissible',
-    color: 'orange',
+    status: 'warning',
     icon: <ExclamationTriangleIcon />,
   },
   running: {
