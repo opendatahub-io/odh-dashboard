@@ -313,6 +313,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
           deleteName="Remove NVIDIA NIM"
           deleting={isDeleting}
           error={deleteError}
+          typeConfirmationLabel="removal"
         >
           NVIDIA NIM will be disabled in this project. Existing NIM deployments will begin failing,
           and no new ones can be created in this project until a new API key is added.
