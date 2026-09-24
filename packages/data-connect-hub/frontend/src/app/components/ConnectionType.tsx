@@ -137,32 +137,35 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
   created: {
     id: 'created',
     label: 'Created',
-    value: (connectionType) => {
-      const createdAt = new Date(connectionType?.metadata.created_at ?? '');
-      return (
-        <Timestamp date={createdAt} tooltip={{ variant: TimestampTooltipVariant.default }}>
-          {relativeTime(Date.now(), createdAt.getTime())}
-        </Timestamp>
-      );
-    },
+    value: (connectionType) => <RelativeTimestamp datetime={connectionType.metadata.created_at} />,
   },
   last_modified: {
     id: 'last_modified',
     label: 'Last modified',
-    value: (connectionType) => {
-      const updatedAt = new Date(connectionType?.metadata.updated_at ?? '');
-      return (
-        <Timestamp date={updatedAt} tooltip={{ variant: TimestampTooltipVariant.default }}>
-          {relativeTime(Date.now(), updatedAt.getTime())}
-        </Timestamp>
-      );
-    },
+    value: (connectionType) => <RelativeTimestamp datetime={connectionType.metadata.updated_at} />,
   },
 };
 
 // Private -------------------------------------------------------------------->
 
 // Components ----------------------------------------------------------------->
+
+type RelativeTimestampProps = {
+  datetime: string;
+};
+const RelativeTimestamp: React.FC<RelativeTimestampProps> = ({ datetime }) => {
+  const datetimeObject = new Date(datetime);
+
+  if (Number.isNaN(datetimeObject.getTime())) {
+    return <>-</>;
+  }
+
+  return (
+    <Timestamp date={datetimeObject} tooltip={{ variant: TimestampTooltipVariant.default }}>
+      {relativeTime(Date.now(), datetimeObject.getTime())}
+    </Timestamp>
+  );
+};
 
 type ConnectionTypeIconProps = {
   connectionType: ConnectionType;

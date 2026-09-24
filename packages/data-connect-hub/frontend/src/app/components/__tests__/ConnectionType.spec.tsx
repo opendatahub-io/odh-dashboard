@@ -22,6 +22,10 @@ const LocationDisplay = () => {
 };
 
 describe('ConnectionType', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('should map supported providers to the expected groups', () => {
     expect(KnownConnectionTypes.s3.group).toBe('red_hat');
     expect(KnownConnectionTypes['uri-v1'].group).toBe('red_hat');
@@ -76,13 +80,30 @@ describe('ConnectionType', () => {
     );
   });
 
-  it('should render the provider and timestamps in the details values', () => {
+  it('should render the provider and relative timestamps in the details values', () => {
+    jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-10T16:00:00Z').getTime());
+
     render(<ConnectionTypeValues connectionType={mockConnectionType()} />);
 
     expect(screen.getByText('Provider')).toBeTruthy();
     expect(screen.getByText('postgresql')).toBeTruthy();
     expect(screen.getByText('Created')).toBeTruthy();
+    expect(screen.getByText('2 days ago')).toBeTruthy();
     expect(screen.getByText('Last modified')).toBeTruthy();
+    expect(screen.getByText('1 day ago')).toBeTruthy();
     expect(screen.queryByText('Category')).toBeNull();
+  });
+
+  it('should render a fallback for invalid timestamps', () => {
+    render(
+      <ConnectionTypeValues
+        connectionType={mockConnectionType({
+          metadata: { created_at: 'invalid-created-at', updated_at: 'invalid-updated-at' },
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText('-')).toHaveLength(2);
+    expect(screen.queryByText('Invalid Date')).toBeNull();
   });
 });
