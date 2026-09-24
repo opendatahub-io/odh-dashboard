@@ -2619,6 +2619,32 @@ func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
 		assert.Contains(t, err.Error(), "vector stores", "must reject vector store installs on zero-restart path")
 	})
 
+	t.Run("repairs an existing passthrough provider missing the identity header", func(t *testing.T) {
+		provider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
+		delete(provider.Config["forward_headers"].(map[string]interface{}), "passthrough_api_key")
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddInferenceProvider(provider)
+		yamlData, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		kc := buildClient(yamlData)
+		mockBFF := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+
+		result, err := kc.InstallOGXServer(context.Background(), identity, testNamespace,
+			[]models.InstallModel{}, nil, false, mockBFF)
+
+		require.NoError(t, err)
+		assert.Equal(t, existingServer, result.Name)
+
+		var configMap corev1.ConfigMap
+		require.NoError(t, kc.Client.Get(context.Background(), types.NamespacedName{Name: cmName, Namespace: testNamespace}, &configMap))
+		var repairedConfig LlamaStackConfig
+		require.NoError(t, repairedConfig.FromYAML(configMap.Data[cmKey]))
+		assert.True(t, repairedConfig.HasPassthroughProvider(passthroughURL),
+			"the repaired config must forward passthrough_api_key to the BFF")
+	})
+
 	t.Run("does not take zero-restart path when passthrough URL is stale", func(t *testing.T) {
 		staleURL := "https://old-domain.com/gen-ai/api/v1/genai-proxy/ns/" + testNamespace
 		provider := NewPassthroughProvider(constants.PassthroughProviderID, staleURL)

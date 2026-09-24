@@ -26,8 +26,8 @@ import (
 //
 // Streaming (stream:true) is handled by a separate endpoint (RHOAIENG-79575).
 //
-// Auth is required: OGX forwards the user's JWT via Authorization: Bearer
-// (from passthrough_api_key in X-OGX-Provider-Data). AttachNamespaceFromPath
+// Auth is required: OGX forwards the user's JWT from passthrough_api_key in
+// X-OGX-Provider-Data to the BFF's configured token header. AttachNamespaceFromPath
 // and RequireAccessToService middleware run before this handler.
 func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
@@ -119,12 +119,6 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		}
 	}
 
-	// Normalize base URL to include /v1 if missing
-	baseURL = strings.TrimSuffix(baseURL, "/")
-	if !strings.HasSuffix(baseURL, "/v1") {
-		baseURL += "/v1"
-	}
-
 	// Proxy the request to upstream.
 	// Use a dedicated client — LLM completions can take longer than the BFF's default
 	// httpClient timeout (92s, tuned for ASR transcription).
@@ -142,7 +136,7 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		proxyClient.Timeout = chatCompletionTimeout
 	}
 
-	upstreamURL := baseURL + "/chat/completions"
+	upstreamURL := chatCompletionsURL(baseURL)
 	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, strings.NewReader(string(upstreamBody)))
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create upstream request: %w", err))
@@ -232,6 +226,18 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		w.WriteHeader(resp.StatusCode)
 		_, _ = w.Write(respBody)
 	}
+}
+
+// chatCompletionsURL returns the OpenAI chat-completions endpoint for an
+// OpenAI-compatible base URL. Most providers use a bare host or a /v1 base
+// path, while Google's compatible API already ends in /openai and must not
+// receive an extra /v1 segment.
+func chatCompletionsURL(baseURL string) string {
+	baseURL = strings.TrimSuffix(baseURL, "/")
+	if !strings.HasSuffix(baseURL, "/v1") && !strings.HasSuffix(baseURL, "/openai") {
+		baseURL += "/v1"
+	}
+	return baseURL + "/chat/completions"
 }
 
 // resolveProxyModelEndpoint resolves a model ID to its upstream endpoint URL, API key, and
