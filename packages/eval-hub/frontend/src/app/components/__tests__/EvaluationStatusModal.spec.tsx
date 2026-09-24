@@ -341,6 +341,7 @@ describe('EvaluationStatusModal progress tab', () => {
     expect(screen.getByTestId('status-description')).toHaveTextContent(
       'admitted by Kueue through LocalQueue default and is pending',
     );
+    expect(screen.getByTestId('evaluation-status-queue')).toHaveTextContent('default');
   });
 
   it('should explain why Kueue cannot admit a pending evaluation', () => {

@@ -14,6 +14,7 @@ import (
 
 type kueueHardwareProfilesK8sClient struct {
 	testK8sClient
+	readCalled                 bool
 	availability               *models.KueueAvailability
 	profiles                   *models.HardwareProfilesResponse
 	workloadStatuses           *models.KueueWorkloadStatusesResponse
@@ -29,6 +30,7 @@ type kueueHardwareProfilesK8sClient struct {
 }
 
 func (c *kueueHardwareProfilesK8sClient) GetKueueAvailability(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (*models.KueueAvailability, error) {
+	c.readCalled = true
 	if c.err != nil {
 		return nil, c.err
 	}
@@ -36,6 +38,7 @@ func (c *kueueHardwareProfilesK8sClient) GetKueueAvailability(_ context.Context,
 }
 
 func (c *kueueHardwareProfilesK8sClient) GetKueueWorkloadStatuses(_ context.Context, _ *kubernetes.RequestIdentity, namespace string, evaluationIDs []string) (*models.KueueWorkloadStatusesResponse, error) {
+	c.readCalled = true
 	c.workloadNamespace = namespace
 	c.workloadEvaluationIDs = evaluationIDs
 	if c.err != nil {
@@ -45,6 +48,7 @@ func (c *kueueHardwareProfilesK8sClient) GetKueueWorkloadStatuses(_ context.Cont
 }
 
 func (c *kueueHardwareProfilesK8sClient) ListHardwareProfiles(_ context.Context, _ *kubernetes.RequestIdentity, evaluationNamespace, hardwareProfilesNamespace string) (*models.HardwareProfilesResponse, error) {
+	c.readCalled = true
 	c.evaluationNamespace = evaluationNamespace
 	c.profileNamespace = hardwareProfilesNamespace
 	if c.err != nil {
@@ -54,9 +58,53 @@ func (c *kueueHardwareProfilesK8sClient) ListHardwareProfiles(_ context.Context,
 }
 
 func (c *kueueHardwareProfilesK8sClient) GetMissingHardwareProfileLocalQueueName(_ context.Context, _ *kubernetes.RequestIdentity, evaluationNamespace, hardwareProfilesNamespace, _ string) (string, bool, error) {
+	c.readCalled = true
 	c.missingEvaluationNamespace = evaluationNamespace
 	c.missingProfileNamespace = hardwareProfilesNamespace
 	return c.missingQueue, c.queueMissing, c.err
+}
+
+type deniedKueueK8sClient struct {
+	*kueueHardwareProfilesK8sClient
+}
+
+func (c *deniedKueueK8sClient) CanListEvalHubInstances(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (bool, error) {
+	return false, nil
+}
+
+func TestKueueRoutesRequireEvalHubAccessBeforeServiceAccountReads(t *testing.T) {
+	for _, testCase := range []struct {
+		name   string
+		method string
+		url    string
+		body   interface{}
+	}{
+		{"availability", http.MethodGet, "/eval-hub/api/v1/kueue/availability?namespace=test-namespace", nil},
+		{"workloads", http.MethodGet, "/eval-hub/api/v1/kueue/workloads?namespace=test-namespace&evaluation_ids=job-1", nil},
+		{"hardware profiles", http.MethodGet, "/eval-hub/api/v1/hardwareprofiles?namespace=test-namespace", nil},
+		{"profile validation", http.MethodPost, "/eval-hub/api/v1/hardwareprofiles/validate?namespace=test-namespace", models.HardwareProfileValidationRequest{HardwareProfiles: []string{"gpu"}}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			client := &deniedKueueK8sClient{kueueHardwareProfilesK8sClient: &kueueHardwareProfilesK8sClient{}}
+			_, response, err := setupApiTestWithEvalHub[HTTPError](
+				testCase.method,
+				testCase.url,
+				testCase.body,
+				&crStatusK8sFactory{client: client},
+				&kubernetes.RequestIdentity{UserID: "test-user"},
+				nil,
+			)
+			if err != nil {
+				t.Fatalf("request failed: %v", err)
+			}
+			if response.StatusCode != http.StatusForbidden {
+				t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusForbidden)
+			}
+			if client.readCalled {
+				t.Fatal("Kubernetes discovery read ran before the tenant access check")
+			}
+		})
+	}
 }
 
 // TestHardwareProfilesNamespaceUsesConfiguredOverride verifies that a local BFF

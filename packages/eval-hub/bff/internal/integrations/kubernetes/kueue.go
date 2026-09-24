@@ -56,8 +56,8 @@ var (
 
 // kueueAvailabilityCache keeps the availability result briefly so the form's
 // availability and HardwareProfile requests share one Kubernetes lookup. Cache
-// keys contain a hash of the caller token, never the token itself, to preserve
-// user-scoped authorization semantics.
+// keys contain a hash of the caller token, never the token itself, to keep
+// separate entries for each request identity.
 type kueueAvailabilityCache struct {
 	mu          sync.Mutex
 	ttl         time.Duration
@@ -194,9 +194,8 @@ func getKueueAvailability(ctx context.Context, client dynamic.Interface, namespa
 
 	var queues *unstructured.UnstructuredList
 	if !clusterEnabled && !externalKueueFound && namespaceManaged {
-		// The Kueue operator's cluster-scoped resource may not be readable by
-		// a user token. A successful namespace-scoped LocalQueue lookup still
-		// proves that the Kueue API is installed, including the no-queue case.
+		// A successful namespace-scoped LocalQueue lookup still proves that
+		// the Kueue API is installed, including the no-queue case.
 		queues, err = client.Resource(localQueueGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return nil, fmt.Errorf("failed to list LocalQueues in namespace %q: %w", namespace, err)
@@ -210,7 +209,7 @@ func getKueueAvailability(ctx context.Context, client dynamic.Interface, namespa
 		clusterEnabled, err = dataScienceClusterKueueManaged(ctx, client)
 		if err != nil {
 			// An unmanaged namespace does not require Kueue scheduling. Regular
-			// users may not read the cluster-scoped DataScienceCluster resource.
+			// installations may not grant access to DataScienceCluster.
 			if !namespaceManaged && k8serrors.IsForbidden(err) {
 				return newKueueAvailability(false, false, []string{}), nil
 			}

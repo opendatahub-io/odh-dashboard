@@ -456,9 +456,11 @@ describe('EvaluationsTable', () => {
 
       expect(screen.queryByText('Kueue status')).not.toBeInTheDocument();
       expect(screen.queryByTestId('evaluation-kueue-status')).not.toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: 'Queue' })).toBeInTheDocument();
       const betaRow = screen.getByText('Beta Evaluation').closest('tr');
       expect(betaRow).not.toBeNull();
       expect(within(betaRow!).getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
+      expect(within(betaRow!).getByTestId('evaluation-queue')).toHaveTextContent('default');
     });
 
     it('should preserve a terminal EvalHub status when Kueue has not updated yet', () => {

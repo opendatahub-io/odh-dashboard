@@ -77,7 +77,8 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const effectiveJob = polledJobData ?? job;
   // Detail polling can omit hardware_config.queue even when the list response included it.
   // Keep the list assignment available so a queued run does not briefly fall back to Pending.
-  const queue = getEvaluationQueue(effectiveJob) ?? getEvaluationQueue(job);
+  const queue =
+    getEvaluationQueue(effectiveJob) ?? getEvaluationQueue(job) ?? kueueWorkloadStatus?.queue_name;
   const isQueued = currentState === 'pending' && Boolean(queue);
   const isKueueStatusLoading =
     currentState === 'pending' && isKueueWorkloadStatusLoading && !kueueWorkloadStatus && !queue;

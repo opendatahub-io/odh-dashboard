@@ -164,11 +164,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const { availability: kueueAvailability, loaded: kueueAvailabilityLoaded } =
     useKueueAvailability(namespace);
   const isKueueSchedulingReady = kueueAvailability?.scheduling_ready === true;
-  const hasQueueAssignments = React.useMemo(
-    () => evaluations.some((job) => Boolean(getEvaluationQueue(job))),
-    [evaluations],
-  );
-  const dateColumnIndex = hasQueueAssignments ? 5 : 4;
   const statusOptions = isKueueSchedulingReady
     ? STATUS_OPTIONS
     : STATUS_OPTIONS.filter((option) => !KUEUE_STATUS_FILTERS.includes(option.value));
@@ -190,6 +185,16 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     isKueueWorkloadStatusPollingEnabled,
     evaluations.some((job) => !isTerminalState(job.status.state)),
   );
+  const hasQueueAssignments = React.useMemo(
+    () =>
+      evaluations.some(
+        (job) =>
+          Boolean(getEvaluationQueue(job)) ||
+          Boolean(kueueWorkloadStatusesByEvaluationID.get(job.resource.id)?.queue_name),
+      ),
+    [evaluations, kueueWorkloadStatusesByEvaluationID],
+  );
+  const dateColumnIndex = hasQueueAssignments ? 5 : 4;
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedStatus, setSelectedStatus] = React.useState<StatusFilter | ''>('');

@@ -422,7 +422,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   // Detail polling can omit hardware_config.queue even when the list response included it.
   // Keep the list assignment available so a queued run does not briefly fall back to Pending.
   const queue = effectiveJob
-    ? (getEvaluationQueue(effectiveJob) ?? (job ? getEvaluationQueue(job) : undefined))
+    ? (getEvaluationQueue(effectiveJob) ??
+      (job ? getEvaluationQueue(job) : undefined) ??
+      kueueWorkloadStatus?.queue_name)
     : undefined;
   const isQueued = state === 'pending' && Boolean(queue);
   const isKueueStatusLoading =
