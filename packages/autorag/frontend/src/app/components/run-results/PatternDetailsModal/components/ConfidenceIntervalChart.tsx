@@ -14,7 +14,13 @@ import type {
   AutoragEvaluationMetric,
   AutoragPatternScoreMetric,
 } from '~/app/types/autoragPattern';
-import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
+import {
+  CI_HIGH_HELP,
+  CI_INTERVAL_HELP,
+  CI_LOW_HELP,
+  CI_MEAN_HELP,
+  CI_SCORE_HELP,
+} from '~/app/utilities/const';
 import {
   formatMetricValue,
   groupMetricsByKey,
@@ -24,6 +30,7 @@ import {
   metricLabel,
   normalizeMetricReference,
 } from '~/app/utilities/metricUtils';
+import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import InlineTooltip from '~/app/components/InlineTooltip';
 
 const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1];
@@ -107,10 +114,18 @@ const CIBarWithMarkers: React.FC<{
 
 const MetricLabel: React.FC<{ metric: AutoragEvaluationMetric }> = ({ metric }) => {
   const label = metricLabel(metric);
-  const description = METRIC_DESCRIPTIONS[normalizeMetricReference(metric).name];
+  const description = getMetricDescription(normalizeMetricReference(metric).name);
   return (
     <Content component={ContentVariants.p}>
-      {description ? <InlineTooltip text={label} tooltip={description} /> : label}
+      {description ? (
+        <InlineTooltip
+          text={label}
+          tooltip={description}
+          data-testid={`ci-metric-help-${metricDomSuffix(metric)}`}
+        />
+      ) : (
+        label
+      )}
     </Content>
   );
 };
@@ -224,24 +239,40 @@ const CILegend: React.FC = () => (
     data-testid="ci-legend"
   >
     <FlexItem>
-      <Content component={ContentVariants.small}>95% confidence interval</Content>
+      <Content component={ContentVariants.small}>
+        <InlineTooltip
+          text="95% confidence interval"
+          tooltip={CI_INTERVAL_HELP}
+          data-testid="ci-legend-interval-help"
+        />
+      </Content>
     </FlexItem>
     <FlexItem>
       <span className="autorag-ci-legend__item">
         <LegendDiamond className="m-ci-low" />
-        <Content component={ContentVariants.small}>CI low</Content>
+        <Content component={ContentVariants.small}>
+          <InlineTooltip text="CI low" tooltip={CI_LOW_HELP} data-testid="ci-legend-low-help" />
+        </Content>
       </span>
     </FlexItem>
     <FlexItem>
       <span className="autorag-ci-legend__item">
         <LegendCircle />
-        <Content component={ContentVariants.small}>Mean score</Content>
+        <Content component={ContentVariants.small}>
+          <InlineTooltip
+            text="Mean score"
+            tooltip={CI_MEAN_HELP}
+            data-testid="ci-legend-mean-help"
+          />
+        </Content>
       </span>
     </FlexItem>
     <FlexItem>
       <span className="autorag-ci-legend__item">
         <LegendDiamond className="m-ci-high" />
-        <Content component={ContentVariants.small}>CI high</Content>
+        <Content component={ContentVariants.small}>
+          <InlineTooltip text="CI high" tooltip={CI_HIGH_HELP} data-testid="ci-legend-high-help" />
+        </Content>
       </span>
     </FlexItem>
   </Flex>
@@ -312,10 +343,7 @@ const ConfidenceIntervalChart: React.FC<ConfidenceIntervalChartProps> = ({
     <div className="autorag-ci-scores" data-testid={testId}>
       <div className="autorag-ci-scores__header">
         <Title headingLevel="h3">Confidence interval (CI) scores</Title>
-        <Popover
-          bodyContent="Confidence interval scores show the statistical range of each evaluation metric. The CI low and CI high markers represent the 95% confidence interval bounds around the mean score."
-          position="top"
-        >
+        <Popover bodyContent={CI_SCORE_HELP} position="top">
           <Button
             variant="plain"
             aria-label="Confidence interval scores info"
