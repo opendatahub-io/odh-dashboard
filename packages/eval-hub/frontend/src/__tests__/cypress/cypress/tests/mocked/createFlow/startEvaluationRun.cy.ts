@@ -63,7 +63,7 @@ const mockKueueHardwareProfiles = ({
     'GET /api/:apiVersion/hardwareprofiles',
     { path: API_VERSION },
     { items: profiles },
-  );
+  ).as('hardwareProfiles');
   cy.interceptApi(
     'POST /api/:apiVersion/hardwareprofiles/validate',
     { path: API_VERSION },
@@ -524,7 +524,7 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 
-  it('should validate the selected HardwareProfile before submitting its profile-only payload', () => {
+  it('should refresh the selected HardwareProfile before submitting its profile-only payload', () => {
     const createdJob = mockEvaluationJob({ id: 'kueue-eval', name: 'Kueue evaluation' });
     mockKueueHardwareProfiles({
       availability: compatibleAvailability,
@@ -535,18 +535,19 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
     );
 
     navigateToBenchmarkStart();
-    cy.wait('@validateHardwareProfiles');
-    startEvaluationRunPage.findHardwareProfileToggle().click();
-    startEvaluationRunPage.findHardwareProfileOption(compatibleProfile.name).click();
-    fillExternalModelFields('my-model', 'https://api.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().click();
-
+    cy.wait('@hardwareProfiles');
     cy.wait('@validateHardwareProfiles').then((interception) => {
       expect(interception.request.body).to.eql({
         hardware_profiles: [compatibleProfile.name],
         provider_ids: ['test-provider'],
       });
     });
+    startEvaluationRunPage.findHardwareProfileToggle().click();
+    startEvaluationRunPage.findHardwareProfileOption(compatibleProfile.name).click();
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@hardwareProfiles');
     cy.wait('@createKueueJob').then((interception) => {
       expect(interception.request.body.hardware_config).to.eql({
         hardware_profile_name: compatibleProfile.name,
@@ -581,6 +582,7 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
     ).as('createKueueJob');
 
     navigateToBenchmarkStart();
+    cy.wait('@hardwareProfiles');
     cy.wait('@validateHardwareProfiles');
     startEvaluationRunPage.findHardwareProfileToggle().click();
     startEvaluationRunPage
@@ -590,7 +592,7 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
-    cy.wait('@validateHardwareProfiles');
+    cy.wait('@hardwareProfiles');
     cy.wait('@createKueueJob');
   });
 
@@ -601,28 +603,36 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
     });
 
     navigateToBenchmarkStart();
+    cy.wait('@hardwareProfiles');
     cy.wait('@validateHardwareProfiles');
-    cy.intercept(
-      { method: 'POST', pathname: '/eval-hub/api/v1/hardwareprofiles/validate' },
-      {
-        statusCode: 400,
-        body: {
-          error: {
-            code: '400',
-            message:
-              'LocalQueue "gpu-default" configured by HardwareProfile "gpu-default" is no longer available in namespace "test-namespace"',
-          },
-        },
-      },
-    ).as('validateDeletedQueue');
     startEvaluationRunPage.findHardwareProfileToggle().click();
     startEvaluationRunPage.findHardwareProfileOption(compatibleProfile.name).click();
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    cy.interceptApi(
+      'GET /api/:apiVersion/hardwareprofiles',
+      { path: API_VERSION },
+      { items: [] },
+    ).as('refreshDeletedQueue');
     startEvaluationRunPage.findSubmitButton().click();
 
-    cy.wait('@validateDeletedQueue');
+    cy.wait('@refreshDeletedQueue');
     new ToastNotification('Failed to start evaluation').find().should('exist');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/hardwareprofiles',
+      { path: API_VERSION },
+      { items: [compatibleProfile] },
+    ).as('refreshRestoredQueue');
+    cy.interceptApi(
+      'POST /api/:apiVersion/evaluations/jobs',
+      { path: API_VERSION },
+      mockEvaluationJob({ id: 'kueue-eval', name: 'Kueue evaluation' }),
+    ).as('createKueueJob');
+    startEvaluationRunPage.findSubmitButton().click();
+    cy.wait('@refreshRestoredQueue');
+    cy.wait('@createKueueJob');
+    new ToastNotification('Evaluation started').find().should('exist');
   });
 });
 
