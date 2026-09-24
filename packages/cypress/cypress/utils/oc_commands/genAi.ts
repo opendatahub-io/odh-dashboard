@@ -174,7 +174,7 @@ export const waitForModelInLSD = (
 
   const check = (attempt: number): void => {
     cy.exec(
-      `oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
+      `token=$(oc whoami -t) && provider_data=$(jq -cn --arg token "$token" '{passthrough_api_key: $token}') && oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s -H "Authorization: Bearer $token" -H "X-OGX-Provider-Data: $provider_data" ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
       { failOnNonZeroExit: false, timeout: 30000 },
     ).then((result) => {
       if (result.exitCode === 0 && result.stdout.trim().length > 0) {
