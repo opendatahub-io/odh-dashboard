@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react';
 import { usePluginStore } from '@openshift/dynamic-plugin-sdk';
-import MaaSAuthzProvider from '../MaaSAuthzProvider';
+import MaaSAuthzProvider from '../providers/MaaSAuthzProvider';
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   usePluginStore: jest.fn(),

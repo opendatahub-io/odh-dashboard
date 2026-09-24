@@ -1,16 +1,40 @@
 import * as React from 'react';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import DashboardContent from './DashboardContent';
+import { useClusterInfo } from '@odh-dashboard/internal/redux/selectors/clusterInfo';
+import { useWatchOperatorSubscriptionStatus } from '@odh-dashboard/internal/utilities/useWatchOperatorSubscriptionStatus';
 import ObservabilityNoProjects from './ObservabilityNoProjects';
-import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
+import { ClusterDetailsVariablesProvider } from './ClusterDetailsVariablesProvider';
+import DashboardView from './DashboardView';
+import { useClusterDetails } from '../api/useClusterDetails';
 import { usePersesDashboards } from '../api/usePersesDashboards';
-import { hasNamespaceVariable } from '../utils/dashboardUtils';
 
-const PERSES_LOAD_ERROR_TITLE = 'Unable to reach observability dashboards';
+/**
+ * TODO: Move this adapter to the frontend package once observability exposes a host-to-module adapter
+ * contract. The frontend must provide this component to DashboardPage across the Module Federation
+ * boundary so the package can remain host-neutral.
+ */
+const MainDashboardClusterDetailsVariablesProvider: React.FC = () => {
+  // Get API server URL from redux state (same source as AboutDialog)
+  const { serverURL } = useClusterInfo();
 
-const NO_DASHBOARDS_MESSAGE =
-  'No dashboards were found. Verify that the monitoring stack is configured correctly.';
+  // Get operator subscription status for channel (same source as AboutDialog)
+  const [subStatus] = useWatchOperatorSubscriptionStatus();
+
+  // Get OpenShift version and infrastructure provider
+  const { data: clusterDetails, loaded: clusterDetailsLoaded } = useClusterDetails();
+
+  const details = React.useMemo(
+    () => ({
+      apiServer: serverURL,
+      channel: subStatus?.channel,
+      openshiftVersion: clusterDetails.openshiftVersion,
+      infrastructureProvider: clusterDetails.infrastructureProvider,
+    }),
+    [clusterDetails, serverURL, subStatus],
+  );
+
+  return <ClusterDetailsVariablesProvider details={details} detailsLoaded={clusterDetailsLoaded} />;
+};
 
 const DashboardPage: React.FC = () => {
   const {
@@ -20,69 +44,21 @@ const DashboardPage: React.FC = () => {
   } = React.useContext(ProjectsContext);
   const { dashboards, loaded: dashboardsLoaded, error: dashboardsError } = usePersesDashboards();
 
-  const projectNames = React.useMemo(
-    () => projects.map((project) => project.metadata.name),
+  const dashboardProjects = React.useMemo(
+    () =>
+      projects.map((project) => ({ name: project.metadata.name, label: project.metadata.name })),
     [projects],
   );
-
-  // Without projects, hide namespace-scoped dashboards (tenancy proxy Forbidden). Cluster
-  // dashboards without a namespace variable can still render.
-  const viewableDashboards = React.useMemo(
-    () =>
-      projectNames.length === 0
-        ? dashboards.filter((dashboard) => !hasNamespaceVariable(dashboard))
-        : dashboards,
-    [dashboards, projectNames],
-  );
-
-  if (dashboardsError || projectsLoadError) {
-    return (
-      <ApplicationsPage
-        title={DASHBOARD_PAGE_TITLE}
-        description={DASHBOARD_PAGE_DESCRIPTION}
-        loaded
-        empty={false}
-        loadError={dashboardsError || projectsLoadError}
-        errorMessage={PERSES_LOAD_ERROR_TITLE}
-      />
-    );
-  }
-
-  if (!projectsLoaded || !dashboardsLoaded) {
-    return (
-      <ApplicationsPage
-        title={DASHBOARD_PAGE_TITLE}
-        description={DASHBOARD_PAGE_DESCRIPTION}
-        loaded={false}
-        empty={false}
-      />
-    );
-  }
-
-  // No projects and every dashboard was namespace-scoped (filtered out of viewableDashboards)
-  if (projectNames.length === 0 && viewableDashboards.length === 0 && dashboards.length > 0) {
-    return (
-      <ApplicationsPage
-        title={DASHBOARD_PAGE_TITLE}
-        description={DASHBOARD_PAGE_DESCRIPTION}
-        loaded
-        empty
-        emptyStatePage={<ObservabilityNoProjects />}
-      />
-    );
-  }
-
-  if (viewableDashboards.length > 0) {
-    return <DashboardContent dashboards={viewableDashboards} projectNames={projectNames} />;
-  }
-
   return (
-    <ApplicationsPage
-      title={DASHBOARD_PAGE_TITLE}
-      description={DASHBOARD_PAGE_DESCRIPTION}
-      loaded
-      empty
-      emptyMessage={NO_DASHBOARDS_MESSAGE}
+    <DashboardView
+      dashboards={dashboards}
+      dashboardsLoaded={dashboardsLoaded}
+      dashboardsError={dashboardsError}
+      projects={dashboardProjects}
+      projectsLoaded={projectsLoaded}
+      projectsLoadError={projectsLoadError}
+      ClusterDetailsAdapter={MainDashboardClusterDetailsVariablesProvider}
+      noProjectsEmptyState={<ObservabilityNoProjects />}
     />
   );
 };
