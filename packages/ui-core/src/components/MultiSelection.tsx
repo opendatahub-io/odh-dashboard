@@ -471,7 +471,6 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         ),
       );
       setInputValue('');
-      resetActiveAndFocusedItem();
     }
     if (refocusInput) {
       textInputRef.current?.focus();

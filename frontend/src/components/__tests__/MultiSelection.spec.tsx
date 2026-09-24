@@ -61,7 +61,7 @@ describe('MultiSelection', () => {
     expect(document.getElementById('test-select-listbox')).toBeInTheDocument();
   });
 
-  it('should clear keyboard focus when a selection clears the filter input', async () => {
+  it('should keep keyboard focus on the option after selecting it', async () => {
     render(
       <MultiSelection
         id="test-select"
@@ -74,7 +74,9 @@ describe('MultiSelection', () => {
     const combobox = screen.getByRole('combobox', { name: 'Connections' });
 
     await act(async () => {
-      fireEvent.change(combobox, { target: { value: 'Connection 2' } });
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
@@ -84,8 +86,14 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'Enter' });
     });
 
-    expect(combobox).not.toHaveAttribute('aria-activedescendant');
     expect(combobox).toHaveValue('');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-2');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-3');
   });
 
   it('should call setValue when Enter selects a focused option', async () => {
