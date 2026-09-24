@@ -132,6 +132,9 @@ export enum SupportedArea {
 
   /* Guided tour (What's New) — hidden until tour content matches the installed version */
   GUIDED_TOUR = 'guided-tour',
+
+  /* Runtime Catalog */
+  RUNTIME_CATALOG = 'runtime-catalog',
 }
 
 export type SupportedAreaType = SupportedArea | string;

@@ -14,6 +14,11 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateVariant,
   Gallery,
   Label,
   MenuToggle,
@@ -31,7 +36,7 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -43,7 +48,11 @@ import CollectionDrawerPanel, {
 } from '~/app/components/CollectionDrawerPanel';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { formatCategory, getCategoryColor } from '~/app/components/benchmarkUtils';
+import {
+  formatCategory,
+  getCategoryColor,
+  getCollectionCategoryValues,
+} from '~/app/components/benchmarkUtils';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
 import { BenchmarkSortOption, benchmarkSortLabels } from '~/app/pages/const';
 
@@ -76,6 +85,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     sortOption,
     setSortOption,
     availableCategories,
+    refresh,
   } = useCollections(namespace ?? '');
 
   const { providers } = useProviders(namespace ?? '');
@@ -144,6 +154,29 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             }
             loaded={loaded}
             loadError={loadError}
+            loadErrorPage={
+              <PageSection hasBodyWrapper={false} isFilled>
+                <EmptyState
+                  headingLevel="h2"
+                  icon={ExclamationCircleIcon}
+                  status="danger"
+                  titleText="Benchmark suites unavailable"
+                  variant={EmptyStateVariant.lg}
+                  data-testid="benchmark-suites-load-error"
+                >
+                  <EmptyStateBody>
+                    We could not load the benchmark suites right now. Please try again later.
+                  </EmptyStateBody>
+                  <EmptyStateFooter>
+                    <EmptyStateActions>
+                      <Button variant="primary" onClick={refresh}>
+                        Try again
+                      </Button>
+                    </EmptyStateActions>
+                  </EmptyStateFooter>
+                </EmptyState>
+              </PageSection>
+            }
             empty={false}
           >
             <PageSection hasBodyWrapper={false} isFilled>
@@ -277,16 +310,17 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   {collections.map((collection) => {
                     const benchmarkCount = collection.benchmarks?.length ?? 0;
                     const isSelected = selectedCollection?.resource.id === collection.resource.id;
+                    const collectionCategory = getCollectionCategoryValues(collection)[0];
                     return (
                       <Card
                         key={collection.resource.id}
                         isSelected={isSelected}
                         data-testid={`collection-card-${collection.resource.id}`}
                       >
-                        {collection.category && (
+                        {collectionCategory && (
                           <CardHeader>
-                            <Label color={getCategoryColor(collection.category)} isCompact>
-                              {formatCategory(collection.category)}
+                            <Label color={getCategoryColor(collectionCategory)} isCompact>
+                              {formatCategory(collectionCategory)}
                             </Label>
                           </CardHeader>
                         )}

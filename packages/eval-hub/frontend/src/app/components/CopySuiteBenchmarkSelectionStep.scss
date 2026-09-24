@@ -1,0 +1,49 @@
+.evalhub-copy-suite-benchmark-catalog__fields {
+  min-inline-size: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.evalhub-copy-suite-benchmark-catalog__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.evalhub-copy-suite-benchmark-catalog__benchmark-name {
+  padding: 0;
+  font-family: var(--pf-t--global--font--family--heading);
+  font-size: var(--pf-t--global--font--size--body--lg);
+  line-height: var(--pf-t--global--font--line-height--100);
+  font-weight: 600;
+  margin-block-end: var(--pf-t--global--spacer--xs);
+  text-align: left;
+}
+
+.evalhub-copy-suite-benchmark-catalog__limit-message {
+  font-size: var(--pf-t--global--font--size--body--lg);
+}
+
+.evalhub-copy-suite-benchmark-catalog__row--active {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.evalhub-copy-suite-benchmark-catalog__table-wrap {
+  min-height: 0;
+  overflow: auto;
+}
+
+.evalhub-copy-suite-benchmark-catalog__table-wrap .pf-v6-c-empty-state {
+  min-height: 220px;
+}
+
+.evalhub-copy-suite-benchmark-catalog__benchmark-id {
+  margin-block: 0;
+}
+
+.evalhub-copy-suite-benchmark-catalog__footer {
+  display: flex;
+  gap: var(--pf-t--global--spacer--md);
+  padding-block: var(--pf-t--global--spacer--md);
+}
