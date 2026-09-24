@@ -174,18 +174,20 @@ Cypress tests require a frontend server to be running.
 
 Using the rspack development server allows for auto rebuilding the dashboard frontend as code changes are made.
 
-To have turbo run a cypress server for the frontend folder and all federated modules run the following from the root of the repository:
+From the repository root, start the host and participating federated modules in development mode. This rebuilds as source files change; leave it running while opening Cypress in a second terminal:
 
 ```bash
 pnpm run cypress:server:dev
 ```
 
-To best match production, build the frontend and use a lightweight HTTP server to host the files. This method will require manual rebuilds when changes are made to the dashboard frontend code.
+For production-like testing, build the host and remotes once, then serve their `public-cypress` assets. Rebuild after changing source files:
 
 ```bash
 pnpm run cypress:server:build
 pnpm run cypress:server
 ```
+
+The root mock server and live-dev workflows select only packages that implement the dashboard mock federation contract (`cypress:mock:build`, `cypress:mock:build:coverage`, and `cypress:mock:dev`). The root build also builds static assets for E2E-only packages such as Model Serving, because the same build command prepares the local BFF E2E stack; these packages are not started by the mock server or live-dev command. Package-local `cypress:server` commands for standalone frontends and BFFs have a different purpose and are not started from the root. Run `pnpm run validate:cypress-mock` to check participants and detect duplicate ports or module names without starting servers. The Model Registry upstream frontend still uses npm internally.
 
 Once you have Cypress server running in a terminal, there are two commands to run the Cypress mock tests in a separate terminal (always use the `:mock` variants).
 
@@ -199,7 +201,8 @@ Once you have Cypress server running in a terminal, there are two commands to ru
   ```bash
   pnpm run cypress:run:mock
 
-  pnpm run cypress:run:mock --spec "**/testfile.cy.ts"
+  # Cypress resolves --spec relative to frontend/, not the Cypress project.
+  pnpm run cypress:run:mock --spec "../packages/cypress/cypress/tests/mocked/applications/externalRedirects.cy.ts"
   ```
 
 Running out of memory using the GUI? Cypress keeps track of a lot of data while testing. If you experience memory issues or crashes, use the following command to adjust the number of tests kept in memory:
