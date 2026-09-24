@@ -12,6 +12,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/data-registry/bff/internal/constants"
 	helper "github.com/opendatahub-io/data-registry/bff/internal/helpers"
+	"github.com/opendatahub-io/data-registry/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
 )
 
@@ -56,7 +57,8 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
+		ctx := kubernetes.ContextWithIdentity(r.Context(), identity)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, identity)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

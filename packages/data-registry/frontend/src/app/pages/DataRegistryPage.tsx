@@ -3,20 +3,19 @@ import {
   PageSection,
   EmptyState,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   Spinner,
-  Select,
-  SelectOption,
-  SelectList,
-  MenuToggle,
   Flex,
   FlexItem,
-  Button,
   Content,
 } from '@patternfly/react-core';
-import { OutlinedFolderIcon } from '@patternfly/react-icons';
-import { useSearchParams, Link } from 'react-router-dom';
+import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNamespaceSelector, type UseNamespaceSelectorArgs } from 'mod-arch-core';
+import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import NewProjectButton from '~/app/components/NewProjectButton';
 import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
@@ -33,15 +32,44 @@ import ConnectionError from '~/app/components/errors/ConnectionError';
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
 const HIDDEN_NS_PREFIXES = ['openshift-', 'kube-'];
 const HIDDEN_NS = ['openshift', 'default', 'system', 'redhat-ods-applications'];
+const PERSISTENCE_OPTIONS = {
+  storeLastNamespace: true,
+} satisfies UseNamespaceSelectorArgs;
+
+const NoProjectsPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <PageSection hasBodyWrapper={false} isFilled>
+      <EmptyState
+        headingLevel="h2"
+        icon={WrenchIcon}
+        titleText="No projects"
+        variant={EmptyStateVariant.lg}
+        data-testid="no-projects-empty-state"
+      >
+        <EmptyStateBody>To browse data assets, first create a project.</EmptyStateBody>
+        <EmptyStateFooter>
+          <NewProjectButton
+            onProjectCreated={(projectName) =>
+              navigate(`/ai-hub/data/browse?project=${encodeURIComponent(projectName)}`)
+            }
+          />
+        </EmptyStateFooter>
+      </EmptyState>
+    </PageSection>
+  );
+};
 
 const DataRegistryPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedProject = searchParams.get('project') || '';
-  const [isProjectOpen, setIsProjectOpen] = React.useState(false);
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
 
+  const { preferredNamespace, updatePreferredNamespace } =
+    useNamespaceSelector(PERSISTENCE_OPTIONS);
   const [namespaces, namespacesLoaded, namespacesError, namespacesRefresh] = useNamespaces();
 
   const projects = React.useMemo(
@@ -54,7 +82,55 @@ const DataRegistryPage: React.FC = () => {
     [namespaces],
   );
 
-  const selectedProject = projects.some((p) => p.name === requestedProject) ? requestedProject : '';
+  const projectNamespaces = React.useMemo(
+    () =>
+      projects.map((project) => ({
+        ...project,
+        displayName: project.displayName ?? project.name,
+      })),
+    [projects],
+  );
+  const validPreferredNamespace = projectNamespaces.find(
+    (project) => project.name === preferredNamespace?.name,
+  );
+  const requestedNamespace = projectNamespaces.find((project) => project.name === requestedProject);
+  let selectedProject = '';
+  if (requestedNamespace) {
+    selectedProject = requestedNamespace.name;
+  } else if (validPreferredNamespace) {
+    selectedProject = validPreferredNamespace.name;
+  } else if (projectNamespaces.length > 0) {
+    selectedProject = projectNamespaces[0].name;
+  }
+
+  React.useEffect(() => {
+    if (!selectedProject) {
+      return;
+    }
+
+    const selectedNamespace = projectNamespaces.find((project) => project.name === selectedProject);
+    if (selectedNamespace && selectedNamespace.name !== preferredNamespace?.name) {
+      updatePreferredNamespace(selectedNamespace);
+    }
+
+    if (requestedProject !== selectedProject) {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.set('project', selectedProject);
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [
+    preferredNamespace,
+    projectNamespaces,
+    requestedProject,
+    selectedProject,
+    setSearchParams,
+    updatePreferredNamespace,
+  ]);
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
@@ -74,17 +150,21 @@ const DataRegistryPage: React.FC = () => {
   }, [assetsRefresh, collectionsRefresh, labelsRefresh]);
 
   const handleProjectSelect = React.useCallback(
-    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
-      if (value && value !== '__none__') {
-        setSearchParams((prev) => {
-          const params = new URLSearchParams(prev);
-          params.set('project', String(value));
-          return params;
-        });
+    (projectName: string) => {
+      const namespace = projectNamespaces.find((project) => project.name === projectName);
+      if (namespace) {
+        updatePreferredNamespace(namespace);
       }
-      setIsProjectOpen(false);
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.set('project', projectName);
+          return next;
+        },
+        { replace: true },
+      );
     },
-    [setSearchParams],
+    [projectNamespaces, setSearchParams, updatePreferredNamespace],
   );
 
   if (namespacesError) {
@@ -132,51 +212,22 @@ const DataRegistryPage: React.FC = () => {
     );
   }
 
+  if (projects.length === 0) {
+    return <NoProjectsPage />;
+  }
+
   return (
     <>
       <PageSection hasBodyWrapper={false}>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
           <FlexItem>
-            <OutlinedFolderIcon /> Project
+            <ProjectSelector
+              namespace={selectedProject}
+              onSelection={handleProjectSelect}
+              namespacesOverride={projectNamespaces}
+              showTitle
+            />
           </FlexItem>
-          <FlexItem>
-            <Select
-              isOpen={isProjectOpen}
-              selected={selectedProject}
-              onSelect={handleProjectSelect}
-              onOpenChange={setIsProjectOpen}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsProjectOpen((prev) => !prev)}
-                  isExpanded={isProjectOpen}
-                  aria-label="Select a project"
-                  data-testid="project-selector"
-                >
-                  {selectedProject || 'Select a project'}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {projects.map((ns) => (
-                  <SelectOption key={ns.name} value={ns.name}>
-                    {ns.name}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </FlexItem>
-          {selectedProject ? (
-            <FlexItem>
-              <Button
-                variant="link"
-                data-testid="go-to-project-link"
-                component={(props) => <Link {...props} to={`/projects/${selectedProject}`} />}
-              >
-                Go to <OutlinedFolderIcon /> <strong>{selectedProject}</strong>
-              </Button>
-            </FlexItem>
-          ) : null}
         </Flex>
       </PageSection>
 

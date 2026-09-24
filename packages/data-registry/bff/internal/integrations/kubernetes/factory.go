@@ -57,7 +57,11 @@ func NewStaticClientFactory(logger *slog.Logger) (KubernetesClientFactory, error
 	}, nil
 }
 
-func (f *StaticClientFactory) GetClient(_ context.Context) (KubernetesClientInterface, error) {
+func (f *StaticClientFactory) GetClient(ctx context.Context) (KubernetesClientInterface, error) {
+	if _, err := identityFromContext(ctx); err != nil {
+		return nil, fmt.Errorf("cannot create internal Kubernetes client without request identity: %w", err)
+	}
+
 	return f.Client, nil
 }
 

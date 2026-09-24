@@ -128,9 +128,25 @@ describe('Registry Table', () => {
     cy.contains('raw-docs').should('exist');
   });
 
-  it('should show empty state when no project selected', () => {
+  it('should select the persisted project when no project is provided in the URL', () => {
+    cy.visit('/ai-hub/data/browse', {
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem('mod-arch.namespace.lastUsed', JSON.stringify('test-project'));
+      },
+    });
+    cy.url().should('include', '/ai-hub/data/browse?project=test-project');
+    cy.findByTestId('registry-table', { timeout: 15000 }).should('exist');
+  });
+
+  it('should show the no-projects state when no projects are available', () => {
+    cy.intercept('GET', `${MAIN_API}/namespaces`, {
+      body: mockModArchResponse([]),
+    });
+
     cy.visit('/ai-hub/data/browse');
-    cy.contains('Select a project').should('exist');
+    cy.findByTestId('no-projects-empty-state').should('exist');
+    cy.findByRole('heading', { name: 'No projects' }).should('exist');
+    cy.findByRole('button', { name: 'Create project' }).should('exist');
   });
 
   it('should filter assets by search text', () => {
