@@ -4,11 +4,14 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Label,
   MenuToggle,
   Select,
   SelectList,
   SelectOption,
   Skeleton,
+  Split,
+  SplitItem,
 } from '@patternfly/react-core';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
 import type { HardwareProfile, KueueAvailability } from '~/app/types';
@@ -18,6 +21,7 @@ type HardwareProfileFieldProps = {
   profiles: HardwareProfile[];
   loaded: boolean;
   error?: Error;
+  compatibilityError?: Error;
   selectedProfile?: string;
   onSelect: (profile: HardwareProfile | undefined) => void;
   isRequired?: boolean;
@@ -110,6 +114,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   profiles,
   loaded,
   error,
+  compatibilityError,
   selectedProfile,
   onSelect,
   isRequired = false,
@@ -216,7 +221,20 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
               isSelected={profile.name === selectedProfile}
               data-testid={`hardware-profile-option-${profile.name}`}
             >
-              {profile.display_name}
+              <Split hasGutter className="pf-v6-u-w-100">
+                <SplitItem isFilled>{profile.display_name}</SplitItem>
+                {profile.compatibility?.compatible === false ? (
+                  <SplitItem>
+                    <Label
+                      color="orange"
+                      isCompact
+                      data-testid={`hardware-profile-insufficient-${profile.name}`}
+                    >
+                      Insufficient resources
+                    </Label>
+                  </SplitItem>
+                ) : null}
+              </Split>
             </SelectOption>
           ))}
         </SelectList>
@@ -231,6 +249,12 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
           {!selected || fieldState.helperVariant ? (
             <HelperTextItem variant={fieldState.helperVariant}>
               {fieldState.helperText}
+            </HelperTextItem>
+          ) : null}
+          {compatibilityError ? (
+            <HelperTextItem variant="warning">
+              Resource recommendations could not be checked. You can still select a hardware profile
+              and start the evaluation.
             </HelperTextItem>
           ) : null}
         </HelperText>

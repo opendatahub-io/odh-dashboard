@@ -15,6 +15,7 @@ import {
   getCollection,
   getCollections,
   getEvalHubCRStatus,
+  validateHardwareProfiles,
   getKueueWorkloadStatuses,
   getEvaluationJob,
   getProviders,
@@ -31,6 +32,7 @@ import type {
   CreateEvaluationJobRequest,
   EvalHubCRStatus,
   EvaluationJob,
+  HardwareProfileValidationResponse,
   KueueWorkloadStatus,
   Provider,
 } from '~/app/types';
@@ -161,6 +163,48 @@ describe('getKueueWorkloadStatuses', () => {
     await expect(getKueueWorkloadStatuses('', 'test-ns', ['job-1'])({})).rejects.toThrow(
       'Invalid Kueue Workload status response format',
     );
+  });
+});
+
+describe('validateHardwareProfiles', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should return validation results for the requested profiles', async () => {
+    const validation: HardwareProfileValidationResponse = {
+      items: [{ compatible: false, hardware_profile: 'cpu-small', mismatches: [] }],
+    };
+    mockRestCREATE.mockResolvedValue({ data: validation });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const request = {
+      hardware_profiles: ['cpu-small', 'cpu-large'],
+      provider_ids: ['provider-a'],
+    };
+    const result = await validateHardwareProfiles('', 'test-ns', request)({});
+
+    expect(result).toEqual(validation);
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/hardwareprofiles/validate',
+      request,
+      { namespace: 'test-ns' },
+      {},
+    );
+  });
+
+  it('should reject an invalid validation response', async () => {
+    mockRestCREATE.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(
+      validateHardwareProfiles('', 'test-ns', {
+        hardware_profiles: ['cpu-small'],
+        provider_ids: ['provider-a'],
+      })({}),
+    ).rejects.toThrow('Invalid HardwareProfiles validation response format');
   });
 });
 

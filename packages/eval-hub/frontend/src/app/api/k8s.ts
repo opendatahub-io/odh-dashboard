@@ -262,7 +262,7 @@ export const getHardwareProfiles =
       throw new Error('Invalid HardwareProfile response format');
     });
 
-export const validateHardwareProfile =
+export const validateHardwareProfiles =
   (hostPath: string, namespace: string, request: HardwareProfileValidationRequest) =>
   (opts: APIOptions): Promise<HardwareProfileValidationResponse> =>
     handleRestFailures(
@@ -277,7 +277,7 @@ export const validateHardwareProfile =
       if (isModArchResponse<HardwareProfileValidationResponse>(response)) {
         return response.data;
       }
-      throw new Error('Invalid HardwareProfile validation response format');
+      throw new Error('Invalid HardwareProfiles validation response format');
     });
 
 export const getEvaluationJobs =

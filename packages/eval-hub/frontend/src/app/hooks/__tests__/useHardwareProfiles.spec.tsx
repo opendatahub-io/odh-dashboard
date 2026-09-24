@@ -2,16 +2,18 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { waitFor } from '@testing-library/react';
-import { getHardwareProfiles } from '~/app/api/k8s';
+import { getHardwareProfiles, validateHardwareProfiles } from '~/app/api/k8s';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useHardwareProfiles } from '~/app/hooks/useHardwareProfiles';
 import type { HardwareProfile } from '~/app/types';
 
 jest.mock('~/app/api/k8s', () => ({
   getHardwareProfiles: jest.fn(),
+  validateHardwareProfiles: jest.fn(),
 }));
 
 const mockGetHardwareProfiles = jest.mocked(getHardwareProfiles);
+const mockValidateHardwareProfiles = jest.mocked(validateHardwareProfiles);
 
 const profile: HardwareProfile = {
   name: 'gpu-small',
@@ -75,5 +77,56 @@ describe('useHardwareProfiles', () => {
 
     expect(result.result.current.error).toBe(error);
     expect(result.result.current.profiles).toEqual([]);
+  });
+
+  it('adds advisory provider compatibility to each profile', async () => {
+    mockGetHardwareProfiles.mockReturnValue(() => Promise.resolve([profile]));
+    mockValidateHardwareProfiles.mockReturnValue(() =>
+      Promise.resolve({
+        items: [
+          {
+            compatible: false,
+            hardware_profile: profile.name,
+            mismatches: [
+              {
+                provider_id: 'provider-a',
+                resource: 'cpu',
+                required: '4',
+                available: '2',
+                message: 'HardwareProfile provides cpu 2, but the provider requires at least 4',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const result = renderHook(() => useHardwareProfiles('test-ns', ['provider-a']), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+
+    expect(result.result.current.profiles[0].compatibility?.compatible).toBe(false);
+    expect(mockValidateHardwareProfiles).toHaveBeenCalledWith('', 'test-ns', {
+      hardware_profiles: [profile.name],
+      provider_ids: ['provider-a'],
+    });
+  });
+
+  it('keeps profiles usable when advisory compatibility cannot be loaded', async () => {
+    const compatibilityError = new Error('Compatibility unavailable');
+    mockGetHardwareProfiles.mockReturnValue(() => Promise.resolve([profile]));
+    mockValidateHardwareProfiles.mockReturnValue(() => Promise.reject(compatibilityError));
+
+    const result = renderHook(() => useHardwareProfiles('test-ns', ['provider-a']), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+
+    expect(result.result.current.profiles).toEqual([profile]);
+    expect(result.result.current.error).toBeUndefined();
+    expect(result.result.current.compatibilityError).toBe(compatibilityError);
   });
 });

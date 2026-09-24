@@ -193,9 +193,94 @@ func TestHardwareProfilesHandlerReturnsProfiles(t *testing.T) {
 	}
 }
 
-// TestValidateHardwareProfileHandlerReportsDeletedLocalQueue verifies that submission is rejected
+// TestValidateHardwareProfilesHandlerEvaluatesAllProfiles verifies that one validation request
+// compares every requested profile with the selected providers and reports insufficient resources
+// without removing the profile from the response.
+func TestValidateHardwareProfilesHandlerEvaluatesAllProfiles(t *testing.T) {
+	k8sClient := &kueueHardwareProfilesK8sClient{profiles: &models.HardwareProfilesResponse{
+		Items: []models.HardwareProfile{
+			{
+				Name:      "cpu-small",
+				Resources: []models.HardwareProfileResource{{Identifier: "cpu", Default: "1"}},
+			},
+			{
+				Name:      "cpu-large",
+				Resources: []models.HardwareProfileResource{{Identifier: "cpu", Default: "4"}},
+			},
+		},
+	}}
+	evalHubClient := &paginatedProvidersClient{pages: map[int]evalhub.ProvidersResponse{
+		0: {
+			Items: []evalhub.Provider{{
+				Resource: evalhub.ProviderResource{ID: "provider-a"},
+				Runtime: &evalhub.ProviderRuntime{K8s: &evalhub.ProviderK8sRuntime{
+					CPURequest: "2",
+				}},
+			}},
+			TotalCount: 1,
+		},
+	}}
+
+	result, response, err := setupApiTestWithEvalHub[HardwareProfileValidationEnvelope](
+		http.MethodPost,
+		"/eval-hub/api/v1/hardwareprofiles/validate?namespace=test-namespace",
+		models.HardwareProfileValidationRequest{
+			HardwareProfiles: []string{"cpu-small", "cpu-large"},
+			ProviderIDs:      []string{"provider-a"},
+		},
+		&crStatusK8sFactory{client: k8sClient},
+		&kubernetes.RequestIdentity{UserID: "test-user"},
+		evalHubClient,
+	)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
+	}
+	if len(result.Data.Items) != 2 {
+		t.Fatalf("validation items = %d, want 2: %+v", len(result.Data.Items), result.Data.Items)
+	}
+	if result.Data.Items[0].HardwareProfile != "cpu-small" || result.Data.Items[0].Compatible {
+		t.Fatalf("small profile result = %+v, want incompatible", result.Data.Items[0])
+	}
+	if result.Data.Items[1].HardwareProfile != "cpu-large" || !result.Data.Items[1].Compatible {
+		t.Fatalf("large profile result = %+v, want compatible", result.Data.Items[1])
+	}
+	if len(evalHubClient.calls) != 1 {
+		t.Fatalf("ListProviders() calls = %d, want 1", len(evalHubClient.calls))
+	}
+	if k8sClient.evaluationNamespace != "test-namespace" || k8sClient.profileNamespace != "test-dashboard-ns" {
+		t.Fatalf(
+			"HardwareProfile namespaces = (%q, %q), want (test-namespace, test-dashboard-ns)",
+			k8sClient.evaluationNamespace,
+			k8sClient.profileNamespace,
+		)
+	}
+}
+
+// TestValidateHardwareProfilesHandlerRequiresProfiles verifies that validation cannot run without
+// at least one requested HardwareProfile.
+func TestValidateHardwareProfilesHandlerRequiresProfiles(t *testing.T) {
+	_, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodPost,
+		"/eval-hub/api/v1/hardwareprofiles/validate?namespace=test-namespace",
+		models.HardwareProfileValidationRequest{ProviderIDs: []string{"provider-a"}},
+		&crStatusK8sFactory{client: &kueueHardwareProfilesK8sClient{}},
+		&kubernetes.RequestIdentity{UserID: "test-user"},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusBadRequest)
+	}
+}
+
+// TestValidateHardwareProfilesHandlerReportsDeletedLocalQueue verifies that submission is rejected
 // if the selected profile references a LocalQueue that was deleted after the form loaded.
-func TestValidateHardwareProfileHandlerReportsDeletedLocalQueue(t *testing.T) {
+func TestValidateHardwareProfilesHandlerReportsDeletedLocalQueue(t *testing.T) {
 	client := &kueueHardwareProfilesK8sClient{
 		profiles:     &models.HardwareProfilesResponse{},
 		missingQueue: "gpu-default",
@@ -204,7 +289,7 @@ func TestValidateHardwareProfileHandlerReportsDeletedLocalQueue(t *testing.T) {
 	result, response, err := setupApiTestWithEvalHub[HTTPError](
 		http.MethodPost,
 		"/eval-hub/api/v1/hardwareprofiles/validate?namespace=test-namespace",
-		models.HardwareProfileValidationRequest{HardwareProfile: "gpu", ProviderIDs: []string{"provider"}},
+		models.HardwareProfileValidationRequest{HardwareProfiles: []string{"gpu"}, ProviderIDs: []string{"provider"}},
 		&crStatusK8sFactory{client: client},
 		&kubernetes.RequestIdentity{UserID: "test-user"},
 		nil,
@@ -223,14 +308,14 @@ func TestValidateHardwareProfileHandlerReportsDeletedLocalQueue(t *testing.T) {
 	}
 }
 
-// TestValidateHardwareProfileHandlerReportsProfileMissingFromPlatformNamespace verifies that
+// TestValidateHardwareProfilesHandlerReportsProfileMissingFromPlatformNamespace verifies that
 // submission is rejected if the chosen HardwareProfile no longer exists in the platform namespace.
-func TestValidateHardwareProfileHandlerReportsProfileMissingFromPlatformNamespace(t *testing.T) {
+func TestValidateHardwareProfilesHandlerReportsProfileMissingFromPlatformNamespace(t *testing.T) {
 	client := &kueueHardwareProfilesK8sClient{profiles: &models.HardwareProfilesResponse{}}
 	result, response, err := setupApiTestWithEvalHub[HTTPError](
 		http.MethodPost,
 		"/eval-hub/api/v1/hardwareprofiles/validate?namespace=test-namespace",
-		models.HardwareProfileValidationRequest{HardwareProfile: "gpu", ProviderIDs: []string{"provider"}},
+		models.HardwareProfileValidationRequest{HardwareProfiles: []string{"gpu"}, ProviderIDs: []string{"provider"}},
 		&crStatusK8sFactory{client: client},
 		&kubernetes.RequestIdentity{UserID: "test-user"},
 		nil,

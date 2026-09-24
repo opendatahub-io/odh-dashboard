@@ -591,7 +591,10 @@ paths:
       operationId: listHardwareProfiles
 
   /eval-hub/api/v1/hardwareprofiles/validate:
-    summary: Validate a HardwareProfile for evaluation providers
+    summary: Validate HardwareProfiles for evaluation providers
+    description: >-
+      Confirms that each requested HardwareProfile is available for Kueue scheduling in the
+      evaluation namespace and compares its resources with the selected providers' requirements.
     post:
       tags:
         - Kueue
@@ -607,7 +610,7 @@ paths:
               $ref: '#/components/schemas/HardwareProfileValidationRequest'
       responses:
         '200':
-          description: HardwareProfile compatibility result
+          description: Availability and resource compatibility results for the requested HardwareProfiles
           content:
             application/json:
               schema:
@@ -625,7 +628,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      operationId: validateHardwareProfile
+      operationId: validateHardwareProfiles
 
   /eval-hub/api/v1/evaluations/jobs/{id}:
     summary: Cancel or delete an evaluation job
@@ -1808,12 +1811,15 @@ components:
     HardwareProfileValidationRequest:
       type: object
       required:
-        - hardware_profile
+        - hardware_profiles
         - provider_ids
       properties:
-        hardware_profile:
-          type: string
-          minLength: 1
+        hardware_profiles:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
         provider_ids:
           type: array
           minItems: 1
@@ -1841,7 +1847,7 @@ components:
         message:
           type: string
 
-    HardwareProfileValidationResponse:
+    HardwareProfileValidationResult:
       type: object
       required:
         - compatible
@@ -1855,6 +1861,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/HardwareProfileResourceMismatch'
+
+    HardwareProfileValidationResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HardwareProfileValidationResult'
 
     EvaluationJobsData:
       type: object

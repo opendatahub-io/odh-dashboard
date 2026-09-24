@@ -86,6 +86,7 @@ export type HardwareProfile = {
   local_queue_name?: string;
   priority_class?: string;
   resources?: HardwareProfileResource[];
+  compatibility?: HardwareProfileValidationResult;
 };
 
 export type HardwareProfilesResponse = {
@@ -566,7 +567,7 @@ export type ProvidersResponse = {
 };
 
 export type HardwareProfileValidationRequest = {
-  hardware_profile: string;
+  hardware_profiles: string[];
   provider_ids: string[];
 };
 
@@ -578,10 +579,14 @@ export type HardwareProfileResourceMismatch = {
   message: string;
 };
 
-export type HardwareProfileValidationResponse = {
+export type HardwareProfileValidationResult = {
   compatible: boolean;
   hardware_profile: string;
   mismatches?: HardwareProfileResourceMismatch[];
+};
+
+export type HardwareProfileValidationResponse = {
+  items: HardwareProfileValidationResult[];
 };
 
 // ---------------------------------------------------------------------------

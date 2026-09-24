@@ -6,6 +6,7 @@ import {
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import { createEvaluationJob, validateHardwareProfiles } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type {
   FlatBenchmark,
@@ -38,6 +39,12 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('~/app/api/k8s', () => ({
   createEvaluationJob: jest.fn(() => () => Promise.resolve({})),
+  validateHardwareProfiles: jest.fn(
+    () => () =>
+      Promise.resolve({
+        items: [{ compatible: true, hardware_profile: 'gpu-small', mismatches: [] }],
+      }),
+  ),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -73,6 +80,8 @@ jest.mock('~/app/hooks/useKueueAvailability', () => ({
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 const mockFireForm = jest.mocked(fireFormTrackingEvent);
+const mockCreateEvaluationJob = jest.mocked(createEvaluationJob);
+const mockValidateHardwareProfiles = jest.mocked(validateHardwareProfiles);
 
 const mockBenchmark: FlatBenchmark = {
   id: 'arc_easy',
@@ -127,6 +136,11 @@ const renderForm = (overrides = {}) =>
 describe('useStartEvaluationRunForm - Tracking Events', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockValidateHardwareProfiles.mockReturnValue(() =>
+      Promise.resolve({
+        items: [{ compatible: true, hardware_profile: 'gpu-small', mismatches: [] }],
+      }),
+    );
     mockHardwareProfilesLoaded = true;
     mockKueueAvailabilityLoaded = true;
     mockHardwareProfiles = [];
@@ -503,6 +517,46 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         }),
       );
       expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('should submit when the selected HardwareProfile has insufficient resources', async () => {
+      mockHardwareProfiles = [mockCompatibleHardwareProfile];
+      mockKueueAvailability = mockKueueEnabled;
+      mockValidateHardwareProfiles.mockReturnValue(() =>
+        Promise.resolve({
+          items: [
+            {
+              compatible: false,
+              hardware_profile: mockCompatibleHardwareProfile.name,
+              mismatches: [
+                {
+                  provider_id: 'prov-1',
+                  resource: 'cpu',
+                  required: '4',
+                  available: '2',
+                  message: 'HardwareProfile provides cpu 2, but the provider requires at least 4',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+        renderResult.result.current.setExperimentMode('new');
+        renderResult.result.current.setNewExperimentName('EvalHub');
+        renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
+      });
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockValidateHardwareProfiles).toHaveBeenCalledTimes(1);
+      expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -13,6 +13,7 @@ import { chooseBenchmarkPage } from '~/__tests__/cypress/cypress/pages/chooseBen
 import { chooseCollectionPage } from '~/__tests__/cypress/cypress/pages/chooseCollectionPage';
 import { ToastNotification } from '~/__tests__/cypress/cypress/pages/components/Notification';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import type { HardwareProfileValidationResponse } from '~/app/types';
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
@@ -51,9 +52,11 @@ const mockVerifyConnectionSuccess = () => {
 const mockKueueHardwareProfiles = ({
   availability = mockKueueAvailability(),
   profiles = [],
+  validation,
 }: {
   availability?: ReturnType<typeof mockKueueAvailability>;
   profiles?: ReturnType<typeof mockHardwareProfile>[];
+  validation?: HardwareProfileValidationResponse;
 } = {}) => {
   cy.interceptApi('GET /api/:apiVersion/kueue/availability', { path: API_VERSION }, availability);
   cy.interceptApi(
@@ -61,6 +64,17 @@ const mockKueueHardwareProfiles = ({
     { path: API_VERSION },
     { items: profiles },
   );
+  cy.interceptApi(
+    'POST /api/:apiVersion/hardwareprofiles/validate',
+    { path: API_VERSION },
+    validation ?? {
+      items: profiles.map((profile) => ({
+        compatible: true,
+        hardware_profile: profile.name,
+        mismatches: [],
+      })),
+    },
+  ).as('validateHardwareProfiles');
 };
 
 const testProvider = mockProvider({
@@ -516,24 +530,20 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
       availability: compatibleAvailability,
       profiles: [compatibleProfile],
     });
-    cy.interceptApi(
-      'POST /api/:apiVersion/hardwareprofiles/validate',
-      { path: API_VERSION },
-      { compatible: true, hardware_profile: compatibleProfile.name, mismatches: [] },
-    ).as('validateHardwareProfile');
     cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
       'createKueueJob',
     );
 
     navigateToBenchmarkStart();
+    cy.wait('@validateHardwareProfiles');
     startEvaluationRunPage.findHardwareProfileToggle().click();
     startEvaluationRunPage.findHardwareProfileOption(compatibleProfile.name).click();
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
-    cy.wait('@validateHardwareProfile').then((interception) => {
+    cy.wait('@validateHardwareProfiles').then((interception) => {
       expect(interception.request.body).to.eql({
-        hardware_profile: compatibleProfile.name,
+        hardware_profiles: [compatibleProfile.name],
         provider_ids: ['test-provider'],
       });
     });
@@ -545,43 +555,43 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
     });
   });
 
-  it('should block submission and explain an incompatible HardwareProfile', () => {
+  it('should label an insufficient HardwareProfile and allow submission', () => {
+    const insufficientCompatibility = {
+      compatible: false,
+      hardware_profile: compatibleProfile.name,
+      mismatches: [
+        {
+          provider_id: 'test-provider',
+          resource: 'cpu',
+          required: '4',
+          available: '2',
+          message: 'HardwareProfile provides 2 CPU, but the provider requires at least 4',
+        },
+      ],
+    };
     mockKueueHardwareProfiles({
       availability: compatibleAvailability,
       profiles: [compatibleProfile],
+      validation: { items: [insufficientCompatibility] },
     });
-    cy.interceptApi(
-      'POST /api/:apiVersion/hardwareprofiles/validate',
-      { path: API_VERSION },
-      {
-        compatible: false,
-        hardware_profile: compatibleProfile.name,
-        mismatches: [
-          {
-            provider_id: 'test-provider',
-            resource: 'cpu',
-            required: '4',
-            available: '2',
-            message: 'HardwareProfile provides 2 CPU, but the provider requires at least 4',
-          },
-        ],
-      },
-    ).as('validateHardwareProfile');
     cy.interceptApi(
       'POST /api/:apiVersion/evaluations/jobs',
       { path: API_VERSION },
-      mockEvaluationJob({ id: 'unexpected-kueue-eval', name: 'Unexpected Kueue evaluation' }),
+      mockEvaluationJob({ id: 'kueue-eval', name: 'Kueue evaluation' }),
     ).as('createKueueJob');
 
     navigateToBenchmarkStart();
+    cy.wait('@validateHardwareProfiles');
     startEvaluationRunPage.findHardwareProfileToggle().click();
-    startEvaluationRunPage.findHardwareProfileOption(compatibleProfile.name).click();
+    startEvaluationRunPage
+      .findHardwareProfileOption(compatibleProfile.name)
+      .should('contain.text', 'Insufficient resources')
+      .click();
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
 
-    cy.wait('@validateHardwareProfile');
-    new ToastNotification('Hardware profile is not compatible').find().should('exist');
-    cy.get('@createKueueJob.all').should('have.length', 0);
+    cy.wait('@validateHardwareProfiles');
+    cy.wait('@createKueueJob');
   });
 
   it('should surface a deleted LocalQueue error and allow the user to retry', () => {
@@ -589,6 +599,9 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
       availability: compatibleAvailability,
       profiles: [compatibleProfile],
     });
+
+    navigateToBenchmarkStart();
+    cy.wait('@validateHardwareProfiles');
     cy.intercept(
       { method: 'POST', pathname: '/eval-hub/api/v1/hardwareprofiles/validate' },
       {
@@ -602,8 +615,6 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
         },
       },
     ).as('validateDeletedQueue');
-
-    navigateToBenchmarkStart();
     startEvaluationRunPage.findHardwareProfileToggle().click();
     startEvaluationRunPage.findHardwareProfileOption(compatibleProfile.name).click();
     fillExternalModelFields('my-model', 'https://api.example.com/v1');

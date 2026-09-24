@@ -48,6 +48,34 @@ describe('HardwareProfileField', () => {
     expect(onSelect).toHaveBeenCalledWith(profile);
   });
 
+  it('labels an insufficient profile without disabling its selection', () => {
+    const insufficientProfile: HardwareProfile = {
+      ...profile,
+      compatibility: {
+        compatible: false,
+        hardware_profile: profile.name,
+        mismatches: [],
+      },
+    };
+    const onSelect = jest.fn();
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[insufficientProfile]}
+        loaded
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+
+    expect(screen.getByTestId(`hardware-profile-insufficient-${profile.name}`)).toHaveTextContent(
+      'Insufficient resources',
+    );
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('GPU Small'));
+    expect(onSelect).toHaveBeenCalledWith(insufficientProfile);
+  });
+
   it('explains that a HardwareProfile is required for Kueue scheduling', () => {
     const { container } = render(
       <HardwareProfileField
@@ -197,5 +225,20 @@ describe('HardwareProfileField', () => {
         'Unable to load HardwareProfiles Resolve this error before starting an evaluation.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('warns without disabling the field when resource compatibility cannot be checked', () => {
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[profile]}
+        loaded
+        compatibilityError={new Error('Compatibility unavailable')}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeEnabled();
+    expect(screen.getByText(/Resource recommendations could not be checked/)).toBeInTheDocument();
   });
 });

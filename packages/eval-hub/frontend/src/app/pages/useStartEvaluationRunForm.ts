@@ -8,7 +8,7 @@ import {
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
-import { createEvaluationJob, validateHardwareProfile } from '~/app/api/k8s';
+import { createEvaluationJob, validateHardwareProfiles } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
   type RunSourceSelectedProperties,
@@ -40,6 +40,19 @@ const DEFAULT_EXPERIMENT_NAME = 'EvalHub';
 const DEFAULT_SUITE_THRESHOLD = 70;
 
 export const EXTERNAL_ENDPOINT_VALUE = '__external__';
+
+const getProviderIds = (
+  benchmark: FlatBenchmark | undefined,
+  collection: Collection | undefined,
+): string[] =>
+  Array.from(
+    new Set(
+      [
+        benchmark?.providerId,
+        ...(collection?.benchmarks ?? []).map((item) => item.provider_id),
+      ].filter((providerId): providerId is string => Boolean(providerId?.trim())),
+    ),
+  );
 
 type UseStartEvaluationRunFormParams = {
   namespace: string | undefined;
@@ -172,11 +185,16 @@ export function useStartEvaluationRunForm({
     loaded: kueueAvailabilityLoaded,
     error: kueueAvailabilityError,
   } = useKueueAvailability(namespace);
+  const providerIds = React.useMemo(
+    () => getProviderIds(benchmark, collection),
+    [benchmark, collection],
+  );
   const {
     profiles: hardwareProfiles,
     loaded: hardwareProfilesQueryLoaded,
     error: hardwareProfilesQueryError,
-  } = useHardwareProfiles(namespace);
+    compatibilityError: hardwareProfileCompatibilityError,
+  } = useHardwareProfiles(namespace, providerIds);
   const hardwareProfilesLoaded = kueueAvailabilityLoaded && hardwareProfilesQueryLoaded;
   const hardwareProfilesError = kueueAvailabilityError ?? hardwareProfilesQueryError;
 
@@ -745,14 +763,7 @@ export function useStartEvaluationRunForm({
       queue: values.queue,
     });
 
-    const providerIds = Array.from(
-      new Set(
-        [
-          benchmark?.providerId,
-          ...(activeCollection?.benchmarks ?? []).map((item) => item.provider_id),
-        ].filter((providerId): providerId is string => Boolean(providerId?.trim())),
-      ),
-    );
+    const activeProviderIds = getProviderIds(benchmark, activeCollection);
 
     fireMiscTrackingEvent(EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED, {
       experimentSelection: isNewExperiment
@@ -803,22 +814,15 @@ export function useStartEvaluationRunForm({
 
     try {
       if (values.hardwareProfile) {
-        const validation = await validateHardwareProfile('', namespace ?? '', {
+        // Revalidate structural configuration immediately before submission so a profile or
+        // LocalQueue deleted after the form loaded still produces a useful error. Resource
+        // incompatibility is advisory and does not prevent EvalHub from creating the run.
+        await validateHardwareProfiles('', namespace ?? '', {
           // eslint-disable-next-line camelcase
-          hardware_profile: values.hardwareProfile,
+          hardware_profiles: [values.hardwareProfile],
           // eslint-disable-next-line camelcase
-          provider_ids: providerIds,
+          provider_ids: activeProviderIds,
         })({ signal: controller.signal });
-        if (!validation.compatible) {
-          const details = (validation.mismatches ?? [])
-            .map((mismatch) => mismatch.message)
-            .join(' ');
-          notification.error(
-            'Hardware profile is not compatible',
-            details || 'Choose a larger hardware profile before starting this evaluation.',
-          );
-          return;
-        }
       }
       await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
       if (controller.signal.aborted) {
@@ -917,6 +921,7 @@ export function useStartEvaluationRunForm({
     hardwareProfiles,
     hardwareProfilesLoaded,
     hardwareProfilesError,
+    hardwareProfileCompatibilityError,
     kueueAvailability,
     requiresHardwareProfile,
     hardwareProfile,

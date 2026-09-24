@@ -31,8 +31,8 @@ type HardwareProfilesResponse struct {
 }
 
 type HardwareProfileValidationRequest struct {
-	HardwareProfile string   `json:"hardware_profile"`
-	ProviderIDs     []string `json:"provider_ids"`
+	HardwareProfiles []string `json:"hardware_profiles"`
+	ProviderIDs      []string `json:"provider_ids"`
 }
 
 type HardwareProfileResourceMismatch struct {
@@ -43,8 +43,12 @@ type HardwareProfileResourceMismatch struct {
 	Message    string `json:"message"`
 }
 
-type HardwareProfileValidationResponse struct {
+type HardwareProfileValidationResult struct {
 	Compatible      bool                              `json:"compatible"`
 	HardwareProfile string                            `json:"hardware_profile"`
 	Mismatches      []HardwareProfileResourceMismatch `json:"mismatches,omitempty"`
+}
+
+type HardwareProfileValidationResponse struct {
+	Items []HardwareProfileValidationResult `json:"items"`
 }

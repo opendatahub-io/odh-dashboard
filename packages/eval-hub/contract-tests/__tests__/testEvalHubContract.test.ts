@@ -71,7 +71,7 @@ describe('EvalHub API Contract Tests', () => {
         '/eval-hub/api/v1/hardwareprofiles/validate?namespace=default',
         {
           // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
-          hardware_profile: 'default-gpu',
+          hardware_profiles: ['default-gpu'],
           // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
           provider_ids: ['lm_evaluation_harness'],
         },
