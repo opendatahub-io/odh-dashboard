@@ -1148,14 +1148,11 @@ var _ = Describe("StreamingResponseMetrics", func() {
 	It("should stream response with vector store IDs for RAG file_search", func() {
 		t := GinkgoT()
 
-		vsID := testCtx.llamaStackState.Seed.VectorStoreID
-		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
-
 		payload := CreateResponseRequest{
 			Input:          llamastack.InputUnion{Text: "What is machine learning?"},
-			Model:          testutil.GetTestLlamaStackModel(),
+			Model:          "mock-model",
 			Stream:         true,
-			VectorStoreIDs: []string{vsID},
+			VectorStoreIDs: []string{"vs_mock"},
 		}
 
 		jsonData, err := json.Marshal(payload)
@@ -1165,8 +1162,10 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		// Use the in-memory mock directly so this unit-level streaming test is
+		// deterministic.
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -1189,15 +1188,30 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		events := parseSSEEvents(body)
 		require.Greater(t, len(events), 0, "Should have received SSE events from RAG stream")
 
-		// Verify at least one text delta event was emitted
+		// Verify text deltas were streamed and the completed response preserves the
+		// file_search_call output created when vector_store_ids are provided.
 		hasTextDelta := false
+		hasFileSearchCall := false
 		for _, event := range events {
-			if eventType, ok := event["type"].(string); ok && eventType == "response.output_text.delta" {
+			eventType, _ := event["type"].(string)
+			if eventType == "response.output_text.delta" {
 				hasTextDelta = true
-				break
+			}
+			if eventType != "response.completed" {
+				continue
+			}
+			response, _ := event["response"].(map[string]interface{})
+			output, _ := response["output"].([]interface{})
+			for _, item := range output {
+				outputItem, _ := item.(map[string]interface{})
+				if outputItem["type"] == "file_search_call" {
+					hasFileSearchCall = true
+					break
+				}
 			}
 		}
 		assert.True(t, hasTextDelta, "expected at least one response.output_text.delta event in RAG stream")
+		assert.True(t, hasFileSearchCall, "expected response.completed to include file_search_call output")
 	})
 })
 
