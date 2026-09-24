@@ -10,6 +10,14 @@ const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PORT = process.env.SHELL_PORT || 4020;
 const BASE_PATH = '/maas-consumer-portal';
+const portalApiPaths = {
+  maas: `${BASE_PATH}/maas/api`,
+  genAi: `${BASE_PATH}/gen-ai/api`,
+  perses: `${BASE_PATH}/perses/api`,
+  k8s: `${BASE_PATH}/api/k8s`,
+  operatorSubscriptionStatus: `${BASE_PATH}/api/operator-subscription-status`,
+};
+const portalApiContexts = Object.values(portalApiPaths);
 
 const clusterCAFile = process.env.ODH_DASHBOARD_CA_FILE;
 const clusterProxyAgent = clusterCAFile
@@ -36,7 +44,7 @@ const getOcToken = () => {
 };
 
 // 3-tier dashboard host discovery: HTTPRoute/Gateway → OCP Route → console URL.
-// Used when OC_PROJECT is set to proxy BFF calls through the cluster's dashboard route.
+// Used when EXT_CLUSTER or OC_PROJECT is set to proxy BFF calls through the cluster's dashboard route.
 const discoverDashboardHost = (odhProject, app) => {
   // 1. Try HTTPRoute → Gateway → hostname (new pattern)
   try {
@@ -81,7 +89,8 @@ const discoverDashboardHost = (odhProject, app) => {
     })
       .toString()
       .trim();
-    return new URL(consoleUrl).host.replace(/^[^.]+\./, 'rh-ai.');
+    const subdomain = process.env.DEV_LEGACY === 'true' ? `${app}-${odhProject}` : 'rh-ai';
+    return new URL(consoleUrl).host.replace(/^[^.]+\./, `${subdomain}.`);
   } catch (e) {
     // fall through
   }
@@ -124,10 +133,16 @@ const buildProxyConfig = () => {
     },
   };
 
-  // Cluster mode: discover dashboard route, proxy through its backend
-  const odhProject = process.env.OC_PROJECT;
+  // Match frontend start:dev:ext: discover the dashboard route and proxy through
+  // its backend. OC_PROJECT is required for non-default namespaces.
+  const odhProject = process.env.OC_PROJECT || (process.env.EXT_CLUSTER ? 'opendatahub' : '');
   if (odhProject) {
     const app = process.env.ODH_APP || 'odh-dashboard';
+    if (!token) {
+      throw new Error(
+        'Login with `oc login` prior to starting dev server in external-cluster mode.',
+      );
+    }
     console.info('Using project:', odhProject);
     const dashboardHost = process.env.ODH_DASHBOARD_HOST || discoverDashboardHost(odhProject, app);
 
@@ -135,47 +150,77 @@ const buildProxyConfig = () => {
       console.info('Dashboard host:', dashboardHost);
       if (!clusterCAFile) {
         console.info(
-          'Cluster proxy TLS verification is enabled. Set ODH_DASHBOARD_CA_FILE to trust an internally signed dashboard certificate.',
+          'Using the same TLS behavior as frontend start:dev:ext. Set ODH_DASHBOARD_CA_FILE to verify an internally signed dashboard certificate.',
         );
       }
+      let shouldForwardAccessToken = false;
+      try {
+        const deploymentJson = execSync(`oc get deployment -n ${odhProject} ${app} -o json`, {
+          stdio: ['pipe', 'pipe', 'ignore'],
+        }).toString();
+        const deployment = JSON.parse(deploymentJson);
+        const containers = deployment?.spec?.template?.spec?.containers || [];
+        shouldForwardAccessToken = containers.some(
+          (container) =>
+            container.name === 'oauth-proxy' || container.image?.includes('oauth-proxy'),
+        );
+      } catch (e) {
+        shouldForwardAccessToken = process.env.DEV_LEGACY === 'true';
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      if (shouldForwardAccessToken) {
+        console.info('Supplying x-forwarded-access-token header');
+        headers['x-forwarded-access-token'] = token;
+      }
+
       return [
         {
-          context: [`${BASE_PATH}/maas/api`, `${BASE_PATH}/gen-ai/api`],
+          context: portalApiContexts,
           target: `https://${dashboardHost}`,
           pathRewrite: { [`^${BASE_PATH}`]: '' },
-          secure: true,
+          secure: Boolean(clusterCAFile),
           ...(clusterProxyAgent ? { agent: clusterProxyAgent } : {}),
           changeOrigin: true,
-          on,
+          headers,
         },
       ];
     }
-    console.warn('Could not discover dashboard route. Falling back to local targets.');
+    throw new Error(
+      'Could not discover the Dashboard host. Set ODH_DASHBOARD_HOST to its hostname and try again.',
+    );
   }
 
   // Local mode: proxy to explicit BFF targets (port-forward or local BFF)
   const MAAS_BFF_TARGET = process.env.MAAS_BFF_TARGET || 'http://localhost:4000';
   const GENAI_BFF_TARGET = process.env.GENAI_BFF_TARGET || 'http://localhost:8080';
-  console.info('Proxy targets:', { maas: MAAS_BFF_TARGET, genAi: GENAI_BFF_TARGET });
+  const PERSES_TARGET = process.env.PERSES_TARGET || 'http://localhost:9005';
+  const CORE_BFF_TARGET = process.env.CORE_BFF_TARGET || 'http://localhost:4000';
+  console.info('Proxy targets:', {
+    maas: MAAS_BFF_TARGET,
+    genAi: GENAI_BFF_TARGET,
+    perses: PERSES_TARGET,
+    coreBff: CORE_BFF_TARGET,
+  });
 
   return [
+    { path: portalApiPaths.maas, target: MAAS_BFF_TARGET, pathRewrite: '/api' },
+    { path: portalApiPaths.genAi, target: GENAI_BFF_TARGET, pathRewrite: '/api' },
+    { path: portalApiPaths.perses, target: PERSES_TARGET, pathRewrite: '' },
+    { path: portalApiPaths.k8s, target: CORE_BFF_TARGET, pathRewrite: '/api/k8s' },
     {
-      context: [`${BASE_PATH}/maas/api`],
-      target: MAAS_BFF_TARGET,
-      pathRewrite: { [`^${BASE_PATH}/maas/api`]: '/api' },
-      secure: false,
-      changeOrigin: true,
-      on,
+      path: portalApiPaths.operatorSubscriptionStatus,
+      target: CORE_BFF_TARGET,
+      pathRewrite: '/api/operator-subscription-status',
     },
-    {
-      context: [`${BASE_PATH}/gen-ai/api`],
-      target: GENAI_BFF_TARGET,
-      pathRewrite: { [`^${BASE_PATH}/gen-ai/api`]: '/api' },
-      secure: false,
-      changeOrigin: true,
-      on,
-    },
-  ];
+  ].map(({ path: proxyPath, target, pathRewrite }) => ({
+    context: [proxyPath],
+    target,
+    pathRewrite: { [`^${proxyPath}`]: pathRewrite },
+    secure: false,
+    changeOrigin: true,
+    on,
+  }));
 };
 
 module.exports = merge(rspackCommon(), {

@@ -94,8 +94,9 @@ func (r *DashboardReconciler) patchMaaSConsumerPortalDeploymentFederationHash(ct
 // ingress rewriting remains outside aggregate module orchestration.
 func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 	statuses map[string]v1alpha1.ModuleStatus,
+	observability *v1alpha1.ObservabilitySpec,
 ) (*corev1.ConfigMap, error) {
-	entries := make([]federationEntry, 0, 2)
+	entries := make([]federationEntry, 0, 3)
 	for _, name := range maasConsumerPortalRequiredModuleNames() {
 		mod := moduleRegistry[name]
 		status := statuses[name]
@@ -103,6 +104,9 @@ func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 			continue
 		}
 		entries = append(entries, r.moduleFederationEntry(name, mod))
+	}
+	if entry := persesFederationEntry(observability); entry != nil {
+		entries = append(entries, *entry)
 	}
 	data, err := json.MarshalIndent(entries, "    ", "  ")
 	if err != nil {
@@ -125,7 +129,7 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalFederationConfigMap(ctx co
 		}
 		return nil
 	}
-	configMap, err := r.buildMaaSConsumerPortalFederationConfigMap(statuses)
+	configMap, err := r.buildMaaSConsumerPortalFederationConfigMap(statuses, dashboard.Spec.Observability)
 	if err != nil {
 		return err
 	}

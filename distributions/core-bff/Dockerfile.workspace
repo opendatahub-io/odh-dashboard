@@ -42,6 +42,7 @@ COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
 COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
 COPY --chown=default:root packages/maas/ ./packages/maas/
 COPY --chown=default:root packages/gen-ai/ ./packages/gen-ai/
+COPY --chown=default:root packages/observability/ ./packages/observability/
 COPY --chown=default:root packages/eslint-config/ ./packages/eslint-config/
 COPY --chown=default:root packages/jest-config/ ./packages/jest-config/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports

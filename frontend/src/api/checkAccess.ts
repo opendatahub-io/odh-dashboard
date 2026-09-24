@@ -1,7 +1,6 @@
-import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { checkAccess as checkResourceAccess } from '@odh-dashboard/k8s-core/api/accessReview';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
-import { ProjectModel, SelfSubjectAccessReviewModel } from '#~/api/models';
-import { SelfSubjectAccessReviewKind } from '#~/k8sTypes';
+import { ProjectModel } from '#~/api/models';
 
 export const checkAccess = ({
   group,
@@ -15,28 +14,13 @@ export const checkAccess = ({
   // even though it's a cluster-scoped resource.
   const reviewNamespace =
     group === ProjectModel.apiGroup && resource === ProjectModel.plural ? name : namespace;
-  const selfSubjectAccessReview: SelfSubjectAccessReviewKind = {
-    apiVersion: 'authorization.k8s.io/v1',
-    kind: 'SelfSubjectAccessReview',
-    spec: {
-      resourceAttributes: {
-        group,
-        resource,
-        subresource,
-        verb,
-        name,
-        namespace: reviewNamespace,
+  return checkResourceAccess(
+    { group, resource, subresource, verb, name, namespace: reviewNamespace },
+    {
+      onError: (error) => {
+        // eslint-disable-next-line no-console
+        console.warn('SelfSubjectAccessReview failed', error);
       },
     },
-  };
-  return k8sCreateResource<SelfSubjectAccessReviewKind>({
-    model: SelfSubjectAccessReviewModel,
-    resource: selfSubjectAccessReview,
-  })
-    .then((result) => result.status?.allowed ?? true)
-    .catch((e) => {
-      // eslint-disable-next-line no-console
-      console.warn('SelfSubjectAccessReview failed', e);
-      return true; // if it critically fails, don't block SSAR checks; let it fail/succeed on future calls
-    });
+  );
 };

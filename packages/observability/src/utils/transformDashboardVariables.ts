@@ -1,5 +1,10 @@
 import type { DashboardResource } from '@perses-dev/core';
 
+export type NamespaceOption = {
+  name: string;
+  label: string;
+};
+
 /**
  * Transforms a dashboard resource by replacing the namespace variable's plugin
  * with a StaticListVariable for the given project names.
@@ -8,19 +13,23 @@ import type { DashboardResource } from '@perses-dev/core';
  * to inject, eliminating race conditions between the query and our manual options.
  *
  * @param dashboard - The original dashboard resource
- * @param projectNames - Array of project names to use as namespace options
+ * @param projects - Array of projects to use as namespace options
  * @param initialNamespaceValue - Optional initial value for the namespace variable (from URL)
  * @returns A new dashboard resource with the namespace variable transformed
  */
 export function transformNamespaceVariable(
   dashboard: DashboardResource,
-  projectNames: string[],
+  projects: NamespaceOption[] | string[],
   initialNamespaceValue?: string | string[],
 ): DashboardResource {
   // If no project names provided, return dashboard unchanged
-  if (projectNames.length === 0) {
+  if (projects.length === 0) {
     return dashboard;
   }
+
+  const namespaceOptions = projects.map((project) =>
+    typeof project === 'string' ? { name: project, label: project } : project,
+  );
 
   const { variables } = dashboard.spec;
   // variables may be undefined at runtime for dashboards that don't define any
@@ -44,14 +53,14 @@ export function transformNamespaceVariable(
           },
           allowMultiple: true,
           allowAllValue: true,
-          customAllValue: `(${projectNames.join('|')})`,
+          customAllValue: `(${namespaceOptions.map(({ name }) => name).join('|')})`,
           // Use the initial value from URL if provided, otherwise keep the original default
           defaultValue: initialNamespaceValue ?? '$__all',
           plugin: {
             kind: 'StaticListVariable',
             spec: {
-              values: projectNames.map((name) => ({
-                label: name,
+              values: namespaceOptions.map(({ name, label }) => ({
+                label,
                 value: name,
               })),
             },
