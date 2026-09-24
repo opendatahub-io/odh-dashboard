@@ -149,4 +149,20 @@ describe('EmptyProjects', () => {
       `/projects/${startNotebookDataMock.projectName}?section=workbenches`,
     );
   });
+
+  it('should disable submit while feature stores are loading', () => {
+    const result = render(
+      <SpawnerFooter
+        startNotebookData={startNotebookDataMock}
+        storageData={mockStorageData}
+        canEnablePipelines
+        envVariables={mockEnvVariables}
+        connections={[mockConnection({})]}
+        existingSecretsData={{ secrets: [], loaded: true, canList: true }}
+        featureStoresLoading
+      />,
+    );
+
+    expect(result.getByTestId('submit-button')).toBeDisabled();
+  });
 });

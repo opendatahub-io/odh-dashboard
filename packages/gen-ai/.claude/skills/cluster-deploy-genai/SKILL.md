@@ -81,14 +81,14 @@ oc whoami --show-server
 # jq (required for JSON patching)
 jq --version
 
-# Go >= 1.24
+# Go >= 1.26
 go version
 
-# Node >= 22
+# Node >= 22.18.0
 node --version
 
-# npm deps installed (check for node_modules at repo root)
-ls node_modules/.package-lock.json
+# pnpm deps installed (check for the pnpm virtual store at repo root)
+test -d node_modules/.pnpm
 ```
 
 ### Gather parameters
@@ -164,7 +164,7 @@ If the required artifact is missing, tell the user both need to be built (first-
 ### Step 1: Build the frontend (skip if "BFF only")
 
 ```bash
-cd packages/gen-ai/frontend && npm run build:prod
+cd packages/gen-ai/frontend && pnpm run build:prod
 ```
 
 Output goes to `packages/gen-ai/frontend/dist/`.
@@ -327,7 +327,7 @@ rm -f packages/gen-ai/Dockerfile.dev-deploy
 
 ## Troubleshooting
 
-### Podman machine OOM (SIGKILL on webpack)
+### Podman machine OOM (SIGKILL on rspack)
 
 Increase podman machine memory:
 

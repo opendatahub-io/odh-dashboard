@@ -23,5 +23,7 @@ export const fireDeployMethodSelected = (
   trackEvent: TrackEventFn,
   properties: DeployMethodSelectedProperties,
 ): void => {
-  trackEvent(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, properties);
+  trackEvent(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, {
+    ...properties,
+  } satisfies DeployMethodSelectedProperties);
 };

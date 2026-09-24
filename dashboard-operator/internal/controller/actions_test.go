@@ -451,6 +451,28 @@ func TestAutoDetectObservability(t *testing.T) {
 	}
 }
 
+// TestDeployObservabilityManifests_PersesServiceRequired covers the InvalidConfig
+// path. The CRD's CEL rule makes "enabled: true + persesService: nil" unadmittable
+// by the API server, so this case is unreachable from envtest — it must be a unit
+// test that constructs the Dashboard struct directly. (RHOAIENG-83647)
+func TestDeployObservabilityManifests_PersesServiceRequired(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	dashboard := &v1alpha1.Dashboard{
+		Spec: v1alpha1.DashboardSpec{
+			Observability: &v1alpha1.ObservabilitySpec{
+				Enabled:       true,
+				PersesService: nil,
+			},
+		},
+	}
+
+	err := deployObservabilityManifests(context.Background(), cli, dashboard, "/base", cluster.OpenDataHub)
+	assert.ErrorIs(t, err, ErrPersesServiceRequired)
+}
+
 func TestAutoDetectObservability_NonNotFoundError(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))

@@ -66,7 +66,7 @@ const mockTemplate: ResponsesTemplate = {
   include: ['file_search_call.results'],
 };
 
-const mockOgxCredentials = {
+const mockLegacyRunCredentials = {
   baseUrl: btoa('https://ogx.example.com'),
   apiKey: btoa('sk-test-key-123'),
 };
@@ -153,7 +153,7 @@ describe('ViewCodeModal', () => {
   describe('with credentials', () => {
     const propsWithCredentials = {
       ...defaultProps,
-      ogxCredentials: mockOgxCredentials,
+      ogxCredentials: mockLegacyRunCredentials,
     };
 
     it('should render the inject credentials toggle', () => {

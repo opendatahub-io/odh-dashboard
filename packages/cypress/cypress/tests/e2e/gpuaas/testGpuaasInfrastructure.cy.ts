@@ -40,9 +40,9 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findBorrowingError().should('not.exist');
       infrastructurePage.shouldHaveBorrowingChartOrEmptyState();
 
-      cy.step('Click Compute profile utilization tab and verify section is present');
-      infrastructurePage.switchToClusterQueueUtilizationTab();
-      infrastructurePage.findClusterQueueUtilizationSection().should('be.visible');
+      cy.step('Click Quota usage tab and verify section is present');
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.shouldHaveQuotaUsageNavSearchOrEmptyState();
     },
   );
 

@@ -12,6 +12,14 @@ rules:
     resources:
       - mlflows
   - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
+  - apiGroups:
       - authorization.k8s.io
     verbs:
       - create

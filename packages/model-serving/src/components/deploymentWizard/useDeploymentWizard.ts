@@ -7,7 +7,7 @@ import {
   INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
-import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { useAccessReview } from '@odh-dashboard/plugin-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
@@ -18,6 +18,7 @@ import { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
 import { useNumReplicasField } from './fields/NumReplicasField';
 import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
+import { useHuggingFaceApiKeyField } from './fields/HuggingFaceApiKeyField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
@@ -164,6 +165,15 @@ export const useModelDeploymentWizard = (
   const validatedConfigurationSelection = useValidatedConfigurationsField(
     initialData?.selectedValidatedConfigurations,
   );
+  const huggingFaceApiKey = useHuggingFaceApiKeyField(initialData?.huggingFaceApiKey);
+  const requiresHuggingFaceApiKey = React.useMemo(
+    () =>
+      Boolean(
+        initialData?.requiresHuggingFaceApiKey ||
+          initialData?.huggingFaceApiKey?.configuredSecretName,
+      ),
+    [initialData?.requiresHuggingFaceApiKey, initialData?.huggingFaceApiKey?.configuredSecretName],
+  );
 
   // Step 4: Summary
 
@@ -188,6 +198,8 @@ export const useModelDeploymentWizard = (
       deploymentStrategy,
       canCreateRoleBindings,
       validatedConfigurationSelection,
+      huggingFaceApiKey,
+      requiresHuggingFaceApiKey,
       ...formState,
     }),
     [
@@ -207,6 +219,8 @@ export const useModelDeploymentWizard = (
       deploymentStrategy,
       canCreateRoleBindings,
       validatedConfigurationSelection,
+      huggingFaceApiKey,
+      requiresHuggingFaceApiKey,
       formState,
     ],
   );

@@ -52,8 +52,8 @@ func CreateSecretHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 		app.badRequestResponse(w, r, errors.New("namespace is required"))
 		return
 	}
-	if strings.TrimSpace(request.Data.Name) == "" {
-		app.badRequestResponse(w, r, errors.New("name is required"))
+	if err := repositories.ValidateSecretName(request.Data.Name); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 	if strings.TrimSpace(request.Data.Value) == "" {

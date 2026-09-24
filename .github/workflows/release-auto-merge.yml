@@ -99,6 +99,13 @@ jobs:
               "manifests/modules/autorag/params.env"
               "manifests/modules/agent-ops/params.env"
             )
+
+            # Modify/delete: main removed these; accept deletion (do not keep odh-release copy).
+            # Sidecar mode was removed on main (RHOAIENG-61022 / #9392); odh-release may still
+            # have a modified manifests/sidecar/params.env that blocks the merge.
+            ACCEPT_DELETE_PATTERNS=(
+              "manifests/sidecar/"
+            )
             
             # Get list of conflicted files
             CONFLICTED_FILES=$(git diff --name-only --diff-filter=U)
@@ -110,6 +117,17 @@ jobs:
                   echo "Resolving $file conflict - keeping odh-release version"
                   git checkout --ours "$file"
                   git add "$file"
+                fi
+              done <<< "$CONFLICTED_FILES"
+            done
+
+            # Resolve known modify/delete conflicts by accepting main's deletion
+            CONFLICTED_FILES=$(git diff --name-only --diff-filter=U)
+            for pattern in "${ACCEPT_DELETE_PATTERNS[@]}"; do
+              while IFS= read -r file; do
+                if [[ -n "$file" && "$file" == *"$pattern"* ]]; then
+                  echo "Resolving $file conflict - accepting deletion from $MERGE_DESC"
+                  git rm -f -- "$file" 2>/dev/null || git rm -f --cached -- "$file"
                 fi
               done <<< "$CONFLICTED_FILES"
             done
@@ -235,48 +253,3 @@ jobs:
 
           ---
           *This PR was automatically created by the release-auto-merge workflow.*"
-
-  sync-rhoai:
-    needs: sync
-    if: ${{ needs.sync.outputs.has_changes == 'true' }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check rhoai-release branch exists
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if ! gh api "repos/${{ github.repository }}/branches/rhoai-release" --silent 2>/dev/null; then
-            echo "ERROR: Branch 'rhoai-release' does not exist. Skipping sync."
-            exit 1
-          fi
-          echo "Branch 'rhoai-release' exists."
-
-      - name: Checkout rhoai-release
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          ref: rhoai-release
-          fetch-depth: 0
-
-      - name: Fast-forward rhoai-release to odh-release
-        run: |
-          git fetch origin odh-release
-
-          echo "rhoai-release before: $(git rev-parse HEAD)"
-          echo "odh-release target:   $(git rev-parse origin/odh-release)"
-
-          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/odh-release)" ]]; then
-            echo "No changes — rhoai-release is already up to date with odh-release"
-            exit 0
-          fi
-
-          if ! git merge-base --is-ancestor HEAD origin/odh-release; then
-            echo "ERROR: Cannot fast-forward. rhoai-release has diverged from odh-release."
-            echo "Manual intervention required."
-            exit 1
-          fi
-
-          git merge --ff-only origin/odh-release
-          echo "rhoai-release after:  $(git rev-parse HEAD)"
-          git push origin rhoai-release
-          echo "Fast-forwarded rhoai-release to odh-release"

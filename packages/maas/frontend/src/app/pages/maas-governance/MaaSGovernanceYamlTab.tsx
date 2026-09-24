@@ -10,6 +10,7 @@ import {
   EventTrackingResourceType,
   EventTrackingYAMLAction,
   MaaSEvents,
+  MaaSGovernanceYamlExportedProperties,
 } from '~/app/types/event-tracking';
 
 const CodeEditor = React.lazy(() =>
@@ -46,7 +47,7 @@ const MaaSGovernanceYamlTab: React.FC<MaaSGovernanceYamlTabProps> = ({
       resourceType: trackingResourceType,
       context: EventTrackingContext.DETAILS,
       action,
-    });
+    } satisfies MaaSGovernanceYamlExportedProperties);
   };
 
   if (!loaded) {

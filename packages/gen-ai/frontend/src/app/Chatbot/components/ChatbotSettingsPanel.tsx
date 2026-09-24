@@ -65,6 +65,7 @@ interface ChatbotSettingsPanelProps {
   mcpServers: MCPServerFromAPI[];
   mcpServersLoaded: boolean;
   mcpServersLoadError?: Error | null;
+  mcpRegistryAvailable?: boolean;
   mcpServerTokens: Map<string, TokenInfo>;
   onMcpServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
   checkMcpServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
@@ -96,6 +97,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   mcpServers,
   mcpServersLoaded,
   mcpServersLoadError,
+  mcpRegistryAvailable,
   mcpServerTokens,
   onMcpServerTokensChange,
   checkMcpServerStatus,
@@ -111,9 +113,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onResetToLastSaved,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
-  const [activeToolsCount, setActiveToolsCount] = React.useState(0);
+  const [, setActiveToolsCount] = React.useState(0);
   const [showResetModal, setShowResetModal] = React.useState(false);
-  const isProfileDirty = useIsProfileDirty(configId);
+  const isProfileDirty = useIsProfileDirty(configId, mcpServers);
 
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
@@ -287,7 +289,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             ))}
           </ToggleGroup>
         )}
-        <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+        <DrawerActions
+          className="pf-v6-u-align-self-center pf-v6-u-align-items-center pf-v6-u-mt-0"
+          style={{ gap: 'var(--pf-t--global--spacer--sm)' }}
+        >
           {agentConfigManagementEnabled && !isCompareMode && (
             <Button
               variant="secondary"
@@ -303,7 +308,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       </DrawerHead>
       <DrawerPanelBody
         style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-        hasNoPadding
       >
         <ToggleGroup
           isFill
@@ -456,11 +460,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             mcpServers={mcpServers}
             mcpServersLoaded={mcpServersLoaded}
             mcpServersLoadError={mcpServersLoadError}
+            mcpRegistryAvailable={mcpRegistryAvailable}
             mcpServerTokens={mcpServerTokens}
             onMcpServerTokensChange={onMcpServerTokensChange}
             checkMcpServerStatus={checkMcpServerStatus}
             initialServerStatuses={initialServerStatuses}
-            activeToolsCount={activeToolsCount}
             onActiveToolsCountChange={setActiveToolsCount}
             onToolsWarningChange={setShowMcpToolsWarning}
           />

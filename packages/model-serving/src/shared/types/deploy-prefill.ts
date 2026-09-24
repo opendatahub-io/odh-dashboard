@@ -7,6 +7,8 @@ export type DeployPrefillData = {
   wizardStartIndex?: number;
   modelType?: 'predictive' | 'generative';
   prefillAlertText?: string;
+  requiresHuggingFaceApiKey?: boolean;
+  huggingFaceApiKeyAlertText?: string;
   validatedConfigurations?: {
     forField: string;
     title: string;
@@ -32,4 +34,13 @@ export type ModelDeployPrefillInfo = {
 
 export type RegisteredModelRef = {
   id: string;
+};
+
+/** Props a page consumer passes to a deploy `core.action` via `componentProps`. */
+export type DeployPrefillActionProps = {
+  deployPrefill: DeployPrefillData;
+  deployPrefillLoaded: boolean;
+  deployPrefillError?: Error;
+  /** When set, the deploy action is disabled and shows this tooltip (e.g. gated catalog access). */
+  disabledTooltip?: string;
 };

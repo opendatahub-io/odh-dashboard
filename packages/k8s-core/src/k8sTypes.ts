@@ -296,7 +296,6 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
@@ -322,8 +321,10 @@ export type DashboardCommonConfig = {
   gpuaas?: boolean;
   connectionTest?: boolean;
   modelCapabilities?: boolean;
+  runtimeCatalog?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
+  dataConnectHub?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -617,6 +618,8 @@ export type ClusterQueueKind = K8sResourceCommon & {
         resources: {
           name: ContainerResourceAttributes;
           nominalQuota: string | number;
+          borrowingLimit?: string | number;
+          lendingLimit?: string | number;
         }[];
       }[];
     }[];

@@ -1,0 +1,19 @@
+# Build context is the repository root; keep the monorepo's heavy/unrelated
+# trees out of the E2E test image build. Only dashboard-operator sources needed
+# to compile test/e2e are copied by Dockerfile.e2e.
+frontend/
+backend/
+packages/
+distributions/
+node_modules/
+**/node_modules/
+
+.github/
+.tekton/
+.vscode/
+.idea/
+
+**/.git
+**/.gitignore
+**/.env
+**/.env.*

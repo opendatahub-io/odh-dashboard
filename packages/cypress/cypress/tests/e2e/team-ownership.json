@@ -1,0 +1,102 @@
+{
+  "description": "Maps Cypress E2E test directories to owning scrum teams. Used by the nightly test failure analyzer and Jenkins pipeline to route failures to the responsible team.",
+  "default_team": "Unassigned",
+  "teams": [
+    {
+      "name": "Green",
+      "ci_tags": ["ModelRegistryCI", "ModelCatalogCI"],
+      "path_patterns": ["modelRegistry/", "modelCatalog/", "mcpCatalog/", "agentsCatalog/", "data-registry/"],
+      "slack_handle": "@openshift-ai-dashboard-green-scrum",
+      "slack_group_id": "S07BJDHQR2R",
+      "emoji": ":large_green_circle:"
+    },
+    {
+      "name": "Razzmatazz",
+      "ci_tags": ["AgentOpsCI", "ConnectionTypes", "HardwareProfiles", "MlflowEmbedded", "MLflowCI"],
+      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/", "mlflowExperiments/", "dashboardNavigation/", "learningResources/", "storageClasses/", "settings/"],
+      "slack_handle": "@openshift-ai-dashboard-razzmatazz-scrum",
+      "slack_group_id": "S06FFRUSFH8",
+      "emoji": ":razzmatazz:"
+    },
+    {
+      "name": "Zaffre",
+      "ci_tags": ["KServeCI", "NIMServingCI", "ModelServingCI", "LLMDServingCI"],
+      "path_patterns": ["modelServing/", "nim/", "dataScienceProjects/models/", "dataScienceProjects/connections/", "settings/servingRuntimes/"],
+      "slack_handle": "@openshift-ai-dashboard-zaffre-scrum",
+      "slack_group_id": "S07CFUVMXBM",
+      "emoji": ":zaffre:"
+    },
+    {
+      "name": "Monarch",
+      "ci_tags": ["Observability"],
+      "path_patterns": ["distributedWorkloadMetrics/"],
+      "slack_handle": "@openshift-ai-dashboard-monarch-scrum",
+      "slack_group_id": "S07EBN8NY1L",
+      "emoji": ":large_yellow_circle:"
+    },
+    {
+      "name": "Crimson",
+      "ci_tags": ["GenAICI"],
+      "path_patterns": ["gen-ai/", "promptManagement/"],
+      "slack_handle": "@openshift-ai-dashboard-crimson-scrum",
+      "slack_group_id": "S09A6NJHBU1",
+      "emoji": ":crimson:"
+    },
+    {
+      "name": "Teal",
+      "ci_tags": ["Notebooks Extensions"],
+      "path_patterns": ["dataScienceProjects/workbenches/", "applications/enabled/"],
+      "slack_handle": "@group-openshift-ai-notebooks-server-extensions",
+      "slack_group_id": "S05UB882TDF",
+      "emoji": ":teal:"
+    },
+    {
+      "name": "Indigo",
+      "ci_tags": ["Notebooks Server"],
+      "path_patterns": ["notebooks/"],
+      "slack_handle": "@group-openshift-ai-notebooks-server-extensions",
+      "slack_group_id": "S05UB882TDF",
+      "emoji": ":indigo:"
+    },
+    {
+      "name": "Onyx",
+      "ci_tags": ["MaaSCI"],
+      "path_patterns": ["maas/"],
+      "slack_handle": "@openshift-ai-dashboard-onyx-scrum",
+      "slack_group_id": "S0AU18N3AFP",
+      "emoji": ":onyxl:"
+    },
+    {
+      "name": "Purple",
+      "ci_tags": ["AutoMLCI", "AutoRAGCI", "EvalHubCI"],
+      "path_patterns": ["automl/", "autorag/", "evalHub/", "eval-hub/"],
+      "slack_handle": "@openshift-ai-dashboards-purple-scrum",
+      "slack_group_id": "S0ABKEG0C14",
+      "emoji": ":large_purple_circle:"
+    },
+    {
+      "name": "Tangerine",
+      "ci_tags": ["FeatureStoreCI", "ModelTrainingCI", "GpuaasCI"],
+      "path_patterns": ["featureStore/", "modelTraining/", "gpuaas/"],
+      "slack_handle": "@openshift-ai-dashboard-tangerine-scrum",
+      "slack_group_id": "S0AG2A9KP5W",
+      "emoji": ":tangerine:"
+    },
+    {
+      "name": "Pewter",
+      "ci_tags": [],
+      "path_patterns": [],
+      "slack_handle": "@openshift-ai-dashboard-pewter-scrum",
+      "slack_group_id": "S0B5BJW6T8S",
+      "emoji": ":star:"
+    },
+    {
+      "name": "Unassigned",
+      "ci_tags": [],
+      "path_patterns": [],
+      "slack_handle": "@openshift-ai-dashboard-qe",
+      "slack_group_id": "S08AZ980ER0",
+      "emoji": ":question:"
+    }
+  ]
+}

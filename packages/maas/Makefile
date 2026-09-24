@@ -85,7 +85,7 @@ test: fmt vet envtest
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies:
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff
 dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev)
@@ -94,7 +94,7 @@ dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-start
 dev-start:
@@ -109,25 +109,16 @@ dev-start-kubeflow:
 
 .PHONY: dev-frontend-kubeflow
 dev-frontend-kubeflow:
-	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
 	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
 
 ########### Dev Federated ###########
-.PHONY: dev-start-federated
-dev-start-federated:
-	@trap 'exit 0' INT; \
-	make -j 2 dev-bff-federated dev-frontend-federated
-
-.PHONY: dev-frontend-federated
-dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 npm run start:dev
-
-.PHONY: dev-bff-federated
-dev-bff-federated:
-	@MAAS_URL="$${MAAS_API_URL}"; \
+# Ingress redirects http:// to https://; POST passthrough (e.g. api-keys/search) must use https:// directly.
+define resolve_maas_api_url
+	MAAS_URL="$${MAAS_API_URL}"; \
 	if [ -z "$$MAAS_URL" ]; then \
 		echo "MAAS_API_URL not set, attempting to auto-detect from cluster..."; \
 		CLUSTER_DOMAIN=$$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}' 2>/dev/null); \
@@ -136,9 +127,23 @@ dev-bff-federated:
 			echo "Ensure you are logged into the cluster (oc login) or set MAAS_API_URL manually."; \
 			exit 1; \
 		fi; \
-		MAAS_URL="http://maas.$$CLUSTER_DOMAIN/maas-api"; \
+		MAAS_URL="https://maas.$$CLUSTER_DOMAIN/maas-api"; \
 		echo "Auto-detected MAAS_API_URL: $$MAAS_URL"; \
-	fi; \
+	fi;
+endef
+
+.PHONY: dev-start-federated
+dev-start-federated:
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-federated dev-frontend-federated
+
+.PHONY: dev-frontend-federated
+dev-frontend-federated:
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
+
+.PHONY: dev-bff-federated
+dev-bff-federated:
+	@$(resolve_maas_api_url) \
 	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
 
 .PHONY: dev-bff-federated-mock
@@ -147,7 +152,7 @@ dev-bff-federated-mock:
 
 .PHONY: dev-frontend-federated-mock
 dev-frontend-federated-mock:
-	cd frontend && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 npm run start:dev
+	cd frontend && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
 
 .PHONY: dev-start-mock-federated
 dev-start-mock-federated:
@@ -167,33 +172,34 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
+	@$(resolve_maas_api_url) \
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
 
 ############ Build ############
 
 .PHONY: docker-build
 docker-build:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -f Dockerfile.workspace -t ${IMG_UI} ../..
 
 .PHONY: docker-build-standalone
 docker-build-standalone:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -f Dockerfile.workspace -t ${IMG_UI_STANDALONE} ../..
 
 .PHONY: docker-build-federated
 docker-build-federated:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -f Dockerfile.workspace -t ${IMG_UI_FEDERATED} ../..
 
 .PHONY: docker-buildx
 docker-buildx:
-	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI} --push ../..
 
 .PHONY: docker-buildx-standalone
 docker-buildx-standalone:
-	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI_STANDALONE} --push ../..
 
 .PHONY: docker-buildx-federated
 docker-buildx-federated:
-	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI_FEDERATED} --push ../..
 
 ############ Push ############
 
@@ -222,11 +228,11 @@ kubeflow-deployment:
 ############ Build ############
 .PHONY: frontend-build
 frontend-build:
-	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=kubeflow pnpm run build:prod
 
 .PHONY: frontend-build-standalone
 frontend-build-standalone:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: bff-build
 bff-build:

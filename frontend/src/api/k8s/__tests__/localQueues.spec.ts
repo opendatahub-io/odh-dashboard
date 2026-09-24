@@ -2,7 +2,7 @@ import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { LocalQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { LocalQueueKind } from '#~/k8sTypes';
-import { listLocalQueues } from '#~/api/k8s/localQueues';
+import { listAllLocalQueues, listLocalQueues } from '#~/api/k8s/localQueues';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
@@ -35,5 +35,18 @@ describe('listLocalQueues', () => {
       model: LocalQueueModel,
       queryOptions: { ns: 'test-project' },
     });
+  });
+});
+
+describe('listAllLocalQueues', () => {
+  it('should fetch and return localqueues across all namespaces', async () => {
+    k8sListResourceItemsMock.mockResolvedValue([mockedLocalQueue]);
+    const result = await listAllLocalQueues();
+    expect(k8sListResourceItemsMock).toHaveBeenCalledWith({
+      model: LocalQueueModel,
+      queryOptions: {},
+    });
+    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual([mockedLocalQueue]);
   });
 });

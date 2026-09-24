@@ -12,8 +12,10 @@ import {
   mockMCPToolsInterceptor,
   mockMCPStatusError,
   mockMCPStatusAutoConnect,
+  mockMCPRegistryStatusAutoConnect,
   mockMCPToolsAutoConnect,
   mockMCPToolsAutoConnectWithCount,
+  mockMCPServersWithRegistry,
 } from '~/__tests__/cypress/cypress/__mocks__';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { playgroundPage } from '~/__tests__/cypress/cypress/pages/playgroundPage';
@@ -137,7 +139,7 @@ type InitInterceptsOptions = {
   serverName: string;
   serverUrl?: string;
   serverStatus?: MCPServerStatus;
-  servers?: Array<{ name: string; status: MCPServerStatus }>;
+  servers?: Array<{ name: string; status: MCPServerStatus; url?: string }>;
   withStatusInterceptor?: { token: string; serverUrl: string };
   withToolsInterceptor?: { token: string; serverUrl: string };
   withStatusError?: { errorType: '400' | '401'; serverUrl: string };
@@ -171,6 +173,12 @@ export const initIntercepts = ({
     mockMCPStatusError(withStatusError.errorType, withStatusError.serverUrl);
   } else if (withStatusInterceptor) {
     mockMCPStatusInterceptor(withStatusInterceptor.token, withStatusInterceptor.serverUrl);
+  } else if (servers) {
+    servers.forEach(({ url }) => {
+      if (url) {
+        mockMCPStatusAutoConnect(url);
+      }
+    });
   } else if (serverUrl) {
     mockMCPStatusError('401', serverUrl);
   }
@@ -273,4 +281,46 @@ export const initHighToolsCountIntercepts = ({
   // Mock auto-connect status and tools with high count
   mockMCPStatusAutoConnect(serverUrl);
   mockMCPToolsAutoConnectWithCount(serverUrl, toolsCount);
+};
+
+export const initRegistryIntercepts = ({
+  config,
+  namespace,
+  registryServers,
+  configmapServers,
+}: {
+  config: MCPTestConfig;
+  namespace: string;
+  registryServers?: Array<{ name: string; url: string; status?: string }>;
+  configmapServers?: Array<{ name: string; url: string; status?: string }>;
+}): void => {
+  setupBaseMCPServerMocks(config, { lsdStatus: 'Ready', includeLsdModel: true });
+
+  const regServers = registryServers?.map((s) =>
+    mockMCPServer({
+      ...s,
+      source: 'registry',
+      status: (s.status ?? 'healthy') as MCPServerStatus,
+    }),
+  );
+  const cmServers = configmapServers?.map((s) =>
+    mockMCPServer({
+      ...s,
+      source: 'configmap',
+      status: (s.status ?? 'healthy') as MCPServerStatus,
+    }),
+  );
+
+  cy.interceptGenAi(
+    'GET /api/v1/aaa/mcps',
+    { query: { namespace } },
+    mockMCPServersWithRegistry(regServers, cmServers),
+  );
+
+  registryServers?.forEach(({ name, url }) => {
+    mockMCPRegistryStatusAutoConnect(name, url);
+  });
+  configmapServers?.forEach(({ url }) => {
+    mockMCPStatusAutoConnect(url);
+  });
 };

@@ -40,11 +40,11 @@ describe('TableDetailView', () => {
     expect(link).toHaveTextContent('default');
   });
 
-  it('should render connection name without prefix', () => {
+  it('should render connection name', () => {
     const asset = mockAssetResponse();
     renderView(asset);
-    expect(screen.getByTestId('connection-ref-rhai')).toHaveTextContent('my-s3-connection');
-    expect(screen.getByTestId('connection-ref-rhai').textContent).not.toContain('Connection:');
+    const el = screen.getByTestId('connection-ref-label');
+    expect(el).toHaveTextContent('my-s3-connection');
   });
 
   it('should render created and last modified with user attribution', () => {
@@ -100,6 +100,25 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('asset-type')).toHaveTextContent('table');
   });
 
+  it('should render an unstructured volume with its human-readable format', () => {
+    const asset = mockAssetResponse({
+      asset_type: 'Unstructured',
+      format: 'documents',
+      columns: [],
+      properties: { 'content-type': 'application/pdf' },
+    });
+    renderView(asset);
+
+    expect(screen.getByTestId('asset-type')).toHaveTextContent('Unstructured');
+    expect(screen.getByTestId('asset-format')).toHaveTextContent('Documents');
+    expect(screen.getByTestId('properties-card')).toHaveTextContent(
+      'content-type: application/pdf',
+    );
+    expect(screen.queryByTestId('schema-card')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Created')).toHaveLength(1);
+    expect(screen.getAllByText('Last modified')).toHaveLength(1);
+  });
+
   it('should render dash for missing optional fields', () => {
     const asset = mockAssetResponse({
       format: undefined,
@@ -122,10 +141,9 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('asset-updated-at')).toHaveTextContent('-');
     expect(screen.queryByTestId('properties-card')).not.toBeInTheDocument();
   });
-
-  it('should render empty schema columns state when no columns', () => {
+  it('should hide schema card when no columns', () => {
     const asset = mockAssetResponse({ columns: [] });
     renderView(asset);
-    expect(screen.getByText('No schema columns')).toBeTruthy();
+    expect(screen.queryByTestId('schema-card')).not.toBeInTheDocument();
   });
 });

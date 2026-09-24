@@ -20,17 +20,20 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
-import { isNavigateToDeploymentWizardWithDataExtension } from '~/odh/extension-points';
+import useCatalogDeployPrefillData from '~/odh/hooks/useCatalogDeployPrefillData';
 import {
   decodeParams,
   getModelName,
+  getSourceFromSourceId,
   hasModelArtifacts,
   isModelValidated,
   isRedHatModel,
+  getHfAccessLabelVariant,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
@@ -38,10 +41,14 @@ import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
 import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
-import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import {
+  MODEL_CATALOG_GATED_ACCESS_REQUIRED,
+  MODEL_CATALOG_POPOVER_MESSAGES,
+} from '~/concepts/modelCatalog/const';
 import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
+import ModelCatalogAccessLabel from '~/app/pages/modelCatalog/components/ModelCatalogAccessLabel';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
 const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
@@ -65,15 +72,32 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
     ModelRegistrySelectorContext,
   );
   const actionExtensions = useExtensions(isActionExtension);
-  const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(
-    isNavigateToDeploymentWizardWithDataExtension,
+  const isDeployAvailable = React.useMemo(
+    () => actionExtensions.some((action) => action.properties.group === MODEL_CATALOG_DEPLOY_GROUP),
+    [actionExtensions],
   );
-  const isDeployAvailable = navigateExtensionsLoaded && navigateExtensions.length > 0;
+  const { catalogSources } = React.useContext(ModelCatalogContext);
+  const hfUsername = getSourceFromSourceId(
+    decodedParams.sourceId || '',
+    catalogSources,
+  )?.hfUsername;
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
   );
+
+  const catalogDeployProps = useCatalogDeployPrefillData(
+    model,
+    artifacts,
+    artifactLoaded,
+    artifactsLoadError,
+    decodedParams.sourceId || '',
+    decodedParams.modelName || '',
+  );
+
+  const accessLabelVariant = model ? getHfAccessLabelVariant(model) : null;
+  const gatedAccessDenied = accessLabelVariant === 'gated-denied';
 
   const handleValidatedLabelClicked = React.useCallback(() => {
     if (!model) {
@@ -109,6 +133,10 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
   );
 
   const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
+    if (gatedAccessDenied) {
+      return registerButtonTooltip('', MODEL_CATALOG_GATED_ACCESS_REQUIRED.REGISTER_BUTTON_TOOLTIP);
+    }
+
     if (!modelRegistriesLoaded || modelRegistriesLoadError) {
       return null;
     }
@@ -188,7 +216,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                     alignItems={{ default: 'alignItemsCenter' }}
                   >
                     <FlexItem>{getModelName(model.name)}</FlexItem>
-                    {isModelValidated(model) && (
+                    {isModelValidated(model) ? (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
                         <Label
                           variant="outline"
@@ -200,7 +228,9 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                           Validated
                         </Label>
                       </Popover>
-                    )}
+                    ) : accessLabelVariant ? (
+                      <ModelCatalogAccessLabel variant={accessLabelVariant} />
+                    ) : null}
                     {isRedHatModel(model) && (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.RED_HAT}>
                         <Label color="grey" isClickable>
@@ -238,7 +268,12 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                 <ExtensibleActions
                   actions={actionExtensions}
                   group={MODEL_CATALOG_DEPLOY_GROUP}
-                  componentProps={{ model }}
+                  componentProps={{
+                    ...catalogDeployProps,
+                    ...(gatedAccessDenied && {
+                      disabledTooltip: MODEL_CATALOG_GATED_ACCESS_REQUIRED.REGISTER_BUTTON_TOOLTIP,
+                    }),
+                  }}
                 />
                 {registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
               </ActionListGroup>
@@ -254,6 +289,8 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
             artifacts={artifacts}
             artifactLoaded={artifactLoaded}
             artifactsLoadError={artifactsLoadError}
+            gatedAccessDenied={gatedAccessDenied}
+            hfUsername={hfUsername}
           />
         )}
       </ApplicationsPage>

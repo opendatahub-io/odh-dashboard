@@ -3,6 +3,8 @@ frontend/public
 backend/node_modules
 backend/dist
 node_modules/
+**/node_modules/
+packages/*/bff/vendor
 
 .github/
 .vscode/
@@ -10,7 +12,8 @@ node_modules/
 tests/
 **/__mocks__/
 **/__tests__/
-scripts/
+scripts/ci/
+scripts/security-audit/
 
 # Local .env images
 **/.env.development

@@ -42,4 +42,9 @@ export const ExternalModelsExpandedRowColumns: SortableData<ProviderRef>[] = [
     field: 'weight',
     sortable: false,
   },
+  {
+    label: 'Status',
+    field: 'status',
+    sortable: false,
+  },
 ];

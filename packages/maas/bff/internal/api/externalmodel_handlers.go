@@ -185,6 +185,17 @@ func validateProviderRefs(refs []models.ProviderRef) error {
 		if strings.TrimSpace(ref.TargetModel) == "" {
 			return errors.New("providerRef.targetModel is required")
 		}
+		if ref.AuthMechanism != nil || strings.TrimSpace(ref.CredentialSecretRef) != "" {
+			if ref.AuthMechanism == nil {
+				return errors.New("providerRef.authMechanism is required when providerRef.credentialSecretRef is set")
+			}
+			if !ref.AuthMechanism.IsValid() {
+				return errors.New("providerRef.authMechanism must be 'apikey', 'sigv4', or 'oauth2'")
+			}
+			if err := repositories.ValidateProviderRefCredentialSecretRef(ref.CredentialSecretRef); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

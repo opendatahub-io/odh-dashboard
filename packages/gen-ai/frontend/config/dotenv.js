@@ -50,7 +50,7 @@ const getTsCompilerOptions = (directory) => {
 };
 
 /**
- * Setup a webpack dotenv plugin config.
+ * Setup a dotenv plugin config for rspack.
  *
  * @param {string} path
  * @returns {*}
@@ -69,7 +69,7 @@ const setupWebpackDotenvFile = (path) => {
 };
 
 /**
- * Setup multiple webpack dotenv file parameters.
+ * Setup multiple rspack dotenv file parameters.
  *
  * @param {string} directory
  * @param {string} env

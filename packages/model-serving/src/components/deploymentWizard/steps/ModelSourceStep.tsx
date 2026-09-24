@@ -8,6 +8,11 @@ import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../../../shared/types/form-data';
 import { createConnectionDataSchema } from '../fields/CreateConnectionInputFields';
+import {
+  huggingFaceApiKeyFieldSchema,
+  HuggingFaceApiKeyField,
+  requiredHuggingFaceApiKeySchema,
+} from '../fields/HuggingFaceApiKeyField';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 
@@ -21,6 +26,8 @@ export const modelSourceStepBaseSchema = z.object({
   modelType: modelTypeSelectFieldSchema,
   modelLocationData: modelLocationDataSchema,
   createConnectionData: createConnectionDataSchema.optional(),
+  huggingFaceApiKey: huggingFaceApiKeyFieldSchema.optional(),
+  requiresHuggingFaceApiKey: z.boolean().optional(),
 });
 
 export const modelSourceStepRefinement = (
@@ -35,6 +42,20 @@ export const modelSourceStepRefinement = (
         ctx.addIssue({
           ...issue,
           path: ['createConnectionData', ...issue.path],
+        });
+      });
+    }
+  }
+
+  if (data.requiresHuggingFaceApiKey) {
+    const result = requiredHuggingFaceApiKeySchema.safeParse(
+      data.huggingFaceApiKey ?? { token: '' },
+    );
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue({
+          ...issue,
+          path: ['huggingFaceApiKey', ...issue.path],
         });
       });
     }
@@ -62,6 +83,8 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
     [wizardState.fields],
   );
 
+  const showHuggingFaceApiKeyField = wizardState.state.requiresHuggingFaceApiKey;
+
   if (!wizardState.loaded.modelSourceLoaded) {
     return <Spinner data-testid="spinner" />;
   }
@@ -85,7 +108,17 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           setSelectedConnection={wizardState.state.modelLocationData.setSelectedConnection}
           selectedConnection={wizardState.state.modelLocationData.selectedConnection}
           pvcs={wizardState.state.modelLocationData.pvcs}
+          connectionTypes={wizardState.state.modelLocationData.connectionTypes}
         />
+        {showHuggingFaceApiKeyField ? (
+          <HuggingFaceApiKeyField
+            data={wizardState.state.huggingFaceApiKey.data}
+            onChange={wizardState.state.huggingFaceApiKey.setData}
+            alertText={wizardState.initialData?.huggingFaceApiKeyAlertText}
+            validationProps={validation.getFieldValidationProps(['huggingFaceApiKey'])}
+            validationIssues={validation.getFieldValidation(['huggingFaceApiKey'])}
+          />
+        ) : null}
         {modelSourceExtensionFields.map((field) => (
           <GenericFieldRenderer
             key={field.id}

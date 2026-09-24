@@ -58,12 +58,12 @@ export type AssetResponse = {
   format?: string;
   location?: string;
   content_type?: string;
-  columns?: SchemaField[];
+  columns?: SchemaField[] | null;
   collection?: string;
   connection_ref?: ConnectionRef | null;
   owner?: string;
   description?: string;
-  labels?: string[];
+  labels?: string[] | null;
   properties?: Record<string, string>;
   registered_by?: string;
   updated_by?: string;
@@ -72,7 +72,7 @@ export type AssetResponse = {
 };
 
 export type AssetListResponse = {
-  assets: AssetResponse[];
+  assets?: AssetResponse[];
 };
 
 export type VolumeInfo = {
@@ -85,13 +85,14 @@ export type VolumeInfo = {
   owner?: string;
   'created-at'?: string;
   'updated-at'?: string;
-  labels?: string[];
+  labels?: string[] | null;
   properties?: Record<string, string>;
   config?: Record<string, string>;
+  connection_ref?: ConnectionRef | null;
 };
 
 export type ListVolumesResponse = {
-  volumes: VolumeInfo[];
+  volumes?: VolumeInfo[];
 };
 
 export type ListNamespacesResponse = {
@@ -112,8 +113,9 @@ export type CreateVolumeRequest = {
   name: string;
   location?: string;
   content_type?: string;
-  connection_ref?: ConnectionRef | null;
+  connection_ref?: ConnectionRef;
   description?: string;
+  owner?: string;
   labels?: string[];
   properties?: Record<string, string>;
 };
@@ -122,7 +124,7 @@ export type CreateGenericTableRequest = {
   name: string;
   format?: string;
   location?: string;
-  connection_ref?: ConnectionRef | null;
+  connection_ref?: ConnectionRef;
   description?: string;
   purpose?: string;
   license?: string;
@@ -153,4 +155,10 @@ export type ErrorResponse = {
     type: string;
     code: number;
   };
+};
+
+export type ConnectionModel = {
+  name: string;
+  displayName?: string;
+  connectionType?: string;
 };

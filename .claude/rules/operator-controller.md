@@ -120,7 +120,8 @@ The reconciler must check `dashboard.Spec.ManagementState` after finalizer handl
 if dashboard.Spec.ManagementState == "Removed" {
     // Delete all resources labeled platform.opendatahub.io/part-of=dashboard
     // Clean up cross-namespace resources
-    // Set phase=NotReady, clear URL and moduleStatuses
+    // Set phase=NotReady and clear URL. Preserve the computed aggregate
+    // moduleStatuses for modules still required by another operand.
     // Set ProvisioningSucceeded=False (reason: Removed)
     return ctrl.Result{}, nil
 }

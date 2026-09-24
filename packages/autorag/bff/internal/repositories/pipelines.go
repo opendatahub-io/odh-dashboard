@@ -22,9 +22,10 @@ import (
 const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
 
 var (
-	ErrPipelineRunNotFound      = errors.New("pipeline run not found")
-	ErrValidation               = errors.New("validation error")
-	ErrManagedPipelinesNotFound = errors.New(ManagedPipelinesNotFoundMessage)
+	ErrPipelineRunNotFound         = errors.New("pipeline run not found")
+	ErrValidation                  = errors.New("validation error")
+	ErrManagedPipelinesNotFound    = errors.New(ManagedPipelinesNotFoundMessage)
+	ErrIndexingPipelineUnavailable = errors.New("indexing pipeline input schema unavailable")
 )
 
 type ValidationError struct {
@@ -59,9 +60,6 @@ type PipelinesRepositoryConfig struct {
 }
 
 func NewPipelinesRepository(logger *slog.Logger, core pipelines.Service, cfg PipelinesRepositoryConfig) *PipelinesRepository {
-	if cfg.DefaultPipelineVersion == "" {
-		cfg.DefaultPipelineVersion = constants.DefaultPipelineVersionSuffix
-	}
 	return &PipelinesRepository{core: core, config: cfg, logger: logger}
 }
 
@@ -79,8 +77,15 @@ func (r *PipelinesRepository) ListManagedPipelines(ctx context.Context, namespac
 	}
 
 	pipelinesList := make([]models.ManagedPipeline, 0, len(discovered))
+	indexingSchemaAvailable := true
+	if indexingPipeline := discovered[constants.PipelineTypeIndexing]; indexingPipeline != nil {
+		_, indexingSchemaAvailable = r.getIndexingPipelineInputParameters(ctx, namespace, indexingPipeline)
+	}
 	for pipelineType, dp := range discovered {
 		if dp == nil {
+			continue
+		}
+		if pipelineType == constants.PipelineTypeIndexing && !indexingSchemaAvailable {
 			continue
 		}
 		pipelinesList = append(pipelinesList, models.ManagedPipeline{
@@ -106,6 +111,37 @@ func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namesp
 		constants.PipelineTypeIndexing: r.config.IndexingPipelineName,
 	}
 	return r.core.DiscoverNamedPipelines(ctx, namespace, r.config.DefaultPipelineVersion, definitions)
+}
+
+// getIndexingPipelineInputParameters loads the declared input names for the discovered
+// indexing version. The shared pipeline service caches successful lookups by version; schema
+// failures are intentionally treated as an unavailable indexing pipeline so callers never fall
+// back to forwarding an unvalidated parameter map.
+func (r *PipelinesRepository) getIndexingPipelineInputParameters(
+	ctx context.Context,
+	namespace string,
+	discovered *pipelines.DiscoveredPipeline,
+) ([]string, bool) {
+	if discovered == nil {
+		return nil, false
+	}
+
+	parameters, err := r.core.GetPipelineInputParameters(
+		ctx,
+		namespace,
+		discovered.PipelineID,
+		discovered.PipelineVersionID,
+	)
+	if err != nil {
+		r.logger.Warn(
+			"indexing pipeline unavailable because its input schema could not be loaded",
+			"pipeline_id", discovered.PipelineID,
+			"pipeline_version_id", discovered.PipelineVersionID,
+		)
+		return nil, false
+	}
+
+	return parameters, true
 }
 
 // --- Pipeline Runs: List ---
@@ -220,6 +256,36 @@ func (r *PipelinesRepository) CreateIndexingRun(ctx context.Context, namespace s
 		return nil, ErrManagedPipelinesNotFound
 	}
 
+	parameterNames, ok := r.getIndexingPipelineInputParameters(ctx, namespace, dp)
+	if !ok {
+		return nil, ErrIndexingPipelineUnavailable
+	}
+
+	allowedParameters := make(map[string]struct{}, len(parameterNames))
+	for _, name := range parameterNames {
+		allowedParameters[name] = struct{}{}
+	}
+
+	filteredParameters := make(map[string]any, len(req.Parameters))
+	for name, value := range req.Parameters {
+		if _, allowed := allowedParameters[name]; allowed {
+			filteredParameters[name] = value
+		}
+	}
+
+	if len(filteredParameters) == 0 {
+		return nil, NewValidationError("no supported indexing pipeline parameters were provided")
+	}
+
+	r.logger.Info(
+		"filtered indexing pipeline parameters",
+		"pipeline_id", dp.PipelineID,
+		"pipeline_version_id", dp.PipelineVersionID,
+		"provided_count", len(req.Parameters),
+		"accepted_count", len(filteredParameters),
+	)
+	req.Parameters = filteredParameters
+
 	input := BuildIndexingPipelineRunInput(req, dp.PipelineID, dp.PipelineVersionID)
 
 	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, input)
@@ -330,14 +396,51 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.InputDataBucketName == "" {
 		missing = append(missing, "input_data_bucket_name")
 	}
-	if req.InputDataKey == "" {
-		missing = append(missing, "input_data_key")
+	if len(req.InputDataKeys) == 0 {
+		missing = append(missing, "input_data_keys")
 	}
-	if req.OGXSecretName == "" {
-		missing = append(missing, "ogx_secret_name")
+	if req.MaaSSecretName == "" {
+		missing = append(missing, "maas_secret_name")
+	}
+	if req.VectorDBSecretName == "" {
+		missing = append(missing, "vector_db_secret_name")
+	}
+	if len(req.EmbeddingsModels) == 0 {
+		missing = append(missing, "embedding_models")
+	}
+	if len(req.GenerationModels) == 0 {
+		missing = append(missing, "generation_models")
+	}
+	if len(req.InputDataKeys) > 10 {
+		return NewValidationError("input_data_keys must contain at most 10 keys")
+	}
+	for i, key := range req.InputDataKeys {
+		if strings.TrimSpace(key) == "" {
+			return NewValidationError(fmt.Sprintf("input_data_keys[%d] must not be blank", i))
+		}
+	}
+	for i, model := range req.EmbeddingsModels {
+		if strings.TrimSpace(model) == "" {
+			return NewValidationError(fmt.Sprintf("embedding_models[%d] must not be blank", i))
+		}
+	}
+	for i, model := range req.GenerationModels {
+		if strings.TrimSpace(model) == "" {
+			return NewValidationError(fmt.Sprintf("generation_models[%d] must not be blank", i))
+		}
 	}
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
+	}
+
+	generationModelIDs := make(map[string]struct{}, len(req.GenerationModels))
+	for _, model := range req.GenerationModels {
+		generationModelIDs[model] = struct{}{}
+	}
+	for _, model := range req.EmbeddingsModels {
+		if _, exists := generationModelIDs[model]; exists {
+			return NewValidationError(fmt.Sprintf("model %q cannot be selected in both embedding_models and generation_models", model))
+		}
 	}
 
 	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
@@ -394,8 +497,9 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		"test_data_key":          req.TestDataKey,
 		"input_data_secret_name": req.InputDataSecretName,
 		"input_data_bucket_name": req.InputDataBucketName,
-		"input_data_key":         req.InputDataKey,
-		"ogx_secret_name":        req.OGXSecretName,
+		"input_data_keys":        req.InputDataKeys,
+		"maas_secret_name":       req.MaaSSecretName,
+		"vector_db_secret_name":  req.VectorDBSecretName,
 	}
 
 	preset := constants.DefaultPreset
@@ -404,12 +508,8 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 	}
 	params["preset"] = preset
 
-	if len(req.EmbeddingsModels) > 0 {
-		params["embedding_models"] = req.EmbeddingsModels
-	}
-	if len(req.GenerationModels) > 0 {
-		params["generation_models"] = req.GenerationModels
-	}
+	params["embedding_models"] = req.EmbeddingsModels
+	params["generation_models"] = req.GenerationModels
 
 	metric := req.OptimizationMetric
 	if metric == "" {
@@ -417,13 +517,11 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 	}
 	params["optimization_metric"] = metric
 
-	if req.VectorIOProviderID != "" {
-		params["vector_io_provider_id"] = req.VectorIOProviderID
-	}
-
+	maxRagPatterns := constants.DefaultMaxRagPatterns
 	if req.OptimizationMaxRagPatterns != nil {
-		params["optimization_max_rag_patterns"] = *req.OptimizationMaxRagPatterns
+		maxRagPatterns = *req.OptimizationMaxRagPatterns
 	}
+	params["optimization_max_rag_patterns"] = maxRagPatterns
 
 	return &pipelines.CreatePipelineRunInput{
 		DisplayName: req.DisplayName,

@@ -96,6 +96,7 @@ export type PVCReplacements = {
   PVC_SIZE: string;
   STORAGE_CLASS: string;
   notebookImage?: string;
+  hardwareProfileName?: string;
 };
 
 export type PVCLoaderPodReplacements = {
@@ -118,6 +119,7 @@ export type WBEditTestData = {
   pvcStorageName: string;
   connectionDescription: string;
   notebookImage: string;
+  hardwareProfileName: string;
 };
 
 export type KueueWorkbenchTestData = {
@@ -136,14 +138,33 @@ export type KueueWorkbenchTestData = {
 export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   updatedCpuQuota: number;
   updatedMemoryQuota: number;
+  exceededQuotaMessage: string;
+  queuedCpuQuota: number;
+  queuedMemoryQuota: number;
   waitingForQuotaMessage: string;
-  queuePositionMarker: string;
+};
+
+export type KueueQuotaUsageNavigationTestData = {
+  managedProjectName: string;
+  nonKueueManagedProjectName: string;
+  resourceFlavorName: string;
+  parentCohortName: string;
+  cohortName: string;
+  emptyCohortName: string;
+  cohortClusterQueueName: string;
+  standaloneClusterQueueName: string;
+  localQueueName: string;
+  acceleratorResourceName: string;
+  acceleratorQuota: number;
+  cohortTypeLabel: string;
+  clusterQueueTypeLabel: string;
 };
 
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
   notebookImage: string;
+  hardwareProfileName: string;
 };
 
 export type WBVariablesTestData = {
@@ -160,6 +181,7 @@ export type WBVariablesTestData = {
   FAKE_CM_KEY: string;
   FAKE_CM_VALUE: string;
   notebookImage: string;
+  hardwareProfileName: string;
 };
 
 export type WBTolerationsTestData = {
@@ -200,6 +222,7 @@ export type WBStatusTestData = {
   wbStatusTestNamespace: string;
   wbStatusTestDescription: string;
   notebookImage: string;
+  hardwareProfileName: string;
 };
 
 export type WBStorageClassesTestData = {
@@ -212,6 +235,7 @@ export type WBStorageClassesTestData = {
   storageRWO: string;
   storageMultiAccess: string;
   notebookImage: string;
+  hardwareProfileName: string;
   mountPathA: string;
   mountPathB: string;
   mountPathC: string;
@@ -267,8 +291,11 @@ export type TestConfig = {
   GEMINI_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
-  OGX_URL?: string;
-  OGX_API_KEY?: string;
+  MAAS_URL?: string;
+  MAAS_API_KEY?: string;
+  HF_API_KEY?: string;
+  MAAS_GENERATION_MODEL_ID?: string;
+  MAAS_EMBEDDING_MODEL_ID?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -332,6 +359,20 @@ export type DataScienceProjectData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
+};
+
+export type NIMProjectScopedTestData = {
+  projectNamePrefix: string;
+  modelNamePrefix: string;
+  modelDescription: string;
+  nimImageNameWithGpu: string;
+  nimImageNameWithoutGpu: string;
+  nimModelId: string;
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
+  pvcNamePrefix: string;
+  pvcSizeGi: number;
+  tokenDisplayName: string;
 };
 
 export type RoutingTestData = DataScienceProjectData & {
@@ -679,10 +720,31 @@ export type FeatureStoreTestData = {
   feastInstanceName: string;
   feastCreditScoringProject: string;
   feastDriverRankingProject: string;
+  datasetName: string;
+  featureServiceName: string;
   dspProjectName: string;
   workbenchName: string;
   sectionTab: string;
   notebookImage: string;
+  hardwareProfileName: string;
+};
+
+export type FeatureStoreAdminLifecycleTestData = {
+  createPageTitle: string;
+  managePageTitle: string;
+  statusReady: string;
+  wizardSteps: {
+    details: string;
+    registry: string;
+    onlineOfflineStores: string;
+    advancedOptions: string;
+    review: string;
+  };
+  expandedDetails: {
+    feastProject: string;
+    conditions: string;
+  };
+  deleteAction: string;
 };
 
 export type GenAiTestData = {
@@ -723,6 +785,8 @@ export type CustomEndpointTestData = {
     template: string;
     commitMessage: string;
     testMessageWithPrompt: string;
+    variableName: string;
+    variableValue: string;
   };
   prompt2: {
     name: string;
@@ -754,7 +818,7 @@ export type CustomEndpointTestData = {
   };
 };
 
-/** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
+/** Shared fixture fields used by the Eval Hub E2E tests. */
 export type EvalHubTestData = {
   projectNamePrefix: string;
   evalHubCrName: string;
@@ -764,8 +828,8 @@ export type EvalHubTestData = {
   benchmarkCardTitle: string;
   /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
   inferenceModelName: string;
-  /** Default experiment name pre-filled in the create-evaluation form. */
-  defaultExperimentName: string;
+  /** MLflow experiment name entered when starting an evaluation. */
+  mlflowExperimentName: string;
   /** JSON object string merged into benchmark parameters (valid JSON object). */
   additionalBenchmarkParams: string;
   /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */
@@ -776,17 +840,29 @@ export type EvalHubTestData = {
   servingRuntimeYamlPath: string;
   /** Fixture path for the HardwareProfile CR. */
   hardwareProfileResourceYamlPath: string;
-  /** `metadata.name` of the HardwareProfile (used for cleanup). */
-  hardwareProfileName: string;
+};
+
+export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
+  /** Base name for the tenant suite created by this spec. */
+  suiteName: string;
+  /** Provider ID used to disambiguate benchmark IDs in the catalog. */
+  benchmarkProviderId: string;
+  /** LM Evaluation Harness benchmarks added to each tenant suite. */
+  benchmarks: {
+    id: string;
+    name: string;
+    /** Value entered through this benchmark's dedicated Num examples field. */
+    numExamples: number;
+  }[];
+  /** Benchmark IDs expected on the completed suite results page. */
+  expectedBenchmarkIds: string[];
 };
 
 export type ModelCatalogSourceTestData = {
-  sourceName: string;
-  redhatAiSourceId: string;
-  sourceName2: string;
-  redhatAiSourceId2: string;
-  sourceName3: string;
-  redhatAiSourceId3: string;
+  validatedSourceName: string;
+  validatedSourceId: string;
+  otherSourceName: string;
+  otherSourceId: string;
   toolCallingLabel: string;
   toolCallingArg: string;
   /** Catalog card title of a model that has servingConfig tool-calling args. */
@@ -800,6 +876,7 @@ export type ModelAsAServiceTestData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
+  llmInferenceServiceFixturePath: string;
   hardwareProfileName: string;
   modelLocationURI: string;
   connectionNameSuffix: string;
@@ -957,7 +1034,8 @@ export type AutoragTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;
   s3SecretName: string;
-  ogxSecretName: string;
+  maasSecretName: string;
+  vectorDbSecretName: string;
   runName: string;
   runDescription: string;
   documentFile: string;

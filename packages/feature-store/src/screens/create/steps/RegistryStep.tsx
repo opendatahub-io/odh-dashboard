@@ -159,6 +159,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
           <Stack hasGutter>
             <Radio
               id="registry-local"
+              data-testid="feast-registry-local"
               name="registry-type"
               label="Local registry"
               description={
@@ -172,6 +173,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
             />
             <Radio
               id="registry-remote"
+              data-testid="feast-registry-remote"
               name="registry-type"
               label="Remote registry"
               description="Use a registry from another feature store or external hostname."

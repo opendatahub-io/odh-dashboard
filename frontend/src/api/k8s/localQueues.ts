@@ -15,3 +15,13 @@ export const listLocalQueues = async (
     queryOptions,
   });
 };
+
+export const listAllLocalQueues = async (labelSelector?: string): Promise<LocalQueueKind[]> => {
+  const queryOptions = {
+    ...(labelSelector && { queryParams: { labelSelector } }),
+  };
+  return k8sListResourceItems<LocalQueueKind>({
+    model: LocalQueueModel,
+    queryOptions,
+  });
+};

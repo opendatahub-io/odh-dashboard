@@ -55,7 +55,7 @@ describe('Verify Performance Filters are available on RHOAI', () => {
       cy.fixture('e2e/modelCatalog/testSourceEnableDisable.yaml', 'utf8').then(
         (yamlContent: string) => {
           testData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
-          ensureModelCatalogSourceEnabled(testData.redhatAiSourceId);
+          ensureModelCatalogSourceEnabled(testData.validatedSourceId);
         },
       );
     });

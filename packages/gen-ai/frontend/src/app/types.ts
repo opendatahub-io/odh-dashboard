@@ -19,7 +19,6 @@ export type LSDInstallModel = {
   model_name: string;
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
   model_type?: LlamaModelType; // Optional model type
-  max_tokens?: number; // Optional per-model token limit (128-128000), only for llm
   embedding_dimension?: number; // Optional embedding vector size (128-3072000), only for embedding
 };
 
@@ -79,8 +78,7 @@ export enum ChatMessageRole {
 }
 
 export type InputContentPart =
-  | { type: 'input_text'; text: string }
-  | { type: 'input_image'; file_id: string };
+  { type: 'input_text'; text: string } | { type: 'input_image'; file_id: string };
 
 export type ChatContextMessage = {
   role: ChatMessageRole;
@@ -162,6 +160,34 @@ export type FileSearchCallData = {
   results: FileSearchResult[];
 };
 
+export type ToolCallStatus = 'in_progress' | 'completed' | 'failed';
+
+// A tool call as it progresses through a streamed Responses API request.
+export type StreamingToolCall = {
+  id: string;
+  type: string;
+  name: string;
+  category: 'RAG' | 'MCP';
+  status: ToolCallStatus;
+  serverLabel?: string;
+  arguments?: string;
+  output?: string;
+  error?: string;
+  // These timestamps are available only while processing a stream. The completed
+  // response payload does not include per-tool timing data.
+  startedAt?: number;
+  completedAt?: number;
+};
+
+// Raw tool-related event forwarded from the Responses API stream.
+export type ToolCallStreamEvent = {
+  type: string;
+  item_id?: string;
+  delta?: string;
+  arguments?: string;
+  item?: OutputItem;
+};
+
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
@@ -176,9 +202,13 @@ export type OutputItem = {
   role?: string;
   status?: string;
   content?: ContentItem[];
-  output?: string;
+  output?: string | null;
   queries?: string[];
   results?: FileSearchResult[];
+  name?: string;
+  server_label?: string;
+  arguments?: string;
+  error?: string | null;
 };
 
 export type BackendResponseData = {
@@ -221,6 +251,7 @@ export type SimplifiedResponseData = {
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
   reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
   fileSearchData?: FileSearchCallData; // Optional - RAG retrieval context (queries, results with scores)
+  toolCalls?: StreamingToolCall[]; // Optional - completed tool calls from a non-streaming response
 };
 
 export type FileError = {
@@ -360,8 +391,8 @@ export type LlamaStackDistributionModel = {
   distributionConfig: {
     activeDistribution: string;
     providers: Array<{
-      providerID: string;
-      providerType: string;
+      provider_id?: string;
+      provider_type?: string;
       api: string;
       config?: Record<string, unknown> | null;
       health: {
@@ -407,6 +438,9 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  /** Raw MaaS model identifier. For MaaS models, this equals model_id. Present when the
+   * context has enriched the AIModel from a raw MaaS source. */
+  id?: string;
 }
 
 export type ExternalModelRequest = {
@@ -479,6 +513,7 @@ export type {
   MCPToolsStatus,
   MCPToolsResponse,
   MCPTool,
+  MCPToolSummary,
   MCPServer,
   MCPTransportType,
   MCPServerStatus,
@@ -620,6 +655,22 @@ export interface SubscriptionInfo {
   description?: string;
 }
 
+/** Raw MaaS model as returned by the MaaS API (before conversion to AIModel). */
+export interface MaaSModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  ready: boolean;
+  display_name?: string;
+  usecase?: string;
+  description?: string;
+  url?: string;
+  capabilities?: string[];
+  model_type?: LlamaModelType;
+  subscriptions?: SubscriptionInfo[];
+}
+
 export type MaaSTokenRequest = {
   name?: string;
   description?: string;
@@ -656,6 +707,7 @@ type CreateResponse = (
   data: CreateResponseRequest,
   opts?: APIOptions & {
     onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
+    onToolCall?: (event: ToolCallStreamEvent) => void;
     abortSignal?: AbortSignal;
   },
 ) => Promise<SimplifiedResponseData>;

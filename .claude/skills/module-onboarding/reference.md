@@ -49,7 +49,7 @@ grep -r 'PROXY_PORT=' packages/*/Makefile | grep -oP '\d{4,5}' | sort -n
 grep 'Port:' dashboard-operator/internal/controller/modules.go | grep -oP '\d{4}' | sort -n
 ```
 
-Validate after creation: `npm run validate:ports`
+Validate after creation: `pnpm run validate:ports`
 
 ## Feature Flag Registration (3-File Pattern)
 
@@ -188,9 +188,9 @@ STYLE_THEME=patternfly
 
 Federated modules use `Dockerfile.workspace` — a multi-stage build:
 
-1. **Stage 1 (Node)**: Build the frontend webpack bundle
+1. **Stage 1 (Node)**: Build the frontend rspack bundle
    - Copy root workspace manifests, install deps
-   - Copy package source, run `npm run build` with `DEPLOYMENT_MODE=standalone`
+   - Copy package source, run `pnpm run build` with `DEPLOYMENT_MODE=standalone`
 2. **Stage 2 (Go)**: Build the BFF binary (if included)
    - Copy `bff/` directory, run `go build -o /bff-binary ./cmd`
 3. **Stage 3 (Runtime)**: Minimal image with built artifacts
@@ -224,7 +224,7 @@ docker build --file ./packages/<name>/Dockerfile.workspace .
 
 ## Shared Singletons (moduleFederation.js)
 
-`OdhFederationPlugin` applies the shared singleton policy automatically. Do not maintain a manual `shared` map for React / PatternFly / ODH packages. Ensure those packages are listed in the frontend `package.json` `dependencies` (plugin modules) so they are picked up from webpack `compiler.context`.
+`OdhFederationPlugin` applies the shared singleton policy automatically. Do not maintain a manual `shared` map for React / PatternFly / ODH packages. Ensure those packages are listed in the frontend `package.json` `dependencies` (plugin modules) so they are picked up from rspack `compiler.context`.
 
 Pass `isHost: process.env.DEPLOYMENT_MODE === 'standalone'` so standalone builds eager-share and bundle imports, while federated remotes use `import: false`.
 
@@ -239,7 +239,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 3 | Unique frontend port allocated (9100–9399) | Phase 1 |
 | 4 | Unique BFF port allocated (4000–4099) if BFF included | Phase 1 |
 | 5 | `tsconfig.json`, `jest.config.ts`, `.eslintrc.js` present | Phase 2 |
-| 6 | Webpack configs under `frontend/config/` | Phase 2 |
+| 6 | Rspack configs under `frontend/config/` | Phase 2 |
 | 7 | Extensions file with area, nav, route stubs | Phase 2 |
 | 8 | Feature flag added to `DashboardCommonConfig` in `k8sTypes.ts` | Phase 3 |
 | 9 | `SupportedArea` enum entry added in `types.ts` | Phase 3 |
@@ -247,9 +247,9 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 11 | BFF with `/healthcheck` endpoint (if included) | Phase 2 |
 | 12 | `Dockerfile.workspace` present and builds | Phase 4 |
 | 13 | `Makefile` with standard targets | Phase 2 |
-| 14 | `npm install` succeeds | Phase 5 |
-| 15 | `npm run validate:ports` passes | Phase 5 |
-| 16 | `npm run type-check` passes | Phase 5 |
+| 14 | `pnpm install` succeeds | Phase 5 |
+| 15 | `pnpm run validate:ports` passes | Phase 5 |
+| 16 | `pnpm run type-check` passes | Phase 5 |
 | 17 | Container image builds successfully | Phase 5 |
 | 18 | Deployment manifests in `manifests/modules/<name>/` | Phase 6 |
 | 19 | Module registered in operator module registry | Phase 7 |
@@ -263,13 +263,13 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 ### Port conflict after creation
 
-**Symptom**: `npm run validate:ports` fails with duplicate port error.
+**Symptom**: `pnpm run validate:ports` fails with duplicate port error.
 
 **Fix**: Edit `packages/<name>/package.json` → `module-federation.local.port` to a different value. Re-run validation.
 
 ### Type-check fails after area registration
 
-**Symptom**: `npm run type-check` reports error in `const.ts` — feature flag name not assignable to `FeatureFlag`.
+**Symptom**: `pnpm run type-check` reports error in `const.ts` — feature flag name not assignable to `FeatureFlag`.
 
 **Cause**: The flag name was not added to `DashboardCommonConfig` in `k8sTypes.ts`.
 
@@ -277,11 +277,11 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 ### mod-arch-installer not found or fails
 
-**Symptom**: `npx mod-arch-installer` fails with ENOENT or network error.
+**Symptom**: `pnpm dlx mod-arch-installer` fails with ENOENT or network error.
 
-**Fix**: The skill falls back to manual scaffolding. Alternatively, install it explicitly: `npm install -g mod-arch-installer` and retry.
+**Fix**: The skill falls back to manual scaffolding. Alternatively, run it explicitly with `pnpm dlx mod-arch-installer` and retry.
 
-### Webpack build fails with "shared module not found"
+### Rspack build fails with "shared module not found"
 
 **Symptom**: Build error mentioning missing shared module.
 

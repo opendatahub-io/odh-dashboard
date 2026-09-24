@@ -100,6 +100,24 @@ func UpdateExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
+	if request.Data.CredentialSecretRef != "" {
+		if err := repositories.ValidateCredentialSecretRef(request.Data.CredentialSecretRef); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+	}
+	if request.Data.Provider != "" {
+		trimmedProvider := strings.TrimSpace(request.Data.Provider)
+		if trimmedProvider == "" {
+			app.badRequestResponse(w, r, errors.New("provider must not be whitespace only"))
+			return
+		}
+		if err := validateProviderType(trimmedProvider); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+		request.Data.Provider = trimmedProvider
+	}
 
 	result, err := app.repositories.ExternalProviders.UpdateExternalProvider(ctx, namespace, name, request.Data)
 	if err != nil {
@@ -161,11 +179,24 @@ func validateCreateExternalProviderRequest(request models.CreateExternalProvider
 	if !request.AuthMechanism.IsValid() {
 		return errors.New("authMechanism must be 'apikey', 'sigv4', or 'oauth2'")
 	}
-	if strings.TrimSpace(request.CredentialSecretRef) == "" {
-		return errors.New("credentialSecretRef is required")
+	if err := repositories.ValidateCredentialSecretRef(request.CredentialSecretRef); err != nil {
+		return err
 	}
-	if strings.TrimSpace(request.Provider) == "" {
+	if err := validateProviderType(request.Provider); err != nil {
+		return err
+	}
+	return nil
+}
+
+const maxProviderTypeLength = 63
+
+func validateProviderType(raw string) error {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return errors.New("provider is required")
+	}
+	if len(trimmed) > maxProviderTypeLength {
+		return errors.New("provider must be at most 63 characters")
 	}
 	return nil
 }

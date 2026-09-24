@@ -696,7 +696,7 @@ paths:
           label_column (required), task_type (required, enum: binary/multiclass/regression)
 
         - task_type=timeseries: Requires CreateTimeSeriesRunRequest schema with fields:
-          target (required), id_column (required), timestamp_column (required),
+          target (required), id_column (optional for single-item time series), timestamp_column (required),
           task_type (required, must be "timeseries"),
           prediction_length (optional, default: 1), known_covariates_names (optional array)
 
@@ -1136,7 +1136,7 @@ components:
            processing is not affected. Binary features like is_premium: [0,1,0,1] will display as
            bool but retain numeric values.
 
-        2. timestamp - Detects ISO8601, common date formats, and Unix timestamps in plausible ranges.
+        2. timestamp - Detects ISO8601 and common date strings; Unix epoch integers remain numeric.
 
         3. integer - Whole numbers without decimal points. Note: columns with only 0/1 values are
            classified as bool (see above) for display purposes.
@@ -1414,7 +1414,6 @@ components:
           description: Request body for creating a timeseries AutoML pipeline run (forecasting)
           required:
             - target
-            - id_column
             - timestamp_column
             - task_type
           properties:
@@ -1432,7 +1431,10 @@ components:
             id_column:
               type: string
               minLength: 1
-              description: Name of the column identifying each time series (item_id)
+              # Match normalizeColumnName: strip one initial BOM, then Go strings.TrimSpace.
+              # The remaining name must be non-empty ASCII; Unicode whitespace is allowed only at the edges.
+              pattern: '^\uFEFF?[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]*[\u0000-\u0008\u000E-\u001F\u0021-\u007F][\u0000-\u007F]*[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]*$'
+              description: Column identifying each time series (item_id). Required for CSV datasets with three or more columns. Omission is accepted only when the CSV has exactly two columns matching target and timestamp_column. When supplied, the value must contain only ASCII characters and be non-empty after removing one leading BOM and trimming surrounding whitespace; omit the property instead of sending an empty or whitespace-only string. The BFF verifies the CSV before creating the run.
               example: "item_id"
             timestamp_column:
               type: string

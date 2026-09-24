@@ -33,7 +33,7 @@ help: ## Display this help message
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies: ## Install dependencies for frontend
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MCP, MLflow, BFF clients)
@@ -69,7 +69,7 @@ endif
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
-	cd frontend && npm run start:dev
+	cd frontend && pnpm run start:dev
 
 .PHONY: dev-mlflow-up
 dev-mlflow-up: ## Start local MLflow tracking server for development
@@ -102,7 +102,7 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " LLAMA_STACK_URL=$(LLAMA_STACK_URL) NEMO_GUARDRAILS_URL=$(NEMO_GUARDRAILS_URL) MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " LLAMA_STACK_URL=$(LLAMA_STACK_URL) GATEWAY_DOMAIN=$(GATEWAY_DOMAIN) NEMO_GUARDRAILS_URL=$(NEMO_GUARDRAILS_URL) MAAS_URL="" MLFLOW_URL="" DISTRIBUTION_NAME="rh-dev"
 
 .PHONY: dev-start-mock-debug
 dev-start-mock-debug: ## Run frontend, gen-ai BFF (mocks + debugger), and MLflow BFF with real inter-BFF
@@ -220,9 +220,9 @@ deploy-k8s-mcp: ## Deploy Kubernetes MCP server to mcp-servers namespace
 
 clean: ## Clean build artifacts and node_modules
 	@echo "Cleaning root dist..."
-	npm run clean 2>/dev/null || true
+	pnpm run clean 2>/dev/null || true
 	@echo "Cleaning frontend dist..."
-	cd frontend && npm run clean 2>/dev/null || true
+	cd frontend && pnpm run clean 2>/dev/null || true
 	@echo "Cleaning bff..."
 	cd bff && make clean 2>/dev/null || true
 	@echo "Clean complete!"

@@ -18,7 +18,7 @@ const API_VERSION = { apiVersion: CLIENT_API_VERSION };
 const mockMlflowExperiments = (experiments: { id: string; name: string }[] = []) => {
   cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
     body: { data: { experiments } },
-  });
+  }).as('mlflowExperiments');
 };
 
 const mockInferenceServices = (
@@ -100,9 +100,10 @@ const initBaseIntercepts = () => {
   mockVerifyConnectionSuccess();
 };
 
-const selectSourceMode = (mode: 'Model' | 'Agent' | 'Pre-recorded responses') => {
+const selectSourceMode = (mode: 'Model' | 'Agent') => {
+  const modeValue = mode === 'Model' ? 'model' : 'agent';
   startEvaluationRunPage.findSourceModeToggle().click();
-  cy.findByRole('option', { name: mode }).click();
+  startEvaluationRunPage.findSourceModeOption(modeValue).click();
 };
 
 const selectExternalEndpoint = () => {
@@ -182,15 +183,13 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     startEvaluationRunPage.findSourceModeToggle().should('contain.text', 'Model');
     startEvaluationRunPage.findModelPickerToggle().should('exist');
 
-    selectSourceMode('Agent');
+    startEvaluationRunPage.findSourceModeToggle().click();
+    startEvaluationRunPage.findSourceModeOption('prerecorded').should('not.exist');
+    startEvaluationRunPage.findSourceModeOption('agent').click();
+
     startEvaluationRunPage.findAgentNameInput().should('exist');
     startEvaluationRunPage.findEndpointUrlInput().should('exist');
     startEvaluationRunPage.findModelPickerToggle().should('not.exist');
-
-    selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findSourceNameInput().should('exist');
-    startEvaluationRunPage.findDatasetUrlInput().should('exist');
-    startEvaluationRunPage.findAgentNameInput().should('not.exist');
   });
 
   it('should show external model fields when selecting Other (External endpoint)', () => {
@@ -525,6 +524,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     mockMlflowExperiments([{ id: 'exp-1', name: 'EvalHub' }]);
 
     navigateToBenchmarkStart();
+    cy.wait('@mlflowExperiments');
 
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
     startEvaluationRunPage.findExperimentModeNew().click();
@@ -532,36 +532,63 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     startEvaluationRunPage.findNewExperimentNameInput().clear().type('My New Experiment');
     startEvaluationRunPage.findNewExperimentNameInput().should('have.value', 'My New Experiment');
   });
-});
 
-describe('Start Evaluation Run - Pre-recorded Mode', () => {
-  beforeEach(() => {
-    initBaseIntercepts();
-    mockMlflowExperiments([]);
-  });
-
-  it('should submit with pre-recorded responses fields', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-003',
-      name: 'prerecorded-eval',
-      state: 'running',
+  it('should keep new mode selected when experiments arrive after user switches', () => {
+    let resolveExperiments: ((value: unknown) => void) | undefined;
+    const delayed = new Promise((resolve) => {
+      resolveExperiments = resolve;
     });
 
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createPrerecordedJob',
-    );
+    cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+      return delayed.then(() => {
+        req.reply({
+          body: { data: { experiments: [{ id: 'exp-1', name: 'EvalHub' }] } },
+        });
+      });
+    }).as('mlflowExperimentsDelayed');
 
     navigateToBenchmarkStart();
 
-    selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
-    startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
-    startEvaluationRunPage.findSubmitButton().should('be.enabled');
-    startEvaluationRunPage.findSubmitButton().click();
+    startEvaluationRunPage.findExperimentModeNew().click();
+    startEvaluationRunPage.findExperimentModeNew().should('be.checked');
 
-    cy.wait('@createPrerecordedJob').then((interception) => {
-      expect(interception.request.body.model).to.have.property('name', 'gpt-4-responses');
+    cy.then(() => {
+      resolveExperiments!(undefined);
     });
+
+    cy.wait('@mlflowExperimentsDelayed');
+
+    startEvaluationRunPage.findExperimentModeNew().should('be.checked');
+    startEvaluationRunPage.findExperimentModeExisting().should('not.be.checked');
+  });
+
+  it('should select an existing experiment when switching back while experiments load', () => {
+    let resolveExperiments: ((value: unknown) => void) | undefined;
+    const delayed = new Promise((resolve) => {
+      resolveExperiments = resolve;
+    });
+
+    cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+      return delayed.then(() => {
+        req.reply({
+          body: { data: { experiments: [{ id: 'exp-1', name: 'EvalHub' }] } },
+        });
+      });
+    }).as('mlflowExperimentsDelayed');
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findExperimentModeNew().click();
+    startEvaluationRunPage.findExperimentModeExisting().click();
+    startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
+
+    cy.then(() => {
+      resolveExperiments!(undefined);
+    });
+
+    cy.wait('@mlflowExperimentsDelayed');
+
+    cy.findByTestId('mlflow-experiment-selector-toggle').should('contain.text', 'EvalHub');
   });
 });
 
@@ -571,13 +598,12 @@ describe('Start Evaluation Run - Cancel', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should navigate back to evaluations on cancel', () => {
+  it('should navigate back to benchmark selection on cancel', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findCancelButton().click();
 
-    cy.url().should('include', `/evaluation/${NAMESPACE}`);
-    cy.url().should('not.include', '/create');
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
   });
 });
 
@@ -691,27 +717,6 @@ describe('Start Evaluation Run - Connection Validation', () => {
 
     startEvaluationRunPage.findModelPickerToggle().click();
     cy.findByTestId('model-option-llama-3.2-1b-instruct').click();
-
-    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
-  });
-
-  it('should not show validate connection button for pre-recorded mode', () => {
-    navigateToBenchmarkStart();
-
-    selectSourceMode('Pre-recorded responses');
-
-    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
-  });
-
-  it('should not show validate connection button after switching from external model to pre-recorded mode', () => {
-    navigateToBenchmarkStart();
-
-    selectExternalEndpoint();
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
-    startEvaluationRunPage.findValidateConnectionButton().should('exist');
-
-    selectSourceMode('Pre-recorded responses');
 
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });

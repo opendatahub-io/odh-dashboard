@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Stack, StackItem } from '@patternfly/react-core';
+import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
@@ -7,6 +7,7 @@ import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
 import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
 import ChatbotFileSearchResults from '~/app/Chatbot/ChatbotFileSearchResults';
+import ChatbotToolCalls from '~/app/Chatbot/ChatbotToolCalls';
 import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
 import './ChatbotMessagesList.scss';
@@ -31,6 +32,7 @@ type ChatbotMessagesListProps = {
 
 const CITATION_REGEX = /\{\{citation:(\d+)\}\}/g;
 const CITE_HREF_PREFIX = '#cite-';
+type ResponseDetailSection = 'tools' | 'metrics' | 'citations';
 
 const prepareCitationContent = (content: string): string =>
   content.replace(CITATION_REGEX, (_, num) => `[\\[${num}\\]](${CITE_HREF_PREFIX}${num})`);
@@ -49,6 +51,10 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   const [expandedCitation, setExpandedCitation] = React.useState<{
     messageId: string;
     citationNumber: number;
+  } | null>(null);
+  const [expandedResponseDetail, setExpandedResponseDetail] = React.useState<{
+    messageId: string;
+    section: ResponseDetailSection;
   } | null>(null);
 
   return (
@@ -75,6 +81,8 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           annotations,
           citationMap,
+          toolCalls,
+          isTextStreaming,
           ...messageProps
         } = message;
 
@@ -102,49 +110,132 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
 
         // Add file search results, metrics, and trace link to endContent (if present and no error)
         const traceId = metrics?.trace_id || errorClassification?.traceId;
-        if (message.role === 'bot' && (fileSearchData || metrics || traceId)) {
+        const isResponseComplete =
+          message.isToolCallStreamComplete ?? (index < messageList.length - 1 || !isLoading);
+        const isToolCallPhase = !isResponseComplete && !isTextStreaming;
+        const responseDetailIdPrefix = `response-detail-${message.id ?? String(index)}`;
+        const toolsDetailIds = {
+          toggleId: `${responseDetailIdPrefix}-tools-toggle`,
+          contentId: `${responseDetailIdPrefix}-tools-content`,
+        };
+        const metricsDetailIds = {
+          toggleId: `${responseDetailIdPrefix}-metrics-toggle`,
+          contentId: `${responseDetailIdPrefix}-metrics-content`,
+        };
+        const citationsDetailIds = {
+          toggleId: `${responseDetailIdPrefix}-citations-toggle`,
+          contentId: `${responseDetailIdPrefix}-citations-content`,
+        };
+        const isDetailExpanded = (section: ResponseDetailSection): boolean =>
+          expandedResponseDetail?.messageId === message.id &&
+          expandedResponseDetail?.section === section;
+        const updateExpandedDetail = (section: ResponseDetailSection) => (isExpanded: boolean) =>
+          setExpandedResponseDetail(isExpanded ? { messageId: message.id ?? '', section } : null);
+        const isToolsExpanded = isToolCallPhase || isDetailExpanded('tools');
+        if (message.role === 'bot' && (toolCalls || fileSearchData || metrics || traceId)) {
           extraContent.endContent = (
-            <Stack hasGutter>
-              {!errorClassification && fileSearchData && (
-                <StackItem>
-                  <ChatbotFileSearchResults
-                    fileSearchData={fileSearchData}
-                    citationMap={citationMap}
-                    expandedCitation={
-                      expandedCitation !== null && expandedCitation.messageId === message.id
-                        ? expandedCitation.citationNumber
-                        : undefined
-                    }
-                    onCitationExpanded={() => setExpandedCitation(null)}
-                  />
-                </StackItem>
+            <>
+              <Flex
+                gap={{ default: 'gapMd' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
+                {!errorClassification && toolCalls && toolCalls.length > 0 && (
+                  <FlexItem>
+                    <ChatbotToolCalls
+                      toolCalls={toolCalls}
+                      isResponseComplete={isResponseComplete}
+                      isExpanded={isToolsExpanded}
+                      onExpandedChange={updateExpandedDetail('tools')}
+                      showContent={false}
+                      {...toolsDetailIds}
+                    />
+                  </FlexItem>
+                )}
+                {!errorClassification && metrics && (
+                  <FlexItem>
+                    <ChatbotMessagesMetrics
+                      metrics={metrics}
+                      isExpanded={isDetailExpanded('metrics')}
+                      onExpandedChange={updateExpandedDetail('metrics')}
+                      isDisabled={!isResponseComplete}
+                      showContent={false}
+                      {...metricsDetailIds}
+                    />
+                  </FlexItem>
+                )}
+                {!errorClassification && fileSearchData && (
+                  <FlexItem>
+                    <ChatbotFileSearchResults
+                      fileSearchData={fileSearchData}
+                      citationMap={citationMap}
+                      expandedCitation={
+                        expandedCitation !== null && expandedCitation.messageId === message.id
+                          ? expandedCitation.citationNumber
+                          : undefined
+                      }
+                      isExpanded={isDetailExpanded('citations')}
+                      onExpandedChange={updateExpandedDetail('citations')}
+                      isDisabled={!isResponseComplete}
+                      showContent={false}
+                      {...citationsDetailIds}
+                    />
+                  </FlexItem>
+                )}
+                {traceId && onViewTrace && (
+                  <FlexItem>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => {
+                        fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_OPENED, {
+                          source: 'message_button',
+                          traceId,
+                          compareMode,
+                          configID,
+                        });
+                        onViewTrace(traceId);
+                      }}
+                      data-testid="view-trace-link"
+                    >
+                      <small>View trace</small>
+                    </Button>
+                  </FlexItem>
+                )}
+              </Flex>
+              {!errorClassification && isToolsExpanded && toolCalls && toolCalls.length > 0 && (
+                <ChatbotToolCalls
+                  toolCalls={toolCalls}
+                  isResponseComplete
+                  isExpanded
+                  showToggle={false}
+                  {...toolsDetailIds}
+                />
               )}
-              {!errorClassification && metrics && (
-                <StackItem>
-                  <ChatbotMessagesMetrics metrics={metrics} />
-                </StackItem>
+              {!errorClassification && isDetailExpanded('metrics') && metrics && (
+                <ChatbotMessagesMetrics
+                  metrics={metrics}
+                  isExpanded
+                  showToggle={false}
+                  {...metricsDetailIds}
+                />
               )}
-              {traceId && onViewTrace && (
-                <StackItem>
-                  <Button
-                    variant="link"
-                    isInline
-                    onClick={() => {
-                      fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_OPENED, {
-                        source: 'message_button',
-                        traceId,
-                        compareMode,
-                        configID,
-                      });
-                      onViewTrace(traceId);
-                    }}
-                    data-testid="view-trace-link"
-                  >
-                    View trace
-                  </Button>
-                </StackItem>
+              {!errorClassification && isDetailExpanded('citations') && fileSearchData && (
+                <ChatbotFileSearchResults
+                  fileSearchData={fileSearchData}
+                  citationMap={citationMap}
+                  expandedCitation={
+                    expandedCitation !== null && expandedCitation.messageId === message.id
+                      ? expandedCitation.citationNumber
+                      : undefined
+                  }
+                  onCitationExpanded={() => setExpandedCitation(null)}
+                  isExpanded
+                  showToggle={false}
+                  {...citationsDetailIds}
+                />
               )}
-            </Stack>
+            </>
           );
         }
 

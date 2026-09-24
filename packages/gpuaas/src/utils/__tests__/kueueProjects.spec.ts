@@ -1,7 +1,9 @@
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
+  getKueueManagedDataScienceProjects,
   getNonKueueManagedDataScienceProjects,
+  isKueueManagedDataScienceProject,
   isNonKueueManagedDataScienceProject,
 } from '../kueueProjects';
 
@@ -42,6 +44,28 @@ describe('kueueProjects', () => {
       };
 
       expect(isNonKueueManagedDataScienceProject(project)).toBe(true);
+    });
+  });
+
+  describe('isKueueManagedDataScienceProject', () => {
+    it('should return true for Kueue-managed data science projects', () => {
+      expect(isKueueManagedDataScienceProject(kueueManagedProject)).toBe(true);
+    });
+
+    it('should return false for non-Kueue-managed data science projects', () => {
+      expect(isKueueManagedDataScienceProject(nonKueueDsProject)).toBe(false);
+    });
+  });
+
+  describe('getKueueManagedDataScienceProjects', () => {
+    it('should return only Kueue-managed data science projects', () => {
+      expect(
+        getKueueManagedDataScienceProjects([
+          kueueManagedProject,
+          nonKueueDsProject,
+          nonDsProject,
+        ]).map((project) => project.metadata.name),
+      ).toEqual(['kueue-project']);
     });
   });
 

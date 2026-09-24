@@ -13,7 +13,7 @@ There are two sync methods:
 | **PR sync** | `update-subtree` | Sync from the official upstream repo (or test an upstream PR) |
 | **Local sync** | `update-subtree-local` | Sync from a local clone of the upstream repo |
 
-Both scripts live in `packages/app-config/scripts/` and are invoked via npm workspace scripts.
+Both scripts live in `packages/app-config/scripts/` and are invoked via pnpm workspace scripts.
 
 ## How It Works
 
@@ -52,7 +52,7 @@ Use PR sync to pull changes from the official upstream repository.
 
 ```bash
 # From the repository root
-npm run update-subtree -w packages/model-registry
+pnpm --filter ./packages/model-registry run update-subtree
 ```
 
 This fetches the upstream repo, finds all new commits since the last sync, and applies them.
@@ -62,7 +62,7 @@ This fetches the upstream repo, finds all new commits since the last sync, and a
 To test an upstream PR's changes before the PR merges:
 
 ```bash
-npm run update-subtree -w packages/model-registry -- --pr=https://github.com/kubeflow/model-registry/pull/1234
+pnpm --filter ./packages/model-registry run update-subtree --pr=https://github.com/kubeflow/model-registry/pull/1234
 ```
 
 This temporarily overrides the `package.json` config to point at the PR's branch, applies the changes, then marks all commits with `[DO NOT MERGE - PR TEST SYNC]`. After testing, discard this branch.
@@ -92,7 +92,7 @@ Use local sync to test changes from a local clone of the upstream repository bef
 
 ```bash
 # Sync all new commits from a local branch
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/my-changes
 ```
@@ -111,24 +111,24 @@ npm run update-subtree-local -w packages/model-registry -- \
 
 ```bash
 # Sync all new commits from a branch
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/new-ui
 
 # Cherry-pick a single commit
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=main \
   --commit=abc1234
 
 # Sync up to a specific commit
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=main \
   --up-to=def5678
 
 # Continue after resolving conflicts
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/new-ui \
   --continue
@@ -191,10 +191,10 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 
    ```bash
    # For PR sync
-   npm run update-subtree -w packages/<package-name> -- --continue
+   pnpm --filter ./packages/<package-name> run update-subtree --continue
 
    # For local sync (must pass --local-repo and --branch again)
-   npm run update-subtree-local -w packages/<package-name> -- \
+   pnpm --filter ./packages/<package-name> run update-subtree-local \
      --local-repo=/path/to/local/upstream-repo \
      --branch=feature/my-changes \
      --continue
@@ -227,7 +227,7 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 2. Create a branch in odh-dashboard (e.g., `git checkout -b test/my-upstream-feature`)
 3. Run local sync to bring upstream changes into the monorepo:
    ```bash
-   npm run update-subtree-local -w packages/model-registry -- \
+   pnpm --filter ./packages/model-registry run update-subtree-local \
      --local-repo=/path/to/local/model-registry \
      --branch=feature/my-changes
    ```
@@ -243,6 +243,38 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 3. Resolve any conflicts
 4. Run tests
 5. Open a PR
+
+## Automated sync (model-registry)
+
+GitHub Actions workflow [`.github/workflows/model-registry-upstream-sync.yml`](../.github/workflows/model-registry-upstream-sync.yml) runs on a schedule:
+
+| Trigger | When |
+|---------|------|
+| Cron | Monday and Wednesday at 08:00 UTC |
+| Manual | Actions → **Model Registry Upstream Sync** → Run workflow |
+
+Behavior:
+
+1. Compare `packages/model-registry/package.json` `subtree.commit` to `kubeflow/model-registry` `main` tip.
+2. If already up to date, exit without a PR.
+3. Otherwise run `pnpm --filter @odh-dashboard/model-registry run update-subtree` in a **read-only sync job** (`persist-credentials: false`; no write token in `.git`).
+4. On conflict, commit the partial sync (including conflict markers) and open a PR for manual resolution — **no separate issue**.
+5. On a clean sync, run `test:lint`, `test:type-check`, and `test:unit` in `packages/model-registry/upstream/frontend`.
+6. **publish-branch** applies validated patches and pushes `automated/model-registry-upstream-sync`; **publish-pr** creates or updates a PR against `main` and assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro`.
+
+### Failure and conflict handling
+
+| Outcome | What happens |
+|---------|----------------|
+| **Clean sync** | Frontend lint/type-check/unit run in CI; PR opened with test results in the body. |
+| **Conflict** | Partial sync is committed (markers included); PR opened with `(conflicts — resolve manually)` in the title. Assignees are notified; resolve in the PR, run `--continue` and tests, then merge. **No GitHub issue is created for conflicts.** |
+| **Hard failure** (not a conflict) | No PR. A **notify-failure** job opens or comments on a **single** tracking GitHub issue (reused across runs). The same assignees as sync PRs (`ppadti`, `manaswinidas`, `Philip-Carneiro`) are assigned so the team is notified. |
+
+Conflicts are expected to be common for model-registry syncs; they are handled entirely through the automated PR, not through issues. Conflict PRs skip automated frontend validation — run tests locally after resolving markers.
+
+**Handling conflicts:** The workflow assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro` on the PR. Whoever picks it up should checkout `automated/model-registry-upstream-sync`, resolve markers, run `pnpm --filter @odh-dashboard/model-registry run update-subtree --continue`, run frontend lint/type-check/unit tests, and push to update the PR. Use `/upstream-sync model-registry` in Claude Code for guided conflict resolution (see `.claude/skills/upstream-sync/SKILL.md`).
+
+Manual sync with `/upstream-sync` remains available for ad-hoc syncs.
 
 ## Claude Code Skills
 

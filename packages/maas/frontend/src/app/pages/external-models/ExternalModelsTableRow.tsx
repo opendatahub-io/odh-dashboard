@@ -1,19 +1,29 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ResourceTr } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { convertStringToPhaseStatus, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import {
   ExternalModelsInfoPopoverLocation,
   ExternalModelsInfoPopoverTarget,
+  ExternalModelsProviderLabelsExpandedProperties,
+  ExternalModelRowExpandedProperties,
   MaaSEvents,
+  ExternalModelsInfoPopoverViewedProperties,
+  ExternalModelEditClickedProperties,
 } from '~/app/types/event-tracking';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import { convertStringToProviderType } from '~/app/pages/external-providers/utils';
 import { externalModelsColumns } from './columns';
-import { GovernancePairingWarning, MissingMaaSModelRefWarning } from './const';
+import {
+  editExternalModelPath,
+  GovernancePairingWarning,
+  MissingMaaSModelRefWarning,
+} from './const';
 import {
   getExternalModelResource,
   isAwaitingGovernancePairing,
@@ -40,6 +50,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
   rowIndex,
   setDeleteExternalModel,
 }) => {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [hasOverflow, setHasOverflow] = React.useState(false);
   const [visibleLabelCount, setVisibleLabelCount] = React.useState(
@@ -53,17 +64,21 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     if (!isExpanded) {
       if (toggleLocation === ToggleLocation.ARROW) {
         fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_ROW_EXPANDED, {
-          modelStatus: externalModel.phase,
+          modelStatus: convertStringToPhaseStatus(externalModel.phase ?? ''),
           providerCount: externalModel.providerRefs.length,
-        });
+        } satisfies ExternalModelRowExpandedProperties);
       } else {
         fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_PROVIDER_LABELS_EXPANDED, {
           visibleProviderCount: visibleLabelCount,
-        });
+        } satisfies ExternalModelsProviderLabelsExpandedProperties);
       }
     }
 
     setIsExpanded((prev) => !prev);
+  };
+
+  const onEditExternalModel = (externalModelsNamespace: string, externalModelName: string) => {
+    navigate(editExternalModelPath(externalModelsNamespace, externalModelName));
   };
 
   React.useLayoutEffect(() => {
@@ -147,7 +162,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
           fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
             infoTarget: ExternalModelsInfoPopoverTarget.MODEL_REFERENCE,
             location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
-          });
+          } satisfies ExternalModelsInfoPopoverViewedProperties);
         }}
       />
     </Td>
@@ -217,7 +232,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
               fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
                 infoTarget: ExternalModelsInfoPopoverTarget.STATUS_LABEL,
                 location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
-              });
+              } satisfies ExternalModelsInfoPopoverViewedProperties);
             }}
           />
         </FlexItem>
@@ -230,6 +245,16 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
       <ActionsColumn
         data-testid="external-model-actions"
         items={[
+          {
+            title: 'Edit',
+            onClick: () => {
+              fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_EDIT_CLICKED, {
+                modelStatus: convertStringToPhaseStatus(externalModel.phase ?? ''),
+                providerCount: externalModel.providerRefs.length,
+              } satisfies ExternalModelEditClickedProperties);
+              onEditExternalModel(externalModel.namespace, externalModel.name);
+            },
+          },
           {
             title: 'Delete',
             onClick: () => setDeleteExternalModel(externalModel),
@@ -272,7 +297,10 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         onClose={() => {
           setPathModalRef(null);
         }}
-        providerRef={pathModalRef?.provider?.provider ?? ''}
+        title="Path"
+        description="The request path appended to the provider URL. If path variables were configured, they're shown with resolved values."
+        subContentTitle="Provider"
+        subContent={convertStringToProviderType(pathModalRef?.provider?.provider ?? '')}
       />
       <ProviderURLModal
         isOpen={!!providerURLModalRef}
