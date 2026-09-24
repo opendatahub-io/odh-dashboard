@@ -8,6 +8,8 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 )
 
+// TestValidateProfileAgainstProvider verifies that a hardware profile meeting every provider
+// CPU, memory, and GPU requirement produces no validation mismatches.
 func TestValidateProfileAgainstProvider(t *testing.T) {
 	profile := models.HardwareProfile{
 		Name: "small",
@@ -33,6 +35,8 @@ func TestValidateProfileAgainstProvider(t *testing.T) {
 	}
 }
 
+// TestValidateProfileAgainstProviderReportsResourceMismatches verifies that undersized or missing
+// CPU, memory, and GPU resources are reported as actionable provider mismatches.
 func TestValidateProfileAgainstProviderReportsResourceMismatches(t *testing.T) {
 	profile := models.HardwareProfile{
 		Name: "small",
@@ -63,6 +67,8 @@ func TestValidateProfileAgainstProviderReportsResourceMismatches(t *testing.T) {
 	}
 }
 
+// TestValidateProfileAgainstProviderRejectsInvalidProviderQuantity verifies that an invalid
+// provider resource quantity is returned as a validation mismatch instead of being ignored.
 func TestValidateProfileAgainstProviderRejectsInvalidProviderQuantity(t *testing.T) {
 	profile := models.HardwareProfile{
 		Name: "small",

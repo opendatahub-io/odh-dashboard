@@ -5,10 +5,20 @@ export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
 export const getEvaluationQueue = (job: EvaluationJob): string | undefined =>
-  job.status.queue || job.resource.queue;
+  job.hardware_config?.queue?.name || job.status.queue || job.resource.queue;
 
 export const isEvaluationJobQueued = (job: EvaluationJob): boolean =>
   job.status.state === 'pending' && Boolean(getEvaluationQueue(job));
+
+/** Formats a positive queue position with its English ordinal suffix. */
+export const formatOrdinal = (position: number): string => {
+  const lastTwoDigits = position % 100;
+  const suffix =
+    lastTwoDigits >= 11 && lastTwoDigits <= 13
+      ? 'th'
+      : (['th', 'st', 'nd', 'rd'][position % 10] ?? 'th');
+  return `${position}${suffix}`;
+};
 
 export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> => {
   if (job.benchmarks?.length) {

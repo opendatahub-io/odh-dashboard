@@ -216,6 +216,8 @@ describe('EvaluationStatusModal progress tab', () => {
             // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
             queue_name: 'default',
             state: 'queued',
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            queue_position: 2,
           },
         ],
       ]),
@@ -227,11 +229,56 @@ describe('EvaluationStatusModal progress tab', () => {
     renderModal(mockEvaluationJob({ state: 'pending' }));
 
     expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Queued');
-    expect(screen.getByTestId('kueue-progress-state')).toHaveTextContent(
-      'Waiting for resources from Kueue',
+    expect(screen.getByTestId('benchmark-name-header')).toHaveTextContent(
+      'Waiting for quota in default',
     );
+    expect(screen.getByTestId('status-description')).toHaveTextContent('2nd in queue');
+    expect(screen.queryByTestId('kueue-progress-state')).not.toBeInTheDocument();
+  });
+
+  it('should keep a pending heading while Kueue status is loading without queue metadata', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: true,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueWorkloadStatuses.mockReturnValue({
+      statusesByEvaluationId: new Map(),
+      loaded: false,
+      isLoading: true,
+      error: undefined,
+    });
+    const job = mockEvaluationJob({ state: 'pending' });
+
+    renderModal(job);
+
+    expect(screen.getByTestId('queue-status-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-status-loading')).toBeInTheDocument();
     expect(screen.getByTestId('status-description')).toHaveTextContent(
-      'waiting for Kueue to allocate resources',
+      'Checking resource scheduling status',
+    );
+  });
+
+  it('should preserve the queued heading when detail polling omits the queue assignment', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: true,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    const job = mockEvaluationJob({ state: 'pending' });
+    job.hardware_config = { queue: { name: 'default' } };
+    const polledJob = mockEvaluationJob({ state: 'pending' });
+
+    renderModal(job, polledJob);
+
+    expect(screen.getByTestId('benchmark-name-header')).toHaveTextContent(
+      'Waiting for quota in default',
     );
   });
 

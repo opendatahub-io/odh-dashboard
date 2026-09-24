@@ -28,10 +28,11 @@ const (
 // KueueWorkloadStatus is the aggregated Kueue status for one EvalHub
 // evaluation. A benchmark suite can create more than one Workload.
 type KueueWorkloadStatus struct {
-	EvaluationID string             `json:"evaluation_id"`
-	QueueName    string             `json:"queue_name"`
-	State        KueueWorkloadState `json:"state"`
-	Message      string             `json:"message,omitempty"`
+	EvaluationID  string             `json:"evaluation_id"`
+	QueueName     string             `json:"queue_name"`
+	State         KueueWorkloadState `json:"state"`
+	Message       string             `json:"message,omitempty"`
+	QueuePosition int                `json:"queue_position,omitempty"`
 }
 
 type KueueWorkloadStatusesResponse struct {

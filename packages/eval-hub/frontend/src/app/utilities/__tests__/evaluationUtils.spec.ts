@@ -13,7 +13,9 @@ import {
   formatBenchmarkScore,
   formatDate,
   formatDurationCompact,
+  formatOrdinal,
   getEvaluationDisplayState,
+  getEvaluationQueue,
   isTerminalState,
   normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
@@ -807,6 +809,31 @@ describe('getEvaluationDisplayState', () => {
 
   it('should preserve the existing queued status when no Kueue Workload is available', () => {
     expect(getEvaluationDisplayState('pending', { isQueued: true })).toBe('queued');
+  });
+});
+
+describe('getEvaluationQueue', () => {
+  it('should read the queue from the hardware configuration', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'gpu-default' } };
+
+    expect(getEvaluationQueue(job)).toBe('gpu-default');
+  });
+});
+
+describe('formatOrdinal', () => {
+  it.each([
+    [1, '1st'],
+    [2, '2nd'],
+    [3, '3rd'],
+    [4, '4th'],
+    [11, '11th'],
+    [12, '12th'],
+    [13, '13th'],
+    [21, '21st'],
+  ])('should format queue position %s as %s', (position, expected) => {
+    expect(formatOrdinal(position)).toBe(expected);
   });
 });
 

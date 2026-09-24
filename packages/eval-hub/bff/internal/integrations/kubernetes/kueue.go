@@ -30,6 +30,8 @@ const (
 	kueueVersion            = "v1beta2"
 	localQueueResource      = "localqueues"
 	workloadResource        = "workloads"
+	visibilityGroup         = "visibility.kueue.x-k8s.io"
+	visibilityVersion       = "v1beta2"
 	kueueAvailabilityTTL    = 15 * time.Second
 	evalHubJobIDAnnotation  = "eval-hub.github.io/job_id"
 	evalHubJobIDLabel       = "job_id"
@@ -42,9 +44,14 @@ var (
 		Version:  kueueOperatorVersion,
 		Resource: kueueOperatorResource,
 	}
-	localQueueGVR = schema.GroupVersionResource{Group: kueueGroup, Version: kueueVersion, Resource: localQueueResource}
-	workloadGVR   = schema.GroupVersionResource{Group: kueueGroup, Version: kueueVersion, Resource: workloadResource}
-	kueueCache    = newKueueAvailabilityCache(kueueAvailabilityTTL)
+	localQueueGVR           = schema.GroupVersionResource{Group: kueueGroup, Version: kueueVersion, Resource: localQueueResource}
+	workloadGVR             = schema.GroupVersionResource{Group: kueueGroup, Version: kueueVersion, Resource: workloadResource}
+	visibilityLocalQueueGVR = schema.GroupVersionResource{
+		Group:    visibilityGroup,
+		Version:  visibilityVersion,
+		Resource: localQueueResource,
+	}
+	kueueCache = newKueueAvailabilityCache(kueueAvailabilityTTL)
 )
 
 // kueueAvailabilityCache keeps the availability result briefly so the form's
@@ -302,6 +309,7 @@ func getKueueWorkloadStatuses(
 
 	type workloadSummary struct {
 		queueName        string
+		workloadNames    []string
 		count            int
 		admitted         bool
 		admittedMessage  string
@@ -329,6 +337,7 @@ func getKueueWorkloadStatuses(
 		if summary.queueName == "" {
 			summary.queueName = workloadQueueName(workload)
 		}
+		summary.workloadNames = append(summary.workloadNames, workload.GetName())
 
 		workloadFinished := false
 		workloadAdmitted := false
@@ -358,6 +367,7 @@ func getKueueWorkloadStatuses(
 		}
 	}
 
+	positionsByQueue := make(map[string]map[string]int)
 	items := make([]models.KueueWorkloadStatus, 0, len(summaries))
 	for _, evaluationID := range evaluationIDs {
 		summary, found := summaries[evaluationID]
@@ -375,15 +385,81 @@ func getKueueWorkloadStatuses(
 			state, message = models.KueueWorkloadStateAdmitted, summary.admittedMessage
 		}
 
+		queuePosition := 0
+		if state == models.KueueWorkloadStateQueued || state == models.KueueWorkloadStatePreempted {
+			positions, loaded := positionsByQueue[summary.queueName]
+			if !loaded {
+				positions = getPendingWorkloadPositions(ctx, client, namespace, summary.queueName)
+				positionsByQueue[summary.queueName] = positions
+			}
+			for _, workloadName := range summary.workloadNames {
+				if position, found := positions[workloadName]; found && (queuePosition == 0 || position < queuePosition) {
+					queuePosition = position
+				}
+			}
+		}
+
 		items = append(items, models.KueueWorkloadStatus{
-			EvaluationID: evaluationID,
-			QueueName:    summary.queueName,
-			State:        state,
-			Message:      message,
+			EvaluationID:  evaluationID,
+			QueueName:     summary.queueName,
+			State:         state,
+			Message:       message,
+			QueuePosition: queuePosition,
 		})
 	}
 
 	return &models.KueueWorkloadStatusesResponse{Items: items}, nil
+}
+
+// getPendingWorkloadPositions reads Kueue's optional visibility endpoint. A
+// missing endpoint or denied visibility permission must not make the primary
+// Workload status lookup fail, so position data is best-effort.
+func getPendingWorkloadPositions(
+	ctx context.Context,
+	client dynamic.Interface,
+	namespace, queueName string,
+) map[string]int {
+	if queueName == "" {
+		return nil
+	}
+
+	pendingWorkloads, err := client.Resource(visibilityLocalQueueGVR).
+		Namespace(namespace).
+		Get(ctx, queueName, metav1.GetOptions{}, "pendingworkloads")
+	if err != nil {
+		return nil
+	}
+
+	return pendingWorkloadPositions(pendingWorkloads)
+}
+
+// pendingWorkloadPositions converts Kueue's zero-based positions to the
+// one-based positions shown to users in the status modal.
+func pendingWorkloadPositions(response *unstructured.Unstructured) map[string]int {
+	positions := make(map[string]int)
+	if response == nil {
+		return positions
+	}
+
+	items, found, err := unstructured.NestedSlice(response.Object, "items")
+	if err != nil || !found {
+		return positions
+	}
+
+	for _, rawItem := range items {
+		item, ok := rawItem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		name, _, _ := unstructured.NestedString(item, "metadata", "name")
+		position, found, err := unstructured.NestedInt64(item, "positionInLocalQueue")
+		if name == "" || !found || err != nil || position < 0 {
+			continue
+		}
+		positions[name] = int(position) + 1
+	}
+
+	return positions
 }
 
 type kueueWorkloadCondition struct {

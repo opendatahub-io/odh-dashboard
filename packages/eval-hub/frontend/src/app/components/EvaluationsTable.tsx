@@ -161,7 +161,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   onShowStatus,
 }) => {
   const navigate = useNavigate();
-  const { availability: kueueAvailability } = useKueueAvailability(namespace);
+  const { availability: kueueAvailability, loaded: kueueAvailabilityLoaded } =
+    useKueueAvailability(namespace);
   const isKueueSchedulingReady = kueueAvailability?.scheduling_ready === true;
   const hasQueueAssignments = React.useMemo(
     () => evaluations.some((job) => Boolean(getEvaluationQueue(job))),
@@ -180,6 +181,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const isKueueWorkloadStatusPollingEnabled = loaded && isPollingEnabled;
   const {
     statusesByEvaluationId: kueueWorkloadStatusesByEvaluationID,
+    isLoading: isKueueWorkloadStatusesLoading,
     error: kueueWorkloadStatusesError,
   } = useKueueWorkloadStatuses(
     namespace,
@@ -681,6 +683,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
                 showQueue={hasQueueAssignments}
                 kueueWorkloadStatus={kueueWorkloadStatusesByEvaluationID.get(job.resource.id)}
+                isKueueWorkloadStatusLoading={
+                  !kueueAvailabilityLoaded ||
+                  (isKueueSchedulingReady && isKueueWorkloadStatusesLoading)
+                }
               />
             ))}
           </Tbody>

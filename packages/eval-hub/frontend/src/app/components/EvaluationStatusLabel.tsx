@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Label, LabelProps, Tooltip } from '@patternfly/react-core';
+import { Label, LabelProps, Skeleton, Tooltip } from '@patternfly/react-core';
 import {
   BanIcon,
   CheckCircleIcon,
@@ -102,6 +102,7 @@ export const getKueueTooltipText = (status: KueueWorkloadStatus): string => {
 type EvaluationStatusLabelProps = {
   state: EvaluationJobState;
   isQueued?: boolean;
+  isLoading?: boolean;
   /** When true and state is 'failed', renders the "Not started" badge — no benchmark ever received a started_at timestamp. */
   isPreStartFailure?: boolean;
   /** A live Kueue Workload status that can describe its active scheduling state. */
@@ -112,10 +113,22 @@ type EvaluationStatusLabelProps = {
 const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
   state,
   isQueued,
+  isLoading = false,
   isPreStartFailure,
   kueueWorkloadStatus,
   onClick,
 }) => {
+  if (isLoading) {
+    return (
+      <Skeleton
+        width="100px"
+        height="24px"
+        screenreaderText="Loading evaluation status"
+        data-testid="evaluation-status-loading"
+      />
+    );
+  }
+
   const effectiveState = getEvaluationDisplayState(state, {
     isQueued,
     isPreStartFailure,

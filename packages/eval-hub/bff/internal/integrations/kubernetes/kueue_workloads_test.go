@@ -71,6 +71,26 @@ func TestGetKueueWorkloadStatusesReportsAdmittedForAnActiveSuiteWorkload(t *test
 	}
 }
 
+func TestPendingWorkloadPositionsConvertToOneBasedPositions(t *testing.T) {
+	response := &unstructured.Unstructured{Object: map[string]interface{}{
+		"items": []interface{}{
+			map[string]interface{}{
+				"metadata":             map[string]interface{}{"name": "first"},
+				"positionInLocalQueue": int64(0),
+			},
+			map[string]interface{}{
+				"metadata":             map[string]interface{}{"name": "third"},
+				"positionInLocalQueue": int64(2),
+			},
+		},
+	}}
+
+	positions := pendingWorkloadPositions(response)
+	if positions["first"] != 1 || positions["third"] != 3 {
+		t.Fatalf("positions = %v, want first=1 and third=3", positions)
+	}
+}
+
 func workload(name, evaluationID, queueName string, useAnnotation bool, conditions ...map[string]interface{}) *unstructured.Unstructured {
 	metadata := map[string]interface{}{}
 	if useAnnotation {

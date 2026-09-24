@@ -62,6 +62,7 @@ export type KueueWorkloadStatus = {
   queue_name: string;
   state: KueueWorkloadState;
   message?: string;
+  queue_position?: number;
 };
 
 export type KueueWorkloadStatusesResponse = {
