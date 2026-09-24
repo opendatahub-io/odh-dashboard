@@ -20,7 +20,7 @@ import {
   RuntimeStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   pipelineDetails,
   pipelineRecurringRunDetails,
@@ -28,9 +28,9 @@ import {
   pipelineVersionImportModal,
 } from '../../../../pages/pipelines';
 import { verifyRelativeURL } from '../../../../utils/url';
+
 import {
   DataSciencePipelineApplicationModel,
-  PodModel,
   ProjectModel,
   RouteModel,
 } from '../../../../utils/models';

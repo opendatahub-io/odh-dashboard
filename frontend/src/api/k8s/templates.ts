@@ -13,12 +13,12 @@ import {
   ServingRuntimePlatform,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { TemplateModel } from '#~/api/models';
 import { CustomWatchK8sResult } from '#~/types';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import { groupVersionKind } from '#~/api/k8sUtils';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 export const assembleServingRuntimeTemplate = (
   body: string,

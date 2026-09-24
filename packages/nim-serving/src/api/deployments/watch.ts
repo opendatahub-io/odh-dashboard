@@ -1,8 +1,8 @@
-import { PodModel } from '@odh-dashboard/internal/api/models/index';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
 import type { K8sAPIOptions, PodKind, ProjectKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
-import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { NIM_OPERATOR_MANAGED_BY } from '../../constants';

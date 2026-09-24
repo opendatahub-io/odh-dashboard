@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { EventKind } from '@odh-dashboard/k8s-core';
 import { EventModel } from '@odh-dashboard/internal/api/models/k8s';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 
 /**
  * Watch events for TrainJob and related resources (Workload, JobSet, Jobs, Pods)

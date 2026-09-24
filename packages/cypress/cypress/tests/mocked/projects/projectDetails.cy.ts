@@ -30,15 +30,15 @@ import {
   ServingRuntimePlatform,
 } from '@odh-dashboard/model-serving/shared';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { SecretModel, ServiceAccountModel } from '@odh-dashboard/k8s-core/api/models';
+import { SecretModel, ServiceAccountModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
 import { deleteProjectModal, editProjectModal, projectDetails } from '../../../pages/projects';
+
 import {
   DataSciencePipelineApplicationModel,
   ImageStreamModel,
   InferenceServiceModel,
   NIMAccountModel,
   NotebookModel,
-  PodModel,
   ProjectModel,
   PVCModel,
   RouteModel,

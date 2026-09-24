@@ -5,12 +5,12 @@ import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRout
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts } from './workbenchTestUtils';
 import {
   ImageStreamModel,
   NotebookModel,
   PVCModel,
-  PodModel,
   RouteModel,
   HardwareProfileModel,
 } from '../../../../utils/models';

@@ -2,6 +2,7 @@ import { K8sStatus, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-util
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { genRandomChars } from '@odh-dashboard/foundation';
 import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimePlatform,
@@ -9,16 +10,11 @@ import {
 } from '@odh-dashboard/model-serving/shared';
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
-import {
-  assembleServingRuntimeTemplate,
-  deleteTemplate,
-  groupVersionKind,
-  useTemplates,
-} from '#~/api';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
+import { assembleServingRuntimeTemplate, deleteTemplate, useTemplates } from '#~/api';
 import { TemplateModel } from '#~/api/models';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -30,7 +26,7 @@ jest.mock('@odh-dashboard/foundation', () => ({
   genRandomChars: jest.fn(),
 }));
 
-jest.mock('#~/utilities/useK8sWatchResourceList', () => ({
+jest.mock('@odh-dashboard/ui-core/hooks/useK8sWatchResourceList', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
