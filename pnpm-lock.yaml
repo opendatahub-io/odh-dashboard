@@ -3516,6 +3516,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@hookform/resolvers':
+        specifier: ^5.9.1
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.5)
       '@module-federation/runtime':
         specifier: ^0.21.4
         version: 0.21.6
@@ -3558,6 +3561,9 @@ importers:
       react-dom:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
+      react-hook-form:
+        specifier: ^7.87.0
+        version: 7.88.0(react@18.3.1)
       react-router:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -3567,6 +3573,9 @@ importers:
       showdown:
         specifier: ^2.1.0
         version: 2.1.0
+      zod:
+        specifier: ^4.5.4
+        version: 4.6.5
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -5776,7 +5785,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@hookform/resolvers':
         specifier: ^3.9.1
-        version: 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+        version: 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material':
         specifier: ^6.5.0
         version: 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -5809,25 +5818,25 @@ importers:
         version: 0.54.0
       '@perses-dev/dashboards':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+        version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/explore':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+        version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/loki-plugin':
         specifier: v0.6.0-rc.2
-        version: 0.6.0-rc.2(868b97823211e3075bef08965bf8b980)
+        version: 0.6.0-rc.2(1c36e1576871dad28a3941bec5337d34)
       '@perses-dev/plugin-system':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+        version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/prometheus-plugin':
         specifier: v0.58.0-beta.3
-        version: 0.58.0-beta.3(c0a0e75dba4f5d04eaf48d91acff428c)
+        version: 0.58.0-beta.3(f0d8e50953735a7ba416d12010f7a6ac)
       '@perses-dev/stat-chart-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(6618929f2c52190ddc187cf3bac46e68)
+        version: 0.13.0-rc.1(39b42c2fa7ba6005cbf9fcd99bd2547e)
       '@perses-dev/table-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(1ac34e031cf649acc2c199d219422529)
+        version: 0.13.0-rc.1(710bb49623d50ad8e1f3edc9cafb55e3)
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -15128,10 +15137,6 @@ packages:
     peerDependencies:
       postcss: '>=8.5.23 <9.0.0'
 
-  postcss-selector-parser@7.1.5:
-    resolution: {integrity: sha512-KvvtD7SrlBP7dlgkBghEE3r84CABm5SmV2aNcG4oCA+qDnJ/tvKonFVvwWAyyWUEwxuNawdfEAZKP9zM3oZ2Uw==}
-    engines: {node: '>=4'}
-
   postcss-selector-parser@7.1.6:
     resolution: {integrity: sha512-7qASPzhKF2l2KLboRZux8CCTRMdGiV08vWmyKzPz22qZ7ZjQBOeY7rNzNoCLSUiftJ7HUq0GERHmxw/t0dCdMw==}
     engines: {node: '>=4'}
@@ -15395,6 +15400,12 @@ packages:
 
   react-hook-form@7.86.0:
     resolution: {integrity: sha512-4kbWJrh5jPZt1+YqVcXcGKffGcXV/XVbozknLh0Yjh0KhpoAkus21TAQhzRYqNwFkkObmnSvRlZZ3GT+ehoIrA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^16.8.0 || ^17 || ^18 || ^19
+
+  react-hook-form@7.88.0:
+    resolution: {integrity: sha512-QRaLOWhX93YCnMiRfnOFRSwWXZNt8qhm2JTZwypoDvKpSffTJHmpzMXt8U6PV5UThvL3IiiLDUWe2nHMtz6Mmw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
@@ -17418,6 +17429,9 @@ packages:
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+
   zrender@5.5.0:
     resolution: {integrity: sha512-O3MilSi/9mwoovx77m6ROZM7sXShR/O/JIanvzTwjN3FORfLSr81PsUGd7jlaYOeds9d8tw82oP44+3YucVo+w==}
 
@@ -19026,9 +19040,9 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1))':
+  '@hookform/resolvers@3.10.0(react-hook-form@7.88.0(react@18.3.1))':
     dependencies:
-      react-hook-form: 7.86.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
 
   '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.85.0(react@18.3.1))(zod@4.4.3)':
     dependencies:
@@ -19051,6 +19065,17 @@ snapshots:
       ajv-formats: 2.1.1(ajv@8.20.0)
       joi: 17.13.4
       zod: 4.4.3
+
+  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.5)':
+    dependencies:
+      '@standard-schema/utils': 0.3.0
+      react-hook-form: 7.88.0(react@18.3.1)
+    optionalDependencies:
+      '@sinclair/typebox': 0.34.52
+      ajv: 8.20.0
+      ajv-formats: 2.1.1(ajv@8.20.0)
+      joi: 17.13.4
+      zod: 4.6.5
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -20718,12 +20743,12 @@ snapshots:
       numbro: 2.5.0
       zod: 3.25.76
 
-  '@perses-dev/dashboards@0.54.0(70f7ae79a407e6101a4e501fb2727dcc)':
+  '@perses-dev/dashboards@0.54.0(0e86414737cfda25bfb0e330a279ff18)':
     dependencies:
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/client': 0.54.0
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       '@tanstack/hotkeys': 0.8.0
       '@tanstack/react-hotkeys': 0.9.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20733,7 +20758,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-grid-layout: 1.5.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-hook-form: 7.85.0(react@18.3.1)
+      react-hook-form: 7.86.0(react@18.3.1)
       react-intersection-observer: 9.16.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       use-immer: 0.11.0(immer@10.2.0)(react@18.3.1)
       use-query-params: 2.2.2(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
@@ -20771,13 +20796,13 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/explore@0.54.0(70f7ae79a407e6101a4e501fb2727dcc)':
+  '@perses-dev/explore@0.54.0(0e86414737cfda25bfb0e330a279ff18)':
     dependencies:
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@nexucis/fuzzy': 0.5.1
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/dashboards': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       mdi-material-ui: 7.9.4(@mui/material@6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       qs: 6.15.3
@@ -20817,17 +20842,17 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/loki-plugin@0.6.0-rc.2(868b97823211e3075bef08965bf8b980)':
+  '@perses-dev/loki-plugin@0.6.0-rc.2(1c36e1576871dad28a3941bec5337d34)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@grafana/lezer-logql': 0.2.9(@lezer/lr@1.4.10)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/explore': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/dashboards': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/explore': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
@@ -20837,16 +20862,16 @@ snapshots:
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-hook-form: 7.86.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
       - '@lezer/lr'
 
-  '@perses-dev/plugin-system@0.54.0(70f7ae79a407e6101a4e501fb2727dcc)':
+  '@perses-dev/plugin-system@0.54.0(0e86414737cfda25bfb0e330a279ff18)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@module-federation/enhanced': 2.8.2(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(typescript@5.9.3)(webpack@5.104.1)
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/client': 0.54.0
@@ -20859,7 +20884,7 @@ snapshots:
       immer: 10.2.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-hook-form: 7.85.0(react@18.3.1)
+      react-hook-form: 7.86.0(react@18.3.1)
       semver: 7.8.5
       use-query-params: 2.2.2(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       zod: 3.25.76
@@ -20891,18 +20916,18 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/prometheus-plugin@0.58.0-beta.3(c0a0e75dba4f5d04eaf48d91acff428c)':
+  '@perses-dev/prometheus-plugin@0.58.0-beta.3(f0d8e50953735a7ba416d12010f7a6ac)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@nexucis/fuzzy': 0.5.1
       '@perses-dev/client': 0.54.0
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/explore': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/dashboards': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/explore': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       '@prometheus-io/codemirror-promql': 0.311.3(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/state@6.7.1)(@codemirror/view@6.43.9)(@lezer/common@1.5.2)(@lezer/highlight@1.2.3)(@lezer/lr@1.4.10)
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20915,7 +20940,7 @@ snapshots:
       qs: 6.15.3
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-hook-form: 7.86.0(react@18.3.1)
+      react-hook-form: 7.88.0(react@18.3.1)
       react-router-dom: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-virtuoso: 4.18.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20935,14 +20960,14 @@ snapshots:
       mathjs: 15.2.0
       zod: 3.25.76
 
-  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(6618929f2c52190ddc187cf3bac46e68)':
+  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(39b42c2fa7ba6005cbf9fcd99bd2547e)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       chroma-js: 3.2.0
       date-fns: 4.4.0
@@ -20954,15 +20979,15 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@perses-dev/table-plugin@0.13.0-rc.1(1ac34e031cf649acc2c199d219422529)':
+  '@perses-dev/table-plugin@0.13.0-rc.1(710bb49623d50ad8e1f3edc9cafb55e3)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.88.0(react@18.3.1))
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
-      '@perses-dev/plugin-system': 0.54.0(70f7ae79a407e6101a4e501fb2727dcc)
+      '@perses-dev/dashboards': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
+      '@perses-dev/plugin-system': 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/spec': 0.2.0
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
@@ -29299,13 +29324,13 @@ snapshots:
   postcss-calc@10.1.1(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
       postcss-value-parser: 4.2.0
 
   postcss-calc@10.1.1(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
       postcss-value-parser: 4.2.0
     optional: true
 
@@ -29342,12 +29367,12 @@ snapshots:
   postcss-discard-comments@7.0.8(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-discard-comments@7.0.8(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-discard-duplicates@7.0.4(postcss@8.5.26):
@@ -29396,7 +29421,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssnano-utils: 5.0.3(postcss@8.5.26)
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-merge-rules@7.0.11(postcss@8.5.28):
     dependencies:
@@ -29404,7 +29429,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssnano-utils: 5.0.3(postcss@8.5.28)
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-minify-font-values@7.0.3(postcss@8.5.26):
@@ -29454,7 +29479,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssesc: 3.0.0
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-minify-selectors@7.1.2(postcss@8.5.28):
     dependencies:
@@ -29462,7 +29487,7 @@ snapshots:
       caniuse-api: 3.0.0
       cssesc: 3.0.0
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-modules-extract-imports@3.1.0(postcss@8.5.28):
@@ -29622,11 +29647,6 @@ snapshots:
       postcss-value-parser: 4.2.0
     optional: true
 
-  postcss-selector-parser@7.1.5:
-    dependencies:
-      cssesc: 3.0.0
-      util-deprecate: 1.0.2
-
   postcss-selector-parser@7.1.6:
     dependencies:
       cssesc: 3.0.0
@@ -29648,12 +29668,12 @@ snapshots:
   postcss-unique-selectors@7.0.7(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   postcss-unique-selectors@7.0.7(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   postcss-value-parser@4.2.0: {}
@@ -29909,6 +29929,10 @@ snapshots:
       react: 18.3.1
 
   react-hook-form@7.86.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
+  react-hook-form@7.88.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 
@@ -31005,13 +31029,13 @@ snapshots:
     dependencies:
       browserslist: 4.28.9
       postcss: 8.5.26
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
 
   stylehacks@7.0.11(postcss@8.5.28):
     dependencies:
       browserslist: 4.28.9
       postcss: 8.5.28
-      postcss-selector-parser: 7.1.5
+      postcss-selector-parser: 7.1.6
     optional: true
 
   stylis@4.2.0: {}
@@ -32493,6 +32517,8 @@ snapshots:
   zod@3.25.76: {}
 
   zod@4.4.3: {}
+
+  zod@4.6.5: {}
 
   zrender@5.5.0:
     dependencies:
