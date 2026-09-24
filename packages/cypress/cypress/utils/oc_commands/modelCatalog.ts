@@ -5,6 +5,13 @@ import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
+ * Normalize the legacy empty catalog representation before parsing.
+ * Some older test runs appended block entries after `catalogs: []`, which is invalid YAML.
+ */
+const normalizeCatalogSourcesYaml = (yamlContent: string): string =>
+  yamlContent.replace(/^(\s*catalogs:\s*)\[\]\s*$/m, '$1');
+
+/**
  * Helper to parse YAML using awk — no yq, jq, or Python required.
  * Returns a command that reads YAML from stdin and reports the enabled state for a catalog ID.
  * The command prints `default` when the source exists without an explicit enabled field, and
@@ -422,7 +429,8 @@ export const deleteHuggingFaceCatalogSource = (sourceId: string): Cypress.Chaina
         return;
       }
 
-      const parsed = yaml.load(getResult.stdout) as {
+      const normalizedYaml = normalizeCatalogSourcesYaml(getResult.stdout);
+      const parsed = yaml.load(normalizedYaml) as {
         catalogs?: Array<{ id?: string }>;
       };
       if (!parsed.catalogs) {
@@ -599,7 +607,8 @@ export const hasOtherEnabledCatalogSources = (
   const namespace = getModelRegistryNamespace();
 
   const parseAndCount = (yamlContent: string): boolean => {
-    const parsed = yaml.load(yamlContent) as {
+    const normalizedYaml = normalizeCatalogSourcesYaml(yamlContent);
+    const parsed = yaml.load(normalizedYaml) as {
       catalogs: Array<{ id: string; enabled?: boolean }>;
     };
     const otherEnabled = parsed.catalogs.filter(
