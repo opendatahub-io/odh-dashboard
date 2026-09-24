@@ -72,6 +72,34 @@ describe('Data Connect Hub BFF Contract Tests', () => {
         status: 200,
       });
     });
+
+    it('should return not found for an unknown connection type', async () => {
+      const result = await apiClient.get('/api/v1/connection-types/unknown?namespace=default');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          bffSchema,
+          {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          },
+        );
+      }
+    });
+
+    it('should return bad request when namespace is missing', async () => {
+      const result = await apiClient.get('/api/v1/connection-types/postgresql');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          bffSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
+      }
+    });
   });
 
   describe('Connection Readiness Endpoint', () => {
