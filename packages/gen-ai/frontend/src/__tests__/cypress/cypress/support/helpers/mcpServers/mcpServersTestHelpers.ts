@@ -150,7 +150,16 @@ export const clearMCPRegistryServersFlag = (): void => {
 export const visitWithMCPRegistryServersFlag = (enabled: boolean): void => {
   const flagParams = `devFeatureFlags=genAiMcpRegistryServers=${enabled}`;
   Cypress.env('_featureFlagParams', flagParams);
-  cy.visit(`/?${flagParams}`);
+  cy.visit(`/?${flagParams}`, {
+    onBeforeLoad(win) {
+      const flags = JSON.parse(win.sessionStorage.getItem('odh-feature-flags') ?? '{}') as Record<
+        string,
+        unknown
+      >;
+      flags.genAiMcpRegistryServers = enabled;
+      win.sessionStorage.setItem('odh-feature-flags', JSON.stringify(flags));
+    },
+  });
   cy.document().should('exist');
   cy.get('body', { timeout: 15000 }).should('be.visible');
 };
