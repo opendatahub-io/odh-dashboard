@@ -328,7 +328,9 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
                 title="Step not attempted"
                 data-testid="step-not-attempted-alert"
               >
-                This step was not attempted because the pipeline failed at an earlier step.
+                {statusFilter === 'error'
+                  ? 'This step was not attempted because the pipeline failed at an earlier step.'
+                  : 'This step was skipped and was not attempted.'}
               </Alert>
             </StackItem>
           )}

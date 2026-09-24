@@ -324,7 +324,7 @@ export const transformStageMapNodesToTree = (
   const linearPreIds: string[] = [];
   let predecessorFailed = false;
 
-  linearPre.forEach((topologyNode, index) => {
+  for (const [index, topologyNode] of linearPre.entries()) {
     linearPreIds.push(topologyNode.id);
     const stepState = nextStepState(topologyNode, predecessorFailed);
     if (stepState === 'failed') {
@@ -337,7 +337,7 @@ export const transformStageMapNodesToTree = (
     if (index > 0) {
       edges.push(createEdge(`e-linear-${index}`, linearPreIds[index - 1], topologyNode.id));
     }
-  });
+  }
 
   const branchSourceId = linearPreIds[linearPreIds.length - 1];
   const branchTailIds: string[] = [];
@@ -356,8 +356,9 @@ export const transformStageMapNodesToTree = (
   const rowLabels: { id: string; label: string; y: number }[] = [];
   let toggleMidX = pipelineStartX;
   let toggleMaxY = Y_CENTER;
+  let anyBranchFailed = false;
 
-  visibleBranchIndices.forEach((branchIndex, positionIndex) => {
+  for (const [positionIndex, branchIndex] of visibleBranchIndices.entries()) {
     const branchNodes = branches.get(branchIndex) ?? [];
     const pipelineY = displayYPositions[positionIndex] ?? Y_CENTER;
     let stepX = pipelineStartX;
@@ -373,10 +374,11 @@ export const transformStageMapNodesToTree = (
       });
     }
 
-    branchNodes.forEach((topologyNode, stepIndex) => {
+    for (const [stepIndex, topologyNode] of branchNodes.entries()) {
       const stepState = nextStepState(topologyNode, branchFailed);
       if (stepState === 'failed') {
         branchFailed = true;
+        anyBranchFailed = true;
       } else if (stepState === 'completed' || stepState === 'active') {
         branchFailed = false;
       }
@@ -423,7 +425,7 @@ export const transformStageMapNodesToTree = (
           ),
         );
       }
-    });
+    }
 
     if (branchSourceId && branchNodeIds[0]) {
       edges.push(
@@ -446,7 +448,7 @@ export const transformStageMapNodesToTree = (
     }
     toggleMaxY = Math.max(toggleMaxY, pipelineY);
     toggleMidX = pipelineStartX + ((stepX - X_GAP - pipelineStartX) / 2 || 0);
-  });
+  }
 
   // When every branch index is invalid (nodes fall into postBranch), connect from the pre-branch
   // tail so the converge edge logic below still runs.
@@ -458,7 +460,7 @@ export const transformStageMapNodesToTree = (
     currentX += X_GAP * 0.5;
   }
   const postBranchIds: string[] = [];
-  let postFailed = predecessorFailed;
+  let postFailed = predecessorFailed || anyBranchFailed;
 
   postBranch.forEach((topologyNode, index) => {
     postBranchIds.push(topologyNode.id);

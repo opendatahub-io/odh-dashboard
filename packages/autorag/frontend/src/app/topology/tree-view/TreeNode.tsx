@@ -6,9 +6,11 @@ import {
   t_global_icon_color_subtle as iconColorSubtle,
   t_global_color_status_success_default as colorStatusSuccess,
   t_global_color_status_danger_default as colorStatusDanger,
+  t_global_color_status_info_default as colorStatusInfo,
   t_global_color_nonstatus_orange_300 as colorNonstatusOrange,
   t_global_color_status_warning_200 as colorStatusWarningGold,
   t_global_icon_color_inverse as iconColorInverse,
+  t_global_icon_color_disabled as iconColorDisabled,
   t_global_border_color_status_success_default as borderColorStatusSuccess,
   t_global_border_color_status_danger_default as borderColorStatusDanger,
   t_global_background_color_primary_default as backgroundColorPrimary,
@@ -62,8 +64,8 @@ type TreeNodeProps = {
   element: GraphElement;
 } & WithSelectionProps;
 
-const DANGER_RED = '#c9190d';
-const INFO_BLUE = '#0066cc';
+const DANGER_RED = colorStatusDanger.var;
+const INFO_BLUE = colorStatusInfo.var;
 /** Rank 2: PF v6 orange-300 is too bright vs design; orange-400 is too dark. */
 const WINNER_RANK_2_ORANGE = '#c4610e';
 
@@ -103,8 +105,8 @@ const FAILED_BADGE_STROKE = 3;
 /** Filled disc radius; 2px white stroke → ~20px outer diameter. */
 const ACTIVE_BADGE_RADIUS = 8;
 const ACTIVE_BADGE_STROKE = 2;
-const PENDING_RING_STROKE = '#8a8d90';
-const PENDING_RING_FILL = '#ffffff';
+const PENDING_RING_STROKE = iconColorDisabled.var;
+const PENDING_RING_FILL = backgroundColorPrimary.var;
 const PENDING_RING_WIDTH = 2;
 const PENDING_RING_DASH = '4 4';
 
@@ -297,7 +299,13 @@ const StatusOnlyActiveDot: React.FC<{
   const isPulse = activeIconVariant !== 'sync';
   return (
     <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--active-dot">
-      <circle cx={center} cy={center} r={center} fill="#ffffff" style={{ fill: '#ffffff' }} />
+      <circle
+        cx={center}
+        cy={center}
+        r={center}
+        fill={backgroundColorPrimary.var}
+        style={{ fill: backgroundColorPrimary.var }}
+      />
       {isPulse ? (
         <circle
           className="autorag-tree-node__active-corridor-core"
@@ -311,8 +319,8 @@ const StatusOnlyActiveDot: React.FC<{
             <SyncAltIcon
               width={syncSize}
               height={syncSize}
-              color="#ffffff"
-              style={{ color: '#ffffff', fill: '#ffffff' }}
+              color={iconColorInverse.var}
+              style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
             />
           </g>
         </g>
@@ -386,16 +394,16 @@ const ActiveNodeBadge: React.FC<{ node: Node }> = React.memo(({ node }) => {
       <circle
         className="autorag-tree-node__active-badge-mask"
         r={ACTIVE_BADGE_RADIUS + 1}
-        fill="#ffffff"
-        style={{ fill: '#ffffff' }}
+        fill={backgroundColorPrimary.var}
+        style={{ fill: backgroundColorPrimary.var }}
       />
       <circle
         className="autorag-tree-node__active-badge-disc"
         r={ACTIVE_BADGE_RADIUS}
         fill={INFO_BLUE}
-        stroke="#ffffff"
+        stroke={backgroundColorPrimary.var}
         strokeWidth={ACTIVE_BADGE_STROKE}
-        style={{ fill: INFO_BLUE, stroke: '#ffffff' }}
+        style={{ fill: INFO_BLUE, stroke: backgroundColorPrimary.var }}
       />
       <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
         <g className="autorag-tree-node__status-spinner">
@@ -403,8 +411,8 @@ const ActiveNodeBadge: React.FC<{ node: Node }> = React.memo(({ node }) => {
             className="autorag-tree-node__active-badge-icon"
             width={iconSize}
             height={iconSize}
-            color="#ffffff"
-            style={{ color: '#ffffff', fill: '#ffffff' }}
+            color={iconColorInverse.var}
+            style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
           />
         </g>
       </g>
@@ -428,10 +436,10 @@ const FailedNodeBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
       <circle
         className="autorag-tree-node__failed-badge-disc"
         r={FAILED_BADGE_RADIUS}
-        fill="#ffffff"
+        fill={backgroundColorPrimary.var}
         stroke={DANGER_RED}
         strokeWidth={FAILED_BADGE_STROKE}
-        style={{ fill: '#ffffff', stroke: DANGER_RED }}
+        style={{ fill: backgroundColorPrimary.var, stroke: DANGER_RED }}
       />
       <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
         <ExclamationIcon

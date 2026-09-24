@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { computePatternRankMap } from '~/app/utilities/metricUtils';
+import { computePatternRankMap, type ObjectiveReference } from '~/app/utilities/metricUtils';
 import type { PipelineVisualizationData } from './types';
 
 /**
@@ -12,6 +12,7 @@ export const useTreeViewData = (
   stageMapNodes?: PipelineNodeModelExpanded[],
   bestPatternKey?: string,
   stageMapBestPattern?: string,
+  optimizationMetric?: ObjectiveReference,
 ): PipelineVisualizationData =>
   React.useMemo(() => {
     const safePatterns = patterns ?? {};
@@ -42,6 +43,6 @@ export const useTreeViewData = (
       selectedPattern,
       winnerPatternLabel,
       stageMapNodes,
-      patternRanks: computePatternRankMap(rankablePatterns),
+      patternRanks: computePatternRankMap(rankablePatterns, optimizationMetric),
     };
-  }, [patterns, stageMapNodes, bestPatternKey, stageMapBestPattern]);
+  }, [patterns, stageMapNodes, bestPatternKey, stageMapBestPattern, optimizationMetric]);

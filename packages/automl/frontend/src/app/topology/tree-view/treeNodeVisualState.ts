@@ -52,7 +52,7 @@ export const resolveTreeNodeVisualState = ({
   justCompleted: boolean;
   winnerRank?: WinnerRank;
 }): TreeNodeVisualState => {
-  if (winnerRank && stepState !== 'pending' && stepState !== 'unreached') {
+  if (winnerRank && stepState === 'completed') {
     return 'winner';
   }
   if (stepState === 'failed') {
