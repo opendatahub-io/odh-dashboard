@@ -23,15 +23,12 @@ import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared/type
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockServiceAccountK8sResource } from '@odh-dashboard/internal/__mocks__/mockServiceAccountK8sResource';
 import {
-  HardwareProfileModel,
-  NIMAccountModel,
-  ProjectModel,
   RoleBindingModel,
   RoleModel,
   SecretModel,
   ServiceAccountModel,
-  TemplateModel,
-} from './models';
+} from '@odh-dashboard/k8s-core/api/models';
+import { HardwareProfileModel, NIMAccountModel, ProjectModel, TemplateModel } from './models';
 
 export const initDeployPrefilledModelIntercepts = ({
   disableKServe = false,

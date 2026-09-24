@@ -24,14 +24,13 @@ import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount
 import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockStorageClassList } from '@odh-dashboard/internal/__mocks__/mockStorageClasses';
+import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
-  ConfigMapModel,
   HardwareProfileModel,
   InferenceServiceModel,
   NIMAccountModel,
   ProjectModel,
   PVCModel,
-  SecretModel,
   ServingRuntimeModel,
   StorageClassModel,
   TemplateModel,
@@ -164,7 +163,7 @@ export const initInterceptsToDeployNimInWizard = ({
   cy.interceptK8s(
     'POST',
     { model: InferenceServiceModel, ns: namespace },
-    { statusCode: 200, body: mockNimInferenceService({ namespace }) },
+    { statusCode: 200, body: mockNimInferenceService({ name: modelName, namespace }) },
   ).as('createInferenceService');
 
   cy.interceptK8s(

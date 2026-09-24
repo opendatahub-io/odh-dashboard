@@ -1,0 +1,16 @@
+.odh-data-registry__header {
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+
+  // PageSection has no CSS variable for padding-bottom
+  padding-bottom: 0 !important;
+}
+
+.odh-data-registry__tab {
+  display: inline-block;
+  align-self: flex-start;
+  font-weight: var(--pf-t--global--font--weight--body--default);
+  font-size: var(--pf-t--global--font--size--body--lg);
+  padding-bottom: var(--pf-t--global--spacer--sm);
+  border-bottom: 3px solid var(--pf-t--global--color--brand--default);
+  margin-bottom: -1px;
+}

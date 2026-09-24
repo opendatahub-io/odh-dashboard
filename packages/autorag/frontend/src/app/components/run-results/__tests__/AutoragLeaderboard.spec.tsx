@@ -10,6 +10,7 @@ import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -54,9 +55,8 @@ const createMockPattern = (
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'milvus',
-      provider_type: 'remote::milvus',
-      vector_store_id: 'vs_collection0',
+      provider_type: 'milvus',
+      collection_name: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
@@ -97,6 +97,20 @@ const createMockPattern = (
   },
 });
 
+const createMockPatternWithDuplicateFaithfulness = (): AutoragPattern => {
+  const pattern = createMockPattern('RAGAS pattern', { faithfulness: 0.618 });
+  pattern.evaluation.metrics = pattern.evaluation.metrics.map((metric) =>
+    metric.name === 'faithfulness' ? { ...metric, optimization_metric: false } : metric,
+  );
+  pattern.evaluation.metrics.push({
+    evaluator: 'ragas',
+    name: 'faithfulness',
+    scores: { mean: 0.771, ci_high: 0.82, ci_low: 0.72 },
+    optimization_metric: true,
+  });
+  return pattern;
+};
+
 // Standard RAG patterns with different metrics
 const mockStandardPatterns: Record<string, AutoragPattern> = {
   'pattern-1': createMockPattern('Basic RAG', {
@@ -115,6 +129,24 @@ const mockStandardPatterns: Record<string, AutoragPattern> = {
     context_correctness: 0.9,
   }),
 };
+
+const patternsOptimizedFor = (
+  objectiveName: 'faithfulness' | 'answer_correctness' | 'context_correctness',
+): Record<string, AutoragPattern> =>
+  Object.fromEntries(
+    Object.entries(mockStandardPatterns).map(([key, pattern]) => [
+      key,
+      {
+        ...pattern,
+        evaluation: {
+          metrics: pattern.evaluation.metrics.map((metric) => ({
+            ...metric,
+            optimization_metric: metric.name === objectiveName,
+          })),
+        },
+      },
+    ]),
+  );
 
 // Patterns with additional metrics
 const mockPatternsWithExtraMetrics: Record<string, AutoragPattern> = {
@@ -164,9 +196,8 @@ const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
     }),
     settings: {
       vector_store_binding: {
-        provider_id: 'milvus',
-        provider_type: 'remote::milvus',
-        vector_store_id: 'vs_collection0',
+        provider_type: 'milvus',
+        collection_name: 'vs_collection0',
       },
       chunking: null as unknown as AutoragPattern['settings']['chunking'],
       embedding: undefined as unknown as AutoragPattern['settings']['embedding'],
@@ -230,6 +261,8 @@ interface RenderWithContextOptions {
   namespace?: string;
 }
 
+type TestOptimizationMetric = 'faithfulness' | 'answer_correctness' | 'context_correctness';
+
 const renderWithContext = ({
   patterns = {},
   pipelineRun,
@@ -238,19 +271,13 @@ const renderWithContext = ({
   patternsError,
   patternsLoadError,
   onRetryPatterns,
-  onTryPattern,
-  onViewCode,
   optimizationMetric,
   namespace = 'test-namespace',
 }: RenderWithContextOptions = {}) => {
-  const finalOptimizationMetric: 'faithfulness' | 'answer_correctness' | 'context_correctness' =
+  const finalOptimizationMetric: TestOptimizationMetric =
     optimizationMetric ??
     ((pipelineRun?.runtime_config?.parameters as Record<string, unknown> | undefined)
-      ?.optimization_metric as
-      | 'faithfulness'
-      | 'answer_correctness'
-      | 'context_correctness'
-      | undefined) ??
+      ?.optimization_metric as TestOptimizationMetric | undefined) ??
     'faithfulness';
 
   const contextValue = {
@@ -262,6 +289,7 @@ const renderWithContext = ({
     patternsLoadError,
     onRetryPatterns,
     parameters: createMockParameters(finalOptimizationMetric),
+    optimizationMetric: resolveObjectiveReference(patterns, finalOptimizationMetric),
   };
 
   return render(
@@ -271,7 +299,7 @@ const renderWithContext = ({
           path="/autorag/:namespace/results/:runId"
           element={
             <AutoragResultsContext.Provider value={contextValue}>
-              <AutoragLeaderboard onTryPattern={onTryPattern} onViewCode={onViewCode} />
+              <AutoragLeaderboard />
             </AutoragResultsContext.Provider>
           }
         />
@@ -314,15 +342,15 @@ describe('AutoragLeaderboard utility functions', () => {
       showAllColumns();
 
       // Check that RAG metrics are displayed correctly (use testids since text appears multiple times)
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_relevancy-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_precision-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_recall-unitxt')).toBeInTheDocument();
 
       // For faithfulness optimization, faithfulness should be marked as optimized
-      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness');
+      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness-unitxt');
       expect(faithfulnessHeader).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
@@ -339,8 +367,29 @@ describe('AutoragLeaderboard utility functions', () => {
       });
       showAllColumns();
 
-      expect(screen.getByTestId('metric-header-custom_metric')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-another_test_metric')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-custom_metric-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-another_test_metric-unitxt')).toBeInTheDocument();
+    });
+
+    it('should include the evaluator in every metric column label', () => {
+      renderWithContext({
+        patterns: {
+          'pattern-1': createMockPattern('Test Pattern', {
+            answer_correctness: 0.92,
+            context_correctness: 0.9,
+          }),
+        },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      expect(
+        screen.getByRole('checkbox', { name: 'Answer correctness (unitxt)' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', { name: 'Context correctness (unitxt)' }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -356,7 +405,7 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Value should be formatted to 3 decimal places
-      const metricCell = screen.getByTestId('metric-faithfulness-1');
+      const metricCell = screen.getByTestId('metric-faithfulness-unitxt-1');
       expect(metricCell).toHaveTextContent('0.954');
     });
 
@@ -367,7 +416,7 @@ describe('AutoragLeaderboard utility functions', () => {
       });
 
       // Very small values should use scientific notation
-      const faithfulnessCell = screen.getByTestId('metric-faithfulness-1');
+      const faithfulnessCell = screen.getByTestId('metric-faithfulness-unitxt-1');
       expect(faithfulnessCell.textContent).toMatch(/1\.230e-5|1\.23e-5/);
     });
   });
@@ -577,6 +626,7 @@ describe('AutoragLeaderboard component', () => {
         patternsError: false,
         onRetryPatterns: mockRetry,
         parameters: createMockParameters('faithfulness'),
+        optimizationMetric: { name: 'faithfulness' },
       };
 
       rerender(
@@ -717,7 +767,7 @@ describe('AutoragLeaderboard component', () => {
     it('should rank by answer_correctness when specified', () => {
       // answer_correctness: Advanced RAG (0.89) > Hybrid RAG (0.85) > Basic RAG (0.82)
       renderWithContext({
-        patterns: mockStandardPatterns,
+        patterns: patternsOptimizedFor('answer_correctness'),
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
       });
 
@@ -728,7 +778,7 @@ describe('AutoragLeaderboard component', () => {
     it('should rank by context_correctness when specified', () => {
       // context_correctness: Advanced RAG (0.94) > Hybrid RAG (0.90) > Basic RAG (0.88)
       renderWithContext({
-        patterns: mockStandardPatterns,
+        patterns: patternsOptimizedFor('context_correctness'),
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'context_correctness'),
       });
 
@@ -744,6 +794,28 @@ describe('AutoragLeaderboard component', () => {
 
       expect(screen.getByTestId('top-rank-label')).toBeInTheDocument();
       expect(screen.getByTestId('top-rank-label')).toHaveTextContent('1');
+    });
+
+    it('should use the selected evaluator for unflagged same-named metrics', () => {
+      const selectedPattern = createMockPattern('Selected evaluator', { faithfulness: 0.6 });
+      const unflaggedPattern = createMockPattern('Unflagged evaluator', { faithfulness: 0.9 });
+      unflaggedPattern.evaluation.metrics[0].optimization_metric = false;
+      unflaggedPattern.evaluation.metrics.push({
+        evaluator: 'ragas',
+        name: 'faithfulness',
+        scores: { mean: 0.1, ci_high: 0.1, ci_low: 0.1 },
+      });
+
+      renderWithContext({
+        patterns: { selected: selectedPattern, unflagged: unflaggedPattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const rank1Row = screen.getByTestId('leaderboard-row-1');
+      expect(within(rank1Row).getByText('Unflagged evaluator')).toBeInTheDocument();
+      expect(within(rank1Row).getByTestId('metric-faithfulness-unitxt-1')).toHaveTextContent(
+        '0.900',
+      );
     });
 
     it('should not highlight non-top patterns', () => {
@@ -769,7 +841,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness');
+      const faithfulnessHeader = screen.getByTestId('metric-header-faithfulness-unitxt');
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
@@ -778,11 +850,11 @@ describe('AutoragLeaderboard component', () => {
 
     it('should mark answer_correctness as optimized when specified', () => {
       renderWithContext({
-        patterns: mockStandardPatterns,
+        patterns: patternsOptimizedFor('answer_correctness'),
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
       });
 
-      const header = screen.getByTestId('metric-header-answer_correctness');
+      const header = screen.getByTestId('metric-header-answer_correctness-unitxt');
       expect(within(header).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
 
@@ -793,10 +865,28 @@ describe('AutoragLeaderboard component', () => {
       });
       showAllColumns();
 
-      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
+      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness-unitxt');
       expect(
         within(answerCorrectnessHeader).queryByTestId('optimized-indicator'),
       ).not.toBeInTheDocument();
+    });
+
+    it('qualifies duplicate metric names by evaluator and uses the flagged evaluator value', () => {
+      renderWithContext({
+        patterns: { 'pattern-1': createMockPatternWithDuplicateFaithfulness() },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const optimizedHeader = screen.getByTestId('metric-header-faithfulness-ragas');
+      expect(optimizedHeader).toHaveTextContent('Answer faithfulness (ragas)');
+      expect(within(optimizedHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
+
+      showAllColumns();
+
+      expect(screen.getByText('Answer faithfulness (unitxt)')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-faithfulness-unitxt-1')).toHaveTextContent('0.618');
+      expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
     });
   });
 
@@ -844,7 +934,7 @@ describe('AutoragLeaderboard component', () => {
       });
       showAllColumns();
 
-      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
+      const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness-unitxt');
       const sortButton = within(answerCorrectnessHeader).getByRole('button', {
         name: /Answer correctness/,
       });
@@ -887,6 +977,64 @@ describe('AutoragLeaderboard component', () => {
   // ========================================================================
 
   describe('metric display', () => {
+    it('should keep metrics with the same name from different evaluators independent', () => {
+      const pattern = createMockPattern('Duplicate metric names', { faithfulness: 0.8 });
+      pattern.evaluation.metrics.push({
+        evaluator: 'custom',
+        name: 'faithfulness',
+        scores: { mean: 0.2, ci_high: 0.2, ci_low: 0.2 },
+      });
+
+      renderWithContext({
+        patterns: { duplicate: pattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'answer_correctness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(
+        screen.getByRole('checkbox', { name: 'Answer faithfulness (unitxt)' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', { name: 'Answer faithfulness (custom)' }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Save'));
+
+      showAllColumns();
+
+      expect(
+        screen.getByRole('columnheader', { name: /Answer faithfulness \(unitxt\)/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('columnheader', { name: /Answer faithfulness \(custom\)/i }),
+      ).toBeInTheDocument();
+      const row = screen.getByTestId('leaderboard-row-unranked-duplicate');
+      expect(
+        within(row).getByTestId('metric-faithfulness-unitxt-unranked-duplicate'),
+      ).toBeInTheDocument();
+      expect(
+        within(row).getByTestId('metric-faithfulness-custom-unranked-duplicate'),
+      ).toBeInTheDocument();
+      expect(within(row).getByText('0.800')).toBeInTheDocument();
+      expect(within(row).getByText('0.200')).toBeInTheDocument();
+    });
+
+    it('should mark duplicate normalized objective identities as unranked and N/A', () => {
+      const pattern = createMockPattern('Ambiguous objective', { faithfulness: 0.8 });
+      pattern.evaluation.metrics.push({
+        evaluator: ' UNITXT ',
+        name: ' Faithfulness ',
+        scores: { mean: 0.2, ci_high: 0.2, ci_low: 0.2 },
+      });
+
+      renderWithContext({
+        patterns: { ambiguous: pattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('rank-unranked-ambiguous')).toHaveTextContent('Unranked');
+      expect(screen.getByTestId('metric-faithfulness-unranked-ambiguous')).toHaveTextContent('N/A');
+    });
+
     it('should display all metrics for each pattern', () => {
       renderWithContext({
         patterns: mockPatternsWithExtraMetrics,
@@ -895,12 +1043,12 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       // Check that all metric headers are present (only mean values)
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-answer_relevancy')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_precision')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_recall')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_relevancy-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_precision-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_recall-unitxt')).toBeInTheDocument();
     });
 
     it('should display metric values with tooltip showing full precision', () => {
@@ -911,12 +1059,43 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      const metricCell = screen.getByTestId('metric-faithfulness-1');
+      const metricCell = screen.getByTestId('metric-faithfulness-unitxt-1');
       expect(metricCell).toHaveTextContent('0.954');
 
       // Tooltip should show full value
       const tooltip = within(metricCell).getByText('0.954').closest('span');
       expect(tooltip).toBeInTheDocument();
+    });
+
+    it('should display N/A for a null objective mean', () => {
+      const pattern = createMockPattern('Null objective', { faithfulness: 0.9 });
+      pattern.evaluation.metrics[0].scores.mean = null;
+
+      renderWithContext({
+        patterns: { pattern },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('metric-faithfulness-unitxt-unranked-pattern')).toHaveTextContent(
+        'N/A',
+      );
+      expect(screen.getByTestId('rank-unranked-pattern')).toHaveTextContent('Unranked');
+    });
+
+    it('should keep invalid objective patterns visible and rank only valid patterns contiguously', () => {
+      const invalidPattern = createMockPattern('Invalid objective', { answer_correctness: 0.99 });
+
+      renderWithContext({
+        patterns: { invalid: invalidPattern, ...mockStandardPatterns },
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('leaderboard-row-unranked-invalid')).toBeInTheDocument();
+      expect(screen.getByTestId('rank-unranked-invalid')).toHaveTextContent('Unranked');
+      expect(screen.getByTestId('leaderboard-row-1')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-row-2')).toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-row-3')).toBeInTheDocument();
+      expect(screen.getByTestId('invalid-objective-warning')).toBeInTheDocument();
     });
   });
 
@@ -1045,241 +1224,17 @@ describe('AutoragLeaderboard component', () => {
     });
   });
 
-  // ========================================================================
-  // Try this pattern Action
-  // ========================================================================
-
-  describe('Try this pattern action', () => {
-    const mockPatternsWithTemplate: Record<string, AutoragPattern> = {
-      'pattern-1': {
-        ...createMockPattern('Pattern With Template', {
-          faithfulness: 0.85,
-          answer_correctness: 0.82,
-          context_correctness: 0.88,
-        }),
-        inference: {
-          responses_template: {
-            model: 'vllm/llama-3',
-            stream: false,
-            store: true,
-            input: [
-              {
-                type: 'message' as const,
-                role: 'user' as const,
-                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
-              },
-            ],
-            metadata: { autorag_run_id: '123', rag_pattern_name: 'Pattern With Template' },
-            instructions: 'Answer from file_search results.',
-            tools: [
-              {
-                type: 'file_search' as const,
-                vector_store_ids: ['vs-1'],
-                max_num_results: 5,
-                ranking_options: {
-                  search_mode: 'hybrid',
-                  ranker_strategy: 'rrf',
-                  ranker_k: 60,
-                  ranker_alpha: 0.5,
-                },
-              },
-            ],
-            tool_choice: { type: 'file_search' },
-            include: ['file_search_call.results'],
-          },
-        },
-      },
-      'pattern-2': createMockPattern('Pattern Without Template', {
-        faithfulness: 0.92,
-        answer_correctness: 0.89,
-        context_correctness: 0.94,
-      }),
-    };
-
-    it('should show "Try this pattern" action when pattern has responses_template', () => {
-      const onTryPattern = jest.fn();
+  describe('OGX actions', () => {
+    it('should not expose playground or code actions in pattern menus', () => {
       renderWithContext({
-        patterns: mockPatternsWithTemplate,
+        patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryPattern,
       });
 
-      // Pattern with template should have the action (rank 2 since it has lower score)
-      // Pattern without template is rank 1 (higher score)
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      // Open kebab for pattern-1 (which has template — rank 2)
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      const playgroundAction = screen.getByText('Try this pattern');
-      expect(playgroundAction).toBeInTheDocument();
-    });
-
-    it('should call onTryPattern when "Try this pattern" is clicked', () => {
-      const onTryPattern = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryPattern,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      // Open kebab for pattern-1 (rank 2 — has template)
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      const playgroundAction = screen.getByText('Try this pattern');
-      fireEvent.click(playgroundAction);
-
-      expect(onTryPattern).toHaveBeenCalledWith('pattern-1');
-    });
-
-    it('should not show "Try this pattern" when pattern lacks responses_template', () => {
-      const onTryPattern = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryPattern,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      // Open kebab for pattern-2 (rank 1 — no template)
-      const row1 = rows[0];
-      const actionsButton = within(row1).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
 
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    });
-
-    it('should not show "Try this pattern" when onTryPattern is not provided', () => {
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    });
-  });
-
-  // ========================================================================
-  // View Code Action
-  // ========================================================================
-
-  describe('View code action', () => {
-    const mockPatternsWithTemplate: Record<string, AutoragPattern> = {
-      'pattern-1': {
-        ...createMockPattern('Pattern With Template', {
-          faithfulness: 0.85,
-          answer_correctness: 0.82,
-          context_correctness: 0.88,
-        }),
-        inference: {
-          responses_template: {
-            model: 'vllm/llama-3',
-            stream: false,
-            store: true,
-            input: [
-              {
-                type: 'message' as const,
-                role: 'user' as const,
-                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
-              },
-            ],
-            metadata: { autorag_run_id: '123', rag_pattern_name: 'Pattern With Template' },
-            instructions: 'Answer from file_search results.',
-            tools: [
-              {
-                type: 'file_search' as const,
-                vector_store_ids: ['vs-1'],
-                max_num_results: 5,
-                ranking_options: {
-                  search_mode: 'hybrid',
-                  ranker_strategy: 'rrf',
-                  ranker_k: 60,
-                  ranker_alpha: 0.5,
-                },
-              },
-            ],
-            tool_choice: { type: 'file_search' },
-            include: ['file_search_call.results'],
-          },
-        },
-      },
-      'pattern-2': createMockPattern('Pattern Without Template', {
-        faithfulness: 0.92,
-        answer_correctness: 0.89,
-        context_correctness: 0.94,
-      }),
-    };
-
-    it('should show "View code" action when pattern has responses_template', () => {
-      const onViewCode = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onViewCode,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      expect(screen.getByText('View code')).toBeInTheDocument();
-    });
-
-    it('should call onViewCode when "View code" is clicked', () => {
-      const onViewCode = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onViewCode,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      fireEvent.click(screen.getByText('View code'));
-
-      expect(onViewCode).toHaveBeenCalledWith('pattern-1');
-    });
-
-    it('should not show "View code" when pattern lacks responses_template', () => {
-      const onViewCode = jest.fn();
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onViewCode,
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row1 = rows[0];
-      const actionsButton = within(row1).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
-      expect(screen.queryByText('View code')).not.toBeInTheDocument();
-    });
-
-    it('should not show "View code" when onViewCode is not provided', () => {
-      renderWithContext({
-        patterns: mockPatternsWithTemplate,
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-      });
-
-      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
-      const row2 = rows[1];
-      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
-      fireEvent.click(actionsButton);
-
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
   });
@@ -1410,20 +1365,22 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       // Verify non-optimized metric headers exist before hiding
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-unitxt')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness-unitxt')).toBeInTheDocument();
 
       // Open modal and uncheck answer_correctness
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      const checkbox = screen.getByTestId('column-check-metric:answer_correctness');
+      const checkbox = screen.getByTestId('column-check-metric---unitxt---answer_correctness--');
       expect(checkbox).not.toBeDisabled();
       fireEvent.click(checkbox);
       fireEvent.click(screen.getByText('Save'));
 
       // answer_correctness header and cells should be hidden
-      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('metric-header-answer_correctness-unitxt'),
+      ).not.toBeInTheDocument();
       // context_correctness should still be visible
-      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness-unitxt')).toBeInTheDocument();
     });
 
     it('should allow toggling settings columns', () => {
@@ -1475,15 +1432,15 @@ describe('AutoragLeaderboard component', () => {
       });
       showAllColumns();
 
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-unitxt')).toBeInTheDocument();
 
       // Open modal, uncheck, then cancel
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      fireEvent.click(screen.getByTestId('column-check-metric---unitxt---answer_correctness--'));
       fireEvent.click(screen.getByText('Cancel'));
 
       // Column should still be visible
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-unitxt')).toBeInTheDocument();
     });
 
     it('should allow toggling the optimized metric column', () => {
@@ -1492,7 +1449,7 @@ describe('AutoragLeaderboard component', () => {
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       const optimizedCheckbox = screen.getByTestId('column-check-optimized-metric');
@@ -1500,7 +1457,7 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(optimizedCheckbox);
       fireEvent.click(screen.getByText('Save'));
 
-      expect(screen.queryByTestId('metric-header-faithfulness')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-faithfulness-unitxt')).not.toBeInTheDocument();
     });
 
     describe('AutoRAG Results Column Toggled tracking', () => {
@@ -1513,7 +1470,7 @@ describe('AutoragLeaderboard component', () => {
         fireMiscTrackingEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
-        fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+        fireEvent.click(screen.getByTestId('column-check-metric---unitxt---answer_correctness--'));
         fireEvent.click(screen.getByText('Save'));
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
@@ -1563,7 +1520,7 @@ describe('AutoragLeaderboard component', () => {
         });
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
-        fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+        fireEvent.click(screen.getByTestId('column-check-metric---unitxt---answer_correctness--'));
         fireEvent.click(screen.getByText('Save'));
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
@@ -1682,10 +1639,14 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
       expect(screen.getByTestId('pattern-name-header')).toBeInTheDocument();
       expect(screen.getByTestId('model-name-header')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
 
-      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('metric-header-context_correctness')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('metric-header-answer_correctness-unitxt'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('metric-header-context_correctness-unitxt'),
+      ).not.toBeInTheDocument();
       expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
       expect(screen.queryByTestId('retrieval-method-header')).not.toBeInTheDocument();
     });
@@ -1704,9 +1665,11 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(screen.getByText('Save'));
 
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
       expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('metric-header-answer_correctness-unitxt'),
+      ).not.toBeInTheDocument();
     });
 
     it('should show organize-by presets in the modal', () => {
@@ -1738,7 +1701,7 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(screen.getByText('Optimization metrics and chunking'));
       fireEvent.click(screen.getByText('Save'));
 
-      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-answer_correctness-unitxt')).toBeInTheDocument();
       expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
       expect(screen.queryByTestId('retrieval-method-header')).not.toBeInTheDocument();
     });
@@ -1771,12 +1734,12 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       // Sort by answer_correctness
-      const header = screen.getByTestId('metric-header-answer_correctness');
+      const header = screen.getByTestId('metric-header-answer_correctness-unitxt');
       fireEvent.click(within(header).getByRole('button', { name: /Answer correctness/ }));
 
       // Now hide that column
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      fireEvent.click(screen.getByTestId('column-check-metric---unitxt---answer_correctness--'));
       fireEvent.click(screen.getByText('Save'));
 
       // Table should still render (sort reset to rank)
@@ -1820,9 +1783,9 @@ describe('AutoragLeaderboard component', () => {
         'rank-header',
         'pattern-name-header',
         'model-name-header',
-        `metric-header-faithfulness`,
-        'metric-header-answer_correctness',
-        'metric-header-context_correctness',
+        `metric-header-faithfulness-unitxt`,
+        'metric-header-answer_correctness-unitxt',
+        'metric-header-context_correctness-unitxt',
         'chunking-method-header',
         'chunking-chunk-size-header',
         'chunking-chunk-overlap-header',
@@ -1868,7 +1831,7 @@ describe('AutoragLeaderboard component', () => {
         'rank-header',
         'pattern-name-header',
         'model-name-header',
-        'metric-header-faithfulness',
+        'metric-header-faithfulness-unitxt',
       ]);
     });
 
@@ -1914,7 +1877,7 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      fireEvent.click(screen.getByTestId('column-check-metric---unitxt---answer_correctness--'));
       expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
     });
 

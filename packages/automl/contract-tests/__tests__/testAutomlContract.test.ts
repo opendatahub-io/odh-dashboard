@@ -30,6 +30,59 @@ describe('AutoML API Contract Tests', () => {
   const KNOWN_REGISTRY = '6fb09186-eb11-4b68-8e3a-8017fb3bf18f';
   const UNKNOWN_REGISTRY = '00000000-0000-0000-0000-000000000000';
 
+  describe('Time series ID column contract', () => {
+    const request = {
+      display_name: 'contract-test-id-characters',
+      train_data_secret_name: SECRET,
+      train_data_bucket_name: BUCKET,
+      train_data_file_key: TIMESERIES_CSV_FILE,
+      task_type: 'timeseries',
+      target: 'target',
+      timestamp_column: 'timestamp',
+    };
+    const contract = { ref: '#/components/schemas/CreateTimeSeriesRunRequest' };
+
+    it('should allow ID omission in the request schema', () => {
+      expect(request).toMatchContract(apiSchema, contract);
+    });
+
+    it.each([
+      ['ASCII', 'item_id', true],
+      ['ASCII spaces', ' item id ', true],
+      ['leading BOM', '\ufeffitem_id', true],
+      ['leading BOM and whitespace', '\ufeff \titem_id\n', true],
+      ['Unicode edge whitespace', '\u0085\u00a0item_id\u3000', true],
+      ['non-ASCII name', '店', false],
+      ['mixed name', 'item_店', false],
+      ['accented name', 'café', false],
+      ['emoji', 'item_😀', false],
+      ['embedded Unicode whitespace', 'item\u00a0id', false],
+      ['trailing BOM', 'item_id\ufeff', false],
+      ['BOM after whitespace', ' \ufeffitem_id', false],
+      ['empty', '', false],
+      ['ASCII whitespace', ' \t\n', false],
+      ['Unicode whitespace', '\u0085\u00a0\u3000', false],
+      ['BOM only', '\ufeff', false],
+    ])('should align the contract and BFF for %s', async (_name, idColumn, accepted) => {
+      const body = { ...request, id_column: idColumn };
+      if (accepted) {
+        expect(body).toMatchContract(apiSchema, contract);
+      } else {
+        expect(body).not.toMatchContract(apiSchema, contract);
+      }
+      const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, body);
+      if (accepted) {
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+      } else {
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+      }
+    });
+  });
+
   describe('Health Check Endpoint', () => {
     it('should return health status', async () => {
       const result = await apiClient.get('/healthcheck');
@@ -549,6 +602,66 @@ describe('AutoML API Contract Tests', () => {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
           status: 200,
         });
+      });
+
+      it('should create a single-item timeseries run without an ID column', async () => {
+        const key = 'single-item-contract.csv';
+        const csv = `date,sales\n${Array.from(
+          { length: 100 },
+          (_, i) => `2026-01-${String((i % 28) + 1).padStart(2, '0')},${i + 2}`,
+        ).join('\n')}`;
+        const form = new FormData();
+        form.append('file', new Blob([csv], { type: 'text/csv' }), key);
+        const upload = await apiClient.postFormData(
+          `/api/v1/s3/files/${key}?namespace=${NS}&secretName=${SECRET}&bucket=${BUCKET}`,
+          form,
+        );
+        expect(upload.success).toBe(true);
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-single-item-timeseries',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: key,
+          task_type: 'timeseries',
+          target: 'sales',
+          timestamp_column: 'date',
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+      });
+
+      it.each(['', '   ', '\t\n', '\ufeff'])(
+        'should reject a supplied blank time series ID %j before reading CSV',
+        async (idColumn) => {
+          const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+            display_name: 'contract-test-blank-timeseries-id',
+            train_data_secret_name: SECRET,
+            train_data_bucket_name: BUCKET,
+            train_data_file_key: 'nonexistent-blank-id.csv',
+            task_type: 'timeseries',
+            target: 'target',
+            timestamp_column: 'timestamp',
+            id_column: idColumn,
+          });
+          expect(result.success).toBe(false);
+          expect(result.error?.status).toBe(400);
+        },
+      );
+
+      it('should reject a direct time series request without ID for three or more CSV columns', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-missing-timeseries-id',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TIMESERIES_CSV_FILE,
+          task_type: 'timeseries',
+          target: 'target',
+          timestamp_column: 'timestamp',
+        });
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
       });
 
       it('should return 400 for missing required fields', async () => {

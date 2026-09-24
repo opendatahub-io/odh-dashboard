@@ -22,7 +22,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 	}{
 		{
 			name:    "default spec — all modules deployed",
-			wantLen: 9,
+			wantLen: 10,
 			spec:    v1alpha1.DashboardSpec{},
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
@@ -34,11 +34,12 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"autorag":       v1alpha1.ModulePhaseDeployed,
 				"agentOps":      v1alpha1.ModulePhaseDeployed,
 				"notebooks":     v1alpha1.ModulePhaseDeployed,
+				"dataRegistry":  v1alpha1.ModulePhaseDeployed,
 			},
 		},
 		{
 			name:    "explicit disable override",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"genAi": {State: v1alpha1.ModuleDisabled},
@@ -56,7 +57,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "explicit enable is treated as deployed",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelRegistry": {State: v1alpha1.ModuleEnabled},
@@ -68,7 +69,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "all modules disabled via overrides",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelRegistry": {State: v1alpha1.ModuleDisabled},
@@ -80,6 +81,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 					"autorag":       {State: v1alpha1.ModuleDisabled},
 					"agentOps":      {State: v1alpha1.ModuleDisabled},
 					"notebooks":     {State: v1alpha1.ModuleDisabled},
+					"dataRegistry":  {State: v1alpha1.ModuleDisabled},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
@@ -92,11 +94,12 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"autorag":       v1alpha1.ModulePhaseDisabled,
 				"agentOps":      v1alpha1.ModulePhaseDisabled,
 				"notebooks":     v1alpha1.ModulePhaseDisabled,
+				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
 			},
 		},
 		{
 			name:    "unknown module override key produces UnknownModule status",
-			wantLen: 10,
+			wantLen: 11,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelregistry": {State: v1alpha1.ModuleEnabled},
@@ -111,7 +114,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "DSC component removed disables module",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
 					"modelregistry": {ManagementState: "Removed"},
@@ -120,14 +123,16 @@ func TestResolveModuleStatuses(t *testing.T) {
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDisabled,
 				"genAi":         v1alpha1.ModulePhaseDeployed,
+				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
 			},
 			wantReason: map[string]string{
 				"modelRegistry": "ComponentNotAvailable",
+				"dataRegistry":  "ComponentNotAvailable",
 			},
 		},
 		{
 			name:    "DSC component Managed enables module",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
 					"modelregistry": {ManagementState: "Managed"},
@@ -135,11 +140,42 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
+				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
+			},
+			wantReason: map[string]string{
+				"dataRegistry": "ComponentNotAvailable",
+			},
+		},
+		{
+			name:    "feastoperator Managed enables data registry",
+			wantLen: 10,
+			spec: v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"feastoperator": {ManagementState: "Managed"},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"dataRegistry": v1alpha1.ModulePhaseDeployed,
+			},
+		},
+		{
+			name:    "feastoperator Removed disables data registry",
+			wantLen: 10,
+			spec: v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"feastoperator": {ManagementState: "Removed"},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"dataRegistry": v1alpha1.ModulePhaseDisabled,
+			},
+			wantReason: map[string]string{
+				"dataRegistry": "ComponentNotAvailable",
 			},
 		},
 		{
 			name:    "DSC component absent from non-nil map disables module",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
 					"someother": {ManagementState: "Managed"},
@@ -150,24 +186,27 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"genAi":         v1alpha1.ModulePhaseDeployed,
 				"maas":          v1alpha1.ModulePhaseDeployed,
 				"agentOps":      v1alpha1.ModulePhaseDeployed,
+				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
 			},
 			wantReason: map[string]string{
 				"modelRegistry": "ComponentNotAvailable",
+				"dataRegistry":  "ComponentNotAvailable",
 			},
 		},
 		{
 			name:    "inter-module dependency cascade: genAi disabled disables autorag",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"genAi": {State: v1alpha1.ModuleDisabled},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
-				"genAi":   v1alpha1.ModulePhaseDisabled,
-				"autorag": v1alpha1.ModulePhaseDisabled,
-				"automl":  v1alpha1.ModulePhaseDeployed,
-				"maas":    v1alpha1.ModulePhaseDeployed,
+				"genAi":        v1alpha1.ModulePhaseDisabled,
+				"autorag":      v1alpha1.ModulePhaseDisabled,
+				"automl":       v1alpha1.ModulePhaseDeployed,
+				"maas":         v1alpha1.ModulePhaseDeployed,
+				"dataRegistry": v1alpha1.ModulePhaseDeployed,
 			},
 			wantReason: map[string]string{
 				"genAi":   "ExplicitOverride",
@@ -176,20 +215,22 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "aipipelines removed disables automl and autorag",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
 					"aipipelines": {ManagementState: "Removed"},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
-				"automl":  v1alpha1.ModulePhaseDisabled,
-				"autorag": v1alpha1.ModulePhaseDisabled,
-				"genAi":   v1alpha1.ModulePhaseDeployed,
+				"automl":       v1alpha1.ModulePhaseDisabled,
+				"autorag":      v1alpha1.ModulePhaseDisabled,
+				"genAi":        v1alpha1.ModulePhaseDeployed,
+				"dataRegistry": v1alpha1.ModulePhaseDisabled,
 			},
 			wantReason: map[string]string{
-				"automl":  "ComponentNotAvailable",
-				"autorag": "ComponentNotAvailable",
+				"automl":       "ComponentNotAvailable",
+				"autorag":      "ComponentNotAvailable",
+				"dataRegistry": "ComponentNotAvailable",
 			},
 		},
 	}
@@ -406,7 +447,7 @@ func TestOverlayContainerReadiness(t *testing.T) {
 }
 
 func TestModuleRegistry(t *testing.T) {
-	assert.Len(t, moduleRegistry, 9, "expected 9 modules in registry")
+	assert.Len(t, moduleRegistry, 10, "expected 10 modules in registry")
 
 	for name, mod := range moduleRegistry {
 		t.Run(name, func(t *testing.T) {
@@ -422,7 +463,36 @@ func TestModuleRegistry(t *testing.T) {
 func TestModuleNames(t *testing.T) {
 	names := ModuleNames()
 	assert.Equal(t, []string{
-		"agentOps", "automl", "autorag", "evalHub",
-		"genAi", "maas", "mlflow", "modelRegistry", "notebooks",
+		"agentOps", "automl", "autorag",
+		"dataRegistry",
+		"evalHub", "genAi",
+		"maas", "mlflow", "modelRegistry", "notebooks",
 	}, names)
+}
+
+func TestProxyPathsFor(t *testing.T) {
+	tests := []struct {
+		name   string
+		module string
+		want   []proxyRoute
+	}{
+		{"modelRegistry_default", "modelRegistry", []proxyRoute{{Path: "/model-registry/api", PathRewrite: "/api"}}},
+		{"genAi_default", "genAi", []proxyRoute{{Path: "/gen-ai/api", PathRewrite: "/api"}}},
+		{"maas_default", "maas", []proxyRoute{{Path: "/maas/api", PathRewrite: "/api"}}},
+		{"evalHub_default", "evalHub", []proxyRoute{{Path: "/eval-hub/api", PathRewrite: "/api"}}},
+		{"automl_default", "automl", []proxyRoute{{Path: "/automl/api", PathRewrite: "/api"}}},
+		{"autorag_default", "autorag", []proxyRoute{{Path: "/autorag/api", PathRewrite: "/api"}}},
+		{"notebooks_default", "notebooks", []proxyRoute{{Path: "/notebooks/api", PathRewrite: "/api"}}},
+		{"dataRegistry_custom", "dataRegistry", []proxyRoute{{Path: "/data-registry/api", PathRewrite: "/api"}}},
+		{"mlflow_custom", "mlflow", []proxyRoute{{Path: "/_bff/mlflow/api", PathRewrite: "/api"}}},
+		{"agentOps_custom", "agentOps", []proxyRoute{
+			{Path: "/agent-ops/api", PathRewrite: "/api"},
+			{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, proxyPathsFor(moduleRegistry[tt.module]))
+		})
+	}
 }

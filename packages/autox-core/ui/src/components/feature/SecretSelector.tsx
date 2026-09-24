@@ -34,6 +34,7 @@ export type SecretSelectorProps = Omit<
   namespace: string;
   type?: string;
   value?: string;
+  valueName?: string;
   onChange: (selection: SecretSelection | undefined) => void;
   additionalRequiredKeys?: Readonly<Partial<Record<string, readonly string[]>>>;
   onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
@@ -45,6 +46,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   namespace,
   type,
   value,
+  valueName,
   onChange,
   placeholder = 'Select a secret',
   isDisabled = false,
@@ -79,6 +81,9 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   const isLoading = !loaded;
   const hasNoSecrets = loaded && !hasError && !hasSecrets;
   const isSelectDisabled = isDisabled || hasError || !hasSecrets || isLoading;
+  const selectedValue = valueName
+    ? secretsList.find((secret) => secret.name === valueName)?.uuid
+    : value;
 
   const validateSecretKeys = React.useCallback(
     (secret: SecretListItem): string[] => {
@@ -96,26 +101,41 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   React.useEffect(() => {
-    if (!value || secretsList.length === 0) {
+    if (!selectedValue || secretsList.length === 0) {
       setValidationError('');
       return;
     }
-    const secret = secretsList.find((item) => item.uuid === value);
+    const secret = secretsList.find((s) => s.uuid === selectedValue);
     if (!secret) {
       setValidationError('');
       return;
     }
-    setValidationError(formatMissingKeysMessage(validateSecretKeys(secret)));
-  }, [value, secretsList, validateSecretKeys]);
+    const missingKeys = validateSecretKeys(secret);
+    setValidationError(formatMissingKeysMessage(missingKeys));
+  }, [selectedValue, secretsList, validateSecretKeys]);
 
   React.useEffect(() => {
-    if (!loaded || error || !value) {
+    if (!loaded || error || !valueName) {
       return;
     }
-    if (secretsList.length === 0 || !secretsList.some((secret) => secret.uuid === value)) {
+    if (!secretsList.some((secret) => secret.name === valueName)) {
       onChange(undefined);
     }
-  }, [loaded, error, secretsList, value, onChange]);
+  }, [error, loaded, onChange, secretsList, valueName]);
+
+  React.useEffect(() => {
+    if (!loaded || error || !selectedValue) {
+      return;
+    }
+    if (secretsList.length === 0) {
+      onChange(undefined);
+      return;
+    }
+    const isValueInList = secretsList.some((secret) => secret.uuid === selectedValue);
+    if (!isValueInList) {
+      onChange(undefined);
+    }
+  }, [loaded, error, secretsList, selectedValue, onChange]);
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
@@ -142,13 +162,13 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         return {
           content: secret.displayName || secret.name,
           value: secret.uuid,
-          isSelected: secret.uuid === value,
+          isSelected: secret.uuid === selectedValue,
           description: labels.length ? (
             <LabelGroup className="pf-v6-u-mt-sm">{labels}</LabelGroup>
           ) : undefined,
         };
       }),
-    [secretsList, value, showDescription, showType],
+    [secretsList, selectedValue, showDescription, showType],
   );
 
   if (isLoading) {
@@ -161,7 +181,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         {...props}
         placeholder={placeholder}
         selectOptions={options}
-        selected={value}
+        selected={selectedValue}
         dataTestId={dataTestId}
         isDisabled={isSelectDisabled}
         isRequired={isRequired}

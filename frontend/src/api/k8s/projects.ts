@@ -7,7 +7,7 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { translateDisplayNameForK8s, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { CustomWatchK8sResult } from '#~/types';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { ProjectModel, ProjectRequestModel } from '#~/api/models';

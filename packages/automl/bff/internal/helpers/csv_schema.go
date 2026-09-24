@@ -221,15 +221,6 @@ func looksLikeTimestamp(s string) bool {
 		}
 	}
 
-	if num, err := strconv.ParseInt(s, 10, 64); err == nil {
-		if num >= 315532800 && num <= 4102444800 {
-			return true
-		}
-		if num >= 315532800000 && num <= 4102444800000 {
-			return true
-		}
-	}
-
 	return false
 }
 

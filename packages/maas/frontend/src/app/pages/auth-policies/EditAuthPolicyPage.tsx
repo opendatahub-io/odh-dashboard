@@ -4,8 +4,8 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
-import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import { EventTrackingEditSource } from '~/app/types/event-tracking';
+import { getBackUrl } from '~/app/utilities/maasGovernanceNavigation';
 import PolicyForm from './policyForm/PolicyForm';
 
 const EditAuthPolicyPage: React.FC = () => {

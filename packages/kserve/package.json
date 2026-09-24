@@ -17,24 +17,27 @@
   "exports": {
     "./extensions": "./extensions.ts",
     "./deploy": "./src/deploy.ts",
+    "./deployments": "./src/deployments.ts",
     "./deployUtils": "./src/deployUtils.ts",
+    "./pvcDependents": "./src/clusterStorage/connectedResources.tsx",
     "./deploymentEndpoints": "./src/deploymentEndpoints.ts",
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./hfTokenSecret": "./src/hfTokenSecret.ts"
   },
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
-    "@odh-dashboard/hardware-profiles": "*",
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/foundation": "workspace:*",
+    "@odh-dashboard/hardware-profiles": "workspace:*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/model-serving": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk-utils": "^5",

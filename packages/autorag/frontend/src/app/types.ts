@@ -79,6 +79,23 @@ export type PipelineRunRuntimeConfig = SharedPipelineRunRuntimeConfig;
 
 export type PipelineRunErrorDetail = SharedPipelineRunErrorDetail;
 
+/** Runtime parameters are displayed read-only and may come from historical or current runs. */
+export type AutoragRuntimeParameters = Record<string, unknown> & {
+  optimization_metric?: unknown;
+  optimization_max_rag_patterns?: unknown;
+  generation_models?: unknown;
+  embedding_models?: unknown;
+  input_data_keys?: unknown;
+  maas_secret_name?: unknown;
+  vector_db_secret_name?: unknown;
+  input_data_key?: unknown;
+  ogx_secret_name?: unknown;
+  vector_io_provider_id?: unknown;
+  llama_stack_secret_name?: unknown;
+  llama_stack_vector_io_provider_id?: unknown;
+  embeddings_models?: unknown;
+};
+
 export type PipelineRunError = SharedPipelineRunError;
 
 export type PipelineSpec = SharedPipelineSpec;
@@ -91,30 +108,16 @@ export type PipelineRunStateHistoryEntry = SharedPipelineRunStateHistoryEntry;
 
 export type PipelineRun<TParams = Record<string, unknown>> = SharedPipelineRun<TParams>;
 
-export type OgxModelType = 'llm' | 'embedding';
-
-export type OgxModel = {
+export type MaaSModel = {
   id: string;
-  type: OgxModelType;
-  provider: string;
-  resource_path: string;
+  display_name?: string;
+  description?: string;
+  owned_by?: string;
+  ready: boolean;
 };
 
-export type OgxModelsResponse = {
-  models: OgxModel[];
-};
-
-export type OgxVectorStoreProvider = {
-  provider_id: string;
-  provider_type: string;
-};
-
-export type OgxVectorStoreProvidersResponse = {
-  vector_store_providers: OgxVectorStoreProvider[];
-};
-
-export type OgxFilteredVectorStoreProvidersResponse = OgxVectorStoreProvidersResponse & {
-  totalProviderCount: number;
+export type MaaSModelsResponse = {
+  models: MaaSModel[];
 };
 
 export type SecretListItem = SharedSecretListItem;
@@ -130,7 +133,7 @@ export type Envelope<M, D> = {
   data: D;
 };
 
-export type OgxCredentials = {
+export type LegacyRunCredentials = {
   baseUrl: string;
   apiKey: string;
 };
@@ -138,5 +141,5 @@ export type OgxCredentials = {
 export type EvaluationFileEntry = {
   question: string;
   correct_answers: string[];
-  correct_answer_document_ids: string[];
+  correct_answer_document_keys: string[];
 };

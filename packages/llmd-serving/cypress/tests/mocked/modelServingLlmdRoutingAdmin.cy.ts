@@ -362,6 +362,11 @@ describe('LLMD Routing Admin Settings', () => {
 
     it('should delete a routing config', () => {
       cy.interceptK8s(
+        'GET',
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'lab-routing-profile' },
+        mockUserConfig,
+      ).as('getConfigForDelete');
+      cy.interceptK8s(
         'DELETE',
         { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'lab-routing-profile' },
         mockLLMInferenceServiceConfigK8sResource({ name: 'lab-routing-profile' }),
@@ -371,6 +376,7 @@ describe('LLMD Routing Admin Settings', () => {
       deleteModal.find().should('exist');
       deleteModal.findInput().type('Lab routing profile');
       deleteModal.findSubmitButton().should('be.enabled').click();
+      cy.wait('@getConfigForDelete');
       cy.wait('@deleteConfig');
 
       cy.wsK8s(

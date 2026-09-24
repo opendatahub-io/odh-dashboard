@@ -90,7 +90,6 @@ export const blankDashboardCR: DashboardConfig = {
       autorag: false,
       modelAsService: true,
       aiAssetCustomEndpoints: false,
-      externalModels: false,
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
@@ -115,7 +114,9 @@ export const blankDashboardCR: DashboardConfig = {
       gpuaas: true,
       connectionTest: false,
       modelCapabilities: false,
+      runtimeCatalog: false,
       observabilityDashboard: true,
+      nimWizard: true,
     },
     notebookController: {
       enabled: true,

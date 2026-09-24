@@ -33,7 +33,8 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import { uploadMediaFile } from '~/app/services/llamaStackService';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
-import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
+import { API_URL_PREFIX, isLlamaModelEnabled } from '~/app/utilities';
+import { filterUnavailableMCPServers } from '~/app/utilities/mcp';
 import {
   convertMaaSModelToAIModel,
   getId,
@@ -42,10 +43,8 @@ import {
 } from '~/app/utilities/utils';
 import useCapabilityOnboarding from '~/app/hooks/useCapabilityOnboarding';
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
-import { TokenInfo, ResponseMetrics } from '~/app/types';
-import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-
-import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
+import { TokenInfo, MCPServerFromAPI } from '~/app/types';
+import type { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
@@ -85,10 +84,6 @@ interface ComparePaneWrapperProps {
   displayLabel: string;
   onClose: () => void;
   children: React.ReactNode;
-  /** Metrics from the last response (latency, tokens, TTFT) */
-  metrics?: ResponseMetrics | null;
-  /** Whether a response is currently being generated */
-  isLoading?: boolean;
   isSettingsOpen?: boolean;
   isActiveConfig?: boolean;
 }
@@ -98,8 +93,6 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   displayLabel,
   onClose,
   children,
-  metrics,
-  isLoading,
   isSettingsOpen,
   isActiveConfig,
 }) => (
@@ -107,8 +100,6 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
     configId={configId}
     displayLabel={displayLabel}
     onClose={onClose}
-    metrics={metrics}
-    isLoading={isLoading}
     isSettingsOpen={isSettingsOpen}
     isActiveConfig={isActiveConfig}
   >
@@ -122,6 +113,10 @@ const TAB_KEY_MAP: Record<string, number> = {
   knowledge: 2,
   mcp: 3,
 };
+
+const EMPTY_MCP_SERVER_STATUSES = new Map<string, ServerStatusInfo>();
+const checkMcpServerStatusUnavailable = (): Promise<ServerStatusInfo> =>
+  Promise.reject(new Error('MCP server status checks are unavailable'));
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
@@ -145,6 +140,12 @@ type ChatbotPlaygroundProps = {
   onClearAgent?: () => void;
   isProfileDirty?: boolean;
   onResetToLastSaved?: () => void;
+  mcpServers?: MCPServerFromAPI[];
+  mcpRegistryAvailable?: boolean;
+  mcpServersLoaded?: boolean;
+  mcpServersLoadError?: Error;
+  mcpServerStatuses?: Map<string, ServerStatusInfo>;
+  checkMcpServerStatus?: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -168,6 +169,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onClearAgent,
   isProfileDirty = false,
   onResetToLastSaved,
+  mcpServers = [],
+  mcpRegistryAvailable = false,
+  mcpServersLoaded = false,
+  mcpServersLoadError,
+  mcpServerStatuses = EMPTY_MCP_SERVER_STATUSES,
+  checkMcpServerStatus = checkMcpServerStatusUnavailable,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -261,6 +268,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Router state
   const location = useLocation();
   const selectedAAModel = location.state?.model;
+  const vectorStoreIdFromRoute = location.state?.vectorStoreId;
   const mcpServersFromRoute = React.useMemo(() => {
     const servers = location.state?.mcpServers;
     return Array.isArray(servers) ? servers : [];
@@ -270,14 +278,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     return statuses ? new Map(Object.entries(statuses)) : new Map();
   }, [location.state?.mcpServerStatuses]);
 
-  // MCP hooks
-  const {
-    data: mcpServers = [],
-    loaded: mcpServersLoaded,
-    error: mcpServersLoadError,
-  } = useFetchMCPServers();
-  const { serverStatuses: mcpServerStatuses, checkServerStatus: checkMcpServerStatus } =
-    useMCPServerStatuses(mcpServers, mcpServersLoaded);
+  const availableMcpServers = React.useMemo(
+    () => filterUnavailableMCPServers(mcpServers, mcpServerStatuses),
+    [mcpServers, mcpServerStatuses],
+  );
   const [mcpServerTokens, setMcpServerTokens] = React.useState<Map<string, TokenInfo>>(new Map());
 
   // UI state — can be controlled externally (e.g. from header Settings button)
@@ -312,8 +316,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
   const [warningsDismissed, setWarningsDismissed] = React.useState(false);
+  const settingsTabFromRoute: keyof typeof TAB_KEY_MAP | undefined =
+    location.state?.openSettingsToTab;
   const [settingsTabKey, setSettingsTabKey] = React.useState<string | number>(
-    location.state?.openSettingsToTab === 'mcp' ? 3 : 0,
+    settingsTabFromRoute ? TAB_KEY_MAP[settingsTabFromRoute] : 0,
   );
 
   // Reset warning dismissal when a different profile is loaded
@@ -325,9 +331,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
   const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
   const [disabledStates, setDisabledStates] = React.useState<Map<string, boolean>>(new Map());
-  const [metricsStates, setMetricsStates] = React.useState<Map<string, ResponseMetrics | null>>(
-    new Map(),
-  );
 
   // Vision image upload state
   const [imageUploadState, setImageUploadState] = React.useState<ImageUploadState>({
@@ -462,15 +465,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         next.set(configIdParam, hook.isMessageSendButtonDisabled);
         return next;
       });
-      // Track metrics for pane header display
-      setMetricsStates((prev) => {
-        if (prev.get(configIdParam) === hook.lastResponseMetrics) {
-          return prev;
-        }
-        const next = new Map(prev);
-        next.set(configIdParam, hook.lastResponseMetrics);
-        return next;
-      });
     },
     [],
   );
@@ -584,7 +578,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         fileName: normalizedName,
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
+      const url = `${API_URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
         namespace?.name || '',
       )}`;
       const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
@@ -813,15 +807,23 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     }
     useChatbotConfigStore.getState().resetConfiguration({
       selectedMcpServerIds: mcpServersFromRoute,
+      ...(vectorStoreIdFromRoute
+        ? {
+            knowledgeMode: 'external' as const,
+            selectedVectorStoreId: vectorStoreIdFromRoute,
+            isRagEnabled: true,
+          }
+        : {}),
     });
-  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel]);
+  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel, vectorStoreIdFromRoute]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
       location.state?.mcpServers ||
-        location.state?.model ||
-        location.state?.mcpServerStatuses ||
-        location.state?.openSettingsToTab,
+      location.state?.model ||
+      location.state?.mcpServerStatuses ||
+      location.state?.openSettingsToTab ||
+      location.state?.vectorStoreId,
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
@@ -869,15 +871,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       setDisabledStates((prev) => {
         const next = new Map(prev);
         staleKeys.forEach((key) => next.delete(key));
-        return next;
-      });
-
-      // Remove from metrics states
-      setMetricsStates((prev) => {
-        const next = new Map(prev);
-        staleKeys.forEach((key) => {
-          next.delete(key);
-        });
         return next;
       });
     }
@@ -977,7 +970,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           configId={configId}
           username={username}
           currentVectorStoreId={fileManagement.currentVectorStoreId}
-          mcpServers={mcpServers}
+          mcpServers={availableMcpServers}
           mcpServerStatuses={mcpServerStatuses}
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
@@ -1064,7 +1057,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
           input={lastInput}
           files={fileManagement.files}
-          mcpServers={mcpServers}
+          mcpServers={availableMcpServers}
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
         />
@@ -1113,9 +1106,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 sourceManagement={sourceManagement}
                 fileManagement={fileManagement}
                 initialServerStatuses={mcpServerStatusesFromRoute}
-                mcpServers={mcpServers}
+                mcpServers={availableMcpServers}
                 mcpServersLoaded={mcpServersLoaded}
                 mcpServersLoadError={mcpServersLoadError}
+                mcpRegistryAvailable={mcpRegistryAvailable}
                 mcpServerTokens={mcpServerTokens}
                 onMcpServerTokensChange={setMcpServerTokens}
                 checkMcpServerStatus={checkMcpServerStatus}
@@ -1148,8 +1142,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 {/* Single mode header */}
                 {!isCompareMode && !isEmbedded && (
                   <ChatbotPaneHeader
-                    metrics={metricsStates.get(primaryConfigId)}
-                    isLoading={loadingStates.get(primaryConfigId)}
                     hasDivider
                     isDarkMode={isDarkMode}
                     agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
@@ -1182,8 +1174,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                             configId={configId}
                             displayLabel={getConfigDisplayLabel(index)}
                             onClose={() => setPendingCloseConfigId(configId)}
-                            metrics={metricsStates.get(configId)}
-                            isLoading={loadingStates.get(configId)}
                             isSettingsOpen={isDrawerExpanded}
                             isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
                           >

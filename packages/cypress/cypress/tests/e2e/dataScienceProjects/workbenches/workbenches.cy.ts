@@ -28,6 +28,7 @@ describe('Workbench and PVSs tests', () => {
   let PVCSize: string;
   let defaultStorageClass: string;
   let notebookImage: string;
+  let hardwareProfileName: string;
   let skipTests = false;
   const uuid = generateTestUUID();
 
@@ -52,6 +53,7 @@ describe('Workbench and PVSs tests', () => {
           PVCDisplayName = fixtureData.PVC_DISPLAY_NAME;
           PVCSize = fixtureData.PVC_SIZE;
           notebookImage = fixtureData.notebookImage ?? '';
+          hardwareProfileName = fixtureData.hardwareProfileName ?? '';
 
           if (!projectName) {
             throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -126,6 +128,9 @@ describe('Workbench and PVSs tests', () => {
         (imageStreamName) => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
+
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(hardwareProfileName);
 
           // Attach existing storage workflow
           createSpawnerPage.findAttachExistingStorageButton().click();

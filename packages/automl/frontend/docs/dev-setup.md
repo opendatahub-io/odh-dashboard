@@ -4,9 +4,8 @@
 
 This project requires the following tools to be installed on your system:
 
-- [NodeJS and NPM](https://nodejs.org/)
-  - Node recommended version -> `22.17.0`
-  - NPM recommended version -> `10.8.2`
+- [Node.js](https://nodejs.org/) `>=22.18.0`
+- [pnpm](https://pnpm.io/) `11.22.0` (pinned in the repository root)
 
 ## Development
 
@@ -16,16 +15,18 @@ This project requires the following tools to be installed on your system:
       git clone https://github.com/opendatahub-io/odh-dashboard
       ```
 
-2. Within the repo context, install project dependencies
+2. Install dependencies from the repository root, then switch to this frontend
 
      ```bash
-     cd packages/automl/frontend && npm install
+     cd odh-dashboard
+     pnpm install
+     cd packages/automl/frontend
      ```
 
 ### Build project
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Serve development content
@@ -33,7 +34,7 @@ npm run build
 This is the default context for running a local UI.  Make sure you build the project using the instructions above prior to running the command below.
 
 ```bash
-npm run start:dev
+pnpm run start:dev
 ```
 
 For in-depth local run guidance review the [contribution guidelines](../../CONTRIBUTING.md).
@@ -43,7 +44,7 @@ For in-depth local run guidance review the [contribution guidelines](../../CONTR
 Run the mock tests.
 
   ```bash
-  npm run test:cypress-ci
+  pnpm run test:cypress-ci
   ```
 
 For in-depth testing guidance review the [testing guidelines](./testing.md)

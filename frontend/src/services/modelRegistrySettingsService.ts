@@ -1,7 +1,7 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { ListConfigSecretsResponse, ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
 
 const registriesUrl = '/api/modelRegistries';

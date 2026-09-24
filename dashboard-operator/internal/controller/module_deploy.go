@@ -37,7 +37,7 @@ const (
 	moduleComponentLabel    = "app.kubernetes.io/component"
 )
 
-// --- Module proxy configuration (static data needed for federation ConfigMap) ---
+// --- Module proxy and federation types ---
 
 type proxyRoute struct {
 	Path        string `json:"path"`
@@ -68,21 +68,6 @@ type proxyServiceEntry struct {
 	Service     serviceRef `json:"service"`
 }
 
-var moduleProxyPaths = map[string][]proxyRoute{
-	"modelRegistry": {{Path: "/model-registry/api", PathRewrite: "/api"}},
-	"genAi":         {{Path: "/gen-ai/api", PathRewrite: "/api"}},
-	"maas":          {{Path: "/maas/api", PathRewrite: "/api"}},
-	"mlflow":        {{Path: "/_bff/mlflow/api", PathRewrite: "/api"}},
-	"evalHub":       {{Path: "/eval-hub/api", PathRewrite: "/api"}},
-	"automl":        {{Path: "/automl/api", PathRewrite: "/api"}},
-	"autorag":       {{Path: "/autorag/api", PathRewrite: "/api"}},
-	"agentOps": {
-		{Path: "/agent-ops/api", PathRewrite: "/api"},
-		{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
-	},
-	"notebooks": {{Path: "/notebooks/api", PathRewrite: "/api"}},
-}
-
 // --- Service discovery env vars (inter-BFF injection) ---
 
 type interBFFDependency struct {
@@ -91,14 +76,35 @@ type interBFFDependency struct {
 	TargetModule   string
 }
 
-var interBFFDependencies = map[string][]interBFFDependency{
-	"genAi": {
-		{
-			EnvServiceName: "BFF_MAAS_SERVICE_NAME",
-			EnvServicePort: "BFF_MAAS_SERVICE_PORT",
-			TargetModule:   "maas",
+// proxyPathsFor returns the proxy routes for a module. If the module has
+// explicit ProxyPaths set, those are returned. Otherwise the standard
+// convention /<slug>/api → /api is used.
+func proxyPathsFor(mod ModuleDefinition) []proxyRoute {
+	if mod.ProxyPaths != nil {
+		return mod.ProxyPaths
+	}
+	return []proxyRoute{{
+		Path:        "/" + mod.ManifestSlug + "/api",
+		PathRewrite: "/api",
+	}}
+}
+
+// moduleFederationEntry builds the common remote-module entry used by each
+// federation ConfigMap. The module registry is the source of service, TLS, and
+// proxy-route configuration for every consumer.
+func (r *DashboardReconciler) moduleFederationEntry(name string, mod ModuleDefinition) federationEntry {
+	return federationEntry{
+		Name:        name,
+		RemoteEntry: "/remoteEntry.js",
+		Authorize:   true,
+		TLS:         mod.TLS,
+		Proxy:       proxyPathsFor(mod),
+		Service: &serviceRef{
+			Name:      standaloneServiceName(r.Platform, mod.ManifestSlug),
+			Namespace: r.ApplicationsNamespace,
+			Port:      mod.Port,
 		},
-	},
+	}
 }
 
 // coreBffPort is the port core-bff listens on within the main dashboard pod/service.
@@ -276,6 +282,19 @@ func (r *DashboardReconciler) deleteModuleResources(
 			}
 		}
 
+		var configMaps corev1.ConfigMapList
+		if err := r.List(ctx, &configMaps, matchLabels, inNamespace); err != nil {
+			errs = append(errs, fmt.Errorf("listing configmaps for module %s: %w", name, err))
+		} else {
+			for i := range configMaps.Items {
+				if err := r.Delete(ctx, &configMaps.Items[i]); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting configmap for module %s: %w", name, err))
+				} else {
+					deleted = true
+				}
+			}
+		}
+
 		var services corev1.ServiceList
 		if err := r.List(ctx, &services, matchLabels, inNamespace); err != nil {
 			errs = append(errs, fmt.Errorf("listing services for module %s: %w", name, err))
@@ -351,12 +370,33 @@ func (r *DashboardReconciler) deleteModuleResources(
 
 // --- Inter-BFF env var params ---
 
+// addInterBFFParams writes each inter-BFF dependency's service coordinates into the
+// module's params.env (rendered into that module's generated <slug>-params ConfigMap).
+//
+// These BFF_*_SERVICE_NAME/PORT keys are operator-owned: the operator adds them only when
+// the target module is deployed and clears them when it is not, so their presence in the
+// ConfigMap is not stable across reconciles. A consuming module MUST therefore:
+//   - NOT ship static defaults for these keys in its own params.env (the operator overwrites
+//     or deletes them), and
+//   - consume them at runtime via envFrom on the generated <slug>-params ConfigMap, NOT via a
+//     build-time kustomize `replacement` sourcing one of these keys — a replacement referencing
+//     a key that has been cleared (dependency disabled) fails manifest rendering.
+//
+// gen-ai, the only current consumer, still hardcodes the maas coordinates in its Deployment, so
+// these keys are inert for it today; keeping the write/clear logic correct means the ConfigMap is
+// right whenever a module starts consuming it via envFrom.
 func addInterBFFParams(params map[string]string, moduleName string, statuses map[string]v1alpha1.ModuleStatus, platform cluster.Platform) {
-	deps, ok := interBFFDependencies[moduleName]
-	if !ok {
+	mod := moduleRegistry[moduleName]
+	if mod.InterBFFDeps == nil {
 		return
 	}
-	for _, dep := range deps {
+	for _, dep := range mod.InterBFFDeps {
+		// Clear any previously written coordinates first. params.env persists across
+		// reconciles, so a dependency that is no longer deployed must not leave stale
+		// service coordinates behind.
+		delete(params, dep.EnvServiceName)
+		delete(params, dep.EnvServicePort)
+
 		targetMod, ok := moduleRegistry[dep.TargetModule]
 		if !ok {
 			continue
@@ -385,21 +425,7 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 			continue
 		}
 
-		svcName := standaloneServiceName(r.Platform, mod.ManifestSlug)
-
-		entry := federationEntry{
-			Name:        name,
-			RemoteEntry: "/remoteEntry.js",
-			Authorize:   true,
-			TLS:         true,
-			Proxy:       moduleProxyPaths[name],
-			Service: &serviceRef{
-				Name:      svcName,
-				Namespace: r.ApplicationsNamespace,
-				Port:      mod.Port,
-			},
-		}
-		entries = append(entries, entry)
+		entries = append(entries, r.moduleFederationEntry(name, mod))
 	}
 
 	// Add coreBff entry — core-bff is always present when the dashboard is deployed
@@ -585,6 +611,30 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 	}
 
 	return fedCM.Data[federationConfigKey], nil
+}
+
+// reconcileModuleDemand deploys and removes shared BFFs based on both operand
+// lifecycles. Shared modules retain the dashboard ownership label because they
+// are common dependencies rather than resources owned by a single operand.
+func (r *DashboardReconciler) reconcileModuleDemand(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
+	statuses := resolveModuleStatuses(&dashboard.Spec)
+	// The MaaS Consumer Portal is a RHOAI-only operand. Do not let an unsupported
+	// MaaS Consumer Portal request create MaaS/GenAI demand when the core dashboard is removed.
+	if !maasConsumerPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && dashboard.Spec.MaaSConsumerPortal != nil && dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" {
+		for _, name := range maasConsumerPortalRequiredModuleNames() {
+			if statuses[name].Reason != "ExplicitOverride" {
+				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Consumer Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}
+			}
+		}
+	}
+	if err := r.deployModuleManifests(ctx, dashboard, statuses); err != nil {
+		return nil, err
+	}
+	if err := r.deleteModuleResources(ctx, statuses); err != nil {
+		return nil, err
+	}
+	r.overlayStandaloneReadiness(ctx, statuses)
+	return statuses, nil
 }
 
 // --- Helper: ConfigMap to Unstructured ---

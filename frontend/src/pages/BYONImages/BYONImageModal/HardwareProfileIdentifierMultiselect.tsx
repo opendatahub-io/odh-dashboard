@@ -1,5 +1,5 @@
 import React from 'react';
-import { MultiSelection } from '#~/components/MultiSelection';
+import { MultiSelection } from '@odh-dashboard/ui-core/components/MultiSelection';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 

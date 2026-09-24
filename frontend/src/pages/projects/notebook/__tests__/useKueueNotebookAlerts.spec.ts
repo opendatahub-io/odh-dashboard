@@ -1,6 +1,9 @@
 import { renderHook } from '@testing-library/react';
+import {
+  KueueWorkloadStatus,
+  type KueueWorkloadStatusWithMessage,
+} from '@odh-dashboard/k8s-core/kueue/types';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
-import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import useNotification from '#~/utilities/useNotification';
 import type { NotebookState } from '#~/pages/projects/notebook/types';
 import useKueueNotebookAlerts from '#~/pages/projects/notebook/useKueueNotebookAlerts';

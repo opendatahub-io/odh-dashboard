@@ -3,10 +3,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
-import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
+import * as secretsApi from '@odh-dashboard/k8s-core/api/secrets';
 import ConnectionModal from '../ConnectionModal';
 
-jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({ createSecret: jest.fn() }));
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({ createSecret: jest.fn() }));
 
 const createSecretMock = jest.mocked(secretsApi.createSecret);
 const connectionTypes = [mockConnectionTypeConfigMapObj({ name: 'the only type', fields: [] })];

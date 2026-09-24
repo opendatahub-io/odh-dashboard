@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as z from 'zod';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { FetchS3JsonOptions, S3FileFetchers } from '../../api/s3';
 import { useAutoXApi } from '../../context';
 
@@ -70,5 +70,5 @@ export function useS3FileFetchers(): S3FileFetchers {
     [queryClient, s3Api],
   );
 
-  return { fetchS3File, fetchS3Json };
+  return useMemo(() => ({ fetchS3File, fetchS3Json }), [fetchS3File, fetchS3Json]);
 }

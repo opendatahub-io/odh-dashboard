@@ -12,12 +12,12 @@ class MaaSWizardField {
 }
 
 class APIKeysPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/keys-and-subs');
     this.wait();
   }
 
-  visitKeysAndSubsWithoutLogin(): void {
+  visit(): void {
     cy.visit('/maas/keys-and-subs');
     this.wait();
   }
@@ -136,7 +136,12 @@ class APIKeysPage {
 
 class MySubscriptionsPage {
   visit(subName: string): void {
-    cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`);
+    cy.visit(`/maas/keys-and-subs/subscriptions/${subName}`);
+    this.wait();
+  }
+
+  visitWithLogin(subName: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`, credentials);
     this.wait();
   }
 
@@ -488,8 +493,13 @@ class AdminBulkRevokeAPIKeyModal extends Modal {
 }
 
 class SubscriptionsPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/maas-governance/subscriptions');
+    this.wait();
+  }
+
+  visit(): void {
+    cy.visit('/maas/maas-governance/subscriptions');
     this.wait();
   }
 
@@ -709,7 +719,12 @@ class PhaseModal extends Modal {
 }
 class CreateSubscriptionPage {
   visit(): void {
-    cy.visitWithLogin('/maas/maas-governance/subscriptions/create');
+    cy.visit('/maas/maas-governance/subscriptions/create');
+    this.wait();
+  }
+
+  visitWithLogin(credentials?: UserAuthConfig): void {
+    cy.visitWithLogin('/maas/maas-governance/subscriptions/create', credentials);
     this.wait();
   }
 
@@ -802,7 +817,12 @@ class CreateSubscriptionPage {
 
 class EditSubscriptionPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/subscriptions/edit/${name}`);
+    cy.visit(`/maas/maas-governance/subscriptions/edit/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/subscriptions/edit/${name}`, credentials);
     this.wait();
   }
 
@@ -959,7 +979,12 @@ class DeleteSubscriptionModal extends DeleteModal {
 }
 class ViewSubscriptionPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/subscriptions/view/${name}`);
+    cy.visit(`/maas/maas-governance/subscriptions/view/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/subscriptions/view/${name}`, credentials);
     this.wait();
   }
 
@@ -1038,7 +1063,15 @@ class PolicyPage {
     const path = policyName
       ? `/maas/maas-governance/auth-policies/edit/${encodeURIComponent(policyName)}`
       : '/maas/maas-governance/auth-policies/create';
-    cy.visitWithLogin(path);
+    cy.visit(path);
+    this.wait();
+  }
+
+  visitWithLogin(policyName?: string, credentials?: UserAuthConfig): void {
+    const path = policyName
+      ? `/maas/maas-governance/auth-policies/edit/${encodeURIComponent(policyName)}`
+      : '/maas/maas-governance/auth-policies/create';
+    cy.visitWithLogin(path, credentials);
     this.wait();
   }
 
@@ -1102,8 +1135,13 @@ class PolicyPage {
 }
 
 class AuthPoliciesPage {
-  visit(): void {
+  visitWithLogin(): void {
     cy.visitWithLogin('/maas/maas-governance/auth-policies');
+    this.wait();
+  }
+
+  visit(): void {
+    cy.visit('/maas/maas-governance/auth-policies');
     this.wait();
   }
 
@@ -1292,7 +1330,12 @@ class DeleteAuthPolicyModal extends DeleteModal {
 
 class ViewAuthPolicyPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/maas-governance/auth-policies/view/${name}`);
+    cy.visit(`/maas/maas-governance/auth-policies/view/${name}`);
+    this.wait();
+  }
+
+  visitWithLogin(name: string, credentials?: UserAuthConfig): void {
+    cy.visitWithLogin(`/maas/maas-governance/auth-policies/view/${name}`, credentials);
     this.wait();
   }
 
@@ -1675,10 +1718,16 @@ class OverviewTabPage {
   }
 }
 
-class SubscriptionManagementPage {
+class MaaSGovernancePage {
   visit(tab?: string): void {
     const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
-    cy.visitWithLogin(path);
+    cy.visit(path);
+    this.wait();
+  }
+
+  visitWithLogin(tab?: string, credentials?: UserAuthConfig): void {
+    const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
+    cy.visitWithLogin(path, credentials);
     this.wait();
   }
 
@@ -1759,7 +1808,7 @@ class ExternalModelsPage {
   }
 
   findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('external-models-project-selector');
+    return cy.findByTestId('maas-external-resources-project-selector');
   }
 
   findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1808,6 +1857,352 @@ class ExternalModelsPage {
       this.findRows().filter(`:contains("${name}")`).first().find('tr').first(),
     );
   }
+
+  findExternalProvidersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('manage-external-providers-button');
+  }
+
+  findAddExternalModelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-external-model-button');
+  }
+}
+
+class CreateExternalModelPage {
+  visit(namespace = 'test-project'): void {
+    cy.visitWithLogin(`/ai-hub/models/deployments/external/${namespace}/register`);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-name');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-description');
+  }
+
+  findProjectInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-project');
+  }
+
+  findAddProviderReferenceButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-provider-reference-button');
+  }
+
+  findProviderReferencesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-references-table');
+  }
+
+  findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-model-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('cancel-external-model-button');
+  }
+
+  findProviderRefEditButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-edit-${index}`);
+  }
+
+  findProviderRefRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-row-${index}`);
+  }
+
+  findProviderRefRemoveButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-remove-${index}`);
+  }
+
+  findProviderRefWeightInput(index: number): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return cy.findByTestId(`provider-ref-weight-${index}`).find('input');
+  }
+
+  setProviderRefWeight(index: number, weight: number): void {
+    this.findProviderRefWeightInput(index)
+      .type('{selectall}', { parseSpecialCharSequences: true })
+      .type(String(weight), { parseSpecialCharSequences: false })
+      .should('have.value', String(weight));
+  }
+
+  findProviderRefWeightPercent(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-weight-percent-${index}`);
+  }
+
+  findZeroTotalWeightWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-refs-zero-total-weight-warning');
+  }
+
+  findDistributeEquallyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('distribute-equally-button');
+  }
+
+  findDistributeEquallyHelp(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('distribute-equally-help');
+  }
+}
+
+class EditExternalModelPage {
+  visit(modelName: string, namespace = 'test-project'): void {
+    cy.visitWithLogin(
+      `/ai-hub/models/deployments/external/${namespace}/${encodeURIComponent(modelName)}/edit`,
+    );
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findPageDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findBreadcrumbExternalModelsLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('breadcrumb-external-models-link');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-name');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-description');
+  }
+
+  findProjectInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-project');
+  }
+
+  findProviderReferencesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-references-table');
+  }
+
+  findAddProviderReferenceButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-provider-reference-button');
+  }
+
+  findProviderRefEditButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-edit-${index}`);
+  }
+
+  findProviderRefRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-row-${index}`);
+  }
+
+  findDistributeEquallyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('distribute-equally-button');
+  }
+
+  findUpdateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('update-external-model-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('cancel-external-model-button');
+  }
+}
+
+class ProviderReferenceModalBase extends Modal {
+  findTargetModelInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-target-model');
+  }
+
+  fillTargetModel(targetModel: string): void {
+    this.findTargetModelInput().clear();
+    this.findTargetModelInput().type(targetModel);
+  }
+
+  selectApiFormat(key: string): void {
+    this.findApiFormatSelect().should('be.visible').click();
+    cy.findByTestId(key).click();
+  }
+
+  findApiFormatSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-api-format');
+  }
+
+  findPathInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-path');
+  }
+
+  fillPath(path: string): void {
+    this.findPathInput().clear();
+    this.findPathInput().type(path, { parseSpecialCharSequences: false });
+  }
+
+  findAdvancedSettingsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-advanced-settings');
+  }
+
+  // PF v6 ExpandableSection puts data-testid on the section root; the toggle is a child button.
+  findAdvancedSettingsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAdvancedSettingsSection().find('button[aria-expanded]').first();
+  }
+
+  expandAdvancedSettings(): void {
+    this.findAdvancedSettingsToggle()
+      .scrollIntoView()
+      .then(($btn) => {
+        if ($btn.attr('aria-expanded') !== 'true') {
+          cy.wrap($btn).click();
+        }
+      });
+    this.findAdvancedSettingsToggle().should('have.attr', 'aria-expanded', 'true');
+  }
+
+  findAddConfigurationPairButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('add-configuration-pair-button');
+  }
+
+  addModelConfigPair(index: number, key: string, value: string): void {
+    this.expandAdvancedSettings();
+    this.findAddConfigurationPairButton().scrollIntoView().should('be.visible').click();
+    this.find()
+      .findByTestId(`provider-ref-config-key-${index}`)
+      .type(key, { parseSpecialCharSequences: false });
+    this.find()
+      .findByTestId(`provider-ref-config-value-${index}`)
+      .type(value, { parseSpecialCharSequences: false });
+  }
+
+  findInheritedProviderConfig(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('inherited-provider-config').scrollIntoView();
+  }
+
+  findInheritedConfigKey(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`inherited-config-key-${key}`);
+  }
+
+  findInheritedConfigValue(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`inherited-config-value-${key}`);
+  }
+}
+
+class AddProviderReferenceWizard extends ProviderReferenceModalBase {
+  constructor() {
+    super('Add provider reference');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-provider-reference-wizard');
+  }
+
+  findNextButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-wizard-next');
+  }
+
+  findAddButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('add-provider-reference-submit');
+  }
+
+  findBackButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-wizard-back');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-wizard-cancel');
+  }
+
+  findProviderSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-provider-select');
+  }
+
+  selectProvider(displayName: string): void {
+    this.findProviderSelect().click();
+    cy.findByRole('option', { name: displayName }).click();
+  }
+
+  selectCreateNewProvider(): void {
+    this.find().findByTestId('provider-source-create-new').click();
+  }
+
+  selectProviderType(value: string): void {
+    this.find().findByTestId('provider-type-toggle').click();
+    cy.findByTestId(`provider-type-option-${value}`).click();
+  }
+
+  selectAuthentication(value: string): void {
+    this.find().findByTestId('external-provider-auth-toggle').click();
+    cy.findByTestId(`external-provider-auth-option-${value}`).click();
+  }
+
+  selectCreateNewSecret(): void {
+    this.find().findByTestId('credential-secret-toggle').click();
+    cy.findByTestId('credential-secret-create-new-option').click();
+  }
+
+  fillNewProviderFields(options: {
+    displayName: string;
+    providerType: string;
+    endpoint: string;
+    newSecret: { name: string; apiKey: string };
+  }): void {
+    this.selectCreateNewProvider();
+    this.find().findByTestId('external-provider-name-desc-name').type(options.displayName);
+    this.selectProviderType(options.providerType);
+    this.find().findByTestId('external-provider-endpoint-input').type(options.endpoint);
+    this.selectCreateNewSecret();
+    this.find().findByTestId('credential-secret-name-input').type(options.newSecret.name);
+    this.find().findByTestId('credential-secret-value-input').type(options.newSecret.apiKey);
+    this.selectAuthentication('apikey');
+  }
+
+  goToConfigureStep(): void {
+    this.findNextButton().click();
+  }
+
+  addProviderReference(providerDisplayName: string, targetModel: string, apiFormat: string): void {
+    this.selectProvider(providerDisplayName);
+    this.goToConfigureStep();
+    this.fillTargetModel(targetModel);
+    this.selectApiFormat(apiFormat);
+    this.findAddButton().click();
+    this.shouldBeOpen(false);
+  }
+}
+
+class EditProviderReferenceModal extends ProviderReferenceModalBase {
+  constructor() {
+    super('Edit provider reference');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-provider-reference-modal');
+  }
+
+  findExternalProviderSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-ref-external-provider-section');
+  }
+
+  findExternalProviderInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-ref-external-provider');
+  }
+
+  findConfigurationSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-ref-configuration-section');
+  }
+
+  findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-reference-submit');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-reference-cancel');
+  }
 }
 
 class ExternalModelTableRow extends TableRow {
@@ -1830,10 +2225,6 @@ class ExternalModelTableRow extends TableRow {
 
   findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('phase-label');
-  }
-
-  findPhasePopover(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('phase-popover');
   }
 
   findGovernanceWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1886,6 +2277,12 @@ class ExternalModelTableRow extends TableRow {
     );
   }
 
+  findExpandedProviderStatus(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-provider-status-${providerName}`,
+    );
+  }
+
   findExpandedApiFormat(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findExpandedProviderRow(providerName).findByTestId(
       `expanded-table-row-api-format-${providerName}`,
@@ -1902,6 +2299,10 @@ class ExternalModelTableRow extends TableRow {
     return this.findExpandedProviderRow(providerName).findByTestId(
       `expanded-table-row-weight-${providerName}`,
     );
+  }
+
+  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Edit');
   }
 }
 
@@ -1920,7 +2321,7 @@ class DeleteExternalModelModal extends DeleteModal {
   }
 }
 
-class ExternalModelPathModal extends Modal {
+class PathModal extends Modal {
   constructor() {
     super('Path');
   }
@@ -1933,8 +2334,8 @@ class ExternalModelPathModal extends Modal {
     return this.find().findByTestId('path-modal-input-value');
   }
 
-  findProviderRef(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('path-modal-provider-ref-content');
+  findSubContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('path-modal-sub-content');
   }
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1968,6 +2369,338 @@ class ExternalModelProviderUrlModal extends Modal {
   }
 }
 
+class ExternalProvidersPage {
+  visit(): void {
+    cy.visitWithLogin('/ai-hub/models/deployments/external-providers');
+    cy.testA11y();
+  }
+
+  visitAsUser(
+    user: UserAuthConfig,
+    options?: { enableExternalModelsFlag?: boolean; projectName?: string },
+  ): void {
+    const projectSegment = options?.projectName ? `/${options.projectName}` : '';
+    const flagQuery = options?.enableExternalModelsFlag
+      ? '?devFeatureFlags=externalModels=true'
+      : '';
+    cy.visitWithLogin(
+      `/ai-hub/models/deployments/external-providers${projectSegment}${flagQuery}`,
+      user,
+    );
+    cy.testA11y();
+  }
+
+  findPageTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findPage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('all-external-providers-page');
+  }
+
+  findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('maas-external-resources-project-selector');
+  }
+
+  findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findProjectSelector().findByTestId('project-selector-toggle');
+  }
+
+  findProjectSelectorOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
+  selectProject(name: string): void {
+    this.findProjectSelectorToggle().click();
+    this.findProjectSelectorOption(name).click();
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-external-providers-page');
+  }
+
+  findCreateExternalProviderButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-provider-button');
+  }
+
+  findAddExternalProviderButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-external-provider-button');
+  }
+
+  findNoProjectsPage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-providers-no-projects');
+  }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-providers-table');
+  }
+
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().findAllByTestId('external-provider-row');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`external-providers-filter-input`);
+  }
+
+  openFilterSelect(testId: string): void {
+    cy.findByTestId(`${testId}-toggle`).click();
+  }
+
+  selectFilterOption(testId: string, value: string): void {
+    cy.findByTestId(`${testId}-option-${value}`).click();
+  }
+
+  selectProviderTypeFilter(value: string): void {
+    this.openFilterSelect('external-providers-provider-type-filter');
+    this.selectFilterOption('external-providers-provider-type-filter', value);
+  }
+
+  selectAuthenticationFilter(value: string): void {
+    this.openFilterSelect('external-providers-authentication-filter');
+    this.selectFilterOption('external-providers-authentication-filter', value);
+  }
+
+  selectStatusFilter(value: string): void {
+    this.openFilterSelect('external-providers-status-filter');
+    this.selectFilterOption('external-providers-status-filter', value);
+  }
+
+  selectMultipleStatusFilters(values: string[]): void {
+    this.openFilterSelect('external-providers-status-filter');
+    values.forEach((value) => {
+      this.selectFilterOption('external-providers-status-filter', value);
+    });
+  }
+
+  findFilterDropdownButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('filter-toolbar-dropdown');
+  }
+
+  findFilterDropdownItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`filter-toolbar-option-${name}`);
+  }
+
+  findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Clear all filters' });
+  }
+
+  findEmptyFilterState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
+  findColumnSortButton(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable()
+      .find('thead')
+      .findByRole('button', { name: new RegExp(`^${label}$`, 'i') });
+  }
+
+  getRow(name: string): ExternalProviderTableRow {
+    return new ExternalProviderTableRow(() =>
+      this.findRows().filter(`:contains("${name}")`).first().find('tr').first(),
+    );
+  }
+}
+
+class ExternalProviderTableRow extends TableRow {
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-name');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
+  findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-label');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-actions-toggle');
+  }
+
+  findCredentialSecretRef(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-credential-secret-ref');
+  }
+
+  findEndpointUrlLink(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`external-provider-view-endpoint-button-${name}`);
+  }
+
+  findAuthMechanism(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-auth-mechanism');
+  }
+
+  findProviderType(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-provider-type');
+  }
+
+  findStatusSubtext(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-label-subtext');
+  }
+}
+
+class CreateExternalProviderModal extends Modal {
+  constructor() {
+    super('Add external provider');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-provider-submit').closest('[role="dialog"]');
+  }
+
+  shouldBeOpen(open = true): void {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      cy.findByTestId('create-external-provider-submit').should('not.exist');
+    }
+  }
+
+  findProjectInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-project-input');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-name-desc-name');
+  }
+
+  findResourceNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-name-desc-resourceName');
+  }
+
+  findEndpointInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-endpoint-input');
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-provider-submit');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-provider-cancel');
+  }
+
+  findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('create-external-provider-error');
+  }
+
+  selectProviderType(value: string): void {
+    this.find().findByTestId('provider-type-toggle').click();
+    cy.findByTestId(`provider-type-option-${value}`).click();
+  }
+
+  selectAuthentication(value: string): void {
+    this.find().findByTestId('external-provider-auth-toggle').click();
+    cy.findByTestId(`external-provider-auth-option-${value}`).click();
+  }
+
+  findCredentialSecretToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('credential-secret-toggle');
+  }
+
+  findCredentialSecretInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findCredentialSecretToggle().find('input');
+  }
+
+  selectExistingSecret(secretName: string): void {
+    this.findCredentialSecretToggle().click();
+    cy.findByTestId(`credential-secret-option-${secretName}`).click();
+  }
+
+  selectCreateNewSecret(): void {
+    this.find().findByTestId('credential-secret-toggle').click();
+    cy.findByTestId('credential-secret-create-new-option').click();
+  }
+
+  findSecretNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('credential-secret-name-input');
+  }
+
+  findSecretValueInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('credential-secret-value-input');
+  }
+
+  findAdvancedSettingsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-provider-advanced-settings');
+  }
+
+  fillRequiredFields(options: {
+    displayName: string;
+    providerType: string;
+    endpoint: string;
+    existingSecret?: string;
+    newSecret?: { name: string; apiKey: string };
+  }): void {
+    this.findDisplayNameInput().type(options.displayName);
+    this.selectProviderType(options.providerType);
+    this.findEndpointInput().type(options.endpoint);
+
+    if (options.existingSecret) {
+      this.selectExistingSecret(options.existingSecret);
+    } else if (options.newSecret) {
+      this.selectCreateNewSecret();
+      this.findSecretNameInput().type(options.newSecret.name);
+      this.findSecretValueInput().type(options.newSecret.apiKey);
+    }
+
+    this.selectAuthentication('apikey');
+  }
+}
+
+class EditExternalProviderModal extends CreateExternalProviderModal {
+  constructor() {
+    super();
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-external-provider-submit').closest('[role="dialog"]');
+  }
+
+  shouldBeOpen(open = true): void {
+    if (open) {
+      this.find().should('be.visible');
+    } else {
+      cy.findByTestId('edit-external-provider-submit').should('not.exist');
+    }
+  }
+
+  findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-external-provider-submit');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-external-provider-cancel');
+  }
+
+  findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-external-provider-error');
+  }
+
+  findMissingCredentialSecretWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('credential-secret-missing-warning');
+  }
+}
+
+class DeleteExternalProviderModal extends DeleteModal {
+  constructor() {
+    super('Delete external provider?');
+  }
+
+  findConfirmationMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('delete-modal-confirmation-message');
+  }
+
+  shouldShowResourceName(name: string): this {
+    this.findConfirmationMessage().find('strong').should('contain.text', name);
+    return this;
+  }
+}
+
 export const maasWizardField = new MaaSWizardField();
 export const apiKeysPage = new APIKeysPage();
 export const subscriptionsTab = new SubscriptionsTab();
@@ -1989,10 +2722,18 @@ export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
 export const viewAuthPolicyPage = new ViewAuthPolicyPage();
 export const mySubscriptionsPage = new MySubscriptionsPage();
 export const overviewTabPage = new OverviewTabPage();
-export const subscriptionManagementPage = new SubscriptionManagementPage();
+export const maasGovernancePage = new MaaSGovernancePage();
 export const externalModelsPage = new ExternalModelsPage();
+export const createExternalModelPage = new CreateExternalModelPage();
+export const editExternalModelPage = new EditExternalModelPage();
+export const addProviderReferenceWizard = new AddProviderReferenceWizard();
+export const editProviderReferenceModal = new EditProviderReferenceModal();
 export const deleteExternalModelModal = new DeleteExternalModelModal();
-export const externalModelPathModal = new ExternalModelPathModal();
+export const pathModal = new PathModal();
 export const externalModelProviderUrlModal = new ExternalModelProviderUrlModal();
 export const modelInfoPopover = new ModelInfoPopover();
 export const phaseModal = new PhaseModal();
+export const externalProvidersPage = new ExternalProvidersPage();
+export const createExternalProviderModal = new CreateExternalProviderModal();
+export const editExternalProviderModal = new EditExternalProviderModal();
+export const deleteExternalProviderModal = new DeleteExternalProviderModal();

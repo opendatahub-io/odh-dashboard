@@ -1,7 +1,9 @@
 import { playgroundPage } from '~/__tests__/cypress/cypress/pages/playgroundPage';
+import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
 import {
   loadMCPTestConfig,
   initAutoConnectIntercepts,
+  navigateFromAIAssetsToPlayground,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
@@ -30,31 +32,12 @@ describe('AI Assets - MCP Servers', () => {
         serverUrl,
       });
 
-      cy.step('Navigate to Playground with route state');
-      cy.visit(`/gen-ai-studio/playground/${namespace}`, {
-        onBeforeLoad(win) {
-          // React Router v6 wraps custom state in { idx, key, usr: {...} } structure
-          win.history.pushState(
-            {
-              idx: 0,
-              key: 'test-navigation-key',
-              usr: {
-                mcpServers: [serverUrl],
-                mcpServerStatuses: {
-                  [serverUrl]: {
-                    status: 'connected',
-                    // eslint-disable-next-line camelcase
-                    auth_required: false,
-                    message: 'Connection successful',
-                  },
-                },
-              },
-            },
-            '',
-            win.location.pathname,
-          );
-        },
-      });
+      navigateFromAIAssetsToPlayground(namespace);
+
+      cy.step('Select the server and open it in Playground');
+      aiAssetsPage.findMCPServerCheckbox(serverName).check().should('be.checked');
+      aiAssetsPage.findTryInPlaygroundButton().should('contain.text', 'Try in Playground (1)');
+      aiAssetsPage.findTryInPlaygroundButton().should('be.enabled').click();
 
       cy.step('Verify Playground page loaded');
       playgroundPage.verifyOnPlaygroundPage(namespace);
@@ -64,9 +47,6 @@ describe('AI Assets - MCP Servers', () => {
 
       cy.step('Open MCP tab');
       playgroundPage.mcpTab.openMCPTab();
-
-      cy.step('Wait for auto-unlock status check');
-      cy.wait('@statusCheckAutoConnect', { timeout: 10000 });
 
       cy.step('Wait for tools to be fetched');
       cy.wait('@toolsRequestAutoConnect', { timeout: 10000 });

@@ -13,6 +13,7 @@ import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
+import { conditionalArea } from '@odh-dashboard/ui-core/components/conditionalArea';
 import {
   DEFAULT_LIST_WATCH_RESULT,
   DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
@@ -21,7 +22,6 @@ import {
 import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { conditionalArea } from '#~/concepts/areas';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { useTemplates } from '#~/api';
 import { Connection } from '#~/concepts/connectionTypes/types';

@@ -28,6 +28,7 @@ type Service interface {
 	// Pipeline CRUD
 	ListPipelines(ctx context.Context, namespace, filter string) (*PipelinesResponse, error)
 	GetPipelineVersion(ctx context.Context, namespace, pipelineID, versionID string) (*PipelineVersion, error)
+	GetPipelineInputParameters(ctx context.Context, namespace, pipelineID, versionID string) ([]string, error)
 	ListPipelineVersions(ctx context.Context, namespace, pipelineID string) (*PipelineVersionsResponse, error)
 	CreatePipeline(ctx context.Context, namespace, name string) (*Pipeline, error)
 	UploadPipelineVersion(ctx context.Context, namespace, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error)
@@ -74,13 +75,14 @@ type ServiceConfig struct {
 }
 
 type service struct {
-	Client        Client
-	K8sService    k8s.Service
-	Logger        *slog.Logger
-	pipelineCache *pipelineCache
-	dspaCache     *dspaCache
-	inFlight      map[string]chan struct{}
-	inFlightMu    sync.Mutex
+	Client                       Client
+	K8sService                   k8s.Service
+	Logger                       *slog.Logger
+	pipelineCache                *pipelineCache
+	pipelineInputParametersCache *pipelineInputParametersCache
+	dspaCache                    *dspaCache
+	inFlight                     map[string]chan struct{}
+	inFlightMu                   sync.Mutex
 }
 
 // Compile-time interface check.
@@ -88,12 +90,13 @@ var _ Service = (*service)(nil)
 
 func NewService(cfg ServiceConfig, client Client, k8sService k8s.Service) Service {
 	return &service{
-		Client:        client,
-		K8sService:    k8sService,
-		Logger:        cfg.Logger,
-		pipelineCache: newPipelineCache(),
-		dspaCache:     newDSPACache(),
-		inFlight:      make(map[string]chan struct{}),
+		Client:                       client,
+		K8sService:                   k8sService,
+		Logger:                       cfg.Logger,
+		pipelineCache:                newPipelineCache(),
+		pipelineInputParametersCache: newPipelineInputParametersCache(),
+		dspaCache:                    newDSPACache(),
+		inFlight:                     make(map[string]chan struct{}),
 	}
 }
 
@@ -110,6 +113,33 @@ func (s *service) CreatePipelineRun(ctx context.Context, namespace string, input
 
 	run, err := s.Client.CreatePipelineRun(ctx, baseURL, input)
 	if err != nil {
+		if errors.Is(err, ErrPipelineVersionNotFound) && input != nil && input.PipelineVersionReference != nil {
+			_, cached, ok := s.pipelineCache.getCachedPipeline(
+				namespace,
+				input.PipelineVersionReference.PipelineID,
+				input.PipelineVersionReference.PipelineVersionID,
+			)
+			if ok {
+				s.pipelineCache.invalidate(namespace)
+				refreshed, discoverErr := s.DiscoverPipelineByName(
+					ctx,
+					namespace,
+					cached.PipelineName,
+					cached.PipelineVersionName,
+				)
+				if discoverErr != nil {
+					return nil, discoverErr
+				}
+				if refreshed != nil {
+					retryInput := *input
+					retryReference := *input.PipelineVersionReference
+					retryReference.PipelineID = refreshed.PipelineID
+					retryReference.PipelineVersionID = refreshed.PipelineVersionID
+					retryInput.PipelineVersionReference = &retryReference
+					return s.Client.CreatePipelineRun(ctx, baseURL, &retryInput)
+				}
+			}
+		}
 		s.Logger.Error("failed to create pipeline run", "error", err)
 		return nil, err
 	}
@@ -281,6 +311,42 @@ func (s *service) GetPipelineVersion(ctx context.Context, namespace, pipelineID,
 	return version, nil
 }
 
+// GetPipelineInputParameters returns the declared root input parameters for a pipeline version.
+// Results are cached by namespace, pipeline ID, and version ID using the same TTL as discovery.
+func (s *service) GetPipelineInputParameters(ctx context.Context, namespace, pipelineID, versionID string) ([]string, error) {
+	if namespace == "" || pipelineID == "" || versionID == "" {
+		return nil, fmt.Errorf("%w: namespace, pipeline ID, and version ID are required", ErrInvalidInput)
+	}
+
+	cacheKey := strings.Join([]string{namespace, pipelineID, versionID}, "\x00")
+	if parameters, ok := s.pipelineInputParametersCache.get(cacheKey); ok {
+		return parameters, nil
+	}
+
+	version, err := s.GetPipelineVersion(ctx, namespace, pipelineID, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve pipeline input schema: %w", err)
+	}
+	if version == nil {
+		return nil, fmt.Errorf("%w: pipeline version response is empty", ErrPipelineInputSchema)
+	}
+
+	parameters, err := extractPipelineInputParameters(version.PipelineSpec)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrPipelineInputSchema, err)
+	}
+
+	s.pipelineInputParametersCache.set(cacheKey, parameters)
+	s.loggerWithIdentity(ctx).Debug(
+		"cached pipeline input schema",
+		"namespace", namespace,
+		"pipeline_id", pipelineID,
+		"pipeline_version_id", versionID,
+		"parameter_count", len(parameters),
+	)
+	return append([]string(nil), parameters...), nil
+}
+
 func (s *service) ListPipelineVersions(ctx context.Context, namespace, pipelineID string) (*PipelineVersionsResponse, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing pipeline versions", "namespace", namespace, "pipeline_id", pipelineID)
@@ -417,19 +483,19 @@ func (s *service) DiscoverPipelineByName(ctx context.Context, namespace, pipelin
 	}
 
 	return &DiscoveredPipeline{
-		PipelineID:        matchedPipeline.PipelineID,
-		PipelineVersionID: matchedVersion.PipelineVersionID,
-		PipelineName:      matchedPipeline.DisplayName,
-		Namespace:         namespace,
-		AllVersionIDs:     allIDs,
-		DiscoveredAt:      time.Now(),
+		PipelineID:          matchedPipeline.PipelineID,
+		PipelineVersionID:   matchedVersion.PipelineVersionID,
+		PipelineVersionName: matchedVersion.DisplayName,
+		PipelineName:        matchedPipeline.DisplayName,
+		Namespace:           namespace,
+		AllVersionIDs:       allIDs,
+		DiscoveredAt:        time.Now(),
 	}, nil
 }
 
 // DiscoverNamedPipelines discovers multiple managed pipelines, one per entry in definitions.
-// For each definition, tries the exact default version display name first, then falls back
-// to the most recently created version (ListPipelineVersions is sorted by created_at desc)
-// so runs from older pipeline versions remain discoverable.
+// An empty defaultVersion selects the most recently created version. A non-empty defaultVersion
+// is an exact version pin and does not fall back when that version is unavailable.
 // Results are cached per namespace with a 5-minute TTL.
 func (s *service) DiscoverNamedPipelines(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*DiscoveredPipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
@@ -453,12 +519,6 @@ func (s *service) DiscoverNamedPipelines(ctx context.Context, namespace, default
 		discovered, err := s.DiscoverPipelineByName(ctx, namespace, name, defaultVersion)
 		if err != nil {
 			return nil, fmt.Errorf("failed to discover pipeline %q: %w", pipelineType, err)
-		}
-		if discovered == nil {
-			discovered, err = s.DiscoverPipelineByName(ctx, namespace, name, "")
-			if err != nil {
-				return nil, fmt.Errorf("failed to discover pipeline %q (fallback): %w", pipelineType, err)
-			}
 		}
 		if discovered != nil {
 			result[pipelineType] = discovered
@@ -822,6 +882,7 @@ func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) 
 
 		logger.Info("managed pipelines already enabled, triggered rollout restart", "dspa", dspa.Name, "deployment", deploymentName)
 		s.dspaCache.invalidate(namespace)
+		s.pipelineCache.invalidate(namespace)
 		return &EnableManagedPipelinesResult{DSPAName: dspa.Name, Action: "restarted"}, nil
 	}
 
@@ -832,6 +893,7 @@ func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) 
 
 	logger.Info("managed pipelines enabled", "dspa", dspa.Name)
 	s.dspaCache.invalidate(namespace)
+	s.pipelineCache.invalidate(namespace)
 	return &EnableManagedPipelinesResult{DSPAName: dspa.Name, Action: "enabled"}, nil
 }
 

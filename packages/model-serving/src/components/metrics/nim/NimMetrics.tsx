@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { NimMetricsContextProvider } from '@odh-dashboard/internal/concepts/metrics/kserve/NimMetricsContext';
-import NimMetricsContent from '@odh-dashboard/internal/concepts/metrics/kserve/content/NimMetricsContent';
+import { NimMetricsContextProvider } from '../kserve/NimMetricsContext';
+import NimMetricsContent from '../kserve/content/NimMetricsContent';
 import { ModelServingMetricsContext } from '../ModelServingMetricsContext';
 
 type NimMetricsProps = {

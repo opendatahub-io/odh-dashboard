@@ -1,8 +1,8 @@
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { testConnection } from '#~/services/connectionTestService';
 import { ConnectionTestRequest, ConnectionTestResult } from '#~/concepts/connectionTypes/types';
 
-jest.mock('#~/utilities/axios', () => ({
+jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
   __esModule: true,
   default: { post: jest.fn() },
 }));

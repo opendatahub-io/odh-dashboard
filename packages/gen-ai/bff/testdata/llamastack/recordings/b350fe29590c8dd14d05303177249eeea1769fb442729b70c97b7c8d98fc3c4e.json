@@ -33,7 +33,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.45.0"
+      "openai_sdk_version": "3.1.0"
     }
   },
   "response": {
@@ -45,7 +45,7 @@
           "choices": [
             {
               "delta": {
-                "content": "AI stands for **Artificial Intelligence**. At its core, it's a broad field of computer science dedicated to creating machines that can perform tasks that typically require human intelligence.\n\nThink of it as giving machines the ability to",
+                "content": "AI stands for **Artificial Intelligence**.\n\nAt its core",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -63,9 +63,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 44,
+            "completion_tokens": 11,
             "prompt_tokens": 28,
-            "total_tokens": 391,
+            "total_tokens": 241,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -78,7 +78,7 @@
           "choices": [
             {
               "delta": {
-                "content": " \"think\" or \"reason\" in some capacity.\n\nHere's a breakdown of what that entails:\n\n1.  **The Goal:** To simulate human intelligence in machines. This includes capabilities like:\n    *   **Learning",
+                "content": ", AI is about **creating machines or computer systems that can perform tasks that typically require human intelligence**.\n\nThink of it as programming computers to \"think\" or \"reason\" in ways that resemble human cognitive abilities.\n\nHere's a breakdown",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -96,9 +96,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 92,
+            "completion_tokens": 60,
             "prompt_tokens": 28,
-            "total_tokens": 439,
+            "total_tokens": 290,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -111,7 +111,7 @@
           "choices": [
             {
               "delta": {
-                "content": ":** Acquiring information and rules for using the information.\n    *   **Reasoning:** Using rules to reach approximate or definite conclusions.\n    *   **Problem-solving:** Finding solutions to complex problems.\n    *   **Perception",
+                "content": " of what that generally means:\n\n1.  **Learning:** AI systems can learn from data, identifying patterns and making decisions or predictions based on those patterns. This is where **Machine Learning** (which we just discussed) plays a huge",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -129,9 +129,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 142,
+            "completion_tokens": 108,
             "prompt_tokens": 28,
-            "total_tokens": 489,
+            "total_tokens": 338,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -144,7 +144,7 @@
           "choices": [
             {
               "delta": {
-                "content": ":** Understanding and interpreting sensory information (like images, sounds, or text).\n    *   **Language Understanding:** Processing and generating human language.\n\n2.  **How it Works (Generally):** AI systems are built using algorithms and",
+                "content": " role.\n2.  **Reasoning:** They can use logic and rules to draw conclusions or make inferences.\n3.  **Problem-Solving:** AI can analyze problems and find solutions, often by evaluating various possibilities.\n4.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -162,9 +162,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 190,
+            "completion_tokens": 157,
             "prompt_tokens": 28,
-            "total_tokens": 537,
+            "total_tokens": 387,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -177,7 +177,7 @@
           "choices": [
             {
               "delta": {
-                "content": " models that are trained on vast amounts of data. These algorithms learn patterns, make predictions, or take actions based on what they've learned, often without being explicitly programmed for every single scenario.\n\n3.  **Key Characteristics:**\n    *   ",
+                "content": "  **Perception:** This includes things like computer vision (understanding images and videos) and speech recognition (understanding spoken language).\n5.  **Language Understanding and Generation:** Known as Natural Language Processing (NLP), this allows AI to understand",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -195,9 +195,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 240,
+            "completion_tokens": 204,
             "prompt_tokens": 28,
-            "total_tokens": 587,
+            "total_tokens": 434,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -210,7 +210,7 @@
           "choices": [
             {
               "delta": {
-                "content": "**Autonomy:** The ability to perform tasks without constant human guidance.\n    *   **Adaptability:** The ability to improve performance by learning from data and experience.\n    *   **Purposefulness:** Designed to achieve specific goals.",
+                "content": ", interpret, and generate human language.\n\n**The main goals of AI are to:**\n*   Automate tasks that are currently done by humans.\n*   Solve complex problems more efficiently than humans.\n*   Enhance human capabilities",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -228,9 +228,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 288,
+            "completion_tokens": 253,
             "prompt_tokens": 28,
-            "total_tokens": 635,
+            "total_tokens": 483,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -243,7 +243,7 @@
           "choices": [
             {
               "delta": {
-                "content": "\n\n4.  **Types of AI:**\n    *   **Narrow AI (or Weak AI):** This is the vast majority of AI we have today. It's designed and trained for a specific task.\n        *   ",
+                "content": " by providing intelligent tools and insights.\n\n**Examples of AI in action are all around us:**\n*   **Voice assistants** like Siri, Alexa, and Google Assistant.\n*   **Recommendation systems** on Netflix, Amazon, and",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -261,9 +261,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 334,
+            "completion_tokens": 301,
             "prompt_tokens": 28,
-            "total_tokens": 681,
+            "total_tokens": 531,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -276,7 +276,7 @@
           "choices": [
             {
               "delta": {
-                "content": "*Examples:* Voice assistants (Siri, Alexa), recommendation engines (Netflix, Amazon), spam filters, self-driving cars (they are good at driving, but can't write a novel).\n    *   **General AI (or",
+                "content": " YouTube.\n*   **Self-driving cars**.\n*   **Fraud detection** in banking.\n*   **Medical diagnosis** and drug discovery.\n*   **Spam filters** in your email.\n*   **Fac",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -294,9 +294,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 383,
+            "completion_tokens": 350,
             "prompt_tokens": 28,
-            "total_tokens": 730,
+            "total_tokens": 580,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -309,271 +309,7 @@
           "choices": [
             {
               "delta": {
-                "content": " Strong AI):** This is hypothetical AI that would possess human-level cognitive abilities across a wide range of tasks, capable of understanding, learning, and applying intelligence to any problem. This is still a long-term goal.\n    *   ",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 431,
-            "prompt_tokens": 28,
-            "total_tokens": 778,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": "**Superintelligence:** A hypothetical AI that would surpass human intelligence across virtually all fields, including scientific creativity, general wisdom, and social skills.\n\n5.  **Major Subfields & Techniques:**\n    *   **Machine Learning (ML):",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 480,
-            "prompt_tokens": 28,
-            "total_tokens": 827,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": "** A subset of AI that focuses on enabling systems to learn from data without explicit programming. (This is what you asked about initially!)\n    *   **Deep Learning (DL):** A subset of Machine Learning that uses artificial neural networks with",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 529,
-            "prompt_tokens": 28,
-            "total_tokens": 876,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": " multiple layers to learn complex patterns, often excelling in tasks like image and speech recognition.\n    *   **Natural Language Processing (NLP):** Enables computers to understand, interpret, and generate human language (e.g., chatbots, translation",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 578,
-            "prompt_tokens": 28,
-            "total_tokens": 925,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": " services).\n    *   **Computer Vision:** Enables computers to \"see\" and interpret visual information from the real world (e.g., facial recognition, medical imaging analysis).\n    *   **Robotics:** The field of designing",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 626,
-            "prompt_tokens": 28,
-            "total_tokens": 973,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": " and building robots, often incorporating AI for navigation, manipulation, and decision-making.\n    *   **Expert Systems:** Early AI systems that used rule-based logic to mimic the decision-making ability of a human expert.\n\n6.  ",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 675,
-            "prompt_tokens": 28,
-            "total_tokens": 1022,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": "**Applications Everywhere:** AI is already integrated into many aspects of our lives:\n    *   **Healthcare:** Disease diagnosis, drug discovery, personalized treatment plans.\n    *   **Finance:** Fraud detection, algorithmic trading, credit scoring.\n    ",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 723,
-            "prompt_tokens": 28,
-            "total_tokens": 1070,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": "*   **Education:** Personalized learning, intelligent tutoring systems.\n    *   **Manufacturing:** Predictive maintenance, quality control, robotic automation.\n    *   **Entertainment:** Content recommendations, game AI.\n    *   **Transportation:**",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 771,
-            "prompt_tokens": 28,
-            "total_tokens": 1118,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-b350fe29590c",
-          "choices": [
-            {
-              "delta": {
-                "content": " Self-driving vehicles, traffic optimization.\n\nIn essence, AI is about building smart machines that can perceive, reason, learn, and act to solve problems, often in ways that mimic or even surpass human capabilities for specific tasks.",
+                "content": "ial recognition** on your phone.\n\nIn essence, AI is about empowering machines to exhibit intelligent behavior, making them capable of a wide range of sophisticated tasks.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -591,9 +327,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 817,
+            "completion_tokens": 382,
             "prompt_tokens": 28,
-            "total_tokens": 1164,
+            "total_tokens": 612,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

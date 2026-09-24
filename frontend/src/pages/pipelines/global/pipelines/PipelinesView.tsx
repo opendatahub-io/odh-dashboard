@@ -3,6 +3,7 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import EmptyStateErrorMessage from '@odh-dashboard/ui-core/components/EmptyStateErrorMessage';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import GlobalNoPipelines from '#~/pages/pipelines/global/pipelines/GlobalNoPipelines';
 import PipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import usePipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
@@ -12,7 +13,6 @@ import {
   getTablePagingProps,
   getTableSortProps,
 } from '#~/concepts/pipelines/content/tables/usePipelineTable';
-import { getGenericErrorCode } from '#~/api/errorUtils';
 
 const PipelinesView: React.FC = () => {
   const [

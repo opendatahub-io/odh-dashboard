@@ -403,7 +403,7 @@ If only user auth is problematic, you can revert just `userUtils.ts`:
 
 ```bash
 git checkout HEAD~1 -- backend/src/utils/userUtils.ts
-npm run build
+pnpm run build
 # Redeploy
 ```
 
@@ -418,9 +418,6 @@ For issues or questions:
 ## Related Documentation
 
 - [Architecture Documentation](./architecture.md) - Updated authentication flow
-- [RFC Document](../RFC/RFC.md) - Complete technical specification
-- [Implementation Summary](../RFC/IMPLEMENTATION_SUMMARY.md) - Quick reference guide
-- [Code Changes](../RFC/CODE_CHANGES.md) - Detailed change tracker
 
 ---
 

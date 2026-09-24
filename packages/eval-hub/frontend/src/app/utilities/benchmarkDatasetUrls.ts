@@ -103,6 +103,20 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   // Winogender: Gender bias in coreference
   winogender: 'https://huggingface.co/datasets/oskarvanderwal/winogender',
 
+  // Open-Telco v1 benchmarks
+  // Collection benchmark IDs omit the Inspect AI provider namespace.
+  telemath: 'https://huggingface.co/datasets/netop/TeleMath',
+  teleqna: 'https://huggingface.co/datasets/netop/TeleQnA',
+  telelogs: 'https://huggingface.co/datasets/netop/TeleLogs',
+  // 3GPP-TSG is the `3gpp_tsg` configuration in the shared GSMA/ot-lite dataset.
+  '3gpp-tsg': 'https://huggingface.co/datasets/GSMA/ot-lite',
+
+  // Standardised benchmark IDs may include the Inspect AI provider namespace.
+  'inspect/telemath': 'https://huggingface.co/datasets/netop/TeleMath',
+  'inspect/teleqna': 'https://huggingface.co/datasets/netop/TeleQnA',
+  'inspect/telelogs': 'https://huggingface.co/datasets/netop/TeleLogs',
+  'inspect/3gpp-tsg': 'https://huggingface.co/datasets/GSMA/ot-lite',
+
   // --- Open LLM Leaderboard task wrappers ---
   leaderboard_bbh: 'https://huggingface.co/datasets/lukaemon/bbh',
   leaderboard_bbh_salient_translation_error_detection:

@@ -4,7 +4,7 @@ import type { SecretListItem } from '~/app/types';
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'ogx',
+  type?: 'storage' | 'maas' | 'vector-db',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

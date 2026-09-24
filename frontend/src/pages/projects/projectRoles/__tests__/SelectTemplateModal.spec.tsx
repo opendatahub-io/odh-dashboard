@@ -40,7 +40,6 @@ describe('SelectTemplateModal', () => {
   it('should render template categories and items', () => {
     render(<SelectTemplateModal mode="select" onSelectTemplate={jest.fn()} onClose={jest.fn()} />);
 
-    expect(screen.getByText('Workbench management templates')).toBeInTheDocument();
     expect(screen.getByText('Workbench maintainer')).toBeInTheDocument();
     expect(screen.getByText('Workbench reader')).toBeInTheDocument();
     expect(screen.getByText('Workbench updater')).toBeInTheDocument();
@@ -63,7 +62,9 @@ describe('SelectTemplateModal', () => {
     const searchInput = screen.getByPlaceholderText('Find by name');
     fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
-    expect(screen.queryByText('Workbench management templates')).not.toBeInTheDocument();
+    expect(screen.queryByText('Workbench maintainer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Workbench reader')).not.toBeInTheDocument();
+    expect(screen.queryByText('Workbench updater')).not.toBeInTheDocument();
   });
 
   it('should call onSelectTemplate when a template button is clicked', () => {

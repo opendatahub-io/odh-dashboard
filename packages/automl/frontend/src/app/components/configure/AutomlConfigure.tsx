@@ -61,6 +61,7 @@ import {
 } from '@odh-dashboard/autox-core/ui/components/feature';
 import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
+import { getInferredPredictionType } from '~/app/utilities/predictionTypeUtils';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -299,6 +300,14 @@ function AutomlConfigure({
   );
   const filteredNonASCIIColumnCount = schemaColumns.length - columns.length;
 
+  // Synchronize dataset metadata with the form resolver, including after file changes.
+  useEffect(() => {
+    setValue('training_data_column_count', schemaColumns.length, { shouldValidate: true });
+    if (schemaColumns.length === 2) {
+      setValue('id_column', '', { shouldValidate: true });
+    }
+  }, [schemaColumns.length, setValue]);
+
   const selectedColumn = columns.find((c) => c.name === targetColumn);
 
   useEffect(() => {
@@ -309,8 +318,9 @@ function AutomlConfigure({
 
   // Report whether the selected prediction type matches the target column's recommended type
   useEffect(() => {
-    onRecommendationChange?.(!selectedColumn?.task_type || taskType === selectedColumn.task_type);
-  }, [selectedColumn, taskType, onRecommendationChange]);
+    const inferred = getInferredPredictionType(selectedColumn, columns);
+    onRecommendationChange?.(!inferred || taskType === inferred);
+  }, [selectedColumn, columns, taskType, onRecommendationChange]);
 
   // Funnel milestone tracking — fires once per configure-step visit, the first time each
   // section is completed via an actual user selection, to measure retention through the
@@ -906,14 +916,9 @@ function AutomlConfigure({
                                   setIsTargetColumnOpen(false);
                                   if (typeof value === 'string') {
                                     const selected = columns.find((c) => c.name === value);
-                                    if (timestampColumn && selected?.type !== 'string') {
-                                      setValue('task_type', TASK_TYPE_TIMESERIES, {
-                                        shouldValidate: true,
-                                      });
-                                    } else if (selected?.task_type) {
-                                      setValue('task_type', selected.task_type, {
-                                        shouldValidate: true,
-                                      });
+                                    const inferred = getInferredPredictionType(selected, columns);
+                                    if (inferred) {
+                                      setValue('task_type', inferred, { shouldValidate: true });
                                     }
                                     // Fired here, from the actual selection, rather than from an
                                     // effect watching target_column — a pre-populated reconfigure
@@ -1017,6 +1022,7 @@ function AutomlConfigure({
                             name="task_type"
                             render={({ field }) => (
                               <AutomlPredictionTypeSelector
+                                columnCount={schemaColumns.length}
                                 value={field.value}
                                 onChange={field.onChange}
                                 onClearTimeseriesTimestamp={() =>
@@ -1034,6 +1040,7 @@ function AutomlConfigure({
 
                     {isTaskTypeSelected && isTimeseries && (
                       <ConfigureTimeseriesForm
+                        columnCount={schemaColumns.length}
                         columns={columns}
                         isLoadingColumns={isLoadingColumns}
                         isFetchingColumns={isFetchingColumns}
@@ -1140,9 +1147,12 @@ function AutomlConfigure({
                         <Divider />
                         <StackItem>
                           <Card data-testid="optimization-metric-card">
-                            <CardHeader
-                              actions={{
-                                actions: (
+                            <CardHeader>
+                              <Split hasGutter className="pf-v6-u-w-100">
+                                <SplitItem isFilled>
+                                  <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                                <SplitItem>
                                   <Button
                                     variant="secondary"
                                     isDisabled={formIsSubmitting}
@@ -1151,10 +1161,8 @@ function AutomlConfigure({
                                   >
                                     Edit
                                   </Button>
-                                ),
-                              }}
-                            >
-                              <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                              </Split>
                             </CardHeader>
                             <CardBody>
                               <Content component="p" data-testid="optimization-metric-value">

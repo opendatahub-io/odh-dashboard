@@ -244,7 +244,7 @@ From the `packages/automl/` directory:
 make dev-start-federated
 ```
 
-This starts both the BFF (port 4003) and the frontend webpack dev server (port 9108) in federated mode. The BFF connects to in-cluster services using dynamic port-forwarding and uses your cluster credentials for RBAC.
+This starts both the BFF (port 4003) and the frontend dev server (port 9108) in federated mode. The BFF connects to in-cluster services using dynamic port-forwarding and uses your cluster credentials for RBAC.
 
 **Pipeline name prefixes:** The BFF discovers AutoML pipelines by matching display names that start with configurable prefixes. AutoML has two pipeline types with separate prefixes:
 
@@ -266,7 +266,7 @@ AUTOML_TABULAR_PIPELINE_NAME_PREFIX=my-tabular \
 In a separate terminal, from the repo root:
 
 ```shell
-npm run dev
+pnpm run dev
 ```
 
 Then access the dashboard at **http://localhost:4010** and navigate to the AutoML section.

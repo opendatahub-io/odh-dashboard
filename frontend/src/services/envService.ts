@@ -1,4 +1,4 @@
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { ConfigMap, Secret } from '#~/types';
 
 export const getEnvSecret = (namespace: string, name: string): Promise<Secret> => {

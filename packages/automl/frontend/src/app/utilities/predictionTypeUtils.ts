@@ -66,8 +66,7 @@ export type NotRecommendedPredictionTypeAssessment = PredictionTypeAssessmentBas
 };
 
 export type PredictionTypeAssessment =
-  | RecommendedPredictionTypeAssessment
-  | NotRecommendedPredictionTypeAssessment;
+  RecommendedPredictionTypeAssessment | NotRecommendedPredictionTypeAssessment;
 
 const isNumericColumnType = (type: string): boolean => type === 'integer' || type === 'double';
 

@@ -5,7 +5,13 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { waitForResource, waitForPodReady } from '../../../utils/oc_commands/baseCommands';
+import {
+  startPortForward,
+  stopPortForward,
+  waitForResource,
+  waitForPodReady,
+  type PortForwardHandle,
+} from '../../../utils/oc_commands/baseCommands';
 import {
   enableExternalProviders,
   disableExternalProviders,
@@ -29,6 +35,7 @@ const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
 describe('Verify settings in playground using custom endpoint', { testIsolation: false }, () => {
   let testData: CustomEndpointTestData;
+  let portForwardHandle: PortForwardHandle | null = null;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -88,6 +95,8 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   });
 
   after(() => {
+    stopPortForward(portForwardHandle);
+
     cy.step('Delete test prompt from MLflow');
     deleteGenAiPromptViaAPI(projectName, testData.prompt.name);
 
@@ -176,6 +185,11 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
 
       cy.step('Wait for custom model to be registered in LSD');
       waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
+
+      cy.step('Start port-forward for LSD service');
+      startPortForward(projectName, testData.lsdServiceName, 8321).then((handle) => {
+        portForwardHandle = handle;
+      });
     },
   );
 
@@ -264,7 +278,23 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
         .should('be.visible')
         .and('contain', testData.prompt.name);
 
-      cy.step('Send a test message using the loaded prompt context');
+      cy.step(
+        'Verify the {{ }} template survived the MLflow round-trip and rendered a variable input',
+      );
+      genAiPlayground.findVariableInputPanel().should('be.visible');
+      genAiPlayground.scrollPromptTabToBottom();
+      genAiPlayground.findVariableInput(testData.prompt.variableName).should('be.visible');
+
+      cy.step('Fill in the variable value and confirm it is reflected in the panel');
+      genAiPlayground
+        .findVariableInput(testData.prompt.variableName)
+        .clear()
+        .type(testData.prompt.variableValue);
+      genAiPlayground
+        .findVariableInput(testData.prompt.variableName)
+        .should('have.value', testData.prompt.variableValue);
+
+      cy.step('Send a test message using the loaded prompt context and filled-in variable');
       genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
       genAiPlayground.sendMessage(testData.prompt.testMessageWithPrompt);
 

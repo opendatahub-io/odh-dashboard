@@ -25,6 +25,30 @@ describe('handlePipelineFailures', () => {
     await expect(handlePipelineFailures(Promise.resolve(statusMock))).rejects.toThrow('not-found');
   });
 
+  it('should throw a GrpcError with grpcCode and result for gRPC error responses', async () => {
+    const grpcErrorResponse = { code: 5, message: 'Run not found' };
+
+    const error: unknown = await handlePipelineFailures(Promise.resolve(grpcErrorResponse)).catch(
+      (e: unknown) => e,
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error).toHaveProperty('grpcCode', 5);
+    expect(error).toHaveProperty('result', grpcErrorResponse);
+  });
+
+  it('should preserve the original result on GrpcError for non-NOT_FOUND(5) gRPC codes', async () => {
+    const grpcErrorResponse = { code: 1, message: 'Cancelled by caller', details: [] };
+
+    const error: unknown = await handlePipelineFailures(Promise.resolve(grpcErrorResponse)).catch(
+      (e: unknown) => e,
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error).toHaveProperty('grpcCode', 1);
+    expect(error).toHaveProperty('result', grpcErrorResponse);
+  });
+
   it('should handle common state errors ', async () => {
     await expect(
       handlePipelineFailures(Promise.reject(new NotReadyError('error'))),

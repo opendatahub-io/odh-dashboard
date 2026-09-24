@@ -276,9 +276,11 @@ const DeployedModelsSection: React.FC<{ platforms: ModelServingPlatform[] }> = (
                 />
               </ToggleGroup>
             </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }}>
-              <Label style={{ float: 'right' }}>{platformLabel}</Label>
-            </FlexItem>
+            {platforms.length > 1 && (
+              <FlexItem flex={{ default: 'flex_1' }}>
+                <Label style={{ float: 'right' }}>{platformLabel}</Label>
+              </FlexItem>
+            )}
           </Flex>
         </CardHeader>
         <CardBody>

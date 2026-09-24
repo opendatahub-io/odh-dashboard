@@ -172,7 +172,7 @@ Session 4 (ad-hoc):         docs/, .claude/rules/
 
 - **One branch per worktree** — never share a branch between sessions
 - **Avoid shared config files** — changes to `package.json` (root), `tsconfig`, or `eslint-config` affect all packages; serialize these or assign to one session
-- **Lockfile caution** — `npm install` in one worktree regenerates `package-lock.json`; run installs from the main repo, not from worktrees
+- **Lockfile caution** — `pnpm install` in one worktree regenerates `pnpm-lock.yaml`; run installs from the main repo, not from worktrees
 - **Plan mode for read-only** — use `--permission-mode plan` for review or research sessions that should not modify files
 - **Communicate via specs** — use `.claude/local-specs/` to pass context between sessions rather than relying on shared branches
 
@@ -180,7 +180,7 @@ Session 4 (ad-hoc):         docs/, .claude/rules/
 
 Some operations must run in one session at a time:
 
-- Root `package.json` or `package-lock.json` changes
+- Root `package.json`, `pnpm-workspace.yaml`, or `pnpm-lock.yaml` changes
 - Shared infrastructure packages (`eslint-config`, `jest-config`, `tsconfig`)
 - CI/CD configuration (`.github/`, `.tekton/`)
 - `CLAUDE.md`, `BOOKMARKS.md`, or `.claude/rules/` modifications
@@ -189,7 +189,7 @@ Some operations must run in one session at a time:
 
 ### Session Limits
 
-Run 3–4 concurrent sessions maximum. Each session consumes memory and CPU for file watching, TypeScript compilation, and webpack builds. Monitor system resources and reduce sessions if the machine slows down.
+Run 3–4 concurrent sessions maximum. Each session consumes memory and CPU for file watching, TypeScript compilation, and rspack builds. Monitor system resources and reduce sessions if the machine slows down.
 
 ### Context Management
 

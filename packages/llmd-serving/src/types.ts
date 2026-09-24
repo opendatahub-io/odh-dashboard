@@ -16,6 +16,7 @@ export {
   TOPOLOGY_TYPE_ANNOTATION,
   TOPOLOGY_CONFIG_REF_ANNOTATION,
   ROUTING_CONFIG_REF_ANNOTATION,
+  ACCELERATOR_CONFIG_REF_ANNOTATION,
 } from './const';
 import {
   MAAS_ENDPOINT_LABEL,
@@ -25,6 +26,7 @@ import {
   TOPOLOGY_TYPE_ANNOTATION,
   TOPOLOGY_CONFIG_REF_ANNOTATION,
   ROUTING_CONFIG_REF_ANNOTATION,
+  ACCELERATOR_CONFIG_REF_ANNOTATION,
 } from './const';
 
 export enum ConfigType {
@@ -113,6 +115,7 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
       [TOPOLOGY_TYPE_ANNOTATION]?: TopologyType;
       [TOPOLOGY_CONFIG_REF_ANNOTATION]?: string;
       [ROUTING_CONFIG_REF_ANNOTATION]?: string;
+      [ACCELERATOR_CONFIG_REF_ANNOTATION]?: string;
     };
     labels?: {
       'opendatahub.io/genai-asset'?: 'true' | 'false';
@@ -158,6 +161,14 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
     };
   };
   spec?: LLMInferenceServiceSpec;
+  status?: {
+    referencedBy?: {
+      name?: string;
+      namespace?: string;
+      kind?: string;
+      apiVersion?: string;
+    }[];
+  };
 };
 export const isLLMInferenceServiceConfig = (
   resource?: K8sResourceCommon,

@@ -55,16 +55,19 @@ jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
     runTitle,
     runState,
     treeLoadingMode,
+    showStageMapUnavailableNotice,
   }: {
     runTitle: string;
     runState?: string;
     treeLoadingMode?: string;
+    showStageMapUnavailableNotice?: boolean;
   }) => (
     <div
       data-testid="automl-pipeline-visualization"
       data-run-title={runTitle}
       data-run-state={runState}
       data-tree-loading-mode={treeLoadingMode ?? 'none'}
+      data-stage-map-unavailable={showStageMapUnavailableNotice ? 'true' : 'false'}
     />
   ),
 }));
@@ -530,7 +533,7 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -584,7 +587,7 @@ describe('AutomlResults', () => {
       expect(buildStageMapTopologyMock).toHaveBeenCalled();
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -617,7 +620,7 @@ describe('AutomlResults', () => {
 
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -631,7 +634,7 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -646,7 +649,7 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
       );
@@ -663,6 +666,44 @@ describe('AutomlResults', () => {
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should show a pipeline view notice when a failed run has no stage map', () => {
+      const failedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'FAILED',
+      };
+      renderWithContext(failedStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'true');
+    });
+
+    it('should not show a pipeline view notice while the run is still preparing', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice when the stage map is available', () => {
+      renderWithContext({ ...stageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
+    });
+
+    it('should not show a pipeline view notice for pipelines without a stage map task', () => {
+      renderWithContext({ ...noStageMapRun, state: 'FAILED' }, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-stage-map-unavailable', 'false');
     });
   });
 

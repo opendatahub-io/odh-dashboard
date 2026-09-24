@@ -5,64 +5,65 @@ This project is a chatbot UI built with PatternFly, React, and TypeScript. It pr
 ## Quick-start
 
 ```bash
-git https://github.com/opendatahub-io/gen-ai.git
-cd gen-ai
-npm install && npm run start:dev
+# Run from the odh-dashboard repository root
+pnpm install
+cd packages/gen-ai/frontend
+pnpm run start:dev
 ```
 
 ## Development scripts
 
 ```sh
-# Install development/build dependencies
-npm install
+# Dependencies are installed from the repository root; see Quick-start above
 
 # Start the development server
-npm run start:dev
+pnpm run start:dev
 
 # Run a production build (outputs to "dist" dir)
-npm run build
+pnpm run build
 
 # Run the test suite
-npm run test
+pnpm run test
 
 # Run the test suite with coverage
-npm run test:coverage
+pnpm run test:coverage
 
 # Run the linter
-npm run lint
+pnpm run lint
 
 # Run the code formatter
-npm run format
+pnpm run format
 
 # Launch a tool to inspect the bundle size
-npm run bundle-profile:analyze
+pnpm run bundle-profile:analyze
 
 # Start the express server (run a production build first)
-npm run start
+pnpm run start
 
 # Run type checking without emitting files
-npm run type-check
+pnpm run type-check
 
 # Run all CI checks (type checking, linting, and test coverage)
-npm run ci-checks
+pnpm run ci-checks
 
 # Clean the dist directory
-npm run clean
+pnpm run clean
 
-# Generate a webpack bundle profile
-npm run build:bundle-profile
+# Generate a rspack bundle profile
+pnpm run build:bundle-profile
 
-# Starts the bff for cypress tests
-npm run cypress:server
+# Build a production bundle and serve it from the mock BFF
+pnpm run cypress:server:build
+pnpm run cypress:server
 
-# Runs cypress end-to-end tests in CI mode
-npm run test:cypress-ci
+# Build, serve via mock BFF, and run Cypress mock tests (CI)
+pnpm run test:cypress-ci
 ```
 
 ## Configurations
 
 - [TypeScript Config](./tsconfig.json)
-- [Webpack Config](./webpack.common.js)
+- [Rspack Config](./rspack.common.js)
 - [Jest Config](./jest.config.js)
 - [Editor Config](./.editorconfig)
 
@@ -93,7 +94,7 @@ import logo from '~/app/assets/images/logo.svg';
 <span dangerouslySetInnerHTML={{ __html: logo }} />;
 ```
 
-You can also use SVG when applying background images with CSS. To do this, your SVG's must live under a `bgimages` directory (this directory name is configurable in [webpack.common.js](./webpack.common.js#L5)). This is necessary because you may need to use SVG's in several other context (inline images, fonts, icons, etc.) and so we need to be able to differentiate between these usages so the appropriate loader is invoked.
+You can also use SVG when applying background images with CSS. To do this, your SVG's must live under a `bgimages` directory (this directory name is configurable in [rspack.common.js](./rspack.common.js#L5)). This is necessary because you may need to use SVG's in several other context (inline images, fonts, icons, etc.) and so we need to be able to differentiate between these usages so the appropriate loader is invoked.
 
 ```css
 body {
@@ -103,19 +104,19 @@ body {
 
 ## Adding custom CSS
 
-When importing CSS from a third-party package for the first time, you may encounter the error `Module parse failed: Unexpected token... You may need an appropriate loader to handle this file typ...`. You need to register the path to the stylesheet directory in [stylePaths.js](./stylePaths.js). We specify these explicitly for performance reasons to avoid webpack needing to crawl through the entire node_modules directory when parsing CSS modules.
+When importing CSS from a third-party package for the first time, you may encounter the error `Module parse failed: Unexpected token... You may need an appropriate loader to handle this file typ...`. You need to register the path to the stylesheet directory in [stylePaths.js](./stylePaths.js). We specify these explicitly for performance reasons to avoid rspack needing to crawl through the entire node_modules directory when parsing CSS modules.
 
 ## Code quality tools
 
 - For accessibility compliance, we use [react-axe](https://github.com/dequelabs/react-axe)
-- To keep our bundle size in check, we use [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)
+- To keep our bundle size in check, we use [@rsdoctor/rspack-plugin](https://github.com/web-infra-dev/rsdoctor)
 - To keep our code formatting in check, we use [prettier](https://github.com/prettier/prettier)
 - To keep our code logic and test coverage in check, we use [jest](https://github.com/facebook/jest)
 - To ensure code styles remain consistent, we use [eslint](https://eslint.org/)
 
 ## Multi environment configuration
 
-This project uses [dotenv-webpack](https://www.npmjs.com/package/dotenv-webpack) for exposing environment variables to your code. Either export them at the system level like `export MY_ENV_VAR=http://dev.myendpoint.com && npm run start:dev` or simply drop a `.env` file in the root that contains your key-value pairs like below:
+This project uses [dotenv-webpack](https://www.npmjs.com/package/dotenv-webpack) for exposing environment variables to your code. Either export them at the system level like `export MY_ENV_VAR=http://dev.myendpoint.com && pnpm run start:dev` or simply drop a `.env` file in the root that contains your key-value pairs like below:
 
 ```sh
 ENV_1=http://1.myendpoint.com

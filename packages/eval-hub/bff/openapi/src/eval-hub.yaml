@@ -376,6 +376,12 @@ paths:
       responses:
         '200':
           description: Plain text execution logs
+          headers:
+            X-Log-Truncated:
+              description: Whether server-side byte or timeout limits truncated the log response
+              required: true
+              schema:
+                type: boolean
           content:
             text/plain:
               schema:
@@ -418,6 +424,12 @@ paths:
       responses:
         '200':
           description: Plain text execution logs for the specified benchmark
+          headers:
+            X-Log-Truncated:
+              description: Whether server-side byte or timeout limits truncated the log response
+              required: true
+              schema:
+                type: boolean
           content:
             text/plain:
               schema:
@@ -2102,10 +2114,10 @@ components:
       name: tail_lines
       schema:
         type: integer
-        minimum: 0
+        minimum: -1
       required: false
-      description: Number of lines from the end of the log to return
-      example: 500
+      description: Number of lines from the end of the log to return; -1 requests all available lines subject to server limits
+      example: -1
     timestamps:
       in: query
       name: timestamps

@@ -17,14 +17,15 @@ import (
 // --- Mock pipelines.Service ---
 
 type mockPipelinesService struct {
-	discoverNamedPipelinesFn func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error)
-	ensurePipelineFn         func(ctx context.Context, namespace string, def pipelines.PipelineDefinition) (*pipelines.DiscoveredPipeline, error)
-	getAllPipelineRunsFn     func(ctx context.Context, namespace, pipelineID string) ([]pipelines.PipelineRun, error)
-	getPipelineRunWithSpecFn func(ctx context.Context, namespace, runID string) (*pipelines.PipelineRun, error)
-	createPipelineRunFn      func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error)
-	terminateRunFn           func(ctx context.Context, namespace, runID string) error
-	retryRunFn               func(ctx context.Context, namespace, runID string) error
-	deleteRunFn              func(ctx context.Context, namespace, runID string) error
+	discoverNamedPipelinesFn     func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error)
+	ensurePipelineFn             func(ctx context.Context, namespace string, def pipelines.PipelineDefinition) (*pipelines.DiscoveredPipeline, error)
+	getAllPipelineRunsFn         func(ctx context.Context, namespace, pipelineID string) ([]pipelines.PipelineRun, error)
+	getPipelineRunWithSpecFn     func(ctx context.Context, namespace, runID string) (*pipelines.PipelineRun, error)
+	createPipelineRunFn          func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error)
+	getPipelineInputParametersFn func(ctx context.Context, namespace, pipelineID, versionID string) ([]string, error)
+	terminateRunFn               func(ctx context.Context, namespace, runID string) error
+	retryRunFn                   func(ctx context.Context, namespace, runID string) error
+	deleteRunFn                  func(ctx context.Context, namespace, runID string) error
 }
 
 func (m *mockPipelinesService) DiscoverNamedPipelines(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
@@ -41,6 +42,17 @@ func (m *mockPipelinesService) GetPipelineRunWithSpec(ctx context.Context, names
 }
 func (m *mockPipelinesService) CreatePipelineRun(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
 	return m.createPipelineRunFn(ctx, namespace, input)
+}
+func (m *mockPipelinesService) GetPipelineInputParameters(ctx context.Context, namespace, pipelineID, versionID string) ([]string, error) {
+	if m.getPipelineInputParametersFn != nil {
+		return m.getPipelineInputParametersFn(ctx, namespace, pipelineID, versionID)
+	}
+	return []string{
+		"embedding_model_id",
+		"chunking_method",
+		"input_data_secret_name",
+		"vector_db_secret_name",
+	}, nil
 }
 func (m *mockPipelinesService) TerminateRun(ctx context.Context, namespace, runID string) error {
 	return m.terminateRunFn(ctx, namespace, runID)
@@ -102,8 +114,11 @@ func validRequest() models.CreateAutoRAGRunRequest {
 		TestDataKey:         "test.jsonl",
 		InputDataSecretName: "input-secret",
 		InputDataBucketName: "input-bucket",
-		InputDataKey:        "docs/",
-		OGXSecretName:       "ogx-secret",
+		InputDataKeys:       []string{"docs/"},
+		MaaSSecretName:      "maas-secret",
+		EmbeddingsModels:    []string{"embedding-model"},
+		GenerationModels:    []string{"generation-model"},
+		VectorDBSecretName:  "vector-db-secret",
 	}
 }
 
@@ -122,7 +137,8 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		for _, field := range []string{"display_name", "test_data_secret_name", "test_data_bucket_name",
-			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_key", "ogx_secret_name"} {
+			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_keys",
+			"maas_secret_name", "vector_db_secret_name", "embedding_models", "generation_models"} {
 			if !strings.Contains(err.Error(), field) {
 				t.Errorf("error should mention %q: %v", field, err)
 			}
@@ -130,6 +146,59 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		var ve *ValidationError
 		if !errors.As(err, &ve) {
 			t.Errorf("expected *ValidationError, got %T", err)
+		}
+	})
+
+	t.Run("rejects empty corpus keys", func(t *testing.T) {
+		req := validRequest()
+		req.InputDataKeys = []string{"docs/", ""}
+		if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("rejects whitespace-only corpus keys", func(t *testing.T) {
+		req := validRequest()
+		req.InputDataKeys = []string{"docs/", " \t"}
+		err := ValidateCreateAutoRAGRunRequest(req)
+		if err == nil || !strings.Contains(err.Error(), "input_data_keys[1]") {
+			t.Fatalf("expected indexed blank-key error, got %v", err)
+		}
+	})
+
+	for _, field := range []string{"embedding_models", "generation_models"} {
+		t.Run("rejects whitespace-only "+field, func(t *testing.T) {
+			req := validRequest()
+			if field == "embedding_models" {
+				req.EmbeddingsModels = []string{" \t"}
+			} else {
+				req.GenerationModels = []string{" \t"}
+			}
+			err := ValidateCreateAutoRAGRunRequest(req)
+			if err == nil || !strings.Contains(err.Error(), field+"[0]") {
+				t.Fatalf("expected indexed blank-model error, got %v", err)
+			}
+		})
+	}
+
+	t.Run("rejects model IDs selected in both categories", func(t *testing.T) {
+		req := validRequest()
+		req.GenerationModels = []string{"shared-model"}
+		req.EmbeddingsModels = []string{"embedding-model", "shared-model"}
+		err := ValidateCreateAutoRAGRunRequest(req)
+		if err == nil || !strings.Contains(err.Error(), `model "shared-model" cannot be selected in both`) {
+			t.Fatalf("expected cross-category model validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects more than ten corpus keys", func(t *testing.T) {
+		req := validRequest()
+		req.InputDataKeys = make([]string, 11)
+		for i := range req.InputDataKeys {
+			req.InputDataKeys[i] = fmt.Sprintf("docs/%d", i)
+		}
+		if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+			t.Fatal("expected validation error")
 		}
 	})
 
@@ -225,11 +294,24 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["test_data_secret_name"] != "test-secret" {
 			t.Errorf("test_data_secret_name = %v", params["test_data_secret_name"])
 		}
-		if params["input_data_key"] != "docs/" {
-			t.Errorf("input_data_key = %v", params["input_data_key"])
+		inputDataKeys, ok := params["input_data_keys"].([]string)
+		if !ok || len(inputDataKeys) != 1 || inputDataKeys[0] != "docs/" {
+			t.Errorf("input_data_keys = %v", params["input_data_keys"])
 		}
-		if params["ogx_secret_name"] != "ogx-secret" {
-			t.Errorf("ogx_secret_name = %v", params["ogx_secret_name"])
+		if _, ok := params["input_data_key"]; ok {
+			t.Error("input_data_key should not be created by the builder")
+		}
+		if params["maas_secret_name"] != "maas-secret" {
+			t.Errorf("maas_secret_name = %v", params["maas_secret_name"])
+		}
+		if params["vector_db_secret_name"] != "vector-db-secret" {
+			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
+		}
+		if _, ok := params["ogx_secret_name"]; ok {
+			t.Error("ogx_secret_name should not be forwarded")
+		}
+		if _, ok := params["vector_io_provider_id"]; ok {
+			t.Error("vector_io_provider_id should not be forwarded")
 		}
 		if params["optimization_metric"] != constants.DefaultOptimizationMetric {
 			t.Errorf("optimization_metric = %v, want default %q", params["optimization_metric"], constants.DefaultOptimizationMetric)
@@ -247,9 +329,10 @@ func TestBuildPipelineRunInput(t *testing.T) {
 
 	t.Run("with optional fields", func(t *testing.T) {
 		req := validRequest()
+		req.InputDataKeys = []string{"docs/first/", "docs/second/"}
 		req.EmbeddingsModels = []string{"model-a", "model-b"}
 		req.GenerationModels = []string{"gen-1"}
-		req.VectorIOProviderID = "provider-x"
+		req.VectorDBSecretName = "provider-x"
 		req.OptimizationMaxRagPatterns = ptr(10)
 		req.Description = "test description"
 
@@ -264,8 +347,15 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if len(genModels) != 1 || genModels[0] != "gen-1" {
 			t.Errorf("generation_models = %v", params["generation_models"])
 		}
-		if params["vector_io_provider_id"] != "provider-x" {
-			t.Errorf("vector_io_provider_id = %v", params["vector_io_provider_id"])
+		if params["vector_db_secret_name"] != "provider-x" {
+			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
+		}
+		inputDataKeys, ok := params["input_data_keys"].([]string)
+		if !ok || len(inputDataKeys) != 2 || inputDataKeys[0] != "docs/first/" || inputDataKeys[1] != "docs/second/" {
+			t.Errorf("input_data_keys = %v, want ordered input keys", params["input_data_keys"])
+		}
+		if _, ok := params["input_data_key"]; ok {
+			t.Error("input_data_key should not be created by the builder")
 		}
 		if params["optimization_max_rag_patterns"] != 10 {
 			t.Errorf("optimization_max_rag_patterns = %v", params["optimization_max_rag_patterns"])
@@ -275,22 +365,32 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 	})
 
-	t.Run("empty optional fields omitted", func(t *testing.T) {
+	t.Run("forwards canonical input data keys without legacy field", func(t *testing.T) {
 		req := validRequest()
+		req.InputDataKeys = []string{"docs/first/", "docs/second/"}
 		kfp := BuildPipelineRunInput(req, "pid", "vid")
 		params := kfp.RuntimeConfig.Parameters
 
-		if _, ok := params["embedding_models"]; ok {
-			t.Error("empty embedding_models should be omitted")
+		inputDataKeys, ok := params["input_data_keys"].([]string)
+		if !ok || len(inputDataKeys) != 2 || inputDataKeys[0] != "docs/first/" || inputDataKeys[1] != "docs/second/" {
+			t.Errorf("input_data_keys = %v, want ordered input keys", params["input_data_keys"])
 		}
-		if _, ok := params["generation_models"]; ok {
-			t.Error("empty generation_models should be omitted")
+		if _, ok := params["input_data_key"]; ok {
+			t.Error("input_data_key should not be created by the builder")
 		}
-		if _, ok := params["vector_io_provider_id"]; ok {
-			t.Error("empty vector_io_provider_id should be omitted")
+		if _, ok := params["maas_secret_name"]; !ok {
+			t.Error("maas_secret_name should be forwarded")
 		}
-		if _, ok := params["optimization_max_rag_patterns"]; ok {
-			t.Error("nil optimization_max_rag_patterns should be omitted")
+		if _, ok := params["vector_db_secret_name"]; !ok {
+			t.Error("vector_db_secret_name should be forwarded")
+		}
+		for _, legacyKey := range []string{"ogx_secret_name", "vector_io_provider_id"} {
+			if _, ok := params[legacyKey]; ok {
+				t.Errorf("%s should be omitted", legacyKey)
+			}
+		}
+		if params["optimization_max_rag_patterns"] != constants.DefaultMaxRagPatterns {
+			t.Errorf("optimization_max_rag_patterns = %v, want default %d", params["optimization_max_rag_patterns"], constants.DefaultMaxRagPatterns)
 		}
 	})
 }
@@ -666,8 +766,14 @@ func TestCreateRun(t *testing.T) {
 		if gotInput.PipelineVersionReference.PipelineID != "p1" {
 			t.Error("pipeline ID not forwarded")
 		}
-		if gotInput.RuntimeConfig.Parameters["ogx_secret_name"] != "ogx-secret" {
-			t.Error("ogx_secret_name not forwarded")
+		if gotInput.RuntimeConfig.Parameters["maas_secret_name"] != "maas-secret" {
+			t.Error("maas_secret_name not forwarded")
+		}
+		if gotInput.RuntimeConfig.Parameters["vector_db_secret_name"] != "vector-db-secret" {
+			t.Error("vector_db_secret_name not forwarded")
+		}
+		if _, ok := gotInput.RuntimeConfig.Parameters["ogx_secret_name"]; ok {
+			t.Error("ogx_secret_name should not be forwarded")
 		}
 		if gotInput.RuntimeConfig.Parameters["optimization_metric"] != constants.DefaultOptimizationMetric {
 			t.Error("default optimization_metric not set")
@@ -713,8 +819,8 @@ func TestValidateCreateIndexingPipelineRunRequest(t *testing.T) {
 			"embedding_model_id":     "embed-model",
 			"input_data_secret_name": "input-secret",
 			"input_data_bucket_name": "input-bucket",
-			"ogx_secret_name":        "ogx-secret",
-			"vector_io_provider_id":  "milvus",
+			"maas_secret_name":       "maas-secret",
+			"vector_db_secret_name":  "vector-db-secret",
 		},
 	}
 
@@ -779,6 +885,15 @@ func TestCreateIndexingRun(t *testing.T) {
 					},
 				}, nil
 			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return []string{
+					"chunking_method",
+					"custom_pipeline_input",
+					"embedding_model_id",
+					"input_data_secret_name",
+					"vector_db_secret_name",
+				}, nil
+			},
 			createPipelineRunFn: func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
 				gotInput = input
 				return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
@@ -794,7 +909,9 @@ func TestCreateIndexingRun(t *testing.T) {
 				"embedding_model_id":     "embed-model",
 				"chunking_method":        "recursive",
 				"input_data_secret_name": "input-secret",
-				"vector_io_provider_id":  "milvus",
+				"vector_db_secret_name":  "vector-db-secret",
+				"custom_pipeline_input":  "custom-value",
+				"provider_type":          "milvus",
 			},
 		})
 		if err != nil {
@@ -809,8 +926,121 @@ func TestCreateIndexingRun(t *testing.T) {
 		if gotInput.RuntimeConfig.Parameters["chunking_method"] != "recursive" {
 			t.Errorf("chunking_method = %v", gotInput.RuntimeConfig.Parameters["chunking_method"])
 		}
-		if gotInput.RuntimeConfig.Parameters["vector_io_provider_id"] != "milvus" {
-			t.Errorf("vector_io_provider_id = %v", gotInput.RuntimeConfig.Parameters["vector_io_provider_id"])
+		if gotInput.RuntimeConfig.Parameters["vector_db_secret_name"] != "vector-db-secret" {
+			t.Errorf("vector_db_secret_name = %v", gotInput.RuntimeConfig.Parameters["vector_db_secret_name"])
+		}
+		if gotInput.RuntimeConfig.Parameters["custom_pipeline_input"] != "custom-value" {
+			t.Errorf("custom_pipeline_input = %v", gotInput.RuntimeConfig.Parameters["custom_pipeline_input"])
+		}
+		if _, found := gotInput.RuntimeConfig.Parameters["provider_type"]; found {
+			t.Error("provider_type should not be submitted to Pipeline Server")
+		}
+	})
+
+	t.Run("rejects a request with no supported parameters", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return []string{"chunk_size"}, nil
+			},
+			createPipelineRunFn: func(context.Context, string, *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				t.Fatal("CreatePipelineRun should not be called")
+				return nil, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		_, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters:  map[string]any{"provider_type": "milvus"},
+		})
+		if !errors.Is(err, ErrValidation) {
+			t.Fatalf("expected validation error, got %v", err)
+		}
+	})
+
+	t.Run("uses the refreshed version schema", func(t *testing.T) {
+		discoveryCalls := 0
+		createdParameters := make([]map[string]any, 0, 2)
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				versionID := "idx-vid-v1"
+				if discoveryCalls > 0 {
+					versionID = "idx-vid-v2"
+				}
+				discoveryCalls++
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: versionID},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(_ context.Context, _ string, _ string, versionID string) ([]string, error) {
+				if versionID == "idx-vid-v1" {
+					return []string{"removed_pipeline_input"}, nil
+				}
+				return []string{"new_pipeline_input"}, nil
+			},
+			createPipelineRunFn: func(_ context.Context, _ string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				createdParameters = append(createdParameters, input.RuntimeConfig.Parameters)
+				return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		for _, parameters := range []map[string]any{
+			{"removed_pipeline_input": "old-value"},
+			{"removed_pipeline_input": "stale-value", "new_pipeline_input": "new-value"},
+		} {
+			if _, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+				DisplayName: "index-run",
+				Parameters:  parameters,
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if len(createdParameters) != 2 {
+			t.Fatalf("created run count = %d, want 2", len(createdParameters))
+		}
+		if createdParameters[0]["removed_pipeline_input"] != "old-value" {
+			t.Errorf("initial version parameters = %v", createdParameters[0])
+		}
+		if _, found := createdParameters[1]["removed_pipeline_input"]; found {
+			t.Errorf("removed input was submitted after refresh: %v", createdParameters[1])
+		}
+		if createdParameters[1]["new_pipeline_input"] != "new-value" {
+			t.Errorf("refreshed version parameters = %v", createdParameters[1])
+		}
+	})
+
+	t.Run("leaves indexing unavailable when schema loading fails", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return nil, errors.New("invalid pipeline spec")
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		_, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters:  map[string]any{"embedding_model_id": "embed-model"},
+		})
+		if !errors.Is(err, ErrIndexingPipelineUnavailable) {
+			t.Fatalf("expected indexing pipeline unavailable, got %v", err)
 		}
 	})
 
@@ -839,6 +1069,7 @@ func TestCreateIndexingRun(t *testing.T) {
 
 func TestListManagedPipelines(t *testing.T) {
 	t.Run("returns discovered pipelines sorted by pipeline_type", func(t *testing.T) {
+		schemaCalls := 0
 		mock := &mockPipelinesService{
 			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
 				return map[string]*pipelines.DiscoveredPipeline{
@@ -849,6 +1080,10 @@ func TestListManagedPipelines(t *testing.T) {
 						PipelineID: "rag-pid", PipelineVersionID: "rag-vid", PipelineName: "documents-rag-optimization-pipeline",
 					},
 				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				schemaCalls++
+				return []string{"embedding_model_id"}, nil
 			},
 		}
 		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
@@ -869,6 +1104,9 @@ func TestListManagedPipelines(t *testing.T) {
 		}
 		if result.Pipelines[1].PipelineType != constants.PipelineTypeIndexing {
 			t.Errorf("pipelines[1].PipelineType = %q, want %q", result.Pipelines[1].PipelineType, constants.PipelineTypeIndexing)
+		}
+		if schemaCalls != 1 {
+			t.Errorf("input schema calls = %d, want 1", schemaCalls)
 		}
 	})
 
@@ -894,6 +1132,32 @@ func TestListManagedPipelines(t *testing.T) {
 		}
 		if result.Pipelines[0].PipelineType != constants.PipelineTypeIndexing {
 			t.Errorf("PipelineType = %q", result.Pipelines[0].PipelineType)
+		}
+	})
+
+	t.Run("omits indexing when its input schema is unavailable", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeAutoRAG:  {PipelineID: "rag-pid", PipelineVersionID: "rag-vid"},
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return nil, errors.New("invalid pipeline spec")
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			AutoRAGPipelineName:  "documents-rag-optimization-pipeline",
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		result, err := repo.ListManagedPipelines(context.Background(), "ns")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result.Pipelines) != 1 || result.Pipelines[0].PipelineType != constants.PipelineTypeAutoRAG {
+			t.Fatalf("pipelines = %+v, want only AutoRAG", result.Pipelines)
 		}
 	})
 }
@@ -932,10 +1196,10 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 	}
 }
 
-func TestNewPipelinesRepository_DefaultVersion(t *testing.T) {
+func TestNewPipelinesRepository_PipelineVersion(t *testing.T) {
 	repo := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{})
-	if repo.config.DefaultPipelineVersion != constants.DefaultPipelineVersionSuffix {
-		t.Errorf("got %q, want %q", repo.config.DefaultPipelineVersion, constants.DefaultPipelineVersionSuffix)
+	if repo.config.DefaultPipelineVersion != "" {
+		t.Errorf("got %q, want empty for newest version selection", repo.config.DefaultPipelineVersion)
 	}
 
 	repo2 := NewPipelinesRepository(slog.Default(), &mockPipelinesService{}, PipelinesRepositoryConfig{DefaultPipelineVersion: "custom"})

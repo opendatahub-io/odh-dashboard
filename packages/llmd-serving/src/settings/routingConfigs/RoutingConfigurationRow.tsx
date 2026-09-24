@@ -7,8 +7,10 @@ import {
   getDescriptionFromK8sResource,
 } from '@odh-dashboard/k8s-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { useKebabAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
 import {
   type LLMInferenceServiceConfigKind,
+  LLMInferenceServiceConfigModel,
   TopologyTypeLabels,
   DASHBOARD_RESOURCE_LABEL,
   getConfigSupportedTopologies,
@@ -41,6 +43,18 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
   const enabled = isConfigEnabled(config);
   const isDashboardCreated =
     config.metadata.labels?.[DASHBOARD_RESOURCE_LABEL] === 'true' && !preInstalled;
+
+  const deleteKebabItems = useKebabAccessAllowed(
+    [
+      { isSeparator: true },
+      {
+        title: 'Delete',
+        onClick: () => onDelete(config),
+        isDanger: true,
+      },
+    ],
+    verbModelAccess('delete', LLMInferenceServiceConfigModel, config.metadata.namespace),
+  );
 
   return (
     <Tr data-testid={`routing-config-row-${configName}`}>
@@ -84,12 +98,7 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
                     title: 'Duplicate',
                     onClick: () => navigate(`duplicate/${configName}`),
                   },
-                  { isSeparator: true },
-                  {
-                    title: 'Delete',
-                    onClick: () => onDelete(config),
-                    isDanger: true,
-                  },
+                  ...deleteKebabItems,
                 ]
               : [
                   {

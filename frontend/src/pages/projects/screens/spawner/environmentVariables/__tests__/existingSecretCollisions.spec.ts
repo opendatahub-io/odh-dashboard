@@ -117,6 +117,40 @@ describe('detectExistingSecretKeyCollisions', () => {
     const result = detectExistingSecretKeyCollisions(refs);
     expect(result).toHaveLength(0);
   });
+
+  it('should ignore reserved keys that appear in multiple secrets', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['TOKEN_VALUE', 'NOTEBOOK_ARGS'] },
+      { secretName: 'secret-b', selectedKeys: ['NOTEBOOK_ARGS'] },
+    ];
+    expect(detectExistingSecretKeyCollisions(refs)).toEqual([]);
+  });
+
+  it('should ignore invalid env var names that appear in multiple secrets', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['VALID_KEY', 'key-with-hyphens'] },
+      { secretName: 'secret-b', selectedKeys: ['key-with-hyphens'] },
+    ];
+    expect(detectExistingSecretKeyCollisions(refs)).toEqual([]);
+  });
+
+  it('should still detect collisions among usable keys when reserved keys also overlap', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['SHARED_KEY', 'NOTEBOOK_ARGS'] },
+      { secretName: 'secret-b', selectedKeys: ['SHARED_KEY', 'NOTEBOOK_ARGS'] },
+    ];
+    expect(detectExistingSecretKeyCollisions(refs)).toEqual([
+      { key: 'SHARED_KEY', sources: ['secret-a', 'secret-b'] },
+    ]);
+  });
+
+  it('should ignore reserved keys that collide with an external key name', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'my-secret', selectedKeys: ['NOTEBOOK_ARGS', 'TOKEN_VALUE'] },
+    ];
+    const externalKeys = new Set(['NOTEBOOK_ARGS']);
+    expect(detectExistingSecretKeyCollisions(refs, externalKeys)).toEqual([]);
+  });
 });
 
 describe('getCollidingKeySet', () => {

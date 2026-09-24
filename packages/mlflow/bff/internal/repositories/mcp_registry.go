@@ -227,16 +227,30 @@ func (r *MCPRegistryRepository) UpdateServer(ctx context.Context, name string, r
 		opts = append(opts, mcpregistry.WithUpdatedServerIcons(*req.Icons))
 	}
 
-	server, err := client.UpdateMCPServer(ctx, name, opts...)
-	if err != nil {
+	if _, err := client.UpdateMCPServer(ctx, name, opts...); err != nil {
 		return nil, fmt.Errorf("updating MCP server %q: %w", name, err)
 	}
-	if server == nil {
-		return nil, fmt.Errorf("UpdateMCPServer returned nil for %q", name)
-	}
 
-	result := toMCPServer(server)
-	return &result, nil
+	// MLflow PATCH/GET may return sparse bodies; re-fetch then overlay fields
+	// we just asked to update so callers see the new values.
+	result, err := r.GetServer(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	applyMCPServerUpdate(result, req)
+	return result, nil
+}
+
+func applyMCPServerUpdate(server *models.MCPServer, req models.UpdateMCPServerRequest) {
+	if req.DisplayName != nil {
+		server.DisplayName = *req.DisplayName
+	}
+	if req.Description != nil {
+		server.Description = *req.Description
+	}
+	if req.Icons != nil {
+		server.Icons = *req.Icons
+	}
 }
 
 // DeleteServer removes an MCP server and all of its versions, access
@@ -567,16 +581,33 @@ func (r *MCPRegistryRepository) UpdateAccessEndpoint(ctx context.Context, server
 		opts = append(opts, mcpregistry.WithUpdatedEndpointServerAlias(*req.ServerAlias))
 	}
 
-	endpoint, err := client.UpdateMCPAccessEndpoint(ctx, serverName, endpointID, opts...)
-	if err != nil {
+	if _, err := client.UpdateMCPAccessEndpoint(ctx, serverName, endpointID, opts...); err != nil {
 		return nil, fmt.Errorf("updating access endpoint %q for MCP server %q: %w", endpointID, serverName, err)
 	}
-	if endpoint == nil {
-		return nil, fmt.Errorf("UpdateMCPAccessEndpoint returned nil for %q", endpointID)
-	}
 
-	result := toMCPAccessEndpoint(endpoint)
-	return &result, nil
+	// MLflow PATCH/GET may return sparse bodies; re-fetch then overlay fields
+	// we just asked to update so callers see the new values.
+	result, err := r.GetAccessEndpoint(ctx, serverName, endpointID)
+	if err != nil {
+		return nil, err
+	}
+	applyMCPAccessEndpointUpdate(result, req)
+	return result, nil
+}
+
+func applyMCPAccessEndpointUpdate(endpoint *models.MCPAccessEndpoint, req models.UpdateMCPAccessEndpointRequest) {
+	if req.EndpointURL != nil {
+		endpoint.EndpointURL = *req.EndpointURL
+	}
+	if req.TransportType != nil {
+		endpoint.TransportType = *req.TransportType
+	}
+	if req.ServerVersion != nil {
+		endpoint.ServerVersion = *req.ServerVersion
+	}
+	if req.ServerAlias != nil {
+		endpoint.ServerAlias = *req.ServerAlias
+	}
 }
 
 func (r *MCPRegistryRepository) DeleteAccessEndpoint(ctx context.Context, serverName, endpointID string) error {

@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { fireSectionToggled } from '#~/pages/home/taskAssistant/taskAssistantTracking';
 import TaskAssistantSection from '#~/pages/home/taskAssistant/TaskAssistantSection';
@@ -11,6 +12,11 @@ import { makeGroupExtension, makeItemExtension } from './taskAssistantTestUtils'
 jest.mock('@odh-dashboard/plugin-core', () => ({
   useResolvedExtensions: jest.fn(),
   useExtensions: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/ui-core/utilities', () => ({
@@ -27,6 +33,17 @@ const mockFireSectionToggled = jest.mocked(fireSectionToggled);
 const mockUseResolvedExtensions = jest.mocked(useResolvedExtensions);
 const mockUseExtensions = jest.mocked(useExtensions);
 const mockUseBrowserStorage = jest.mocked(useBrowserStorage);
+const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
+
+const mockAreaStatus = (status: boolean): ReturnType<typeof useIsAreaAvailable> => ({
+  status,
+  devFlags: null,
+  featureFlags: null,
+  reliantAreas: null,
+  requiredComponents: null,
+  requiredCapabilities: null,
+  customCondition: () => false,
+});
 
 const mockSetIsOpen = jest.fn();
 
@@ -42,6 +59,7 @@ describe('TaskAssistantSection', () => {
     jest.clearAllMocks();
     mockUseExtensions.mockReturnValue([]);
     mockUseBrowserStorage.mockReturnValue([true, mockSetIsOpen]);
+    mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
   });
 
   it('should render nothing when extensions are not resolved', () => {
@@ -76,6 +94,16 @@ describe('TaskAssistantSection', () => {
 
     renderSection();
     expect(screen.getByText('Task shortcuts')).toBeInTheDocument();
+  });
+
+  it('should hide the guided tour link when the area is unavailable', () => {
+    mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(false));
+    mockUseResolvedExtensions
+      .mockReturnValueOnce([[makeGroupExtension('g1', '1')], true, []])
+      .mockReturnValueOnce([[makeItemExtension('t1', 'g1', '1')], true, []]);
+
+    renderSection();
+    expect(screen.queryByTestId('whats-new-task-link')).not.toBeInTheDocument();
   });
 
   describe('expanded state', () => {

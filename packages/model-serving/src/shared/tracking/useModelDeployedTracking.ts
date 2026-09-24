@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import {
   fireModelDeployed as fireDeploymentFormTracking,
   type DeploymentTrackingProperties,
@@ -18,6 +19,7 @@ import {
 import { MODEL_CAPABILITIES_FIELD_ID } from '../../components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField';
 import type { WizardFormState } from '../../components/deploymentWizard/useDeploymentWizardReducer';
 import type { InitialWizardFormData } from '../types/form-data';
+import type { ExternalDataMap } from '../../components/deploymentWizard/ExternalDataLoader';
 
 export const getBaseModelDeployedTrackingProperties = (
   formState: WizardFormState,
@@ -39,17 +41,11 @@ export const getBaseModelDeployedTrackingProperties = (
 
 const toDeploymentTrackingProperties = (
   properties: ModelDeployedTrackingProperties,
-  errorMessage?: string,
 ): DeploymentTrackingProperties => {
   const trackingProperties: DeploymentTrackingProperties = {
     outcome: properties.outcome === 'cancel' ? TrackingOutcome.cancel : TrackingOutcome.submit,
     success: properties.success,
   };
-
-  if (errorMessage) {
-    trackingProperties.errorMessage = errorMessage;
-    trackingProperties.error = errorMessage;
-  }
 
   for (const [key, value] of Object.entries(properties)) {
     if (key === 'outcome' || value === undefined) {
@@ -65,19 +61,20 @@ export const useModelDeployedTracking = (
   formState: WizardFormState,
   initialWizardData?: InitialWizardFormData,
   platformId?: string,
+  isEdit?: boolean,
+  externalData?: ExternalDataMap,
+  deploymentKind: 'inferenceService' | 'llmInferenceService' = 'inferenceService',
+  kueueQueueName?: string,
 ): {
-  fireModelDeployedTracking: (
-    outcome: 'submit' | 'cancel',
-    success?: boolean,
-    errorMessage?: string,
-  ) => Promise<void>;
+  fireModelDeployedTracking: (outcome: 'submit' | 'cancel', success?: boolean) => Promise<void>;
 } => {
   const location = useLocation();
+  const trackEvent = useTrackEvent();
   const { getTrackingProperties } = useWizardTrackingProperties(formState, platformId);
 
   const fireModelDeployedTracking = React.useCallback(
-    async (outcome: 'submit' | 'cancel', success?: boolean, errorMessage?: string) => {
-      const platformTrackingProperties = await getTrackingProperties();
+    async (outcome: 'submit' | 'cancel', success?: boolean) => {
+      const platformTrackingProperties = await getTrackingProperties(externalData);
       const wizardProperties = getModelDeployedTrackingProperties({
         navState: getDeployWizardNavState(location.state),
         validatedConfigurations: initialWizardData?.validatedConfigurations,
@@ -86,17 +83,36 @@ export const useModelDeployedTracking = (
         runtimeArgs: formState.runtimeArgs.data?.args,
         outcome,
         success,
-        error: errorMessage,
         additionalProperties: {
           ...getBaseModelDeployedTrackingProperties(formState),
           ...platformTrackingProperties,
-          ...(errorMessage ? { errorMessage } : {}),
+          hasKueueEnabled: Boolean(kueueQueueName),
+          kueueSubState: 'none',
+          isKueueBlocking: false,
+          admittedReplicaCount: 0,
+          primaryDeploymentStatus: 'Pending',
+          deploymentKind,
+          kueueQueueName,
         },
       });
 
-      fireDeploymentFormTracking(toDeploymentTrackingProperties(wizardProperties, errorMessage));
+      fireDeploymentFormTracking(
+        trackEvent,
+        toDeploymentTrackingProperties(wizardProperties),
+        isEdit,
+      );
     },
-    [location.state, initialWizardData?.validatedConfigurations, formState, getTrackingProperties],
+    [
+      location.state,
+      initialWizardData?.validatedConfigurations,
+      formState,
+      getTrackingProperties,
+      trackEvent,
+      isEdit,
+      externalData,
+      deploymentKind,
+      kueueQueueName,
+    ],
   );
 
   return { fireModelDeployedTracking };

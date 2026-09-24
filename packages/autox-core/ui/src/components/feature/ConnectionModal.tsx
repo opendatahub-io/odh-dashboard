@@ -19,7 +19,7 @@ import type {
   K8sNameDescriptionFieldData,
 } from '@odh-dashboard/k8s-core';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import './ConnectionModal.scss';
 
 const S3_REQUIRED_ENV_VARS = ['AWS_DEFAULT_REGION', 'AWS_S3_BUCKET'];

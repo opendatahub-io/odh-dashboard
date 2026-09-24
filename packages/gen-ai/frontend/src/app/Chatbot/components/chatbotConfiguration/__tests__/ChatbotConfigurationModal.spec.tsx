@@ -12,7 +12,6 @@ import {
   LlamaStackDistributionModel,
   VectorStore,
 } from '~/app/types';
-import type { MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import useTracingEnabled from '~/app/Chatbot/hooks/useTracingEnabled';
@@ -61,17 +60,10 @@ beforeEach(() => {
 
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
   __esModule: true,
-  default: ({
-    selectedModels,
-    maxTokensMap,
-  }: {
-    selectedModels: AIModel[];
-    maxTokensMap: Map<string, number | undefined>;
-  }) => (
+  default: ({ selectedModels }: { selectedModels: AIModel[] }) => (
     <div data-testid="selected-models">
       {JSON.stringify({
         models: selectedModels.map((m) => m.model_name),
-        maxTokens: Array.from(maxTokensMap.entries()),
       })}
     </div>
   ),
@@ -115,16 +107,6 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   ...overrides,
 });
 
-const createMaaSModel = (overrides: Partial<MaaSModel>): MaaSModel => ({
-  id: 'maas-model',
-  object: 'model',
-  created: Date.now(),
-  owned_by: 'maas',
-  ready: true,
-  url: 'https://maas.example.com/v1',
-  ...overrides,
-});
-
 const createCollection = (
   overrides: Partial<ExternalVectorStoreSummary>,
 ): ExternalVectorStoreSummary => ({
@@ -152,9 +134,7 @@ const createLSDVectorStore = (id: string, overrides?: Partial<VectorStore>): Vec
 
 type RenderModalProps = {
   allModels: AIModel[];
-  maasModels?: MaaSModel[];
   existingModels?: LlamaModel[];
-  extraSelectedModels?: AIModel[];
   allCollections?: ExternalVectorStoreSummary[];
   collectionsLoaded?: boolean;
   existingCollections?: VectorStore[];
@@ -170,9 +150,7 @@ const renderModal = (props: RenderModalProps) =>
         onClose={() => undefined}
         lsdStatus={props.lsdStatus ?? null}
         aiModels={props.allModels}
-        maasModels={props.maasModels}
         existingModels={props.existingModels}
-        extraSelectedModels={props.extraSelectedModels}
         allCollections={props.allCollections ?? []}
         collectionsLoaded={props.collectionsLoaded ?? true}
         existingCollections={props.existingCollections}
@@ -190,9 +168,7 @@ const renderModalWithContext = (props: RenderModalProps) =>
           onClose={() => undefined}
           lsdStatus={props.lsdStatus ?? null}
           aiModels={props.allModels}
-          maasModels={props.maasModels}
           existingModels={props.existingModels}
-          extraSelectedModels={props.extraSelectedModels}
           allCollections={props.allCollections ?? []}
           collectionsLoaded={props.collectionsLoaded ?? true}
           existingCollections={props.existingCollections}
@@ -207,7 +183,6 @@ const getSelectedModelNames = (): string[] => {
   const json = screen.getByTestId('selected-models').textContent || '{}';
   const parsed = JSON.parse(json) as {
     models: string[];
-    maxTokens: [string, number | undefined][];
   };
   return parsed.models;
 };
@@ -226,57 +201,68 @@ const getAllCollectionIds = (): string[] => {
 
 // ─── Pre-selected models ─────────────────────────────────────────────────────
 
-describe('ChatbotConfigurationModal preSelectedModels', () => {
+describe('ChatbotConfigurationModal auto-selected models', () => {
   const aiA = createAIModel({ model_name: 'mA', display_name: 'A' });
   const aiB = createAIModel({ model_name: 'mB', display_name: 'B' });
   const aiC = createAIModel({ model_name: 'mC', display_name: 'C' });
   const aiD = createAIModel({ model_name: 'mD', display_name: 'D', status: 'Stop' });
   const allModels = [aiA, aiB, aiC, aiD];
 
-  it('uses existing models only when provided (mapped by id ↔ model_name)', () => {
-    const existing: LlamaModel[] = [
-      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
-      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
-    ];
-    renderModal({ allModels, existingModels: existing });
-    expect(getSelectedModelNames()).toEqual(['mA', 'mC']);
-  });
-
-  it('uses only available existing models (Running status)', () => {
-    const existing: LlamaModel[] = [
-      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
-      { id: 'pA/mD', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mD' },
-    ];
-    renderModal({ allModels, existingModels: existing });
-    expect(getSelectedModelNames()).toEqual(['mA']);
-  });
-
-  it('merges extraSelectedModels and existingModels, deduplicating by model_name', () => {
-    const existing: LlamaModel[] = [
-      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
-      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
-    ];
-    renderModal({ allModels, existingModels: existing, extraSelectedModels: [aiB] });
-    expect(getSelectedModelNames()).toEqual(['mB', 'mA', 'mC']);
-  });
-
-  it('extra takes precedence over existing when same model appears in both', () => {
-    const existing: LlamaModel[] = [
-      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
-      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
-    ];
-    renderModal({ allModels, existingModels: existing, extraSelectedModels: [aiB, aiA] });
-    expect(getSelectedModelNames()).toEqual(['mB', 'mA', 'mC']);
-  });
-
-  it('uses only extraSelectedModels when existingModels is not provided', () => {
-    renderModal({ allModels, extraSelectedModels: [aiB] });
-    expect(getSelectedModelNames()).toEqual(['mB']);
-  });
-
-  it('falls back to allModels when neither existing nor extra are provided', () => {
+  it('auto-selects all non-embedding models regardless of status', () => {
     renderModal({ allModels });
-    expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC']);
+    expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC', 'mD']);
+  });
+
+  it('auto-selects all non-embedding models even when existingModels is provided', () => {
+    const existing: LlamaModel[] = [
+      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
+    ];
+    renderModal({ allModels, existingModels: existing });
+    expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC', 'mD']);
+  });
+
+  it('excludes embedding models from auto-selection', () => {
+    const embeddingModel = createAIModel({
+      model_name: 'embed-model',
+      display_name: 'Embedding',
+      model_type: 'embedding',
+    });
+    renderModal({ allModels: [...allModels, embeddingModel] });
+    expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC', 'mD']);
+  });
+
+  it('includes embedding models when required by a pre-selected collection', () => {
+    const embeddingModel = createAIModel({
+      model_name: 'embed-model',
+      model_id: 'embed-model',
+      display_name: 'Embedding',
+      model_type: 'embedding',
+    });
+    const collection: ExternalVectorStoreSummary = {
+      vector_store_id: 'vs-1',
+      vector_store_name: 'test-vs',
+      provider_id: 'provider-1',
+      provider_type: 'remote::passthrough',
+      embedding_model: 'embed-model',
+      embedding_dimension: 768,
+    };
+    const existingVs: VectorStore = {
+      id: 'vs-1',
+      name: 'test-vs',
+      object: 'vector_store',
+      created_at: 1700000000,
+      last_active_at: 1700000000,
+      file_counts: { cancelled: 0, completed: 0, failed: 0, in_progress: 0, total: 0 },
+      metadata: { provider_id: 'provider-1' },
+      status: 'completed',
+      usage_bytes: 0,
+    };
+    renderModal({
+      allModels: [...allModels, embeddingModel],
+      allCollections: [collection],
+      existingCollections: [existingVs],
+    });
+    expect(getSelectedModelNames()).toContain('embed-model');
   });
 });
 
@@ -296,11 +282,40 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
 
   it('should include both namespace and MaaS versions of the same model', () => {
     const namespaceModel = createAIModel({ model_name: 'granite-7b-lab' });
-    const maasModel = createMaaSModel({ id: 'granite-7b-lab' });
-    renderModal({ allModels: [namespaceModel], maasModels: [maasModel] });
+    const maasModel = createAIModel({
+      model_name: 'granite-7b-lab-maas',
+      model_id: 'granite-7b-lab',
+      model_source_type: 'maas',
+    });
+    renderModal({ allModels: [namespaceModel, maasModel] });
     const names = getSelectedModelNames();
     expect(names).toHaveLength(2);
     expect(names).toContain('granite-7b-lab');
+    expect(names).toContain('granite-7b-lab-maas');
+  });
+
+  it('produces exactly one installLSD payload entry for a single MaaS model', async () => {
+    const user = userEvent.setup();
+    const maasModel = createAIModel({
+      model_name: 'granite-maas',
+      model_id: 'granite-7b-lab',
+      model_source_type: 'maas',
+    });
+    renderModalWithContext({ allModels: [maasModel] });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledTimes(1);
+      const payload = mockInstallLSD.mock.calls[0][0];
+      expect(payload.models).toHaveLength(1);
+      expect(payload.models[0]).toEqual(
+        expect.objectContaining({
+          model_name: 'granite-7b-lab',
+          model_source_type: 'maas',
+        }),
+      );
+    });
   });
 });
 
@@ -339,50 +354,15 @@ describe('ChatbotConfigurationModal ASR model exclusion', () => {
     expect(getSelectedModelNames()).toEqual(['chat-model', 'no-caps']);
   });
 
-  it('excludes ASR-only models from extraSelectedModels when existingModels present', () => {
+  it('excludes ASR-only models from auto-selection', () => {
     const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
     const asrModel = createAIModel({
       model_name: 'whisper-asr',
       display_name: 'Whisper ASR',
       capabilities: ['audio-transcription'],
     });
-    const existing: LlamaModel[] = [
-      {
-        id: 'pA/chat-model',
-        object: 'model',
-        created: Date.now(),
-        owned_by: 'x',
-        modelId: 'chat-model',
-      },
-    ];
-    renderModal({
-      allModels: [chatModel, asrModel],
-      existingModels: existing,
-      extraSelectedModels: [asrModel],
-    });
+    renderModal({ allModels: [chatModel, asrModel] });
     expect(getSelectedModelNames()).toEqual(['chat-model']);
-  });
-
-  it('excludes ASR-only models from extraSelectedModels in fallback path', () => {
-    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
-    const asrModel = createAIModel({
-      model_name: 'whisper-asr',
-      display_name: 'Whisper ASR',
-      capabilities: ['audio-transcription'],
-    });
-    renderModal({ allModels: [chatModel, asrModel], extraSelectedModels: [chatModel, asrModel] });
-    expect(getSelectedModelNames()).toEqual(['chat-model']);
-  });
-});
-
-// ─── max_tokens ───────────────────────────────────────────────────────────────
-
-describe('ChatbotConfigurationModal max_tokens support', () => {
-  it('initialises an empty maxTokensMap', () => {
-    renderModal({ allModels: [createAIModel({ model_name: 'test-model' })] });
-    const json = screen.getByTestId('selected-models').textContent || '{}';
-    const parsed = JSON.parse(json) as { maxTokens: [string, number | undefined][] };
-    expect(parsed.maxTokens).toEqual([]);
   });
 });
 
@@ -412,6 +392,18 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
         }),
       );
     });
+  });
+
+  it('does not send installation-time max_tokens for an inference model', async () => {
+    const user = userEvent.setup();
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledTimes(1);
+    });
+    expect(mockInstallLSD.mock.calls[0][0].models[0]).not.toHaveProperty('max_tokens');
   });
 
   it('includes enable_guardrails: true when feature flag is enabled', async () => {
@@ -764,13 +756,38 @@ describe('ChatbotConfigurationModal form tracking', () => {
       });
     });
 
-    it('fires success tracking with countEmbeddingModels=1 when an embedding model is selected', async () => {
+    it('fires success tracking with countEmbeddingModels=1 when an embedding model is included via vector store', async () => {
       const user = userEvent.setup();
+      const chatModel = createAIModel({ model_name: 'chat-model' });
       const embeddingModel = createAIModel({
         model_name: 'embed-model',
+        model_id: 'embed-model',
         model_type: 'embedding',
       });
-      renderModalWithContext({ allModels: [embeddingModel] });
+      const collection: ExternalVectorStoreSummary = {
+        vector_store_id: 'vs-1',
+        vector_store_name: 'test-vs',
+        provider_id: 'provider-1',
+        provider_type: 'remote::passthrough',
+        embedding_model: 'embed-model',
+        embedding_dimension: 768,
+      };
+      const existingVs: VectorStore = {
+        id: 'vs-1',
+        name: 'test-vs',
+        object: 'vector_store',
+        created_at: 1700000000,
+        last_active_at: 1700000000,
+        file_counts: { cancelled: 0, completed: 0, failed: 0, in_progress: 0, total: 0 },
+        metadata: { provider_id: 'provider-1' },
+        status: 'completed',
+        usage_bytes: 0,
+      };
+      renderModalWithContext({
+        allModels: [chatModel, embeddingModel],
+        allCollections: [collection],
+        existingCollections: [existingVs],
+      });
 
       await user.click(screen.getByRole('button', { name: /create/i }));
 
@@ -779,8 +796,8 @@ describe('ChatbotConfigurationModal form tracking', () => {
           outcome: 'submit',
           success: true,
           namespace: 'test-namespace',
-          countModelsSelected: 1,
-          countCollectionsSelected: 0,
+          countModelsSelected: 2,
+          countCollectionsSelected: 1,
           countEmbeddingModels: 1,
         });
       });
@@ -836,6 +853,28 @@ describe('ChatbotConfigurationModal form tracking', () => {
       });
     });
 
+    it('recreates an existing playground without installation-time max_tokens', async () => {
+      const user = userEvent.setup();
+      const mockDeleteLSD = jest.fn().mockResolvedValue({ data: null });
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: true,
+        api: { installLSD: mockInstallLSD, deleteLSD: mockDeleteLSD },
+      });
+
+      renderModalWithContext({ allModels, lsdStatus });
+
+      await user.click(screen.getByRole('button', { name: /configure/i }));
+
+      await waitFor(() => {
+        expect(mockDeleteLSD).toHaveBeenCalledWith({
+          name: 'lsd-playground',
+          preserve_vector_store: true,
+        });
+        expect(mockInstallLSD).toHaveBeenCalledTimes(1);
+      });
+      expect(mockInstallLSD.mock.calls[0][0].models[0]).not.toHaveProperty('max_tokens');
+    });
+
     it('fires Playground Config Update cancel event in update mode', async () => {
       const user = userEvent.setup();
       renderModalWithContext({ allModels, lsdStatus });
@@ -854,6 +893,22 @@ describe('ChatbotConfigurationModal form tracking', () => {
 
 describe('ChatbotConfigurationModal tracing configuration', () => {
   const allModels = [createAIModel({ model_name: 'test-model' })];
+  const passthroughLsdStatus: LlamaStackDistributionModel = {
+    name: 'lsd-playground',
+    phase: 'Ready',
+    version: '0.1.0',
+    distributionConfig: {
+      activeDistribution: 'rh',
+      providers: [
+        {
+          provider_id: 'genai-bff-proxy',
+          api: 'inference',
+          health: { status: 'Ready', message: '' },
+        },
+      ],
+      availableDistributions: {},
+    },
+  };
 
   it('does not render tracing toggle when feature flag is disabled', () => {
     (useTracingEnabled as jest.Mock).mockReturnValue(false);
@@ -867,6 +922,29 @@ describe('ChatbotConfigurationModal tracing configuration', () => {
     renderModalWithContext({ allModels });
 
     expect(screen.getByTestId('enable-tracing-switch')).toBeInTheDocument();
+  });
+
+  it('enables Configure when tracing changes for a passthrough playground', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels, lsdStatus: passthroughLsdStatus });
+
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+
+    await user.click(screen.getByTestId('enable-tracing-switch'));
+
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+  });
+
+  it('preserves existing tracing configuration for a passthrough playground', () => {
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({
+      allModels,
+      lsdStatus: { ...passthroughLsdStatus, tracingEnabled: true },
+    });
+
+    expect(screen.getByTestId('enable-tracing-switch')).toBeChecked();
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
   });
 
   it('does not include enable_tracing in payload when feature flag is disabled', async () => {

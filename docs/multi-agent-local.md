@@ -7,7 +7,7 @@ For foundational concepts (worktrees, conflict avoidance, best practices), see [
 ## Prerequisites
 
 - Claude Code CLI installed and authenticated
-- Node.js >= 22.0.0, npm >= 10.0.0
+- Node.js >= 22.18.0, pnpm 11.22.0
 - Git configured with remote access to the repository
 - Terminal emulator supporting split panes (built-in in most modern terminals)
 
@@ -66,7 +66,7 @@ git worktree add .claude/worktrees/gen-ai-feature -b gen-ai-feature upstream/mai
 git worktree add .claude/worktrees/mr-refactor -b mr-refactor upstream/main
 
 # Step 2: Install dependencies (from the main repo root, not from worktrees)
-npm install
+pnpm install
 
 # Step 3: Start sessions
 # Pane 1:
@@ -229,7 +229,7 @@ git worktree list
 
 | Problem | Solution |
 |---------|----------|
-| `npm install` fails in worktree | Run `npm install` from the main repo root, not the worktree |
+| `pnpm install` fails in worktree | Run `pnpm install` from the main repo root, not the worktree |
 | Worktree branch conflicts | Each worktree must use a unique branch — check with `git worktree list` |
 | Session runs out of context | Use `/compact` to compress history, or start a new session with a focused prompt |
 | Port conflicts between dev servers | Each package uses a unique port (9100+) — check `package.json` `module-federation.local.port` |

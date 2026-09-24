@@ -1,10 +1,10 @@
 import React from 'react';
+import { initSegment } from '@odh-dashboard/analytics';
 import { useAppContext } from '#~/app/AppContext';
 import { useAppSelector } from '#~/redux/hooks';
 import { fireIdentifyEvent, firePageEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { useTrackUser } from '#~/concepts/analyticsTracking/useTrackUser';
 import { useWatchSegmentKey } from './useWatchSegmentKey';
-import { initSegment } from './initSegment';
 
 export const useSegmentTracking = (): void => {
   const { segmentKey, loaded, loadError } = useWatchSegmentKey();

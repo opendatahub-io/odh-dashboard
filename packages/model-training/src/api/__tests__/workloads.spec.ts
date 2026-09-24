@@ -1,5 +1,5 @@
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { WorkloadModel } from '@odh-dashboard/internal/api/models/kueue';
+import { WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { getWorkloadForJob, patchWorkloadActiveState } from '../workloads';

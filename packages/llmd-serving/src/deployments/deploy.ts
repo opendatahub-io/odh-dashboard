@@ -11,8 +11,8 @@ import {
 import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
-import { setUpTokenAuth } from './deployUtils';
 import {
   applyModelEnvVarsAndArgs,
   applyModelLocation,
@@ -41,6 +41,7 @@ import {
   updateLLMInferenceServiceConfig,
 } from '../api/LLMInferenceServiceConfigs';
 import { cleanlyDuplicateConfig } from '../utils';
+import { applyHfTokenEnvVar, resolveHfTokenSecretName } from '../hfTokenSecret';
 
 export const BaseLLMInferenceService = (
   name?: string,
@@ -307,6 +308,13 @@ export const deployLLMdDeployment = async (
     throw new Error('LLMInferenceService is required');
   }
 
+  const hfTokenSecretName = await resolveHfTokenSecretName(
+    projectName,
+    wizardData.huggingFaceApiKey.data,
+    { dryRun },
+  );
+  const llmInferenceServiceToDeploy = applyHfTokenEnvVar(modelResource, hfTokenSecretName);
+
   let llmInferenceServiceConfig: LLMInferenceServiceConfigKind | undefined;
   if (serverResource) {
     llmInferenceServiceConfig = await deployLLMInferenceServiceConfig(
@@ -319,7 +327,7 @@ export const deployLLMdDeployment = async (
     );
   }
   const llmInferenceService = await deployLLMInferenceService(
-    modelResource,
+    llmInferenceServiceToDeploy,
     existingDeployment?.model,
     { dryRun, overwrite },
   );
@@ -335,6 +343,7 @@ export const deployLLMdDeployment = async (
       llmInferenceService.metadata.namespace,
       createTokenAuth,
       llmInferenceService,
+      'llminferenceservices',
       initialWizardData?.existingAuthTokens,
       { dryRun },
     );

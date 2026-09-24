@@ -146,7 +146,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
           isFilled
           aria-label="manage-hardware-profile-spawner-section"
         >
-          <Form>
+          <Form onSubmit={(e) => e.preventDefault()}>
             <FormSection
               id={ManageHardwareProfileSectionID.DETAILS}
               aria-label={

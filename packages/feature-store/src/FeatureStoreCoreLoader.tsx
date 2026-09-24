@@ -3,7 +3,7 @@ import { Bullseye, Button, Spinner } from '@patternfly/react-core';
 import { CogIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Link, Outlet, useParams } from 'react-router-dom';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
-import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
+import { conditionalArea } from '@odh-dashboard/ui-core/components/conditionalArea';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports

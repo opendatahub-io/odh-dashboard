@@ -2,7 +2,8 @@
 import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
-import { TrainJobModel, WorkloadModel } from '@odh-dashboard/internal/api/models';
+import { WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { TrainJobModel } from '@odh-dashboard/internal/api/models';
 import {
   projectName,
   mockTrainJobs,
@@ -18,7 +19,14 @@ import {
   scaleNodesModal,
 } from '../../../pages/modelTraining';
 
-describe('Model Training', () => {
+// RHOAIENG-88673: TrainJob node scaling is disabled for RHOAI 3.6.
+//
+// Kubeflow Trainer 2.2 made `spec.trainer` immutable (kubeflow/trainer#3157), so PATCHing
+// `spec.trainer.numNodes` after create is rejected by the TrainJob validating webhook, and
+// upstream has not shipped a replacement API. The scale UI is disabled in TrainJobTableRow,
+// TrainingJobDetailsDrawer and TrainingJobResourcesTab, so these tests cannot pass.
+// Remove the `.skip` together with that UI once upstream supports post-create node scaling.
+describe.skip('Model Training', () => {
   beforeEach(() => {
     asClusterAdminUser();
   });

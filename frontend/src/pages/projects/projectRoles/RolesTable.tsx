@@ -12,7 +12,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import { RoleModel } from '#~/api/models';
+import { RoleModel } from '@odh-dashboard/k8s-core/api/models';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';

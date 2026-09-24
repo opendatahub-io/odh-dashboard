@@ -29,8 +29,8 @@ const EnvConfigMap: React.FC<EnvConfigMapProps> = ({ env = DEFAULT_ENV, onUpdate
     radioGroupName="env-configmap-subtype"
     options={{
       [ConfigMapCategory.GENERIC]: {
-        label: 'Key / value',
-        description: 'Create a new key-value pair for this environment variable',
+        label: 'Create',
+        description: 'Enter key-value pairs manually.',
         render: (
           <GenericKeyValuePairField
             values={env.data.length === 0 ? [EMPTY_KEY_VALUE_PAIR] : env.data}
@@ -40,7 +40,7 @@ const EnvConfigMap: React.FC<EnvConfigMapProps> = ({ env = DEFAULT_ENV, onUpdate
       },
       [ConfigMapCategory.UPLOAD]: {
         label: 'Upload',
-        description: 'Upload environment variables from a file',
+        description: 'Upload key-value pairs from a file.',
         render: (
           <EnvUploadField
             envVarType={EnvironmentVariableType.CONFIG_MAP}

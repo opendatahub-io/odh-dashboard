@@ -24,6 +24,10 @@ var (
 	mcpServerSlugRegex      = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]$`)
 )
 
+// reservedMCPServerAlias is reserved by MLflow for automatic resolution to
+// the newest version and cannot be set via SetMCPServerAlias.
+const reservedMCPServerAlias = "latest"
+
 // mcpServerReservedSlugs are slugs that collide with the sub-resource path
 // segments this BFF's catch-all routing reserves.
 var mcpServerReservedSlugs = map[string]bool{
@@ -689,6 +693,10 @@ func (app *App) mlflowSetMCPServerAlias(w http.ResponseWriter, r *http.Request, 
 	}
 	if req.Alias == "" {
 		app.badRequestResponse(w, r, errors.New("alias is required"))
+		return
+	}
+	if req.Alias == reservedMCPServerAlias {
+		app.badRequestResponse(w, r, fmt.Errorf("alias %q is reserved", reservedMCPServerAlias))
 		return
 	}
 	if req.Version == "" {

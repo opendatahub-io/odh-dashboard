@@ -5,8 +5,8 @@
   "stages": [
     {
       "id": "discover_documents",
-      "status": "completed",
-      "timestamp": "2026-07-16T19:38:59.505465Z"
+      "status": { "state": "completed" },
+      "metrics": { "documents_discovered": 1 }
     }
   ],
   "metadata": {

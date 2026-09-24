@@ -1,9 +1,4 @@
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome, type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
-import { ModelServingTrackingEvent } from './modelServingTrackingConstants';
+import { type TrackEventFn, ModelServingTrackingEvent } from './modelServingTrackingConstants';
 import type { ValidatedConfiguration, ValidatedConfigurationOption } from '../types/form-data';
 
 export const TOOL_CALLING_CONFIGURATION_TITLE = 'Tool calling';
@@ -60,7 +55,6 @@ export type ModelDeployedTrackingProperties = {
   entryPoint: DeployWizardEntryPoint;
   outcome: 'submit' | 'cancel';
   success?: boolean;
-  error?: string;
   hasInjectedValidatedArgs: boolean;
 } & Record<string, string | number | boolean | string[] | undefined>;
 
@@ -132,7 +126,6 @@ export const getModelDeployedTrackingProperties = ({
   runtimeArgs,
   outcome,
   success,
-  error,
   additionalProperties,
 }: {
   navState: DeployWizardNavState;
@@ -141,7 +134,6 @@ export const getModelDeployedTrackingProperties = ({
   runtimeArgs?: string[];
   outcome: 'submit' | 'cancel';
   success?: boolean;
-  error?: string;
   additionalProperties?: Record<string, string | number | boolean | string[] | undefined>;
 }): ModelDeployedTrackingProperties => {
   const selectedOptions = getSelectedValidatedOptions(
@@ -166,7 +158,6 @@ export const getModelDeployedTrackingProperties = ({
     entryPoint: getDeployWizardEntryPoint(navState),
     outcome,
     success,
-    error,
     hasInjectedValidatedArgs,
   };
 };
@@ -202,42 +193,23 @@ export const getDeployWizardStartedProperties = ({
   };
 };
 
-export const fireDeployWizardStarted = (properties: DeployWizardStartedProperties): void => {
-  fireMiscTrackingEvent(ModelServingTrackingEvent.DEPLOY_WIZARD_STARTED, properties);
+export const fireDeployWizardStarted = (
+  trackEvent: TrackEventFn,
+  properties: DeployWizardStartedProperties,
+): void => {
+  trackEvent(ModelServingTrackingEvent.DEPLOY_WIZARD_STARTED, properties);
 };
 
 export const fireValidatedArgumentSelected = (
+  trackEvent: TrackEventFn,
   properties: ValidatedArgumentSelectedProperties,
 ): void => {
-  fireMiscTrackingEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED, properties);
+  trackEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED, properties);
 };
 
 export const fireValidatedArgumentsViewed = (
+  trackEvent: TrackEventFn,
   properties: ValidatedArgumentsViewedProperties,
 ): void => {
-  fireMiscTrackingEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED, properties);
-};
-
-const toFormTrackingProperties = (
-  properties: ModelDeployedTrackingProperties,
-): FormTrackingEventProperties => {
-  const formProperties: FormTrackingEventProperties = {
-    outcome: properties.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
-  };
-
-  for (const [key, value] of Object.entries(properties)) {
-    if (key === 'outcome' || value === undefined) {
-      continue;
-    }
-    formProperties[key] = Array.isArray(value) ? value.join(',') : value;
-  }
-
-  return formProperties;
-};
-
-export const fireModelDeployed = (properties: ModelDeployedTrackingProperties): void => {
-  fireFormTrackingEvent(
-    ModelServingTrackingEvent.MODEL_DEPLOYED,
-    toFormTrackingProperties(properties),
-  );
+  trackEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED, properties);
 };

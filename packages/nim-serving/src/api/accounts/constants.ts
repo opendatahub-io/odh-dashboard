@@ -1,4 +1,5 @@
 export const NIM_SECRET_NAME = 'nvidia-nim-secrets';
+export const NIM_PULL_SECRET_NAME = 'ngc-secret';
 export const NIM_ACCOUNT_NAME = 'odh-nim-account';
 // The Account operator validates the key using this field
 export const NIM_API_KEY_DATA_KEY = 'api_key';

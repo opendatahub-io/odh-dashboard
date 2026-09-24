@@ -38,40 +38,41 @@ const readPackageJson = (dir: string): PackageJsonFile | undefined => {
 const findMonorepoRoot = (): string => {
   let dir = process.cwd();
   while (dir !== path.dirname(dir)) {
-    const pkg = readPackageJson(dir);
-    if (pkg?.workspaces != null) {
+    if (fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) {
       return dir;
     }
     dir = path.dirname(dir);
   }
   throw new Error(
     `Could not locate monorepo root from ${process.cwd()}. ` +
-      'Ensure webpack is invoked from a directory within the monorepo.',
+      'Ensure the bundler is invoked from a directory within the monorepo.',
   );
 };
 
 /**
- * Read `dependencies` from the package.json in `startDir` (webpack `compiler.options.context`).
+ * Read `dependencies` from the package.json in `startDir` (bundler `compiler.options.context`).
  */
 const collectDependenciesFromContext = (startDir: string): Record<string, string> =>
   readPackageJson(startDir)?.dependencies ?? {};
 
 const getWorkspacePackages = (root: string): WorkspacePackageInfo[] => {
+  const scriptPath = path.join(root, 'scripts/query-workspace-packages.js');
   try {
-    const stdout = execFileSync('npm', ['query', '.workspace', '--json'], {
+    const stdout = execFileSync('node', [scriptPath], {
       encoding: 'utf8',
       cwd: root,
+      shell: process.platform === 'win32',
     });
     const packages: WorkspacePackageInfo[] = JSON.parse(stdout);
     if (packages.length === 0) {
       throw new Error(
-        `npm query .workspace returned no packages (cwd: ${root}). ` +
-          'Ensure npm install has been run and the workspace is properly configured.',
+        `Workspace query returned no packages (cwd: ${root}). ` +
+          'Ensure pnpm is available and the workspace is properly configured.',
       );
     }
     return packages;
   } catch (e: unknown) {
-    if (e instanceof Error && e.message.includes('npm query .workspace returned no packages')) {
+    if (e instanceof Error && e.message.includes('Workspace query returned no packages')) {
       throw e;
     }
     const message = e instanceof Error ? e.message : String(e);

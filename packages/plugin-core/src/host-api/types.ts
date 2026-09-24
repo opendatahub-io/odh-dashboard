@@ -27,22 +27,19 @@ export type HostApiFetchState<T> = [
   refresh: () => Promise<T | undefined>,
 ];
 
-/**
- * Lightweight fetch-state object used in host-api service signatures.
- * Structurally compatible with ui-core's FetchStateObject without creating a dependency.
- */
-export type HostApiFetchStateObject<T> = {
-  data: T;
-  loaded: boolean;
-  error?: Error;
-  refresh: () => Promise<T | undefined>;
+export type ModelServingPlatformEnabled = {
+  kServe: boolean;
+  LLMd: boolean;
 };
 
-export type ServingPlatformStatuses = {
-  kServe: { enabled: boolean; installed: boolean };
-  kServeNIM: { enabled: boolean; installed: boolean };
-  platformEnabledCount: number;
-  refreshNIMAvailability: () => Promise<boolean | undefined>;
+export type ClusterSettingsType = {
+  userTrackingEnabled: boolean;
+  pvcSize: number;
+  cullerTimeout: number;
+  modelServingPlatformEnabled: ModelServingPlatformEnabled;
+  isDistributedInferencingDefault?: boolean;
+  defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 /**
@@ -64,6 +61,14 @@ export type HostApiCoreServices = {
 
   /** Fetch (or refresh) the DashboardConfig CR that controls feature flags and platform settings. */
   fetchDashboardConfig: (forceRefresh?: boolean) => Promise<DashboardConfigKind>;
+
+  /** Fetch cluster-wide settings (PVC size, culler timeout, model serving platforms, etc.). */
+  fetchClusterSettings: () => Promise<ClusterSettingsType>;
+
+  /** Update cluster-wide settings. */
+  updateClusterSettings: (
+    settings: ClusterSettingsType,
+  ) => Promise<{ success: boolean; error: string }>;
 };
 
 /**
@@ -131,20 +136,6 @@ export type HostApiServices = {
 
   /** Fetch the disabled serving runtime template names from DashboardConfig. */
   getDashboardConfigTemplateDisablement: (ns: string) => Promise<string[]>;
-
-  /** Fetch model serving metrics (Prometheus queries) for a given inference service. */
-  useModelServingMetrics: (
-    type: string,
-    queries: Record<string, string>,
-    timeframe: string,
-    lastUpdateTime: number,
-    setLastUpdateTime: (time: number) => void,
-    refreshInterval: string,
-    namespace: string,
-  ) => { data: Record<string, HostApiFetchStateObject<unknown[]>>; refresh: () => void };
-
-  /** Get serving platform statuses (KServe, NIM availability). */
-  useServingPlatformStatuses: (shouldRefreshNimAvailability?: boolean) => ServingPlatformStatuses;
 
   /** Check whether a project has NIM support enabled. */
   isProjectNIMSupported: (currentProject: ProjectKind) => boolean;

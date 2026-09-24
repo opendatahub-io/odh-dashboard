@@ -1,6 +1,6 @@
 import { k8sGetResource, k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
+import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { ClusterQueueKind } from '#~/k8sTypes';
-import { ClusterQueueModel } from '#~/api/models/kueue';
 
 export const getClusterQueue = (name: string): Promise<ClusterQueueKind> =>
   k8sGetResource<ClusterQueueKind>({

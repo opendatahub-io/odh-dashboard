@@ -10,9 +10,11 @@ import {
   chart_color_green_300 as chartColorGreen300,
   chart_color_green_100 as chartColorGreen100,
 } from '@patternfly/react-tokens';
-import type { AutoRAGEvaluationMetricResult } from '~/app/types/autoragPattern';
-import { formatMetricName, getCSSVar } from '~/app/utilities/utils';
+import type { AutoRAGEvaluationMetricResult, MetricReference } from '~/app/types/autoragPattern';
+import { getCSSVar } from '~/app/utilities/utils';
+import { metricLabel } from '~/app/utilities/metricUtils';
 import { formatRadarLabel, metricValues } from './radarChartUtils';
+import { getRadarChartTheme } from './radarChartTheme';
 
 let echartsRegistered = false;
 
@@ -21,7 +23,7 @@ type ComparisonRadarChartProps = {
   primaryLabel: string;
   comparisonMetrics: AutoRAGEvaluationMetricResult[];
   comparisonLabel: string;
-  allMetricNames: string[];
+  allMetricNames: MetricReference[];
 };
 
 const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
@@ -38,6 +40,11 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
 
   const labelColor = getCSSVar('--pf-t--global--text--color--regular', '#151515');
   const splitLineColor = getCSSVar('--pf-t--global--border--color--default', '#d2d2d2');
+  const primarySeriesColor = getCSSVar(chartColorBlue300.name, chartColorBlue300.value);
+  const primaryAreaColor = getCSSVar(chartColorBlue100.name, chartColorBlue100.value);
+  const comparisonSeriesColor = getCSSVar(chartColorGreen300.name, chartColorGreen300.value);
+  const comparisonAreaColor = getCSSVar(chartColorGreen100.name, chartColorGreen100.value);
+  const theme = React.useMemo(() => getRadarChartTheme(), []);
 
   const option = React.useMemo(
     () => ({
@@ -50,8 +57,8 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
         selectedMode: false,
       },
       radar: {
-        indicator: allMetricNames.map((name) => ({
-          name: formatRadarLabel(formatMetricName(name)),
+        indicator: allMetricNames.map((metric) => ({
+          name: formatRadarLabel(metricLabel(metric)),
           max: 1,
         })),
         radius: 70,
@@ -68,18 +75,18 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
             {
               name: primaryLabel,
               value: metricValues(primaryMetrics, allMetricNames),
-              lineStyle: { color: chartColorBlue300.var },
-              itemStyle: { color: chartColorBlue300.var },
-              areaStyle: { color: chartColorBlue100.var, opacity: 0.3 },
+              lineStyle: { color: primarySeriesColor },
+              itemStyle: { color: primarySeriesColor },
+              areaStyle: { color: primaryAreaColor, opacity: 0.3 },
               symbol: 'circle',
               symbolSize: 6,
             },
             {
               name: comparisonLabel,
               value: metricValues(comparisonMetrics, allMetricNames),
-              lineStyle: { color: chartColorGreen300.var },
-              itemStyle: { color: chartColorGreen300.var },
-              areaStyle: { color: chartColorGreen100.var, opacity: 0.3 },
+              lineStyle: { color: comparisonSeriesColor },
+              itemStyle: { color: comparisonSeriesColor },
+              areaStyle: { color: comparisonAreaColor, opacity: 0.3 },
               symbol: 'circle',
               symbolSize: 6,
             },
@@ -99,12 +106,16 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
       comparisonLabel,
       labelColor,
       splitLineColor,
+      primarySeriesColor,
+      primaryAreaColor,
+      comparisonSeriesColor,
+      comparisonAreaColor,
     ],
   );
 
   return (
     <Charts
-      themeColor="blue"
+      theme={theme}
       nodeSelector="html"
       height={320}
       width={600}

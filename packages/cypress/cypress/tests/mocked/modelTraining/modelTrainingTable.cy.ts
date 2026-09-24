@@ -3,7 +3,8 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { LocalQueueModel, RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models';
+import { LocalQueueModel } from '@odh-dashboard/k8s-core/api/models';
+import { RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { projectName, projectDisplayName, initIntercepts } from './modelTrainingTestUtils';
 import { asClusterAdminUser } from '../../../utils/mockUsers';

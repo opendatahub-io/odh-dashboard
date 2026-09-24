@@ -1,4 +1,4 @@
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
 import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';

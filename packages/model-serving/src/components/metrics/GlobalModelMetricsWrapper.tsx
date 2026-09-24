@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
-import { MetricsCommonContextProvider } from '@odh-dashboard/internal/concepts/metrics/MetricsCommonContext';
+import { MetricsCommonContextProvider } from '@odh-dashboard/ui-core/contexts/MetricsCommonContext';
 import { PerformanceMetricType } from '@odh-dashboard/model-serving/shared/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import ModelMetricsPathWrapper from './ModelMetricsPathWrapper';

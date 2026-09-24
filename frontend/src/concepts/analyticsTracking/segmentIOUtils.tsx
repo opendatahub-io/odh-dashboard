@@ -1,24 +1,37 @@
-import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
-import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from '#~/utilities/const';
-import {
-  BaseTrackingEventProperties,
+// These wrappers bind environment-specific values (clusterID, devMode, version)
+// to the parameterized functions from @odh-dashboard/analytics. Once all consumers
+// migrate to useAnalytics() from @odh-dashboard/ui-core, this file can be removed.
+import type {
+  FormTrackingEventProperties,
   IdentifyEventProperties,
   LinkTrackingEventProperties,
   MiscTrackingEventProperties,
-} from '#~/concepts/analyticsTracking/trackingProperties';
+} from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import {
+  fireTrackingEvent as fireTrackingEventCore,
+  firePageEvent as firePageEventCore,
+  fireIdentifyEvent as fireIdentifyEventCore,
+} from '@odh-dashboard/analytics';
+import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from '#~/utilities/const';
+
+const getTrackingParams = () => ({
+  clusterID: window.clusterID ?? '',
+  devMode: DEV_MODE,
+  version: INTERNAL_DASHBOARD_VERSION,
+});
 
 export const fireFormTrackingEvent = (
   eventName: string,
   properties: FormTrackingEventProperties,
 ): void => {
-  fireTrackingEvent(eventName, properties);
+  fireTrackingEventCore(eventName, properties, getTrackingParams());
 };
 
 export const fireLinkTrackingEvent = (
   eventName: string,
   properties: LinkTrackingEventProperties,
 ): void => {
-  fireTrackingEvent(eventName, properties);
+  fireTrackingEventCore(eventName, properties, getTrackingParams());
 };
 
 export const fireMiscTrackingEvent = (
@@ -29,91 +42,17 @@ export const fireMiscTrackingEvent = (
     /* eslint-disable-next-line no-console */
     console.warn('This tracking event type is a last resort for legacy purposes');
   }
-  fireTrackingEvent(eventName, properties);
+  fireTrackingEventCore(eventName, properties, getTrackingParams());
 };
 
 export const fireSimpleTrackingEvent = (eventName: string): void => {
-  fireTrackingEvent(eventName, {});
+  fireTrackingEventCore(eventName, {}, getTrackingParams());
 };
 
-/*
- * This fires a segment 'track' event.
- *
- * @param eventName: Name of the event.
- * @param properties: Properties of the event. Those are specific to eventName
- *
- */
-const fireTrackingEvent = (eventName: string, properties: BaseTrackingEventProperties): void => {
-  const clusterID = window.clusterID ?? '';
-  if (DEV_MODE) {
-    /* eslint-disable-next-line no-console */
-    console.log(
-      `Telemetry event triggered: ${eventName} - ${JSON.stringify(
-        properties,
-      )} for version ${INTERNAL_DASHBOARD_VERSION}`,
-    );
-    if (eventName === 'page' || eventName === 'identify') {
-      window.alert('Got a page or identify event. Must not happen');
-    }
-  } else if (window.analytics) {
-    window.analytics.track(
-      eventName,
-      { ...properties, clusterID },
-      {
-        app: {
-          version: INTERNAL_DASHBOARD_VERSION,
-        },
-      },
-    );
-  }
-};
-
-/*
- * This fires a 'PageViewed' event. The url, referrer etc. are
- * set internally in the Segment library.
- */
 export const firePageEvent = (): void => {
-  const clusterID = window.clusterID ?? '';
-  if (DEV_MODE) {
-    /* eslint-disable-next-line no-console */
-    console.log(
-      `Page event triggered for version ${INTERNAL_DASHBOARD_VERSION} : ${window.location.pathname}`,
-    );
-  } else if (window.analytics) {
-    window.analytics.page(
-      undefined,
-      { clusterID },
-      {
-        app: {
-          version: INTERNAL_DASHBOARD_VERSION,
-        },
-      },
-    );
-  }
+  firePageEventCore(getTrackingParams());
 };
 
-// Stuff that gets send over as traits on an identify call. Must not include (anonymous) user Id.
-type IdentifyTraits = {
-  isAdmin: boolean;
-  canCreateProjects: boolean;
-  clusterID: string;
-};
-
-/*
- * This fires a call to associate further processing with the passed (anonymous) userId
- * in the properties.
- */
 export const fireIdentifyEvent = (properties: IdentifyEventProperties): void => {
-  const clusterID = window.clusterID ?? '';
-  if (DEV_MODE) {
-    /* eslint-disable-next-line no-console */
-    console.log(`Identify event triggered: ${JSON.stringify(properties)}`);
-  } else if (window.analytics) {
-    const traits: IdentifyTraits = {
-      clusterID,
-      isAdmin: properties.isAdmin,
-      canCreateProjects: properties.canCreateProjects,
-    };
-    window.analytics.identify(properties.userID, traits);
-  }
+  fireIdentifyEventCore(properties, getTrackingParams());
 };

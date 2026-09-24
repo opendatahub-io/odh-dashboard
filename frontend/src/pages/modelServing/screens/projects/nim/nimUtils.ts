@@ -3,14 +3,8 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ProjectKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-core';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
-import {
-  deletePvc,
-  deleteSecret,
-  getPvc,
-  getTemplate,
-  listNIMAccounts,
-  listServingRuntimes,
-} from '#~/api';
+import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { deletePvc, getPvc, getTemplate, listNIMAccounts, listServingRuntimes } from '#~/api';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 
 export const getNGCSecretType = (isNGC: boolean): string =>

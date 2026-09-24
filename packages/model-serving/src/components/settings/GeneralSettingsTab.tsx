@@ -2,14 +2,12 @@ import * as React from 'react';
 import { isEqual } from 'lodash-es';
 import { Button, Bullseye, PageSection, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
-import type {
-  ClusterSettingsType,
-  ModelServingPlatformEnabled,
-} from '@odh-dashboard/internal/types';
 import {
-  fetchClusterSettings,
-  updateClusterSettings,
-} from '@odh-dashboard/internal/services/clusterSettingsService';
+  useHostApiCore,
+  useTrackEvent,
+  type ClusterSettingsType,
+  type ModelServingPlatformEnabled,
+} from '@odh-dashboard/plugin-core/host-api';
 import ModelServingPlatformSettings from './ModelServingPlatformSettings';
 import DeploymentStrategySettings, { DeploymentStrategy } from './DeploymentStrategySettings';
 import {
@@ -24,6 +22,8 @@ const isDeploymentStrategy = (value: string | undefined): value is DeploymentStr
   Object.values<string>(DeploymentStrategy).includes(value ?? '');
 
 const GeneralSettingsTab: React.FC = () => {
+  const { fetchClusterSettings, updateClusterSettings } = useHostApiCore();
+  const trackEvent = useTrackEvent();
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string>();
   const [saving, setSaving] = React.useState(false);
@@ -81,7 +81,7 @@ const GeneralSettingsTab: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchClusterSettings]);
 
   const isSettingsChanged = React.useMemo(() => {
     if (!baselineSettings) {
@@ -131,7 +131,7 @@ const GeneralSettingsTab: React.FC = () => {
       if (
         previous?.modelServingPlatformEnabled.kServe !== payload.modelServingPlatformEnabled.kServe
       ) {
-        firePlatformSettingChanged({
+        firePlatformSettingChanged(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           setting: 'model_serving_enabled',
@@ -139,7 +139,7 @@ const GeneralSettingsTab: React.FC = () => {
         });
       }
       if (previous?.modelServingPlatformEnabled.LLMd !== payload.modelServingPlatformEnabled.LLMd) {
-        firePlatformSettingChanged({
+        firePlatformSettingChanged(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           setting: 'llmd_enabled',
@@ -147,7 +147,7 @@ const GeneralSettingsTab: React.FC = () => {
         });
       }
       if (previous?.isDistributedInferencingDefault !== payload.isDistributedInferencingDefault) {
-        firePlatformSettingChanged({
+        firePlatformSettingChanged(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           setting: 'llmd_default_for_generative',
@@ -155,7 +155,7 @@ const GeneralSettingsTab: React.FC = () => {
         });
       }
       if (previous?.defaultDeploymentStrategy !== payload.defaultDeploymentStrategy) {
-        fireDeploymentStrategyChanged({
+        fireDeploymentStrategyChanged(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           strategy: defaultDeploymentStrategy,

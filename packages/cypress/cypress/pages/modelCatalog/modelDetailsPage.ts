@@ -17,6 +17,22 @@ class ModelDetailsPage {
     return cy.findByTestId('deploy-button');
   }
 
+  findGatedAccessRequiredState() {
+    return cy.findByTestId('model-gated-access-required');
+  }
+
+  findGatedAccessRequestLink() {
+    return cy.findByTestId('model-gated-access-request-link');
+  }
+
+  findWhosMyAdministratorLink() {
+    return cy.findByTestId('whos-my-admin-link');
+  }
+
+  findAccessLabelGatedDenied() {
+    return cy.findByTestId('model-catalog-access-label-gated-denied');
+  }
+
   findTuneModelButton() {
     return cy.findByTestId('tune-model-button');
   }

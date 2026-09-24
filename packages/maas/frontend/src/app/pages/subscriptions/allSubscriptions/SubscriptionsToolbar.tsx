@@ -3,11 +3,12 @@ import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/reac
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { getSubscriptionCreateUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { getSubscriptionCreateUrl } from '~/app/utilities/maasGovernanceNavigation';
 import {
   EventTrackingFilterAttribute,
   MaaSEvents,
   EventTrackingResourceType,
+  MaaSSettingsListFilteredProperties,
 } from '~/app/types/event-tracking';
 import {
   SubscriptionsFilterDataType,
@@ -46,7 +47,7 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
               fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.KEYWORD,
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
-              });
+              } satisfies MaaSSettingsListFilteredProperties);
             },
           }}
         />

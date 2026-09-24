@@ -1,6 +1,6 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared/types/deploy-prefill';
 import type { ModelRegistryDeploymentListItem } from '~/odh/k8sTypes';
 
 export type ModelRegistryDeployModalExtension = Extension<

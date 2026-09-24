@@ -26,6 +26,7 @@ import {
   UnitOption,
   convertToUnit,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
+import { isInadmissibleQuotaCondition } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import {
   ClusterQueueKind,
   LocalQueueKind,
@@ -34,7 +35,6 @@ import {
   WorkloadOwnerType,
 } from '#~/k8sTypes';
 import { WorkloadWithUsage } from '#~/api';
-import { isInadmissibleQuotaCondition } from '#~/concepts/kueue/messageUtils';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',

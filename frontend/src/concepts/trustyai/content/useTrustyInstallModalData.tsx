@@ -2,7 +2,7 @@ import * as React from 'react';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { TrustyDBData } from '@odh-dashboard/trustyai/types';
-import { getSecret } from '#~/api';
+import { getSecret } from '@odh-dashboard/k8s-core/api/secrets';
 
 export enum TrustyInstallModalFormType {
   EXISTING = 'existing',
