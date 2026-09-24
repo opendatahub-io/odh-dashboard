@@ -16,7 +16,11 @@ import {
 import { createCleanProject } from './projectChecker';
 import { generateTestUUID } from './uuidGenerator';
 import { ensureAdminOcSession } from './oc_commands/baseCommands';
-import { ensureEvalHubCrReady, waitForEvaluationJobComplete } from './oc_commands/evalHubInstance';
+import {
+  ensureEvalHubCrReady,
+  type EvalHubInstance,
+  waitForEvaluationJobComplete,
+} from './oc_commands/evalHubInstance';
 import { getEvalHubHardwareProfileName } from './oc_commands/evalHubHardwareProfile';
 import { provisionEvalHubOfflineDataSecret } from './oc_commands/evalHubOfflineData';
 import {
@@ -58,6 +62,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
   let inferenceServiceName = '';
   let createdSuiteName = '';
   let experimentName = '';
+  let evalHubInstance: EvalHubInstance | undefined;
   const createdCollectionIds: string[] = [];
 
   const trackCreatedCollectionId = (): void => {
@@ -86,8 +91,13 @@ export const createEvalHubBenchmarkSuiteScenario = (
     });
 
     cy.then(() => {
-      cy.step('[Setup] Provision EvalHub instance');
-      return ensureEvalHubCrReady(testData.evalHubCrName, testData.evalHubInstanceResourceYamlPath);
+      cy.step('[Setup] Resolve EvalHub instance');
+      return ensureEvalHubCrReady(
+        testData.evalHubCrName,
+        testData.evalHubInstanceResourceYamlPath,
+      ).then((instance) => {
+        evalHubInstance = instance;
+      });
     });
 
     cy.then(() => {
@@ -99,8 +109,16 @@ export const createEvalHubBenchmarkSuiteScenario = (
 
     cy.then(() => {
       cy.step('[Setup] Deploy vLLM model and configure tenant access');
+      if (!evalHubInstance) {
+        throw new Error('EvalHub instance was not resolved during setup.');
+      }
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
-      setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
+      setupTenantAndDeployModel(
+        evaluationTenantProject,
+        testData,
+        hardwareProfileName,
+        evalHubInstance,
+      );
       grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
     });
 

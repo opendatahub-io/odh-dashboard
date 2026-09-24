@@ -1,5 +1,6 @@
 import { applyOpenShiftYaml, pollUntilSuccess } from './baseCommands';
 import { createEvalHubHardwareProfile } from './evalHubHardwareProfile';
+import type { EvalHubInstance } from './evalHubInstance';
 import { checkInferenceServiceState } from './modelServing';
 import type { CommandLineResult, EvalHubTestData } from '../../types';
 
@@ -177,6 +178,37 @@ const getEvalHubServiceIdentity = (
         }),
     );
 
+const waitForExpectedEvalHubDiscovery = (
+  tenantNamespace: string,
+  expectedInstance: EvalHubInstance,
+): Cypress.Chainable<Cypress.Exec> => {
+  const expectedName = assertKubernetesName(expectedInstance.name, 'Expected EvalHub name');
+  const expectedNamespace = assertKubernetesName(
+    expectedInstance.namespace,
+    'Expected EvalHub namespace',
+  );
+  const expectedKey = `${expectedName}.url`;
+  const shortHost = `${expectedName}.${expectedNamespace}.svc`;
+  const fullHost = `${shortHost}.cluster.local`;
+
+  return pollUntilSuccess(
+    `oc -n ${tenantNamespace} get configmap ${EVALHUB_DISCOVERY_CONFIGMAP} -o json | ` +
+      `jq -e --arg key "${expectedKey}" --arg shortHost "${shortHost}" --arg fullHost "${fullHost}" '` +
+      '(.data // {}) as $data | ' +
+      '([$data | to_entries[] | select(.key | endswith(".url")) | select(.value != null and .value != "")] ' +
+      '| sort_by(.key) | .[0] // {key: "service-url", value: ($data["service-url"] // "")}) as $selected | ' +
+      '(($selected.key == $key) or ($selected.key == "service-url")) and ' +
+      '(($selected.value | ' +
+      'if startswith("https://") then ltrimstr("https://") ' +
+      'elif startswith("http://") then ltrimstr("http://") else "" end | ' +
+      'split("/")[0] | split(":")[0]) as $host | ' +
+      '($host == $shortHost or $host == $fullHost))' +
+      "'",
+    `tenant discovery to select EvalHub ${expectedNamespace}/${expectedName}`,
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+};
+
 const renderEvalHubJobRoleBindings = ({
   serviceNamespace,
   serviceAccountName,
@@ -267,13 +299,23 @@ const waitForEvalHubTenantResources = (
     );
 };
 
-const ensureEvalHubTenantJobAccess = (tenantNamespace: string): void => {
-  pollUntilSuccess(
-    `oc -n ${tenantNamespace} get configmap ${EVALHUB_DISCOVERY_CONFIGMAP} -o name`,
-    'operator-provisioned EvalHub discovery ConfigMap',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  ).then(() =>
+const ensureEvalHubTenantJobAccess = (
+  tenantNamespace: string,
+  expectedInstance: EvalHubInstance,
+): void => {
+  waitForExpectedEvalHubDiscovery(tenantNamespace, expectedInstance).then(() =>
     getEvalHubServiceIdentity(tenantNamespace).then((serviceIdentity) => {
+      if (
+        serviceIdentity.serviceName !== expectedInstance.name ||
+        serviceIdentity.serviceNamespace !== expectedInstance.namespace
+      ) {
+        throw new Error(
+          `Tenant ${tenantNamespace} discovered EvalHub ` +
+            `${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceName}, expected ` +
+            `${expectedInstance.namespace}/${expectedInstance.name}.`,
+        );
+      }
+
       return waitForEvalHubTenantResources(tenantNamespace, serviceIdentity).then(() => {
         cy.step(
           `Grant EvalHub ${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceAccountName} job access in tenant`,
@@ -367,6 +409,7 @@ export function setupTenantAndDeployModel(
   ns: string,
   td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
   hwProfileName: string,
+  evalHubInstance: EvalHubInstance,
 ): void {
   cy.step('Label namespace so TrustyAI operator provisions tenant RBAC');
   cy.exec(
@@ -374,7 +417,7 @@ export function setupTenantAndDeployModel(
   );
 
   cy.step('Wait for operator to reconcile tenant resources');
-  ensureEvalHubTenantJobAccess(ns);
+  ensureEvalHubTenantJobAccess(ns, evalHubInstance);
 
   cy.step('Deploy vLLM model in tenant namespace');
   const {

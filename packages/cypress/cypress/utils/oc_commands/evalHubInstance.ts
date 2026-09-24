@@ -1,24 +1,30 @@
 import { pollUntilSuccess } from './baseCommands';
 import { assertNamespace, deleteMlflowExperimentViaAPI } from './mlflow';
-import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
-/** Placeholder DB secret in `resources/eval-hub/evalhub-instance.yaml` (multi-doc); torn down with suite-created EvalHub. */
-export const EVALHUB_E2E_DB_SECRET_NAME = 'evalhub-e2e-database-credentials';
+export const EVALHUB_E2E_MANAGED_LABEL = 'opendatahub.io/dashboard-e2e-managed';
 
-type EvalHubResource = {
+export type EvalHubResource = {
   metadata?: {
     name?: string;
     namespace?: string;
+    labels?: Partial<Record<string, string>>;
+  };
+  spec?: {
+    tenancy?: string;
   };
 };
 
-type EvalHubList = {
-  items?: EvalHubResource[];
+export type EvalHubInstance = {
+  name: string;
+  namespace: string;
+  managedByE2e: boolean;
 };
 
-type EvalHubInstance = {
-  namespace: string;
+type RequiredEvalHubInstance = Pick<EvalHubInstance, 'name' | 'namespace'>;
+
+type EvalHubList = {
+  items?: EvalHubResource[];
 };
 
 type MlflowExperimentLookupResponse = {
@@ -39,6 +45,108 @@ type EvalHubMlflowExperiment = {
   lifecycleStage: string;
 };
 
+const EVALHUB_PROVISION_IF_MISSING_ENV = 'CY_EVAL_HUB_PROVISION_IF_MISSING';
+const EVALHUB_EXISTING_NAMESPACE_ENV = 'CY_EVAL_HUB_EXISTING_NAMESPACE';
+const DEFAULT_EXISTING_EVALHUB_NAMESPACE = 'evalhub';
+const KUBERNETES_NAME_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
+
+const formatInstance = ({ name, namespace, managedByE2e }: EvalHubInstance): string =>
+  `${namespace}/${name}${managedByE2e ? ' (E2E-provisioned)' : ''}`;
+
+/**
+ * Resolves the multi-tenant EvalHub instance that the Dashboard BFF will use.
+ *
+ * Single-tenant CRs do not reconcile labelled tenant namespaces and are ignored. Different
+ * multi-tenant CR names are supported because the operator gives each one its own `<name>.url`
+ * discovery key. The BFF deterministically selects the lexicographically smallest key.
+ * Multiple multi-tenant CRs with the same name are unsafe because they overwrite the same key.
+ */
+export const resolveEvalHubInstance = (
+  resources: EvalHubResource[],
+  requiredInstance?: RequiredEvalHubInstance,
+): EvalHubInstance | null => {
+  const instances = resources
+    .filter(({ spec }) => spec?.tenancy !== 'single')
+    .map(({ metadata }) => {
+      const { name, namespace, labels } = metadata ?? {};
+      if (!name || !namespace) {
+        throw new Error(
+          'The EvalHub resource list contains a multi-tenant instance without a name or namespace.',
+        );
+      }
+
+      return {
+        name,
+        namespace,
+        managedByE2e: labels?.[EVALHUB_E2E_MANAGED_LABEL] === 'true',
+      };
+    });
+
+  const instancesByName = new Map<string, EvalHubInstance[]>();
+  instances.forEach((instance) => {
+    instancesByName.set(instance.name, [...(instancesByName.get(instance.name) ?? []), instance]);
+  });
+
+  const duplicateGroups = [...instancesByName.values()].filter((group) => group.length > 1);
+  if (duplicateGroups.length > 0) {
+    const duplicates = duplicateGroups
+      .map((group) => group.map(formatInstance).join(', '))
+      .join('; ');
+    throw new Error(
+      `Found duplicate multi-tenant EvalHub names across namespaces: ${duplicates}. ` +
+        'Those instances write the same discovery key, so the selected service is unstable. ' +
+        'Remove the stale duplicate before running EvalHub E2E tests.',
+    );
+  }
+
+  const selectedInstance = instances
+    .toSorted((left, right) => {
+      const leftKey = `${left.name}.url`;
+      const rightKey = `${right.name}.url`;
+      return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+    })
+    .at(0);
+
+  if (!requiredInstance) {
+    return selectedInstance ?? null;
+  }
+
+  if (!selectedInstance) {
+    throw new Error(
+      `Required preinstalled EvalHub ${requiredInstance.namespace}/${requiredInstance.name} was not found.`,
+    );
+  }
+
+  const required = instances.find(
+    ({ name, namespace }) =>
+      name === requiredInstance.name && namespace === requiredInstance.namespace,
+  );
+  if (!required) {
+    throw new Error(
+      `Required preinstalled EvalHub ${requiredInstance.namespace}/${requiredInstance.name} was not found.`,
+    );
+  }
+
+  if (
+    selectedInstance.name !== requiredInstance.name ||
+    selectedInstance.namespace !== requiredInstance.namespace
+  ) {
+    throw new Error(
+      `Dashboard discovery would select ${formatInstance(selectedInstance)}, not the required ` +
+        `${requiredInstance.namespace}/${requiredInstance.name}.`,
+    );
+  }
+
+  return required;
+};
+
+const assertKubernetesName = (value: string, description: string): string => {
+  if (!KUBERNETES_NAME_RE.test(value)) {
+    throw new Error(`${description} must be a DNS-1123 name; received '${value}'.`);
+  }
+  return value;
+};
+
 const getApplicationsNamespace = (): string => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   if (!namespace) {
@@ -46,7 +154,35 @@ const getApplicationsNamespace = (): string => {
       'APPLICATIONS_NAMESPACE is not configured. Set CY_TEST_CONFIG to point to your test-variables.yml file.',
     );
   }
-  return namespace;
+  return assertNamespace(namespace);
+};
+
+const shouldProvisionEvalHubIfMissing = (): boolean => {
+  const configuredValue = Cypress.env(EVALHUB_PROVISION_IF_MISSING_ENV) as unknown;
+  if (configuredValue === undefined || configuredValue === '') {
+    return true;
+  }
+  if (typeof configuredValue === 'boolean') {
+    return configuredValue;
+  }
+  if (typeof configuredValue === 'string') {
+    if (configuredValue.toLowerCase() === 'true') {
+      return true;
+    }
+    if (configuredValue.toLowerCase() === 'false') {
+      return false;
+    }
+  }
+
+  throw new Error(`${EVALHUB_PROVISION_IF_MISSING_ENV} must be either true or false.`);
+};
+
+const getRequiredEvalHubNamespace = (): string => {
+  const configuredNamespace = Cypress.env(EVALHUB_EXISTING_NAMESPACE_ENV) as unknown;
+  if (configuredNamespace !== undefined && typeof configuredNamespace !== 'string') {
+    throw new Error(`${EVALHUB_EXISTING_NAMESPACE_ENV} must be a Kubernetes namespace.`);
+  }
+  return assertNamespace(configuredNamespace || DEFAULT_EXISTING_EVALHUB_NAMESPACE);
 };
 
 const waitEvalHubReady = (namespace: string, crName: string): Cypress.Chainable<Cypress.Exec> =>
@@ -56,7 +192,7 @@ const waitEvalHubReady = (namespace: string, crName: string): Cypress.Chainable<
     { maxAttempts: 72, pollIntervalMs: 5000 },
   );
 
-const findExistingEvalHub = (crName: string): Cypress.Chainable<EvalHubInstance | null> =>
+const listEvalHubResources = (): Cypress.Chainable<EvalHubResource[]> =>
   cy.exec('oc get evalhub -A -o json', { failOnNonZeroExit: false }).then((result) => {
     if (result.exitCode !== 0) {
       throw new Error(`Failed to list EvalHub instances: ${result.stderr || result.stdout}`);
@@ -69,78 +205,97 @@ const findExistingEvalHub = (crName: string): Cypress.Chainable<EvalHubInstance 
       throw new Error('Unable to parse EvalHub instance list as JSON.');
     }
 
-    const matchingInstances = (evalHubList.items ?? []).flatMap(({ metadata }) => {
-      const { name, namespace } = metadata ?? {};
-      return name === crName && namespace ? [{ namespace }] : [];
-    });
-    if (matchingInstances.length > 1) {
-      const locations = matchingInstances
-        .map(({ namespace }) => `${namespace}/${crName}`)
-        .join(', ');
-      throw new Error(
-        `Found multiple EvalHub instances named '${crName}' (${locations}). ` +
-          'The EvalHub E2E environment must have exactly one to avoid ambiguous tenant discovery.',
-      );
-    }
-
-    return cy.wrap(matchingInstances.length === 1 ? matchingInstances[0] : null);
+    return evalHubList.items ?? [];
   });
 
+const waitForRequiredEvalHub = (
+  namespace: string,
+  crName: string,
+): Cypress.Chainable<EvalHubInstance> =>
+  pollUntilSuccess(
+    `oc get evalhub ${crName} -n ${namespace} -o name`,
+    `preinstalled EvalHub ${namespace}/${crName}`,
+    { maxAttempts: 72, pollIntervalMs: 5000 },
+  ).then(() =>
+    listEvalHubResources().then((resources) => {
+      const instance = resolveEvalHubInstance(resources, { name: crName, namespace });
+      if (!instance) {
+        throw new Error(`Required preinstalled EvalHub ${namespace}/${crName} was not found.`);
+      }
+      return waitEvalHubReady(instance.namespace, instance.name).then(() => instance);
+    }),
+  );
+
+const provisionEvalHub = (
+  crName: string,
+  fixturePathRelativeToFixtures: string,
+): Cypress.Chainable<EvalHubInstance> => {
+  const namespace = getApplicationsNamespace();
+  cy.log(`Applying EvalHub CR ${crName} in ${namespace} (operator will create service)`);
+
+  return cy.fixture(fixturePathRelativeToFixtures, 'utf8').then((yamlContent: string) => {
+    const patchedYaml = yamlContent.replace(
+      /mlflow\.redhat-ods-applications\.svc/g,
+      `mlflow.${namespace}.svc`,
+    );
+    const tmpFile = `/tmp/evalhub-cr-${namespace}-${crName}-${Date.now()}.yaml`;
+    cy.writeFile(tmpFile, patchedYaml);
+
+    return cy
+      .exec(`oc apply -f "${tmpFile}" -n ${namespace}`, { failOnNonZeroExit: false })
+      .then((applyResult) =>
+        listEvalHubResources().then((resources) => {
+          const instance = resolveEvalHubInstance(resources);
+          if (!instance) {
+            const maskedOutput = maskSensitiveInfo(applyResult.stderr || applyResult.stdout || '');
+            throw new Error(
+              applyResult.exitCode === 0
+                ? `EvalHub manifest applied, but no multi-tenant EvalHub instance was found.`
+                : `oc apply EvalHub failed and no concurrent instance was found: ${maskedOutput}`,
+            );
+          }
+
+          if (applyResult.exitCode !== 0) {
+            cy.log(
+              'EvalHub apply did not succeed, but another runner provisioned a usable instance; reusing it',
+            );
+          }
+          return waitEvalHubReady(instance.namespace, instance.name).then(() => instance);
+        }),
+      );
+  });
+};
+
 /**
- * Ensures exactly one EvalHub CR named `crName` is available and reaches phase Ready (BFF health).
- * Existing EvalHub instances are reused; clusters that need provisioning create it in
- * `APPLICATIONS_NAMESPACE` only when none exists.
- *
- * @returns `true` if this run applied the manifest; `false` if it reused an existing instance.
+ * Resolves the same multi-tenant EvalHub instance as the Dashboard BFF and waits for it to be Ready.
+ * By default, a blank cluster is provisioned in `APPLICATIONS_NAMESPACE`. Environments with
+ * preinstalled infrastructure must set `CY_EVAL_HUB_PROVISION_IF_MISSING=false`; the test then
+ * waits for `<CY_EVAL_HUB_EXISTING_NAMESPACE || evalhub>/<crName>` and never creates a fallback CR.
  */
 export const ensureEvalHubCrReady = (
   crName: string,
   fixturePathRelativeToFixtures: string,
-): Cypress.Chainable<boolean> => {
-  return findExistingEvalHub(crName).then((existingInstance) => {
+): Cypress.Chainable<EvalHubInstance> => {
+  const safeCrName = assertKubernetesName(crName, 'EvalHub CR name');
+  if (!shouldProvisionEvalHubIfMissing()) {
+    const requiredNamespace = getRequiredEvalHubNamespace();
+    cy.log(`Reusing required preinstalled EvalHub ${requiredNamespace}/${safeCrName}`);
+    return waitForRequiredEvalHub(requiredNamespace, safeCrName);
+  }
+
+  return listEvalHubResources().then((resources) => {
+    const existingInstance = resolveEvalHubInstance(resources);
     if (existingInstance) {
       cy.log(
-        `EvalHub CR ${crName} already exists in ${existingInstance.namespace}; waiting for Ready`,
+        `Reusing EvalHub CR ${existingInstance.namespace}/${existingInstance.name}; waiting for Ready`,
       );
-      return waitEvalHubReady(existingInstance.namespace, crName).then(() => cy.wrap(false));
+      return waitEvalHubReady(existingInstance.namespace, existingInstance.name).then(
+        () => existingInstance,
+      );
     }
 
-    const ns = getApplicationsNamespace();
-    cy.log(`Applying EvalHub CR ${crName} in ${ns} (operator will create service)`);
-    return cy.fixture(fixturePathRelativeToFixtures, 'utf8').then((yamlContent: string) => {
-      const patchedYaml = yamlContent.replace(
-        /mlflow\.redhat-ods-applications\.svc/g,
-        `mlflow.${ns}.svc`,
-      );
-      const tmpFile = `/tmp/evalhub-cr-${Date.now()}.yaml`;
-      cy.writeFile(tmpFile, patchedYaml);
-      return cy
-        .exec(`oc apply -f "${tmpFile}" -n ${ns}`, { failOnNonZeroExit: false })
-        .then((applyResult) => {
-          if (applyResult.exitCode !== 0) {
-            const maskedStderr = maskSensitiveInfo(applyResult.stderr || '');
-            throw new Error(`oc apply EvalHub failed: ${maskedStderr}`);
-          }
-          return waitEvalHubReady(ns, crName).then(() => cy.wrap(true));
-        });
-    });
+    return provisionEvalHub(safeCrName, fixturePathRelativeToFixtures);
   });
-};
-
-/** Deletes EvalHub CR by name in APPLICATIONS_NAMESPACE (used when this suite applied it). */
-export const deleteEvalHubCr = (crName: string): Cypress.Chainable<CommandLineResult> => {
-  const ns = getApplicationsNamespace();
-  const cmd = `oc delete evalhub ${crName} -n ${ns} --ignore-not-found`;
-  cy.log(`Deleting EvalHub CR: ${cmd}`);
-  return cy.exec(cmd, { failOnNonZeroExit: false });
-};
-
-/** Removes the E2E placeholder DB Secret applied with `evalhub-instance.yaml` (after EvalHub CR is deleted). */
-export const deleteEvalHubE2eDatabaseSecret = (): Cypress.Chainable<CommandLineResult> => {
-  const ns = getApplicationsNamespace();
-  const cmd = `oc delete secret ${EVALHUB_E2E_DB_SECRET_NAME} -n ${ns} --ignore-not-found`;
-  cy.log(`Deleting Eval Hub E2E database placeholder secret: ${cmd}`);
-  return cy.exec(cmd, { failOnNonZeroExit: false });
 };
 
 const getEvalHubMlflowExperiment = (
