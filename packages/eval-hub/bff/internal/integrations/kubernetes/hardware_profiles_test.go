@@ -55,6 +55,26 @@ func TestListHardwareProfilesWarnsWhenNoLocalQueuesExist(t *testing.T) {
 	}
 }
 
+func TestListHardwareProfilesExcludesQueueDeletedAfterAvailabilityWasCached(t *testing.T) {
+	client := newKueueFakeClient(
+		namespaceObject(map[string]interface{}{kueueManagedLabel: "true"}),
+		managedDataScienceCluster(),
+		hardwareProfile("gpu-small", "GPU Small", true, "Queue", "gpu-default", nil),
+	)
+	// The cached availability still names a queue that is no longer in the cluster.
+	staleAvailability := newKueueAvailability(true, true, []string{"gpu-default"})
+
+	response, err := listHardwareProfilesForAvailability(
+		context.Background(), client, testNamespace, testNamespace, staleAvailability,
+	)
+	if err != nil {
+		t.Fatalf("listHardwareProfilesForAvailability() error = %v", err)
+	}
+	if len(response.Items) != 0 {
+		t.Fatalf("listHardwareProfilesForAvailability() returned %+v, want no profiles for a deleted queue", response.Items)
+	}
+}
+
 func TestListHardwareProfilesUsesPlatformNamespaceForProfilesAndEvaluationNamespaceForQueues(t *testing.T) {
 	platformNamespace := "redhat-ods-applications"
 	client := newKueueFakeClient(

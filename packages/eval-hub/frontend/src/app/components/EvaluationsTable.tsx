@@ -163,8 +163,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const navigate = useNavigate();
   const { availability: kueueAvailability, loaded: kueueAvailabilityLoaded } =
     useKueueAvailability(namespace);
-  const isKueueSchedulingReady = kueueAvailability?.scheduling_ready === true;
-  const statusOptions = isKueueSchedulingReady
+  const isKueueEnabled = kueueAvailability?.enabled === true;
+  const statusOptions = isKueueEnabled
     ? STATUS_OPTIONS
     : STATUS_OPTIONS.filter((option) => !KUEUE_STATUS_FILTERS.includes(option.value));
   // Pause polling when the browser tab is backgrounded to reduce server load
@@ -181,7 +181,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   } = useKueueWorkloadStatuses(
     namespace,
     evaluationIDs,
-    isKueueSchedulingReady,
+    isKueueEnabled,
     isKueueWorkloadStatusPollingEnabled,
     evaluations.some((job) => !isTerminalState(job.status.state)),
   );
@@ -217,13 +217,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         ? previous
         : { ...previous, index: dateColumnIndex };
     });
-    if (
-      !isKueueSchedulingReady &&
-      KUEUE_STATUS_FILTERS.some((status) => status === selectedStatus)
-    ) {
+    if (!isKueueEnabled && KUEUE_STATUS_FILTERS.some((status) => status === selectedStatus)) {
       setSelectedStatus('');
     }
-  }, [dateColumnIndex, isKueueSchedulingReady, selectedStatus]);
+  }, [dateColumnIndex, isKueueEnabled, selectedStatus]);
 
   const filteredEvaluations = React.useMemo(
     () =>
@@ -595,7 +592,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         />
       )}
 
-      {isKueueSchedulingReady && kueueWorkloadStatusesError && (
+      {isKueueEnabled && kueueWorkloadStatusesError && (
         <Alert
           variant="warning"
           isInline
@@ -690,8 +687,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 showQueue={hasQueueAssignments}
                 kueueWorkloadStatus={kueueWorkloadStatusesByEvaluationID.get(job.resource.id)}
                 isKueueWorkloadStatusLoading={
-                  !kueueAvailabilityLoaded ||
-                  (isKueueSchedulingReady && isKueueWorkloadStatusesLoading)
+                  !kueueAvailabilityLoaded || (isKueueEnabled && isKueueWorkloadStatusesLoading)
                 }
               />
             ))}

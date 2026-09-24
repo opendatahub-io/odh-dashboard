@@ -70,7 +70,25 @@ func listHardwareProfilesForAvailability(
 	for _, name := range availability.LocalQueueNames {
 		queues[name] = struct{}{}
 	}
-	clusterQueues := getLocalQueueClusterQueueNames(ctx, client, evaluationNamespace, queues)
+	// Availability is cached briefly for the form. Check LocalQueues again here so a
+	// recently deleted queue cannot keep its HardwareProfile selectable at submit.
+	localQueues, err := client.Resource(localQueueGVR).Namespace(evaluationNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			localQueues = &unstructured.UnstructuredList{}
+		} else {
+			return nil, fmt.Errorf("failed to list LocalQueues in namespace %q: %w", evaluationNamespace, err)
+		}
+	}
+	clusterQueues := make(map[string]string, len(localQueues.Items))
+	for _, localQueue := range localQueues.Items {
+		name := localQueue.GetName()
+		if _, cached := queues[name]; !cached {
+			continue
+		}
+		clusterQueue, _, _ := unstructured.NestedString(localQueue.Object, "spec", "clusterQueue")
+		clusterQueues[name] = clusterQueue
+	}
 
 	profiles, err := client.Resource(hardwareProfileGVR).Namespace(hardwareProfilesNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -96,7 +114,7 @@ func listHardwareProfilesForAvailability(
 		if schedulingType != "Queue" || localQueueName == "" {
 			continue
 		}
-		if _, ok := queues[localQueueName]; !ok {
+		if _, ok := clusterQueues[localQueueName]; !ok {
 			continue
 		}
 
@@ -132,36 +150,6 @@ func listHardwareProfilesForAvailability(
 	}
 
 	return &models.HardwareProfilesResponse{Items: items}, nil
-}
-
-// getLocalQueueClusterQueueNames returns the ClusterQueue backing each available
-// LocalQueue. The details are optional for the HardwareProfile response, so a
-// lookup failure does not prevent otherwise compatible profiles from loading.
-func getLocalQueueClusterQueueNames(
-	ctx context.Context,
-	client dynamic.Interface,
-	namespace string,
-	localQueueNames map[string]struct{},
-) map[string]string {
-	clusterQueues := make(map[string]string)
-	if len(localQueueNames) == 0 {
-		return clusterQueues
-	}
-
-	localQueues, err := client.Resource(localQueueGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return clusterQueues
-	}
-	for _, localQueue := range localQueues.Items {
-		if _, ok := localQueueNames[localQueue.GetName()]; !ok {
-			continue
-		}
-		clusterQueue, _, _ := unstructured.NestedString(localQueue.Object, "spec", "clusterQueue")
-		if clusterQueue != "" {
-			clusterQueues[localQueue.GetName()] = clusterQueue
-		}
-	}
-	return clusterQueues
 }
 
 // getMissingHardwareProfileLocalQueueName determines whether a selected Queue

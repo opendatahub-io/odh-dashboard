@@ -8,7 +8,7 @@ import {
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
-import { createEvaluationJob, validateHardwareProfiles } from '~/app/api/k8s';
+import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
   type RunSourceSelectedProperties,
@@ -472,6 +472,17 @@ export function useStartEvaluationRunForm({
   // profiles are unavailable, so an incomplete Kueue configuration cannot be
   // bypassed by falling back to provider-default scheduling.
   const requiresHardwareProfile = kueueAvailability?.enabled === true;
+  // Reconfigured jobs can reference profiles or queues that no longer exist. Derive the
+  // current selection from the available profiles so hidden, stale form values are never sent.
+  const selectedHardwareProfile =
+    kueueAvailability?.scheduling_ready === true
+      ? hardwareProfiles.find(
+          (profile) =>
+            profile.name === hardwareProfile &&
+            !!profile.local_queue_name &&
+            kueueAvailability.local_queue_names.includes(profile.local_queue_name),
+        )
+      : undefined;
 
   const isValid = React.useMemo(() => {
     if (
@@ -480,7 +491,7 @@ export function useStartEvaluationRunForm({
       evaluationName.trim() === '' ||
       !hasBenchmarks ||
       !hasExperiment ||
-      (requiresHardwareProfile && !hardwareProfile)
+      (requiresHardwareProfile && !selectedHardwareProfile)
     ) {
       return false;
     }
@@ -512,7 +523,7 @@ export function useStartEvaluationRunForm({
     hardwareProfilesLoaded,
     hardwareProfilesError,
     requiresHardwareProfile,
-    hardwareProfile,
+    selectedHardwareProfile,
   ]);
 
   const canVerifyConnection = React.useMemo(() => {
@@ -759,11 +770,9 @@ export function useStartEvaluationRunForm({
       experimentTags: undefined,
       passCriteriaOverride,
       primaryScoreOverride,
-      hardwareProfile: values.hardwareProfile,
-      queue: values.queue,
+      hardwareProfile: selectedHardwareProfile?.name,
+      queue: selectedHardwareProfile?.local_queue_name,
     });
-
-    const activeProviderIds = getProviderIds(benchmark, activeCollection);
 
     fireMiscTrackingEvent(EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED, {
       experimentSelection: isNewExperiment
@@ -813,16 +822,26 @@ export function useStartEvaluationRunForm({
     abortControllerRef.current = controller;
 
     try {
-      if (values.hardwareProfile) {
-        // Revalidate structural configuration immediately before submission so a profile or
-        // LocalQueue deleted after the form loaded still produces a useful error. Resource
-        // incompatibility is advisory and does not prevent EvalHub from creating the run.
-        await validateHardwareProfiles('', namespace ?? '', {
-          // eslint-disable-next-line camelcase
-          hardware_profiles: [values.hardwareProfile],
-          // eslint-disable-next-line camelcase
-          provider_ids: activeProviderIds,
-        })({ signal: controller.signal });
+      if (selectedHardwareProfile) {
+        // Refresh the structural profile and LocalQueue selection without depending on
+        // advisory provider compatibility, which may be unavailable or lack provider IDs.
+        const currentProfiles = await getHardwareProfiles(
+          '',
+          namespace ?? '',
+        )({
+          signal: controller.signal,
+        });
+        if (
+          !currentProfiles.some(
+            (profile) =>
+              profile.name === selectedHardwareProfile.name &&
+              profile.local_queue_name === selectedHardwareProfile.local_queue_name,
+          )
+        ) {
+          throw new Error(
+            'The selected HardwareProfile or LocalQueue is no longer available. Refresh the page and select another hardware profile.',
+          );
+        }
       }
       await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
       if (controller.signal.aborted) {
@@ -924,7 +943,7 @@ export function useStartEvaluationRunForm({
     hardwareProfileCompatibilityError,
     kueueAvailability,
     requiresHardwareProfile,
-    hardwareProfile,
+    hardwareProfile: selectedHardwareProfile?.name,
     setHardwareProfile,
   };
 }

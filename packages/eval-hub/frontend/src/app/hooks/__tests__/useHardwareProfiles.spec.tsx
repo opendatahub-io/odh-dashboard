@@ -105,7 +105,9 @@ describe('useHardwareProfiles', () => {
       wrapper: createWrapper(makeQueryClient()),
     });
 
-    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+    await waitFor(() =>
+      expect(result.result.current.profiles[0]?.compatibility?.compatible).toBe(false),
+    );
 
     expect(result.result.current.profiles[0].compatibility?.compatible).toBe(false);
     expect(mockValidateHardwareProfiles).toHaveBeenCalledWith('', 'test-ns', {
@@ -123,10 +125,30 @@ describe('useHardwareProfiles', () => {
       wrapper: createWrapper(makeQueryClient()),
     });
 
-    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+    await waitFor(() => expect(result.result.current.compatibilityError).toBe(compatibilityError));
 
+    expect(result.result.current.loaded).toBe(true);
     expect(result.result.current.profiles).toEqual([profile]);
     expect(result.result.current.error).toBeUndefined();
     expect(result.result.current.compatibilityError).toBe(compatibilityError);
+  });
+
+  it('keeps profiles selectable while advisory compatibility is pending', async () => {
+    mockGetHardwareProfiles.mockReturnValue(() => Promise.resolve([profile]));
+    mockValidateHardwareProfiles.mockReturnValue(
+      () =>
+        new Promise(() => {
+          // Deliberately unresolved: provider advice must not block profile selection.
+        }),
+    );
+
+    const result = renderHook(() => useHardwareProfiles('test-ns', ['provider-a']), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+
+    expect(result.result.current.profiles).toEqual([profile]);
+    expect(result.result.current.compatibilityError).toBeUndefined();
   });
 });

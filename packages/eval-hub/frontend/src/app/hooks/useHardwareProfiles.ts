@@ -52,10 +52,6 @@ export const useHardwareProfiles = (
   });
 
   const hardwareProfilesLoaded = hardwareProfilesQuery.isSuccess || hardwareProfilesQuery.isError;
-  const compatibilityLoaded =
-    !shouldValidateHardwareProfiles ||
-    hardwareProfileValidationQuery.isSuccess ||
-    hardwareProfileValidationQuery.isError;
   const compatibilityByProfile = new Map(
     (hardwareProfileValidationQuery.data?.items ?? []).map((compatibility) => [
       compatibility.hardware_profile,
@@ -68,7 +64,7 @@ export const useHardwareProfiles = (
       const compatibility = compatibilityByProfile.get(profile.name);
       return compatibility ? { ...profile, compatibility } : profile;
     }),
-    loaded: hardwareProfilesLoaded && compatibilityLoaded,
+    loaded: hardwareProfilesLoaded,
     error: hardwareProfilesQuery.error ?? undefined,
     compatibilityError: hardwareProfileValidationQuery.error ?? undefined,
   };

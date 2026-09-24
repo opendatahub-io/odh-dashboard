@@ -337,14 +337,14 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const isPageVisible = usePageVisibility();
   const { availability: kueueAvailability, loaded: kueueAvailabilityLoaded } =
     useKueueAvailability(namespace);
-  const isKueueSchedulingReady = kueueAvailability?.scheduling_ready === true;
+  const isKueueEnabled = kueueAvailability?.enabled === true;
   const {
     statusesByEvaluationId: kueueWorkloadStatusesByEvaluationID,
     isLoading: isKueueWorkloadStatusesLoading,
   } = useKueueWorkloadStatuses(
     namespace,
     jobId ? [jobId] : [],
-    isKueueSchedulingReady,
+    isKueueEnabled,
     isPageVisible,
     !isTerminalState(state),
   );
@@ -431,7 +431,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     state === 'pending' &&
     !kueueWorkloadStatus &&
     !queue &&
-    (!kueueAvailabilityLoaded || (isKueueSchedulingReady && isKueueWorkloadStatusesLoading));
+    (!kueueAvailabilityLoaded || (isKueueEnabled && isKueueWorkloadStatusesLoading));
   const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
 
   const [now, setNow] = React.useState(() => new Date().toISOString());

@@ -33,7 +33,7 @@ jest.mock('~/app/hooks/useKueueAvailability', () => ({
 }));
 
 jest.mock('~/app/hooks/useKueueWorkloadStatuses', () => ({
-  useKueueWorkloadStatuses: () => mockUseKueueWorkloadStatuses(),
+  useKueueWorkloadStatuses: (...args: unknown[]) => mockUseKueueWorkloadStatuses(...args),
 }));
 
 const queryClient = new QueryClient({
@@ -275,11 +275,12 @@ describe('EvaluationsTable', () => {
   });
 
   describe('filtering', () => {
-    it('should offer the Queued status filter when Kueue is enabled without queued jobs', () => {
+    it('should keep Kueue status filtering and polling when no LocalQueue is available', () => {
       mockUseKueueAvailability.mockReturnValue({
         availability: {
+          enabled: true,
           // eslint-disable-next-line camelcase -- Kueue API field name.
-          scheduling_ready: true,
+          scheduling_ready: false,
         },
         loaded: true,
         error: undefined,
@@ -291,6 +292,13 @@ describe('EvaluationsTable', () => {
       fireEvent.click(screen.getByTestId('filter-status-toggle'));
 
       expect(screen.getByTestId('filter-status-option-queued')).toBeInTheDocument();
+      expect(mockUseKueueWorkloadStatuses).toHaveBeenCalledWith(
+        undefined,
+        mockJobs.map((job) => job.resource.id),
+        true,
+        expect.any(Boolean),
+        true,
+      );
     });
 
     it('should filter by evaluation name', () => {
@@ -427,6 +435,7 @@ describe('EvaluationsTable', () => {
     it('should show a Kueue resource wait in the Status column without rendering a separate column', () => {
       mockUseKueueAvailability.mockReturnValue({
         availability: {
+          enabled: true,
           // eslint-disable-next-line camelcase -- Kueue API field name.
           scheduling_ready: true,
         },
@@ -466,6 +475,7 @@ describe('EvaluationsTable', () => {
     it('should preserve a terminal EvalHub status when Kueue has not updated yet', () => {
       mockUseKueueAvailability.mockReturnValue({
         availability: {
+          enabled: true,
           // eslint-disable-next-line camelcase -- Kueue API field name.
           scheduling_ready: true,
         },
@@ -502,6 +512,7 @@ describe('EvaluationsTable', () => {
     it('should show EvalHub Running in the Status column after Kueue admits the evaluation', () => {
       mockUseKueueAvailability.mockReturnValue({
         availability: {
+          enabled: true,
           // eslint-disable-next-line camelcase -- Kueue API field name.
           scheduling_ready: true,
         },
@@ -537,6 +548,7 @@ describe('EvaluationsTable', () => {
       const error = new Error('forbidden');
       mockUseKueueAvailability.mockReturnValue({
         availability: {
+          enabled: true,
           // eslint-disable-next-line camelcase -- Kueue API field name.
           scheduling_ready: true,
         },

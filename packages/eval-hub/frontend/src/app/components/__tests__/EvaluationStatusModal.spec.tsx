@@ -40,7 +40,7 @@ jest.mock('~/app/hooks/useKueueAvailability', () => ({
 }));
 
 jest.mock('~/app/hooks/useKueueWorkloadStatuses', () => ({
-  useKueueWorkloadStatuses: () => mockUseKueueWorkloadStatuses(),
+  useKueueWorkloadStatuses: (...args: unknown[]) => mockUseKueueWorkloadStatuses(...args),
 }));
 
 const mockOnClose = jest.fn();
@@ -197,11 +197,12 @@ describe('EvaluationStatusModal progress tab', () => {
     expect(screen.getByText('Waiting for benchmarks to start')).toBeInTheDocument();
   });
 
-  it('should show the Kueue queueing phase before benchmark progress begins', () => {
+  it('should keep showing Kueue queueing when no LocalQueue is available for new runs', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: {
+        enabled: true,
         // eslint-disable-next-line camelcase -- Kueue API field name.
-        scheduling_ready: true,
+        scheduling_ready: false,
       },
       loaded: true,
       error: undefined,
@@ -234,11 +235,19 @@ describe('EvaluationStatusModal progress tab', () => {
     );
     expect(screen.getByTestId('status-description')).toHaveTextContent('2nd in queue');
     expect(screen.queryByTestId('kueue-progress-state')).not.toBeInTheDocument();
+    expect(mockUseKueueWorkloadStatuses).toHaveBeenCalledWith(
+      'test-ns',
+      ['eval-job-001'],
+      true,
+      expect.any(Boolean),
+      true,
+    );
   });
 
   it('should keep a pending heading while Kueue status is loading without queue metadata', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: {
+        enabled: true,
         // eslint-disable-next-line camelcase -- Kueue API field name.
         scheduling_ready: true,
       },
@@ -265,6 +274,7 @@ describe('EvaluationStatusModal progress tab', () => {
   it('should preserve the queued heading when detail polling omits the queue assignment', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: {
+        enabled: true,
         // eslint-disable-next-line camelcase -- Kueue API field name.
         scheduling_ready: true,
       },
@@ -310,6 +320,7 @@ describe('EvaluationStatusModal progress tab', () => {
   it('should show Kueue admission while the evaluation is pending', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: {
+        enabled: true,
         // eslint-disable-next-line camelcase -- Kueue API field name.
         scheduling_ready: true,
       },
@@ -347,6 +358,7 @@ describe('EvaluationStatusModal progress tab', () => {
   it('should explain why Kueue cannot admit a pending evaluation', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: {
+        enabled: true,
         // eslint-disable-next-line camelcase -- Kueue API field name.
         scheduling_ready: true,
       },
@@ -383,6 +395,7 @@ describe('EvaluationStatusModal progress tab', () => {
   it('should show EvalHub Running after Kueue admits the evaluation', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: {
+        enabled: true,
         // eslint-disable-next-line camelcase -- Kueue API field name.
         scheduling_ready: true,
       },
