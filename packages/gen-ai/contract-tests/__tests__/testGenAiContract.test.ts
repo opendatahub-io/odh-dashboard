@@ -128,5 +128,23 @@ describe('Gen AI API Contract Tests', () => {
         /^https:\/\/mock-agent-[a-f0-9]{4}-llama-stack\.apps\.example\.com$/,
       );
     });
+
+    it('should reject an invalid agent profile ID', async () => {
+      const result = await apiClient.post('/gen-ai/api/v1/agent-deployments?namespace=llama-stack', {
+        name: 'mock-agent',
+        agentProfileId: 'not-a-uuid',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({
+          status: result.error.status,
+          headers: result.error.headers,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application/json/schema',
+          status: 400,
+        });
+      }
+    });
   });
 });

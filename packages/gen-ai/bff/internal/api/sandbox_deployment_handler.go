@@ -16,6 +16,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 type AgentDeploymentCreateEnvelope = Envelope[models.AgentDeploymentCreateResponse, None]
@@ -23,6 +24,12 @@ type AgentDeploymentCreateEnvelope = Envelope[models.AgentDeploymentCreateRespon
 const sandboxRollbackTimeout = 30 * time.Second
 
 const mockSandboxOGXImage = "example.com/ogx:mock"
+
+const (
+	sandboxNameSuffixLength    = 5 // hyphen plus four random hexadecimal characters
+	sandboxServiceSuffixLength = len("-ext")
+	dnsLabelMaxLength          = 63
+)
 
 // CreateAgentDeploymentHandler handles POST /api/v1/agent-deployments.
 // It loads the agent profile, builds the llama-stack-config ConfigMap from the profile's
@@ -54,6 +61,16 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    "missing_name",
 				Message: "name is required",
+			},
+		})
+		return
+	}
+	if err := validateSandboxDeploymentName(req.Name, namespace); err != nil {
+		app.badRequestResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusBadRequest,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "invalid_name",
+				Message: err.Error(),
 			},
 		})
 		return
@@ -377,6 +394,27 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// validateSandboxDeploymentName ensures the user-provided base name remains valid after the
+// generated suffixes needed by the Sandbox, its Service, and OpenShift's default Route host.
+func validateSandboxDeploymentName(name, namespace string) error {
+	if errors := k8svalidation.IsDNS1123Label(name); len(errors) > 0 {
+		return fmt.Errorf("name must be a DNS-1123 label: %s", strings.Join(errors, "; "))
+	}
+
+	// The derived Service is <name>-<4 hex>-ext and must be a DNS label. OpenShift's
+	// generated Route host begins <sandbox-name>-<namespace>, which is also one DNS label.
+	serviceMaxLength := dnsLabelMaxLength - sandboxNameSuffixLength - sandboxServiceSuffixLength
+	routeMaxLength := dnsLabelMaxLength - sandboxNameSuffixLength - 1 - len(namespace)
+	maxLength := min(serviceMaxLength, routeMaxLength)
+	if maxLength < 1 {
+		return fmt.Errorf("namespace %q leaves no valid length for a deployment name", namespace)
+	}
+	if len(name) > maxLength {
+		return fmt.Errorf("name must be at most %d characters for namespace %q", maxLength, namespace)
+	}
+	return nil
 }
 
 // normalizeMCPServerAuth accepts either a raw OAuth token or an Authorization header value.

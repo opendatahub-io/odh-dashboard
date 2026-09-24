@@ -2259,6 +2259,24 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          description: Agent prompt provider returned an invalid upstream response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Agent prompt provider is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '504':
+          description: Agent prompt provider timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 
   /gen-ai/api/v1/agent-profiles:
     get:
@@ -5263,6 +5281,8 @@ components:
         name:
           type: string
           description: Human-readable base name for the deployment
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          maxLength: 54
           example: 'support-agent'
         description:
           type: string

@@ -13,7 +13,7 @@ func TestBuildSandboxLlamaStackConfig_MaaSModelWithVectorStore(t *testing.T) {
 	modelID := "mistralai/Mistral-7B-Instruct-v0.2"
 	modelURI := "https://maas.example.com/v1"
 	storeID := "my-pgvector-store"
-	embeddingModel := "sentence-transformers/ibm-granite/granite-embedding-125m-english"
+	embeddingModel := "ibm-granite/granite-embedding-125m-english"
 
 	profile := &models.AgentProfile{
 		Spec: models.AgentProfileSpec{
@@ -62,7 +62,7 @@ func TestBuildSandboxLlamaStackConfig_MaaSModelWithVectorStore(t *testing.T) {
 	require.Len(t, cfg.RegisteredResources.Models, 2)
 	assert.Equal(t, modelID, cfg.RegisteredResources.Models[0].ModelID)
 	assert.Equal(t, "llm", cfg.RegisteredResources.Models[0].ModelType)
-	assert.Equal(t, embeddingModel, cfg.RegisteredResources.Models[1].ModelID)
+	assert.Equal(t, "sentence-transformers/"+embeddingModel, cfg.RegisteredResources.Models[1].ModelID)
 	assert.Equal(t, "embedding", cfg.RegisteredResources.Models[1].ModelType)
 
 	// pgvector vector_io provider present
@@ -72,12 +72,12 @@ func TestBuildSandboxLlamaStackConfig_MaaSModelWithVectorStore(t *testing.T) {
 	// Vector store registered with actual store ID and embedding details
 	require.Len(t, cfg.RegisteredResources.VectorStores, 1)
 	assert.Equal(t, storeID, cfg.RegisteredResources.VectorStores[0].VectorStoreID)
-	assert.Equal(t, embeddingModel, cfg.RegisteredResources.VectorStores[0].EmbeddingModel)
+	assert.Equal(t, "sentence-transformers/"+embeddingModel, cfg.RegisteredResources.VectorStores[0].EmbeddingModel)
 	assert.Equal(t, 768, cfg.RegisteredResources.VectorStores[0].EmbeddingDimension)
 
 	// DefaultEmbeddingModel.ModelID maps to vector_stores.default_embedding_model.model_id in YAML.
 	// OGX constructs the OGX model_id internally as provider_id/model_id, so this stays unprefixed.
-	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", cfg.VectorStores.DefaultEmbeddingModel.ModelID)
+	assert.Equal(t, embeddingModel, cfg.VectorStores.DefaultEmbeddingModel.ModelID)
 
 	// Config serializes to parseable YAML containing the key IDs
 	yamlOut, err := cfg.ToYAML()

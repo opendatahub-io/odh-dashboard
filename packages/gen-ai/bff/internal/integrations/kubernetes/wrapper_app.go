@@ -9,7 +9,8 @@ package kubernetes
 //  2. Start the OGX ASGI app via create_app().
 //  3. Wrap it with MaaSTokenMiddleware, which exchanges the caller's Bearer token
 //     for an ephemeral MaaS API key and injects it as X-OGX-Provider-Data.
-const wrapperAppScript = `import os, json, time
+const wrapperAppScript = `import asyncio
+import os, json, time
 from datetime import datetime, timezone
 import httpx
 import uvicorn
@@ -27,16 +28,56 @@ MCP_SERVERS = json.loads(os.environ.get("AGENT_MCP_SERVERS_JSON", "[]")) or []
 VECTOR_STORE_IDS = json.loads(os.environ.get("AGENT_VECTOR_STORE_IDS_JSON", "[]")) or []
 
 _token_cache = {}
+_token_locks = {}
+MAX_TOKEN_CACHE_ENTRIES = 1024
+MAAS_HTTP_CLIENT = httpx.AsyncClient()
+
+
+def _get_cached_maas_api_key(user_token: str, now: float) -> str | None:
+    cached = _token_cache.get(user_token)
+    if cached and cached[1] > now + 30:
+        return cached[0]
+    return None
+
+
+def _cache_maas_api_key(user_token: str, api_key: str, expires_at: float, now: float):
+    for token, (_, expiry) in list(_token_cache.items()):
+        if expiry <= now:
+            del _token_cache[token]
+
+    while len(_token_cache) >= MAX_TOKEN_CACHE_ENTRIES:
+        oldest_token = min(_token_cache, key=lambda token: _token_cache[token][1])
+        del _token_cache[oldest_token]
+
+    _token_cache[user_token] = (api_key, expires_at)
+
+
+async def _send_json(send, status: int, value: dict):
+    body = json.dumps(value).encode()
+    await send({
+        "type": "http.response.start",
+        "status": status,
+        "headers": [
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(body)).encode()),
+        ],
+    })
+    await send({"type": "http.response.body", "body": body})
 
 
 async def _get_maas_api_key(user_token: str) -> str:
     now = time.time()
-    cached = _token_cache.get(user_token)
-    if cached and cached[1] > now + 30:
-        return cached[0]
+    if cached := _get_cached_maas_api_key(user_token, now):
+        return cached
 
-    async with httpx.AsyncClient(verify=False) as client:
-        resp = await client.post(
+    lock = _token_locks.setdefault(user_token, asyncio.Lock())
+    try:
+        async with lock:
+            now = time.time()
+            if cached := _get_cached_maas_api_key(user_token, now):
+                return cached
+
+            resp = await MAAS_HTTP_CLIENT.post(
             f"{MAAS_GATEWAY_URL}/v1/api-keys",
             headers={"Authorization": f"Bearer {user_token}"},
             json={
@@ -44,20 +85,23 @@ async def _get_maas_api_key(user_token: str) -> str:
                 "subscription": MAAS_SUBSCRIPTION,
                 "ephemeral": True,
             },
-            timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        key = data["key"]
-        expires_at = now + 3600
-        if expires_str := data.get("expiresAt"):
-            try:
-                dt = datetime.fromisoformat(expires_str.replace("Z", "+00:00"))
-                expires_at = dt.timestamp()
-            except Exception:
-                pass
-        _token_cache[user_token] = (key, expires_at)
-        return key
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            key = data["key"]
+            expires_at = now + 3600
+            if expires_str := data.get("expiresAt"):
+                try:
+                    dt = datetime.fromisoformat(expires_str.replace("Z", "+00:00"))
+                    expires_at = dt.timestamp()
+                except Exception:
+                    pass
+            _cache_maas_api_key(user_token, key, expires_at, now)
+            return key
+    finally:
+        if not lock.locked() and _token_locks.get(user_token) is lock:
+            del _token_locks[user_token]
 
 
 class MaaSTokenMiddleware:
@@ -68,18 +112,20 @@ class MaaSTokenMiddleware:
         if scope["type"] == "http":
             headers = dict(scope["headers"])
             auth = headers.get(b"authorization", b"").decode()
-            user_token = auth.removeprefix("Bearer ").strip()
-
-            if user_token:
-                try:
-                    api_key = await _get_maas_api_key(user_token)
-                    provider_data = json.dumps({"openai_api_key": api_key}).encode()
-                    scope = {**scope, "headers": [
-                        *scope["headers"],
-                        (b"x-ogx-provider-data", provider_data),
-                    ]}
-                except Exception as e:
-                    print(f"[MaaSTokenMiddleware] token exchange failed: {e}")
+            if not auth.startswith("Bearer ") or not (user_token := auth.removeprefix("Bearer ").strip()):
+                await _send_json(send, 401, {"detail": "Unauthorized"})
+                return
+            try:
+                api_key = await _get_maas_api_key(user_token)
+            except Exception as e:
+                print(f"[MaaSTokenMiddleware] token exchange failed: {e}")
+                await _send_json(send, 401, {"detail": "Unauthorized"})
+                return
+            provider_data = json.dumps({"openai_api_key": api_key}).encode()
+            scope = {**scope, "headers": [
+                *(header for header in scope["headers"] if header[0].lower() != b"x-ogx-provider-data"),
+                (b"x-ogx-provider-data", provider_data),
+            ]}
 
         await self.app(scope, receive, send)
 
@@ -91,45 +137,24 @@ class AgentConfigMiddleware:
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http" and scope["path"] == "/internal/agent_config":
             if scope["method"] != "GET":
-                await self._send_json(send, 405, {"detail": "Method Not Allowed"})
+                await _send_json(send, 405, {"detail": "Method Not Allowed"})
                 return
 
             auth = dict(scope["headers"]).get(b"authorization", b"").decode()
             if not auth.startswith("Bearer ") or not auth.removeprefix("Bearer ").strip():
-                await self._send_json(send, 401, {"detail": "Unauthorized"})
+                await _send_json(send, 401, {"detail": "Unauthorized"})
                 return
             try:
                 await _get_maas_api_key(auth.removeprefix("Bearer ").strip())
             except Exception as e:
                 print(f"[AgentConfigMiddleware] token validation failed: {e}")
-                await self._send_json(send, 401, {"detail": "Unauthorized"})
+                await _send_json(send, 401, {"detail": "Unauthorized"})
                 return
 
-            body = AGENT_CONFIG_JSON.encode()
-            await send({
-                "type": "http.response.start",
-                "status": 200,
-                "headers": [
-                    (b"content-type", b"application/json"),
-                    (b"content-length", str(len(body)).encode()),
-                ],
-            })
-            await send({"type": "http.response.body", "body": body})
+            await _send_json(send, 200, json.loads(AGENT_CONFIG_JSON))
             return
 
         await self.app(scope, receive, send)
-
-    async def _send_json(self, send, status, value):
-        body = json.dumps(value).encode()
-        await send({
-            "type": "http.response.start",
-            "status": status,
-            "headers": [
-                (b"content-type", b"application/json"),
-                (b"content-length", str(len(body)).encode()),
-            ],
-        })
-        await send({"type": "http.response.body", "body": body})
 
 
 class MCPServerMiddleware:
@@ -141,15 +166,32 @@ class MCPServerMiddleware:
             await self.app(scope, receive, send)
             return
 
-        body = b""
+        chunks = []
+        body_size = 0
         more_body = True
         while more_body:
             message = await receive()
-            body += message.get("body", b"")
+            if message["type"] == "http.disconnect":
+                return
+            chunk = message.get("body", b"")
+            body_size += len(chunk)
+            if body_size > 20 * 1024 * 1024:
+                await _send_json(send, 413, {"detail": "Request body too large"})
+                return
+            chunks.append(chunk)
             more_body = message.get("more_body", False)
+        body = b"".join(chunks)
 
         try:
             request = json.loads(body)
+        except (json.JSONDecodeError, TypeError):
+            await _send_json(send, 400, {"detail": "Request body must be a JSON object"})
+            return
+        if not isinstance(request, dict):
+            await _send_json(send, 400, {"detail": "Request body must be a JSON object"})
+            return
+
+        try:
             # Agent deployments expose exactly one LLM. Do not let callers select
             # a different OGX model through the public Responses API.
             request["model"] = AGENT_OGX_MODEL_ID
@@ -157,7 +199,9 @@ class MCPServerMiddleware:
                 # The deployment's resolved MLflow system message takes precedence over
                 # caller-supplied instructions.
                 request["instructions"] = AGENT_SYSTEM_PROMPT
-            tools = request.get("tools", [])
+            tools = request.get("tools")
+            if tools is None:
+                tools = []
             if not isinstance(tools, list):
                 raise ValueError("tools must be an array")
             for server in MCP_SERVERS:
@@ -180,6 +224,8 @@ class MCPServerMiddleware:
             body = json.dumps(request).encode()
         except Exception as e:
             print(f"[MCPServerMiddleware] could not configure MCP tools: {e}")
+            await _send_json(send, 500, {"detail": "Unable to configure agent tools"})
+            return
 
         async def replay_receive():
             return {"type": "http.request", "body": body, "more_body": False}
@@ -193,7 +239,7 @@ for d in ["/opt/app-root/.llama/providers.d", "/opt/app-root/src/.llama/distribu
 os.environ.setdefault("OGX_CONFIG", "/etc/ogx/config.yaml")
 
 ogx_app = create_app()
-app = AgentConfigMiddleware(MCPServerMiddleware(MaaSTokenMiddleware(ogx_app)))
+app = AgentConfigMiddleware(MaaSTokenMiddleware(MCPServerMiddleware(ogx_app)))
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8321)

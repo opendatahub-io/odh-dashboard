@@ -27,6 +27,12 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `openai_api_key`)
 	assert.Contains(t, script, `/v1/api-keys`)
 	assert.Contains(t, script, `ephemeral`)
+	assert.Contains(t, script, `MAAS_HTTP_CLIENT = httpx.AsyncClient()`)
+	assert.NotContains(t, script, `verify=False`)
+	assert.Contains(t, script, `MAX_TOKEN_CACHE_ENTRIES = 1024`)
+	assert.Contains(t, script, `asyncio.Lock()`)
+	assert.Contains(t, script, `header[0].lower() != b"x-ogx-provider-data"`)
+	assert.Contains(t, script, `await _send_json(send, 401, {"detail": "Unauthorized"})`)
 
 	// Token cache with expiry parsed from expiresAt
 	assert.Contains(t, script, `expiresAt`)
@@ -54,6 +60,13 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `json.loads(os.environ.get("AGENT_VECTOR_STORE_IDS_JSON", "[]")) or []`)
 	assert.Contains(t, script, `MCPServerMiddleware`)
 	assert.Contains(t, script, `"/v1/responses"`)
+	assert.Contains(t, script, `if body_size > 20 * 1024 * 1024:`)
+	assert.Contains(t, script, `if message["type"] == "http.disconnect":`)
+	assert.Contains(t, script, `body = b"".join(chunks)`)
+	assert.Contains(t, script, `Request body must be a JSON object`)
+	assert.Contains(t, script, `if tools is None:`)
+	assert.Contains(t, script, `tools must be an array`)
+	assert.Contains(t, script, `Unable to configure agent tools`)
 	assert.Contains(t, script, `"type": "mcp"`)
 	assert.Contains(t, script, `"authorization"] = os.environ[auth_env_var]`)
 	assert.Contains(t, script, `"allowed_tools"] = server["allowed_tools"]`)
@@ -62,6 +75,7 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 
 	// create_app synchronous + uvicorn on port 8321
 	assert.Contains(t, script, `create_app()`)
+	assert.Contains(t, script, `AgentConfigMiddleware(MaaSTokenMiddleware(MCPServerMiddleware(ogx_app)))`)
 	assert.Contains(t, script, `uvicorn`)
 	assert.Contains(t, script, `8321`)
 }
