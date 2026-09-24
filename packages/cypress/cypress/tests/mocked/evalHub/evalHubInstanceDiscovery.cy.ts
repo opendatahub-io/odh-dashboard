@@ -4,7 +4,7 @@ import {
   resolveEvalHubInstance,
   type EvalHubResource,
 } from '../../../utils/oc_commands/evalHubInstance';
-import { getEvalHubTenantResourceNames } from '../../../utils/oc_commands/evalHubModelDeploy';
+import { getEvalHubTenantResourceSelector } from '../../../utils/oc_commands/evalHubModelDeploy';
 
 const evalHubResource = (
   name: string,
@@ -117,16 +117,25 @@ describe('EvalHub instance discovery', () => {
     ).not.to.throw();
   });
 
-  it('derives tenant resource names from the selected EvalHub instance', () => {
+  it('builds the operator label selector from the selected EvalHub instance', () => {
     expect(
-      getEvalHubTenantResourceNames({
+      getEvalHubTenantResourceSelector({
         serviceName: 'evalhub-qa',
         serviceNamespace: 'platform',
       }),
-    ).to.deep.equal({
-      jobServiceAccountName: 'evalhub-qa-platform-job',
-      jobAccessRoleName: 'evalhub-qa-platform-job-access-role',
-      serviceCAConfigMapName: 'evalhub-qa-service-ca',
-    });
+    ).to.equal(
+      'app=eval-hub,app.kubernetes.io/instance=evalhub-qa,app.kubernetes.io/component=job',
+    );
+  });
+
+  it('supports namespaces that make the operator shorten tenant resource names', () => {
+    expect(
+      getEvalHubTenantResourceSelector({
+        serviceName: 'evalhub-qa',
+        serviceNamespace: 'n'.repeat(37),
+      }),
+    ).to.equal(
+      'app=eval-hub,app.kubernetes.io/instance=evalhub-qa,app.kubernetes.io/component=job',
+    );
   });
 });

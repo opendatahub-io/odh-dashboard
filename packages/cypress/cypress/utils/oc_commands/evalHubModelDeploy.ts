@@ -21,12 +21,6 @@ export type EvalHubServiceTarget = {
   serviceNamespace: string;
 };
 
-export type EvalHubTenantResourceNames = {
-  jobServiceAccountName: string;
-  jobAccessRoleName: string;
-  serviceCAConfigMapName: string;
-};
-
 type EvalHubServiceIdentity = EvalHubServiceTarget & {
   serviceAccountName: string;
 };
@@ -72,23 +66,19 @@ const assertKubernetesName = (value: string, description: string): string => {
   return value;
 };
 
-export const getEvalHubTenantResourceNames = ({
+export const getEvalHubTenantResourceSelector = ({
   serviceName,
   serviceNamespace,
-}: EvalHubServiceTarget): EvalHubTenantResourceNames => ({
-  jobServiceAccountName: assertKubernetesName(
-    `${serviceName}-${serviceNamespace}-job`,
-    'operator-provisioned EvalHub Job ServiceAccount name',
-  ),
-  jobAccessRoleName: assertKubernetesName(
-    `${serviceName}-${serviceNamespace}-job-access-role`,
-    'operator-provisioned EvalHub Job access Role name',
-  ),
-  serviceCAConfigMapName: assertKubernetesName(
-    `${serviceName}-service-ca`,
-    'operator-provisioned EvalHub service CA ConfigMap name',
-  ),
-});
+}: EvalHubServiceTarget): string => {
+  const safeServiceName = assertKubernetesName(serviceName, 'EvalHub service name');
+  assertKubernetesName(serviceNamespace, 'EvalHub service namespace');
+
+  return [
+    'app=eval-hub',
+    `app.kubernetes.io/instance=${safeServiceName}`,
+    'app.kubernetes.io/component=job',
+  ].join(',');
+};
 
 /**
  * Mirrors the EvalHub BFF's discovery selection. Each supported E2E environment has one
@@ -293,25 +283,32 @@ const waitForEvalHubTenantResources = (
   tenantNamespace: string,
   serviceIdentity: EvalHubServiceIdentity,
 ): Cypress.Chainable<Cypress.Exec> => {
-  const { jobServiceAccountName, jobAccessRoleName, serviceCAConfigMapName } =
-    getEvalHubTenantResourceNames(serviceIdentity);
+  // The operator shortens long Job ServiceAccount and Role names with a stable hash. Select by
+  // the operator-owned labels instead of duplicating that private naming algorithm in Cypress.
+  const jobResourceSelector = getEvalHubTenantResourceSelector(serviceIdentity);
+  const instanceDescription = `${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceName}`;
 
   return pollUntilSuccess(
-    `oc -n ${tenantNamespace} get sa ${jobServiceAccountName} -o name`,
-    `operator-provisioned ServiceAccount ${jobServiceAccountName}`,
+    `oc -n ${tenantNamespace} get serviceaccounts -l '${jobResourceSelector}' -o json | ` +
+      "jq -e '.items | length > 0'",
+    `operator-provisioned Job ServiceAccount for EvalHub ${instanceDescription}`,
     { maxAttempts: 30, pollIntervalMs: 2000 },
   )
     .then(() =>
       pollUntilSuccess(
-        `oc -n ${tenantNamespace} get configmap ${serviceCAConfigMapName} -o name`,
-        `operator-provisioned ${serviceCAConfigMapName} ConfigMap`,
+        `oc -n ${tenantNamespace} get configmaps -l '${jobResourceSelector}' -o json | ` +
+          "jq -e '[.items[]? | " +
+          'select(.metadata.annotations["service.beta.openshift.io/inject-cabundle"] == "true")] ' +
+          "| length > 0'",
+        `operator-provisioned service CA ConfigMap for EvalHub ${instanceDescription}`,
         { maxAttempts: 30, pollIntervalMs: 2000 },
       ),
     )
     .then(() =>
       pollUntilSuccess(
-        `oc -n ${tenantNamespace} get role ${jobAccessRoleName} -o name`,
-        `operator-provisioned status-events Role ${jobAccessRoleName}`,
+        `oc -n ${tenantNamespace} get roles -l '${jobResourceSelector}' -o json | ` +
+          'jq -e \'[.items[]?.rules[]?.resources[]? | select(. == "status-events")] | length > 0\'',
+        `operator-provisioned status-events Role for EvalHub ${instanceDescription}`,
         { maxAttempts: 30, pollIntervalMs: 2000 },
       ),
     );
