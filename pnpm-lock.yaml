@@ -296,17 +296,17 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -400,23 +400,23 @@ importers:
   distributions/core-bff/frontend:
     dependencies:
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -687,20 +687,20 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -811,23 +811,23 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -950,50 +950,50 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/chatbot':
-        specifier: ~6.5.0
-        version: 6.5.0(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)
+        specifier: ~6.7.1
+        version: 6.7.1(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/quickstarts':
-        specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-core@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-catalog-view-extension':
         specifier: ~6.5.0
         version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-charts':
-        specifier: ~8.5.1
-        version: 8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
+        specifier: ~8.6.1
+        version: 8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-drag-drop':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-log-viewer':
         specifier: ~6.5.0
         version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-topology':
-        specifier: ~6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1428,23 +1428,23 @@ importers:
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.101.2
         version: 5.101.4(react@18.3.1)
@@ -1792,38 +1792,38 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-charts':
-        specifier: ~8.5.1
-        version: 8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
+        specifier: ~8.6.1
+        version: 8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-component-groups':
         specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.5.0(@patternfly/react-drag-drop@6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-drag-drop':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-topology':
-        specifier: ~6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.101.4(react@18.3.1)
@@ -2170,38 +2170,38 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-charts':
-        specifier: ~8.5.1
-        version: 8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
+        specifier: ~8.6.1
+        version: 8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-component-groups':
         specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.5.0(@patternfly/react-drag-drop@6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-drag-drop':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-topology':
-        specifier: ~6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.101.4(react@18.3.1)
@@ -2521,29 +2521,29 @@ importers:
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.85.0(react@18.3.1))(zod@4.4.3)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-component-groups':
         specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.5.0(@patternfly/react-drag-drop@6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-topology':
-        specifier: ~6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.101.4(react@18.3.1)
@@ -3134,23 +3134,23 @@ importers:
         specifier: ^5.9.1
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.86.0(react@18.3.1))(zod@4.4.3)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.2.6
         version: 2.5.1
@@ -3523,23 +3523,23 @@ importers:
         specifier: ^0.21.4
         version: 0.21.6
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.101.4(react@18.3.1)
@@ -3923,23 +3923,23 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
       '@patternfly/chatbot':
-        specifier: ~6.5.0
-        version: 6.5.0(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)
+        specifier: ~6.7.1
+        version: 6.7.1(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.62.0
         version: 5.101.4(react@18.3.1)
@@ -4574,26 +4574,26 @@ importers:
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.2.6
         version: 2.5.1
@@ -4956,26 +4956,26 @@ importers:
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: ~6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.2.6
         version: 2.5.1
@@ -8372,8 +8372,8 @@ packages:
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
 
-  '@patternfly/chatbot@6.5.0':
-    resolution: {integrity: sha512-+n6v7/dbAlp5wpdlcQrx4u3sQT6FlMgiy8KRtNgzfYXc9ZZUP6RqeGvQ7qTSlp4xbfiS4U+uRS99Mv9wMahr/g==}
+  '@patternfly/chatbot@6.7.1':
+    resolution: {integrity: sha512-tncpwpECXzy8CsGwxB5o8eyuOa/XXUEgr4EeQ1sXXeAcT3AUr4NXTtGVmaQLbb9tM7RsoD347+iIadmQyXoZwQ==}
     peerDependencies:
       '@monaco-editor/react': ^4.7.0
       monaco-editor: ^0.54.0
@@ -8383,8 +8383,11 @@ packages:
   '@patternfly/patternfly@6.5.2':
     resolution: {integrity: sha512-yZ71+1gt1VGzUN5amjDNd9NvttTnSOm9M0JeBL0YX1KaWXW1bmDPzTWEM+vQXuC4LVK0msHmR5hKB7KVpamAkA==}
 
-  '@patternfly/quickstarts@6.5.0':
-    resolution: {integrity: sha512-JYunrOwYF45uIZpcuMNVtoLyUKu1oB+qsUveL7lIduBVcWinw8rBXve+YnQTG7scis5kQONwJ8ZZh8W/5A37aw==}
+  '@patternfly/patternfly@6.6.1':
+    resolution: {integrity: sha512-8P9C1TmFk5y5s2/1XVjmP9JmSyDXDiNBwPZewhPizULtqlaRu+Evljx/X1HTSFrCNY0qgI1uDKy+NXiorIniyA==}
+
+  '@patternfly/quickstarts@6.6.0':
+    resolution: {integrity: sha512-4NQQknw5HHqTJdBQxsdpfR0KNl6aRP34HmAjs8EcBcf3jfQNBU1Tkv1DRuEo6bpOlushtsCWtBrbcljZYaaZLg==}
     peerDependencies:
       '@patternfly/react-core': ^6.0.0
       marked: ^15.0.6
@@ -8458,8 +8461,75 @@ packages:
       victory-zoom-container:
         optional: true
 
+  '@patternfly/react-charts@8.6.1':
+    resolution: {integrity: sha512-HkYmBanA3KmP/+dw3sbCGITjCif+r1EDzYcfjzLUUshllp55zBMv4UraEpV+pSwSv3fz1SfMQm7Dt5UXL0CWzA==}
+    peerDependencies:
+      echarts: ^5.6.0 || ^6.0.0
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+      victory-area: ^37.3.6
+      victory-axis: ^37.3.6
+      victory-bar: ^37.3.6
+      victory-box-plot: ^37.3.6
+      victory-chart: ^37.3.6
+      victory-core: ^37.3.6
+      victory-create-container: ^37.3.6
+      victory-cursor-container: ^37.3.6
+      victory-group: ^37.3.6
+      victory-legend: ^37.3.6
+      victory-line: ^37.3.6
+      victory-pie: ^37.3.6
+      victory-scatter: ^37.3.6
+      victory-stack: ^37.3.6
+      victory-tooltip: ^37.3.6
+      victory-voronoi-container: ^37.3.6
+      victory-zoom-container: ^37.3.6
+    peerDependenciesMeta:
+      echarts:
+        optional: true
+      victory-area:
+        optional: true
+      victory-axis:
+        optional: true
+      victory-bar:
+        optional: true
+      victory-box-plot:
+        optional: true
+      victory-chart:
+        optional: true
+      victory-core:
+        optional: true
+      victory-create-container:
+        optional: true
+      victory-cursor-container:
+        optional: true
+      victory-group:
+        optional: true
+      victory-legend:
+        optional: true
+      victory-line:
+        optional: true
+      victory-pie:
+        optional: true
+      victory-scatter:
+        optional: true
+      victory-stack:
+        optional: true
+      victory-tooltip:
+        optional: true
+      victory-voronoi-container:
+        optional: true
+      victory-zoom-container:
+        optional: true
+
   '@patternfly/react-code-editor@6.5.1':
     resolution: {integrity: sha512-Epd4iAX7/Uzo+Vl+6gX6f1BjhoX06DVV7pnZnQK4N4uknyXbfIGkmOJcE0Eq06z1cxiITV/h/JHI6WqzbOSaGA==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
+  '@patternfly/react-code-editor@6.6.1':
+    resolution: {integrity: sha512-iHWbXsGTB179qmVLPTJCkYBqANAHqD37twiJ5jpfwZrH8HtJGuEECwoZE/obUh9rc73tkC1FIFrCUdCwh6Y/Ug==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
@@ -8477,14 +8547,38 @@ packages:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
+  '@patternfly/react-core@6.6.1':
+    resolution: {integrity: sha512-1XEBj+RllMnx+nQNaQaEH08umNdW1/HoqiNiZVBrVACI7GAGqjNR/NOWCbfl3p/o6OggD3M3mlJPhCMmcoOaGg==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
+  '@patternfly/react-core@6.6.2':
+    resolution: {integrity: sha512-FjXUSH+zNUto2Qc6t62nW9aEYdy6n+7njtAcZGFb3HhifMtufzOXGg8jNe4rrBAEYBroB913+xoaaQoK5CUwBA==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
   '@patternfly/react-drag-drop@6.5.1':
     resolution: {integrity: sha512-10mo7ETrD4voyIUpzjtX8Z+cuQYnXPOHV5vuqhInArgSUiVi7OOqSJFG6iBnn7OCSKAMMakHdHkHRtOLiOO1Mw==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
+  '@patternfly/react-drag-drop@6.6.2':
+    resolution: {integrity: sha512-JBOF3By3bBnsW7/pogkFbHLHeLh+xSOtHkLFdqjfhDtmOOM0qhdz/fzzRcM3hqYtMFVwj0MiL9m5H2YolnP68g==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
   '@patternfly/react-icons@6.5.1':
     resolution: {integrity: sha512-CnuPvTTs4MMWx8CAUkmnY690ouN1bbHjunsyXu3QxvGOmzbztP+wS4BdiLS8TIXOIH80Yb7KPhnF8VkA+CduOA==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
+  '@patternfly/react-icons@6.6.1':
+    resolution: {integrity: sha512-EUHnTliMlUMNfaueyGTaNcdCDGN4CjLtQpNdSg6iWcl5oloHtUDEAIltP0nbCWnepMJDoM2YgjMlyjwWlkNzXg==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
@@ -8498,8 +8592,17 @@ packages:
   '@patternfly/react-styles@6.5.1':
     resolution: {integrity: sha512-yQMzUbbf6qYM/v3JbPvaCJTgxRbOKoEw229XZmnnM8gDvp8ECiI7LqihrAOK/NA6T6M3DDgsRMd2JurUBhPDEw==}
 
+  '@patternfly/react-styles@6.6.1':
+    resolution: {integrity: sha512-hwByXA4wSpOIBJFtrYUdkFDIqvzHRP5yzvip/NHDlG0y/kXausOh5Z4m00SbTA6t7Hzudw5eU1lf+IOPCm5C6Q==}
+
   '@patternfly/react-table@6.5.1':
     resolution: {integrity: sha512-JpX66ctLsg5snRRheDhuF2fHvXDG4UDKYfP5403kCAQ4Dz2dPu3PhlHi4AJol+egEBD2HfS/U37j7noQ1Y7mpA==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
+  '@patternfly/react-table@6.6.1':
+    resolution: {integrity: sha512-owyLpkhFg28nQWkTA3jnhmbe8FOX5vXqZntbrjse4BfdaBTOzsBxPqtBzbf6o214Q8OQBzC2Atgz9C3j0yFscQ==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
@@ -8510,11 +8613,26 @@ packages:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
+  '@patternfly/react-templates@6.6.1':
+    resolution: {integrity: sha512-QpFOE5xFONDNT507hzVCnvpzCLt8j1jXoPBW7WZhgRayeLpZHKgYewOkPZMy9pi6MBf0Q9dybjjX7OC4l/dW/w==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
   '@patternfly/react-tokens@6.5.1':
     resolution: {integrity: sha512-zwepLsIQTL0Lf4R2/PIBOk1m+pm0hYVT3lktf2H4+Y87eRIifwMRb19c+pr4hj4ckGvHs+WxwjTfTj2Qqwn5rw==}
 
+  '@patternfly/react-tokens@6.6.1':
+    resolution: {integrity: sha512-t7dDEJMnO3QkdIKyjbyKJznVYki9ONZG27Cn/9RXwaM0lDGCrgQEJXy2XoVUCdYhIdXZu+TGSEqXeNFYUyZECg==}
+
   '@patternfly/react-topology@6.5.0':
     resolution: {integrity: sha512-z86n2jXlv21Enwf/Km6mORbVX6lfTQ+/jvn75AUK/DXpXDdSFpxI23mS+yBPNSZ1dbWVv9a8tLKGum0WP50H9g==}
+    peerDependencies:
+      react: ^18.3.1
+      react-dom: ^17 || ^18 || ^19
+
+  '@patternfly/react-topology@6.6.0':
+    resolution: {integrity: sha512-Ake5kYZMKwhe5DqCo3w4J0aX970wWNdWotwLNq65Ad0hBxnKw3e3FEhjyaw1OJJN+H9L/AV9VazU/u56qYeBZA==}
     peerDependencies:
       react: ^18.3.1
       react-dom: ^17 || ^18 || ^19
@@ -20398,14 +20516,14 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.6.0
     optional: true
 
-  '@patternfly/chatbot@6.5.0(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)':
+  '@patternfly/chatbot@6.7.1(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)':
     dependencies:
       '@monaco-editor/react': 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-code-editor': 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
-      '@patternfly/react-table': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-code-editor': 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-table': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@segment/analytics-next': 1.84.1
       clsx: 2.1.1
       monaco-editor: 0.54.0
@@ -20428,9 +20546,11 @@ snapshots:
 
   '@patternfly/patternfly@6.5.2': {}
 
-  '@patternfly/quickstarts@6.5.0(@patternfly/react-core@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/patternfly@6.6.1': {}
+
+  '@patternfly/quickstarts@6.6.0(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       dompurify: 3.4.15
       history: 5.3.0
       marked: 15.0.12
@@ -20439,8 +20559,8 @@ snapshots:
 
   '@patternfly/react-catalog-view-extension@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
@@ -20448,6 +20568,35 @@ snapshots:
     dependencies:
       '@patternfly/react-styles': 6.5.1
       '@patternfly/react-tokens': 6.5.1
+      hoist-non-react-statics: 3.3.2
+      lodash: 4.18.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      tslib: 2.8.1
+    optionalDependencies:
+      echarts: 5.6.0
+      victory-area: 37.3.6(react@18.3.1)
+      victory-axis: 37.3.6(react@18.3.1)
+      victory-bar: 37.3.6(react@18.3.1)
+      victory-box-plot: 37.3.6(react@18.3.1)
+      victory-chart: 37.3.6(react@18.3.1)
+      victory-core: 37.3.6(react@18.3.1)
+      victory-create-container: 37.3.6(react@18.3.1)
+      victory-cursor-container: 37.3.6(react@18.3.1)
+      victory-group: 37.3.6(react@18.3.1)
+      victory-legend: 37.3.6(react@18.3.1)
+      victory-line: 37.3.6(react@18.3.1)
+      victory-pie: 37.3.6(react@18.3.1)
+      victory-scatter: 37.3.6(react@18.3.1)
+      victory-stack: 37.3.6(react@18.3.1)
+      victory-tooltip: 37.3.6(react@18.3.1)
+      victory-voronoi-container: 37.3.6(react@18.3.1)
+      victory-zoom-container: 37.3.6(react@18.3.1)
+
+  '@patternfly/react-charts@8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))':
+    dependencies:
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
       hoist-non-react-statics: 3.3.2
       lodash: 4.18.1
       react: 18.3.1
@@ -20486,13 +20635,26 @@ snapshots:
     transitivePeerDependencies:
       - monaco-editor
 
-  '@patternfly/react-component-groups@6.5.0(@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-code-editor@6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-drag-drop': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
-      '@patternfly/react-table': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@monaco-editor/react': 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-dropzone: 14.3.5(react@18.3.1)
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - monaco-editor
+
+  '@patternfly/react-component-groups@6.5.0(@patternfly/react-drag-drop@6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-drag-drop': 6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-table': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-jss: 10.10.0(react@18.3.1)
@@ -20508,14 +20670,48 @@ snapshots:
       react-dropzone: 14.4.1(react@18.3.1)
       tslib: 2.8.1
 
+  '@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
+      focus-trap: 7.6.6
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-dropzone: 14.4.1(react@18.3.1)
+      tslib: 2.8.1
+
+  '@patternfly/react-core@6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
+      focus-trap: 7.6.6
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-dropzone: 14.4.1(react@18.3.1)
+      tslib: 2.8.1
+
   '@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      resize-observer-polyfill: 1.5.1
+
+  '@patternfly/react-drag-drop@6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@dnd-kit/core': 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+      '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-core': 6.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       resize-observer-polyfill: 1.5.1
@@ -20525,16 +20721,24 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
+  '@patternfly/react-icons@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      tslib: 2.8.1
+
   '@patternfly/react-log-viewer@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
       memoize-one: 5.2.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
   '@patternfly/react-styles@6.5.1': {}
+
+  '@patternfly/react-styles@6.6.1': {}
 
   '@patternfly/react-table@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
@@ -20542,6 +20746,17 @@ snapshots:
       '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles': 6.5.1
       '@patternfly/react-tokens': 6.5.1
+      lodash: 4.18.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      tslib: 2.8.1
+
+  '@patternfly/react-table@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -20557,9 +20772,41 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       tslib: 2.8.1
 
+  '@patternfly/react-templates@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      tslib: 2.8.1
+
   '@patternfly/react-tokens@6.5.1': {}
 
+  '@patternfly/react-tokens@6.6.1': {}
+
   '@patternfly/react-topology@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@dagrejs/dagre': 1.1.2
+      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.5.1
+      '@types/d3': 7.4.3
+      '@types/d3-force': 1.2.7
+      d3: 7.9.0
+      mobx: 6.16.1
+      mobx-react: 7.6.0(mobx@6.16.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      point-in-svg-path: 1.0.2
+      popper.js: 1.16.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      tslib: 2.8.1
+      webcola: 3.4.0
+    transitivePeerDependencies:
+      - react-native
+
+  '@patternfly/react-topology@6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@dagrejs/dagre': 1.1.2
       '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -28729,7 +28976,7 @@ snapshots:
 
   mod-arch-shared@1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3):
     dependencies:
-      '@patternfly/patternfly': 6.5.2
+      '@patternfly/patternfly': 6.6.1
       '@patternfly/react-drag-drop': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames: 2.5.1
       dompurify: 3.4.13
