@@ -11,6 +11,19 @@ import (
 	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
 )
 
+type ConnectionTypeCredentialField struct {
+	Name        string `json:"name"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+	Required    bool   `json:"required"`
+	Type        string `json:"type"`
+	EnumValues  []struct {
+		Value string `json:"value"`
+		Label string `json:"label"`
+	} `json:"enum_values,omitzero"`
+	DefaultValue string `json:"default_value,omitempty"`
+}
+
 type ConnectionType struct {
 	Metadata struct {
 		ID        string `json:"id"`
@@ -19,21 +32,10 @@ type ConnectionType struct {
 		UpdatedAt string `json:"updated_at"`
 	} `json:"metadata"`
 	Resource struct {
-		Name              string `json:"name"`
-		Provider          string `json:"provider"`
-		Description       string `json:"description,omitempty"`
-		CredentialsFields []struct {
-			Name        string `json:"name"`
-			Label       string `json:"label"`
-			Description string `json:"description,omitempty"`
-			Required    bool   `json:"required"`
-			Type        string `json:"type"`
-			EnumValues  []struct {
-				Value string `json:"value"`
-				Label string `json:"label"`
-			} `json:"enum_values,omitzero"`
-			DefaultValue string `json:"default_value,omitempty"`
-		} `json:"credentials_fields"`
+		Name              string                          `json:"name"`
+		Provider          string                          `json:"provider"`
+		Description       string                          `json:"description,omitempty"`
+		CredentialsFields []ConnectionTypeCredentialField `json:"credentials_fields"`
 	} `json:"resource"`
 	Status struct {
 		Capabilities struct {
@@ -198,11 +200,17 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 	types := make([]ConnectionType, 2)
 	types[0].Metadata.ID = "postgresql"
 	types[0].Metadata.TenantID = namespace
+	types[0].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
+	types[0].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
 	types[0].Resource.Name = "PostgreSQL"
 	types[0].Resource.Provider = "postgresql"
+	types[0].Resource.CredentialsFields = []ConnectionTypeCredentialField{}
 	types[1].Metadata.ID = "s3"
 	types[1].Metadata.TenantID = namespace
+	types[1].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
+	types[1].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
 	types[1].Resource.Name = "S3"
 	types[1].Resource.Provider = "s3"
+	types[1].Resource.CredentialsFields = []ConnectionTypeCredentialField{}
 	return types
 }
