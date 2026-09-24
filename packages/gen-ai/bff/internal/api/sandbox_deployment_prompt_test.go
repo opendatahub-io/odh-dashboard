@@ -69,3 +69,31 @@ func TestResolveSandboxSystemPromptRejectsPromptWithoutSystemMessage(t *testing.
 
 	require.ErrorContains(t, err, "has no system message")
 }
+
+func TestResolveSandboxSystemPromptUsesMLflowTemplateWhenMessagesAreAbsent(t *testing.T) {
+	mlflowClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMLflow)
+	mlflowClient.CallHandler = func(_ context.Context, _, _ string, _ interface{}, response interface{}) error {
+		response.(*struct {
+			Data models.MLflowPromptVersion `json:"data"`
+		}).Data = models.MLflowPromptVersion{
+			Name:     "text-prompt",
+			Version:  1,
+			Template: "You assist {{ audience }}.",
+		}
+		return nil
+	}
+	ctx := context.WithValue(
+		context.Background(),
+		constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMLflow)),
+		mlflowClient,
+	)
+
+	prompt, err := (&App{}).resolveSandboxSystemPrompt(ctx, "test-namespace", &models.SystemPromptReference{
+		Name: "text-prompt", Source: "mlflow", Variables: map[string]models.PromptVariable{
+			"audience": {Text: "operators"},
+		},
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "You assist operators.", prompt)
+}

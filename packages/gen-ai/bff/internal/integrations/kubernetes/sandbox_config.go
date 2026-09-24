@@ -15,6 +15,35 @@ func SandboxOGXModelID(modelID string) string {
 	return sandboxPassthroughProviderID + "/" + modelID
 }
 
+// SandboxVectorStoreIDs returns the selected vector store IDs from an AgentProfile.
+// A profile may point at a store directly or through the key of the dashboard vector
+// store ConfigMap. The returned IDs are suitable for both registered_resources and
+// the file_search tool injected by the deployment wrapper.
+func SandboxVectorStoreIDs(profile *models.AgentProfile) []string {
+	if profile == nil || profile.Spec.VectorStores == nil {
+		return []string{}
+	}
+
+	ids := make([]string, 0, len(profile.Spec.VectorStores.Stores))
+	seen := make(map[string]struct{}, len(profile.Spec.VectorStores.Stores))
+	for _, ref := range profile.Spec.VectorStores.Stores {
+		storeID := ref.ID
+		if storeID == "" && ref.StoreRef != nil {
+			// storeRef.Key is the vector_store_id within the gen-ai-aa-vector-stores ConfigMap.
+			storeID = ref.StoreRef.Key
+		}
+		if storeID == "" {
+			continue
+		}
+		if _, found := seen[storeID]; found {
+			continue
+		}
+		seen[storeID] = struct{}{}
+		ids = append(ids, storeID)
+	}
+	return ids
+}
+
 // sandboxDefaultEmbeddingDimension is the output dimension of the default inline embedding model
 // (ibm-granite/granite-embedding-125m-english via sentence-transformers).
 const sandboxDefaultEmbeddingDimension = 768
@@ -83,15 +112,7 @@ func BuildSandboxLlamaStackConfig(
 	// firstEmbeddingModel tracks the OGX model_id (with sentence-transformers/ prefix).
 	var firstEmbeddingModel string
 	var firstEmbeddingDimension int
-	for _, ref := range profile.Spec.VectorStores.Stores {
-		storeID := ref.ID
-		if storeID == "" && ref.StoreRef != nil {
-			// storeRef.Key is the vector_store_id within the gen-ai-aa-vector-stores ConfigMap.
-			storeID = ref.StoreRef.Key
-		}
-		if storeID == "" {
-			continue
-		}
+	for _, storeID := range SandboxVectorStoreIDs(profile) {
 
 		// Default embedding model: use the OGX model_id (with "sentence-transformers/" prefix)
 		// for registered_resources references; DefaultEmbeddingModel.ModelID stays unprefixed.

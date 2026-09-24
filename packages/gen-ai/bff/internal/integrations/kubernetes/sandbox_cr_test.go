@@ -65,3 +65,18 @@ func TestBuildSandboxEnvVarsIncludesMCPServerConfiguration(t *testing.T) {
 	assert.Contains(t, values["AGENT_MCP_SERVERS_JSON"]["value"], "github")
 	assert.Equal(t, "agent-mcp-auth-1234", values["MCP_AUTH_1"]["valueFrom"].(map[string]interface{})["secretKeyRef"].(map[string]interface{})["name"])
 }
+
+func TestBuildSandboxEnvVarsIncludesVectorStoreIDs(t *testing.T) {
+	const vectorStoreIDs = `["vs-a","vs-b"]`
+
+	vars := buildSandboxEnvVars(SandboxCROptions{VectorStoreIDsJSON: vectorStoreIDs}, "pgvector", "pgvector-secret")
+
+	for _, raw := range vars {
+		variable := raw.(map[string]interface{})
+		if variable["name"] == "AGENT_VECTOR_STORE_IDS_JSON" {
+			assert.Equal(t, vectorStoreIDs, variable["value"])
+			return
+		}
+	}
+	t.Fatal("AGENT_VECTOR_STORE_IDS_JSON not found")
+}

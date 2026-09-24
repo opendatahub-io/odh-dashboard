@@ -90,6 +90,20 @@ func TestSandboxOGXModelID(t *testing.T) {
 	assert.Equal(t, "passthrough-llm/openai-gpt-4o-mini", kubernetes.SandboxOGXModelID("openai-gpt-4o-mini"))
 }
 
+func TestSandboxVectorStoreIDs(t *testing.T) {
+	profile := &models.AgentProfile{Spec: models.AgentProfileSpec{VectorStores: &models.VectorStoresConfig{
+		Stores: []models.VectorStoreRef{
+			{ID: "direct-store"},
+			{StoreRef: &models.ConfigMapRef{Key: "referenced-store"}},
+			{ID: "direct-store"}, // duplicate selections should only create one file_search ID.
+			{},
+		},
+	}}}
+
+	assert.Equal(t, []string{"direct-store", "referenced-store"}, kubernetes.SandboxVectorStoreIDs(profile))
+	assert.Empty(t, kubernetes.SandboxVectorStoreIDs(nil))
+}
+
 func TestBuildSandboxLlamaStackConfig_NoVectorStores(t *testing.T) {
 	profile := &models.AgentProfile{
 		Spec: models.AgentProfileSpec{

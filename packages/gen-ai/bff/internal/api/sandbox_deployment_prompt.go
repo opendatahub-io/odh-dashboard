@@ -49,6 +49,12 @@ func (app *App) resolveSandboxSystemPrompt(
 			return substituteSandboxPromptVariables(message.Content, prompt.Variables), nil
 		}
 	}
+	// MLflow supports either chat messages or a single text template. A template
+	// represents the entire prompt, so use it as the deployment's system message
+	// when the selected prompt was not registered in chat-message form.
+	if strings.TrimSpace(response.Data.Template) != "" {
+		return substituteSandboxPromptVariables(response.Data.Template, prompt.Variables), nil
+	}
 
 	return "", fmt.Errorf("MLflow prompt %q version %d has no system message", response.Data.Name, response.Data.Version)
 }

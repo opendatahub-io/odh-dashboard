@@ -48,7 +48,10 @@ type SandboxCROptions struct {
 	SystemPrompt string
 	// MCPServersJSON describes selected MCP servers without embedding credentials.
 	MCPServersJSON string
-	MCPAuthSecrets []SandboxSecretEnvVar
+	// VectorStoreIDsJSON describes the vector stores selected by the profile. The
+	// wrapper uses it to add a file_search tool to every Responses API request.
+	VectorStoreIDsJSON string
+	MCPAuthSecrets     []SandboxSecretEnvVar
 	// PgvectorHost defaults to <pgvector-service>.<namespace>.svc.cluster.local when empty.
 	PgvectorHost string
 	// PgvectorSecretName defaults to pgvector.CredentialsSecretName when empty.
@@ -222,6 +225,7 @@ func buildSandboxEnvVars(opts SandboxCROptions, pgvectorHost, pgvectorSecret str
 		sandboxEnvVar("AGENT_OGX_MODEL_ID", opts.OGXModelID),
 		sandboxEnvVar("AGENT_SYSTEM_PROMPT", opts.SystemPrompt),
 		sandboxEnvVar("AGENT_MCP_SERVERS_JSON", opts.MCPServersJSON),
+		sandboxEnvVar("AGENT_VECTOR_STORE_IDS_JSON", opts.VectorStoreIDsJSON),
 		sandboxEnvVar(pgvector.HostEnvVar, pgvectorHost),
 		sandboxEnvVar(pgvector.PortEnvVar, strconv.Itoa(pgvector.DefaultPort)),
 		sandboxEnvVar(pgvector.DBEnvVar, pgvector.DefaultDB),

@@ -160,6 +160,11 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+	vectorStoreIDsJSON, err := json.Marshal(kubernetes.SandboxVectorStoreIDs(profile))
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
 	// Create the llama-stack-config ConfigMap.
 	lsCM, err := k8sClient.CreateSandboxConfigMap(ctx, namespace, req.AgentProfileID, configYAML)
@@ -261,6 +266,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		OGXModelID:              kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
 		SystemPrompt:            systemPrompt,
 		MCPServersJSON:          string(mcpServersJSON),
+		VectorStoreIDsJSON:      string(vectorStoreIDsJSON),
 		MCPAuthSecrets:          mcpAuthSecrets,
 		PgvectorHost:            app.config.PgvectorHost,
 		PgvectorSecretName:      app.config.PgvectorPasswordSecretName,

@@ -49,11 +49,16 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `AGENT_SYSTEM_PROMPT`)
 	assert.Contains(t, script, `request["instructions"] = AGENT_SYSTEM_PROMPT`)
 	assert.Contains(t, script, `AGENT_MCP_SERVERS_JSON`)
+	assert.Contains(t, script, `json.loads(os.environ.get("AGENT_MCP_SERVERS_JSON", "[]")) or []`)
+	assert.Contains(t, script, `AGENT_VECTOR_STORE_IDS_JSON`)
+	assert.Contains(t, script, `json.loads(os.environ.get("AGENT_VECTOR_STORE_IDS_JSON", "[]")) or []`)
 	assert.Contains(t, script, `MCPServerMiddleware`)
 	assert.Contains(t, script, `"/v1/responses"`)
 	assert.Contains(t, script, `"type": "mcp"`)
 	assert.Contains(t, script, `"authorization"] = os.environ[auth_env_var]`)
 	assert.Contains(t, script, `"allowed_tools"] = server["allowed_tools"]`)
+	assert.Contains(t, script, `"type": "file_search"`)
+	assert.Contains(t, script, `"vector_store_ids": VECTOR_STORE_IDS`)
 
 	// create_app synchronous + uvicorn on port 8321
 	assert.Contains(t, script, `create_app()`)

@@ -20,7 +20,11 @@ MAAS_SUBSCRIPTION = os.environ["MAAS_SUBSCRIPTION"]
 AGENT_CONFIG_JSON = os.environ["AGENT_CONFIG_JSON"]
 AGENT_OGX_MODEL_ID = os.environ["AGENT_OGX_MODEL_ID"]
 AGENT_SYSTEM_PROMPT = os.environ.get("AGENT_SYSTEM_PROMPT", "")
-MCP_SERVERS = json.loads(os.environ.get("AGENT_MCP_SERVERS_JSON", "[]"))
+# json.Marshal(nil) produces "null". Normalize both that value and an absent
+# environment variable to an empty list so non-MCP deployments still rewrite
+# Responses API requests with their configured model and system prompt.
+MCP_SERVERS = json.loads(os.environ.get("AGENT_MCP_SERVERS_JSON", "[]")) or []
+VECTOR_STORE_IDS = json.loads(os.environ.get("AGENT_VECTOR_STORE_IDS_JSON", "[]")) or []
 
 _token_cache = {}
 
@@ -167,6 +171,11 @@ class MCPServerMiddleware:
                 if auth_env_var := server.get("authorization_env_var"):
                     tool["authorization"] = os.environ[auth_env_var]
                 tools.append(tool)
+            if VECTOR_STORE_IDS:
+                tools.append({
+                    "type": "file_search",
+                    "vector_store_ids": VECTOR_STORE_IDS,
+                })
             request["tools"] = tools
             body = json.dumps(request).encode()
         except Exception as e:
