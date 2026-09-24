@@ -53,3 +53,13 @@ spec:
       ports:
         - protocol: TCP
           port: 8143
+    # Matches the Perses pods selected by the corresponding observability
+    # ingress policy, regardless of the configured Perses service namespace.
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/managed-by: perses-operator
+      ports:
+        - protocol: TCP
+          port: 8080

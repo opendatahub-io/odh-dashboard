@@ -31,7 +31,7 @@ func TestBuildMaaSConsumerPortalFederationConfigMap(t *testing.T) {
 	statuses["maas"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDegraded}
 	statuses["genAi"] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseDisabled}
 
-	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, statuses)
+	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, statuses, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "maas-consumer-portal-federation-config", configMap.Name)
 	assert.Equal(t, "maas-consumer-portal", configMap.Labels["platform.opendatahub.io/part-of"])
@@ -48,7 +48,7 @@ func TestBuildMaaSConsumerPortalFederationConfigMap(t *testing.T) {
 func TestBuildMaaSConsumerPortalFederationConfigMap_IncludesHealthyDependencies(t *testing.T) {
 	scheme := testScheme(t)
 	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).Build(), Scheme: scheme, Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
-	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, allDeployedStatuses())
+	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, allDeployedStatuses(), nil)
 	require.NoError(t, err)
 	var entries []map[string]any
 	require.NoError(t, json.Unmarshal([]byte(configMap.Data["module-federation-config.json"]), &entries))
@@ -57,6 +57,46 @@ func TestBuildMaaSConsumerPortalFederationConfigMap_IncludesHealthyDependencies(
 	assert.Equal(t, "maas", entries[1]["name"])
 	assert.Equal(t, float64(8143), entries[0]["service"].(map[string]any)["port"])
 	assert.Equal(t, float64(8243), entries[1]["service"].(map[string]any)["port"])
+}
+
+func TestBuildMaaSConsumerPortalFederationConfigMap_IncludesPersesWhenConfigured(t *testing.T) {
+	scheme := testScheme(t)
+	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).Build(), Scheme: scheme, Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
+	observability := &v1alpha1.ObservabilitySpec{
+		Enabled:       true,
+		PersesService: &v1alpha1.ServiceTarget{Name: "perses", Namespace: "observability", Port: 8080},
+	}
+	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, allDeployedStatuses(), observability)
+	require.NoError(t, err)
+
+	var entries []map[string]any
+	require.NoError(t, json.Unmarshal([]byte(configMap.Data["module-federation-config.json"]), &entries))
+	require.Len(t, entries, 3)
+	assert.Equal(t, "perses", entries[2]["name"])
+	proxy := entries[2]["proxyService"].([]any)[0].(map[string]any)
+	assert.Equal(t, "/perses/api", proxy["path"])
+	assert.Equal(t, "", proxy["pathRewrite"])
+	assert.Equal(t, "perses", proxy["service"].(map[string]any)["name"])
+}
+
+func TestBuildMaaSConsumerPortalFederationConfigMap_OmitsPersesWhenObservabilityIsDisabled(t *testing.T) {
+	scheme := testScheme(t)
+	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).Build(), Scheme: scheme, Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
+	observability := &v1alpha1.ObservabilitySpec{
+		Enabled:       false,
+		PersesService: &v1alpha1.ServiceTarget{Name: "perses", Namespace: "observability", Port: 8080},
+	}
+	configMap, err := ctrlpkg.BuildMaaSConsumerPortalFederationConfigMap(reconciler, allDeployedStatuses(), observability)
+	require.NoError(t, err)
+
+	var entries []map[string]any
+	require.NoError(t, json.Unmarshal([]byte(configMap.Data["module-federation-config.json"]), &entries))
+	assert.Len(t, entries, 2)
+	entryNames := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		entryNames = append(entryNames, entry["name"].(string))
+	}
+	assert.NotContains(t, entryNames, "perses")
 }
 
 func TestDeployMaaSConsumerPortalFederationConfigMap_RemovedDeletesConfigMap(t *testing.T) {

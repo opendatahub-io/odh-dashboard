@@ -1,5 +1,6 @@
 import React from 'react';
 import { DeploymentMode, ModularArchContextProvider, type ModularArchConfig } from 'mod-arch-core';
+import HostApiProvider from './HostApiProvider';
 import MaaSAuthzProvider from './MaaSAuthzProvider';
 import PortalAreaContextProvider from './PortalAreaContextProvider';
 
@@ -11,9 +12,11 @@ const modularArchConfig: ModularArchConfig = {
 
 const PortalContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <ModularArchContextProvider config={modularArchConfig}>
-    <MaaSAuthzProvider>
-      <PortalAreaContextProvider>{children}</PortalAreaContextProvider>
-    </MaaSAuthzProvider>
+    <HostApiProvider>
+      <MaaSAuthzProvider>
+        <PortalAreaContextProvider>{children}</PortalAreaContextProvider>
+      </MaaSAuthzProvider>
+    </HostApiProvider>
   </ModularArchContextProvider>
 );
 

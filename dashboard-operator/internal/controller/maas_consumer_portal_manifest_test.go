@@ -183,20 +183,23 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	rules, found, err = unstructured.NestedSlice(role.Object, "rules")
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Len(t, rules, 2, "portal RBAC is limited to DSC and ingress discovery")
+	require.Len(t, rules, 3, "portal RBAC is limited to DSC, ingress, and subscription discovery")
 	assert.Equal(t, []interface{}{"datasciencecluster.opendatahub.io"}, rules[0].(map[string]interface{})["apiGroups"])
 	assert.Equal(t, []interface{}{"datascienceclusters"}, rules[0].(map[string]interface{})["resources"])
 	assert.Equal(t, []interface{}{"get", "list"}, rules[0].(map[string]interface{})["verbs"])
 	assert.Equal(t, []interface{}{"config.openshift.io"}, rules[1].(map[string]interface{})["apiGroups"])
 	assert.Equal(t, []interface{}{"ingresses"}, rules[1].(map[string]interface{})["resources"])
 	assert.Equal(t, []interface{}{"get"}, rules[1].(map[string]interface{})["verbs"])
+	assert.Equal(t, []interface{}{"operators.coreos.com"}, rules[2].(map[string]interface{})["apiGroups"])
+	assert.Equal(t, []interface{}{"subscriptions"}, rules[2].(map[string]interface{})["resources"])
+	assert.Equal(t, []interface{}{"get"}, rules[2].(map[string]interface{})["verbs"])
 
 	networkPolicy := resources["NetworkPolicy/"+maasConsumerPortalName]
 	require.NotNil(t, networkPolicy)
 	egress, found, err := unstructured.NestedSlice(networkPolicy.Object, "spec", "egress")
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Len(t, egress, 4, "portal egress is limited to DNS, Kubernetes API, MaaS, and GenAI")
+	require.Len(t, egress, 5, "portal egress is limited to DNS, Kubernetes API, MaaS, GenAI, and Perses")
 	assert.Equal(t, []interface{}{map[string]interface{}{"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "openshift-dns"}}}}, egress[0].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "UDP", "port": int64(5353)}, map[string]interface{}{"protocol": "TCP", "port": int64(5353)}}, egress[0].(map[string]interface{})["ports"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"ipBlock": map[string]interface{}{"cidr": "0.0.0.0/0"}}}, egress[1].(map[string]interface{})["to"])
@@ -211,6 +214,11 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"}},
 	}}, egress[3].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8143)}}, egress[3].(map[string]interface{})["ports"])
+	assert.Equal(t, []interface{}{map[string]interface{}{
+		"namespaceSelector": map[string]interface{}{},
+		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"app.kubernetes.io/managed-by": "perses-operator"}},
+	}}, egress[4].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8080)}}, egress[4].(map[string]interface{})["ports"])
 }
 
 func namedManifestObject(t *testing.T, objects []interface{}, name string) map[string]interface{} {

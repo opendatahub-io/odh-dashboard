@@ -448,24 +448,8 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 		}},
 	})
 
-	// Add perses entry if observability is enabled
-	if dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled &&
-		dashboard.Spec.Observability.PersesService != nil {
-		ps := dashboard.Spec.Observability.PersesService
-		entries = append(entries, federationEntry{
-			Name: "perses",
-			ProxyService: []proxyServiceEntry{{
-				Authorize:   true,
-				Path:        "/perses/api",
-				PathRewrite: "",
-				TLS:         false,
-				Service: serviceRef{
-					Name:      ps.Name,
-					Namespace: ps.Namespace,
-					Port:      ps.Port,
-				},
-			}},
-		})
+	if entry := persesFederationEntry(dashboard.Spec.Observability); entry != nil {
+		entries = append(entries, *entry)
 	}
 
 	// Add mlflowEmbedded entry if mlflow is deployed
@@ -508,6 +492,28 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 	}
 
 	return cm, nil
+}
+
+func persesFederationEntry(observability *v1alpha1.ObservabilitySpec) *federationEntry {
+	if observability == nil || !observability.Enabled || observability.PersesService == nil {
+		return nil
+	}
+
+	persesService := observability.PersesService
+	return &federationEntry{
+		Name: "perses",
+		ProxyService: []proxyServiceEntry{{
+			Authorize:   true,
+			Path:        "/perses/api",
+			PathRewrite: "",
+			TLS:         false,
+			Service: serviceRef{
+				Name:      persesService.Name,
+				Namespace: persesService.Namespace,
+				Port:      persesService.Port,
+			},
+		}},
+	}
 }
 
 // --- Standalone readiness overlay ---

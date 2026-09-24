@@ -20,6 +20,9 @@
     "./__mocks__/mockSecretK8sResource": "./src/__mocks__/mockSecretK8sResource.ts",
     "./__mocks__/mockTrustyAIServiceK8sResource": "./src/__mocks__/mockTrustyAIServiceK8sResource.ts",
     "./api/models": "./src/api/models.ts",
+    "./api/accessReview": "./src/api/accessReview.ts",
+    "./api/apiResource": "./src/api/apiResource.ts",
+    "./api/operatorSubscriptionStatus": "./src/api/operatorSubscriptionStatus.ts",
     "./api/secrets": "./src/api/secrets.ts",
     "./api/serviceAccounts": "./src/api/serviceAccounts.ts",
     "./api/roles": "./src/api/roles.ts",
@@ -37,6 +40,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -48,6 +52,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*"
   }
 }

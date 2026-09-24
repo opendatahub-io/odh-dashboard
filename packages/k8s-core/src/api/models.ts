@@ -6,6 +6,13 @@ export const ConfigMapModel: K8sModelCommon = {
   plural: 'configmaps',
 };
 
+export const SelfSubjectAccessReviewModel: K8sModelCommon = {
+  apiVersion: 'v1',
+  apiGroup: 'authorization.k8s.io',
+  kind: 'SelfSubjectAccessReview',
+  plural: 'selfsubjectaccessreviews',
+};
+
 export const RoleModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'rbac.authorization.k8s.io',

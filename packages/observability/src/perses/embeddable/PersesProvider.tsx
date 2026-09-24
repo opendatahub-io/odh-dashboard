@@ -19,7 +19,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6';
-import { pluginLoader } from '../persesPluginsLoader';
+import { createPluginLoader } from '../persesPluginsLoader';
 import { OdhDatasourceApi, CachedDatasourceAPI, PERSES_PROXY_BASE_PATH } from '../perses-client';
 import { usePatternFlyTheme } from '../theme';
 
@@ -50,6 +50,8 @@ export type PersesProviderProps = {
    * Requires a React Router context in the component tree.
    */
   syncToUrl?: boolean;
+  /** Same-origin Perses proxy used for dashboards, datasources, and plugin assets. */
+  persesProxyBasePath?: string;
   children: React.ReactNode;
 };
 
@@ -58,6 +60,7 @@ type PersesProviderCoreProps = {
   initialTimeRange: TimeRangeValue;
   initialRefreshInterval: DurationString;
   syncToUrl: boolean;
+  persesProxyBasePath: string;
   children: React.ReactNode;
 };
 
@@ -67,12 +70,17 @@ const PersesProviderCore: React.FC<PersesProviderCoreProps> = ({
   initialTimeRange,
   initialRefreshInterval,
   syncToUrl,
+  persesProxyBasePath,
 }) => {
   const { muiTheme, chartsTheme } = usePatternFlyTheme();
 
   const datasourceApi = useMemo(
-    () => new CachedDatasourceAPI(new OdhDatasourceApi(PERSES_PROXY_BASE_PATH)),
-    [],
+    () => new CachedDatasourceAPI(new OdhDatasourceApi(persesProxyBasePath)),
+    [persesProxyBasePath],
+  );
+  const pluginLoader = useMemo(
+    () => createPluginLoader(persesProxyBasePath),
+    [persesProxyBasePath],
   );
 
   const TimeRangeProvider = syncToUrl ? TimeRangeProviderWithQueryParams : TimeRangeProviderBasic;
@@ -141,6 +149,7 @@ const PersesProvider: React.FC<PersesProviderProps> = ({
   syncToUrl = false,
   defaultDuration = DEFAULT_DURATION,
   defaultRefreshInterval = DEFAULT_REFRESH_INTERVAL,
+  persesProxyBasePath = PERSES_PROXY_BASE_PATH,
   ...rest
 }) => {
   const [queryClient] = React.useState(createQueryClient);
@@ -154,6 +163,7 @@ const PersesProvider: React.FC<PersesProviderProps> = ({
               {...rest}
               defaultDuration={defaultDuration}
               defaultRefreshInterval={defaultRefreshInterval}
+              persesProxyBasePath={persesProxyBasePath}
             />
           </QueryParamProvider>
         </PanelFocusProvider>
@@ -169,6 +179,7 @@ const PersesProvider: React.FC<PersesProviderProps> = ({
           initialTimeRange={{ pastDuration: defaultDuration }}
           initialRefreshInterval={defaultRefreshInterval}
           syncToUrl={false}
+          persesProxyBasePath={persesProxyBasePath}
         />
       </PanelFocusProvider>
     </QueryClientProvider>
