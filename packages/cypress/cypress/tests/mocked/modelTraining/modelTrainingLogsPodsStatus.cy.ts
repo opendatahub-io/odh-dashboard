@@ -447,7 +447,7 @@ describe('Model Training', () => {
       const row = trainingJobTable.getTableRow('image-classification-job');
       row.findStatus().should('be.visible').click();
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findTitle().should('be.visible');
+      trainingJobStatusModal.findTitle('image-classification-job').should('be.visible');
       trainingJobStatusModal.findStatusLabel().should('be.visible');
     });
 

@@ -33,7 +33,7 @@ class AIAssetsPage {
     return cy.findByTestId('mcp-servers-table');
   }
 
-  findMCPServerRow(serverName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+  findMCPServerRow(serverName: string): Cypress.Chainable<JQuery<HTMLTableRowElement>> {
     return this.findMCPServersTable().contains('tr', serverName);
   }
 

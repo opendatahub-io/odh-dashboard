@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import {
+  clearEvalHubEvaluationJobs,
   cleanupEvalHubTestResources,
   navigateToEvaluationsPage,
   submitSingleBenchmarkEvaluation,
@@ -26,6 +27,7 @@ import {
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
 import { getEvalHubHardwareProfileName } from '../../../utils/oc_commands/evalHubHardwareProfile';
+import { provisionEvalHubOfflineDataSecret } from '../../../utils/oc_commands/evalHubOfflineData';
 
 /**
  * Live-cluster Eval Hub E2E. Ensures EvalHub + MLflow CRs are Ready, creates an ephemeral
@@ -82,6 +84,8 @@ describe('Eval Hub E2E', () => {
       createCleanProject(evaluationTenantProject);
     });
 
+    cy.then(() => provisionEvalHubOfflineDataSecret(evaluationTenantProject));
+
     cy.then(() => {
       cy.step('[Setup] Deploy vLLM model and configure tenant access');
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
@@ -101,6 +105,12 @@ describe('Eval Hub E2E', () => {
         mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
         cy.log(`MLflow experiment: ${mlflowExperimentName}`);
       });
+    });
+
+    cy.then(() => {
+      cy.step('[Setup] Open EvalHub and remove stale evaluation runs');
+      navigateToEvaluationsPage(evaluationTenantProject);
+      clearEvalHubEvaluationJobs(evaluationTenantProject);
     });
   });
 
@@ -124,7 +134,6 @@ describe('Eval Hub E2E', () => {
         '',
       )}`;
 
-      navigateToEvaluationsPage(evaluationTenantProject);
       submitSingleBenchmarkEvaluation({
         benchmarkCardTitle,
         evaluationRunName,

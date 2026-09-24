@@ -72,6 +72,7 @@ export type MockDashboardConfigType = {
   gpuaas?: boolean;
   connectionTest?: boolean;
   modelCapabilities?: boolean;
+  runtimeCatalog?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -145,6 +146,7 @@ export const mockDashboardConfig = ({
   gpuaas = true,
   connectionTest = false,
   modelCapabilities = false,
+  runtimeCatalog = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -341,6 +343,7 @@ export const mockDashboardConfig = ({
       gpuaas,
       connectionTest,
       modelCapabilities,
+      runtimeCatalog,
     },
     notebookController: {
       enabled: !disableNotebookController,

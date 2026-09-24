@@ -599,6 +599,10 @@ func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context
 	})
 
 	if err := kc.Client.List(ctx, list, client.InNamespace(namespace)); err != nil {
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
+			kc.Logger.Debug("NemoGuardrails CRD is unavailable", "namespace", namespace)
+			return "", nil
+		}
 		kc.Logger.Error("failed to list NemoGuardrails CRs", "error", err, "namespace", namespace)
 		return "", fmt.Errorf("failed to list NemoGuardrails CRs: %w", err)
 	}
@@ -1614,19 +1618,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		},
 	}
 
-	// Add per-model max_tokens environment variables
-	for i, model := range installModels {
-		maxTokensEnvName := fmt.Sprintf("VLLM_MAX_TOKENS_%d", i+1)
-		maxTokensValue := "4096"
-		if model.MaxTokens != nil {
-			maxTokensValue = strconv.Itoa(*model.MaxTokens)
-		}
-		envVars = append(envVars, corev1.EnvVar{
-			Name:  maxTokensEnvName,
-			Value: maxTokensValue,
-		})
-	}
-
 	// Step 2: Validate vector stores and inject credential env vars for providers that need them.
 	var validatedVectorStores []ValidatedVectorStore
 	if len(vectorStores) > 0 {
@@ -2233,7 +2224,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
-				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
+				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.EmbeddingDimension, model.IsClusterLocal)
 				kc.Logger.Info("Registered embedding model (custom endpoint)", "model", extDetails.modelID, "providerID", extDetails.providerID)
 			} else {
 				kc.Logger.Info("Validated external model", "model", extDetails.modelID, "providerID", extDetails.providerID)
@@ -2245,7 +2236,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
 				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
-				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.MaxTokens, model.EmbeddingDimension, false)
+				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.EmbeddingDimension)
 				kc.Logger.Info("Registered embedding model (cluster)", "model", details.modelID, "providerID", providerID)
 			} else {
 				kc.Logger.Info("Validated cluster model", "model", details.modelID, "endpoint", details.endpointURL)

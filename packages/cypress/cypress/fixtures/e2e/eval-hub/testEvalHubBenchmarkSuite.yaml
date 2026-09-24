@@ -9,18 +9,23 @@ modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-inst
 inferenceServiceName: evalhub-suite-llm
 servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
 hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
-# Benchmark suite config — "Toxicity and Ethical Principles"
-collectionId: toxicity-and-ethical-principles
-collectionName: Toxicity and Ethical Principles
+# The spec creates tenant suites and covers both save-and-run and save-then-run-from-Evaluate.
+suiteName: EvalHub Cypress suite
+benchmarkProviderId: lm_evaluation_harness
+benchmarks:
+  - id: arc_easy
+    name: Basic science Q&A
+    numExamples: 2
+  - id: toxigen
+    name: Toxigen
+    numExamples: 2
 expectedBenchmarkIds:
+  - arc_easy
   - toxigen
-  - truthfulqa_mc1
-  - bigbench_hhh_alignment_multiple_choice
 inferenceModelName: evalhub-suite-llm
 mlflowExperimentName: Cy-Evalhub
 additionalBenchmarkParams: |
   {
-    "num_examples": 2,
     "limit": 2,
     "tokenizer": "google/flan-t5-small"
   }
