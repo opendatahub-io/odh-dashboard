@@ -51,36 +51,10 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	aaModels, err := app.discoverPassthroughModels(ctx, identity, namespace)
 	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+		app.serverErrorResponse(w, r, err)
 		return
-	}
-
-	// Fetch namespace and custom endpoint models
-	aaModels, err := app.repositories.AAModels.GetAAModels(k8sClient, ctx, identity, namespace)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to fetch models: %w", err))
-		return
-	}
-
-	// Fetch MaaS models (best-effort — don't fail if MaaS BFF is unavailable).
-	// Inject MaaS client into context inline (we don't use AttachBFFMaaSClient middleware
-	// because it returns 503 when bffClientFactory is nil, blocking the whole endpoint).
-	// Forward X-MaaS-Return-All-Models header to get enriched model details.
-	if app.bffClientFactory != nil && app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
-		maasHeaders := map[string]string{
-			constants.MaaSReturnAllModelsHeader: "true",
-		}
-		maasClient := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, identity.Token, maasHeaders)
-		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
-	}
-	maasModels, maasErr := app.fetchMaaSModels(ctx, namespace)
-	if maasErr != nil {
-		app.logger.Warn("GenAI proxy: failed to fetch MaaS models, continuing with namespace models only",
-			"error", maasErr, "namespace", namespace)
-	} else {
-		aaModels = append(aaModels, maasModels...)
 	}
 
 	// Convert to OpenAI format, filtering out stopped models
@@ -114,4 +88,39 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 	if err := app.WriteJSON(w, http.StatusOK, list, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// discoverPassthroughModels returns the models served through the BFF passthrough
+// provider. Both the OpenAI-compatible proxy and Playground's model list use this
+// single discovery path so their available-model contracts stay aligned.
+func (app *App) discoverPassthroughModels(ctx context.Context, identity *integrations.RequestIdentity, namespace string) ([]models.AAModel, error) {
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Kubernetes client: %w", err)
+	}
+
+	aaModels, err := app.repositories.AAModels.GetAAModels(k8sClient, ctx, identity, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch models: %w", err)
+	}
+
+	// MaaS discovery is best-effort. An unavailable MaaS BFF must not hide
+	// namespace or custom endpoint models from the Playground.
+	if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
+		return aaModels, nil
+	}
+
+	maasHeaders := map[string]string{
+		constants.MaaSReturnAllModelsHeader: "true",
+	}
+	maasClient := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, identity.Token, maasHeaders)
+	ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+	maasModels, maasErr := app.fetchMaaSModels(ctx, namespace)
+	if maasErr != nil {
+		app.logger.Warn("GenAI proxy: failed to fetch MaaS models, continuing with namespace models only",
+			"error", maasErr, "namespace", namespace)
+		return aaModels, nil
+	}
+
+	return append(aaModels, maasModels...), nil
 }
