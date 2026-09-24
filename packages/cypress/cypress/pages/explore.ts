@@ -1,6 +1,7 @@
 class ExplorePage {
-  visit() {
-    cy.visitWithLogin('/applications/explore');
+  visit(searchParams?: string) {
+    const url = searchParams ? `/applications/explore?${searchParams}` : '/applications/explore';
+    cy.visitWithLogin(url);
     this.wait();
   }
 

@@ -58,23 +58,26 @@ export const applyNIMApplication = (
 export const deleteNIMAccount = (
   namespace: string = Cypress.env('APPLICATIONS_NAMESPACE'),
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete account odh-nim-account -n ${namespace}`;
+  // --wait=false: avoid hanging the before-hook when the Account CR has finalizers
+  const ocCommand = `oc delete account odh-nim-account -n ${namespace} --ignore-not-found=true --wait=false`;
   cy.log(`Executing: ${ocCommand}`);
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.exitCode === 0) {
-      // Account was successfully deleted
-      cy.log(`Account deletion: ${result.stdout}`);
-    } else if (result.stderr.includes('not found')) {
-      // Account doesn't exist, which is fine
-      cy.log('✅ NIM account does not exist - no cleanup needed');
-    } else {
-      // Some other error occurred
-      const maskedStderr = maskSensitiveInfo(result.stderr);
-      cy.log(`⚠️  Warning: Failed to delete NIM account: ${maskedStderr}`);
-      cy.log('Continuing with test execution...');
-    }
-  });
+  return cy
+    .exec(ocCommand, { failOnNonZeroExit: false, timeout: 30000 })
+    .then((result: CommandLineResult) => {
+      if (result.exitCode === 0) {
+        // Account was successfully deleted
+        cy.log(`Account deletion: ${result.stdout}`);
+      } else if (result.stderr.includes('not found')) {
+        // Account doesn't exist, which is fine
+        cy.log('✅ NIM account does not exist - no cleanup needed');
+      } else {
+        // Some other error occurred
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        cy.log(`⚠️  Warning: Failed to delete NIM account: ${maskedStderr}`);
+        cy.log('Continuing with test execution...');
+      }
+    });
 };
 
 /**
