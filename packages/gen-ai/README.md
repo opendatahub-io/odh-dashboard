@@ -178,6 +178,11 @@ make dev-start-no-portforward
 
 These commands will run both services in parallel, making it easier to start your development environment with a single command.
 
+For a real-cluster Playground, set `GATEWAY_DOMAIN` in `.env.local` to use a specific public
+gateway hostname (without `https://`). When it is unset, the BFF discovers the hostname from the
+current `oc` context and prints it at startup. Recreate an existing Playground once after enabling
+gateway discovery so its OGX configuration includes the passthrough provider.
+
 ## Debugging the bff
 
 If you want to be able to set breakpoints in vscode, you must first ensure the following debug config is added to your .vscode/launch.json file.
