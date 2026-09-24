@@ -309,17 +309,6 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             )}
           </FormGroup>
 
-          <HardwareProfileField
-            availability={form.kueueAvailability}
-            profiles={form.hardwareProfiles}
-            loaded={form.hardwareProfilesLoaded}
-            error={form.hardwareProfilesError}
-            compatibilityError={form.hardwareProfileCompatibilityError}
-            selectedProfile={form.hardwareProfile}
-            onSelect={(profile) => form.setHardwareProfile(profile?.name)}
-            isRequired={form.requiresHardwareProfile}
-          />
-
           {/* ── Source dropdown ─────────────────────────────────── */}
           <FormGroup
             className="evalhub-form-group--with-description"
@@ -525,6 +514,17 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               markTouched={form.markTouched}
             />
           )}
+
+          <HardwareProfileField
+            availability={form.kueueAvailability}
+            profiles={form.hardwareProfiles}
+            loaded={form.hardwareProfilesLoaded}
+            error={form.hardwareProfilesError}
+            compatibilityError={form.hardwareProfileCompatibilityError}
+            selectedProfile={form.hardwareProfile}
+            onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+            isRequired={form.requiresHardwareProfile}
+          />
 
           {/* ── Benchmark display ──────────────────────────────── */}
           <FormGroup

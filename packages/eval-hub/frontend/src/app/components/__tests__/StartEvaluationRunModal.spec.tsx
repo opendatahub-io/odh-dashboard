@@ -8,11 +8,13 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import { createEvaluationJob } from '~/app/api/k8s';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import type { Collection, SourceMode } from '~/app/types';
+import type { Collection, HardwareProfile, KueueAvailability, SourceMode } from '~/app/types';
 
 const mockNavigate = jest.fn();
 const mockMlflowSelectorMounted = jest.fn();
 const mockMlflowSelectorUnmounted = jest.fn();
+const mockUseHardwareProfiles = jest.fn();
+const mockUseKueueAvailability = jest.fn();
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -63,19 +65,11 @@ jest.mock('~/app/hooks/useConnectionValidation', () => ({
 }));
 
 jest.mock('~/app/hooks/useHardwareProfiles', () => ({
-  useHardwareProfiles: () => ({
-    profiles: [],
-    loaded: true,
-    error: undefined,
-  }),
+  useHardwareProfiles: () => mockUseHardwareProfiles(),
 }));
 
 jest.mock('~/app/hooks/useKueueAvailability', () => ({
-  useKueueAvailability: () => ({
-    availability: undefined,
-    loaded: true,
-    error: undefined,
-  }),
+  useKueueAvailability: () => mockUseKueueAvailability(),
 }));
 
 jest.mock('~/app/hooks/useInferenceServices', () => ({
@@ -113,6 +107,22 @@ const clonedCollection: Collection = {
   ...collection,
   resource: { id: 'cloned-suite' },
   name: 'Copied suite',
+};
+
+const kueueAvailability: KueueAvailability = {
+  enabled: true,
+  scheduling_ready: true,
+  cluster_enabled: true,
+  namespace_managed: true,
+  local_queues_available: true,
+  local_queue_names: ['default'],
+};
+
+const hardwareProfile: HardwareProfile = {
+  name: 'default-profile',
+  display_name: 'Default profile',
+  enabled: true,
+  local_queue_name: 'default',
 };
 
 type Deferred<T> = {
@@ -187,7 +197,44 @@ const selectClusterModel = async () => {
 describe('StartEvaluationRunModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueAvailability.mockReturnValue({
+      availability: undefined,
+      loaded: true,
+      error: undefined,
+    });
     mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(mockEvaluationJob()));
+  });
+
+  it('shows a required HardwareProfile before collapsed advanced configuration for Kueue', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: kueueAvailability,
+      loaded: true,
+      error: undefined,
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [hardwareProfile],
+      loaded: true,
+      error: undefined,
+    });
+
+    renderModal();
+
+    const hardwareProfileToggle = screen.getByTestId('hardware-profile-toggle');
+    const advancedToggle = screen.getByTestId('start-evaluation-run-advanced-toggle');
+
+    expect(hardwareProfileToggle).toBeInTheDocument();
+    expect(
+      screen.getByText('Select a hardware profile to schedule this evaluation through Kueue.'),
+    ).toBeInTheDocument();
+    expect(
+      hardwareProfileToggle.compareDocumentPosition(advancedToggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('should preselect and hide evaluating when a collection has one evaluation target', () => {

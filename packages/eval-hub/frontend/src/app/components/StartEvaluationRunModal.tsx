@@ -486,6 +486,18 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                 />
               ) : null}
 
+              <HardwareProfileField
+                availability={form.kueueAvailability}
+                profiles={form.hardwareProfiles}
+                loaded={form.hardwareProfilesLoaded}
+                error={form.hardwareProfilesError}
+                compatibilityError={form.hardwareProfileCompatibilityError}
+                selectedProfile={form.hardwareProfile}
+                onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+                isRequired={form.requiresHardwareProfile}
+                disabled={isCloning}
+              />
+
               <ExpandableSection
                 className="evalhub-start-evaluation-run-modal__advanced"
                 toggleText={
@@ -554,19 +566,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                     </div>
                   ) : null}
                 </FormGroup>
-
-                <HardwareProfileField
-                  className="pf-v6-u-mt-lg"
-                  availability={form.kueueAvailability}
-                  profiles={form.hardwareProfiles}
-                  loaded={form.hardwareProfilesLoaded}
-                  error={form.hardwareProfilesError}
-                  compatibilityError={form.hardwareProfileCompatibilityError}
-                  selectedProfile={form.hardwareProfile}
-                  onSelect={(profile) => form.setHardwareProfile(profile?.name)}
-                  isRequired={form.requiresHardwareProfile}
-                  disabled={isCloning}
-                />
 
                 {!isCollectionFlow ? (
                   <BenchmarkThresholdField
