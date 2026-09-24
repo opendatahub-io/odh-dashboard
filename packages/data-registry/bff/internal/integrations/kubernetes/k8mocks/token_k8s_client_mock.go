@@ -22,7 +22,7 @@ func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface,
 			SharedClientLogic: k8s.SharedClientLogic{
 				Client: clientset,
 				Logger: logger,
-				Token:  k8s.NewBearerToken(""), // Unused because impersonation is already handled in the client config
+				Token:  k8s.NewBearerToken(""), // The envtest transport is configured by the token factory.
 			},
 		},
 	}

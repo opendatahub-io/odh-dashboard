@@ -12,7 +12,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/data-registry/bff/internal/constants"
 	helper "github.com/opendatahub-io/data-registry/bff/internal/helpers"
-	"github.com/opendatahub-io/data-registry/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
 )
 
@@ -61,8 +60,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := kubernetes.ContextWithIdentity(r.Context(), identity)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, identity)
+		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -78,7 +76,6 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 		AllowCredentials: true,
 		AllowedMethods:   []string{"GET", "PUT", "POST", "PATCH", "DELETE", "HEAD"},
 		AllowedHeaders: []string{
-			constants.KubeflowUserIDHeader,
 			"Authorization",
 			"Content-Type",
 		},

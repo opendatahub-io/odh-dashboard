@@ -33,15 +33,14 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		return empty, nil, err
 	}
 
-	// Inject headers expected by middleware for internal auth
-	if identity != nil && identity.UserID != "" {
-		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+	// Inject the bearer token expected by the user-token middleware.
+	if identity != nil && identity.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+identity.Token)
 	}
 
-	app := &App{config: config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal}, kubernetesClientFactory: k8Factory, repositories: repositories.NewRepositories()}
+	app := &App{config: config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodUser}, kubernetesClientFactory: k8Factory, repositories: repositories.NewRepositories()}
 
-	ctx := kubernetes.ContextWithIdentity(req.Context(), identity)
-	ctx = context.WithValue(ctx, constants.RequestIdentityKey, identity)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()

@@ -3,8 +3,9 @@ MOCK_K8S_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
-DEPLOYMENT_MODE ?= kubeflow
-# Authentication method: 'user_token' (default, recommended for ODH/RHOAI) or 'internal' (Kubeflow only)
+# Data Registry is deployed as a federated ODH/RHOAI Dashboard module.
+DEPLOYMENT_MODE ?= federated
+# Data Registry is an ODH/RHOAI Dashboard module and uses user-token authentication only.
 AUTH_METHOD ?= user_token
 # Default header for ODH is 'x-forwarded-access-token', use 'Authorization' for standard Bearer token
 AUTH_TOKEN_HEADER ?= x-forwarded-access-token

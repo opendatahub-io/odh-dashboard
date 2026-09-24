@@ -31,8 +31,6 @@ help: ## Display this help.
 ##                        Uses user_token auth with mocked K8s client, no cluster needed
 ##   dev-start-federated - Start tapping into a real cluster (requires port-forward)
 ##                        Uses user_token auth with real K8s client
-##   dev-start-kubeflow  - Start for Kubeflow development (requires Kubeflow cluster)
-##                        Uses internal auth with kubeflow-userid header
 ##
 
 .PHONY: dev-install-dependencies
@@ -52,20 +50,6 @@ dev-frontend:
 dev-start: ## Start in mock mode - recommended for local development
 	@trap 'exit 0' INT; \
 	make -j 2 dev-bff dev-frontend
-
-########### Dev Kubeflow ############
-.PHONY: dev-start-kubeflow
-dev-start-kubeflow:
-	@trap 'exit 0' INT; \
-	make -j 2 dev-bff-kubeflow dev-frontend-kubeflow
-
-.PHONY: dev-frontend-kubeflow
-dev-frontend-kubeflow:
-	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme pnpm run start:dev
-
-.PHONY: dev-bff-kubeflow
-dev-bff-kubeflow:
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=internal
 
 ########### Dev Federated ###########
 .PHONY: dev-start-federated
@@ -163,6 +147,3 @@ build: frontend-build bff-build
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
 	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
-
-
-	

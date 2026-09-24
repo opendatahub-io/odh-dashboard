@@ -51,8 +51,7 @@ func (kc *SharedClientLogic) listNamespaces(ctx context.Context) ([]corev1.Names
 	}
 
 	// OpenShift applies the caller's RBAC visibility rules to this cluster-scoped
-	// list. In internal mode, the dynamic client is impersonating the caller;
-	// in user_token mode, it uses the caller's bearer token.
+	// list because the client is authenticated with the caller's bearer token.
 	projectList, err := kc.DynamicClient.Resource(openshiftProjectsGVR).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list OpenShift projects: %w", err)

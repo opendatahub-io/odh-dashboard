@@ -2,13 +2,9 @@ package kubernetes
 
 import (
 	"context"
-	"io"
 	"log/slog"
-	"net/http"
-	"strings"
 	"testing"
 
-	"github.com/opendatahub-io/data-registry/bff/internal/constants"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -69,75 +65,4 @@ func TestTokenKubernetesClientGetNamespacesUsesVisibleProjectsWhenNamespaceListI
 	if !names["visible-project"] || !names["data-registry-system"] {
 		t.Fatalf("GetNamespaces() = %#v, want all visible projects", namespaces)
 	}
-}
-
-func TestImpersonationRoundTripperSetsRequestIdentityHeaders(t *testing.T) {
-	base := roundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		if got := req.Header.Get("Impersonate-User"); got != "alice@example.com" {
-			t.Errorf("Impersonate-User = %q, want %q", got, "alice@example.com")
-		}
-		if got := req.Header.Values("Impersonate-Group"); len(got) != 0 {
-			t.Errorf("Impersonate-Group = %#v, want no groups", got)
-		}
-		if got := req.Header.Get("Impersonate-Uid"); got != "" {
-			t.Errorf("Impersonate-Uid = %q, want empty", got)
-		}
-
-		return &http.Response{
-			StatusCode: http.StatusOK,
-			Body:       io.NopCloser(strings.NewReader("")),
-			Request:    req,
-		}, nil
-	})
-
-	req, err := http.NewRequest(http.MethodGet, "https://kubernetes.example/api", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req = req.WithContext(ContextWithIdentity(req.Context(), &RequestIdentity{
-		UserID: "alice@example.com",
-		Groups: []string{"team-a", "system:authenticated"},
-	}))
-
-	if _, err := (&impersonationRoundTripper{base: base}).RoundTrip(req); err != nil {
-		t.Fatalf("RoundTrip() returned an error: %v", err)
-	}
-}
-
-func TestStaticClientFactoryRejectsUntrustedGroups(t *testing.T) {
-	factory := &StaticClientFactory{}
-
-	_, err := factory.ExtractRequestIdentity(http.Header{
-		constants.KubeflowUserIDHeader:       []string{"alice@example.com"},
-		constants.KubeflowUserGroupsIdHeader: []string{"system:masters"},
-	})
-	if err == nil {
-		t.Fatal("ExtractRequestIdentity() accepted caller-provided groups")
-	}
-}
-
-func TestImpersonationRoundTripperRequiresIdentity(t *testing.T) {
-	called := false
-	base := roundTripperFunc(func(req *http.Request) (*http.Response, error) {
-		called = true
-		return nil, nil
-	})
-
-	req, err := http.NewRequest(http.MethodGet, "https://kubernetes.example/api", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := (&impersonationRoundTripper{base: base}).RoundTrip(req); err == nil {
-		t.Fatal("RoundTrip() returned nil error without identity")
-	}
-	if called {
-		t.Fatal("base transport was called without identity")
-	}
-}
-
-type roundTripperFunc func(*http.Request) (*http.Response, error)
-
-func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f(req)
 }
