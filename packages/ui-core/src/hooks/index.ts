@@ -3,4 +3,3 @@ export type { SetBrowserStorageHook, BrowserStorageContextType } from './useBrow
 export { BrowserStorageContextProvider } from './useBrowserStorage';
 export { useDeepCompareMemoize } from './useDeepCompareMemoize';
 export { useEventListener } from './useEventListener';
-export { default as useK8sWatchResourceList } from './useK8sWatchResourceList';

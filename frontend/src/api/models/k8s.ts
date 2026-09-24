@@ -1,7 +1,5 @@
 import { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
-export { PodModel } from '@odh-dashboard/k8s-core/api/models';
-
 export const EventModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'Event',

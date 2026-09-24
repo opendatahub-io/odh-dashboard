@@ -1,7 +1,8 @@
 import { WatchK8sResource, useK8sWatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { TemplateModel, groupVersionKind } from '#~/api';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
+import { TemplateModel } from '#~/api';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   useK8sWatchResource: jest.fn(),

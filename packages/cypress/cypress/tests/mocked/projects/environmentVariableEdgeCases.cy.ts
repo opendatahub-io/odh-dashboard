@@ -11,12 +11,12 @@ import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
 import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
-import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { ConfigMapModel, SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
+
 import {
   ImageStreamModel,
   NotebookModel,
   PVCModel,
-  PodModel,
   ProjectModel,
   RouteModel,
   StorageClassModel,

@@ -6,12 +6,6 @@ import {
   K8sResourceUpdateOptions,
 } from '@openshift/dynamic-plugin-sdk-utils';
 
-export {
-  createNonDestructivePatches,
-  createPatchesFromDiff,
-  groupVersionKind,
-} from '@odh-dashboard/k8s-core/api/k8sUtils';
-
 export const k8sMergePatchResource = <
   TResource extends K8sResourceCommon,
   TUpdatedResource extends TResource = TResource,
