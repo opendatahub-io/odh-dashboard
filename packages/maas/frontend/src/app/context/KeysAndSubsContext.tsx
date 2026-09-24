@@ -10,10 +10,14 @@ export const KeysAndSubsContext = React.createContext({} as KeysAndSubsContextTy
 
 type KeysAndSubsContextType = {
   subscriptions: UserSubscription[];
+  subscriptionsLoaded: boolean;
+  subscriptionsError: Error | undefined;
   isMaasAdmin: boolean;
+  isMaasAdminLoaded: boolean;
+  isMaasAdminError: Error | undefined;
   hasAnyApiKeys: boolean; // from a single existence-check search (limit 1)
-  loaded: boolean;
-  error: Error | undefined;
+  hasAnyApiKeysLoaded: boolean;
+  hasAnyApiKeysError: Error | undefined;
   refresh: () => void;
 };
 
@@ -50,35 +54,36 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   const [hasAnyApiKeys, hasAnyApiKeysLoaded, hasAnyApiKeysError, refreshHasAnyApiKeys] =
     useFetchState(hasAnyApiKeysCallback, false, { refreshRate: POLL_INTERVAL });
 
+  const refresh = React.useCallback(() => {
+    refreshSubscriptions();
+    refreshIsMaasAdmin();
+    refreshHasAnyApiKeys();
+  }, [refreshSubscriptions, refreshIsMaasAdmin, refreshHasAnyApiKeys]);
+
   const value = React.useMemo(
     () => ({
       subscriptions,
-      refreshSubscriptions,
+      subscriptionsLoaded,
+      subscriptionsError,
       isMaasAdmin,
-      refreshIsMaasAdmin,
+      isMaasAdminLoaded,
+      isMaasAdminError,
       hasAnyApiKeys,
-      refreshHasAnyApiKeys,
-      loaded: subscriptionsLoaded && isMaasAdminLoaded && hasAnyApiKeysLoaded,
-      error: subscriptionsError || isMaasAdminError || hasAnyApiKeysError,
-      refresh: () => {
-        refreshSubscriptions();
-        refreshIsMaasAdmin();
-        refreshHasAnyApiKeys();
-      },
+      hasAnyApiKeysLoaded,
+      hasAnyApiKeysError,
+      refresh,
     }),
     [
       subscriptions,
-      refreshSubscriptions,
-      isMaasAdmin,
-      refreshIsMaasAdmin,
-      hasAnyApiKeys,
-      refreshHasAnyApiKeys,
       subscriptionsLoaded,
-      isMaasAdminLoaded,
-      hasAnyApiKeysLoaded,
       subscriptionsError,
+      isMaasAdmin,
+      isMaasAdminLoaded,
       isMaasAdminError,
+      hasAnyApiKeys,
+      hasAnyApiKeysLoaded,
       hasAnyApiKeysError,
+      refresh,
     ],
   );
   return <KeysAndSubsContext.Provider value={value}>{children}</KeysAndSubsContext.Provider>;

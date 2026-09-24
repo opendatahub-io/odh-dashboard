@@ -121,11 +121,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 }) => {
   const canLockSubscription = Boolean(initialSubscription);
 
-  const {
-    subscriptions,
-    loaded: subscriptionsLoaded,
-    error: subscriptionsError,
-  } = useKeysAndSubsContext();
+  const { subscriptions, subscriptionsLoaded, subscriptionsError } = useKeysAndSubsContext();
 
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',

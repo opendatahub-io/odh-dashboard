@@ -18,17 +18,19 @@ export type UseApiKeysPageLoadReturn = UseApiKeysTableStateReturn & {
 export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
   const {
     isMaasAdmin,
+    isMaasAdminLoaded,
+    isMaasAdminError,
     hasAnyApiKeys,
-    loaded: keysAndSubsLoaded,
-    error,
+    hasAnyApiKeysLoaded,
+    hasAnyApiKeysError,
     refresh,
     subscriptions,
   } = useKeysAndSubsContext();
   const tableState = useApiKeysTableState();
 
-  const loadError = error ?? tableState.error;
+  const loadError = hasAnyApiKeysError ?? isMaasAdminError ?? tableState.error;
 
-  const loaded = keysAndSubsLoaded && tableState.loaded && !loadError;
+  const loaded = hasAnyApiKeysLoaded && isMaasAdminLoaded && tableState.loaded && !loadError;
 
   const refreshAll = React.useCallback(() => {
     tableState.refresh();

@@ -41,7 +41,11 @@ export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroup
 export type SubscriptionSortField = 'subscription' | 'model';
 
 const SubscriptionsTab: React.FC = () => {
-  const { subscriptions, loaded, error: loadError } = useKeysAndSubsContext();
+  const {
+    subscriptions,
+    subscriptionsLoaded: loaded,
+    subscriptionsError: loadError,
+  } = useKeysAndSubsContext();
   const [searchValue, setSearchValue] = React.useState('');
   const [sortField, setSortField] = React.useState<SubscriptionSortField>('subscription');
   const [modelSortDirection, setModelSortDirection] = React.useState<'asc' | 'desc' | undefined>(
