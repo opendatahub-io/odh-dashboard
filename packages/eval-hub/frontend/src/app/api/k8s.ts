@@ -17,6 +17,7 @@ import {
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
+  EvalHubServerHealthResponse,
   CreateEvaluationJobRequest,
   CreateEvaluationJobResponse,
   CreateCollectionRequest,
@@ -202,6 +203,16 @@ export const getEvalHubHealth =
       throw new Error('Invalid health response format');
     });
 
+export const getEvalHubServerHealth =
+  (hostPath: string) =>
+  (opts: APIOptions): Promise<EvalHubServerHealthResponse> =>
+    handleRestFailures(restGET(hostPath, '/healthcheck', {}, opts)).then((response) => {
+      if (isModArchResponse<EvalHubServerHealthResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid server health response format');
+    });
+
 export const getEvaluationJobs =
   (hostPath: string, params?: ListEvaluationJobsParams) =>
   (opts: APIOptions): Promise<EvaluationJob[]> => {
@@ -291,7 +302,9 @@ export const getCollection =
     return handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}`,
         { namespace },
         opts,
       ),
@@ -313,7 +326,9 @@ export const deleteCollection =
     return handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}`,
         {},
         { namespace },
         { ...opts, parseJSON: false },
@@ -437,7 +452,9 @@ export const cloneCollection =
     return handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}/clones`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}/clones`,
         request,
         { namespace },
         opts,
@@ -537,7 +554,9 @@ export const getCatalogSecurityArtifacts =
     return handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(sourceId)}/security_artifacts/${encodeURIComponent(modelName)}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(
+          sourceId,
+        )}/security_artifacts/${encodeURIComponent(modelName)}`,
         queryParams,
         opts,
       ),
@@ -591,7 +610,9 @@ export const getEvaluationJobLogs =
     if (params?.since_seconds != null) {
       queryParams.set('since_seconds', String(params.since_seconds));
     }
-    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/logs?${queryParams.toString()}`;
+    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(
+      jobId,
+    )}/logs?${queryParams.toString()}`;
     const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new LogFetchError(
@@ -631,7 +652,9 @@ export const getEvaluationJobBenchmarkLogs =
     if (params?.since_seconds != null) {
       queryParams.set('since_seconds', String(params.since_seconds));
     }
-    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
+    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(
+      jobId,
+    )}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
     const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new LogFetchError(

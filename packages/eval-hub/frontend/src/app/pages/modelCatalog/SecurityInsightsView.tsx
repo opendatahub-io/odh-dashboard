@@ -26,7 +26,6 @@ import {
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td, ThProps } from '@patternfly/react-table';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useSecurityArtifacts from '~/app/hooks/useSecurityArtifacts';
 import {
   DEFAULT_TABLE_PER_PAGE,
@@ -34,6 +33,7 @@ import {
 } from '~/app/utilities/tablePaginationConstants';
 import { getCategoryColor, capitalizeFirst, toTitleCase } from '~/app/components/benchmarkUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import SecurityInsightsEmptyState from './SecurityInsightsEmptyState';
 import { type SecurityInsightsViewProps } from './securityInsightsTypes';
 import {
@@ -99,7 +99,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   React.useEffect(() => {
     if (loaded && !viewTrackedRef.current) {
       viewTrackedRef.current = true;
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
         sourceId,
         modelName,
         insightCount: insights.length,
@@ -113,7 +113,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     }
     const timer = setTimeout(() => {
       const currentFiltered = filteredRef.current;
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
         filterType: activeFilter,
         hasResults: currentFiltered.length > 0,
         resultCount: currentFiltered.length,
@@ -126,7 +126,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     sortBy: { index: sortConfig.index, direction: sortConfig.direction },
     onSort: (_event, index, direction) => {
       setSortConfig({ index, direction });
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED, {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED, {
         column: COLUMN_NAMES[index] ?? String(index),
         direction,
       });
@@ -141,7 +141,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
       const key = String(value);
       if (key === 'evaluation' || key === 'category' || key === 'benchmark') {
         if (key !== activeFilter) {
-          fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED, {
+          trackEvalHubEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED, {
             previousFilterType: activeFilter,
             newFilterType: key,
           });
@@ -259,7 +259,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                 page={page}
                 onSetPage={(_event, newPage) => {
                   setPage(newPage);
-                  fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+                  trackEvalHubEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
                     page: newPage,
                     perPage,
                     totalItems: filtered.length,
@@ -268,7 +268,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                 onPerPageSelect={(_event, newPerPage, newPage) => {
                   setPerPage(newPerPage);
                   setPage(newPage);
-                  fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+                  trackEvalHubEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
                     page: newPage,
                     perPage: newPerPage,
                     totalItems: filtered.length,
@@ -337,7 +337,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
           variant={PaginationVariant.bottom}
           onSetPage={(_event, newPage) => {
             setPage(newPage);
-            fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+            trackEvalHubEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
               page: newPage,
               perPage,
               totalItems: filtered.length,
@@ -346,7 +346,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
           onPerPageSelect={(_event, newPerPage, newPage) => {
             setPerPage(newPerPage);
             setPage(newPage);
-            fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+            trackEvalHubEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
               page: newPage,
               perPage: newPerPage,
               totalItems: filtered.length,

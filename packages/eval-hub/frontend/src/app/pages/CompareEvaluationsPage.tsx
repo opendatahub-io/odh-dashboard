@@ -6,6 +6,8 @@ import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';
 import MlflowCompareRuns from '~/app/components/MlflowCompareRuns';
 import { parseMlflowArrayParam } from '~/app/utilities/compareEvaluationsUtils';
+import { trackEvalHubEventOnce } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const CompareEvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -31,6 +33,16 @@ const CompareEvaluationsPage: React.FC = () => {
   const hasValidParams = experimentIds.length > 1 && experimentIds.length === runUuids.length;
 
   const showCompare = deploymentMode === DeploymentMode.Federated && hasValidParams;
+
+  React.useEffect(() => {
+    if (showCompare) {
+      trackEvalHubEventOnce(
+        EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED,
+        `${namespace ?? ''}:${runUuids.join(',')}:${experimentIds.join(',')}`,
+        { surface: 'comparison_view', countOfRuns: runUuids.length },
+      );
+    }
+  }, [experimentIds, namespace, runUuids, showCompare]);
 
   const title = React.useMemo(() => {
     if (evaluationNames.length < 2) {

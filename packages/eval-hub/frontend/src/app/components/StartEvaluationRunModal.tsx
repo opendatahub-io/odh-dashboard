@@ -44,6 +44,8 @@ import {
   suiteEvaluatesToSourceMode,
 } from '~/app/utilities/startEvaluationRunUtils';
 import type { Collection, FlatBenchmark, SourceMode } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import './StartEvaluationRunModal.scss';
 
@@ -85,6 +87,27 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   const isStartInFlightRef = React.useRef(false);
   const cloneAbortControllerRef = React.useRef<AbortController | null>(null);
   const clonePendingChangeRef = React.useRef(onClonePendingChange);
+  const wasOpenRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
+        {
+          surface: trackingSource ?? 'unknown',
+        },
+        {
+          collectionType: collection
+            ? collection.resource.read_only
+              ? 'system'
+              : 'custom'
+            : 'unknown',
+          providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+        },
+      );
+    }
+    wasOpenRef.current = isOpen;
+  }, [benchmark, collection, isOpen, trackingSource]);
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',

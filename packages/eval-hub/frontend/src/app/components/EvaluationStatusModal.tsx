@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import {
   Alert,
@@ -48,6 +49,8 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
+import { trackEvalHubEvent, trackEvalHubEventOnce } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import EvaluationEventLog from './EvaluationEventLog';
 import './EvaluationStatusModal.scss';
@@ -94,7 +97,9 @@ const getBenchmarkDetailLabel = (bm: {
     case 'completed':
       return `Completed${bm.completedAt ? `: ${formatDate(bm.completedAt)}` : ''}`;
     case 'failed':
-      return `Failed${bm.completedAt ? `: ${formatDate(bm.completedAt)}` : ''}${bm.errorMessage ? ` – ${bm.errorMessage}` : ''}`;
+      return `Failed${bm.completedAt ? `: ${formatDate(bm.completedAt)}` : ''}${
+        bm.errorMessage ? ` – ${bm.errorMessage}` : ''
+      }`;
     default:
       return bm.status.charAt(0).toUpperCase() + bm.status.slice(1);
   }
@@ -164,7 +169,9 @@ const BenchmarkDetailRow: React.FC<{
       >
         <FlexItem alignSelf={isFailed ? { default: 'alignSelfStretch' } : undefined}>
           <div
-            className={`evalhub-benchmark-connector${isFailed ? ' evalhub-benchmark-connector--centered' : ''}`}
+            className={`evalhub-benchmark-connector${
+              isFailed ? ' evalhub-benchmark-connector--centered' : ''
+            }`}
             aria-hidden="true"
           />
         </FlexItem>
@@ -403,6 +410,27 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     return () => window.clearInterval(id);
   }, [isInProgress]);
 
+  const isFailed = state === 'failed' || state === 'partially_failed';
+  const isPreStart = job ? isPreStartFailure(polledJobData ?? job) : false;
+
+  React.useEffect(() => {
+    if (job?.resource.id) {
+      trackEvalHubEventOnce(EVAL_HUB_EVENTS.JOB_DETAIL_OPENED, job.resource.id, {
+        evaluationName,
+        state,
+      });
+    }
+  }, [evaluationName, job?.resource.id, state]);
+
+  React.useEffect(() => {
+    if (job?.resource.id && isFailed) {
+      trackEvalHubEventOnce(EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED, job.resource.id, {
+        evaluationName,
+        failure_category: isPreStart ? 'pre_start' : state,
+      });
+    }
+  }, [evaluationName, isFailed, isPreStart, job?.resource.id, state]);
+
   if (!job) {
     return null;
   }
@@ -415,12 +443,15 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     job.resource.created_at,
     isInProgress ? now : (polledJobData?.resource.updated_at ?? job.resource.updated_at),
   );
-  const isFailed = state === 'failed' || state === 'partially_failed';
   const isReconfigurable = !isInProgress;
   // Use the most-current benchmark data (polled > list) to detect pre-start failures.
-  const isPreStart = isPreStartFailure(polledJobData ?? job);
 
   const handleViewBenchmarkLogs = (bmIndex: number) => {
+    trackEvalHubEvent(EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED, {
+      evaluationName,
+      failure_category: 'benchmark_logs',
+      benchmarkIndex: bmIndex,
+    });
     setLogBenchmarkIndex(bmIndex);
     setActiveTab('events-log');
   };
@@ -429,7 +460,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     state === 'completed'
       ? `Evaluation completed successfully.${elapsed ? ` Total time: ${elapsed}` : ''}`
       : isInProgress
-        ? `Evaluation job is ${state === 'stopping' ? 'being canceled' : state === 'pending' ? 'pending' : 'running'}.${elapsed ? ` Elapsed time: ${elapsed}` : ''}`
+        ? `Evaluation job is ${
+            state === 'stopping' ? 'being canceled' : state === 'pending' ? 'pending' : 'running'
+          }.${elapsed ? ` Elapsed time: ${elapsed}` : ''}`
         : elapsed
           ? `Elapsed time: ${elapsed}`
           : undefined;
@@ -441,7 +474,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       variant="medium"
       aria-label="Evaluation run status"
       data-testid="evaluation-status-modal"
-      className={`evalhub-status-modal${activeTab === 'events-log' ? ' evalhub-status-modal--full-height' : ''}`}
+      className={`evalhub-status-modal${
+        activeTab === 'events-log' ? ' evalhub-status-modal--full-height' : ''
+      }`}
     >
       <ModalHeader>
         <div className="evalhub-status-modal__title">

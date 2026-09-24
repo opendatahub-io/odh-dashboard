@@ -2,9 +2,9 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Button, Checkbox, Tooltip } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import {
   formatDate,
   getAllBenchmarkNames,
@@ -119,7 +119,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             ? 'cancelled'
             : 'failed';
 
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_COMPLETED, {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_COMPLETED, {
         evaluationName: evalName,
         runOutcome,
         durationMs,
@@ -143,7 +143,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     setActionError(null);
     try {
       await deleteEvaluationJob('', namespace, job.resource.id)({});
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_DELETED, {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_DELETED, {
         evaluationName,
         previousState: job.status.state,
       });

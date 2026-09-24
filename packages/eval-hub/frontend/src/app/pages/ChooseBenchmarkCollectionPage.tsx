@@ -39,7 +39,6 @@ import {
 import { ExclamationCircleIcon, FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useProviders } from '~/app/hooks/useProviders';
 import { Collection } from '~/app/types';
@@ -48,6 +47,7 @@ import CollectionDrawerPanel, {
 } from '~/app/components/CollectionDrawerPanel';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import {
   formatCategory,
   getCategoryColor,
@@ -106,12 +106,19 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
 
   const handleRunCollection = React.useCallback(
     (c: Collection) => {
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-        runType: 'collection',
-        collectionName: c.name,
-        benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
-        countOfBenchmarks: c.benchmarks?.length ?? 0,
-      });
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+        {
+          runType: 'collection',
+          collectionName: c.name,
+          benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
+          countOfBenchmarks: c.benchmarks?.length ?? 0,
+        },
+        {
+          collectionType: c.resource.read_only ? 'system' : 'custom',
+          providerType: c.benchmarks?.[0]?.provider_id,
+        },
+      );
       const params = new URLSearchParams({
         type: 'collection',
         collectionId: c.resource.id,
