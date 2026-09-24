@@ -51,6 +51,7 @@ const getYamlUpdateCommand = (sourceId: string): string => {
   return `awk -v target="${sourceId}" '
 /^[[:space:]]*-[[:space:]]/{flush_buf();buflen=0;delete buf;in_entry=1;entry_id=""}
 in_entry{buflen++;buf[buflen]=$0;if(/id:/){tmp=$0;sub(/.*id:[[:space:]]*/,"",tmp);entry_id=tmp}next}
+/^[[:space:]]*catalogs:[[:space:]]*/ && index($0, "[]") > 0 {sub(/[][[:space:]]*$/, "")}
 {flush_buf();print}
 END{flush_buf();if(!found){print "  - id: " target;print "    enabled: true"}}
 function flush_buf(  i,line,is_target,has_enabled){
