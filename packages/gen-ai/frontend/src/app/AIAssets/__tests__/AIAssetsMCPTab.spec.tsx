@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import type { MCPServerFromAPI } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import AIAssetsMCPTab from '~/app/AIAssets/AIAssetsMCPTab';
 
@@ -12,6 +13,11 @@ jest.mock('~/app/hooks/useFetchMCPServers', () => ({
 }));
 
 jest.mock('~/app/hooks/useMCPServerStatuses', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('~/app/hooks/useGenAiMcpRegistryServers', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -30,6 +36,7 @@ jest.mock('~/app/AIAssets/components/mcp/MCPServersTable', () => ({
 }));
 
 const mockUseFetchMCPServers = jest.mocked(useFetchMCPServers);
+const mockUseGenAiMcpRegistryServers = jest.mocked(useGenAiMcpRegistryServers);
 const mockUseMCPServerStatuses = jest.mocked(useMCPServerStatuses);
 
 const withDashboardConfig = (overrides: Record<string, unknown>) => {
@@ -49,6 +56,7 @@ const withDashboardConfig = (overrides: Record<string, unknown>) => {
 describe('AIAssetsMCPTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiMcpRegistryServers.mockReturnValue(false);
   });
 
   it('should render loading state', () => {
@@ -175,6 +183,7 @@ describe('AIAssetsMCPTab', () => {
   });
 
   it('should render registered and manual servers when genAiMcpRegistryServers is enabled', () => {
+    mockUseGenAiMcpRegistryServers.mockReturnValue(true);
     mockUseFetchMCPServers.mockReturnValue({
       data: [
         {
@@ -204,9 +213,7 @@ describe('AIAssetsMCPTab', () => {
       checkServerStatus: jest.fn(),
     });
 
-    render(<AIAssetsMCPTab />, {
-      wrapper: withDashboardConfig({ genAiMcpRegistryServers: true }),
-    });
+    render(<AIAssetsMCPTab />);
 
     expect(screen.getByTestId('server-registered-server')).toBeInTheDocument();
     expect(screen.getByTestId('server-manual-server')).toBeInTheDocument();
@@ -243,9 +250,7 @@ describe('AIAssetsMCPTab', () => {
       checkServerStatus: jest.fn(),
     });
 
-    render(<AIAssetsMCPTab />, {
-      wrapper: withDashboardConfig({ genAiMcpRegistryServers: false }),
-    });
+    render(<AIAssetsMCPTab />);
 
     expect(screen.queryByTestId('server-registered-server')).not.toBeInTheDocument();
     expect(screen.getByTestId('server-manual-server')).toBeInTheDocument();
