@@ -13,6 +13,7 @@ const renderDetails = (entry = '/connection-types/postgresql?project=test-projec
   render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
+        <Route path="/connection-types" element={<div data-testid="connection-types-page" />} />
         <Route path="/connection-types/:connectionTypeId" element={<ConnectionTypeDetails />} />
       </Routes>
     </MemoryRouter>,
@@ -46,6 +47,13 @@ describe('ConnectionTypeDetails', () => {
     expect(screen.getByRole('link', { name: 'Connection types' }).getAttribute('href')).toBe(
       '/connection-types?project=test-project&view=details',
     );
+  });
+
+  it('should redirect to connection types when no project is selected', async () => {
+    renderDetails('/connection-types/postgresql?view=details');
+
+    expect(await screen.findByTestId('connection-types-page')).toBeTruthy();
+    expect(mockUseConnectionType).not.toHaveBeenCalled();
   });
 
   it('should render the loading state', () => {

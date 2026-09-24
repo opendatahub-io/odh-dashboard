@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Breadcrumb, BreadcrumbItem, PageSection, Skeleton } from '@patternfly/react-core';
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { ConnectionTypeIcon, ConnectionTypeValues } from '~/app/components/ConnectionType.tsx';
@@ -15,11 +15,14 @@ import { ConnectionTypeIcon, ConnectionTypeValues } from '~/app/components/Conne
 
 // Components ----------------------------------------------------------------->
 
-const ConnectionTypeDetails: React.FC = () => {
+type ConnectionTypeDetailsContentProps = {
+  namespace: string;
+};
+const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> = ({
+  namespace,
+}) => {
   const { connectionTypeId = '' } = useParams<'connectionTypeId'>();
   const { search } = useLocation();
-  const [searchParams] = useSearchParams();
-  const namespace = searchParams.get('project') ?? '';
   const [connectionType, loaded, loadError] = useConnectionType(namespace, connectionTypeId);
 
   const loadingSkeleton = <Skeleton screenreaderText="Loading connection type" />;
@@ -72,6 +75,18 @@ const ConnectionTypeDetails: React.FC = () => {
         {connectionType && <ConnectionTypeValues connectionType={connectionType} />}
       </PageSection>
     </ApplicationsPage>
+  );
+};
+
+const ConnectionTypeDetails: React.FC = () => {
+  const { search } = useLocation();
+  const [searchParams] = useSearchParams();
+  const namespace = searchParams.get('project');
+
+  return namespace ? (
+    <ConnectionTypeDetailsContent namespace={namespace} />
+  ) : (
+    <Navigate to={{ pathname: '..', search }} relative="path" replace />
   );
 };
 
