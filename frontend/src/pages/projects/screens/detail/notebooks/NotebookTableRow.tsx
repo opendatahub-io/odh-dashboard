@@ -21,6 +21,7 @@ import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { useAppContext } from '#~/app/AppContext';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
+import useNotification from '#~/utilities/useNotification';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import NotebookTableRowHardwareProfile from '#~/pages/projects/screens/detail/notebooks/NotebookTableRowHardwareProfile';
@@ -74,6 +75,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
+  const notification = useNotification();
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const deletedHardwareProfilePatches = useDeletedHardwareProfilePatches(obj.notebook);
@@ -101,10 +103,31 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const handleStop = React.useCallback(() => {
     fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);
     setInProgress(true);
-    stopNotebook(notebookName, notebookNamespace, deletedHardwareProfilePatches).then(() => {
-      obj.refresh().then(() => setInProgress(false));
-    });
-  }, [podSpecOptionsState, notebookName, notebookNamespace, obj, deletedHardwareProfilePatches]);
+    stopNotebook(notebookName, notebookNamespace, deletedHardwareProfilePatches)
+      .then(
+        () => obj.refresh(),
+        (e) => {
+          notification.error(
+            `Failed to stop workbench ${notebookName}`,
+            e instanceof Error ? e.message : String(e),
+          );
+        },
+      )
+      .catch((e) => {
+        notification.error(
+          `Failed to refresh workbench ${notebookName}`,
+          e instanceof Error ? e.message : String(e),
+        );
+      })
+      .finally(() => setInProgress(false));
+  }, [
+    podSpecOptionsState,
+    notebookName,
+    notebookNamespace,
+    obj,
+    deletedHardwareProfilePatches,
+    notification,
+  ]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
