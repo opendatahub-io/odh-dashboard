@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/opendatahub-io/data-registry/bff/internal/constants"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,8 +76,8 @@ func TestImpersonationRoundTripperSetsRequestIdentityHeaders(t *testing.T) {
 		if got := req.Header.Get("Impersonate-User"); got != "alice@example.com" {
 			t.Errorf("Impersonate-User = %q, want %q", got, "alice@example.com")
 		}
-		if got := req.Header.Values("Impersonate-Group"); len(got) != 2 || got[0] != "team-a" || got[1] != "system:authenticated" {
-			t.Errorf("Impersonate-Group = %#v, want %#v", got, []string{"team-a", "system:authenticated"})
+		if got := req.Header.Values("Impersonate-Group"); len(got) != 0 {
+			t.Errorf("Impersonate-Group = %#v, want no groups", got)
 		}
 		if got := req.Header.Get("Impersonate-Uid"); got != "" {
 			t.Errorf("Impersonate-Uid = %q, want empty", got)
@@ -100,6 +101,18 @@ func TestImpersonationRoundTripperSetsRequestIdentityHeaders(t *testing.T) {
 
 	if _, err := (&impersonationRoundTripper{base: base}).RoundTrip(req); err != nil {
 		t.Fatalf("RoundTrip() returned an error: %v", err)
+	}
+}
+
+func TestStaticClientFactoryRejectsUntrustedGroups(t *testing.T) {
+	factory := &StaticClientFactory{}
+
+	_, err := factory.ExtractRequestIdentity(http.Header{
+		constants.KubeflowUserIDHeader:       []string{"alice@example.com"},
+		constants.KubeflowUserGroupsIdHeader: []string{"system:masters"},
+	})
+	if err == nil {
+		t.Fatal("ExtractRequestIdentity() accepted caller-provided groups")
 	}
 }
 

@@ -56,6 +56,10 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			app.badRequestResponse(w, r, error)
 			return
 		}
+		if error := app.kubernetesClientFactory.ValidateRequestIdentity(identity); error != nil {
+			app.badRequestResponse(w, r, error)
+			return
+		}
 
 		ctx := kubernetes.ContextWithIdentity(r.Context(), identity)
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, identity)
@@ -75,7 +79,6 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 		AllowedMethods:   []string{"GET", "PUT", "POST", "PATCH", "DELETE", "HEAD"},
 		AllowedHeaders: []string{
 			constants.KubeflowUserIDHeader,
-			constants.KubeflowUserGroupsIdHeader,
 			"Authorization",
 			"Content-Type",
 		},

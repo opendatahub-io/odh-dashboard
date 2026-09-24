@@ -89,7 +89,7 @@ func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (b
 
 	response, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to perform cluster-admin access review", "user", identity.UserID, "error", err)
+		kc.Logger.Error("failed to perform cluster-admin access review", "error", err)
 		return false, fmt.Errorf("failed to verify cluster-admin permissions: %w", err)
 	}
 
@@ -120,11 +120,11 @@ func (t *impersonationRoundTripper) RoundTrip(req *http.Request) (*http.Response
 
 	request := req.Clone(req.Context())
 	request.Header.Set("Impersonate-User", identity.UserID)
+	// Group impersonation is deliberately disabled for Data Registry. The BFF does not have an
+	// independently authenticated group source, so forwarding request-provided groups would turn
+	// the internal compatibility mode into a privilege-escalation boundary.
 	request.Header.Del("Impersonate-Group")
 	request.Header.Del("Impersonate-Uid")
-	for _, group := range identity.Groups {
-		request.Header.Add("Impersonate-Group", group)
-	}
 
 	return t.base.RoundTrip(request)
 }

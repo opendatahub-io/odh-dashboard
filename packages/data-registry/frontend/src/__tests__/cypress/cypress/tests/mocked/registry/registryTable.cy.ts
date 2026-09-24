@@ -83,8 +83,8 @@ const initIntercepts = (options = {}) => {
   });
   cy.intercept('GET', `${MAIN_API}/namespaces`, {
     body: mockModArchResponse([
-      mockNamespace({ name: 'test-project' }),
       mockNamespace({ name: 'other-project' }),
+      mockNamespace({ name: 'test-project' }),
     ]),
   });
 

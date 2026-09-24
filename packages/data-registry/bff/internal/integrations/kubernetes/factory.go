@@ -74,18 +74,15 @@ func (f *StaticClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*R
 	}
 
 	userGroupsHeader := httpHeader.Get(constants.KubeflowUserGroupsIdHeader)
-	// Note: The functionality for `kubeflow-groups` is not fully operational at Kubeflow platform at this time
-	// but it's supported on Mod Arch BFF
-	//`kubeflow-groups`: Holds a comma-separated list of user groups.
-	groups := []string{}
-	if userGroupsHeader != "" {
-		for _, g := range strings.Split(userGroupsHeader, ",") {
-			groups = append(groups, strings.TrimSpace(g))
-		}
+	// Group impersonation is intentionally not accepted here. These headers are only safe when
+	// written by a trusted Kubeflow authentication proxy, and forwarding an arbitrary group (for
+	// example, system:masters) would allow the caller to escalate the impersonated permissions.
+	if strings.TrimSpace(userGroupsHeader) != "" {
+		return nil, errors.New("kubeflow-groups is not supported for internal authentication")
 	}
+
 	identity := &RequestIdentity{
 		UserID: userID,
-		Groups: groups,
 	}
 	return identity, nil
 }

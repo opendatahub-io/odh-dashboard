@@ -36,32 +36,29 @@ const PERSISTENCE_OPTIONS = {
   storeLastNamespace: true,
 } satisfies UseNamespaceSelectorArgs;
 
-const NoProjectsPage: React.FC = () => {
-  const navigate = useNavigate();
-
-  return (
-    <PageSection hasBodyWrapper={false} isFilled>
-      <EmptyState
-        headingLevel="h2"
-        icon={WrenchIcon}
-        titleText="No projects"
-        variant={EmptyStateVariant.lg}
-        data-testid="no-projects-empty-state"
-      >
-        <EmptyStateBody>To browse data assets, first create a project.</EmptyStateBody>
-        <EmptyStateFooter>
-          <NewProjectButton
-            onProjectCreated={(projectName) =>
-              navigate(`/ai-hub/data/browse?project=${encodeURIComponent(projectName)}`)
-            }
-          />
-        </EmptyStateFooter>
-      </EmptyState>
-    </PageSection>
-  );
+type NoProjectsPageProps = {
+  onProjectCreated: (projectName: string) => void | Promise<void>;
 };
 
+const NoProjectsPage: React.FC<NoProjectsPageProps> = ({ onProjectCreated }) => (
+  <PageSection hasBodyWrapper={false} isFilled>
+    <EmptyState
+      headingLevel="h2"
+      icon={WrenchIcon}
+      titleText="No projects"
+      variant={EmptyStateVariant.lg}
+      data-testid="no-projects-empty-state"
+    >
+      <EmptyStateBody>To browse data assets, first create a project.</EmptyStateBody>
+      <EmptyStateFooter>
+        <NewProjectButton onProjectCreated={onProjectCreated} />
+      </EmptyStateFooter>
+    </EmptyState>
+  </PageSection>
+);
+
 const DataRegistryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedProject = searchParams.get('project') || '';
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
@@ -167,6 +164,14 @@ const DataRegistryPage: React.FC = () => {
     [projectNamespaces, setSearchParams, updatePreferredNamespace],
   );
 
+  const handleProjectCreated = React.useCallback(
+    async (projectName: string) => {
+      await namespacesRefresh();
+      navigate(`/ai-hub/data/browse?project=${encodeURIComponent(projectName)}`);
+    },
+    [namespacesRefresh, navigate],
+  );
+
   if (namespacesError) {
     if (is503Error(namespacesError)) {
       return (
@@ -213,7 +218,7 @@ const DataRegistryPage: React.FC = () => {
   }
 
   if (projects.length === 0) {
-    return <NoProjectsPage />;
+    return <NoProjectsPage onProjectCreated={handleProjectCreated} />;
   }
 
   return (
