@@ -521,10 +521,10 @@ export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: 
  * and adds the Deployment, Service, and Route on top.
  * Idempotent — skips resources that already exist.
  *
- * Returns the in-cluster Service URL with `/mcp` suffix. The Route is still
- * created (for manual debugging) but the Service URL is used for the test
- * to avoid TLS failures on clusters where the ingress CA is not in the
- * BFF's trusted CA bundle.
+ * Returns an endpoint that the Gen AI BFF can resolve in its execution environment:
+ * the external Route when the BFF is running locally, otherwise the in-cluster Service URL.
+ * Keeping the Service URL for non-local runs avoids TLS failures on clusters where the
+ * ingress CA is not in the BFF's trusted CA bundle.
  */
 export const deployMCPServer = (
   mcpNamespace: string,
@@ -563,9 +563,26 @@ export const deployMCPServer = (
     timeout: 130000,
   });
 
-  const url = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
-  cy.log(`MCP server URL: ${url}`);
-  return cy.wrap(url);
+  const serviceUrl = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
+  const isLocalRun = Cypress.config('baseUrl')?.includes('localhost');
+  if (!isLocalRun) {
+    cy.log(`MCP server URL (cluster Service): ${serviceUrl}`);
+    return cy.wrap(serviceUrl);
+  }
+
+  return cy
+    .exec(`oc get route/${name} -n ${mcpNamespace} -o jsonpath='{.spec.host}'`)
+    .then((result) => {
+      const routeHost = result.stdout.trim();
+      if (!routeHost) {
+        throw new Error(`MCP server Route ${mcpNamespace}/${name} has no host`);
+      }
+
+      const routeUrl = `https://${routeHost}/mcp`;
+      return cy
+        .log(`MCP server URL (external Route for local BFF): ${routeUrl}`)
+        .then(() => routeUrl);
+    });
 };
 
 /**
