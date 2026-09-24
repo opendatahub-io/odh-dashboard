@@ -127,7 +127,7 @@
     "@odh-dashboard/eslint-config": "workspace:*",
     "@odh-dashboard/jest-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.17",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.3",
     "@rsdoctor/rspack-plugin": "^1.6.1",
     "@rspack/cli": "2.1.10",
     "@rspack/core": "2.2.4",
