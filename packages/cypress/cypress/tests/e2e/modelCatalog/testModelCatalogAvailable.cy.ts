@@ -22,7 +22,7 @@ describe('Verifies that Model Catalog is available for different users', () => {
         verifyModelCatalogBackend();
 
         cy.step('Ensure at least one model catalog source is enabled');
-        return ensureModelCatalogSourceEnabled(testData.redhatAiSourceId);
+        return ensureModelCatalogSourceEnabled(testData.validatedSourceId);
       });
   });
 
