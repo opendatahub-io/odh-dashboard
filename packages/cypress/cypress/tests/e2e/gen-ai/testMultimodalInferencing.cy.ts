@@ -192,8 +192,6 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.findSentImage(testData.image.fileName).should('exist');
 
       cy.step('Wait for and verify model response to image');
-      genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
-      genAiPlayground.findChatbotErrorAlerts().should('not.exist');
       genAiPlayground
         .findAllAssistantMessages({ timeout: 60000 })
         .last()
@@ -204,6 +202,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
             expect(response.toLowerCase()).to.contain(keyword.toLowerCase());
           });
         });
+      genAiPlayground.findChatbotErrorAlerts().should('not.exist');
     },
   );
 });
