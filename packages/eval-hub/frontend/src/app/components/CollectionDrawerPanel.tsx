@@ -14,7 +14,6 @@ import {
   EmptyStateVariant,
   Flex,
   FlexItem,
-  Label,
   SearchInput,
   Stack,
   StackItem,
@@ -28,7 +27,7 @@ import { SearchIcon } from '@patternfly/react-icons';
 import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import SearchableMultiSelectFilter from './SearchableMultiSelectFilter';
-import { capitalizeFirst, getCategoryColor, getMetricDisplayName } from './benchmarkUtils';
+import { getMetricDisplayName } from './benchmarkUtils';
 
 export type BenchmarkWithProvider = ProviderBenchmark & {
   providerName: string;
@@ -40,6 +39,7 @@ type CollectionDrawerPanelProps = {
   benchmarkDetailsMap: Map<string, BenchmarkWithProvider>;
   onClose: () => void;
   onRunCollection: (c: Collection) => void;
+  primaryActionLabel?: string;
 };
 
 const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
@@ -47,6 +47,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   benchmarkDetailsMap,
   onClose,
   onRunCollection,
+  primaryActionLabel = 'Select benchmark suite',
 }) => {
   const [benchmarkSearch, setBenchmarkSearch] = React.useState('');
   const [metricFilter, setMetricFilter] = React.useState<string[]>([]);
@@ -71,8 +72,6 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
     return <DrawerPanelContent isResizable minSize="380px" />;
   }
-
-  const color = getCategoryColor(collection.category);
 
   const filteredBenchmarks = (collection.benchmarks ?? []).filter((b) => {
     const key = `${b.provider_id ?? ''}:${b.id}`;
@@ -100,11 +99,6 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     <DrawerPanelContent isResizable minSize="380px" data-testid="collection-drawer-panel">
       <DrawerHead>
         <Stack hasGutter>
-          {collection.category && (
-            <StackItem>
-              <Label color={color}>{capitalizeFirst(collection.category)}</Label>
-            </StackItem>
-          )}
           <StackItem>
             <Title headingLevel="h2">{collection.name}</Title>
           </StackItem>
@@ -231,7 +225,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
               data-testid="use-benchmark-suite-button"
               onClick={() => onRunCollection(collection)}
             >
-              Select benchmark suite
+              {primaryActionLabel}
             </Button>
           </FlexItem>
           <FlexItem>
