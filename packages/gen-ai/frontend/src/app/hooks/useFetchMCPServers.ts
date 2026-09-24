@@ -16,13 +16,11 @@ const useFetchMCPServers = (): {
   const [registryAvailable, setRegistryAvailable] = React.useState(false);
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
-  const fetchAttempted = React.useRef(false);
   const generationRef = React.useRef(0);
   const [retryCount, setRetryCount] = React.useState(0);
 
   React.useEffect(() => {
-    if (apiAvailable && !fetchAttempted.current) {
-      fetchAttempted.current = true;
+    if (apiAvailable) {
       const generation = ++generationRef.current;
 
       api
@@ -51,7 +49,6 @@ const useFetchMCPServers = (): {
 
   const refetch = React.useCallback(() => {
     generationRef.current++;
-    fetchAttempted.current = false;
     setLoaded(false);
     setError(undefined);
     setRetryCount((c) => c + 1);
