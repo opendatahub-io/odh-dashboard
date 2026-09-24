@@ -16,9 +16,15 @@ type EvalHubDiscoveryConfigMap = {
   data?: Partial<Record<string, string>>;
 };
 
-type EvalHubServiceTarget = {
+export type EvalHubServiceTarget = {
   serviceName: string;
   serviceNamespace: string;
+};
+
+export type EvalHubTenantResourceNames = {
+  jobServiceAccountName: string;
+  jobAccessRoleName: string;
+  serviceCAConfigMapName: string;
 };
 
 type EvalHubServiceIdentity = EvalHubServiceTarget & {
@@ -65,6 +71,24 @@ const assertKubernetesName = (value: string, description: string): string => {
   }
   return value;
 };
+
+export const getEvalHubTenantResourceNames = ({
+  serviceName,
+  serviceNamespace,
+}: EvalHubServiceTarget): EvalHubTenantResourceNames => ({
+  jobServiceAccountName: assertKubernetesName(
+    `${serviceName}-${serviceNamespace}-job`,
+    'operator-provisioned EvalHub Job ServiceAccount name',
+  ),
+  jobAccessRoleName: assertKubernetesName(
+    `${serviceName}-${serviceNamespace}-job-access-role`,
+    'operator-provisioned EvalHub Job access Role name',
+  ),
+  serviceCAConfigMapName: assertKubernetesName(
+    `${serviceName}-service-ca`,
+    'operator-provisioned EvalHub service CA ConfigMap name',
+  ),
+});
 
 /**
  * Mirrors the EvalHub BFF's discovery selection. Each supported E2E environment has one
@@ -267,16 +291,10 @@ const assertEvalHubJobPermission = (
 
 const waitForEvalHubTenantResources = (
   tenantNamespace: string,
-  { serviceNamespace }: EvalHubServiceIdentity,
+  serviceIdentity: EvalHubServiceIdentity,
 ): Cypress.Chainable<Cypress.Exec> => {
-  const jobServiceAccountName = assertKubernetesName(
-    `evalhub-${serviceNamespace}-job`,
-    'operator-provisioned EvalHub Job ServiceAccount name',
-  );
-  const jobAccessRoleName = assertKubernetesName(
-    `evalhub-${serviceNamespace}-job-access-role`,
-    'operator-provisioned EvalHub Job access Role name',
-  );
+  const { jobServiceAccountName, jobAccessRoleName, serviceCAConfigMapName } =
+    getEvalHubTenantResourceNames(serviceIdentity);
 
   return pollUntilSuccess(
     `oc -n ${tenantNamespace} get sa ${jobServiceAccountName} -o name`,
@@ -285,8 +303,8 @@ const waitForEvalHubTenantResources = (
   )
     .then(() =>
       pollUntilSuccess(
-        `oc -n ${tenantNamespace} get configmap evalhub-service-ca -o name`,
-        'operator-provisioned evalhub-service-ca ConfigMap',
+        `oc -n ${tenantNamespace} get configmap ${serviceCAConfigMapName} -o name`,
+        `operator-provisioned ${serviceCAConfigMapName} ConfigMap`,
         { maxAttempts: 30, pollIntervalMs: 2000 },
       ),
     )

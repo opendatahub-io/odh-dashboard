@@ -1,8 +1,10 @@
 import {
+  assertEvalHubProvisionTargetAvailable,
   EVALHUB_E2E_MANAGED_LABEL,
   resolveEvalHubInstance,
   type EvalHubResource,
 } from '../../../utils/oc_commands/evalHubInstance';
+import { getEvalHubTenantResourceNames } from '../../../utils/oc_commands/evalHubModelDeploy';
 
 const evalHubResource = (
   name: string,
@@ -42,14 +44,25 @@ describe('EvalHub instance discovery', () => {
   it('mirrors the BFF selection for differently named multi-tenant instances', () => {
     expect(
       resolveEvalHubInstance([
-        evalHubResource('zeta', 'platform-b'),
-        evalHubResource('alpha', 'platform-a'),
+        evalHubResource('evalhub-zeta', 'platform-b'),
+        evalHubResource('evalhub-alpha', 'platform-a'),
       ]),
     ).to.deep.equal({
-      name: 'alpha',
+      name: 'evalhub-alpha',
       namespace: 'platform-a',
       managedByE2e: false,
     });
+  });
+
+  it('rejects the non-prefixed service that the BFF would reject', () => {
+    expect(() =>
+      resolveEvalHubInstance([
+        evalHubResource('alpha', 'platform-a'),
+        evalHubResource('evalhub', 'evalhub'),
+      ]),
+    ).to.throw(
+      "Dashboard discovery would select platform-a/alpha, but the EvalHub BFF only accepts service names beginning with 'evalhub'.",
+    );
   });
 
   it('rejects duplicate multi-tenant names across namespaces', () => {
@@ -76,11 +89,44 @@ describe('EvalHub instance discovery', () => {
   it('rejects a required instance when the BFF would select another key', () => {
     expect(() =>
       resolveEvalHubInstance(
-        [evalHubResource('alpha', 'platform'), evalHubResource('evalhub', 'evalhub')],
+        [evalHubResource('evalhub-alpha', 'platform'), evalHubResource('evalhub', 'evalhub')],
         { name: 'evalhub', namespace: 'evalhub' },
       ),
     ).to.throw(
-      'Dashboard discovery would select platform/alpha, not the required evalhub/evalhub.',
+      'Dashboard discovery would select platform/evalhub-alpha, not the required evalhub/evalhub.',
     );
+  });
+
+  it('refuses to provision over an existing single-tenant target', () => {
+    expect(() =>
+      assertEvalHubProvisionTargetAvailable(
+        [evalHubResource('evalhub', 'redhat-ods-applications', { tenancy: 'single' })],
+        { name: 'evalhub', namespace: 'redhat-ods-applications' },
+      ),
+    ).to.throw(
+      'Refusing to provision EvalHub redhat-ods-applications/evalhub because that resource already exists',
+    );
+  });
+
+  it('allows provisioning when the same single-tenant name exists in another namespace', () => {
+    expect(() =>
+      assertEvalHubProvisionTargetAvailable(
+        [evalHubResource('evalhub', 'team-a', { tenancy: 'single' })],
+        { name: 'evalhub', namespace: 'redhat-ods-applications' },
+      ),
+    ).not.to.throw();
+  });
+
+  it('derives tenant resource names from the selected EvalHub instance', () => {
+    expect(
+      getEvalHubTenantResourceNames({
+        serviceName: 'evalhub-qa',
+        serviceNamespace: 'platform',
+      }),
+    ).to.deep.equal({
+      jobServiceAccountName: 'evalhub-qa-platform-job',
+      jobAccessRoleName: 'evalhub-qa-platform-job-access-role',
+      serviceCAConfigMapName: 'evalhub-qa-service-ca',
+    });
   });
 });

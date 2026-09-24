@@ -48,6 +48,7 @@ type EvalHubMlflowExperiment = {
 const EVALHUB_PROVISION_IF_MISSING_ENV = 'CY_EVAL_HUB_PROVISION_IF_MISSING';
 const EVALHUB_EXISTING_NAMESPACE_ENV = 'CY_EVAL_HUB_EXISTING_NAMESPACE';
 const DEFAULT_EXISTING_EVALHUB_NAMESPACE = 'evalhub';
+const EVALHUB_SERVICE_NAME_PREFIX = 'evalhub';
 const KUBERNETES_NAME_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
 
 const formatInstance = ({ name, namespace, managedByE2e }: EvalHubInstance): string =>
@@ -56,10 +57,11 @@ const formatInstance = ({ name, namespace, managedByE2e }: EvalHubInstance): str
 /**
  * Resolves the multi-tenant EvalHub instance that the Dashboard BFF will use.
  *
- * Single-tenant CRs do not reconcile labelled tenant namespaces and are ignored. Different
- * multi-tenant CR names are supported because the operator gives each one its own `<name>.url`
- * discovery key. The BFF deterministically selects the lexicographically smallest key.
- * Multiple multi-tenant CRs with the same name are unsafe because they overwrite the same key.
+ * Single-tenant CRs do not reconcile labelled tenant namespaces and are ignored. The operator
+ * gives each multi-tenant instance its own `<name>.url` discovery key, and the BFF selects the
+ * lexicographically smallest key. The selected service name must begin with `evalhub`, matching
+ * the BFF's validation contract. Multiple multi-tenant CRs with the same name are unsafe because
+ * they overwrite the same key.
  */
 export const resolveEvalHubInstance = (
   resources: EvalHubResource[],
@@ -107,6 +109,14 @@ export const resolveEvalHubInstance = (
     })
     .at(0);
 
+  if (selectedInstance && !selectedInstance.name.startsWith(EVALHUB_SERVICE_NAME_PREFIX)) {
+    throw new Error(
+      `Dashboard discovery would select ${formatInstance(selectedInstance)}, but the EvalHub BFF ` +
+        `only accepts service names beginning with '${EVALHUB_SERVICE_NAME_PREFIX}'. ` +
+        'Rename or remove the incompatible multi-tenant EvalHub instance.',
+    );
+  }
+
   if (!requiredInstance) {
     return selectedInstance ?? null;
   }
@@ -138,6 +148,22 @@ export const resolveEvalHubInstance = (
   }
 
   return required;
+};
+
+export const assertEvalHubProvisionTargetAvailable = (
+  resources: EvalHubResource[],
+  target: RequiredEvalHubInstance,
+): void => {
+  const existingTarget = resources.find(
+    ({ metadata }) => metadata?.name === target.name && metadata.namespace === target.namespace,
+  );
+  if (existingTarget) {
+    throw new Error(
+      `Refusing to provision EvalHub ${target.namespace}/${target.name} because that resource ` +
+        'already exists but is not a reusable multi-tenant instance. Remove or rename it before ' +
+        'allowing Cypress to provision EvalHub.',
+    );
+  }
 };
 
 const assertKubernetesName = (value: string, description: string): string => {
@@ -231,7 +257,7 @@ const provisionEvalHub = (
   fixturePathRelativeToFixtures: string,
 ): Cypress.Chainable<EvalHubInstance> => {
   const namespace = getApplicationsNamespace();
-  cy.log(`Applying EvalHub CR ${crName} in ${namespace} (operator will create service)`);
+  cy.log(`Creating EvalHub CR ${crName} in ${namespace} (operator will create service)`);
 
   return cy.fixture(fixturePathRelativeToFixtures, 'utf8').then((yamlContent: string) => {
     const patchedYaml = yamlContent.replace(
@@ -242,22 +268,24 @@ const provisionEvalHub = (
     cy.writeFile(tmpFile, patchedYaml);
 
     return cy
-      .exec(`oc apply -f "${tmpFile}" -n ${namespace}`, { failOnNonZeroExit: false })
-      .then((applyResult) =>
+      .exec(`oc create -f "${tmpFile}" -n ${namespace}`, { failOnNonZeroExit: false })
+      .then((createResult) =>
         listEvalHubResources().then((resources) => {
           const instance = resolveEvalHubInstance(resources);
           if (!instance) {
-            const maskedOutput = maskSensitiveInfo(applyResult.stderr || applyResult.stdout || '');
+            const maskedOutput = maskSensitiveInfo(
+              createResult.stderr || createResult.stdout || '',
+            );
             throw new Error(
-              applyResult.exitCode === 0
-                ? `EvalHub manifest applied, but no multi-tenant EvalHub instance was found.`
-                : `oc apply EvalHub failed and no concurrent instance was found: ${maskedOutput}`,
+              createResult.exitCode === 0
+                ? `EvalHub manifest created, but no multi-tenant EvalHub instance was found.`
+                : `oc create EvalHub failed and no concurrent instance was found: ${maskedOutput}`,
             );
           }
 
-          if (applyResult.exitCode !== 0) {
+          if (createResult.exitCode !== 0) {
             cy.log(
-              'EvalHub apply did not succeed, but another runner provisioned a usable instance; reusing it',
+              'EvalHub create did not succeed, but another runner provisioned a usable instance; reusing it',
             );
           }
           return waitEvalHubReady(instance.namespace, instance.name).then(() => instance);
@@ -294,6 +322,11 @@ export const ensureEvalHubCrReady = (
       );
     }
 
+    const targetNamespace = getApplicationsNamespace();
+    assertEvalHubProvisionTargetAvailable(resources, {
+      name: safeCrName,
+      namespace: targetNamespace,
+    });
     return provisionEvalHub(safeCrName, fixturePathRelativeToFixtures);
   });
 };
