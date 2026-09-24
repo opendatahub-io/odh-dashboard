@@ -609,9 +609,9 @@ export const hasOtherEnabledCatalogSources = (
   const parseAndCount = (yamlContent: string): boolean => {
     const normalizedYaml = normalizeCatalogSourcesYaml(yamlContent);
     const parsed = yaml.load(normalizedYaml) as {
-      catalogs: Array<{ id: string; enabled?: boolean }>;
+      catalogs?: Array<{ id: string; enabled?: boolean }> | null;
     };
-    const otherEnabled = parsed.catalogs.filter(
+    const otherEnabled = (parsed.catalogs ?? []).filter(
       (c) => c.enabled !== false && !excludeSourceIds.includes(c.id),
     );
     cy.log(`Other enabled sources found: ${otherEnabled.length}`);
