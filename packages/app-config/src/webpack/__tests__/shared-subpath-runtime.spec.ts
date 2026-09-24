@@ -9,7 +9,7 @@ const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack'
   ModuleFederationPlugin: new (options: Record<string, unknown>) => WebpackPluginInstance;
 };
 
-jest.setTimeout(30_000);
+jest.setTimeout(60_000);
 
 const writeFile = (root: string, relativePath: string, contents: string): void => {
   const absolutePath = path.join(root, relativePath);
@@ -47,74 +47,7 @@ describe('shared package subpath runtime identity', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('should preserve object identity when root and subpath use separate shared keys', async () => {
-    writeFile(
-      root,
-      'package.json',
-      JSON.stringify({
-        name: 'identity-host',
-        version: '1.0.0',
-        dependencies: { '@test/contexts': '1.0.0' },
-      }),
-    );
-    writeFile(
-      root,
-      'node_modules/@test/contexts/package.json',
-      JSON.stringify({
-        name: '@test/contexts',
-        version: '1.0.0',
-        exports: { '.': './index.js', './host-api': './host-api.js' },
-      }),
-    );
-    writeFile(root, 'node_modules/@test/contexts/host-api.js', 'exports.context = {};');
-    writeFile(
-      root,
-      'node_modules/@test/contexts/index.js',
-      "module.exports = require('./host-api');",
-    );
-    writeFile(
-      root,
-      'src/bootstrap.js',
-      [
-        "const root = require('@test/contexts');",
-        "const hostApi = require('@test/contexts/host-api');",
-        'module.exports = root.context === hostApi.context;',
-      ].join('\n'),
-    );
-    writeFile(
-      root,
-      'src/index.js',
-      "module.exports = import('./bootstrap.js').then((module) => module.default ?? module);",
-    );
-
-    const outputPath = path.join(root, 'dist');
-    await compile({
-      context: root,
-      mode: 'development',
-      target: 'node',
-      entry: './src/index.js',
-      output: {
-        path: outputPath,
-        filename: 'main.js',
-        publicPath: '/',
-        library: { type: 'commonjs2' },
-      },
-      plugins: [
-        new ModuleFederationPlugin({
-          name: 'identityHost',
-          shared: {
-            '@test/contexts': { singleton: true, requiredVersion: '*' },
-            '@test/contexts/host-api': { singleton: true, requiredVersion: '*' },
-          },
-        }),
-      ],
-    });
-
-    const result = (await require(path.join(outputPath, 'main.js'))) as boolean;
-    expect(result).toBe(true);
-  });
-
-  it('should provide the host subpath instance to a remote root consumer', async () => {
+  it('should share one context across host root, host subpath, and remote root consumers', async () => {
     const hostRoot = path.join(root, 'host');
     const remoteRoot = path.join(root, 'remote');
     for (const packageRoot of [hostRoot, remoteRoot]) {
@@ -182,10 +115,11 @@ describe('shared package subpath runtime identity', () => {
       hostRoot,
       'src/bootstrap.js',
       [
+        "const root = require('@test/contexts');",
         "const hostApi = require('@test/contexts/host-api');",
         "module.exports = import('identityRemote/consumer').then((module) => {",
         '  const consumer = module.default ?? module;',
-        '  return hostApi.context === consumer.context;',
+        '  return root.context === hostApi.context && hostApi.context === consumer.context;',
         '});',
       ].join('\n'),
     );

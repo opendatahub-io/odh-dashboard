@@ -68,6 +68,14 @@ remote import of that subpath is intercepted instead of bundled locally.
 
 When `isHost` is false (federated remote), the plugin sets `import: false` on modules that must come from the host: React, routers, OpenShift SDK, `@patternfly/react-core`, `@patternfly/react-styles`, and host-provided ODH packages. Other shared PatternFly packages and federated-only `@odh-dashboard/*` packages remain singleton but may fall back to a remote-bundled copy. When `isHost` is true (dashboard host, or a standalone remote), the plugin enables eager sharing for must-share modules and leaves `import` at the Module Federation default (`true`) so the build can bundle its own copy.
 
+> **Warning**: The dashboard host and its federated remotes form a version-locked release unit and
+> must not be upgraded independently. A federated remote has no bundled fallback for an
+> `import: false` module. If an older or incompatible host initializes the remote without the
+> required package root or export subpath in its share scope, Module Federation fails to resolve
+> that module at runtime. Coordinate rollouts so traffic does not pair remotes with an incompatible
+> host version. Pod startup order alone is not the constraint: the host initializes the shared
+> scope before loading each remote. Standalone remotes use `isHost: true` and bundle their own copy.
+
 #### Additional shared modules
 
 Host and remotes can pass `shared` for modules beyond the forced set. Keys already registered by the plugin always take priority and cannot be overridden.
