@@ -55,7 +55,7 @@ export type KueueAvailability = {
   local_queue_names: string[];
 };
 
-export type KueueWorkloadState = 'queued' | 'admitted' | 'finished' | 'preempted';
+export type KueueWorkloadState = 'queued' | 'admitted' | 'finished' | 'preempted' | 'inadmissible';
 
 export type KueueWorkloadStatus = {
   evaluation_id: string;

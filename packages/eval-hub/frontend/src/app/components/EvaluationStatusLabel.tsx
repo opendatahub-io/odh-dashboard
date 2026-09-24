@@ -4,6 +4,7 @@ import {
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  ExclamationTriangleIcon,
   InProgressIcon,
   OffIcon,
   PendingIcon,
@@ -21,7 +22,7 @@ type StatusConfig = {
 };
 
 const statusMap: Partial<
-  Record<EvaluationJobState | 'not_started' | 'queued' | 'admitted', StatusConfig>
+  Record<EvaluationJobState | 'not_started' | 'queued' | 'admitted' | 'inadmissible', StatusConfig>
 > = {
   pending: {
     label: 'Pending',
@@ -37,6 +38,11 @@ const statusMap: Partial<
     label: 'Admitted',
     color: 'blue',
     icon: <InProgressIcon className="ai-u-spin" />,
+  },
+  inadmissible: {
+    label: 'Inadmissible',
+    color: 'orange',
+    icon: <ExclamationTriangleIcon />,
   },
   running: {
     label: 'Running',
@@ -94,6 +100,8 @@ export const getKueueTooltipText = (status: KueueWorkloadStatus): string => {
       return 'Kueue released this evaluation’s resources. It is waiting to be scheduled again.';
     case 'admitted':
       return 'Kueue allocated resources to this evaluation.';
+    case 'inadmissible':
+      return 'Kueue could not admit this evaluation.';
     default:
       return '';
   }
@@ -150,10 +158,13 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
   );
 
   const shouldShowKueueDetails =
-    (effectiveState === 'queued' || effectiveState === 'admitted') &&
+    (effectiveState === 'queued' ||
+      effectiveState === 'admitted' ||
+      effectiveState === 'inadmissible') &&
     (kueueWorkloadStatus?.state === 'queued' ||
       kueueWorkloadStatus?.state === 'preempted' ||
-      kueueWorkloadStatus?.state === 'admitted');
+      kueueWorkloadStatus?.state === 'admitted' ||
+      kueueWorkloadStatus?.state === 'inadmissible');
 
   if (!shouldShowKueueDetails) {
     return label;

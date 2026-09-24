@@ -308,16 +308,18 @@ func getKueueWorkloadStatuses(
 	}
 
 	type workloadSummary struct {
-		queueName        string
-		workloadNames    []string
-		count            int
-		admitted         bool
-		admittedMessage  string
-		finished         int
-		finishedMessage  string
-		preempted        bool
-		preemptedMessage string
-		queuedMessage    string
+		queueName           string
+		workloadNames       []string
+		count               int
+		admitted            bool
+		admittedMessage     string
+		finished            int
+		finishedMessage     string
+		inadmissible        bool
+		inadmissibleMessage string
+		preempted           bool
+		preemptedMessage    string
+		queuedMessage       string
 	}
 	summaries := make(map[string]*workloadSummary, len(evaluationIDs))
 
@@ -343,6 +345,10 @@ func getKueueWorkloadStatuses(
 		workloadAdmitted := false
 		for _, condition := range workloadConditions(workload) {
 			if !condition.isTrue {
+				if condition.conditionType == "QuotaReserved" && strings.EqualFold(condition.reason, "Inadmissible") {
+					summary.inadmissible = true
+					summary.inadmissibleMessage = firstNonEmpty(summary.inadmissibleMessage, firstNonEmpty(condition.message, condition.reason))
+				}
 				continue
 			}
 			message := firstNonEmpty(condition.message, condition.reason)
@@ -377,12 +383,14 @@ func getKueueWorkloadStatuses(
 
 		state, message := models.KueueWorkloadStateQueued, summary.queuedMessage
 		switch {
-		case summary.preempted:
-			state, message = models.KueueWorkloadStatePreempted, summary.preemptedMessage
 		case summary.finished == summary.count:
 			state, message = models.KueueWorkloadStateFinished, summary.finishedMessage
 		case summary.admitted:
 			state, message = models.KueueWorkloadStateAdmitted, summary.admittedMessage
+		case summary.inadmissible:
+			state, message = models.KueueWorkloadStateInadmissible, summary.inadmissibleMessage
+		case summary.preempted:
+			state, message = models.KueueWorkloadStatePreempted, summary.preemptedMessage
 		}
 
 		queuePosition := 0

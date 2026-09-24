@@ -119,6 +119,35 @@ describe('EvaluationStatusLabel', () => {
     expect(getKueueTooltipText(status)).toBe('Waiting for Kueue to allocate resources.');
   });
 
+  it('should explain when Kueue cannot admit an evaluation', () => {
+    expect(
+      getKueueTooltipText({
+        // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+        evaluation_id: 'evaluation-1',
+        // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+        queue_name: 'default',
+        state: 'inadmissible',
+      }),
+    ).toBe('Kueue could not admit this evaluation.');
+  });
+
+  it('should render Inadmissible for a workload Kueue cannot admit', () => {
+    render(
+      <EvaluationStatusLabel
+        state="pending"
+        kueueWorkloadStatus={{
+          // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+          evaluation_id: 'evaluation-1',
+          // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+          queue_name: 'default',
+          state: 'inadmissible',
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Inadmissible');
+  });
+
   it('should render Admitted when Kueue has admitted a pending evaluation', () => {
     render(
       <EvaluationStatusLabel

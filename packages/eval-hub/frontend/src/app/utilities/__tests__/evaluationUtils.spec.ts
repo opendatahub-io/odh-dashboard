@@ -772,6 +772,14 @@ describe('getEvaluationDisplayState', () => {
     ).toBe(expected);
   });
 
+  it('should show an inadmissible Kueue workload as inadmissible', () => {
+    expect(
+      getEvaluationDisplayState('pending', {
+        kueueWorkloadStatus: makeKueueWorkloadStatus('inadmissible'),
+      }),
+    ).toBe('inadmissible');
+  });
+
   it('should preserve EvalHub Running after Kueue admits the evaluation', () => {
     expect(
       getEvaluationDisplayState('running', {

@@ -10,14 +10,15 @@ const makeStatus = (state: KueueWorkloadState): KueueWorkloadStatus => ({
 });
 
 describe('hasActiveKueueWorkloadStatus', () => {
-  it('keeps polling while Kueue is still queueing or running a Workload', () => {
+  it('keeps polling while Kueue may still change the Workload state', () => {
     expect(hasActiveKueueWorkloadStatus([makeStatus('queued')])).toBe(true);
     expect(hasActiveKueueWorkloadStatus([makeStatus('admitted')])).toBe(true);
+    expect(hasActiveKueueWorkloadStatus([makeStatus('preempted')])).toBe(true);
+    expect(hasActiveKueueWorkloadStatus([makeStatus('inadmissible')])).toBe(true);
   });
 
   it('stops polling once Kueue reaches a terminal Workload state', () => {
     expect(hasActiveKueueWorkloadStatus([makeStatus('finished')])).toBe(false);
-    expect(hasActiveKueueWorkloadStatus([makeStatus('preempted')])).toBe(false);
     expect(hasActiveKueueWorkloadStatus([])).toBe(false);
   });
 });

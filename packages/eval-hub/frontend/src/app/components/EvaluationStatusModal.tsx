@@ -466,6 +466,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     (!kueueWorkloadStatus ||
       kueueWorkloadStatus.state === 'queued' ||
       kueueWorkloadStatus.state === 'preempted');
+  const isInadmissible = displayState === 'inadmissible';
   const isAdmittedByKueue = kueueWorkloadStatus?.state === 'admitted';
   const queueName = kueueWorkloadStatus?.queue_name || queue;
   const queuePosition = kueueWorkloadStatus?.queue_position;
@@ -482,29 +483,45 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     setActiveTab('events-log');
   };
 
-  const descriptionText = isKueueStatusLoading
-    ? 'Checking resource scheduling status'
-    : state === 'completed'
-      ? `Evaluation completed successfully.${elapsed ? ` Total time: ${elapsed}` : ''}`
-      : isInProgress
-        ? isWaitingForKueueResources
-          ? (queuePositionText ?? 'Waiting for resources to become available')
-          : `Evaluation job is ${
-              state === 'stopping'
-                ? 'being canceled'
-                : isAdmittedByKueue
-                  ? `admitted by Kueue through LocalQueue ${kueueWorkloadStatus.queue_name} and ${
-                      state === 'pending' ? 'is pending' : 'is running'
-                    }`
-                  : isQueued
-                    ? 'queued and waiting for resource admission'
-                    : state === 'pending'
-                      ? 'pending'
-                      : 'running'
-            }.${elapsed ? ` Elapsed time: ${elapsed}` : ''}`
-        : elapsed
-          ? `Elapsed time: ${elapsed}`
-          : undefined;
+  const getInProgressDescription = (): string => {
+    switch (state) {
+      case 'stopping':
+        return 'being canceled';
+      case 'pending':
+        if (isAdmittedByKueue) {
+          return `admitted by Kueue through LocalQueue ${kueueWorkloadStatus.queue_name} and is pending`;
+        }
+        return isQueued ? 'queued and waiting for resource admission' : 'pending';
+      case 'running':
+        if (isAdmittedByKueue) {
+          return `admitted by Kueue through LocalQueue ${kueueWorkloadStatus.queue_name} and is running`;
+        }
+        return isQueued ? 'queued and waiting for resource admission' : 'running';
+      default:
+        return state;
+    }
+  };
+
+  let descriptionText: string | undefined;
+  if (isKueueStatusLoading) {
+    descriptionText = 'Checking resource scheduling status';
+  } else if (state === 'completed') {
+    descriptionText = `Evaluation completed successfully.${elapsed ? ` Total time: ${elapsed}` : ''}`;
+  } else if (isInProgress) {
+    if (isInadmissible) {
+      descriptionText = `Kueue could not admit this evaluation${
+        kueueWorkloadStatus?.message ? `: ${kueueWorkloadStatus.message}` : '.'
+      }`;
+    } else if (isWaitingForKueueResources) {
+      descriptionText = queuePositionText ?? 'Waiting for resources to become available';
+    } else {
+      descriptionText = `Evaluation job is ${getInProgressDescription()}.${
+        elapsed ? ` Elapsed time: ${elapsed}` : ''
+      }`;
+    }
+  } else if (elapsed) {
+    descriptionText = `Elapsed time: ${elapsed}`;
+  }
 
   return (
     <Modal

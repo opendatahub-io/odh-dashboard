@@ -19,10 +19,11 @@ type KueueAvailability struct {
 type KueueWorkloadState string
 
 const (
-	KueueWorkloadStateQueued    KueueWorkloadState = "queued"
-	KueueWorkloadStateAdmitted  KueueWorkloadState = "admitted"
-	KueueWorkloadStateFinished  KueueWorkloadState = "finished"
-	KueueWorkloadStatePreempted KueueWorkloadState = "preempted"
+	KueueWorkloadStateQueued       KueueWorkloadState = "queued"
+	KueueWorkloadStateAdmitted     KueueWorkloadState = "admitted"
+	KueueWorkloadStateFinished     KueueWorkloadState = "finished"
+	KueueWorkloadStatePreempted    KueueWorkloadState = "preempted"
+	KueueWorkloadStateInadmissible KueueWorkloadState = "inadmissible"
 )
 
 // KueueWorkloadStatus is the aggregated Kueue status for one EvalHub

@@ -343,6 +343,42 @@ describe('EvaluationStatusModal progress tab', () => {
     );
   });
 
+  it('should explain why Kueue cannot admit a pending evaluation', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: true,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueWorkloadStatuses.mockReturnValue({
+      statusesByEvaluationId: new Map([
+        [
+          'eval-job-001',
+          {
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            evaluation_id: 'eval-job-001',
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            queue_name: 'default',
+            state: 'inadmissible',
+            message: 'LocalQueue default does not exist',
+          },
+        ],
+      ]),
+      loaded: true,
+      isLoading: false,
+      error: undefined,
+    });
+
+    renderModal(mockEvaluationJob({ state: 'pending' }));
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Inadmissible');
+    expect(screen.getByTestId('status-description')).toHaveTextContent(
+      'Kueue could not admit this evaluation: LocalQueue default does not exist',
+    );
+  });
+
   it('should show EvalHub Running after Kueue admits the evaluation', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: {

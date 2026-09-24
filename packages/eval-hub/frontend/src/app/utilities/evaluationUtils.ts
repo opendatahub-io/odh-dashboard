@@ -264,7 +264,8 @@ const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
 
 export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
 
-export type EvaluationDisplayState = EvaluationJobState | 'not_started' | 'queued' | 'admitted';
+export type EvaluationDisplayState =
+  EvaluationJobState | 'not_started' | 'queued' | 'admitted' | 'inadmissible';
 
 type EvaluationDisplayStateOptions = {
   isQueued?: boolean;
@@ -302,6 +303,8 @@ export const getEvaluationDisplayState = (
       return 'queued';
     case 'admitted':
       return state === 'pending' ? 'admitted' : state;
+    case 'inadmissible':
+      return 'inadmissible';
     case 'finished':
       return state;
     default:

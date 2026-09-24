@@ -1721,6 +1721,7 @@ components:
         - admitted
         - finished
         - preempted
+        - inadmissible
 
     KueueWorkloadStatus:
       type: object

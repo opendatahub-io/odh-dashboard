@@ -9,7 +9,13 @@ const KUEUE_WORKLOAD_STATUS_POLL_INTERVAL_MS = 10_000;
 export const hasActiveKueueWorkloadStatus = (
   statuses: KueueWorkloadStatus[] | undefined,
 ): boolean =>
-  statuses?.some((status) => status.state === 'queued' || status.state === 'admitted') ?? false;
+  statuses?.some(
+    (status) =>
+      status.state === 'queued' ||
+      status.state === 'admitted' ||
+      status.state === 'preempted' ||
+      status.state === 'inadmissible',
+  ) ?? false;
 
 type UseKueueWorkloadStatusesResult = {
   statusesByEvaluationId: Map<string, KueueWorkloadStatus>;

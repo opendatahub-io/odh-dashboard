@@ -71,6 +71,48 @@ func TestGetKueueWorkloadStatusesReportsAdmittedForAnActiveSuiteWorkload(t *test
 	}
 }
 
+func TestGetKueueWorkloadStatusesReportsInadmissibleWhenQuotaReservationFails(t *testing.T) {
+	client := newKueueFakeClient(
+		workload("inadmissible", "evaluation-inadmissible", "default", true,
+			kueueCondition("QuotaReserved", "False", "Inadmissible", "LocalQueue default does not exist"),
+		),
+	)
+
+	response, err := getKueueWorkloadStatuses(
+		context.Background(),
+		client,
+		testNamespace,
+		[]string{"evaluation-inadmissible"},
+	)
+	if err != nil {
+		t.Fatalf("getKueueWorkloadStatuses() error = %v", err)
+	}
+	if len(response.Items) != 1 {
+		t.Fatalf("items = %+v, want one matched evaluation", response.Items)
+	}
+	item := response.Items[0]
+	if item.State != models.KueueWorkloadStateInadmissible || item.Message != "LocalQueue default does not exist" {
+		t.Fatalf("item = %+v, want inadmissible state with the Kueue message", item)
+	}
+}
+
+func TestGetKueueWorkloadStatusesPrefersCurrentAdmissionOverPreviousPreemption(t *testing.T) {
+	client := newKueueFakeClient(
+		workload("requeued", "evaluation-requeued", "default", true,
+			kueueCondition("Evicted", "True", "Preempted", "The workload was preempted"),
+			kueueCondition("Admitted", "True", "Admitted", "The workload is admitted again"),
+		),
+	)
+
+	response, err := getKueueWorkloadStatuses(context.Background(), client, testNamespace, []string{"evaluation-requeued"})
+	if err != nil {
+		t.Fatalf("getKueueWorkloadStatuses() error = %v", err)
+	}
+	if len(response.Items) != 1 || response.Items[0].State != models.KueueWorkloadStateAdmitted {
+		t.Fatalf("items = %+v, want the requeued workload to be admitted", response.Items)
+	}
+}
+
 func TestPendingWorkloadPositionsConvertToOneBasedPositions(t *testing.T) {
 	response := &unstructured.Unstructured{Object: map[string]interface{}{
 		"items": []interface{}{
