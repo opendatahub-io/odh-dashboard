@@ -37,7 +37,7 @@ import DeleteConfirmationModal from '~/app/components/DeleteConfirmationModal';
 import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/types';
 import { formatCategory, getCollectionCategoryValues } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
-import { trackEvalHubEvent, trackEvalHubEventOnce } from '~/app/tracking/evalhubTracking';
+import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './BenchmarkSuitesGallery.scss';
 
@@ -187,7 +187,7 @@ type BenchmarkSuitesGalleryProps = {
   onCreateSuite?: () => void;
   onPrimaryAction: (collection: Collection) => void;
   onDuplicateCollection: (collection: Collection) => void;
-  onSelectCollection: (collection: Collection) => void;
+  onSelectCollection: (collection: Collection) => boolean | void;
 };
 
 const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
@@ -278,15 +278,30 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   // TODO: Remove the mock fallback and this switch once the collections API is the source of
   // truth for every benchmark suite gallery.
   const isUsingMockCollections = useMockFallback && !isLoading && Boolean(error);
+  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
+
+  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
 
   React.useEffect(() => {
-    trackEvalHubEventOnce(
+    if (isLoading || isFetching || shouldShowLoadError) {
+      return;
+    }
+
+    trackingScope.trackEventOnce(
       EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED,
       `${namespace}:${scope}:${queryFilters?.evaluationTargets?.join(',') ?? 'all'}`,
       { surface: 'collection_gallery' },
       { collectionType: scope === 'system' ? 'system' : 'custom' },
     );
-  }, [namespace, queryFilters?.evaluationTargets, scope]);
+  }, [
+    isFetching,
+    isLoading,
+    namespace,
+    queryFilters?.evaluationTargets,
+    scope,
+    shouldShowLoadError,
+    trackingScope,
+  ]);
   const collections = React.useMemo(() => {
     if (shouldShowLoadError || isLoading) {
       return [];

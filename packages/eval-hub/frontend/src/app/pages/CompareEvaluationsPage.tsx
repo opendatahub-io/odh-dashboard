@@ -6,12 +6,15 @@ import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';
 import MlflowCompareRuns from '~/app/components/MlflowCompareRuns';
 import { parseMlflowArrayParam } from '~/app/utilities/compareEvaluationsUtils';
-import { trackEvalHubEventOnce } from '~/app/tracking/evalhubTracking';
+import { createEvalHubTrackingScope } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const CompareEvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const [searchParams] = useSearchParams();
+  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
+
+  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
 
   const {
     config: { deploymentMode },
@@ -36,13 +39,13 @@ const CompareEvaluationsPage: React.FC = () => {
 
   React.useEffect(() => {
     if (showCompare) {
-      trackEvalHubEventOnce(
+      trackingScope.trackEventOnce(
         EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED,
         `${namespace ?? ''}:${runUuids.join(',')}:${experimentIds.join(',')}`,
         { surface: 'comparison_view', countOfRuns: runUuids.length },
       );
     }
-  }, [experimentIds, namespace, runUuids, showCompare]);
+  }, [experimentIds, namespace, runUuids, showCompare, trackingScope]);
 
   const title = React.useMemo(() => {
     if (evaluationNames.length < 2) {

@@ -49,7 +49,7 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
-import { trackEvalHubEvent, trackEvalHubEventOnce } from '~/app/tracking/evalhubTracking';
+import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import EvaluationEventLog from './EvaluationEventLog';
@@ -412,24 +412,27 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
 
   const isFailed = state === 'failed' || state === 'partially_failed';
   const isPreStart = job ? isPreStartFailure(polledJobData ?? job) : false;
+  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
+
+  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
 
   React.useEffect(() => {
     if (job?.resource.id) {
-      trackEvalHubEventOnce(EVAL_HUB_EVENTS.JOB_DETAIL_OPENED, job.resource.id, {
+      trackingScope.trackEventOnce(EVAL_HUB_EVENTS.JOB_DETAIL_OPENED, job.resource.id, {
         evaluationName,
         state,
       });
     }
-  }, [evaluationName, job?.resource.id, state]);
+  }, [evaluationName, job?.resource.id, state, trackingScope]);
 
   React.useEffect(() => {
     if (job?.resource.id && isFailed) {
-      trackEvalHubEventOnce(EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED, job.resource.id, {
+      trackingScope.trackEventOnce(EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED, job.resource.id, {
         evaluationName,
         failure_category: isPreStart ? 'pre_start' : state,
       });
     }
-  }, [evaluationName, isFailed, isPreStart, job?.resource.id, state]);
+  }, [evaluationName, isFailed, isPreStart, job?.resource.id, state, trackingScope]);
 
   if (!job) {
     return null;

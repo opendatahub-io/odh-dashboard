@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  createEvalHubTrackingScope,
   getEvalHubServerVersion,
   setEvalHubServerVersion,
   trackEvalHubEvent,
@@ -67,5 +68,18 @@ describe('EvalHub tracking helper', () => {
     });
 
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows the same key to emit again in a new mounted-view visit', () => {
+    const trackingScope = createEvalHubTrackingScope();
+
+    trackingScope.trackEventOnce('evalhub.comparison.view.rendered', 'run-1,run-2');
+    trackingScope.trackEventOnce('evalhub.comparison.view.rendered', 'run-1,run-2');
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+
+    trackingScope.clear();
+    trackingScope.trackEventOnce('evalhub.comparison.view.rendered', 'run-1,run-2');
+
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(2);
   });
 });

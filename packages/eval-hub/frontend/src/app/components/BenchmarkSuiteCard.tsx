@@ -46,7 +46,7 @@ type BenchmarkSuiteCardProps = {
     state?: unknown;
   };
   contextualActions?: BenchmarkSuiteCardAction[];
-  onSelect?: (collection: Collection) => void;
+  onSelect?: (collection: Collection) => boolean | void;
 };
 
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
@@ -150,18 +150,20 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                   providerType: collection.benchmarks?.[0]?.provider_id,
                 },
               );
-              trackEvalHubEvent(
-                EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
-                {
-                  collectionName: collection.name,
-                  surface: 'collection_gallery',
-                },
-                {
-                  collectionType: collection.resource.read_only ? 'system' : 'custom',
-                  providerType: collection.benchmarks?.[0]?.provider_id,
-                },
-              );
-              onSelect(collection);
+              const didOpenDrawer = onSelect(collection);
+              if (didOpenDrawer === true) {
+                trackEvalHubEvent(
+                  EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+                  {
+                    collectionName: collection.name,
+                    surface: 'collection_gallery',
+                  },
+                  {
+                    collectionType: collection.resource.read_only ? 'system' : 'custom',
+                    providerType: collection.benchmarks?.[0]?.provider_id,
+                  },
+                );
+              }
             }}
             data-testid={`benchmark-suite-card-name-${collection.resource.id}`}
           >

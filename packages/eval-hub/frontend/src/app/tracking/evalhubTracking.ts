@@ -16,6 +16,18 @@ export type EvalHubTrackingContext = {
 
 export type EvalHubTrackingProperties = Record<string, unknown>;
 
+export type EvalHubTrackingOnce = (
+  eventName: string,
+  key: string,
+  properties?: EvalHubTrackingProperties,
+  context?: EvalHubTrackingContext,
+) => void;
+
+export type EvalHubTrackingScope = {
+  trackEventOnce: EvalHubTrackingOnce;
+  clear: () => void;
+};
+
 let evalHubServerVersion = 'unknown';
 
 export const setEvalHubServerVersion = (version?: string): void => {
@@ -57,11 +69,12 @@ export const trackEvalHubEvent = (
   });
 };
 
-export const trackEvalHubEventOnce = (
+const trackEvalHubEventOnceInScope = (
   eventName: string,
   key: string,
   properties: EvalHubTrackingProperties = {},
   context: EvalHubTrackingContext = {},
+  viewKeys?: Set<string>,
 ): void => {
   const dedupeKey = `evalhub:${eventName}:${key}`;
   const emittedEvents = getEmittedEvents();
@@ -69,7 +82,31 @@ export const trackEvalHubEventOnce = (
     return;
   }
   emittedEvents.add(dedupeKey);
+  viewKeys?.add(dedupeKey);
   trackEvalHubEvent(eventName, properties, context);
+};
+
+export const trackEvalHubEventOnce: EvalHubTrackingOnce = (
+  eventName,
+  key,
+  properties,
+  context,
+): void => {
+  trackEvalHubEventOnceInScope(eventName, key, properties, context);
+};
+
+export const createEvalHubTrackingScope = (): EvalHubTrackingScope => {
+  const viewKeys = new Set<string>();
+
+  return {
+    trackEventOnce: (eventName, key, properties, context) =>
+      trackEvalHubEventOnceInScope(eventName, key, properties, context, viewKeys),
+    clear: () => {
+      const emittedEvents = getEmittedEvents();
+      viewKeys.forEach((dedupeKey) => emittedEvents.delete(dedupeKey));
+      viewKeys.clear();
+    },
+  };
 };
 
 const getEmittedEvents = (): Set<string> => {
