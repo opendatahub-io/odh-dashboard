@@ -109,7 +109,7 @@ jobs:
       github.event_name == 'workflow_dispatch' || 
       (github.event.workflow_run.event == 'pull_request' && 
        github.event.workflow_run.conclusion == 'success')
-    runs-on: self-hosted
+    runs-on: [self-hosted, itup]
     outputs:
       cluster_name: ${{ steps.select.outputs.cluster_name }}
     steps:
@@ -231,7 +231,7 @@ jobs:
   # ---------------------------------------------------------------------------
   cleanup-old-resources:
     needs: [select-cluster]
-    runs-on: self-hosted
+    runs-on: [self-hosted, itup]
     continue-on-error: true  # Don't fail the entire workflow if cleanup fails
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
@@ -791,7 +791,7 @@ jobs:
     if: >-
       !cancelled() && !failure() &&
       needs.select-cluster.result == 'success'
-    runs-on: self-hosted
+    runs-on: [self-hosted, itup]
     timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
@@ -1406,7 +1406,7 @@ jobs:
   # ---------------------------------------------------------------------------
   cleanup:
     needs: [e2e-tests]
-    runs-on: self-hosted
+    runs-on: [self-hosted, itup]
     if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
     steps:
       - name: Fix envtest binary permissions
