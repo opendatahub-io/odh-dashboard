@@ -350,7 +350,7 @@ const assertFeastOperatorReady = (): Cypress.Chainable => {
 /**
  * Disconnected MinIO has no DynamoDB, so swap the online store for Feast's local file
  * store and drop the DynamoDB secret. When a CA bundle is present, mount it into the
- * registry server pod and point AWS_CA_BUNDLE at it, mirroring s3Cleanup.ts.
+ * registry and online servers and point AWS_CA_BUNDLE at it, mirroring s3Cleanup.ts.
  */
 const applyDisconnectedS3Overrides = (renderedYaml: string, caBundle: string): string => {
   const docs = yaml.loadAll(renderedYaml).filter(Boolean) as Record<string, unknown>[];
@@ -370,7 +370,7 @@ const applyDisconnectedS3Overrides = (renderedYaml: string, caBundle: string): s
       if (doc.kind === 'FeatureStore') {
         const spec = doc.spec as {
           services: {
-            onlineStore: { persistence: unknown };
+            onlineStore: { persistence: unknown; server?: Record<string, unknown> };
             registry: { local: { server?: Record<string, unknown> } };
             volumes?: unknown[];
           };
@@ -387,16 +387,19 @@ const applyDisconnectedS3Overrides = (renderedYaml: string, caBundle: string): s
               },
             },
           ];
-          const server = spec.services.registry.local.server ?? {};
-          server.env = [
-            ...((server.env as unknown[] | undefined) ?? []),
-            { name: 'AWS_CA_BUNDLE', value: S3_CA_PATH },
-          ];
-          server.volumeMounts = [
-            ...((server.volumeMounts as unknown[] | undefined) ?? []),
-            { name: 's3-ca', mountPath: S3_CA_MOUNT_DIR, readOnly: true },
-          ];
-          spec.services.registry.local.server = server;
+          const withCaBundle = (server: Record<string, unknown> = {}): Record<string, unknown> => ({
+            ...server,
+            env: [
+              ...((server.env as unknown[] | undefined) ?? []),
+              { name: 'AWS_CA_BUNDLE', value: S3_CA_PATH },
+            ],
+            volumeMounts: [
+              ...((server.volumeMounts as unknown[] | undefined) ?? []),
+              { name: 's3-ca', mountPath: S3_CA_MOUNT_DIR, readOnly: true },
+            ],
+          });
+          spec.services.registry.local.server = withCaBundle(spec.services.registry.local.server);
+          spec.services.onlineStore.server = withCaBundle(spec.services.onlineStore.server);
         }
       }
       return yaml.dump(doc);
