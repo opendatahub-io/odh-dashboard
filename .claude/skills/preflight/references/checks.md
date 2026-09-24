@@ -112,4 +112,4 @@ Invoke `/test-impact-review` with changed paths and the PR body when available. 
 
 ## PR Body
 
-Invoke `/pr-description-review` for a PR body. It owns the ODH template-completeness checks, including Description, testing, Test Impact, checklist context, Jira linkage, and applicable UI evidence. Use its status and evidence directly.
+Invoke `/pr-description-review` for a PR body. It scores three substance aspects — Problem, Solution, and Evidence — template-agnostically. Use its status and evidence directly.
