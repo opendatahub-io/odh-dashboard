@@ -274,6 +274,14 @@ export type CollectionResource = {
   updated_at?: string;
   read_only?: boolean;
   owner?: string;
+  version_counter?: number;
+  state?: CollectionState;
+};
+
+export type CollectionState = {
+  derived_from?: string;
+  run_count?: number;
+  pinned_order?: number;
 };
 
 export type CollectionPrimaryScore = {
