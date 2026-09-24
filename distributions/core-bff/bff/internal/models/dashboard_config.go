@@ -96,6 +96,7 @@ type DashboardFeatureFlags struct {
 	MySubscriptions              bool `json:"mySubscriptions"`
 	ConnectionTest               bool `json:"connectionTest"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
+	RuntimeCatalog               bool `json:"runtimeCatalog"`
 }
 
 type NotebookController struct {
@@ -191,6 +192,7 @@ var BlankDashboardCR = DashboardConfig{
 			MySubscriptions:              false,
 			ConnectionTest:               false,
 			ModelCapabilities:            false,
+			RuntimeCatalog:               false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

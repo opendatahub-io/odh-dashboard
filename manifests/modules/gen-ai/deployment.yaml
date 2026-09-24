@@ -154,6 +154,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: RELATED_IMAGE_POSTGRESQL_16_IMAGE
               value: pgvector-image
+            - name: RELATED_IMAGE_ODH_OGX_CORE_IMAGE
+              value: ogx-core-image
             - name: BFF_MAAS_SERVICE_NAME
               value: "odh-dashboard-maas-ui"
             - name: BFF_MAAS_SERVICE_PORT

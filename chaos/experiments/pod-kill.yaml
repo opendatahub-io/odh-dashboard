@@ -7,28 +7,27 @@ spec:
   target:
     operator: dashboard
     component: odh-dashboard
-    resource: Deployment/odh-dashboard
+    resource: Deployment/dashboard-operator
   steadyState:
     checks:
       - type: conditionTrue
         apiVersion: apps/v1
         kind: Deployment
-        name: odh-dashboard
+        name: dashboard-operator
         namespace: opendatahub
         conditionType: Available
     timeout: "30s"
   injection:
     type: PodKill
     parameters:
-      labelSelector: deployment=odh-dashboard
+      labelSelector: app.kubernetes.io/name=dashboard-operator
     count: 1
     ttl: "300s"
   hypothesis:
     description: >-
-      When one odh-dashboard pod is killed, the remaining replica should
-      continue serving traffic. Kubernetes should recreate the killed pod
-      within the recovery timeout and the deployment should return to 2/2
-      ready replicas.
+      When the dashboard-operator controller pod is killed, Kubernetes should
+      recreate it within the recovery timeout. The replacement controller must
+      resume reconciliation while all Dashboard operands remain healthy.
     recoveryTimeout: 120s
   blastRadius:
     maxPodsAffected: 1
