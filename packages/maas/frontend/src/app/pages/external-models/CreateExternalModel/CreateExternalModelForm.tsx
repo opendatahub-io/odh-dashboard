@@ -278,7 +278,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   return (
     <PageSection hasBodyWrapper={false}>
       <Form maxWidth="750px">
-        <FormSection title="Model details" titleElement="h2">
+        <FormSection>
           <FormGroup label="Project" fieldId="external-model-project" isRequired>
             <TextInput
               id="external-model-project"
@@ -293,18 +293,18 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
             onDataChange={onNameDescChange}
             dataTestId="external-model-name-desc"
             nameLabel="Name"
-            nameHelperText="The client-facing model name. Consumers use this to identify the model in API requests."
             maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
           />
         </FormSection>
 
-        <FormSection title="Provider reference configuration" titleElement="h2">
+        <FormSection title="Provider references" titleElement="h2">
           <FormHelperText>
             <HelperText>
               <HelperTextItem>
-                Configure which external providers serve this model and how traffic is distributed.
-                A provider reference links this model to an existing provider connection and
-                specifies the target model ID, API format, and traffic weight.
+                Configure references to the providers that serve this model. A provider reference
+                defines a model&apos;s relationship to a provider, and includes the provider&apos;s
+                model ID, API format, and request path. If a model references multiple providers,
+                requests are distributed based on each reference&apos;s routing weight.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -346,18 +346,6 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
               </Flex>
             </StackItem>
 
-            {providerRefs.length === 0 && (
-              <StackItem>
-                <Alert
-                  variant="info"
-                  isInline
-                  isPlain
-                  title="Add at least one provider reference to configure how this model routes inference traffic."
-                  data-testid="provider-refs-required-info"
-                />
-              </StackItem>
-            )}
-
             {providerRefs.length > 0 && (
               <StackItem>
                 <ProviderReferencesTable
@@ -394,12 +382,12 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           </Stack>
         </FormSection>
 
-        <FormSection title="Availability" titleElement="h2">
+        <FormSection title="Model availability" titleElement="h2">
           <Checkbox
             id="external-model-maas-availability"
             data-testid="external-model-maas-availability"
             label="Available as a Model as a Service (MaaS)"
-            description="External models are served through the MaaS gateway. This model will be available cluster-wide once a subscription and authorization policy are configured in MaaS governance."
+            description="External models are served through the MaaS gateway. This model will be available to select users in the cluster after an administrator configures a subscription and authorization policy."
             isChecked
             isDisabled
           />
@@ -409,7 +397,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           <Alert
             variant="danger"
             isInline
-            title={`Failed to ${isEditing ? 'update' : 'create'} external model`}
+            title={`Failed to ${isEditing ? 'update' : 'add'} external model`}
           >
             {submitError}
           </Alert>

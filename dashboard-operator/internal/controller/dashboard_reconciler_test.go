@@ -981,18 +981,31 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 			updated := &v1alpha1.Dashboard{}
 			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
 
-			var platformVersion string
-			for _, r := range updated.GetReleaseStatus().Releases {
-				if r.Name == "platform" {
-					platformVersion = r.Version
-					break
-				}
-			}
-			assert.Equal(t, tt.wantPlatformVersion, platformVersion)
-
+			releases := updated.GetReleaseStatus().Releases
+			wantReleaseCount := 1
 			if tt.wantPlatformVersion != "" {
-				require.GreaterOrEqual(t, len(updated.GetReleaseStatus().Releases), 2,
-					"should have both dashboard and platform release entries")
+				wantReleaseCount = 2
+			}
+			require.Len(t, releases, wantReleaseCount)
+
+			releasesByName := make(map[string]common.ComponentRelease, len(releases))
+			for _, release := range releases {
+				_, duplicate := releasesByName[release.Name]
+				require.False(t, duplicate, "release %q must appear only once", release.Name)
+				releasesByName[release.Name] = release
+			}
+
+			dashboardRelease, found := releasesByName[v1alpha1.DashboardComponentName]
+			require.True(t, found, "dashboard release must be reported")
+			assert.Equal(t, ctrlpkg.Version, dashboardRelease.Version)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", dashboardRelease.RepoURL)
+
+			platformRelease, found := releasesByName[common.ReleasePlatform]
+			if tt.wantPlatformVersion == "" {
+				assert.False(t, found, "platform release must be omitted without platformVersion")
+			} else {
+				require.True(t, found, "platform release must be reported")
+				assert.Equal(t, tt.wantPlatformVersion, platformRelease.Version)
 			}
 		})
 	}

@@ -97,8 +97,36 @@ class GenAiPlayground {
     return cy.findByTestId('settings-model-selector-toggle', options);
   }
 
-  findMessageInput() {
-    return cy.findByTestId('chatbot-message-bar');
+  findMessageInput(options?: { timeout?: number }) {
+    return cy.findByTestId('chatbot-message-bar', options);
+  }
+
+  findImageFileInput() {
+    return cy.findByTestId('vision-file-input');
+  }
+
+  findImagePreview(options?: { timeout?: number }) {
+    return cy.findByTestId('vision-file-preview', options);
+  }
+
+  findImagePreviewCloseButton(fileName: string) {
+    return this.findImagePreview().findByRole('button', { name: `Close ${fileName}` });
+  }
+
+  findSentImage(fileName: string) {
+    return cy.findByRole('img', { name: fileName });
+  }
+
+  findAttachmentButton() {
+    return cy.findByRole('button', { name: /^attach$/i });
+  }
+
+  findImageUploadMenuItem() {
+    return cy.findByTestId('upload-image-menu-item');
+  }
+
+  findSendButton() {
+    return cy.findByTestId('chatbot-send-button');
   }
 
   findUserMessage() {
@@ -115,6 +143,10 @@ class GenAiPlayground {
 
   findAllAssistantMessages(options?: { timeout?: number }) {
     return cy.findAllByTestId('chatbot-message-bot', options);
+  }
+
+  findChatbotErrorAlerts() {
+    return cy.get('[data-testid^="chatbot-error-alert-"]');
   }
 
   sendMessage(message: string) {
@@ -290,6 +322,18 @@ class GenAiPlayground {
 
   findPromptNameTitle() {
     return cy.findByTestId('prompt-name-title');
+  }
+
+  findVariableInputPanel() {
+    return cy.findByTestId('prompt-variable-input-panel');
+  }
+
+  scrollPromptTabToBottom() {
+    return cy.findByTestId('chatbot-settings-page-tab-content-prompt').scrollTo('bottom');
+  }
+
+  findVariableInput(variableName: string) {
+    return cy.findByTestId(`prompt-variable-input-${variableName}`).scrollIntoView();
   }
 
   // RAG / Knowledge upload methods

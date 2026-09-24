@@ -5,6 +5,7 @@ export const mockApplicationsPageModule = () => ({
   ApplicationsPage: ({
     title,
     description,
+    headerAction,
     headerContent,
     empty,
     emptyStatePage,
@@ -12,6 +13,7 @@ export const mockApplicationsPageModule = () => ({
   }: {
     title: React.ReactNode;
     description: string;
+    headerAction?: React.ReactNode;
     headerContent?: React.ReactNode;
     empty?: boolean;
     emptyStatePage?: React.ReactNode;
@@ -20,6 +22,7 @@ export const mockApplicationsPageModule = () => ({
     <div data-testid="applications-page">
       <div data-testid="page-title">{title}</div>
       <div data-testid="page-description">{description}</div>
+      {headerAction && <div data-testid="header-action">{headerAction}</div>}
       {headerContent && <div data-testid="header-content">{headerContent}</div>}
       {empty && emptyStatePage ? <div data-testid="empty-state">{emptyStatePage}</div> : children}
     </div>

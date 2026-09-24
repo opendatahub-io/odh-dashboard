@@ -93,6 +93,7 @@ import { metricDomId, parseMetricReference } from '~/app/utilities/metricUtils';
 import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_FILES,
@@ -997,7 +998,7 @@ function AutoragConfigure({
                             const selected = OPTIMIZATION_METRIC_OPTIONS.find(
                               (m) => m.value === field.value,
                             );
-                            const metricDescription = METRIC_DESCRIPTIONS[field.value];
+                            const metricDescription = getMetricDescription(field.value);
                             return (
                               <>
                                 <Select

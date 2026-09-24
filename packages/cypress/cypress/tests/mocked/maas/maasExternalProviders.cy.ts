@@ -183,30 +183,30 @@ describe('External providers', () => {
 
       it('filters and sorts external providers', () => {
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic Provider');
-        externalProvidersPage.findColumnSortButton('External provider').click();
+        externalProvidersPage.findColumnSortButton('Name').click();
         externalProvidersPage
           .findRows()
           .eq(0)
           .should('contain.text', 'Pending Anthropic Development');
         externalProvidersPage.findRows().eq(4).should('contain.text', 'Anthropic Provider');
-        externalProvidersPage.findColumnSortButton('External provider').click();
+        externalProvidersPage.findColumnSortButton('Name').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic Provider');
         externalProvidersPage
           .findRows()
           .eq(4)
           .should('contain.text', 'Pending Anthropic Development');
 
-        externalProvidersPage.findColumnSortButton('Provider type').click();
+        externalProvidersPage.findColumnSortButton('Type').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic');
         externalProvidersPage.findRows().eq(4).should('contain.text', 'AWS Bedrock');
-        externalProvidersPage.findColumnSortButton('Provider type').click();
+        externalProvidersPage.findColumnSortButton('Type').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'AWS Bedrock');
         externalProvidersPage.findRows().eq(4).should('contain.text', 'Anthropic');
 
-        externalProvidersPage.findColumnSortButton('Authentication').click();
+        externalProvidersPage.findColumnSortButton('Authentication type').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'API key');
         externalProvidersPage.findRows().eq(4).should('contain.text', 'Signature Version 4');
-        externalProvidersPage.findColumnSortButton('Authentication').click();
+        externalProvidersPage.findColumnSortButton('Authentication type').click();
         externalProvidersPage.findRows().eq(0).should('contain.text', 'Signature Version 4');
         externalProvidersPage.findRows().eq(4).should('contain.text', 'API key');
 

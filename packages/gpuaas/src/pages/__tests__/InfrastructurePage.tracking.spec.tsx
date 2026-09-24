@@ -4,7 +4,10 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { GPUAAS_EVENTS } from '../../tracking/gpuaasTrackingConstants';
+import {
+  GPUAAS_EVENTS,
+  QUOTA_USAGE_INTERACTION_TYPES,
+} from '../../tracking/gpuaasTrackingConstants';
 import type { ClusterMetrics } from '../../hooks/useInfrastructureMetrics';
 import InfrastructurePage from '../InfrastructurePage';
 
@@ -36,7 +39,7 @@ jest.mock('@odh-dashboard/ui-core', () => {
 });
 
 jest.mock('@odh-dashboard/internal/utilities/time', () => ({
-  relativeTime: () => 'a few seconds ago',
+  relativeTime: () => 'Just now',
 }));
 
 const mockRefresh = jest.fn();
@@ -90,6 +93,7 @@ jest.mock('../../hooks/useQuotaHierarchy', () => ({
   default: () => ({
     data: { tree: [] },
     loaded: true,
+    lastRefreshed: new Date(),
     refresh: mockQuotaRefresh,
   }),
 }));
@@ -159,6 +163,13 @@ describe('InfrastructurePage - Tracking Events', () => {
   });
 
   describe('Infrastructure Data Refresh', () => {
+    it('renders just now with lowercase after the Updated prefix', () => {
+      render(<InfrastructurePage />);
+
+      expect(screen.getByText('Updated just now')).toBeInTheDocument();
+      expect(screen.queryByText('Updated Just now')).not.toBeInTheDocument();
+    });
+
     it('refreshes active tab data after switching tabs', async () => {
       const user = userEvent.setup();
       render(<InfrastructurePage />);
@@ -188,6 +199,28 @@ describe('InfrastructurePage - Tracking Events', () => {
       expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, expect.any(Object));
       expect(mockRefresh).toHaveBeenCalled();
       expect(mockBorrowingRefresh).toHaveBeenCalled();
+    });
+
+    it('tracks quota usage refresh on refresh button click', async () => {
+      const user = userEvent.setup();
+      render(<InfrastructurePage />);
+
+      await user.click(screen.getByTestId('infrastructure-tab-quota-usage'));
+      const refreshButton = within(screen.getByTestId('quota-usage-refresh-badge')).getByRole(
+        'button',
+        { name: 'Refresh' },
+      );
+      await user.click(refreshButton);
+
+      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, {
+        refreshSource: 'quota-usage',
+        outcome: 'click',
+        secondsSinceLastUpdate: expect.any(Number),
+      });
+      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+        interactionType: QUOTA_USAGE_INTERACTION_TYPES.refresh,
+        secondsSinceTabLoad: expect.any(Number),
+      });
     });
 
     it('includes secondsSinceLastUpdate when lastRefreshed is available', async () => {

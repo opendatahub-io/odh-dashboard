@@ -145,4 +145,12 @@ export const processAndValidateResults = (
 
   // Log final summary
   logFinalSummary(categorized, results.length);
+
+  // Flush soft assertions here (in the test body) so Cypress retries work.
+  // The global after() hook in support/e2e.ts is a fallback for other tests.
+  if (categorized.permanentErrors.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const softAssert = require('soft-assert');
+    softAssert.softAssertAll();
+  }
 };

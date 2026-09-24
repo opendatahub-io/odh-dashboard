@@ -31,6 +31,7 @@ For general ODH Dashboard contribution guidelines, refer to [ODH CONTRIBUTING.md
 ## Prerequisites
 
 - **[Node.js](https://nodejs.org/)**: v22.18.0 or later
+- **pnpm**: 11.22.0 (the version pinned by the repository)
 - **[Go](https://go.dev/)**: v1.26 or later
 - **[Docker](https://www.docker.com/)**/**[Podman](https://podman.io/)**: For containerized deployment
 
@@ -71,15 +72,16 @@ The `.env.local` file is gitignored and should never be committed.
 
 ### Frontend Development
 
+Install workspace dependencies from the repository root, then start the frontend
+from this package:
+
 ```bash
-# Navigate to the frontend directory
-cd frontend
+# From the repository root
+pnpm install
 
-# Install dependencies
-npm install
-
-# Start development server
-npm run start:dev
+# From packages/autorag
+cd packages/autorag/frontend
+pnpm run start:dev
 ```
 
 The standalone frontend will be available at **http://localhost:9000**
@@ -118,7 +120,7 @@ Then access the app at **http://localhost:9000**
 make dev-start-federated
 ```
 
-**Important:** You must also run the main ODH Dashboard separately (from repo root: `npm run dev`). Then access AutoRAG through the ODH Dashboard UI at **http://localhost:4010** - look for the AutoRAG option in the side navigation.
+**Important:** You must also run the main ODH Dashboard separately (from repo root: `pnpm run dev`). Then access AutoRAG through the ODH Dashboard UI at **http://localhost:4010** - look for the AutoRAG option in the side navigation.
 
 ### Deployment Modes
 
@@ -147,17 +149,17 @@ Docker deployment documentation is coming soon. For now, please use the local de
 
 Key environment variables for the BFF:
 
-| Variable            | Description                              | Default    |
-| ------------------- | ---------------------------------------- | ---------- |
-| `PORT`              | HTTP server port                         | 4000       |
-| `DEPLOYMENT_MODE`   | `standalone`, `kubeflow`, or `federated` | standalone |
-| `DEV_MODE`          | Enables development features             | false      |
-| `MOCK_K8S_CLIENT`   | Use in-memory mock for Kubernetes        | false      |
-| `MOCK_MAAS_CLIENT`  | Use fake MaaS model discovery and avoid external MaaS calls | false |
-| `MOCK_PIPELINE_SERVER_CLIENT` | Use mock Kubeflow Pipelines client | false |
-| `MOCK_S3_CLIENT`    | Use mock S3 client                      | false      |
-| `STATIC_ASSETS_DIR` | Directory for frontend assets            | ./static   |
-| `LOG_LEVEL`         | Logging level (ERROR, WARN, INFO, DEBUG) | INFO       |
+| Variable                      | Description                                                 | Default    |
+| ----------------------------- | ----------------------------------------------------------- | ---------- |
+| `PORT`                        | HTTP server port                                            | 4000       |
+| `DEPLOYMENT_MODE`             | `standalone`, `kubeflow`, or `federated`                    | standalone |
+| `DEV_MODE`                    | Enables development features                                | false      |
+| `MOCK_K8S_CLIENT`             | Use in-memory mock for Kubernetes                           | false      |
+| `MOCK_MAAS_CLIENT`            | Use fake MaaS model discovery and avoid external MaaS calls | false      |
+| `MOCK_PIPELINE_SERVER_CLIENT` | Use mock Kubeflow Pipelines client                          | false      |
+| `MOCK_S3_CLIENT`              | Use mock S3 client                                          | false      |
+| `STATIC_ASSETS_DIR`           | Directory for frontend assets                               | ./static   |
+| `LOG_LEVEL`                   | Logging level (ERROR, WARN, INFO, DEBUG)                    | INFO       |
 
 ## License
 

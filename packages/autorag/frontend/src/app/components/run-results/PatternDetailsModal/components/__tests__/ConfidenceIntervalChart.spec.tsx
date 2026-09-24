@@ -131,6 +131,19 @@ describe('ConfidenceIntervalChart', () => {
         screen.getByText(/Each optimization metric is plotted on a shared 0–1 x-axis/),
       ).toBeInTheDocument();
     });
+
+    it('should provide definition hover help for metrics and CI legend items', () => {
+      render(<ConfidenceIntervalChart scores={fullScores} />);
+
+      expect(screen.getByTestId('ci-scores-info')).toHaveAccessibleName(
+        'Confidence interval scores info',
+      );
+      expect(screen.getByTestId('ci-metric-help-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-legend-interval-help')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-legend-low-help')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-legend-mean-help')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-legend-high-help')).toBeInTheDocument();
+    });
   });
 
   describe('comparison mode', () => {

@@ -114,7 +114,9 @@ export const blankDashboardCR: DashboardConfig = {
       gpuaas: true,
       connectionTest: false,
       modelCapabilities: false,
+      runtimeCatalog: false,
       observabilityDashboard: true,
+      nimWizard: true,
     },
     notebookController: {
       enabled: true,

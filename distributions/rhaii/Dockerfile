@@ -13,8 +13,8 @@ FROM ${NODE_BASE_IMAGE} AS ui-builder
 
 WORKDIR /usr/src/workspace
 
-# Copy root workspace manifest (npm needs it to resolve workspace graph)
-COPY package.json package-lock.json* ./
+# Copy root workspace manifest and lockfile for pnpm workspace resolution
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Copy workspace packages required by the RHAII distribution
 COPY frontend/package.json ./frontend/
@@ -35,16 +35,18 @@ COPY packages/k8s-core/ ./packages/k8s-core/
 COPY packages/model-registry/ ./packages/model-registry/
 COPY packages/ui-core/ ./packages/ui-core/
 
+# Copy build scripts required by rspack/webpack configs
+COPY scripts/ ./scripts/
+
 # Copy the base distribution (shell components + shared rspack config)
 COPY distributions/base/ ./distributions/base/
 
 # Copy the RHAII distribution
 COPY distributions/rhaii/ ./distributions/rhaii/
 
-# Install workspace dependencies
-# Use --ignore-scripts for hermetic/Hermeto builds. Do not use --omit=optional:
-RUN npm cache clean --force
-RUN npm ci --ignore-scripts
+# Install pnpm and workspace dependencies
+RUN npm install -g pnpm@11.22.0
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 # Build the RHAII frontend
 WORKDIR /usr/src/workspace/distributions/rhaii
@@ -52,7 +54,7 @@ ARG ENABLE_MODEL_SERVING=false
 ENV ENABLE_MODEL_SERVING=${ENABLE_MODEL_SERVING}
 ARG MODEL_SERVING_REMOTE_ENTRY=""
 ENV MODEL_SERVING_REMOTE_ENTRY=${MODEL_SERVING_REMOTE_ENTRY}
-RUN npm run build
+RUN pnpm run build
 
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder

@@ -63,6 +63,19 @@ export const mapAuthMechanismToHumanReadable = (authMechanism: AuthMechanism): s
   }
 };
 
+export const getAuthMechanismDescription = (authMechanism: AuthMechanism): string => {
+  switch (authMechanism) {
+    case 'apikey':
+      return 'Authenticates requests with a bearer token in the Authorization header. Most common for providers like OpenAI and Anthropic.';
+    case 'sigv4':
+      return 'An AWS request signing protocol that uses access key credentials to authenticate requests. Used with AWS services.';
+    case 'oauth2':
+      return 'Authenticates using a client credentials flow. A service account credential is exchanged for a short-lived access token.';
+    default:
+      return '';
+  }
+};
+
 export const convertStringToAuthMechanism = (authMechanism: string): AuthMechanism => {
   switch (authMechanism) {
     case 'apikey':
