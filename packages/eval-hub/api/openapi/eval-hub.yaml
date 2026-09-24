@@ -1741,6 +1741,10 @@ components:
         message:
           type: string
           description: Optional status detail reported by Kueue
+        queue_position:
+          type: integer
+          minimum: 1
+          description: One-based position of the Workload in its Kueue LocalQueue, when available
 
     KueueWorkloadStatusesResponse:
       type: object

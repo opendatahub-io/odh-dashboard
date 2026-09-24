@@ -188,6 +188,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     evaluationIDs,
     isKueueSchedulingReady,
     isKueueWorkloadStatusPollingEnabled,
+    evaluations.some((job) => !isTerminalState(job.status.state)),
   );
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');

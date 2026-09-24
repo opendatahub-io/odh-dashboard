@@ -201,7 +201,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
   });
 
   it(
-    'requires a Queue HardwareProfile and sends it when starting a single-benchmark evaluation',
+    'starts a single-benchmark evaluation with the required Queue HardwareProfile',
     {
       retries: { runMode: 0, openMode: 0 },
       tags: ['@EvalHubKueue', '@Kueue'],
@@ -228,7 +228,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
   );
 
   it(
-    'requires a Queue HardwareProfile in the benchmark-suite run modal',
+    'starts a benchmark-suite evaluation with the required Queue HardwareProfile',
     {
       retries: { runMode: 0, openMode: 0 },
       tags: ['@EvalHubKueue', '@Kueue'],

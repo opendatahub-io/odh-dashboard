@@ -40,6 +40,7 @@ export const useKueueWorkloadStatuses = (
   evaluationIDs: string[],
   isKueueEnabled: boolean,
   isPollingEnabled: boolean,
+  hasInProgressEvaluations: boolean,
 ): UseKueueWorkloadStatusesResult => {
   const uniqueEvaluationIDs = React.useMemo(
     () => getUniqueEvaluationIDs(evaluationIDs),
@@ -60,10 +61,11 @@ export const useKueueWorkloadStatuses = (
         ),
       ).then((batches) => batches.flat());
     },
-    // Continue until Kueue reaches a terminal state. EvalHub can mark a run canceled before
-    // Kueue has finished releasing its admission, so EvalHub's terminal state alone is not enough.
+    // A Workload can appear after the first response, so keep checking while an evaluation is
+    // in progress. Once EvalHub is terminal, continue only while Kueue is releasing admission.
     refetchInterval: (query) =>
-      isPollingEnabled && hasActiveKueueWorkloadStatus(query.state.data)
+      isPollingEnabled &&
+      (hasInProgressEvaluations || hasActiveKueueWorkloadStatus(query.state.data))
         ? KUEUE_WORKLOAD_STATUS_POLL_INTERVAL_MS
         : false,
   });

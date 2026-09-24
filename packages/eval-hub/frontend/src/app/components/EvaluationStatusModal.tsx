@@ -344,8 +344,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   } = useKueueWorkloadStatuses(
     namespace,
     jobId ? [jobId] : [],
-    isKueueSchedulingReady && !isTerminalState(state),
+    isKueueSchedulingReady,
     isPageVisible,
+    !isTerminalState(state),
   );
   const kueueWorkloadStatus = jobId ? kueueWorkloadStatusesByEvaluationID.get(jobId) : undefined;
 

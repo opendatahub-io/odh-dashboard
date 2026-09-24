@@ -18,6 +18,8 @@ import (
 
 const testNamespace = "evalhub-test"
 
+// TestGetKueueAvailability checks how cluster configuration, namespace labels,
+// and LocalQueues determine Kueue availability and scheduling readiness.
 func TestGetKueueAvailability(t *testing.T) {
 	tests := []struct {
 		name                 string
@@ -160,6 +162,8 @@ func TestGetKueueAvailability(t *testing.T) {
 	}
 }
 
+// TestKueueAvailabilityCacheSharesInFlightLookupAndReturnsClones verifies that
+// concurrent callers share one lookup and receive independent cached values.
 func TestKueueAvailabilityCacheSharesInFlightLookupAndReturnsClones(t *testing.T) {
 	cache := newKueueAvailabilityCache(time.Minute)
 	var loads atomic.Int32
@@ -215,6 +219,56 @@ func TestKueueAvailabilityCacheSharesInFlightLookupAndReturnsClones(t *testing.T
 	}
 }
 
+// TestKueueAvailabilityCacheRemovesExpiredTokenEntries verifies that a lookup
+// for a new token clears expired entries left by older tokens.
+func TestKueueAvailabilityCacheRemovesExpiredTokenEntries(t *testing.T) {
+	cache := newKueueAvailabilityCache(time.Minute)
+	load := func() (*models.KueueAvailability, error) {
+		return newKueueAvailability(false, false, []string{}), nil
+	}
+	if _, err := cache.get(context.Background(), "expired-token:namespace", load); err != nil {
+		t.Fatal(err)
+	}
+
+	cache.mu.Lock()
+	cache.entries["expired-token:namespace"].expiresAt = time.Now().Add(-time.Second)
+	cache.nextCleanup = time.Now().Add(-time.Second)
+	cache.mu.Unlock()
+
+	if _, err := cache.get(context.Background(), "new-token:namespace", load); err != nil {
+		t.Fatal(err)
+	}
+	cache.mu.Lock()
+	_, staleEntryPresent := cache.entries["expired-token:namespace"]
+	_, newEntryPresent := cache.entries["new-token:namespace"]
+	cache.mu.Unlock()
+	if staleEntryPresent || !newEntryPresent {
+		t.Fatalf("cache retained expired token entry = %t, new token entry present = %t", staleEntryPresent, newEntryPresent)
+	}
+}
+
+// TestGetKueueAvailabilityAllowsUnmanagedNamespaceWithoutClusterReadPermission
+// verifies that denied cluster reads do not block an unmanaged namespace.
+func TestGetKueueAvailabilityAllowsUnmanagedNamespaceWithoutClusterReadPermission(t *testing.T) {
+	client := newKueueFakeClient(namespaceObject(map[string]interface{}{}))
+	client.PrependReactor("list", kueueOperatorResource, func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewForbidden(schema.GroupResource{Group: kueueOperatorGroup, Resource: kueueOperatorResource}, "", errors.New("denied"))
+	})
+	client.PrependReactor("list", dscResource, func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewForbidden(schema.GroupResource{Group: dscGroup, Resource: dscResource}, "", errors.New("denied"))
+	})
+
+	availability, err := getKueueAvailability(context.Background(), client, testNamespace)
+	if err != nil {
+		t.Fatalf("unmanaged namespace should not require cluster-scoped read access: %v", err)
+	}
+	if availability.Enabled || availability.SchedulingReady || availability.NamespaceManaged {
+		t.Fatalf("unexpected Kueue availability for unmanaged namespace: %+v", availability)
+	}
+}
+
+// TestGetKueueAvailabilityReturnsDataScienceClusterListError verifies that a
+// managed namespace surfaces a DataScienceCluster lookup failure.
 func TestGetKueueAvailabilityReturnsDataScienceClusterListError(t *testing.T) {
 	client := newKueueFakeClient(namespaceObject(map[string]interface{}{
 		kueueManagedLabel: "true",

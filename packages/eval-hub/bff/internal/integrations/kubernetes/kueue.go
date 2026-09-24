@@ -59,9 +59,10 @@ var (
 // keys contain a hash of the caller token, never the token itself, to preserve
 // user-scoped authorization semantics.
 type kueueAvailabilityCache struct {
-	mu      sync.Mutex
-	ttl     time.Duration
-	entries map[string]*kueueAvailabilityCacheEntry
+	mu          sync.Mutex
+	ttl         time.Duration
+	nextCleanup time.Time
+	entries     map[string]*kueueAvailabilityCacheEntry
 }
 
 type kueueAvailabilityCacheEntry struct {
@@ -85,6 +86,16 @@ func (c *kueueAvailabilityCache) get(
 ) (*models.KueueAvailability, error) {
 	now := time.Now()
 	c.mu.Lock()
+	// Expired token keys must be removed even if that token is never used again.
+	// Leave in-flight entries alone so concurrent callers can share their result.
+	if !now.Before(c.nextCleanup) {
+		for entryKey, entry := range c.entries {
+			if entry.done == nil && !now.Before(entry.expiresAt) {
+				delete(c.entries, entryKey)
+			}
+		}
+		c.nextCleanup = now.Add(c.ttl)
+	}
 	if entry, found := c.entries[key]; found {
 		if entry.done != nil {
 			done := entry.done
@@ -198,6 +209,11 @@ func getKueueAvailability(ctx context.Context, client dynamic.Interface, namespa
 	if !clusterEnabled && !externalKueueFound {
 		clusterEnabled, err = dataScienceClusterKueueManaged(ctx, client)
 		if err != nil {
+			// An unmanaged namespace does not require Kueue scheduling. Regular
+			// users may not read the cluster-scoped DataScienceCluster resource.
+			if !namespaceManaged && k8serrors.IsForbidden(err) {
+				return newKueueAvailability(false, false, []string{}), nil
+			}
 			return nil, err
 		}
 	}
