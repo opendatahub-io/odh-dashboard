@@ -34,7 +34,7 @@ type SandboxCROptions struct {
 	ProfileID               string
 	LlamaStackConfigMapName string
 	WrapperAppConfigMapName string
-	// Image is the container image for the agent pod, sourced from RELATED_IMAGE_OGX_CORE.
+	// Image is the container image for the agent pod, sourced from RELATED_IMAGE_ODH_OGX_CORE_IMAGE.
 	Image            string
 	MaaSGatewayURL   string
 	MaaSSubscription string

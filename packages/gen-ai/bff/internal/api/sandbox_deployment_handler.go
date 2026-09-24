@@ -206,11 +206,11 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	}
 	resources.WrapperAppConfigMapName = waCM.Name
 
-	// Require the OGX core image — injected by the operator via RELATED_IMAGE_OGX_CORE.
+	// Require the OGX core image — injected by the operator via RELATED_IMAGE_ODH_OGX_CORE_IMAGE.
 	ogxImage := app.config.OGXCoreImage
 	if ogxImage == "" && app.config.MockK8sClient {
 		// Mock mode persists a simulated Sandbox but never starts a pod, so it does
-		// not receive the operator-injected RELATED_IMAGE_OGX_CORE environment value.
+		// not receive the operator-injected RELATED_IMAGE_ODH_OGX_CORE_IMAGE environment value.
 		ogxImage = mockSandboxOGXImage
 	}
 	if ogxImage == "" {
@@ -219,7 +219,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 			StatusCode: 500,
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    "missing_image",
-				Message: "OGX core image not configured; set RELATED_IMAGE_OGX_CORE or --ogx-core-image",
+				Message: "OGX core image not configured; set RELATED_IMAGE_ODH_OGX_CORE_IMAGE or --ogx-core-image",
 			},
 		})
 		return

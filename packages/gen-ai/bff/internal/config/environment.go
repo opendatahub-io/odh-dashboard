@@ -174,7 +174,7 @@ type EnvConfig struct {
 	PgvectorImage string
 
 	// OGXCoreImage is the container image for the OGX core agent runtime.
-	// Injected by the operator via RELATED_IMAGE_OGX_CORE.
+	// Injected by the operator via RELATED_IMAGE_ODH_OGX_CORE_IMAGE.
 	OGXCoreImage string
 
 	// ─── GATEWAY ───────────────────────────────────────────────
