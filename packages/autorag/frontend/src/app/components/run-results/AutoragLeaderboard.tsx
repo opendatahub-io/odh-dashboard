@@ -281,11 +281,11 @@ const getColumnMeta = (id: string, metric?: MetricReference): ColumnMeta | undef
     }
     return undefined;
   }
-  if (id in COLUMN_META) {
+  if (Object.hasOwn(COLUMN_META, id)) {
     return COLUMN_META[id];
   }
   const lowerId = id.toLowerCase();
-  if (lowerId in COLUMN_META) {
+  if (Object.hasOwn(COLUMN_META, lowerId)) {
     return COLUMN_META[lowerId];
   }
   return undefined;

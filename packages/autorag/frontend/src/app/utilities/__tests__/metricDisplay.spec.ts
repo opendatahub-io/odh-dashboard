@@ -28,6 +28,12 @@ describe('getMetricDescription', () => {
   it('should return undefined for unknown metrics', () => {
     expect(getMetricDescription('unknown_metric')).toBeUndefined();
   });
+
+  it('should return undefined for inherited object property names', () => {
+    expect(getMetricDescription('__proto__')).toBeUndefined();
+    expect(getMetricDescription('constructor')).toBeUndefined();
+    expect(getMetricDescription('toString')).toBeUndefined();
+  });
 });
 
 describe('formatEvaluatorLabel', () => {
@@ -44,6 +50,12 @@ describe('formatEvaluatorLabel', () => {
 
   it('should label missing evaluators as Other', () => {
     expect(formatEvaluatorLabel('')).toBe('Other');
+  });
+
+  it('should title-case inherited object property names as unknown evaluators', () => {
+    expect(formatEvaluatorLabel('__proto__')).toBe('__proto__');
+    expect(formatEvaluatorLabel('constructor')).toBe('Constructor');
+    expect(formatEvaluatorLabel('toString')).toBe('ToString');
   });
 });
 

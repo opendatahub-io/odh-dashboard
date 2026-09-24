@@ -16,16 +16,25 @@ const METRIC_DESCRIPTION_ALIASES: Record<string, string> = {
 };
 /* eslint-enable camelcase */
 
+const getOwnValue = <T>(record: Record<string, T>, key: string): T | undefined =>
+  Object.hasOwn(record, key) ? record[key] : undefined;
+
 export const getMetricDescription = (metricKey: string): string | undefined => {
   const key = metricKey.toLowerCase();
-  return METRIC_DESCRIPTIONS[key] ?? METRIC_DESCRIPTIONS[METRIC_DESCRIPTION_ALIASES[key]];
+  const description = getOwnValue(METRIC_DESCRIPTIONS, key);
+  if (description !== undefined) {
+    return description;
+  }
+
+  const alias = getOwnValue(METRIC_DESCRIPTION_ALIASES, key);
+  return alias ? getOwnValue(METRIC_DESCRIPTIONS, alias) : undefined;
 };
 
 export const formatEvaluatorLabel = (evaluator: string): string => {
   if (!evaluator) {
     return 'Other';
   }
-  const known = EVALUATOR_LABELS[evaluator.toLowerCase()];
+  const known = getOwnValue(EVALUATOR_LABELS, evaluator.toLowerCase());
   if (known) {
     return known;
   }

@@ -7,10 +7,53 @@ class AutoragRunResultsPage {
     return cy.findByTestId('leaderboard-table');
   }
 
+  findManageColumnsButton() {
+    return cy.findByTestId('manage-columns-button');
+  }
+
+  findManageColumnsModal() {
+    return cy.findByTestId('manage-columns-modal');
+  }
+
+  findManageColumnsSaveButton() {
+    return this.findManageColumnsModal().findByRole('button', { name: 'Save' });
+  }
+
+  findMetricColumnCheckbox(metricName: string, evaluator: string) {
+    return cy.findByTestId(`column-check-metric---${evaluator}---${metricName}--`);
+  }
+
+  enableMetricColumn(metricName: string, evaluator: string) {
+    this.findManageColumnsButton().click();
+    this.findManageColumnsModal().should('be.visible');
+    this.findMetricColumnCheckbox(metricName, evaluator).then(($control) => {
+      const $checkbox = $control.is('input') ? $control : $control.find('input[type="checkbox"]');
+      const isChecked =
+        $checkbox.prop('checked') === true ||
+        $checkbox.attr('aria-checked') === 'true' ||
+        $control.attr('aria-checked') === 'true';
+      if (!isChecked) {
+        cy.wrap($control).click();
+      }
+    });
+    this.findManageColumnsSaveButton().click();
+    this.findManageColumnsModal().should('not.exist');
+  }
+
   findMetricHeader(metricName: string, evaluator?: string) {
     return cy.findByTestId(
       evaluator ? `metric-header-${metricName}-${evaluator}` : `metric-header-${metricName}`,
     );
+  }
+
+  findMetricHeaderInfoButton(metricName: string, evaluator: string) {
+    return this.findMetricHeader(metricName, evaluator).findByRole('button', {
+      name: /more info/i,
+    });
+  }
+
+  findMetricDescriptionTooltip() {
+    return cy.findByRole('tooltip');
   }
 
   findPatternLink(rank: number) {
@@ -31,6 +74,10 @@ class AutoragRunResultsPage {
 
   findCIMetricHelp(metricKey: string) {
     return cy.findByTestId(`ci-metric-help-${metricKey}`);
+  }
+
+  findCILegendLowHelp() {
+    return cy.findByTestId('ci-legend-low-help');
   }
 
   findPatternDetailsTab(tabKey: string) {

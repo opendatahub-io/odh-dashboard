@@ -8,27 +8,6 @@ const initIntercepts = () => {
   cy.intercept({ method: 'GET', pathname: '**/api/connection-types' }, { body: { items: [] } });
 };
 
-/**
- * The seed run's optimization_metric is faithfulness, so Answer correctness is not in the
- * default column set. Enable only the Unitxt column so metric-header-answer_correctness is unique.
- */
-const enableUnitxtAnswerCorrectnessColumn = (): void => {
-  cy.findByTestId('manage-columns-button').click();
-  cy.findByTestId('manage-columns-modal').should('be.visible');
-  cy.findByTestId('column-check-metric---unitxt---answer_correctness--').then(($control) => {
-    const $checkbox = $control.is('input') ? $control : $control.find('input[type="checkbox"]');
-    const isChecked =
-      $checkbox.prop('checked') === true ||
-      $checkbox.attr('aria-checked') === 'true' ||
-      $control.attr('aria-checked') === 'true';
-    if (!isChecked) {
-      cy.wrap($control).click();
-    }
-  });
-  cy.findByTestId('manage-columns-modal').findByRole('button', { name: 'Save' }).click();
-  cy.findByTestId('manage-columns-modal').should('not.exist');
-};
-
 describe('AutoRAG run results metrics', () => {
   beforeEach(() => {
     initIntercepts();
@@ -37,13 +16,13 @@ describe('AutoRAG run results metrics', () => {
   });
 
   it('should provide metric header definitions, CI help, and grouped Sample Q&A metrics', () => {
-    enableUnitxtAnswerCorrectnessColumn();
+    // The seed run optimizes for faithfulness, so enable this column to make its header unique.
+    autoragRunResultsPage.enableMetricColumn('answer_correctness', 'unitxt');
     autoragRunResultsPage.findMetricHeader('answer_correctness', 'unitxt').should('be.visible');
+    autoragRunResultsPage.findMetricHeaderInfoButton('answer_correctness', 'unitxt').click();
     autoragRunResultsPage
-      .findMetricHeader('answer_correctness', 'unitxt')
-      .findByRole('button', { name: /more info/i })
-      .click();
-    cy.findByText(/matches the expected ground-truth answers/i).should('be.visible');
+      .findMetricDescriptionTooltip()
+      .should('contain.text', 'Matches the expected ground-truth answers');
 
     autoragRunResultsPage.findPatternLink(1).click();
     autoragRunResultsPage.findPatternDetailsModal().should('be.visible');
@@ -51,7 +30,7 @@ describe('AutoRAG run results metrics', () => {
     autoragRunResultsPage.findCIScoresChart().should('be.visible');
     autoragRunResultsPage.findCIScoresInfo().should('be.visible');
     autoragRunResultsPage.findCIMetricHelp('answer_correctness').should('exist');
-    cy.findByTestId('ci-legend-low-help').should('exist');
+    autoragRunResultsPage.findCILegendLowHelp().should('exist');
 
     autoragRunResultsPage.findPatternDetailsTab('sample_qa').click();
     autoragRunResultsPage.findMetricGroup('unitxt').should('be.visible');
