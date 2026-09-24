@@ -17,6 +17,10 @@ Before beginning development on an issue, please refer to our [Definition of Rea
 
 When reviewing pull requests, please refer to our comprehensive [PR Review Guidelines](docs/pr-review-guidelines.md) to ensure code quality, functionality, and adherence to best practices.
 
+## Merge Gating
+
+Before marking a pull request ready to merge, follow the [Tide Merge Gating](docs/tide-merge-gating.md) guide. It explains how Tide labels and required checks interact with GitHub reviews and repository rulesets.
+
 ## Best Practices
 
 For development standards and coding guidelines, please review our [Best Practices](docs/best-practices.md) documentation. This covers React coding standards, component architecture, performance considerations, and PatternFly usage guidelines.
