@@ -13,7 +13,7 @@ export type AgentProfileSerializationContext = {
   /**
    * Name of the ConfigMap that holds all MCP server configs.
    * From MCPServersResponse.config_map_info.name.
-   * When absent, MCP servers are omitted from the output.
+   * When absent, ConfigMap-backed servers are omitted; registry servers can still be saved.
    */
   mcpConfigMapName?: string;
 };
@@ -116,8 +116,9 @@ export const serializeToAgentProfileSpec = (
     }
   }
 
-  // MCP servers: each selected server name maps to its key in the shared ConfigMap
-  if (config.selectedMcpServerIds.length > 0 && mcpConfigMapName) {
+  // ConfigMap servers are stored as resource references; registry servers retain their
+  // MLflow identity so they are not coupled to the dashboard ConfigMap.
+  if (config.selectedMcpServerIds.length > 0) {
     const entries: AgentProfileMcpServer[] = [];
     for (const serverId of config.selectedMcpServerIds) {
       const server = availableServers.find((s) => s.url === serverId);
@@ -125,10 +126,19 @@ export const serializeToAgentProfileSpec = (
         continue;
       }
       const allowedTools = getToolsForServer(config.mcpToolSelections, server.url);
-      entries.push({
-        serverRef: { kind: 'ConfigMap', name: mcpConfigMapName, key: server.name },
-        allowedTools: allowedTools.length > 0 ? allowedTools : undefined,
-      });
+      if (server.source === 'registry') {
+        entries.push({
+          name: server.name,
+          source: 'mlflow',
+          version: server.version || undefined,
+          allowedTools: allowedTools.length > 0 ? allowedTools : undefined,
+        });
+      } else if (mcpConfigMapName) {
+        entries.push({
+          serverRef: { kind: 'ConfigMap', name: mcpConfigMapName, key: server.name },
+          allowedTools: allowedTools.length > 0 ? allowedTools : undefined,
+        });
+      }
     }
     if (entries.length > 0) {
       spec.mcpServers = entries;

@@ -2,14 +2,36 @@ import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
 import {
   interceptNewAgentProfile,
   interceptExistingAgentProfile,
+  makeCreateProfileResponse,
 } from '~/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilePlaygroundHelpers';
-import { mockAgentProfiles } from '~/__tests__/cypress/cypress/__mocks__';
+import {
+  mockAgentProfiles,
+  mockMCPRegistryStatusAutoConnect,
+  mockMCPServer,
+  mockMCPServersWithRegistry,
+} from '~/__tests__/cypress/cypress/__mocks__';
 
 // Use mock-test-namespace-2 which has LSD configured and ready in the BFF
 const TEST_NAMESPACE = 'mock-test-namespace-2';
 const NEW_PROFILE_ID = 'new-profile-uuid-1';
 const EXISTING_PROFILE_ID = 'existing-profile-uuid-1';
 const AGENT_NAME = 'My Coding Agent';
+const REGISTRY_MCP_SERVER = mockMCPServer({
+  name: 'com.example/jira',
+  url: 'https://registry.example.com/jira',
+  transport: 'streamable-http',
+  source: 'registry',
+  version: '3',
+});
+
+const interceptRegistryMcpServer = (): void => {
+  cy.intercept(
+    'GET',
+    '**/gen-ai/api/v1/aaa/mcps*',
+    mockMCPServersWithRegistry([REGISTRY_MCP_SERVER], []),
+  );
+  mockMCPRegistryStatusAutoConnect(REGISTRY_MCP_SERVER.name, REGISTRY_MCP_SERVER.url);
+};
 
 describe('Agent Profile - Playground (Mocked)', () => {
   it(
@@ -48,7 +70,17 @@ describe('Agent Profile - Playground (Mocked)', () => {
     'should update an existing profile via PUT and include resourceVersion',
     { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
     () => {
-      interceptExistingAgentProfile(EXISTING_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE);
+      interceptRegistryMcpServer();
+      interceptExistingAgentProfile(EXISTING_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE, {
+        mcpServers: [
+          {
+            name: REGISTRY_MCP_SERVER.name,
+            source: 'mlflow',
+            version: REGISTRY_MCP_SERVER.version,
+            allowedTools: ['search_issues'],
+          },
+        ],
+      });
 
       cy.step('Visit playground with an existing agentProfileId in the URL');
       chatbotPage.visit(TEST_NAMESPACE, { agentProfileId: EXISTING_PROFILE_ID });
@@ -66,9 +98,58 @@ describe('Agent Profile - Playground (Mocked)', () => {
       cy.wait('@updateAgentProfile').then((interception) => {
         expect(interception.request.body.spec.displayName).to.equal(AGENT_NAME);
         expect(interception.request.body.resourceVersion).to.equal('rv-1');
+        expect(interception.request.body.spec.mcpServers).to.deep.equal([
+          {
+            name: REGISTRY_MCP_SERVER.name,
+            source: 'mlflow',
+            version: REGISTRY_MCP_SERVER.version,
+            allowedTools: ['search_issues'],
+          },
+        ]);
       });
 
       cy.findByTestId('save-agent-profile-modal').should('not.exist');
+    },
+  );
+
+  it(
+    'should create a profile from a reloaded registry MCP selection',
+    { tags: ['@GenAI', '@AgentProfile', '@Chatbot'] },
+    () => {
+      interceptRegistryMcpServer();
+      interceptExistingAgentProfile(EXISTING_PROFILE_ID, AGENT_NAME, TEST_NAMESPACE, {
+        mcpServers: [
+          {
+            name: REGISTRY_MCP_SERVER.name,
+            source: 'mlflow',
+            version: REGISTRY_MCP_SERVER.version,
+            allowedTools: ['search_issues'],
+          },
+        ],
+      });
+      cy.interceptGenAi(
+        'POST /api/v1/agent-profiles',
+        makeCreateProfileResponse('registry-profile-id', 'Registry profile', TEST_NAMESPACE),
+      ).as('createRegistryProfile');
+
+      chatbotPage.visit(TEST_NAMESPACE, { agentProfileId: EXISTING_PROFILE_ID });
+      cy.wait('@getAgentProfile');
+
+      chatbotPage.openKebabAndClickItem('save-as-agent-profile-button');
+      cy.findByTestId('save-agent-profile-name-input').clear();
+      cy.findByTestId('save-agent-profile-name-input').type('Registry profile');
+      cy.findByTestId('save-agent-profile-submit-button').click();
+
+      cy.wait('@createRegistryProfile').then((interception) => {
+        expect(interception.request.body.spec.mcpServers).to.deep.equal([
+          {
+            name: REGISTRY_MCP_SERVER.name,
+            source: 'mlflow',
+            version: REGISTRY_MCP_SERVER.version,
+            allowedTools: ['search_issues'],
+          },
+        ]);
+      });
     },
   );
 

@@ -258,6 +258,38 @@ describe('serializeToAgentProfileSpec', () => {
   });
 
   describe('mcpServers field', () => {
+    it('should serialize registry MCP servers without a ConfigMap reference', () => {
+      const registryServer = makeMcpServer({
+        name: 'com.example/jira',
+        url: 'https://registry.example.com/jira',
+        source: 'registry',
+        version: '3',
+      });
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        selectedMcpServerIds: [registryServer.url],
+        mcpToolSelections: {
+          'default-ns': { [registryServer.url]: ['search_issues'] },
+        },
+      };
+
+      const result = serializeToAgentProfileSpec(
+        config,
+        'My Agent',
+        undefined,
+        makeContext({ mcpServers: [registryServer] }),
+      );
+
+      expect(result.mcpServers).toEqual([
+        {
+          name: 'com.example/jira',
+          source: 'mlflow',
+          version: '3',
+          allowedTools: ['search_issues'],
+        },
+      ]);
+    });
+
     it('should serialize selected MCP servers with ConfigMap ref', () => {
       const server = makeMcpServer();
       const config = {

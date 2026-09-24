@@ -47,11 +47,22 @@ export type AgentProfileMcpServerRef = {
   key?: string;
 };
 
-export type AgentProfileMcpServer = {
-  serverRef: AgentProfileMcpServerRef;
-  credentialsRef?: AgentProfileResourceRef;
+type AgentProfileMcpServerBase = {
   allowedTools?: string[];
 };
+
+export type AgentProfileConfigMapMcpServer = AgentProfileMcpServerBase & {
+  serverRef: AgentProfileMcpServerRef;
+  credentialsRef?: AgentProfileResourceRef;
+};
+
+export type AgentProfileRegistryMcpServer = AgentProfileMcpServerBase & {
+  name: string;
+  source: 'mlflow';
+  version?: string;
+};
+
+export type AgentProfileMcpServer = AgentProfileConfigMapMcpServer | AgentProfileRegistryMcpServer;
 
 export type AgentProfileGuardrail = {
   provider: string;

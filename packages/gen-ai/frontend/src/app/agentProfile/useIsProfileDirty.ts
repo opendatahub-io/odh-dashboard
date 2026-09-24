@@ -22,6 +22,11 @@ const stableStringify = (val: unknown): string =>
 // (maxOutputTokens is in AgentProfileSpec but never serialized from config) or metadata-only.
 const EXCLUDED_SPEC_KEYS = new Set(['displayName', 'description', 'guardrails', 'maxOutputTokens']);
 
+const mcpSortKey = (server: NonNullable<AgentProfileSpec['mcpServers']>[number]): string =>
+  'serverRef' in server
+    ? `resource:${server.serverRef.kind}:${server.serverRef.name}:${server.serverRef.key ?? ''}`
+    : `registry:${server.source}:${server.name}:${server.version ?? ''}`;
+
 /**
  * Strips fields not written by serializeToAgentProfileSpec (displayName, description,
  * guardrails) and sorts mcpServers/allowedTools for stable comparison.
@@ -31,9 +36,7 @@ const normalizeSpec = (spec: AgentProfileSpec) => ({
   ...Object.fromEntries(Object.entries(spec).filter(([k]) => !EXCLUDED_SPEC_KEYS.has(k))),
   mcpServers: spec.mcpServers
     ? spec.mcpServers
-        .toSorted((a, b) =>
-          (a.serverRef.key ?? a.serverRef.name).localeCompare(b.serverRef.key ?? b.serverRef.name),
-        )
+        .toSorted((a, b) => mcpSortKey(a).localeCompare(mcpSortKey(b)))
         .map((s) => ({
           ...s,
           allowedTools: s.allowedTools ? [...s.allowedTools].toSorted() : undefined,

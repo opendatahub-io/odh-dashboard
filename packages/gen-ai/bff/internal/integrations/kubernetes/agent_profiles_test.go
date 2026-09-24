@@ -111,6 +111,14 @@ func TestCreateAgentProfile(t *testing.T) {
 						},
 						MaxNumResults: func() *int { v := 5; return &v }(),
 					},
+					MCPServers: []models.MCPServerReference{
+						{
+							Name:         "com.example/jira",
+							Source:       "mlflow",
+							Version:      "3",
+							AllowedTools: []string{"search_issues"},
+						},
+					},
 				},
 			},
 			wantErr: false,
@@ -136,6 +144,12 @@ func TestCreateAgentProfile(t *testing.T) {
 				assert.Equal(t, 0.7, *profile.Spec.Temperature)
 				assert.NotNil(t, profile.Spec.VectorStores)
 				assert.Len(t, profile.Spec.VectorStores.Stores, 1)
+				require.Len(t, profile.Spec.MCPServers, 1)
+				assert.Nil(t, profile.Spec.MCPServers[0].ServerRef)
+				assert.Equal(t, "com.example/jira", profile.Spec.MCPServers[0].Name)
+				assert.Equal(t, "mlflow", profile.Spec.MCPServers[0].Source)
+				assert.Equal(t, "3", profile.Spec.MCPServers[0].Version)
+				assert.Equal(t, []string{"search_issues"}, profile.Spec.MCPServers[0].AllowedTools)
 			},
 		},
 		{
@@ -687,7 +701,7 @@ func TestValidateAgentProfile(t *testing.T) {
 					Model:       models.ModelReference{ID: "m", URI: "u"},
 					MCPServers: []models.MCPServerReference{
 						{
-							ServerRef: models.MCPServerRef{
+							ServerRef: &models.MCPServerRef{
 								Kind: "ConfigMap",
 								Name: "mcp-servers",
 								// Key missing
@@ -698,6 +712,40 @@ func TestValidateAgentProfile(t *testing.T) {
 			},
 			wantErr: true,
 			errMsg:  "serverRef.key is required when kind is ConfigMap",
+		},
+		{
+			name: "MCP server - registry source must be mlflow",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata:   models.AgentProfileMetadata{Name: "63b8b609-35a4-41da-b094-0e498923c8e0"},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Test",
+					Model:       models.ModelReference{ID: "m", URI: "u"},
+					MCPServers:  []models.MCPServerReference{{Name: "jira", Source: "registry"}},
+				},
+			},
+			wantErr: true,
+			errMsg:  "unsupported registry source",
+		},
+		{
+			name: "MCP server - resource and registry forms cannot be mixed",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata:   models.AgentProfileMetadata{Name: "4d1f8518-5f46-4a92-aef1-cb483909c22e"},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Test",
+					Model:       models.ModelReference{ID: "m", URI: "u"},
+					MCPServers: []models.MCPServerReference{{
+						ServerRef: &models.MCPServerRef{Kind: "ConfigMap", Name: "mcp-servers", Key: "jira"},
+						Name:      "jira",
+						Source:    "mlflow",
+					}},
+				},
+			},
+			wantErr: true,
+			errMsg:  "exactly one of serverRef or registry reference must be set",
 		},
 	}
 
@@ -713,4 +761,28 @@ func TestValidateAgentProfile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateAgentProfileRegistryMCPServer(t *testing.T) {
+	profile := &models.AgentProfile{
+		APIVersion: "genai.redhat.com/v1alpha1",
+		Kind:       "AgentProfile",
+		Metadata: models.AgentProfileMetadata{
+			Name: "d94c7e14-89ee-46db-9003-725d0789fa7a",
+		},
+		Spec: models.AgentProfileSpec{
+			DisplayName: "Registry Agent",
+			Model:       models.ModelReference{ID: "model", URI: "https://model.example.com"},
+			MCPServers: []models.MCPServerReference{
+				{
+					Name:         "com.example/jira",
+					Source:       "mlflow",
+					Version:      "3",
+					AllowedTools: []string{"search_issues"},
+				},
+			},
+		},
+	}
+
+	require.NoError(t, validateAgentProfile(profile))
 }
