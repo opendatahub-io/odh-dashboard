@@ -102,6 +102,67 @@ describe('mapArtifactToInsight', () => {
     expect(insight.result).toBe('0.0%');
   });
 
+  it('should display 100% for a zero lower-is-better result', () => {
+    const artifact: CatalogSecurityArtifact = {
+      artifactType: 'SecurityArtifact',
+      customProperties: {
+        lower_is_better: { metadataType: 'MetadataBoolValue', bool_value: true },
+        result: { metadataType: 'MetadataDoubleValue', double_value: 0 },
+      },
+    };
+
+    const insight = mapArtifactToInsight(artifact);
+
+    expect(insight.result).toBe('100.0%');
+  });
+
+  it('should complement a non-zero lower-is-better result', () => {
+    const artifact: CatalogSecurityArtifact = {
+      artifactType: 'SecurityArtifact',
+      customProperties: {
+        lower_is_better: { metadataType: 'MetadataBoolValue', bool_value: true },
+        result: { metadataType: 'MetadataDoubleValue', double_value: 0.026 },
+      },
+    };
+
+    const insight = mapArtifactToInsight(artifact);
+
+    expect(insight.result).toBe('97.4%');
+  });
+
+  it('should preserve the current display for an explicitly higher-is-better result', () => {
+    const artifact: CatalogSecurityArtifact = {
+      artifactType: 'SecurityArtifact',
+      customProperties: {
+        result_metric: { metadataType: 'MetadataStringValue', string_value: 'accuracy' },
+        lower_is_better: { metadataType: 'MetadataBoolValue', bool_value: false },
+        result: { metadataType: 'MetadataDoubleValue', double_value: 0.92 },
+      },
+    };
+
+    const insight = mapArtifactToInsight(artifact);
+
+    expect(insight.result).toBe('92.0%');
+  });
+
+  it('should trust lower-is-better metadata regardless of the metric name', () => {
+    const artifact: CatalogSecurityArtifact = {
+      artifactType: 'SecurityArtifact',
+      customProperties: {
+        result_metric: {
+          metadataType: 'MetadataStringValue',
+          string_value: 'latency_ms',
+        },
+        lower_is_better: { metadataType: 'MetadataBoolValue', bool_value: true },
+        result: { metadataType: 'MetadataDoubleValue', double_value: 25 },
+      },
+    };
+
+    const insight = mapArtifactToInsight(artifact);
+
+    expect(insight.result).toBe('75.0%');
+  });
+
   it('should handle a result of exactly 1 (100%)', () => {
     const artifact: CatalogSecurityArtifact = {
       artifactType: 'SecurityArtifact',
