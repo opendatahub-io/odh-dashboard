@@ -450,11 +450,14 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   // Use the most-current benchmark data (polled > list) to detect pre-start failures.
 
   const handleViewBenchmarkLogs = (bmIndex: number) => {
-    trackEvalHubEvent(EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED, {
-      evaluationName,
-      failure_category: 'benchmark_logs',
-      benchmarkIndex: bmIndex,
-    });
+    const benchmark = progressBenchmarks.find((bm) => bm.benchmark_index === bmIndex);
+    if (benchmark?.status === 'failed') {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED, {
+        evaluationName,
+        failure_category: 'benchmark_logs',
+        benchmarkIndex: bmIndex,
+      });
+    }
     setLogBenchmarkIndex(bmIndex);
     setActiveTab('events-log');
   };
