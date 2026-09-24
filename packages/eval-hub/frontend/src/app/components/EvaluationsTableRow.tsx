@@ -1,15 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Button, Checkbox, Tooltip } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
@@ -28,6 +19,7 @@ import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { deleteEvaluationJob } from '~/app/api/k8s';
 import { evaluationReconfigureRoute } from '~/app/routes';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 import StopEvaluationModal from './StopEvaluationModal';
 import './EvaluationsTableRow.scss';
 
@@ -278,8 +270,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       )}
 
       {showDeleteModal && (
-        <Modal
-          isOpen
+        <DeleteConfirmationModal
+          title="Delete evaluation run?"
+          body={`The ${evaluationName} evaluation run and its results will be deleted.`}
           onClose={() => {
             if (isSubmitting) {
               return;
@@ -287,46 +280,14 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             setShowDeleteModal(false);
             setActionError(null);
           }}
-          variant="small"
-          aria-label="Delete evaluation run?"
-          data-testid="evaluation-delete-modal"
-        >
-          <ModalHeader title="Delete evaluation run?" titleIconVariant="warning" />
-          <ModalBody>
-            {actionError && (
-              <Alert
-                variant="danger"
-                isInline
-                isPlain
-                title={actionError}
-                className="pf-v6-u-mb-md"
-              />
-            )}
-            {`The ${evaluationName} evaluation run and its results will be deleted.`}
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              variant="danger"
-              onClick={handleDeleteConfirm}
-              isLoading={isSubmitting}
-              isDisabled={isSubmitting}
-              data-testid="evaluation-delete-confirm"
-            >
-              Delete
-            </Button>
-            <Button
-              variant="link"
-              onClick={() => {
-                setShowDeleteModal(false);
-                setActionError(null);
-              }}
-              isDisabled={isSubmitting}
-              data-testid="evaluation-delete-cancel"
-            >
-              Cancel
-            </Button>
-          </ModalFooter>
-        </Modal>
+          onConfirm={handleDeleteConfirm}
+          actionError={actionError}
+          isSubmitting={isSubmitting}
+          ariaLabel="Delete evaluation run?"
+          dataTestId="evaluation-delete-modal"
+          confirmTestId="evaluation-delete-confirm"
+          cancelTestId="evaluation-delete-cancel"
+        />
       )}
     </>
   );

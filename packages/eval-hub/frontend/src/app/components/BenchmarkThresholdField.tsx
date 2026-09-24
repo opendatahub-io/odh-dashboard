@@ -10,6 +10,7 @@ type BenchmarkThresholdFieldProps = {
   description?: string;
   helpText?: string;
   fieldId?: string;
+  isDisabled?: boolean;
 };
 
 const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
@@ -19,6 +20,7 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
   helpText,
   description = 'Set the minimum passing score for this evaluation. Results below this threshold will be marked as failing.',
   fieldId = 'benchmark-threshold',
+  isDisabled = false,
 }) => {
   const [sliderValue, setSliderValue] = React.useState(value);
   const [inputValue, setInputValue] = React.useState(value);
@@ -79,6 +81,7 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
         value={sliderValue}
         inputValue={inputValue}
         onChange={handleChange}
+        isDisabled={isDisabled}
         isInputVisible
         showBoundaries
         inputAriaLabel={label}

@@ -1,12 +1,18 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
+import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
 
 const mockRefresh = jest.fn();
+const mockUseCollectionsQuery = jest.fn();
+const mockUseDeleteCollectionMutation = jest.fn();
+const mockDeleteCollection = jest.fn();
+const mockNotificationSuccess = jest.fn();
+const mockNotificationError = jest.fn();
 const mockUseEvaluationJobs = jest.fn<
   [EvaluationJob[], boolean, Error | undefined, jest.Mock],
   []
@@ -40,6 +46,11 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 }));
 
 jest.mock('mod-arch-core', () => ({
+  NotificationContext: jest.requireActual('react').createContext({
+    notificationCount: 0,
+    updateNotificationCount: jest.fn(),
+    dispatch: jest.fn(),
+  }),
   useNamespaceSelector: jest.fn().mockReturnValue({
     namespaces: [{ name: 'test-project' }],
     updatePreferredNamespace: jest.fn(),
@@ -59,12 +70,36 @@ jest.mock('~/app/components/EvaluationStatusModal', () => ({
     job ? <div data-testid="evaluation-status-modal" data-namespace={namespace} /> : null,
 }));
 
+jest.mock('~/app/components/StartEvaluationRunModal', () => ({
+  __esModule: true,
+  default: ({ collection, isOpen }: { collection?: { name: string }; isOpen: boolean }) =>
+    isOpen ? (
+      <div data-testid="evaluations-page-start-evaluation-run-modal">{collection?.name}</div>
+    ) : null,
+}));
+
 jest.mock('~/app/context/CollectionsContext', () => ({
   useCollectionsContext: jest.fn().mockReturnValue({
     response: { items: [] },
     loaded: true,
     loadError: undefined,
     refresh: jest.fn(),
+  }),
+}));
+
+jest.mock('~/app/hooks/collections', () => ({
+  useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
+  useDeleteCollectionMutation: (...args: unknown[]) => mockUseDeleteCollectionMutation(...args),
+}));
+
+jest.mock('~/app/hooks/useProviders', () => ({
+  useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
+}));
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({
+    success: mockNotificationSuccess,
+    error: mockNotificationError,
   }),
 }));
 
@@ -84,11 +119,22 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 });
 
+const LocationDisplay: React.FC = () => {
+  const { pathname, search } = useLocation();
+  return (
+    <>
+      <div data-testid="location-pathname">{pathname}</div>
+      <div data-testid="location-search">{search}</div>
+    </>
+  );
+};
+
 describe('EvaluationsPage', () => {
-  const renderPage = (namespace: string) =>
+  const renderPage = (namespace: string, search = '') =>
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[`/${namespace}`]}>
+        <MemoryRouter initialEntries={[`/${namespace}${search}`]}>
+          <LocationDisplay />
           <Routes>
             <Route path="/:namespace" element={<EvaluationsPage />} />
           </Routes>
@@ -96,18 +142,146 @@ describe('EvaluationsPage', () => {
       </QueryClientProvider>,
     );
 
+  const selectRunsTab = () => {
+    fireEvent.click(screen.getByTestId('runs-tab'));
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     queryClient.clear();
     mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
     mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
+    mockDeleteCollection.mockResolvedValue(undefined);
+    mockUseDeleteCollectionMutation.mockReturnValue({
+      error: null,
+      isPending: false,
+      mutateAsync: mockDeleteCollection,
+      reset: jest.fn(),
+    });
+    mockUseCollectionsQuery.mockReturnValue({
+      data: { items: mockBenchmarkSuiteCollections() },
+      isLoading: false,
+      error: null,
+    });
   });
 
   it('should render the page with correct title and description', () => {
     renderPage('test-project');
     expect(screen.getByTestId('applications-page')).toBeInTheDocument();
     expect(screen.getByText('Evaluations')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluate-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
+    expect(screen.getByTestId('page-description')).toHaveTextContent(
+      'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
+    );
+  });
+
+  it('should not gate the Evaluate tab on the Runs request', () => {
+    mockUseEvaluationJobs.mockReturnValue([[], false, new Error('Runs unavailable'), mockRefresh]);
+
+    renderPage('test-project');
+
+    expect(screen.getByTestId('evaluate-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
+    expect(screen.queryByTestId('evalhub-load-error-admin-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('should show the suite contextual actions and delete confirmation modal', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+
+    expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.getByText('Duplicate')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    expect(screen.getByTestId('benchmark-suite-delete-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suite-delete-modal')).toHaveTextContent(
+      'The Model suite 2 benchmark suite will be permanently deleted.',
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-delete-cancel'));
+
+    expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
+  });
+
+  it('should navigate to the copy suite page from Duplicate', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/model-suite-2/copy',
+    );
+  });
+
+  it('should show a success notification after deleting a benchmark suite', async () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    fireEvent.click(screen.getByTestId('benchmark-suite-delete-confirm'));
+
+    await waitFor(() => expect(mockDeleteCollection).toHaveBeenCalledWith('model-suite-2'));
+    expect(mockNotificationSuccess).toHaveBeenCalledWith(
+      'Benchmark suite deleted',
+      '"Model suite 2" has been deleted.',
+    );
+  });
+
+  it('should link to the tenant benchmark suites page', () => {
+    renderPage('test-project');
+
+    expect(screen.getByRole('link', { name: 'Go to All my benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-project/collections',
+    );
+  });
+
+  it('should link to the single benchmark flow from the browse benchmarks section', () => {
+    renderPage('test-project');
+
+    expect(screen.queryByTestId('start-single-benchmark-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('browse-all-benchmarks')).toBeInTheDocument();
+    expect(screen.getByTestId('browse-all-benchmarks-explore')).toHaveAttribute(
+      'href',
+      '/evaluation/test-project/create/benchmarks',
+    );
+  });
+
+  it('should open the start evaluation run modal for a suite', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Run benchmark suite' })[0]);
+
+    expect(screen.getByTestId('evaluations-page-start-evaluation-run-modal')).toHaveTextContent(
+      'Model suite 2',
+    );
+  });
+
+  it('should use the Runs tab from the URL and render its content description', () => {
+    const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
+    mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+    renderPage('test-project', '?tab=runs');
+
+    expect(screen.getByTestId('runs-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
+    expect(screen.getByTestId('page-description')).toHaveTextContent(
+      'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
+    );
+    expect(screen.getByTestId('runs-tab-description')).toHaveTextContent(
+      'Start and manage evaluation runs for models, agents, and datasets.',
+    );
+  });
+
+  it('should persist tab selection in the URL when switching tabs', () => {
+    renderPage('test-project');
+    selectRunsTab();
+
+    expect(screen.getByTestId('location-search')).toHaveTextContent('?tab=runs');
   });
 
   it('should render the project selector with the current namespace', () => {
@@ -181,13 +355,16 @@ describe('EvaluationsPage', () => {
   describe('when EvalHub service is healthy', () => {
     it('should show empty state when there are no evaluation runs', () => {
       renderPage('test-project');
+      selectRunsTab();
       expect(screen.getByTestId('eval-hub-empty-state')).toBeInTheDocument();
+      expect(screen.queryByTestId('runs-tab-description')).not.toBeInTheDocument();
     });
 
     it('should render the evaluations table when evaluations exist', () => {
       const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
       mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
       renderPage('test-project');
+      selectRunsTab();
 
       expect(screen.queryByTestId('eval-hub-empty-state')).not.toBeInTheDocument();
       expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
@@ -209,6 +386,7 @@ describe('EvaluationsPage', () => {
       render(
         <QueryClientProvider client={queryClient}>
           <MemoryRouter initialEntries={['/ns-a']}>
+            <LocationDisplay />
             <NavigateHelper />
             <Routes>
               <Route path="/:namespace" element={<EvaluationsPage />} />
@@ -217,6 +395,7 @@ describe('EvaluationsPage', () => {
         </QueryClientProvider>,
       );
 
+      selectRunsTab();
       const statusLabel = screen.getByTestId('evaluation-status-button');
       fireEvent.click(within(statusLabel).getByRole('button'));
       await waitFor(() => {
