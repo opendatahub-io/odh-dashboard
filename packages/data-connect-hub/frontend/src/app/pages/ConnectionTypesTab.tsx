@@ -141,9 +141,14 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
 
   const shouldShowConnectionType = React.useCallback(
     (connectionType: ConnectionType) => {
-      if (typeof searchTerm === 'string' && searchTerm.length) {
-        const renderedConnectionTypeValues = `${connectionType.resource.name} ${connectionType.resource.description}`;
-        return renderedConnectionTypeValues.includes(searchTerm);
+      const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+      if (normalizedSearchTerm) {
+        const searchableText = `${connectionType.resource.name} ${
+          connectionType.resource.description ?? ''
+        }`
+          .trim()
+          .toLowerCase();
+        return searchableText.includes(normalizedSearchTerm);
       }
       return true;
     },

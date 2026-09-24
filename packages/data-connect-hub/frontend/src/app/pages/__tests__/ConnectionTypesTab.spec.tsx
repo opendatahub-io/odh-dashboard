@@ -77,7 +77,7 @@ describe('ConnectionTypesTab', () => {
       name: 'Search data connection types by name',
     });
 
-    await user.type(search, 'binary objects');
+    await user.type(search, '  BINARY OBJECTS  ');
 
     expect(screen.getByText('S3')).toBeTruthy();
     expect(screen.queryByText('PostgreSQL')).toBeNull();
@@ -85,6 +85,32 @@ describe('ConnectionTypesTab', () => {
 
     await user.clear(search);
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
+  });
+
+  it('should not match missing descriptions as text', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        mockConnectionType({ resource: { description: undefined } }),
+        mockConnectionType({
+          metadata: { id: 'without-description' },
+          resource: { name: 'Without description', description: null },
+        }),
+      ],
+      true,
+      undefined,
+    ]);
+    renderTab();
+    const search = screen.getByRole('textbox', {
+      name: 'Search data connection types by name',
+    });
+
+    await user.type(search, 'undefined');
+    expect(screen.getByText('No matching data connection types')).toBeTruthy();
+
+    await user.clear(search);
+    await user.type(search, 'null');
+    expect(screen.getByText('No matching data connection types')).toBeTruthy();
   });
 
   it('should render the no-match state when search removes every connection type', async () => {
