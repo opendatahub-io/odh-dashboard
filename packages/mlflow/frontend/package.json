@@ -1,5 +1,6 @@
 {
   "name": "mlflow-ui",
+  "lint:owner": true,
   "version": "1.0.0",
   "description": "MLflow standalone frontend UI",
   "repository": "https://github.com/opendatahub-io/odh-dashboard.git",

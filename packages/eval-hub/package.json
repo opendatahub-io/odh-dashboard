@@ -1,6 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/eval-hub",
+  "lint:delegates": ["frontend"],
   "description": "Eval Hub plugin.",
   "version": "0.0.0",
   "module-federation": {
