@@ -11,6 +11,7 @@
     "**/*.json"
   ],
   "compilerOptions": {
+    "rootDir": "../../../../../",
     "types": ["node", "cypress", "@testing-library/cypress"]
   }
 }
