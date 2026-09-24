@@ -1388,8 +1388,7 @@ while composing its first draft posts nothing. Draft against the schema
 Write the result to `$FULLSEND_OUTPUT_DIR/agent-result.json` following
 the overlay schema (`.fullsend/schemas/review-result.schema.json`).
 Include `product_ask` when a section LLM (or the none-snapshot
-fallback) produced it, and include `jira_criteria` when that section evaluated
-acceptance criteria. Do NOT call `gh pr review` — the post-script
+fallback) produced it. Do NOT call `gh pr review` — the post-script
 handles all GitHub mutations. Omit `action` and `body` for normal reviews; the
 host computes and renders both. Set `action: failure` plus `reason` only when
 the review did not complete.
@@ -1423,7 +1422,7 @@ Every non-failure result must include:
   **A row may only claim `pass` or `fail` when a producer for it actually
   ran in this run.** Check the ledger (step 4c) before writing each row.
   If the dimension that owns the row was skipped — `security` skipped at
-  triage, `jira-pr-review` skipped for a missing snapshot — the row is
+  triage, `jira-pr-review` could not compare a missing snapshot — the row is
   `could-not-verify`, and its note says the dimension did not run and
   why. "The security dimension ran and found no issues" when triage
   skipped security is a false statement about the run, not a
@@ -1441,8 +1440,6 @@ Every non-failure result must include:
   corroborate.
 - `product_ask` from the section LLM, including `{ "status": "none" }` when no
   Jira snapshot exists.
-- `jira_criteria[]` from the Jira section when explicit acceptance criteria were
-  available, preserving each PASS/PARTIAL/MISS/SKIP verdict and evidence.
 - `checks[]` from structured-output LLMs. Preserve unavailable results
   rather than converting them into findings.
 - Optional `label_actions` from the `issue-labels` skill when contextual

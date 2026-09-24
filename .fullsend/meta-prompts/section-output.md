@@ -16,20 +16,13 @@ For `product_ask`, return:
     "justified_in_description": false,
     "needs_human": false
   },
-  "jira_criteria": [
-    {
-      "criterion": "<explicit Jira acceptance criterion>",
-      "verdict": "PASS|PARTIAL|MISS|SKIP",
-      "evidence": "<diff-grounded evidence or reason it cannot be evaluated>",
-      "stale_comment": false
-    }
-  ],
   "findings": []
 }
 ```
 
-This is an exact closed shape. Do not add Jira identity, summary,
-explanation, overall-assessment, or other fields to `product_ask` or its
-criterion rows. Keep that supporting context in the allowed string arrays and
-`evidence` fields. The orchestrator must project the returned object onto this
-shape before adding it to the final review result.
+This is an exact closed shape. Do not add Jira identity, summary, explanation,
+overall-assessment, criteria rows, or other fields to `product_ask`. Keep
+supporting context in the allowed string arrays. When findings are included,
+they use the findings contract and must describe only concrete coherence
+problems, not Jira-versus-code evaluation. The orchestrator must project the
+returned object onto this shape before adding it to the final review result.

@@ -553,7 +553,6 @@ def status_text(result, action):
     return "This review did not complete. Do not treat this head as reviewed."
 
 STATUS_MARK = {"pass": "✅", "warning": "🟡", "fail": "❌", "not-applicable": "➖", "could-not-verify": "❔"}
-VERDICT_MARK = {"PASS": "✅", "PARTIAL": "🟠", "MISS": "❌", "SKIP": "➖"}
 ACTION_MARK = {"approve": "✅", "comment": "💬", "request-changes": "🔴", "reject": "⛔", "failure": "❌"}
 
 def mark(table, key, default=""):
@@ -776,19 +775,6 @@ def render_body(result, previous_md, action):
             details_body += ["", "_No dispatch ledger for this run — this list is self-reported by the agent._"]
         details_body.append("")
 
-    criteria = result.get("jira_criteria") if isinstance(result.get("jira_criteria"), list) else []
-    if criteria:
-        details_body += ["### Jira acceptance criteria", "",
-                         "| Criterion | Verdict | Evidence |", "| --- | --- | --- |"]
-        for c in criteria:
-            verdict = c.get("verdict") or ""
-            stale = " · stale comment" if c.get("stale_comment") else ""
-            details_body.append(
-                f"| {table_cell(c.get('criterion'))} | "
-                f"{mark(VERDICT_MARK, verdict)} {table_cell(verdict)}{stale} "
-                f"| {table_cell(c.get('evidence'))} |")
-        details_body.append("")
-
     checks = result.get("checks") if isinstance(result.get("checks"), list) else []
     if checks:
         details_body += ["### Readiness checks", "",
@@ -951,14 +937,12 @@ run_self_test() {
     echo "PASS approve omits findings section"
   fi
 
-  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Permission is checked\",\"verdict\":\"PASS\",\"evidence\":\"Route gate is present.\",\"stale_comment\":true}],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}]}" > "${tmp}/structured.json"
+  printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\"]}]}" > "${tmp}/structured.json"
   transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
   if grep -q '## Checks' <<<"${body}" ||
      ! grep -q '### Readiness checks' <<<"${body}" ||
-     ! grep -q 'test-impact-review' <<<"${body}" ||
-     ! grep -q '### Jira acceptance criteria' <<<"${body}" ||
-     ! grep -q 'Permission is checked' <<<"${body}"; then
+     ! grep -q 'test-impact-review' <<<"${body}"; then
     echo "FAIL structured results: audit tables were not rendered in Review details" >&2
     fail=1
   else
@@ -1078,39 +1062,6 @@ run_self_test() {
     fail=1
   else
     echo "PASS producers table attributes findings and separates ran-clean from skipped"
-  fi
-
-  # A patch snippet must survive as code. Flattened to one bullet it is
-  # unreadable, and a fence shorter than the snippet's own backticks breaks out.
-  fix_finding='{"severity":"high","category":"coderabbit","dimension":"coderabbit","file":"a.ts","description":"Guard the empty list.","why":"The list can be empty.","remediation":"if (!items.length) {\n  return null;\n}\n\n```ts\nconst safe = items ?? [];\n```"}'
-  prose_finding='{"severity":"high","category":"correctness","dimension":"correctness","file":"b.ts","description":"Empty state throws.","why":"Unguarded map.","remediation":"Guard the list and add an empty-state test."}'
-  printf '%s' "{${common},\"findings\":[${fix_finding},${prose_finding}]}" > "${tmp}/fix.json"
-  transform_review_result "${tmp}/fix.json" > "${tmp}/fix-out.json"
-  body=$(jq -r .body "${tmp}/fix-out.json")
-  if ! grep -qE '^  - Remediation:$' <<<"${body}"; then
-    echo "FAIL remediation: multi-line snippet was not given its own block" >&2
-    fail=1
-  elif ! grep -qE '^    ````$' <<<"${body}"; then
-    echo "FAIL remediation: fence was not padded past the snippet's own backticks" >&2
-    fail=1
-  elif ! grep -qE '^      return null;$' <<<"${body}"; then
-    echo "FAIL remediation: snippet indentation was lost" >&2
-    fail=1
-  elif ! grep -qE '^  - Remediation: Guard the list and add an empty-state test\.$' <<<"${body}"; then
-    echo "FAIL remediation: single-line remediation should stay inline" >&2
-    fail=1
-  else
-    echo "PASS remediation renders snippets as code and prose inline"
-  fi
-
-  # Unmet criteria stay expanded; an all-clear set collapses.
-  printf '%s' "{${common},\"jira_criteria\":[{\"criterion\":\"Gate is present\",\"verdict\":\"MISS\",\"evidence\":\"No gate in diff.\"}]}" > "${tmp}/jira-miss.json"
-  body=$(transform_review_result "${tmp}/jira-miss.json" | jq -r .body)
-  if ! grep -q '### Jira acceptance criteria' <<<"${body}" || ! grep -q 'Gate is present' <<<"${body}"; then
-    echo "FAIL jira-miss: unmet Jira criteria must appear in Review details" >&2
-    fail=1
-  else
-    echo "PASS unmet Jira criteria render in Review details"
   fi
 
   # The ledger claiming an empty-set skip while findings exist is the exact

@@ -183,7 +183,7 @@
       "id": "jira-pr-review",
       "kind": "llm-skill",
       "output": "section:product_ask",
-      "result_fields": ["product_ask", "jira_criteria"],
+      "result_fields": ["product_ask"],
       "dispatch": "always",
       "definition": "skills/pr-review/sub-agents/jira-pr-review/SKILL.md",
       "meta_prompt": "meta-prompts/section-output.md",
@@ -191,11 +191,8 @@
       "include_findings": true,
       "failure_severity": "info",
       "re_review": "full",
-      "categories": [
-        "jira-criterion-partial", "jira-criterion-missing", "jira-criterion-stale",
-        "jira-eval-unavailable"
-      ],
-      "notes": "Canonical Jira review compares the PR description with trusted Jira context and evaluates explicit acceptance criteria against the diff. product_ask and jira_criteria stay out of challenger synthesis; findings enter it."
+      "categories": ["jira-description-mismatch"],
+      "notes": "Canonical Jira review compares the PR description with trusted Jira context. The product_ask section stays outside challenger synthesis; only a concrete description-to-Jira coherence finding enters the findings path. The PR description remains the implementation source of truth, so Jira never produces code or acceptance-criterion findings. Missing or unavailable Jira context yields product_ask.status=none rather than a hard failure. Future automerge may use this correlation as a confidence signal; automerge is out of scope here. The host supports this split without additional Fullsend enhancements."
     },
     {
       "id": "test-impact-review",
