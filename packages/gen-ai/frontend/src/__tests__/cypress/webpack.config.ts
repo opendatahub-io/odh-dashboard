@@ -9,7 +9,7 @@ const config = {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     plugins: [
       new TsconfigPathsPlugin({
-        configFile: path.resolve(__dirname, './tsconfig.json'),
+        configFile: path.resolve(__dirname, '../../../tsconfig.json'),
       }),
     ],
     alias: {
@@ -27,7 +27,7 @@ const config = {
             loader: 'ts-loader',
             options: {
               transpileOnly: true,
-              configFile: path.resolve(__dirname, './tsconfig.json'),
+              configFile: path.resolve(__dirname, '../../../tsconfig.json'),
             },
           },
         ],

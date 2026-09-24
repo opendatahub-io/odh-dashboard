@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
 import yaml from 'js-yaml';
-import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
   mockNamespaces,
   mockNamespace,
@@ -132,37 +131,8 @@ export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
   });
 };
 
-export const setMCPRegistryServersFlag = (enabled: boolean): void => {
-  cy.window().then((win) => {
-    win.sessionStorage.setItem(
-      'odh-feature-flags',
-      JSON.stringify({ genAiMcpRegistryServers: enabled }),
-    );
-    win.dispatchEvent(new CustomEvent('odh-dev-flags-changed'));
-  });
-};
-
-export const configureMCPRegistryServersFlag = (enabled: boolean): void => {
-  const dashboardConfig = mockDashboardConfig({
-    genAiStudio: true,
-    aiAssetCustomEndpoints: true,
-    mcpRegistry: true,
-    modelAsService: false,
-    genAiMcpRegistryServers: enabled,
-  });
-
-  if (enabled) {
-    delete dashboardConfig.spec.dashboardConfig.genAiMcpRegistryServers;
-  }
-
-  cy.intercept({ method: 'GET', pathname: '/api/config' }, dashboardConfig);
-};
-
-export const setMCPRegistryServersQueryFlag = (enabled: boolean): void => {
-  Cypress.env('_featureFlagParams', enabled ? 'devFeatureFlags=genAiMcpRegistryServers=true' : '');
-};
-
 export const clearMCPRegistryServersFlag = (): void => {
+  Cypress.env('_featureFlagParams', '');
   cy.window().then((win) => {
     const flags = JSON.parse(win.sessionStorage.getItem('odh-feature-flags') ?? '{}') as Record<
       string,
@@ -175,7 +145,14 @@ export const clearMCPRegistryServersFlag = (): void => {
       win.sessionStorage.setItem('odh-feature-flags', JSON.stringify(flags));
     }
   });
-  Cypress.env('_featureFlagParams', '');
+};
+
+export const visitWithMCPRegistryServersFlag = (enabled: boolean): void => {
+  const flagParams = `devFeatureFlags=genAiMcpRegistryServers=${enabled}`;
+  Cypress.env('_featureFlagParams', flagParams);
+  cy.visit(`/?${flagParams}`);
+  cy.document().should('exist');
+  cy.get('body', { timeout: 15000 }).should('be.visible');
 };
 
 type MCPServerStatus = 'healthy' | 'error' | 'unknown';
@@ -240,13 +217,10 @@ export const navigateToPlayground = (
   mcpRegistryServersEnabled?: boolean,
 ): void => {
   cy.step('Navigate to Playground');
-  if (mcpRegistryServersEnabled !== undefined) {
-    configureMCPRegistryServersFlag(mcpRegistryServersEnabled);
-  }
-  appChrome.visit();
-  if (mcpRegistryServersEnabled !== undefined) {
-    setMCPRegistryServersQueryFlag(mcpRegistryServersEnabled);
-    setMCPRegistryServersFlag(mcpRegistryServersEnabled);
+  if (mcpRegistryServersEnabled === undefined) {
+    appChrome.visit();
+  } else {
+    visitWithMCPRegistryServersFlag(mcpRegistryServersEnabled);
   }
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
