@@ -133,33 +133,12 @@ export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
 
 export const clearMCPRegistryServersFlag = (): void => {
   Cypress.env('_featureFlagParams', '');
-  cy.window().then((win) => {
-    const flags = JSON.parse(win.sessionStorage.getItem('odh-feature-flags') ?? '{}') as Record<
-      string,
-      unknown
-    >;
-    delete flags.genAiMcpRegistryServers;
-    if (Object.keys(flags).length === 0) {
-      win.sessionStorage.removeItem('odh-feature-flags');
-    } else {
-      win.sessionStorage.setItem('odh-feature-flags', JSON.stringify(flags));
-    }
-  });
 };
 
 export const visitWithMCPRegistryServersFlag = (enabled: boolean): void => {
-  const flagParams = `devFeatureFlags=genAiMcpRegistryServers=${enabled}`;
+  const flagParams = `genAiMcpRegistryServers=${enabled}`;
   Cypress.env('_featureFlagParams', flagParams);
-  cy.visit(`/?${flagParams}`, {
-    onBeforeLoad(win) {
-      const flags = JSON.parse(win.sessionStorage.getItem('odh-feature-flags') ?? '{}') as Record<
-        string,
-        unknown
-      >;
-      flags.genAiMcpRegistryServers = enabled;
-      win.sessionStorage.setItem('odh-feature-flags', JSON.stringify(flags));
-    },
-  });
+  cy.visit(`/?${flagParams}`);
   cy.document().should('exist');
   cy.get('body', { timeout: 15000 }).should('be.visible');
 };
