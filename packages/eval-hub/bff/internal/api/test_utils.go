@@ -118,6 +118,7 @@ func newTestAppWithEvalHub(k8Factory kubernetes.KubernetesClientFactory, ehClien
 		kubernetesClientFactory: k8Factory,
 		evalHubClientFactory:    mockFactory,
 		repositories:            repositories.NewRepositories(),
+		dashboardNamespace:      "test-dashboard-ns",
 	}
 }
 
@@ -179,6 +180,22 @@ func (c *testK8sClient) GetEvalHubCRStatus(_ context.Context, _ *kubernetes.Requ
 		ReadyReplicas:   1,
 		Replicas:        1,
 	}, nil
+}
+
+func (c *testK8sClient) GetKueueAvailability(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (*models.KueueAvailability, error) {
+	return &models.KueueAvailability{}, nil
+}
+
+func (c *testK8sClient) GetKueueWorkloadStatuses(_ context.Context, _ *kubernetes.RequestIdentity, _ string, _ []string) (*models.KueueWorkloadStatusesResponse, error) {
+	return &models.KueueWorkloadStatusesResponse{}, nil
+}
+
+func (c *testK8sClient) ListHardwareProfiles(_ context.Context, _ *kubernetes.RequestIdentity, _, _ string) (*models.HardwareProfilesResponse, error) {
+	return &models.HardwareProfilesResponse{}, nil
+}
+
+func (c *testK8sClient) GetMissingHardwareProfileLocalQueueName(_ context.Context, _ *kubernetes.RequestIdentity, _, _, _ string) (string, bool, error) {
+	return "", false, nil
 }
 
 // erroringEHClient is a minimal EvalHub client whose HealthCheck always returns an error.

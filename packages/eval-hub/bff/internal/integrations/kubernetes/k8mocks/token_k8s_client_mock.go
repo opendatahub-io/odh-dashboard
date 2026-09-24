@@ -69,3 +69,36 @@ func (m *TokenKubernetesClientMock) GetEvalHubCRStatus(_ context.Context, _ *k8s
 		Replicas:        1,
 	}, nil
 }
+
+func (m *TokenKubernetesClientMock) GetKueueAvailability(_ context.Context, _ *k8s.RequestIdentity, _ string) (*models.KueueAvailability, error) {
+	return &models.KueueAvailability{
+		Enabled:              true,
+		SchedulingReady:      true,
+		ClusterEnabled:       true,
+		NamespaceManaged:     true,
+		LocalQueuesAvailable: true,
+		LocalQueueNames:      []string{"default"},
+	}, nil
+}
+
+func (m *TokenKubernetesClientMock) GetKueueWorkloadStatuses(_ context.Context, _ *k8s.RequestIdentity, _ string, _ []string) (*models.KueueWorkloadStatusesResponse, error) {
+	return &models.KueueWorkloadStatusesResponse{Items: []models.KueueWorkloadStatus{}}, nil
+}
+
+func (m *TokenKubernetesClientMock) ListHardwareProfiles(_ context.Context, _ *k8s.RequestIdentity, _, _ string) (*models.HardwareProfilesResponse, error) {
+	return &models.HardwareProfilesResponse{
+		Items: []models.HardwareProfile{
+			{
+				Name:           "default-gpu",
+				DisplayName:    "Default GPU",
+				Enabled:        true,
+				SchedulingType: "Queue",
+				LocalQueueName: "default",
+				Resources: []models.HardwareProfileResource{
+					{DisplayName: "CPU", Identifier: "cpu", ResourceType: "CPU", Default: "1"},
+					{DisplayName: "Memory", Identifier: "memory", ResourceType: "Memory", Default: "4Gi"},
+				},
+			},
+		},
+	}, nil
+}

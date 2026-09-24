@@ -62,6 +62,22 @@ jest.mock('~/app/hooks/useConnectionValidation', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useHardwareProfiles', () => ({
+  useHardwareProfiles: () => ({
+    profiles: [],
+    loaded: true,
+    error: undefined,
+  }),
+}));
+
+jest.mock('~/app/hooks/useKueueAvailability', () => ({
+  useKueueAvailability: () => ({
+    availability: undefined,
+    loaded: true,
+    error: undefined,
+  }),
+}));
+
 jest.mock('~/app/hooks/useInferenceServices', () => ({
   useInferenceServices: () => ({
     inferenceServices: [
@@ -123,9 +139,14 @@ type ResolveCollection = NonNullable<
 const renderModal = (
   resolveCollection?: ResolveCollection,
   onClonePendingChange?: (isPending: boolean) => void,
-  options: { collection?: Collection; defaultSourceMode?: SourceMode } = {},
+  options: {
+    collection?: Collection;
+    defaultSourceMode?: SourceMode;
+    omitCollection?: boolean;
+  } = {},
 ) => {
   const onClose = jest.fn();
+  const modalCollection = options.omitCollection ? undefined : (options.collection ?? collection);
 
   render(
     <MemoryRouter>
@@ -133,7 +154,7 @@ const renderModal = (
         isOpen
         onClose={onClose}
         namespace="test-namespace"
-        collection={options.collection ?? collection}
+        collection={modalCollection}
         isCollectionFlow
         defaultEvaluationName="Copied suite"
         defaultSourceMode={options.defaultSourceMode}
@@ -322,6 +343,25 @@ describe('StartEvaluationRunModal', () => {
 
     fireEvent.click(screen.getByTestId('start-evaluation-submit'));
 
+    await waitFor(() => expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1));
+    expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      expect.objectContaining({
+        collection: expect.objectContaining({ id: 'cloned-suite' }),
+      }),
+    );
+  });
+
+  it('should resolve a deferred collection before submitting a create run', async () => {
+    const resolveCollection = jest.fn(() => Promise.resolve(clonedCollection));
+    renderModal(resolveCollection, undefined, { omitCollection: true });
+
+    await selectClusterModel();
+
+    fireEvent.click(screen.getByTestId('start-evaluation-submit'));
+
+    await waitFor(() => expect(resolveCollection).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1));
     expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
       '',

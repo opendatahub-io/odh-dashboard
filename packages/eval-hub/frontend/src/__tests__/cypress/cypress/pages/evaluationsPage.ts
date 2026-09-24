@@ -160,6 +160,18 @@ class EvaluationsPage {
     return cy.findByTestId('filter-type-toggle');
   }
 
+  findFilterTypeOption(type: 'name' | 'evaluation' | 'evaluated' | 'status') {
+    return cy.findByTestId(`filter-option-${type}`).find('button');
+  }
+
+  findStatusFilterToggle() {
+    return cy.findByTestId('filter-status-toggle');
+  }
+
+  findStatusFilterOption(status: string) {
+    return cy.findByTestId(`filter-status-option-${status}`).find('button');
+  }
+
   findFilterTextField() {
     return cy.findByTestId('filter-toolbar-text-field');
   }

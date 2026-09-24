@@ -35,6 +35,55 @@ describe('EvalHub API Contract Tests', () => {
       });
     });
   });
+
+  describe('Kueue and HardwareProfile endpoints', () => {
+    it('should return the documented Kueue availability response', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/kueue/availability?namespace=default');
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1eval-hub~1api~1v1~1kueue~1availability/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return the documented Kueue Workload statuses response', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/kueue/workloads?namespace=default&evaluation_ids=evaluation-001',
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1eval-hub~1api~1v1~1kueue~1workloads/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return the documented compatible HardwareProfiles response', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/hardwareprofiles?namespace=default');
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1eval-hub~1api~1v1~1hardwareprofiles/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return the documented HardwareProfile validation response', async () => {
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/hardwareprofiles/validate?namespace=default',
+        {
+          // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+          hardware_profile: 'default-gpu',
+          // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+          provider_ids: ['lm_evaluation_harness'],
+        },
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1eval-hub~1api~1v1~1hardwareprofiles~1validate/post/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+  });
+
   describe('Evaluation Jobs Endpoint', () => {
     it('should list evaluation jobs from EvalHub', async () => {
       const result = await apiClient.get('/eval-hub/api/v1/evaluations/jobs?namespace=default');

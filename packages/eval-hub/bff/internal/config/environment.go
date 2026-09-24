@@ -85,6 +85,9 @@ type EnvConfig struct {
 	LogLevel           slog.Level
 	AllowedOrigins     []string
 	EvalHubURL         string
+	// HardwareProfilesNamespace is the platform namespace where EvalHub resolves
+	// HardwareProfile resources. When empty, the BFF uses its own namespace.
+	HardwareProfilesNamespace string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
 	// If provided, the application will attempt to load these files and add the
 	// certificates to the HTTP client's Root CAs for outbound TLS connections.

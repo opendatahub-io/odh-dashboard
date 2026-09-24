@@ -20,6 +20,7 @@ import {
   ModalFooter,
   ModalHeader,
   Skeleton,
+  Spinner,
   Stack,
   StackItem,
   Tab,
@@ -44,10 +45,17 @@ import {
   formatDate,
   formatDurationCompact,
   getBenchmarkName,
+  getEvaluationDisplayState,
+  getEvaluationQueue,
   getEvaluationName,
+  isEvaluationJobQueued,
+  isTerminalState,
 } from '~/app/utilities/evaluationUtils';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
+import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
+import { useKueueWorkloadStatuses } from '~/app/hooks/useKueueWorkloadStatuses';
+import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import EvaluationEventLog from './EvaluationEventLog';
 import './EvaluationStatusModal.scss';
@@ -109,6 +117,11 @@ type ProgressBenchmark = {
   completedAt?: string;
   errorMessage?: string;
   errorCode?: string;
+};
+
+const KUEUE_PROGRESS_COPY = {
+  title: 'Waiting for resources from Kueue',
+  body: 'Kueue will start the evaluation when the requested resources are available.',
 };
 
 const ViewLogsButton: React.FC<{
@@ -199,8 +212,9 @@ const ProgressTabContent: React.FC<{
   benchmarks: ProgressBenchmark[];
   hasPolledData: boolean;
   isTerminal: boolean;
+  isWaitingForKueueResources: boolean;
   onViewLogs: (benchmarkIndex: number) => void;
-}> = ({ benchmarks, hasPolledData, isTerminal, onViewLogs }) => {
+}> = ({ benchmarks, hasPolledData, isTerminal, isWaitingForKueueResources, onViewLogs }) => {
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(
     () =>
       new Set(benchmarks.length > 0 && benchmarks.length <= 5 ? benchmarks.map((b) => b.key) : []),
@@ -228,6 +242,26 @@ const ProgressTabContent: React.FC<{
       return next;
     });
   }, []);
+
+  if (isWaitingForKueueResources) {
+    const { title, body } = KUEUE_PROGRESS_COPY;
+    return (
+      <Stack hasGutter>
+        <StackItem className="evalhub-status-modal__empty-progress">
+          <EmptyState
+            variant={EmptyStateVariant.sm}
+            icon={InProgressIcon}
+            headingLevel="h4"
+            titleText={title}
+            data-testid="kueue-progress-state"
+          >
+            <Spinner size="lg" aria-label={title} />
+            <EmptyStateBody>{body}</EmptyStateBody>
+          </EmptyState>
+        </StackItem>
+      </Stack>
+    );
+  }
 
   if (!hasPolledData) {
     return (
@@ -319,6 +353,20 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     setFailureSummaryEl(node);
   }, []);
   const [isFailureSummaryTruncated, setIsFailureSummaryTruncated] = React.useState(false);
+  // Prefer polled state so the status updates on the 10s cycle rather than waiting for the
+  // 30s list refresh.
+  const state = polledJobData?.status.state ?? job?.status.state ?? 'pending';
+  const jobId = job?.resource.id;
+  const isPageVisible = usePageVisibility();
+  const { availability: kueueAvailability } = useKueueAvailability(namespace);
+  const isKueueSchedulingReady = kueueAvailability?.scheduling_ready === true;
+  const { statusesByEvaluationId: kueueWorkloadStatusesByEvaluationID } = useKueueWorkloadStatuses(
+    namespace,
+    jobId ? [jobId] : [],
+    isKueueSchedulingReady && !isTerminalState(state),
+    isPageVisible,
+  );
+  const kueueWorkloadStatus = jobId ? kueueWorkloadStatusesByEvaluationID.get(jobId) : undefined;
 
   const progressBenchmarks = React.useMemo(
     () =>
@@ -349,8 +397,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     () => progressBenchmarks.filter((b) => b.status === 'completed').length,
     [progressBenchmarks],
   );
-
-  const jobId = job?.resource.id;
 
   React.useEffect(() => {
     if (jobId) {
@@ -390,8 +436,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     }
   }, [evaluationName]);
 
-  // Prefer polled state so the badge updates on the 10s cycle rather than waiting for the 30s list refresh
-  const state = polledJobData?.status.state ?? job?.status.state ?? 'pending';
+  const effectiveJob = polledJobData ?? job;
+  const queue = effectiveJob ? getEvaluationQueue(effectiveJob) : undefined;
+  const isQueued = effectiveJob ? isEvaluationJobQueued(effectiveJob) : false;
   const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
 
   const [now, setNow] = React.useState(() => new Date().toISOString());
@@ -419,6 +466,15 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const isReconfigurable = !isInProgress;
   // Use the most-current benchmark data (polled > list) to detect pre-start failures.
   const isPreStart = isPreStartFailure(polledJobData ?? job);
+  const displayState = getEvaluationDisplayState(state, {
+    isQueued,
+    isPreStartFailure: isPreStart,
+    kueueWorkloadStatus,
+  });
+  const isWaitingForKueueResources =
+    displayState === 'queued' &&
+    (kueueWorkloadStatus?.state === 'queued' || kueueWorkloadStatus?.state === 'preempted');
+  const isAdmittedByKueue = kueueWorkloadStatus?.state === 'admitted';
 
   const handleViewBenchmarkLogs = (bmIndex: number) => {
     setLogBenchmarkIndex(bmIndex);
@@ -429,7 +485,21 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     state === 'completed'
       ? `Evaluation completed successfully.${elapsed ? ` Total time: ${elapsed}` : ''}`
       : isInProgress
-        ? `Evaluation job is ${state === 'stopping' ? 'being canceled' : state === 'pending' ? 'pending' : 'running'}.${elapsed ? ` Elapsed time: ${elapsed}` : ''}`
+        ? `Evaluation job is ${
+            state === 'stopping'
+              ? 'being canceled'
+              : isWaitingForKueueResources
+                ? 'waiting for Kueue to allocate resources'
+                : isAdmittedByKueue
+                  ? `admitted by Kueue through LocalQueue ${kueueWorkloadStatus.queue_name} and ${
+                      state === 'pending' ? 'is pending' : 'is running'
+                    }`
+                  : isQueued
+                    ? 'queued and waiting for resource admission'
+                    : state === 'pending'
+                      ? 'pending'
+                      : 'running'
+          }.${elapsed ? ` Elapsed time: ${elapsed}` : ''}`
         : elapsed
           ? `Elapsed time: ${elapsed}`
           : undefined;
@@ -457,7 +527,12 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               {evaluationName}
             </span>
           </Tooltip>
-          <EvaluationStatusLabel state={state} isPreStartFailure={isPreStart} />
+          <EvaluationStatusLabel
+            state={state}
+            isQueued={isQueued}
+            isPreStartFailure={isPreStart}
+            kueueWorkloadStatus={kueueWorkloadStatus}
+          />
         </div>
       </ModalHeader>
       <ModalBody>
@@ -615,11 +690,24 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                   </DescriptionList>
                 </StackItem>
               ) : null}
+              {queue ? (
+                <StackItem>
+                  <DescriptionList isHorizontal isCompact>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Queue</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="evaluation-status-queue">
+                        {queue}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  </DescriptionList>
+                </StackItem>
+              ) : null}
               <StackItem>
                 <ProgressTabContent
                   benchmarks={progressBenchmarks}
                   hasPolledData={!!polledJobData || !isInProgress}
                   isTerminal={!isInProgress}
+                  isWaitingForKueueResources={isWaitingForKueueResources}
                   onViewLogs={handleViewBenchmarkLogs}
                 />
               </StackItem>

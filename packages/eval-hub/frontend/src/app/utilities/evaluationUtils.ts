@@ -1,8 +1,14 @@
-import { EvaluationJob, EvaluationJobState } from '~/app/types';
+import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
+
+export const getEvaluationQueue = (job: EvaluationJob): string | undefined =>
+  job.status.queue || job.resource.queue;
+
+export const isEvaluationJobQueued = (job: EvaluationJob): boolean =>
+  job.status.state === 'pending' && Boolean(getEvaluationQueue(job));
 
 export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> => {
   if (job.benchmarks?.length) {
@@ -247,6 +253,51 @@ const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
 ]);
 
 export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
+
+export type EvaluationDisplayState = EvaluationJobState | 'not_started' | 'queued' | 'admitted';
+
+type EvaluationDisplayStateOptions = {
+  isQueued?: boolean;
+  isPreStartFailure?: boolean;
+  kueueWorkloadStatus?: KueueWorkloadStatus;
+};
+
+/**
+ * Resolves the single user-facing status for an evaluation.
+ *
+ * EvalHub owns the evaluation lifecycle and final outcome, so its terminal
+ * states always win. Before that, a live Kueue Workload shows whether it is
+ * waiting for resources or has admitted the evaluation to its LocalQueue.
+ */
+export const getEvaluationDisplayState = (
+  state: EvaluationJobState,
+  {
+    isQueued = false,
+    isPreStartFailure = false,
+    kueueWorkloadStatus,
+  }: EvaluationDisplayStateOptions = {},
+): EvaluationDisplayState => {
+  if (state === 'failed' && isPreStartFailure) {
+    return 'not_started';
+  }
+  if (state === 'partially_failed') {
+    return 'failed';
+  }
+  if (isTerminalState(state)) {
+    return state;
+  }
+  switch (kueueWorkloadStatus?.state) {
+    case 'queued':
+    case 'preempted':
+      return 'queued';
+    case 'admitted':
+      return state === 'pending' ? 'admitted' : state;
+    case 'finished':
+      return state;
+    default:
+      return state === 'pending' && isQueued ? 'queued' : state;
+  }
+};
 
 /** Only completed runs can be selected for compare. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>

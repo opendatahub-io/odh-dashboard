@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 
+const mockUseKueueAvailability = jest.fn();
+const mockUseKueueWorkloadStatuses = jest.fn();
 const mockOnRefresh = jest.fn();
 const mockOnShowStatus = jest.fn();
 const mockNavigate = jest.fn();
@@ -26,12 +28,31 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ),
 }));
 
+jest.mock('~/app/hooks/useKueueAvailability', () => ({
+  useKueueAvailability: () => mockUseKueueAvailability(),
+}));
+
+jest.mock('~/app/hooks/useKueueWorkloadStatuses', () => ({
+  useKueueWorkloadStatuses: () => mockUseKueueWorkloadStatuses(),
+}));
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 });
 
 beforeEach(() => {
   queryClient.clear();
+  mockUseKueueAvailability.mockReturnValue({
+    availability: undefined,
+    loaded: true,
+    error: undefined,
+  });
+  mockUseKueueWorkloadStatuses.mockReturnValue({
+    statusesByEvaluationId: new Map(),
+    loaded: true,
+    isLoading: false,
+    error: undefined,
+  });
 });
 
 const renderTable = (props: {
@@ -254,6 +275,24 @@ describe('EvaluationsTable', () => {
   });
 
   describe('filtering', () => {
+    it('should offer the Queued status filter when Kueue is enabled without queued jobs', () => {
+      mockUseKueueAvailability.mockReturnValue({
+        availability: {
+          // eslint-disable-next-line camelcase -- Kueue API field name.
+          scheduling_ready: true,
+        },
+        loaded: true,
+        error: undefined,
+      });
+      renderTable({ evaluations: mockJobs, loaded: true });
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+
+      expect(screen.getByTestId('filter-status-option-queued')).toBeInTheDocument();
+    });
+
     it('should filter by evaluation name', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
@@ -383,6 +422,142 @@ describe('EvaluationsTable', () => {
       expect(table).toHaveTextContent('Evaluated');
       expect(table).toHaveTextContent('Date');
       expect(table).toHaveTextContent('Result');
+    });
+
+    it('should show a Kueue resource wait in the Status column without rendering a separate column', () => {
+      mockUseKueueAvailability.mockReturnValue({
+        availability: {
+          // eslint-disable-next-line camelcase -- Kueue API field name.
+          scheduling_ready: true,
+        },
+        loaded: true,
+        error: undefined,
+      });
+      mockUseKueueWorkloadStatuses.mockReturnValue({
+        statusesByEvaluationId: new Map([
+          [
+            'job-2',
+            {
+              // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+              evaluation_id: 'job-2',
+              // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+              queue_name: 'default',
+              state: 'queued',
+              message: 'Waiting for quota',
+            },
+          ],
+        ]),
+        loaded: true,
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderTable({ evaluations: mockJobs, loaded: true });
+
+      expect(screen.queryByText('Kueue status')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('evaluation-kueue-status')).not.toBeInTheDocument();
+      const betaRow = screen.getByText('Beta Evaluation').closest('tr');
+      expect(betaRow).not.toBeNull();
+      expect(within(betaRow!).getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
+    });
+
+    it('should preserve a terminal EvalHub status when Kueue has not updated yet', () => {
+      mockUseKueueAvailability.mockReturnValue({
+        availability: {
+          // eslint-disable-next-line camelcase -- Kueue API field name.
+          scheduling_ready: true,
+        },
+        loaded: true,
+        error: undefined,
+      });
+      mockUseKueueWorkloadStatuses.mockReturnValue({
+        statusesByEvaluationId: new Map([
+          [
+            'job-1',
+            {
+              // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+              evaluation_id: 'job-1',
+              // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+              queue_name: 'default',
+              state: 'admitted',
+            },
+          ],
+        ]),
+        loaded: true,
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderTable({ evaluations: mockJobs, loaded: true });
+
+      const alphaRow = screen.getByText('Alpha Evaluation').closest('tr');
+      expect(alphaRow).not.toBeNull();
+      expect(within(alphaRow!).getByTestId('evaluation-status-button')).toHaveTextContent(
+        'Complete',
+      );
+    });
+
+    it('should show EvalHub Running in the Status column after Kueue admits the evaluation', () => {
+      mockUseKueueAvailability.mockReturnValue({
+        availability: {
+          // eslint-disable-next-line camelcase -- Kueue API field name.
+          scheduling_ready: true,
+        },
+        loaded: true,
+        error: undefined,
+      });
+      mockUseKueueWorkloadStatuses.mockReturnValue({
+        statusesByEvaluationId: new Map([
+          [
+            'job-2',
+            {
+              // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+              evaluation_id: 'job-2',
+              // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+              queue_name: 'default',
+              state: 'admitted',
+            },
+          ],
+        ]),
+        loaded: true,
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderTable({ evaluations: mockJobs, loaded: true });
+
+      const betaRow = screen.getByText('Beta Evaluation').closest('tr');
+      expect(betaRow).not.toBeNull();
+      expect(within(betaRow!).getByTestId('evaluation-status-button')).toHaveTextContent('Running');
+    });
+
+    it('should keep the table usable and show EvalHub status when the Kueue Workload request fails', () => {
+      const error = new Error('forbidden');
+      mockUseKueueAvailability.mockReturnValue({
+        availability: {
+          // eslint-disable-next-line camelcase -- Kueue API field name.
+          scheduling_ready: true,
+        },
+        loaded: true,
+        error: undefined,
+      });
+      mockUseKueueWorkloadStatuses.mockReturnValue({
+        statusesByEvaluationId: new Map(),
+        loaded: true,
+        isLoading: false,
+        error,
+      });
+
+      renderTable({ evaluations: mockJobs, loaded: true });
+
+      expect(screen.getByTestId('kueue-workload-status-warning')).toBeInTheDocument();
+      expect(screen.queryByTestId('evaluation-kueue-status')).not.toBeInTheDocument();
+      const alphaRow = screen.getByText('Alpha Evaluation').closest('tr');
+      expect(alphaRow).not.toBeNull();
+      expect(within(alphaRow!).getByTestId('evaluation-status-button')).toHaveTextContent(
+        'Complete',
+      );
+      expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
     });
   });
 });

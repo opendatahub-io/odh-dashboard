@@ -8,7 +8,10 @@ import type {
   CreateEvaluationJobResponse,
   EvalHubHealthResponse,
   EvaluationJob,
+  HardwareProfileValidationResponse,
+  HardwareProfilesResponse,
   InferenceServicesResponse,
+  KueueAvailability,
   Provider,
   VerifyConnectionResponse,
 } from '~/app/types';
@@ -41,6 +44,21 @@ declare global {
           type: 'GET /api/:apiVersion/namespaces',
           options: { path: { apiVersion: string } },
           response: ApiResponse<Namespace[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/kueue/availability',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<KueueAvailability>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/hardwareprofiles',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<HardwareProfilesResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/:apiVersion/hardwareprofiles/validate',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<HardwareProfileValidationResponse>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/:apiVersion/evalhub/health',

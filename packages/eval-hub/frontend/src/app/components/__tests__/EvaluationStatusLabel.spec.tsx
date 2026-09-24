@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { LabelProps } from '@patternfly/react-core';
-import { EvaluationJobState } from '~/app/types';
-import EvaluationStatusLabel from '~/app/components/EvaluationStatusLabel';
+import { EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
+import EvaluationStatusLabel, { getKueueTooltipText } from '~/app/components/EvaluationStatusLabel';
 
 type ExpectedLabelConfig = {
   text: string;
@@ -99,6 +99,58 @@ describe('EvaluationStatusLabel', () => {
     fireEvent.click(within(label).getByRole('button'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('should render Queued for a pending job with a queue', () => {
+    render(<EvaluationStatusLabel state="pending" isQueued />);
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Queued');
+  });
+
+  it('should explain that a Kueue-queued evaluation is waiting for resources', () => {
+    const status: KueueWorkloadStatus = {
+      // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+      evaluation_id: 'evaluation-1',
+      // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+      queue_name: 'default',
+      state: 'queued',
+    };
+
+    expect(getKueueTooltipText(status)).toBe('Waiting for Kueue to allocate resources.');
+  });
+
+  it('should render Admitted when Kueue has admitted a pending evaluation', () => {
+    render(
+      <EvaluationStatusLabel
+        state="pending"
+        kueueWorkloadStatus={{
+          // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+          evaluation_id: 'evaluation-1',
+          // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+          queue_name: 'default',
+          state: 'admitted',
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Admitted');
+  });
+
+  it('should preserve Complete when EvalHub completed before Kueue finished updating', () => {
+    render(
+      <EvaluationStatusLabel
+        state="completed"
+        kueueWorkloadStatus={{
+          // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+          evaluation_id: 'evaluation-1',
+          // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+          queue_name: 'default',
+          state: 'admitted',
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('status-label-completed')).toHaveTextContent('Complete');
   });
 });
 

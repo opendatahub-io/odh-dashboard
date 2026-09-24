@@ -175,6 +175,29 @@ describe('extractReconfigureData', () => {
     expect(result.threshold).toBe(75);
   });
 
+  it('should preserve hardware profile and queue configuration when reconfiguring', () => {
+    const job = mockEvaluationJob();
+    job.hardware_config = {
+      hardware_profile_name: 'gpu-small',
+      queue: { kind: 'kueue', name: 'gpu-default' },
+    };
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.hardwareProfile).toBe('gpu-small');
+    expect(result.queue).toBe('gpu-default');
+  });
+
+  it('should preserve the legacy queue when hardware_config is absent', () => {
+    const job = mockEvaluationJob();
+    job.status.queue = 'legacy-queue';
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.hardwareProfile).toBeUndefined();
+    expect(result.queue).toBe('legacy-queue');
+  });
+
   it('should default threshold to 0 when no pass_criteria', () => {
     const job = mockEvaluationJob();
 

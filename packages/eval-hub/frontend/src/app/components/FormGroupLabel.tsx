@@ -27,15 +27,14 @@ const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
   helpPopover,
 }) => (
   <>
-    {label}
-    {isRequired && (
-      <span className="pf-v6-c-form__label-required" aria-hidden="true">
-        &nbsp;*
-      </span>
-    )}
-    {helpPopover && (
-      <>
-        {' '}
+    <span className="evalhub-form-group-label__title">
+      {label}
+      {isRequired && (
+        <span className="pf-v6-c-form__label-required" aria-hidden="true">
+          *
+        </span>
+      )}
+      {helpPopover && (
         <Popover aria-label={helpPopover.ariaLabel} bodyContent={helpPopover.content}>
           <span
             role="button"
@@ -52,8 +51,8 @@ const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
             <OutlinedQuestionCircleIcon />
           </span>
         </Popover>
-      </>
-    )}
+      )}
+    </span>
     <Content component="small">{description}</Content>
   </>
 );

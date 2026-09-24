@@ -15,6 +15,7 @@ import {
   getCollection,
   getCollections,
   getEvalHubCRStatus,
+  getKueueWorkloadStatuses,
   getEvaluationJob,
   getProviders,
   createEvaluationJob,
@@ -30,6 +31,7 @@ import type {
   CreateEvaluationJobRequest,
   EvalHubCRStatus,
   EvaluationJob,
+  KueueWorkloadStatus,
   Provider,
 } from '~/app/types';
 
@@ -119,6 +121,45 @@ describe('getEvalHubCRStatus', () => {
       expect.any(String),
       expect.any(Object),
       expect.any(Object),
+    );
+  });
+});
+
+describe('getKueueWorkloadStatuses', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('returns Kueue Workload statuses from the BFF response', async () => {
+    const statuses: KueueWorkloadStatus[] = [
+      {
+        evaluation_id: 'job-1',
+        queue_name: 'default',
+        state: 'queued',
+        message: 'Waiting for quota',
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items: statuses } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getKueueWorkloadStatuses('', 'test-ns', ['job-1', 'job-2'])({});
+
+    expect(result).toEqual(statuses);
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/kueue/workloads',
+      { namespace: 'test-ns', evaluation_ids: 'job-1,job-2' },
+      {},
+    );
+  });
+
+  it('rejects an invalid BFF response', async () => {
+    mockRestGET.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(getKueueWorkloadStatuses('', 'test-ns', ['job-1'])({})).rejects.toThrow(
+      'Invalid Kueue Workload status response format',
     );
   });
 });

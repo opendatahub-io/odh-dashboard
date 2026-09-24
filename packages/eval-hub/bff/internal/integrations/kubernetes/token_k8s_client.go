@@ -260,6 +260,42 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	return username, nil
 }
 
+func (kc *TokenKubernetesClient) GetKueueAvailability(ctx context.Context, _ *RequestIdentity, namespace string) (*models.KueueAvailability, error) {
+	dynamicClient, err := dynamicFromConfig(kc.restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client for Kueue lookup: %w", err)
+	}
+	return getCachedKueueAvailability(ctx, dynamicClient, namespace, kueueAvailabilityCacheKey(namespace, kc.Token.Raw()))
+}
+
+func (kc *TokenKubernetesClient) GetKueueWorkloadStatuses(ctx context.Context, _ *RequestIdentity, namespace string, evaluationIDs []string) (*models.KueueWorkloadStatusesResponse, error) {
+	dynamicClient, err := dynamicFromConfig(kc.restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client for Kueue Workload lookup: %w", err)
+	}
+	return getKueueWorkloadStatuses(ctx, dynamicClient, namespace, evaluationIDs)
+}
+
+func (kc *TokenKubernetesClient) ListHardwareProfiles(ctx context.Context, _ *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace string) (*models.HardwareProfilesResponse, error) {
+	dynamicClient, err := dynamicFromConfig(kc.restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client for HardwareProfile lookup: %w", err)
+	}
+	availability, err := getCachedKueueAvailability(ctx, dynamicClient, evaluationNamespace, kueueAvailabilityCacheKey(evaluationNamespace, kc.Token.Raw()))
+	if err != nil {
+		return nil, err
+	}
+	return listHardwareProfilesForAvailability(ctx, dynamicClient, hardwareProfilesNamespace, availability)
+}
+
+func (kc *TokenKubernetesClient) GetMissingHardwareProfileLocalQueueName(ctx context.Context, _ *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace, profileName string) (string, bool, error) {
+	dynamicClient, err := dynamicFromConfig(kc.restConfig)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to create dynamic client for HardwareProfile lookup: %w", err)
+	}
+	return getMissingHardwareProfileLocalQueueName(ctx, dynamicClient, evaluationNamespace, hardwareProfilesNamespace, profileName)
+}
+
 // CanListEvalHubInstances performs a SelfSubjectAccessReview to check whether the user's
 // token has permission to access EvalHub evaluations in the given namespace.
 // Checks the virtual "evaluations" resource provisioned by the TrustyAI operator per-tenant

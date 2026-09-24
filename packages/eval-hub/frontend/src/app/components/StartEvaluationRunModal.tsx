@@ -32,6 +32,7 @@ import FormGroupLabel from '~/app/components/FormGroupLabel';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import HardwareProfileField from '~/app/components/HardwareProfileField';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import {
   DEFAULT_EXPERIMENT_NAME,
@@ -115,6 +116,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     benchmark,
     collection,
     isCollectionFlow,
+    allowDeferredCollection: isCollectionFlow && !collection && !!resolveCollection,
     experiments,
     experimentsLoaded,
     defaultEvaluationName,
@@ -552,6 +554,18 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                     </div>
                   ) : null}
                 </FormGroup>
+
+                <HardwareProfileField
+                  className="pf-v6-u-mt-lg"
+                  availability={form.kueueAvailability}
+                  profiles={form.hardwareProfiles}
+                  loaded={form.hardwareProfilesLoaded}
+                  error={form.hardwareProfilesError}
+                  selectedProfile={form.hardwareProfile}
+                  onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+                  isRequired={form.requiresHardwareProfile}
+                  disabled={isCloning}
+                />
 
                 {!isCollectionFlow ? (
                   <BenchmarkThresholdField

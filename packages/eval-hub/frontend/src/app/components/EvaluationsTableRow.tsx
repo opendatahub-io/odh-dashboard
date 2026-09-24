@@ -3,15 +3,17 @@ import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Button, Checkbox, Tooltip } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { EvaluationJob, EvaluationJobState } from '~/app/types';
+import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   formatDate,
   getAllBenchmarkNames,
   getBenchmarkName,
+  getEvaluationQueue,
   getEvaluationName,
   getFailedBenchmarkCount,
   getResultScore,
+  isEvaluationJobQueued,
   isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
 import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
@@ -33,6 +35,8 @@ type EvaluationsTableRowProps = {
   onShowStatus: (job: EvaluationJob) => void;
   isSelected: boolean;
   onSelectionChange: (checked: boolean) => void;
+  showQueue?: boolean;
+  kueueWorkloadStatus?: KueueWorkloadStatus;
 };
 
 const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
@@ -47,6 +51,8 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   onShowStatus,
   isSelected,
   onSelectionChange,
+  showQueue = true,
+  kueueWorkloadStatus,
 }) => {
   const navigate = useNavigate();
   const [showStopModal, setShowStopModal] = React.useState(false);
@@ -67,6 +73,8 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const displayState = isStopping ? 'stopping' : currentState;
   const isPreStart = isPreStartFailure(polledJobData ?? job);
   const effectiveBenchmarks = polledJobData?.status.benchmarks ?? job.status.benchmarks ?? [];
+  const effectiveJob = polledJobData ?? job;
+  const queue = getEvaluationQueue(effectiveJob);
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -218,7 +226,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         <Td dataLabel="Status" data-testid="evaluation-status">
           <EvaluationStatusLabel
             state={displayState}
+            isQueued={isEvaluationJobQueued(effectiveJob)}
             isPreStartFailure={isPreStart}
+            kueueWorkloadStatus={kueueWorkloadStatus}
             onClick={() => onShowStatus(job)}
           />
           {(displayState === 'failed' || displayState === 'partially_failed') &&
@@ -229,6 +239,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             </div>
           ) : null}
         </Td>
+        {showQueue && (
+          <Td dataLabel="Queue" data-testid="evaluation-queue">
+            {queue ?? '-'}
+          </Td>
+        )}
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip
             content={
