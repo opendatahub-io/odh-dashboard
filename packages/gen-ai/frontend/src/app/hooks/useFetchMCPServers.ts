@@ -23,6 +23,12 @@ const useFetchMCPServers = (): {
     if (apiAvailable) {
       const generation = ++generationRef.current;
 
+      setData([]);
+      setConfigMapName(null);
+      setRegistryAvailable(false);
+      setLoaded(false);
+      setError(undefined);
+
       api
         .getMCPServers({})
         .then((response) => {

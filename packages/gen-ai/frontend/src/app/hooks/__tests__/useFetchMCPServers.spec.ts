@@ -39,14 +39,17 @@ describe('useFetchMCPServers', () => {
   it('refetches MCP servers after the API changes with the selected namespace', async () => {
     const tenantServer = createServer('tenant-server');
     const projectServer = createServer('project-server');
+    let resolveProjectRequest: (response: unknown) => void;
     const tenantAPI = jest.fn().mockResolvedValue({
       servers: [tenantServer],
       registry_available: false,
     });
-    const projectAPI = jest.fn().mockResolvedValue({
-      servers: [tenantServer, projectServer],
-      registry_available: true,
-    });
+    const projectAPI = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveProjectRequest = resolve;
+        }),
+    );
 
     mockUseGenAiAPI.mockReturnValue(createApiState(tenantAPI));
     const { result, rerender } = renderHook(() => useFetchMCPServers());
@@ -55,6 +58,21 @@ describe('useFetchMCPServers', () => {
 
     mockUseGenAiAPI.mockReturnValue(createApiState(projectAPI));
     rerender();
+
+    await waitFor(() => {
+      expect(result.current).toMatchObject({
+        data: [],
+        configMapName: null,
+        registryAvailable: false,
+        loaded: false,
+        error: undefined,
+      });
+    });
+
+    resolveProjectRequest!({
+      servers: [tenantServer, projectServer],
+      registry_available: true,
+    });
 
     await waitFor(() => expect(result.current.data).toEqual([tenantServer, projectServer]));
     expect(tenantAPI).toHaveBeenCalledTimes(1);
