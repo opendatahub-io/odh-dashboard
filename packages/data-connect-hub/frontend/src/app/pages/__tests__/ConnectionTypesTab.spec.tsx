@@ -135,4 +135,26 @@ describe('ConnectionTypesTab', () => {
     expect(screen.getByText('Get started with data connection types')).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
   });
+
+  it('should render a loading state before connection types load', () => {
+    mockUseConnectionTypes.mockReturnValue([[], false, undefined]);
+
+    renderTab();
+
+    expect(screen.getByLabelText('Loading data connection types')).toBeTruthy();
+    expect(screen.queryByText('Get started with data connection types')).toBeNull();
+  });
+
+  it('should render the fetch error instead of the getting-started state', () => {
+    mockUseConnectionTypes.mockReturnValue([
+      [],
+      true,
+      new Error('Connection types request failed'),
+    ]);
+
+    renderTab();
+
+    expect(screen.getByText('Connection types request failed')).toBeTruthy();
+    expect(screen.queryByText('Get started with data connection types')).toBeNull();
+  });
 });

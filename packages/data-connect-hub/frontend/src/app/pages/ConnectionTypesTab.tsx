@@ -17,6 +17,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarPanel,
+  Spinner,
   Stack,
   StackItem,
   Switch,
@@ -138,6 +139,10 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
   // Helpers ------------------------------------------------------------------>
 
   const isEmpty = connectionTypes.length === 0;
+  const hasError = Boolean(typesError);
+  const shouldRenderLoadingState = !typesLoaded && !hasError;
+  const shouldRenderCatalog = typesLoaded && !hasError && !isEmpty;
+  const shouldRenderEmptyState = typesLoaded && !hasError && isEmpty;
 
   const shouldShowConnectionType = React.useCallback(
     (connectionType: ConnectionType) => {
@@ -190,11 +195,26 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
     return filteredConnectionTypes;
   }, [connectionTypesByGroup, shouldShowConnectionType]);
 
-  const shouldRenderEmptySearchState = Object.values(connectionTypesByGroupToRender).every(
-    (renderedConnectionTypes) => renderedConnectionTypes.length === 0,
-  );
+  const shouldRenderEmptySearchState =
+    shouldRenderCatalog &&
+    Boolean(searchTerm) &&
+    Object.values(connectionTypesByGroupToRender).every(
+      (renderedConnectionTypes) => renderedConnectionTypes.length === 0,
+    );
 
   // Rendering ---------------------------------------------------------------->
+
+  const loadingState = (
+    <EmptyState headingLevel="h3" titleText="Loading data connection types">
+      <Spinner aria-label="Loading data connection types" />
+    </EmptyState>
+  );
+
+  const errorState = (
+    <EmptyState headingLevel="h3" titleText="Unable to load data connection types">
+      <EmptyStateBody>{typesError?.message}</EmptyStateBody>
+    </EmptyState>
+  );
 
   const emptyState = (
     <EmptyState
@@ -349,9 +369,11 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
         available catalogs to easily connect your projects to external storage, databases, and
         services.
       </p>
-      {!isEmpty && typesLoaded && !typesError && catalog}
-      {!isEmpty && searchTerm && shouldRenderEmptySearchState && emptySearchState}
-      {isEmpty && emptyState}
+      {shouldRenderLoadingState && loadingState}
+      {hasError && errorState}
+      {shouldRenderCatalog && catalog}
+      {shouldRenderEmptySearchState && emptySearchState}
+      {shouldRenderEmptyState && emptyState}
     </PageSection>
   );
 };
