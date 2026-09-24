@@ -78,6 +78,7 @@ export type DashboardConfig = K8sResourceCommon & {
       gpuaas: boolean;
       connectionTest: boolean;
       modelCapabilities: boolean;
+      runtimeCatalog: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
     };

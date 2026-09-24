@@ -17,78 +17,20 @@
 #   GITHUB_PR_URL  — must be a valid GitHub pull request URL
 set -euo pipefail
 
-REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
-
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FULLSEND_CONFIG_DIR="${FULLSEND_DIR:-${_SCRIPT_DIR}/..}"
 
-# Post or update the review sticky via fullsend (bot + marker, keep_history from config).
-post_review_sticky_comment() {
-  local repo="$1"
-  local pr="$2"
-  local token="$3"
-  local body_file="$4"
-
-  fullsend post-comment \
-    --repo "${repo}" \
-    --number "${pr}" \
-    --token "${token}" \
-    --marker "${REVIEW_STICKY_MARKER}" \
-    --fullsend-dir "${FULLSEND_CONFIG_DIR}" \
-    --result "${body_file}"
-}
-
-# Prints the required agentic-template sections that are absent or only hold
-# placeholders. Shared by the review gate and the earlier adapter gate so the
-# two cannot disagree about which PRs get reviewed.
-missing_required_headings() {
-  REVIEW_PR_BODY="$1" python3 <<'PY'
-import os, re
-
-body = os.environ.get("REVIEW_PR_BODY") or ""
-PLACEHOLDER = re.compile(r"^(n/a|na|tbd|todo|none|\.|-|—|\s*)$", re.I)
-
-def section_deficient(name):
-    pat = re.compile(rf"(?im)^#{{2,3}}\s*{re.escape(name)}\s*$")
-    match = pat.search(body)
-    if not match:
-        return name
-    rest = body[match.end():]
-    nxt = re.search(r"(?im)^#{{2,3}}\s+\S", rest)
-    text = (rest[: nxt.start()] if nxt else rest).strip()
-    if not text:
-        return name
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    if not lines:
-        return name
-    if all(PLACEHOLDER.match(ln) for ln in lines):
-        return name
-    return ""
-
-missing = [section_deficient(h) for h in ("Problem", "Solution", "Evidence")]
-print(", ".join([m for m in missing if m]))
-PY
-}
-
-# Run by the adapter-plan workflow job, before any paid adapter. Applies the
-# review gates below to the same PR so a review that will be skipped does not
-# first buy a CodeRabbit review. Fails open: if the PR cannot be read, the
-# adapters run and the review-time gate decides.
+# Run by the adapter-plan workflow job, before any paid adapter. Skips adapters
+# on closed/merged PRs so a review that will be skipped does not first buy a
+# CodeRabbit review. Fails open: if the PR cannot be read, adapters run and the
+# review-time gate decides.
 adapter_gate() {
-  local decision="true" reason="" pr_json state body missing
+  local decision="true" reason="" pr_json state
   if [[ "${PR_NUMBER:-}" =~ ^[1-9][0-9]*$ && "${REPO_FULL_NAME:-}" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]] \
-    && pr_json="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json state,body 2>/dev/null)"; then
+    && pr_json="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json state 2>/dev/null)"; then
     state="$(jq -r '.state // empty' <<<"${pr_json}")"
-    body="$(jq -r '.body // empty' <<<"${pr_json}")"
     if [[ -n "${state}" && "${state}" != "OPEN" ]]; then
       decision="false"
       reason="PR is $(printf '%s' "${state}" | tr '[:upper:]' '[:lower:]')"
-    else
-      missing="$(missing_required_headings "${body}")"
-      if [[ -n "${missing}" ]]; then
-        decision="false"
-        reason="PR description is missing required sections: ${missing}"
-      fi
     fi
   else
     echo "::warning::Could not read PR #${PR_NUMBER:-?}; running host adapters and leaving the skip decision to the review"
@@ -356,9 +298,6 @@ run_self_test() {
     fail=1
   fi
   rm -rf "${temp_dir}"
-  local complete_body placeholder_body
-  complete_body=$'## Problem\nAdapters bill before the gate.\n\n## Solution\nGate earlier.\n\n## Evidence\nRun 35736972467.'
-  placeholder_body=$'## Problem\nReal text.\n\n## Solution\nTBD\n'
   # The gh stub returns canned PR JSON, or fails when given none.
   _gate_with() {
     local json="$1"
@@ -368,11 +307,9 @@ run_self_test() {
       PR_NUMBER=1 REPO_FULL_NAME=o/r adapter_gate
     ) | grep '^run_adapters='
   }
-  if [[ "$(_gate_with "$(jq -cn --arg b "${complete_body}" '{state:"OPEN",body:$b}')")" == "run_adapters=true" ]] \
-    && [[ "$(_gate_with "$(jq -cn --arg b "${placeholder_body}" '{state:"OPEN",body:$b}')")" == "run_adapters=false" ]] \
-    && [[ "$(_gate_with "$(jq -cn --arg b "${complete_body}" '{state:"MERGED",body:$b}')")" == "run_adapters=false" ]] \
-    && [[ "$(_gate_with "")" == "run_adapters=true" ]] \
-    && [[ "$(missing_required_headings "${placeholder_body}")" == "Solution, Evidence" ]]; then
+  if [[ "$(_gate_with "$(jq -cn '{state:"OPEN"}')")" == "run_adapters=true" ]] \
+    && [[ "$(_gate_with "$(jq -cn '{state:"MERGED"}')")" == "run_adapters=false" ]] \
+    && [[ "$(_gate_with "")" == "run_adapters=true" ]]; then
     echo "PASS adapter readiness gate"
   else
     echo "FAIL adapter readiness gate" >&2
@@ -522,31 +459,6 @@ if [[ ! "${PR_HEAD_SHA}" =~ ^[0-9a-fA-F]{40}$ ]]; then
 fi
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
-
-MISSING_HEADINGS="$(missing_required_headings "${PR_BODY}")"
-
-if [[ -n "${MISSING_HEADINGS}" ]]; then
-  echo "::notice::PR #${PR_NUMBER} missing or placeholder headings (${MISSING_HEADINGS}) — skipping review"
-  SHORT_SHA="${PR_HEAD_SHA:0:7}"
-  [[ -z "${SHORT_SHA}" ]] && SHORT_SHA="unknown"
-  AGENTIC_TEMPLATE="https://github.com/opendatahub-io/odh-dashboard/blob/main/.github/PULL_REQUEST_TEMPLATE/agentic.md"
-  COMMENT_BODY="<!-- **Head SHA:** ${PR_HEAD_SHA} -->
-
-Finished Review · \`skipped\` · Commit: \`${SHORT_SHA}\`
-
-Review did not run. Fill required sections with real content (not N/A / TBD): ${MISSING_HEADINGS}.
-
-See [agentic.md](${AGENTIC_TEMPLATE}).
-
-<sub>Posted by <a href=\"https://github.com/fullsend-ai/fullsend\">fullsend</a> pre-review check</sub>"
-
-  _sticky_body="$(mktemp)"
-  printf '%s' "${COMMENT_BODY}" > "${_sticky_body}"
-  post_review_sticky_comment "${REPO_FULL_NAME}" "${PR_NUMBER}" "${_TOKEN}" "${_sticky_body}"
-  rm -f "${_sticky_body}"
-
-  request_skip "PR description is missing required sections: ${MISSING_HEADINGS}"
-fi
 
 # Run registered pre-review adapters, hydrate outputs from isolated workflow
 # adapter jobs, and collect every resulting envelope generically. Adapter
