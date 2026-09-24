@@ -17,6 +17,7 @@ export const techPreviewFlags = {
   mcpRegistry: false,
   toolCalling: false,
   modelCapabilities: false,
+  runtimeCatalog: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -308,6 +309,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.GUIDED_TOUR]: {
     // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
     devFlags: ['guidedTour'],
+  },
+  [SupportedArea.RUNTIME_CATALOG]: {
+    // Tech preview — not in OdhDashboardConfig CRD yet. Off by default.
+    featureFlags: ['runtimeCatalog'],
+    reliantAreas: [SupportedArea.MODEL_SERVING, SupportedArea.K_SERVE],
   },
   [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
     featureFlags: ['dataConnectHub'],

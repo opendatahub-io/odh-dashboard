@@ -55,7 +55,7 @@
         "level": {
           "type": "string",
           "enum": ["low", "medium", "high", "critical"],
-          "description": "Blast radius if this change ships wrong: low is narrow/internal; medium is feature-local or sensitive-adjacent; high is wide or product-visible; critical crosses a trust boundary or risks data loss. This is not finding severity."
+          "description": "Blast radius if this head ships wrong: low is narrow/internal; medium is feature-local or sensitive-adjacent; high is wide (multi-package or shared-contract) blast radius; critical is trust-boundary/data-loss impact or a monorepo-foundation change. Not finding severity."
         },
         "why": { "type": "string", "minLength": 1 }
       }
@@ -68,7 +68,7 @@
         "level": {
           "type": "string",
           "enum": ["low", "medium", "high"],
-          "description": "Trustworthiness of this review, following the weaker of proof quality and patch-review completeness: high means evidence matches and producers ran; medium is usable but incomplete; low cannot support approve."
+          "description": "How sure this change fulfills its stated intent (min of intent and verified evidence; completeness is a ceiling only): high means intent matches and evidence is proportionate; medium is thin/partial or capped; low cannot support approve."
         },
         "why": { "type": "string", "minLength": 1 }
       }
