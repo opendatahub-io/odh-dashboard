@@ -345,6 +345,39 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     }
   };
 
+  const getKeyboardItemToSelect = (
+    focusedItem: SelectionOptions | null,
+  ): SelectionOptions | undefined => {
+    if (focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled) {
+      return focusedItem;
+    }
+
+    const inputValueTrim = inputValue.trim();
+    if (!inputValueTrim) {
+      return undefined;
+    }
+
+    // Prefer create when it is available (no complete match). Partial matches stay visible
+    // but Enter/Tab still creates the typed value.
+    if (createOption) {
+      return createOption;
+    }
+
+    // Complete match hides create — select the exact option over other partial matches.
+    const exactMatch = visibleOptions.find(
+      (option) =>
+        !option.isAriaDisabled &&
+        !option.isDisabled &&
+        (String(option.name).toLowerCase() === inputValueTrim.toLowerCase() ||
+          String(option.id).toLowerCase() === inputValueTrim.toLowerCase()),
+    );
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    return visibleOptions.find((option) => !option.isAriaDisabled && !option.isDisabled);
+  };
+
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const focusedItem = focusedItemIndex !== null ? visibleOptions[focusedItemIndex] : null;
     switch (event.key) {
@@ -354,14 +387,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           openMenu(true);
           break;
         }
-        // Prefer the focused option; if none (e.g. after typing), create the new value on Enter.
-        const itemToSelect =
-          focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled
-            ? focusedItem
-            : inputValue.trim()
-            ? visibleOptions.find((option) => !option.isAriaDisabled && !option.isDisabled) ??
-              createOption
-            : undefined;
+        const itemToSelect = getKeyboardItemToSelect(focusedItem);
 
         if (itemToSelect) {
           onSelect(itemToSelect);
@@ -372,14 +398,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         if (!isOpen) {
           break;
         }
-        // Prefer the focused option; if none (e.g. after typing), create the new value on Tab.
-        const itemToSelect =
-          focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled
-            ? focusedItem
-            : inputValue.trim()
-            ? visibleOptions.find((option) => !option.isAriaDisabled && !option.isDisabled) ??
-              createOption
-            : undefined;
+        const itemToSelect = getKeyboardItemToSelect(focusedItem);
         if (itemToSelect) {
           // Do not refocus so default Tab can move to the next field.
           onSelect(itemToSelect, false);
