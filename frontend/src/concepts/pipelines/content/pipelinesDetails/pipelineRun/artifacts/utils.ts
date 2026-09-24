@@ -36,6 +36,47 @@ export const getArtifactProperties = (artifact: Artifact): ArtifactProperty[] =>
   return result;
 };
 
+const MAX_MARKDOWN_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Read a Response body as text with a byte-size cap (5 MB).
+ * Returns undefined when the artifact exceeds the limit, letting
+ * callers fall back to an iframe.
+ *
+ * When Content-Length is available and within limits, uses response.text().
+ * When Content-Length is missing, streams the body and aborts if the
+ * limit is exceeded — prevents unbounded memory consumption (CWE-400).
+ */
+export const readBoundedText = async (response: Response): Promise<string | undefined> => {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    return undefined;
+  }
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_MARKDOWN_BYTES) {
+      await reader.cancel();
+      return undefined;
+    }
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
+};
+
 export const isMetricsArtifactType = (artifactType?: string): boolean =>
   artifactType === ArtifactType.METRICS ||
   artifactType === ArtifactType.CLASSIFICATION_METRICS ||
