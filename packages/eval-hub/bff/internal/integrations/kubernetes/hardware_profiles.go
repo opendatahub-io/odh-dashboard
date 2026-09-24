@@ -39,12 +39,19 @@ func listHardwareProfiles(
 	if err != nil {
 		return nil, err
 	}
-	return listHardwareProfilesForAvailability(ctx, client, hardwareProfilesNamespace, availability)
+	return listHardwareProfilesForAvailability(
+		ctx,
+		client,
+		evaluationNamespace,
+		hardwareProfilesNamespace,
+		availability,
+	)
 }
 
 func listHardwareProfilesForAvailability(
 	ctx context.Context,
 	client dynamic.Interface,
+	evaluationNamespace string,
 	hardwareProfilesNamespace string,
 	availability *models.KueueAvailability,
 ) (*models.HardwareProfilesResponse, error) {
@@ -63,6 +70,7 @@ func listHardwareProfilesForAvailability(
 	for _, name := range availability.LocalQueueNames {
 		queues[name] = struct{}{}
 	}
+	clusterQueues := getLocalQueueClusterQueueNames(ctx, client, evaluationNamespace, queues)
 
 	profiles, err := client.Resource(hardwareProfileGVR).Namespace(hardwareProfilesNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -111,18 +119,49 @@ func listHardwareProfilesForAvailability(
 
 		annotations := profile.GetAnnotations()
 		items = append(items, models.HardwareProfile{
-			Name:           profile.GetName(),
-			DisplayName:    firstNonEmpty(annotations["opendatahub.io/display-name"], profile.GetName()),
-			Description:    annotations["opendatahub.io/description"],
-			Enabled:        true,
-			SchedulingType: schedulingType,
-			LocalQueueName: localQueueName,
-			PriorityClass:  stringField(kueue, "priorityClass"),
-			Resources:      resources,
+			Name:             profile.GetName(),
+			DisplayName:      firstNonEmpty(annotations["opendatahub.io/display-name"], profile.GetName()),
+			Description:      annotations["opendatahub.io/description"],
+			Enabled:          true,
+			SchedulingType:   schedulingType,
+			LocalQueueName:   localQueueName,
+			ClusterQueueName: clusterQueues[localQueueName],
+			PriorityClass:    stringField(kueue, "priorityClass"),
+			Resources:        resources,
 		})
 	}
 
 	return &models.HardwareProfilesResponse{Items: items}, nil
+}
+
+// getLocalQueueClusterQueueNames returns the ClusterQueue backing each available
+// LocalQueue. The details are optional for the HardwareProfile response, so a
+// lookup failure does not prevent otherwise compatible profiles from loading.
+func getLocalQueueClusterQueueNames(
+	ctx context.Context,
+	client dynamic.Interface,
+	namespace string,
+	localQueueNames map[string]struct{},
+) map[string]string {
+	clusterQueues := make(map[string]string)
+	if len(localQueueNames) == 0 {
+		return clusterQueues
+	}
+
+	localQueues, err := client.Resource(localQueueGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return clusterQueues
+	}
+	for _, localQueue := range localQueues.Items {
+		if _, ok := localQueueNames[localQueue.GetName()]; !ok {
+			continue
+		}
+		clusterQueue, _, _ := unstructured.NestedString(localQueue.Object, "spec", "clusterQueue")
+		if clusterQueue != "" {
+			clusterQueues[localQueue.GetName()] = clusterQueue
+		}
+	}
+	return clusterQueues
 }
 
 // getMissingHardwareProfileLocalQueueName determines whether a selected Queue

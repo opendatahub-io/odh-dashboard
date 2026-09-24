@@ -164,11 +164,12 @@ func TestKueueWorkloadStatusesHandlerRejectsMissingEvaluationIDs(t *testing.T) {
 func TestHardwareProfilesHandlerReturnsProfiles(t *testing.T) {
 	client := &kueueHardwareProfilesK8sClient{profiles: &models.HardwareProfilesResponse{
 		Items: []models.HardwareProfile{{
-			Name:           "gpu",
-			DisplayName:    "GPU",
-			Enabled:        true,
-			SchedulingType: "Queue",
-			LocalQueueName: "gpu-default",
+			Name:             "gpu",
+			DisplayName:      "GPU",
+			Enabled:          true,
+			SchedulingType:   "Queue",
+			LocalQueueName:   "gpu-default",
+			ClusterQueueName: "gpu-cluster",
 		}},
 	}}
 	result, response, err := setupApiTestWithEvalHub[HardwareProfilesEnvelope](
@@ -185,7 +186,7 @@ func TestHardwareProfilesHandlerReturnsProfiles(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
 	}
-	if len(result.Data.Items) != 1 || result.Data.Items[0].LocalQueueName != "gpu-default" {
+	if len(result.Data.Items) != 1 || result.Data.Items[0].LocalQueueName != "gpu-default" || result.Data.Items[0].ClusterQueueName != "gpu-cluster" {
 		t.Fatalf("unexpected HardwareProfiles response: %+v", result.Data)
 	}
 	if client.evaluationNamespace != "test-namespace" || client.profileNamespace != "test-dashboard-ns" {

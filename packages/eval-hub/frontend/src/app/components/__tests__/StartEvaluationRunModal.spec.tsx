@@ -229,8 +229,8 @@ describe('StartEvaluationRunModal', () => {
 
     expect(hardwareProfileToggle).toBeInTheDocument();
     expect(
-      screen.getByText('Select a hardware profile to schedule this evaluation through Kueue.'),
-    ).toBeInTheDocument();
+      screen.queryByText('Select a hardware profile to schedule this evaluation through Kueue.'),
+    ).not.toBeInTheDocument();
     expect(
       hardwareProfileToggle.compareDocumentPosition(advancedToggle) &
         Node.DOCUMENT_POSITION_FOLLOWING,

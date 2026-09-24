@@ -1789,6 +1789,9 @@ components:
           type: string
         local_queue_name:
           type: string
+        cluster_queue_name:
+          type: string
+          description: ClusterQueue backing the HardwareProfile's LocalQueue
         priority_class:
           type: string
         resources:

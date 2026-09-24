@@ -319,5 +319,8 @@ func localQueueInNamespace(name, namespace string) *unstructured.Unstructured {
 			"name":      name,
 			"namespace": namespace,
 		},
+		"spec": map[string]interface{}{
+			"clusterQueue": "gpu-cluster",
+		},
 	}}
 }

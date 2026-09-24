@@ -6,7 +6,7 @@ import './FormGroupLabel.scss';
 
 type FormGroupLabelProps = {
   label: React.ReactNode;
-  description: React.ReactNode;
+  description?: React.ReactNode;
   isRequired?: boolean;
   helpPopover?: {
     ariaLabel: string;
@@ -53,7 +53,7 @@ const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
         </Popover>
       )}
     </span>
-    <Content component="small">{description}</Content>
+    {description ? <Content component="small">{description}</Content> : null}
   </>
 );
 

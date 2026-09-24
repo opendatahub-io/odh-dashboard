@@ -32,6 +32,9 @@ func TestListHardwareProfilesReturnsOnlyQueueCompatibleProfiles(t *testing.T) {
 	if response.Items[0].Name != "gpu-small" {
 		t.Fatalf("listHardwareProfiles() returned %q, want gpu-small", response.Items[0].Name)
 	}
+	if response.Items[0].ClusterQueueName != "gpu-cluster" {
+		t.Fatalf("listHardwareProfiles() returned ClusterQueueName %q, want gpu-cluster", response.Items[0].ClusterQueueName)
+	}
 }
 
 func TestListHardwareProfilesWarnsWhenNoLocalQueuesExist(t *testing.T) {

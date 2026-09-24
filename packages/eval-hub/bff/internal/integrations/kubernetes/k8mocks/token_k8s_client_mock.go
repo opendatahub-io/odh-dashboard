@@ -89,11 +89,12 @@ func (m *TokenKubernetesClientMock) ListHardwareProfiles(_ context.Context, _ *k
 	return &models.HardwareProfilesResponse{
 		Items: []models.HardwareProfile{
 			{
-				Name:           "default-gpu",
-				DisplayName:    "Default GPU",
-				Enabled:        true,
-				SchedulingType: "Queue",
-				LocalQueueName: "default",
+				Name:             "default-gpu",
+				DisplayName:      "Default GPU",
+				Enabled:          true,
+				SchedulingType:   "Queue",
+				LocalQueueName:   "default",
+				ClusterQueueName: "default-cluster",
 				Resources: []models.HardwareProfileResource{
 					{DisplayName: "CPU", Identifier: "cpu", ResourceType: "CPU", Default: "1"},
 					{DisplayName: "Memory", Identifier: "memory", ResourceType: "Memory", Default: "4Gi"},

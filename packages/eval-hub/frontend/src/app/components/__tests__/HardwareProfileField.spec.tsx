@@ -76,7 +76,7 @@ describe('HardwareProfileField', () => {
     expect(onSelect).toHaveBeenCalledWith(insufficientProfile);
   });
 
-  it('explains that a HardwareProfile is required for Kueue scheduling', () => {
+  it('marks the HardwareProfile as required without adding redundant helper text', () => {
     const { container } = render(
       <HardwareProfileField
         availability={availability}
@@ -89,8 +89,8 @@ describe('HardwareProfileField', () => {
 
     expect(container.querySelector('.pf-v6-c-form__label-required')).toHaveTextContent('*');
     expect(
-      screen.getByText('Select a hardware profile to schedule this evaluation through Kueue.'),
-    ).toBeInTheDocument();
+      screen.queryByText('Select a hardware profile to schedule this evaluation through Kueue.'),
+    ).not.toBeInTheDocument();
   });
 
   it('describes the selected resources and LocalQueue', () => {
@@ -126,10 +126,65 @@ describe('HardwareProfileField', () => {
     expect(screen.getByTestId('hardware-profile-details')).toHaveTextContent(
       'CPU: Default = 4, Minimum = 2, Maximum = 8; Memory: Default = 16Gi, Maximum = 32Gi; LocalQueue: gpu-default',
     );
+    expect(screen.getByTestId('hardware-profile-kueue-info')).toHaveTextContent(
+      'Only hardware profiles configured with a local queue are shown because this project uses Kueue for workload scheduling.',
+    );
     expect(
-      screen.queryByText('Only queue-backed HardwareProfiles are shown for this project.'),
+      screen.queryByText('Select the compute resources and Kueue LocalQueue for this evaluation.'),
     ).not.toBeInTheDocument();
-    expect(screen.getByLabelText('More info for hardware profile')).toBeInTheDocument();
+    const helpTrigger = screen.getByLabelText('More info for hardware profile');
+    expect(helpTrigger).toBeInTheDocument();
+    fireEvent.click(helpTrigger);
+    expect(
+      screen.getByRole('dialog', { name: 'More info for hardware profile' }),
+    ).toHaveTextContent(
+      'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources.',
+    );
+  });
+
+  it('shows the selected hardware profile details in a popover', () => {
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[
+          {
+            ...profile,
+            display_name: 'Kueue GPU Profile',
+            description: 'GPU profile with queue scheduling.',
+            cluster_queue_name: 'gpu-cluster',
+            resources: [
+              {
+                identifier: 'cpu',
+                display_name: 'CPU',
+                default: '4',
+                minimum: '2',
+                maximum: '8',
+              },
+              {
+                identifier: 'memory',
+                display_name: 'Memory',
+                default: '16Gi',
+                minimum: '8Gi',
+                maximum: '32Gi',
+              },
+            ],
+          },
+        ]}
+        loaded
+        selectedProfile={profile.name}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+    expect(screen.getByText('Kueue GPU Profile details')).toBeInTheDocument();
+    const details = screen.getByTestId('hardware-profile-details-popover-content');
+    expect(details).toHaveTextContent('GPU profile with queue scheduling.');
+    expect(details).toHaveTextContent('Default = 4 Cores, Min = 2 Cores, Max = 8 Cores');
+    expect(details).toHaveTextContent('Default = 16 GiB, Min = 8 GiB, Max = 32 GiB');
+    expect(details).toHaveTextContent('Local queuegpu-default');
+    expect(details).toHaveTextContent('Cluster queuegpu-cluster');
   });
 
   it('allows the selected HardwareProfile to be cleared', () => {

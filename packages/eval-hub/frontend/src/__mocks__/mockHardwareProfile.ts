@@ -9,6 +9,7 @@ export const mockHardwareProfile = (options: MockHardwareProfileOptions = {}): H
   enabled: true,
   scheduling_type: 'Queue',
   local_queue_name: 'gpu-default',
+  cluster_queue_name: 'gpu-cluster',
   resources: [
     {
       identifier: 'cpu',

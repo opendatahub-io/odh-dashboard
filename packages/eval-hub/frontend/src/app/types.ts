@@ -85,6 +85,7 @@ export type HardwareProfile = {
   enabled: boolean;
   scheduling_type?: string;
   local_queue_name?: string;
+  cluster_queue_name?: string;
   priority_class?: string;
   resources?: HardwareProfileResource[];
   compatibility?: HardwareProfileValidationResult;

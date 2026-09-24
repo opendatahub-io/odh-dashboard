@@ -285,7 +285,13 @@ func (kc *TokenKubernetesClient) ListHardwareProfiles(ctx context.Context, _ *Re
 	if err != nil {
 		return nil, err
 	}
-	return listHardwareProfilesForAvailability(ctx, dynamicClient, hardwareProfilesNamespace, availability)
+	return listHardwareProfilesForAvailability(
+		ctx,
+		dynamicClient,
+		evaluationNamespace,
+		hardwareProfilesNamespace,
+		availability,
+	)
 }
 
 func (kc *TokenKubernetesClient) GetMissingHardwareProfileLocalQueueName(ctx context.Context, _ *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace, profileName string) (string, bool, error) {

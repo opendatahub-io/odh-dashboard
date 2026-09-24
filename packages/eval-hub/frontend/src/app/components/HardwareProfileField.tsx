@@ -1,20 +1,35 @@
 import React from 'react';
 import {
+  Button,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Icon,
   Label,
   MenuToggle,
   Select,
   SelectList,
   SelectOption,
   Skeleton,
+  Stack,
+  StackItem,
   Split,
   SplitItem,
+  Popover,
 } from '@patternfly/react-core';
+import { InfoCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
 import type { HardwareProfile, KueueAvailability } from '~/app/types';
+import {
+  formatHardwareProfileDetails,
+  formatHardwareProfileResourceDetails,
+} from '~/app/utilities/hardwareProfileUtils';
+import './HardwareProfileField.scss';
 
 type HardwareProfileFieldProps = {
   availability?: KueueAvailability;
@@ -30,36 +45,83 @@ type HardwareProfileFieldProps = {
 };
 
 const NO_HARDWARE_PROFILE_VALUE = '__no_hardware_profile__';
+const KUEUE_PROFILE_FILTER_INFO =
+  'Only hardware profiles configured with a local queue are shown because this project uses Kueue for workload scheduling.';
 
 const hardwareProfileHelp = {
   ariaLabel: 'More info for hardware profile',
   content:
-    'A hardware profile defines the resources requested by the evaluation and the Kueue LocalQueue used to schedule it. Kueue may wait to start the evaluation until the requested capacity is available.',
+    'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources.',
 };
 
-const formatResourceDetails = (
-  resource: NonNullable<HardwareProfile['resources']>[number],
-): string => {
-  const values = [
-    resource.default ? `Default = ${resource.default}` : undefined,
-    resource.minimum ? `Minimum = ${resource.minimum}` : undefined,
-    resource.maximum ? `Maximum = ${resource.maximum}` : undefined,
-  ].filter((value): value is string => value !== undefined);
+const renderDetailsSection = (title: string, value: string) => (
+  <DescriptionList>
+    <DescriptionListGroup>
+      <DescriptionListTerm>{title}</DescriptionListTerm>
+      <DescriptionListDescription>{value}</DescriptionListDescription>
+    </DescriptionListGroup>
+  </DescriptionList>
+);
 
-  return `${resource.display_name ?? resource.identifier}: ${values.join(', ')}`;
+const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfile }> = ({ profile }) => {
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const [isVisible, setIsVisible] = React.useState(false);
+
+  const closePopover = (event: MouseEvent | KeyboardEvent) => {
+    setIsVisible(false);
+    if (event instanceof KeyboardEvent) {
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  };
+
+  return (
+    <Popover
+      hasAutoWidth
+      isVisible={isVisible}
+      shouldOpen={() => setIsVisible(true)}
+      shouldClose={closePopover}
+      withFocusTrap={false}
+      headerContent={`${profile.display_name} details`}
+      bodyContent={
+        <Stack hasGutter data-testid="hardware-profile-details-popover-content">
+          {profile.description ? <StackItem>{profile.description}</StackItem> : null}
+          {(profile.resources ?? []).map((resource) => (
+            <StackItem key={resource.identifier}>
+              {renderDetailsSection(
+                resource.display_name ?? resource.identifier,
+                formatHardwareProfileResourceDetails(resource),
+              )}
+            </StackItem>
+          ))}
+          {profile.local_queue_name ? (
+            <StackItem>{renderDetailsSection('Local queue', profile.local_queue_name)}</StackItem>
+          ) : null}
+          {profile.cluster_queue_name ? (
+            <StackItem>
+              {renderDetailsSection('Cluster queue', profile.cluster_queue_name)}
+            </StackItem>
+          ) : null}
+        </Stack>
+      }
+    >
+      <Button
+        ref={triggerRef}
+        variant="link"
+        isInline
+        icon={<QuestionCircleIcon />}
+        className="pf-v6-u-mt-sm"
+        data-testid="hardware-profile-details-popover"
+      >
+        View details
+      </Button>
+    </Popover>
+  );
 };
-
-const formatDetails = (profile: HardwareProfile): string =>
-  (profile.resources ?? [])
-    .filter((resource) => resource.default || resource.minimum || resource.maximum)
-    .map(formatResourceDetails)
-    .concat(profile.local_queue_name ? `LocalQueue: ${profile.local_queue_name}` : [])
-    .join('; ');
 
 type HardwareProfileFieldState = {
   unavailable: boolean;
   placeholder: string;
-  helperText: string;
+  helperText?: string;
   helperVariant?: 'warning' | 'error';
 };
 
@@ -79,7 +141,9 @@ const getHardwareProfileFieldState = ({
       return {
         unavailable: true,
         placeholder: 'Hardware profiles unavailable',
-        helperText: `${error?.message ?? 'Unable to load hardware profiles.'} Resolve this error before starting an evaluation.`,
+        helperText: `${
+          error?.message ?? 'Unable to load hardware profiles.'
+        } Resolve this error before starting an evaluation.`,
         helperVariant: 'error',
       };
     case Boolean(hasNoQueues):
@@ -102,9 +166,7 @@ const getHardwareProfileFieldState = ({
       return {
         unavailable: false,
         placeholder: 'Select hardware profile',
-        helperText: isRequired
-          ? 'Select a hardware profile to schedule this evaluation through Kueue.'
-          : 'Only queue-backed hardware profiles are shown.',
+        helperText: isRequired ? undefined : 'Only queue-backed hardware profiles are shown.',
       };
   }
 };
@@ -123,7 +185,6 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const selected = profiles.find((profile) => profile.name === selectedProfile);
-  const formGroupClassName = `evalhub-form-group--with-description${className ? ` ${className}` : ''}`;
   const hasNoQueues = availability?.enabled === true && !availability.scheduling_ready;
   const hasNoProfiles = availability?.scheduling_ready === true && profiles.length === 0;
   const fieldState = getHardwareProfileFieldState({
@@ -133,21 +194,11 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
     isRequired,
   });
   const profileSelectionDisabled = disabled || fieldState.unavailable;
-  const description = isRequired
-    ? 'Select the compute resources and Kueue LocalQueue for this evaluation.'
-    : 'Optional. Select the compute resources and Kueue LocalQueue for this evaluation.';
-
   if (!loaded) {
     return (
       <FormGroup
-        className={formGroupClassName}
-        label={
-          <FormGroupLabel
-            label="Hardware profile"
-            description={description}
-            helpPopover={hardwareProfileHelp}
-          />
-        }
+        className={className}
+        label={<FormGroupLabel label="Hardware profile" helpPopover={hardwareProfileHelp} />}
         fieldId="hardware-profile"
       >
         <Skeleton
@@ -166,11 +217,10 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
 
   return (
     <FormGroup
-      className={formGroupClassName}
+      className={className}
       label={
         <FormGroupLabel
           label="Hardware profile"
-          description={description}
           isRequired={isRequired}
           helpPopover={hardwareProfileHelp}
         />
@@ -217,7 +267,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
             <SelectOption
               key={profile.name}
               value={profile.name}
-              description={formatDetails(profile)}
+              description={formatHardwareProfileDetails(profile)}
               isSelected={profile.name === selectedProfile}
               data-testid={`hardware-profile-option-${profile.name}`}
             >
@@ -240,15 +290,30 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
         </SelectList>
       </Select>
       <FormHelperText>
-        <HelperText data-testid="hardware-profile-helper-text">
+        <HelperText
+          className="evalhub-hardware-profile-helper"
+          data-testid="hardware-profile-helper-text"
+        >
           {selected ? (
             <HelperTextItem data-testid="hardware-profile-details">
-              {formatDetails(selected)}
+              {formatHardwareProfileDetails(selected)}
             </HelperTextItem>
           ) : null}
-          {!selected || fieldState.helperVariant ? (
+          {(!selected || fieldState.helperVariant) && fieldState.helperText ? (
             <HelperTextItem variant={fieldState.helperVariant}>
               {fieldState.helperText}
+            </HelperTextItem>
+          ) : null}
+          {availability?.enabled ? (
+            <HelperTextItem
+              icon={
+                <Icon status="info">
+                  <InfoCircleIcon />
+                </Icon>
+              }
+              data-testid="hardware-profile-kueue-info"
+            >
+              {KUEUE_PROFILE_FILTER_INFO}
             </HelperTextItem>
           ) : null}
           {compatibilityError ? (
@@ -259,6 +324,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
           ) : null}
         </HelperText>
       </FormHelperText>
+      {selected ? <HardwareProfileDetailsPopover profile={selected} /> : null}
     </FormGroup>
   );
 };

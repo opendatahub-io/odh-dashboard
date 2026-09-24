@@ -15,14 +15,15 @@ type HardwareProfileResource struct {
 // HardwareProfile is the namespace-scoped subset of a HardwareProfile CRD
 // needed by the EvalHub form and validation flow.
 type HardwareProfile struct {
-	Name           string                    `json:"name"`
-	DisplayName    string                    `json:"display_name"`
-	Description    string                    `json:"description,omitempty"`
-	Enabled        bool                      `json:"enabled"`
-	SchedulingType string                    `json:"scheduling_type,omitempty"`
-	LocalQueueName string                    `json:"local_queue_name,omitempty"`
-	PriorityClass  string                    `json:"priority_class,omitempty"`
-	Resources      []HardwareProfileResource `json:"resources,omitempty"`
+	Name             string                    `json:"name"`
+	DisplayName      string                    `json:"display_name"`
+	Description      string                    `json:"description,omitempty"`
+	Enabled          bool                      `json:"enabled"`
+	SchedulingType   string                    `json:"scheduling_type,omitempty"`
+	LocalQueueName   string                    `json:"local_queue_name,omitempty"`
+	ClusterQueueName string                    `json:"cluster_queue_name,omitempty"`
+	PriorityClass    string                    `json:"priority_class,omitempty"`
+	Resources        []HardwareProfileResource `json:"resources,omitempty"`
 }
 
 type HardwareProfilesResponse struct {
