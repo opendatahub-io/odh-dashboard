@@ -12,29 +12,36 @@
 - **No Module Federation remote**: Dashboard loads via monorepo exports (e.g. `./extensions`, `./types`, test helpers under `./__tests__/utils`).
 - **API**: Group `serving.kserve.io`, resource `llminferenceservices`, version `v1alpha2`; shapes in `src/types.ts` as `LLMInferenceServiceKind`.
 
+## Standalone Composition
+
+- [Standalone dependency contract](standalone-dependency-contract.md) defines the approved target
+  graph for composing this spoke with the model-serving hub in RHOAI and RHAII.
+- The current `@odh-dashboard/internal` imports and KServe-area activation are transitional. Follow
+  the contract's import mapping and migration order; do not introduce new uses of either boundary.
+
 ## Key Concepts
 
-| Term | Definition |
-|------|-----------|
-| **LLMInferenceService** | CR `serving.kserve.io/v1alpha2` / `llminferenceservices`; deployed LLM-d model. |
-| **LLMdDeployment** | `Deployment<LLMInferenceServiceKind>` with `modelServingPlatformId = 'llmd-serving'`. |
-| **LLMdContainer** | Container in `spec.template.containers`; vLLM args via `VLLM_ADDITIONAL_ARGS`. |
-| **Router** | `spec.router` with `gateway`, `route`, `scheduler`; LLM-d routing layer. |
-| **Token authentication** | Secrets via `deployUtils.setUpTokenAuth`; wizard `tokenAuthField`. |
-| **Deployment strategy** | Rolling vs recreate via `deploymentStrategyField`. |
+| Term                       | Definition                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| **LLMInferenceService**    | CR `serving.kserve.io/v1alpha2` / `llminferenceservices`; deployed LLM-d model.             |
+| **LLMdDeployment**         | `Deployment<LLMInferenceServiceKind>` with `modelServingPlatformId = 'llmd-serving'`.       |
+| **LLMdContainer**          | Container in `spec.template.containers`; vLLM args via `VLLM_ADDITIONAL_ARGS`.              |
+| **Router**                 | `spec.router` with `gateway`, `route`, `scheduler`; LLM-d routing layer.                    |
+| **Token authentication**   | Secrets via `deployUtils.setUpTokenAuth`; wizard `tokenAuthField`.                          |
+| **Deployment strategy**    | Rolling vs recreate via `deploymentStrategyField`.                                          |
 | **Hardware profile paths** | `LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS` JSONPaths for `applyHardwareProfileConfig`. |
-| **External route** | Public route via LLM-d gateway; `externalRouteField`. |
-| **isLLMdDeployActive** | `deployUtils.ts`; true only when `disableLLMd` is off and `K_SERVE` area exists. |
+| **External route**         | Public route via LLM-d gateway; `externalRouteField`.                                       |
+| **isLLMdDeployActive**     | `deployUtils.ts`; true only when `disableLLMd` is off and `K_SERVE` area exists.            |
 
 ## Interactions
 
-| Dependency | Type | Details |
-|-----------|------|---------|
-| `@odh-dashboard/model-serving` | Package | Extension-point interfaces this package implements |
-| `@odh-dashboard/kserve` | Package | Shared KServe utilities and types |
-| `@odh-dashboard/internal` | Package | Hardware profiles, k8s types, flags / areas |
-| `LLMInferenceService` CRD | Kubernetes API | Group `serving.kserve.io`, `v1alpha2` |
-| Main ODH Dashboard | Host application | Loads extensions; model-serving wizard and table |
+| Dependency                     | Type                       | Details                                                                                          |
+| ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| `@odh-dashboard/model-serving` | Package                    | Extension-point interfaces this package implements                                               |
+| `@odh-dashboard/kserve`        | Transitional package edge  | No production import; declared dependency and frontend-area activation are scheduled for removal |
+| `@odh-dashboard/internal`      | Transitional monolith edge | Current legacy imports have approved modular destinations in the standalone dependency contract  |
+| `LLMInferenceService` CRD      | Kubernetes API             | Group `serving.kserve.io`, `v1alpha2`                                                            |
+| Main ODH Dashboard             | Host application           | Loads extensions; model-serving wizard and table                                                 |
 
 ## Known Issues / Gotchas
 
