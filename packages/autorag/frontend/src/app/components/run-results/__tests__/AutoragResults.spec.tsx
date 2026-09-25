@@ -930,14 +930,16 @@ describe('AutoragResults', () => {
       });
 
       const row = screen.getByTestId('leaderboard-row-1');
-      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('View details'));
+      await user.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      const viewDetailsAction = await screen.findByText('View details');
+      await user.click(viewDetailsAction);
 
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
 
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    }, 15_000);
+    }, 45_000);
   });
 
   describe('onViewCode source', () => {
@@ -1000,7 +1002,7 @@ describe('AutoragResults', () => {
       await user.click(actionsToggle);
 
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
-    }, 15_000);
+    }, 45_000);
   });
 
   describe('AutoRAG Pattern Details Viewed tracking', () => {

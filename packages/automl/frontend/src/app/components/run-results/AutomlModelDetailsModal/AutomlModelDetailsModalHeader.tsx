@@ -111,7 +111,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
               </MenuToggle>
             )}
           >
-            <DropdownList>
+            <DropdownList data-testid="model-selector-menu">
               {sortedModels.map((m) => (
                 <DropdownItem key={m.name} value={m.name}>
                   {m.name}

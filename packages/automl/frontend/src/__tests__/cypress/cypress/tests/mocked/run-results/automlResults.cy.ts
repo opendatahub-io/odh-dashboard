@@ -88,7 +88,6 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findModelDetailsModal().should('be.visible');
 
       // Open model selector and switch to a different model
-      automlResultsPage.findModelSelectorDropdown().click();
       automlResultsPage.findModelSelectorOption(MODEL_NAMES[1]).click();
 
       // Verify the modal still shows with the new model

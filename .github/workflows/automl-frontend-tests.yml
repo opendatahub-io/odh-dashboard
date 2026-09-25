@@ -1,0 +1,89 @@
+name: Test / AutoML Frontend Tests
+on:
+  push:
+    paths:
+      - 'packages/automl/**'
+      - '.github/workflows/automl-frontend-tests.yml'
+      - '.github/actions/pnpm-setup/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/automl/**'
+      - '.github/workflows/automl-frontend-tests.yml'
+      - '.github/actions/pnpm-setup/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+env:
+  NODE_VERSION: 22
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: AutoML Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Lint
+        working-directory: packages/automl/frontend
+        run: pnpm run test:lint
+
+      - name: Type check
+        working-directory: packages/automl/frontend
+        run: pnpm run test:type-check
+
+      - name: Unit tests (Jest)
+        working-directory: packages/automl/frontend
+        run: pnpm run test:unit
+
+      # Not worth it currently. These tests are not valuable
+      # enough to justify adding 10+ minutes to CI per test
+      # file and introducing more flakiness.
+
+      # - name: Cypress mock tests
+      #   working-directory: packages/automl/frontend
+      #   run: pnpm run test:cypress-ci
+
+      - name: Run clean
+        working-directory: packages/automl/frontend
+        run: pnpm run build:clean
+
+      - name: Run build
+        working-directory: packages/automl/frontend
+        run: pnpm run build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/automl/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
+
+      # - name: Upload Cypress results on failure
+      #   uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      #   if: failure()
+      #   with:
+      #     name: automl-cypress-results
+      #     path: packages/automl/frontend/src/__tests__/cypress/results/
+      #     retention-days: 1
