@@ -284,17 +284,29 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 
 	var modelAuthSecret *kubernetes.SandboxSecretEnvVar
 	if profile.Spec.Model.SourceType == string(models.ModelSourceTypeCustomEndpoint) {
-		credentials := profile.Spec.Model.Authorization
-		if credentials == nil || credentials.CredentialsRef == nil || credentials.CredentialsRef.Kind != "Secret" || credentials.CredentialsRef.Name == "" || credentials.CredentialsRef.Key == "" {
+		externalModelsConfig, configErr := k8sClient.GetExternalModelsConfig(ctx, namespace)
+		if configErr != nil {
 			rollback()
-			app.badRequestResponse(w, r, fmt.Errorf("custom endpoint model requires a Secret credentialsRef"))
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to read custom endpoint configuration: %w", configErr))
 			return
 		}
-		apiKey, secretErr := k8sClient.GetSecretValue(ctx, nil, namespace, credentials.CredentialsRef.Name, credentials.CredentialsRef.Key)
+		_, provider, resolveErr := kubernetes.ResolveCustomEndpointModelProvider(externalModelsConfig, profile.Spec.Model.ID)
+		if resolveErr != nil {
+			rollback()
+			app.badRequestResponse(w, r, resolveErr)
+			return
+		}
+		secretRef := provider.Config.CustomGenAI.APIKey.SecretRef
+		if secretRef.Name == "" || secretRef.Key == "" {
+			rollback()
+			app.badRequestResponse(w, r, fmt.Errorf("custom endpoint model %q has no API key Secret reference", profile.Spec.Model.ID))
+			return
+		}
+		apiKey, secretErr := k8sClient.GetSecretValue(ctx, nil, namespace, secretRef.Name, secretRef.Key)
 		if secretErr != nil {
 			rollback()
 			if apierrors.IsForbidden(secretErr) {
-				app.forbiddenResponse(w, r, fmt.Sprintf("access denied reading secret %q", credentials.CredentialsRef.Name))
+				app.forbiddenResponse(w, r, fmt.Sprintf("access denied reading secret %q", secretRef.Name))
 				return
 			}
 			app.serverErrorResponse(w, r, secretErr)

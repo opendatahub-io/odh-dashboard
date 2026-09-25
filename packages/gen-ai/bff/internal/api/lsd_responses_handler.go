@@ -1042,65 +1042,9 @@ func (app *App) getCustomEndpointBaseURLKeyAndModelID(ctx context.Context, model
 		return "", "", ""
 	}
 
-	var foundModel *models.RegisteredModel
-	lookupModelID := stripPassthroughProviderPrefix(modelID)
-
-	if strings.Contains(lookupModelID, "/") && !strings.HasPrefix(modelID, constants.PassthroughProviderID+"/") {
-		// Provider-qualified form: "endpoint-1/gpt-4o". Try this first for
-		// backwards compatibility, but if it does not match, treat the full value as a
-		// provider-native slash-delimited model ID.
-		parts := strings.SplitN(lookupModelID, "/", 2)
-		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
-			for i := range externalModelsConfig.RegisteredResources.Models {
-				m := &externalModelsConfig.RegisteredResources.Models[i]
-				if m.ProviderID == parts[0] && m.ModelID == parts[1] {
-					foundModel = m
-					break
-				}
-			}
-		}
-	}
-
-	if foundModel == nil {
-		// Bare/native model ID (e.g. "gpt-4o" or "meta-llama/Llama-3.1-8B") —
-		// search all registered models by ModelID. OGX strips the provider prefix before
-		// forwarding to the passthrough handler.
-		//
-		// Collect all matches: if more than one provider registers the same bare ID the
-		// lookup is ambiguous and we fail closed rather than silently routing to the wrong
-		// endpoint or leaking another provider's credentials (CWE-441).
-		var matches []*models.RegisteredModel
-		for i := range externalModelsConfig.RegisteredResources.Models {
-			m := &externalModelsConfig.RegisteredResources.Models[i]
-			if m.ModelID == lookupModelID {
-				matches = append(matches, m)
-			}
-		}
-		switch len(matches) {
-		case 1:
-			foundModel = matches[0]
-		default:
-			if len(matches) > 1 {
-				app.logger.Warn("Ambiguous bare model ID — multiple providers register the same ModelID; use a provider-qualified ID",
-					"modelID", modelID, "count", len(matches))
-			}
-			// Return empty strings: no match or ambiguous match is not routable.
-		}
-	}
-
-	if foundModel == nil {
-		return "", "", ""
-	}
-
-	var foundProvider *models.InferenceProvider
-	for i := range externalModelsConfig.Providers.Inference {
-		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
-			foundProvider = &externalModelsConfig.Providers.Inference[i]
-			break
-		}
-	}
-	if foundProvider == nil {
-		app.logger.Warn("Provider not found for custom endpoint model", "model", foundModel.ModelID, "providerID", foundModel.ProviderID)
+	foundModel, foundProvider, resolveErr := k8s.ResolveCustomEndpointModelProvider(externalModelsConfig, modelID)
+	if resolveErr != nil {
+		app.logger.Warn("Failed to resolve custom endpoint model", "model", modelID, "error", resolveErr)
 		return "", "", ""
 	}
 

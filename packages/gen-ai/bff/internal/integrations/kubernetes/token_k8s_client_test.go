@@ -41,6 +41,45 @@ type noMatchListClient struct {
 	client.Client
 }
 
+func TestGetExternalModelsConfigUsesDashboardClient(t *testing.T) {
+	const namespace = "test-namespace"
+
+	dashboardClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ExternalModelsConfigMapName,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"config.yaml": `providers:
+  inference:
+  - provider_id: endpoint-1
+    provider_type: remote::openai
+    config:
+      base_url: https://example.com/v1
+      allowed_models:
+      - example-model
+registered_resources:
+  models:
+  - provider_id: endpoint-1
+    model_id: example-model
+    model_type: llm
+    metadata:
+      display_name: Example model`,
+		},
+	}).Build()
+	kc := &TokenKubernetesClient{
+		Client:   fake.NewClientBuilder().Build(),
+		SAClient: dashboardClient,
+		Logger:   slog.Default(),
+	}
+
+	config, err := kc.GetExternalModelsConfig(context.Background(), namespace)
+
+	require.NoError(t, err)
+	require.Len(t, config.RegisteredResources.Models, 1)
+	assert.Equal(t, "example-model", config.RegisteredResources.Models[0].ModelID)
+}
+
 func (c noMatchListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
 	return &apimeta.NoKindMatchError{
 		GroupKind: schema.GroupKind{Group: "trustyai.opendatahub.io", Kind: "NemoGuardrails"},
