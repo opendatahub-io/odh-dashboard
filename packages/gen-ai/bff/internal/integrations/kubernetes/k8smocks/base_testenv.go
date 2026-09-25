@@ -48,6 +48,8 @@ var DefaultTestUsers = []TestUser{
 	},
 }
 
+const MockAgentProfileID = "11111111-1111-1111-1111-111111111111"
+
 type TestUser struct {
 	Token string `json:"token"`
 }
@@ -91,6 +93,8 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 		BinaryAssetsDirectory: binaryAssetsDir,
 		CRDs: []*apiextensionsv1.CustomResourceDefinition{
 			CreateOGXServerCRD(),
+			CreateSandboxCRD(),
+			CreateRouteCRD(),
 			CreateGuardrailsOrchestratorCRD(),
 			CreateNemoGuardrailsCRD(),
 		},
@@ -168,6 +172,64 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 	}
 
 	return testEnvState, ctrlClient, nil
+}
+
+// CreateSandboxCRD creates a permissive Sandbox CRD for the mock BFF's envtest API server.
+// The mock controller writes status.selector and a Ready condition immediately after creation.
+func CreateSandboxCRD() *apiextensionsv1.CustomResourceDefinition {
+	preserveUnknown := true
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: "sandboxes.agents.x-k8s.io"},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: "agents.x-k8s.io",
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
+				Name:    "v1beta1",
+				Served:  true,
+				Storage: true,
+				Schema: &apiextensionsv1.CustomResourceValidation{OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"spec":   {Type: "object", XPreserveUnknownFields: &preserveUnknown},
+						"status": {Type: "object", XPreserveUnknownFields: &preserveUnknown},
+					},
+				}},
+				Subresources: &apiextensionsv1.CustomResourceSubresources{
+					Status: &apiextensionsv1.CustomResourceSubresourceStatus{},
+				},
+			}},
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Plural: "sandboxes", Singular: "sandbox", Kind: "Sandbox", ListKind: "SandboxList",
+			},
+		},
+	}
+}
+
+// CreateRouteCRD creates a permissive Route CRD for the mock BFF's envtest API server.
+// OpenShift normally owns this API; envtest needs a local stand-in to persist generated routes.
+func CreateRouteCRD() *apiextensionsv1.CustomResourceDefinition {
+	preserveUnknown := true
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: "routes.route.openshift.io"},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: "route.openshift.io",
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
+				Name:    "v1",
+				Served:  true,
+				Storage: true,
+				Schema: &apiextensionsv1.CustomResourceValidation{OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"spec": {Type: "object", XPreserveUnknownFields: &preserveUnknown},
+					},
+				}},
+			}},
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Plural: "routes", Singular: "route", Kind: "Route", ListKind: "RouteList",
+			},
+		},
+	}
 }
 
 // CleanupTestEnvState performs graceful shutdown followed by force-kill if needed.
@@ -379,6 +441,9 @@ func SetupMock(mockK8sClient client.Client, ctx context.Context) error {
 	if err := createOGXServer(mockK8sClient, ctx, "llama-stack"); err != nil {
 		return fmt.Errorf("failed to create OGXServer in llama-stack: %w", err)
 	}
+	if err := createMockAgentProfile(mockK8sClient, ctx, "llama-stack"); err != nil {
+		return fmt.Errorf("failed to create mock agent profile in llama-stack: %w", err)
+	}
 
 	// mock-test namespaces matching GetNamespaces mock, with vector stores only
 	for _, ns := range []string{"mock-test-namespace-1", "mock-test-namespace-2", "mock-test-namespace-3", "mock-test-namespace-4", "empty-test-namespace"} {
@@ -440,6 +505,32 @@ func createCustomEndpointModelsConfigMap(k8sClient client.Client, ctx context.Co
 		},
 		Data: map[string]string{
 			"config.yaml": customEndpointModelsFixture,
+		},
+	}
+	return k8sClient.Create(ctx, cm)
+}
+
+func createMockAgentProfile(k8sClient client.Client, ctx context.Context, namespace string) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "agent-profile-" + MockAgentProfileID,
+			Namespace: namespace,
+			Labels: map[string]string{
+				"opendatahub.io/dashboard":     "true",
+				"opendatahub.io/agent-profile": "true",
+			},
+		},
+		Data: map[string]string{
+			"profile.yaml": `apiVersion: genai.redhat.com/v1alpha1
+kind: AgentProfile
+metadata:
+  name: 11111111-1111-1111-1111-111111111111
+spec:
+  displayName: Mock deployment agent
+  model:
+    id: mock-agent-model
+    uri: https://mock-model.example.com
+    sourceType: maas`,
 		},
 	}
 	return k8sClient.Create(ctx, cm)

@@ -79,6 +79,7 @@ func main() {
 	flag.StringVar(&cfg.PgvectorPasswordSecretName, "pgvector-password-secret-name", getEnvAsString("PGVECTOR_PASSWORD_SECRET_NAME", ""), "Kubernetes Secret name containing the pgvector password")
 	flag.StringVar(&cfg.PgvectorPasswordSecretKey, "pgvector-password-secret-key", getEnvAsString("PGVECTOR_PASSWORD_SECRET_KEY", pgvector.DefaultPasswordKey), "Key in the pgvector password Secret")
 	flag.StringVar(&cfg.PgvectorImage, "pgvector-image", getEnvAsString(pgvector.RelatedImageEnvVar, ""), "Container image for auto-provisioned pgvector (set via RELATED_IMAGE_POSTGRESQL_16_IMAGE)")
+	flag.StringVar(&cfg.OGXCoreImage, "ogx-core-image", getEnvAsString("RELATED_IMAGE_ODH_OGX_CORE_IMAGE", ""), "OGX core container image for Sandbox CR creation (set via RELATED_IMAGE_ODH_OGX_CORE_IMAGE)")
 
 	// Gateway configuration
 	flag.StringVar(&cfg.GatewayDomain, "gateway-domain", getEnvAsString("GATEWAY_DOMAIN", ""), "External gateway domain for BFF proxy URL (used by remote::passthrough provider)")
