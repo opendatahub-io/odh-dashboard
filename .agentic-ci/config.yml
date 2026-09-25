@@ -1,5 +1,5 @@
 setup:
   - name: Install Node.js and pnpm
-    run: dnf module enable nodejs:22 -y && dnf install -y --nodocs nodejs npm && npm install -g pnpm@11.22.0
+    run: dnf module enable nodejs:22 -y && dnf install -y --nodocs nodejs npm && npm install -g pnpm@$(node scripts/get-pnpm-version.js)
   - name: Install dependencies
     run: pnpm install --frozen-lockfile

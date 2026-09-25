@@ -31,7 +31,7 @@ For general ODH Dashboard contribution guidelines, refer to [ODH CONTRIBUTING.md
 ## Prerequisites
 
 - **[Node.js](https://nodejs.org/)**: v22.18.0 or later
-- **pnpm**: 11.22.0 (the version pinned by the repository)
+- **pnpm**: the version pinned in the root `package.json`
 - **[Go](https://go.dev/)**: v1.26 or later
 - **[Docker](https://www.docker.com/)**/**[Podman](https://podman.io/)**: For containerized deployment
 

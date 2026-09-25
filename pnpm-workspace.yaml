@@ -27,6 +27,10 @@ packages:
 shamefullyHoist: true
 autoInstallPeers: true
 
+# Installations explicitly use the version pinned in package.json. Do not let
+# pnpm add its own package-manager resolution document to pnpm-lock.yaml.
+pmOnFail: ignore
+
 # These Perses plugins import MUI but omit it from their published peer dependencies.
 packageExtensions:
   '@perses-dev/loki-plugin@0.6.0-rc.2':

@@ -23,7 +23,7 @@ This project is a web application built with a modular architecture. It consists
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v22.18.0 or later)
-- pnpm 11.22.0 (the version pinned by the repository)
+- pnpm (use the version pinned in the root `package.json`)
 - [Go](https://golang.org/) (v1.26 or later)
 - [Docker](https://www.docker.com/) (for containerized deployment)
 

@@ -28,7 +28,7 @@ COPY --chown=default:root scripts/ ./scripts/
 COPY --chown=default:root packages/gen-ai/frontend/ ./packages/gen-ai/frontend/
 
 USER default
-RUN npm install -g pnpm@11.22.0
+RUN npm install -g "pnpm@$(node scripts/get-pnpm-version.js)"
 RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 WORKDIR /usr/src/workspace/packages/gen-ai/frontend

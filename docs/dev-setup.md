@@ -5,7 +5,7 @@
 ODH requires the following to run:
 
 - [Node.js](https://nodejs.org/) `>=22.18.0`
-- [pnpm](https://pnpm.io/) `11.22.0` (the repository pins this version in `package.json`)
+- [pnpm](https://pnpm.io/) (use the version pinned in the root `package.json`)
 - [OpenShift CLI](https://docs.redhat.com/en/documentation/openshift_container_platform/4.16/html/cli_tools/openshift-cli-oc)
 - [kustomize](https://github.com/kubernetes-sigs/kustomize) (if you need to do deployment)
 
@@ -26,8 +26,8 @@ ODH requires the following to run:
 
    ```bash
    cd odh-dashboard
-   npm install --global pnpm@11.22.0
-   pnpm --version  # should print 11.22.0
+   npm install --global pnpm@$(node scripts/get-pnpm-version.js)
+   pnpm --version  # should print the version pinned in the root `package.json`
    pnpm install
    ```
 

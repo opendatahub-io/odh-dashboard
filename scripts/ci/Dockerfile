@@ -127,7 +127,7 @@ RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
 # Populate pnpm store from the workspace lockfile, then remove node_modules
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     nvm use $NODE_VERSION && \
-    npm install -g pnpm@11.22.0 && \
+    npm install -g pnpm@$(node scripts/get-pnpm-version.js) && \
     pnpm install --frozen-lockfile && \
     rm -rf node_modules && \
     find frontend backend packages distributions -type d -name node_modules -prune -exec rm -rf '{}' +"

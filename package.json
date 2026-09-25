@@ -17,7 +17,7 @@
   "engines": {
     "node": ">=22.18.0"
   },
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@12.6.0",
   "scripts": {
     "build": "run-p -l build:*",
     "build:backend": "pnpm --filter odh-dashboard-backend build",

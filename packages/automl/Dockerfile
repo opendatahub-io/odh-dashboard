@@ -16,11 +16,14 @@ ARG STYLE_THEME
 
 WORKDIR /usr/src/app
 
+# Copy the root manifest so the repository-pinned pnpm version is authoritative.
+COPY package.json /tmp/odh-dashboard-package.json
 # Copy the source code to the container
 COPY ${UI_SOURCE_CODE} /usr/src/app
 
 # Install pnpm, dependencies, and build
-RUN npm install -g pnpm@11.22.0
+COPY scripts/get-pnpm-version.js /tmp/pnpm-bootstrap/get-pnpm-version.js
+RUN npm install -g "pnpm@$(node /tmp/pnpm-bootstrap/get-pnpm-version.js /tmp/odh-dashboard-package.json)"
 RUN pnpm install
 RUN pnpm run build:prod
 
