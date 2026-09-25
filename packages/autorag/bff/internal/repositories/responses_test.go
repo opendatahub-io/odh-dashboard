@@ -1,12 +1,43 @@
 package repositories
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/openai/openai-go"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	openai "github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
 )
+
+// msgRole returns the role of a chat message param union, or "" if unset.
+// Role constants marshal lazily (their in-memory zero value is ""), so this
+// checks which variant is populated rather than relying on GetRole().
+func msgRole(m openai.ChatCompletionMessageParamUnion) string {
+	switch {
+	case m.OfSystem != nil:
+		return "system"
+	case m.OfUser != nil:
+		return "user"
+	case m.OfAssistant != nil:
+		return "assistant"
+	case m.OfDeveloper != nil:
+		return "developer"
+	case m.OfTool != nil:
+		return "tool"
+	case m.OfFunction != nil:
+		return "function"
+	default:
+		return ""
+	}
+}
+
+// msgContent returns the plain-text content of a chat message param union, or "" if not a simple string.
+func msgContent(m openai.ChatCompletionMessageParamUnion) string {
+	if s, ok := m.GetContent().AsAny().(*string); ok && s != nil {
+		return *s
+	}
+	return ""
+}
 
 // ---------- extractHistoryAndQuestion ----------
 
@@ -86,7 +117,7 @@ func TestExtractHistoryAndQuestion(t *testing.T) {
 
 			roles := make([]string, len(history))
 			for i, h := range history {
-				roles[i] = h.Role
+				roles[i] = msgRole(h)
 			}
 			if tt.wantHistoryRoles == nil {
 				assert.Empty(t, roles)
@@ -106,16 +137,16 @@ func TestBuildMessages(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                string
-		systemPrompt        string
-		contextTemplate     string
-		userTemplate        string
-		history             []openai.ChatCompletionMessage
-		question            string
-		sources             []models.SourceChunk
-		wantMsgCount        int
-		wantFirstRole       string
-		wantLastRole        string
+		name                  string
+		systemPrompt          string
+		contextTemplate       string
+		userTemplate          string
+		history               []openai.ChatCompletionMessageParamUnion
+		question              string
+		sources               []models.SourceChunk
+		wantMsgCount          int
+		wantFirstRole         string
+		wantLastRole          string
 		wantLastContentSubstr string
 	}{
 		{
@@ -127,8 +158,8 @@ func TestBuildMessages(t *testing.T) {
 			question:              "what is this?",
 			sources:               sources,
 			wantMsgCount:          1,
-			wantFirstRole:         openai.ChatMessageRoleUser,
-			wantLastRole:          openai.ChatMessageRoleUser,
+			wantFirstRole:         "user",
+			wantLastRole:          "user",
 			wantLastContentSubstr: "what is this?",
 		},
 		{
@@ -140,48 +171,48 @@ func TestBuildMessages(t *testing.T) {
 			question:              "hello",
 			sources:               nil,
 			wantMsgCount:          2,
-			wantFirstRole:         openai.ChatMessageRoleSystem,
-			wantLastRole:          openai.ChatMessageRoleUser,
+			wantFirstRole:         "system",
+			wantLastRole:          "user",
 			wantLastContentSubstr: "hello",
 		},
 		{
-			name:             "context template applied per chunk",
-			systemPrompt:     "",
-			contextTemplate:  "Doc {doc_number}: {document}",
-			userTemplate:     "",
-			history:          nil,
-			question:         "summarise",
-			sources:          sources,
-			wantMsgCount:     1,
-			wantLastRole:     openai.ChatMessageRoleUser,
+			name:                  "context template applied per chunk",
+			systemPrompt:          "",
+			contextTemplate:       "Doc {doc_number}: {document}",
+			userTemplate:          "",
+			history:               nil,
+			question:              "summarise",
+			sources:               sources,
+			wantMsgCount:          1,
+			wantLastRole:          "user",
 			wantLastContentSubstr: "Doc 1: doc one",
 		},
 		{
-			name:             "user template substitutes placeholders",
-			systemPrompt:     "",
-			contextTemplate:  "{document}",
-			userTemplate:     "Docs:\n{reference_documents}\nQ: {question}",
-			history:          nil,
-			question:         "summarise",
-			sources:          sources,
-			wantMsgCount:     1,
-			wantLastRole:     openai.ChatMessageRoleUser,
+			name:                  "user template substitutes placeholders",
+			systemPrompt:          "",
+			contextTemplate:       "{document}",
+			userTemplate:          "Docs:\n{reference_documents}\nQ: {question}",
+			history:               nil,
+			question:              "summarise",
+			sources:               sources,
+			wantMsgCount:          1,
+			wantLastRole:          "user",
 			wantLastContentSubstr: "Q: summarise",
 		},
 		{
-			name:         "history inserted between system and user",
-			systemPrompt: "sys",
+			name:            "history inserted between system and user",
+			systemPrompt:    "sys",
 			contextTemplate: "",
 			userTemplate:    "",
-			history: []openai.ChatCompletionMessage{
-				{Role: openai.ChatMessageRoleUser, Content: "prev q"},
-				{Role: openai.ChatMessageRoleAssistant, Content: "prev a"},
+			history: []openai.ChatCompletionMessageParamUnion{
+				openai.UserMessage("prev q"),
+				openai.AssistantMessage("prev a"),
 			},
 			question:              "new q",
 			sources:               nil,
 			wantMsgCount:          4,
-			wantFirstRole:         openai.ChatMessageRoleSystem,
-			wantLastRole:          openai.ChatMessageRoleUser,
+			wantFirstRole:         "system",
+			wantLastRole:          "user",
 			wantLastContentSubstr: "new q",
 		},
 		{
@@ -203,16 +234,104 @@ func TestBuildMessages(t *testing.T) {
 
 			assert.Len(t, msgs, tt.wantMsgCount)
 			if tt.wantFirstRole != "" {
-				assert.Equal(t, tt.wantFirstRole, msgs[0].Role)
+				assert.Equal(t, tt.wantFirstRole, msgRole(msgs[0]))
 			}
 			if tt.wantLastRole != "" {
-				assert.Equal(t, tt.wantLastRole, msgs[len(msgs)-1].Role)
+				assert.Equal(t, tt.wantLastRole, msgRole(msgs[len(msgs)-1]))
 			}
 			if tt.wantLastContentSubstr != "" {
-				assert.Contains(t, msgs[len(msgs)-1].Content, tt.wantLastContentSubstr)
+				assert.Contains(t, msgContent(msgs[len(msgs)-1]), tt.wantLastContentSubstr)
 			}
 		})
 	}
+}
+
+// ---------- capHistory ----------
+
+func TestCapHistory(t *testing.T) {
+	buildHistory := func(turns int) []openai.ChatCompletionMessageParamUnion {
+		var h []openai.ChatCompletionMessageParamUnion
+		for i := 0; i < turns; i++ {
+			h = append(h,
+				openai.UserMessage(fmt.Sprintf("q%d", i)),
+				openai.AssistantMessage(fmt.Sprintf("a%d", i)),
+			)
+		}
+		return h
+	}
+
+	t.Run("under limit is unchanged", func(t *testing.T) {
+		h := buildHistory(5)
+		got := capHistory(h, 10)
+		assert.Len(t, got, 10)
+		assert.Equal(t, "q0", msgContent(got[0]))
+	})
+
+	t.Run("at limit is unchanged", func(t *testing.T) {
+		h := buildHistory(10)
+		got := capHistory(h, 10)
+		assert.Len(t, got, 20)
+		assert.Equal(t, "q0", msgContent(got[0]))
+	})
+
+	t.Run("over limit drops oldest turns", func(t *testing.T) {
+		h := buildHistory(12)
+		got := capHistory(h, 10)
+		assert.Len(t, got, 20)
+		assert.Equal(t, "q2", msgContent(got[0]))
+		assert.Equal(t, "a2", msgContent(got[1]))
+		assert.Equal(t, "q11", msgContent(got[len(got)-2]))
+		assert.Equal(t, "a11", msgContent(got[len(got)-1]))
+
+		userCount := 0
+		for _, m := range got {
+			if m.OfUser != nil {
+				userCount++
+			}
+		}
+		assert.Equal(t, 10, userCount)
+	})
+}
+
+func TestExtractHistoryAndQuestion_CapsHistory(t *testing.T) {
+	var input []models.InputMessage
+	input = append(input, models.InputMessage{
+		Type: "message", Role: "system",
+		Content: []models.InputContent{{Type: "input_text", Text: "be helpful"}},
+	})
+	for i := 0; i < 12; i++ {
+		input = append(input,
+			models.InputMessage{
+				Type: "message", Role: "user",
+				Content: []models.InputContent{{Type: "input_text", Text: fmt.Sprintf("q%d", i)}},
+			},
+			models.InputMessage{
+				Type: "message", Role: "assistant",
+				Content: []models.InputContent{{Type: "input_text", Text: fmt.Sprintf("a%d", i)}},
+			},
+		)
+	}
+	// Final turn: the pending question, not yet answered.
+	input = append(input, models.InputMessage{
+		Type: "message", Role: "user",
+		Content: []models.InputContent{{Type: "input_text", Text: "final question"}},
+	})
+
+	systemPrompt, history, question := extractHistoryAndQuestion(input)
+
+	assert.Equal(t, "be helpful", systemPrompt, "system prompt must survive capping")
+	assert.Equal(t, "final question", question)
+	assert.Len(t, history, 20)
+
+	userCount := 0
+	for _, m := range history {
+		if m.OfUser != nil {
+			userCount++
+		}
+	}
+	assert.Equal(t, 10, userCount)
+	assert.Equal(t, "q2", msgContent(history[0]), "oldest turns should be dropped")
+	assert.Equal(t, "a11", msgContent(history[len(history)-1]), "most recent turns should be kept")
 }
 
 // ---------- sanitizeCollection ----------
