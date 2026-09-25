@@ -331,6 +331,11 @@
     }
   }
 
+  /* Rank 2/3 outlines stay rank-colored without marking the node as the resolved winner. */
+  &--ranked .pf-topology__node__background {
+    stroke: var(--autorag-tree-node--winner--Color);
+  }
+
   &--active.pf-m-info,
   &--active {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--info--default);
