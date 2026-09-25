@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
+import { EvaluationJob } from '~/app/types';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 
@@ -24,14 +25,19 @@ const mockOnActionComplete = jest.fn();
 const mockOnShowStatus = jest.fn();
 const mockOnSelectionChange = jest.fn();
 
-const renderRow = (jobOverrides = {}, rowIndex = 0) => {
-  const job = mockEvaluationJob(jobOverrides);
-  return render(
+const renderJob = (
+  job: EvaluationJob,
+  rowIndex = 0,
+  polledJobData?: EvaluationJob,
+  isKueueWorkloadStatusLoading = false,
+) =>
+  render(
     <MemoryRouter>
       <Table aria-label="test">
         <Tbody>
           <EvaluationsTableRow
             job={job}
+            polledJobData={polledJobData}
             rowIndex={rowIndex}
             namespace="test-ns"
             collectionNameMap={{}}
@@ -39,12 +45,15 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
             onShowStatus={mockOnShowStatus}
             isSelected={false}
             onSelectionChange={mockOnSelectionChange}
+            isKueueWorkloadStatusLoading={isKueueWorkloadStatusLoading}
           />
         </Tbody>
       </Table>
     </MemoryRouter>,
   );
-};
+
+const renderRow = (jobOverrides = {}, rowIndex = 0) =>
+  renderJob(mockEvaluationJob(jobOverrides), rowIndex);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -72,6 +81,41 @@ describe('EvaluationsTableRow', () => {
   it('should render status label', () => {
     renderRow({ state: 'running' });
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Running');
+  });
+
+  it('should keep a pending job as Pending until Kueue reports a queued status', () => {
+    renderRow({ state: 'pending' });
+
+    expect(screen.getByTestId('evaluation-status')).toHaveTextContent('Pending');
+  });
+
+  it('should show a neutral loading state while Kueue status is being checked', () => {
+    renderJob(mockEvaluationJob({ state: 'pending' }), 0, undefined, true);
+
+    expect(screen.getByTestId('evaluation-status-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-status')).not.toHaveTextContent('Pending');
+  });
+
+  it('should preserve Queued when detail polling omits the queue assignment', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
+    const polledJob = mockEvaluationJob({ state: 'pending' });
+
+    renderJob(job, 0, polledJob);
+
+    expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
+  });
+
+  it('should open status using the latest polled job data', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    const polledJob = mockEvaluationJob({ state: 'running' });
+
+    renderJob(job, 0, polledJob);
+
+    fireEvent.click(within(screen.getByTestId('evaluation-status-button')).getByRole('button'));
+
+    expect(mockOnShowStatus).toHaveBeenCalledWith(polledJob);
   });
 
   it('should disable the compare checkbox when evaluation is not completed', () => {

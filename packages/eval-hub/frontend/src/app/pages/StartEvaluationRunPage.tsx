@@ -51,6 +51,7 @@ import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField'
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import HardwareProfileField from '~/app/components/HardwareProfileField';
 import type { SourceMode } from '~/app/types';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
@@ -513,6 +514,17 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               markTouched={form.markTouched}
             />
           )}
+
+          <HardwareProfileField
+            availability={form.kueueAvailability}
+            profiles={form.hardwareProfiles}
+            loaded={form.hardwareProfilesLoaded}
+            error={form.hardwareProfilesError}
+            compatibilityError={form.hardwareProfileCompatibilityError}
+            selectedProfile={form.hardwareProfile}
+            onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+            isRequired={form.requiresHardwareProfile}
+          />
 
           {/* ── Benchmark display ──────────────────────────────── */}
           <FormGroup

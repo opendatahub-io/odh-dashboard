@@ -181,6 +181,24 @@ class CreateEvaluationPage {
     return option.find('[role="option"]').first();
   }
 
+  findHardwareProfileToggle(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find('[data-testid="hardware-profile-toggle"]')
+      : cy.findByTestId('hardware-profile-toggle');
+  }
+
+  findHardwareProfileOption(name: string) {
+    return cy.findByTestId(`hardware-profile-option-${name}`).find('[role="option"]');
+  }
+
+  findHardwareProfileKueueInfo(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find(
+          '[data-testid="hardware-profile-kueue-info"]',
+        )
+      : cy.findByTestId('hardware-profile-kueue-info');
+  }
+
   findExternalModelOption() {
     return cy.findByTestId('model-option-external');
   }

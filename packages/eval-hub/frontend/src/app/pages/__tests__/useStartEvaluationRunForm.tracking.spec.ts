@@ -1,19 +1,35 @@
 /* eslint-disable camelcase */
-import { act } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import type { FlatBenchmark, Collection, InferenceServiceItem } from '~/app/types';
+import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
+import type {
+  FlatBenchmark,
+  Collection,
+  HardwareProfile,
+  InferenceServiceItem,
+  KueueAvailability,
+} from '~/app/types';
 import {
   useStartEvaluationRunForm,
   EXTERNAL_ENDPOINT_VALUE,
 } from '~/app/pages/useStartEvaluationRunForm';
 
 const mockNavigate = jest.fn();
+let mockHardwareProfilesLoaded = true;
+let mockKueueAvailabilityLoaded = true;
+let mockHardwareProfiles: HardwareProfile[] = [];
+let mockKueueAvailability: KueueAvailability | undefined;
+let mockHardwareProfilesError: Error | undefined;
+let mockHardwareProfileCompatibilityError: Error | undefined;
+let mockKueueAvailabilityError: Error | undefined;
+const mockNotificationError = jest.fn();
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -26,12 +42,13 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('~/app/api/k8s', () => ({
   createEvaluationJob: jest.fn(() => () => Promise.resolve({})),
+  getHardwareProfiles: jest.fn(() => () => Promise.resolve([])),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({
     success: jest.fn(),
-    error: jest.fn(),
+    error: mockNotificationError,
   }),
 }));
 
@@ -43,8 +60,27 @@ jest.mock('~/app/hooks/useConnectionValidation', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useHardwareProfiles', () => ({
+  useHardwareProfiles: () => ({
+    profiles: mockHardwareProfiles,
+    loaded: mockHardwareProfilesLoaded,
+    error: mockHardwareProfilesError,
+    compatibilityError: mockHardwareProfileCompatibilityError,
+  }),
+}));
+
+jest.mock('~/app/hooks/useKueueAvailability', () => ({
+  useKueueAvailability: () => ({
+    availability: mockKueueAvailability,
+    loaded: mockKueueAvailabilityLoaded,
+    error: mockKueueAvailabilityError,
+  }),
+}));
+
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 const mockFireForm = jest.mocked(fireFormTrackingEvent);
+const mockCreateEvaluationJob = jest.mocked(createEvaluationJob);
+const mockGetHardwareProfiles = jest.mocked(getHardwareProfiles);
 
 const mockBenchmark: FlatBenchmark = {
   id: 'arc_easy',
@@ -68,6 +104,44 @@ const mockInferenceServices: InferenceServiceItem[] = [
   { name: 'model-b', url: 'http://model-b.svc:8080', ready: true },
 ];
 
+const mockCompatibleHardwareProfile: HardwareProfile = {
+  name: 'gpu-small',
+  display_name: 'GPU small',
+  enabled: true,
+  local_queue_name: 'gpu-default',
+};
+
+const mockKueueEnabled: KueueAvailability = {
+  enabled: true,
+  scheduling_ready: true,
+  cluster_enabled: true,
+  namespace_managed: true,
+  local_queues_available: true,
+  local_queue_names: ['gpu-default'],
+};
+
+const reconfigureValues: ReconfigureFormData = {
+  evaluationName: 'Reconfigured evaluation',
+  sourceMode: 'model',
+  modelSelection: 'cluster',
+  modelName: 'model-a',
+  selectedInferenceService: mockInferenceServices[0],
+  endpointUrl: mockInferenceServices[0].url ?? '',
+  apiKeySecretRef: '',
+  sourceName: '',
+  datasetUrl: '',
+  accessToken: '',
+  benchmark: mockBenchmark,
+  collection: undefined,
+  isCollectionFlow: false,
+  threshold: 70,
+  primaryMetric: 'accuracy',
+  additionalArgs: '',
+  experimentName: 'EvalHub',
+  hardwareProfile: mockCompatibleHardwareProfile.name,
+  queue: mockCompatibleHardwareProfile.local_queue_name,
+};
+
 const defaultFormParams = {
   namespace: 'test-ns',
   benchmark: mockBenchmark,
@@ -83,6 +157,70 @@ const renderForm = (overrides = {}) =>
 describe('useStartEvaluationRunForm - Tracking Events', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetHardwareProfiles.mockReturnValue(() => Promise.resolve([mockCompatibleHardwareProfile]));
+    mockHardwareProfilesLoaded = true;
+    mockKueueAvailabilityLoaded = true;
+    mockHardwareProfiles = [];
+    mockKueueAvailability = undefined;
+    mockHardwareProfilesError = undefined;
+    mockHardwareProfileCompatibilityError = undefined;
+    mockKueueAvailabilityError = undefined;
+  });
+
+  it('should remain invalid while hardware profile data is loading', () => {
+    mockHardwareProfilesLoaded = false;
+    const renderResult = renderForm();
+
+    expect(renderResult.result.current.isValid).toBe(false);
+  });
+
+  it('requires a HardwareProfile in a Kueue-managed namespace', async () => {
+    mockHardwareProfiles = [mockCompatibleHardwareProfile];
+    mockKueueAvailability = mockKueueEnabled;
+    const renderResult = renderForm();
+
+    act(() => {
+      renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      renderResult.result.current.setExperimentMode('new');
+      renderResult.result.current.setNewExperimentName('EvalHub');
+    });
+
+    await waitFor(() => expect(renderResult.result.current.requiresHardwareProfile).toBe(true));
+    expect(renderResult.result.current.isValid).toBe(false);
+
+    act(() => {
+      renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
+    });
+
+    await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+  });
+
+  it('requires a HardwareProfile when a Kueue-managed namespace has no compatible profiles', async () => {
+    mockKueueAvailability = mockKueueEnabled;
+    const renderResult = renderForm();
+
+    act(() => {
+      renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      renderResult.result.current.setExperimentMode('new');
+      renderResult.result.current.setNewExperimentName('EvalHub');
+    });
+
+    await waitFor(() => expect(renderResult.result.current.requiresHardwareProfile).toBe(true));
+    expect(renderResult.result.current.isValid).toBe(false);
+  });
+
+  it('blocks submission when Kueue or HardwareProfiles cannot be loaded', async () => {
+    mockKueueAvailability = mockKueueEnabled;
+    mockHardwareProfilesError = new Error('Unable to load HardwareProfiles');
+    const renderResult = renderForm();
+
+    act(() => {
+      renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      renderResult.result.current.setExperimentMode('new');
+      renderResult.result.current.setNewExperimentName('EvalHub');
+    });
+
+    await waitFor(() => expect(renderResult.result.current.isValid).toBe(false));
   });
 
   describe('Evaluations Run Source Selected', () => {
@@ -397,6 +535,93 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         }),
       );
       expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('should submit when advisory compatibility fails and a collection omits provider IDs', async () => {
+      mockHardwareProfiles = [mockCompatibleHardwareProfile];
+      mockKueueAvailability = mockKueueEnabled;
+      mockHardwareProfileCompatibilityError = new Error('Provider lookup unavailable');
+      const renderResult = renderForm({
+        benchmark: undefined,
+        collection: { ...mockCollection, benchmarks: [{ id: 'mmlu' }] },
+        isCollectionFlow: true,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+        renderResult.result.current.setExperimentMode('new');
+        renderResult.result.current.setNewExperimentName('EvalHub');
+        renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
+      });
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockGetHardwareProfiles).toHaveBeenCalledWith('', 'test-ns');
+      expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1);
+      expect(mockCreateEvaluationJob.mock.calls[0][2]).toEqual(
+        expect.objectContaining({
+          hardware_config: { hardware_profile_name: mockCompatibleHardwareProfile.name },
+        }),
+      );
+    });
+
+    it('should omit stale profile and queue settings when Kueue is disabled during reconfigure', async () => {
+      mockKueueAvailability = {
+        ...mockKueueEnabled,
+        enabled: false,
+        scheduling_ready: false,
+        local_queue_names: [],
+      };
+      const renderResult = renderForm({ initialValues: reconfigureValues });
+
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+      expect(renderResult.result.current.hardwareProfile).toBeUndefined();
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockGetHardwareProfiles).not.toHaveBeenCalled();
+      expect(mockCreateEvaluationJob.mock.calls[0][2]).not.toHaveProperty('hardware_config');
+    });
+
+    it('should reject a reconfigured profile that is absent from the current LocalQueues', () => {
+      mockKueueAvailability = mockKueueEnabled;
+      mockHardwareProfiles = [
+        { ...mockCompatibleHardwareProfile, local_queue_name: 'unavailable-queue' },
+      ];
+      const renderResult = renderForm({ initialValues: reconfigureValues });
+
+      expect(renderResult.result.current.isValid).toBe(false);
+      expect(renderResult.result.current.hardwareProfile).toBeUndefined();
+    });
+
+    it('should stop submission when the selected profile disappears after loading', async () => {
+      mockKueueAvailability = mockKueueEnabled;
+      mockHardwareProfiles = [mockCompatibleHardwareProfile];
+      mockGetHardwareProfiles.mockReturnValue(() => Promise.resolve([]));
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+        renderResult.result.current.setExperimentMode('new');
+        renderResult.result.current.setNewExperimentName('EvalHub');
+        renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
+      });
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to start evaluation',
+        expect.stringContaining('no longer available'),
+      );
     });
   });
 

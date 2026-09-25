@@ -143,7 +143,7 @@ describe('Eval Hub E2E', () => {
       });
       verifyEvaluationProgressModal(evaluationRunName);
       waitForEvaluationJobComplete(evaluationTenantProject);
-      verifyEvaluationCompletedAndViewResults(evaluationRunName, evaluationTenantProject);
+      verifyEvaluationCompletedAndViewResults(evaluationRunName);
     },
   );
 });

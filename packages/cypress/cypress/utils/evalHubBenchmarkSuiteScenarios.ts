@@ -170,11 +170,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
 
     verifyEvaluationProgressModal(evaluationRunName);
     waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
-    verifyEvaluationCompletedAndViewResults(
-      evaluationRunName,
-      evaluationTenantProject,
-      testData.expectedBenchmarkIds,
-    );
+    verifyEvaluationCompletedAndViewResults(evaluationRunName, testData.expectedBenchmarkIds);
   };
 
   return { setup, cleanup, run };

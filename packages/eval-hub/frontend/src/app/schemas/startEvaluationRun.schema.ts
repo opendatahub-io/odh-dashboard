@@ -25,6 +25,8 @@ export const startEvaluationRunSchema = z
     primaryMetric: z.string().optional(),
     showAdditionalArgs: z.boolean(),
     additionalArgs: z.string(),
+    hardwareProfile: z.string().optional(),
+    queue: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     const hasExperiment =
@@ -128,4 +130,6 @@ export const startEvaluationRunDefaultValues: StartEvaluationRunFormValues = {
   primaryMetric: undefined,
   showAdditionalArgs: false,
   additionalArgs: '',
+  hardwareProfile: undefined,
+  queue: undefined,
 };

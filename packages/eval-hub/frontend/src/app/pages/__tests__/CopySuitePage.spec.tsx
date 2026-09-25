@@ -325,12 +325,20 @@ describe('CopySuitePage', () => {
       'Create a benchmark suite',
     );
     goToBenchmarksStep();
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Benchmarks');
+    expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
+      'Choose the primary metric, number of samples, random seed, threshold, and weight used to calculate the result for each benchmark.',
+    );
+    expect(screen.getByTestId('copy-suite-description')).toHaveClass('pf-v6-u-mb-xl');
+    expect(screen.queryByTestId('copy-suite-benchmarks-description')).not.toBeInTheDocument();
     expect(screen.getByTestId('create-suite-submit')).toHaveTextContent('Save and run');
     expect(screen.getByTestId('copy-suite-save-only')).toHaveTextContent(
       'Add to my benchmark suites',
     );
     fireEvent.click(screen.getByTestId('copy-suite-back-step-2'));
     expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
+    expect(screen.queryByTestId('app-page-title')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-description')).not.toBeInTheDocument();
   });
 
   it('should wire create and run and create only to their respective handlers', () => {
@@ -652,7 +660,7 @@ describe('CopySuitePage', () => {
 
     goToBenchmarksStep();
 
-    expect(screen.getByText('Benchmarks')).toBeInTheDocument();
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Benchmarks');
     expect(screen.getByTestId('copy-suite-benchmark-sections')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('copy-suite-save-and-run'));
     fireEvent.click(screen.getByTestId('copy-suite-save-only'));
