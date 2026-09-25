@@ -1,6 +1,6 @@
 ---
 name: pr-description-review
-description: "Review a pull request description for required ODH Dashboard template content, Jira linkage, test-impact context, checklist completion, and UI evidence. Use when checking PR completeness, PR template compliance, or merge readiness."
+description: "Review a pull request description for substance readiness: Problem, Solution, and Evidence. Use when checking PR description completeness or merge readiness."
 argument-hint: "[PR number]"
 ---
 
@@ -10,11 +10,11 @@ Review whether a PR body gives reviewers the information needed to understand, t
 
 ## Invocation contract
 
-This skill owns the template-completeness criteria and status mapping. A caller may provide an invocation meta-prompt that changes context acquisition, output format, and side-effect rules, but not these criteria. Without one, use the direct CLI defaults and return the Markdown report in [Report](#report).
+This skill owns the substance-readiness criteria and status mapping. A caller may provide an invocation meta-prompt that changes context acquisition, output format, and side-effect rules, but not these criteria. Without one, use the direct CLI defaults and return the Markdown report in [Report](#report).
 
 ## Inputs and direct CLI defaults
 
-The caller may supply a PR body, changed paths, and the repository template. Treat supplied values as authoritative.
+The caller may supply a PR body and changed paths. Treat supplied values as authoritative.
 
 Otherwise, require a PR number. Fetch the body and changed paths with:
 
@@ -23,35 +23,32 @@ gh pr view <PR> --json body --jq .body
 gh pr diff <PR> --name-only
 ```
 
-Read `.github/pull_request_template.md` before reviewing. With no PR or supplied body, report ➖ not applicable; do not infer a PR description from commits or source files.
+With no PR or supplied body, report ➖ not applicable; do not infer a PR description from commits or source files.
 
 ## Review procedure
 
-Ignore HTML comments when deciding whether a section has substantive content. Check:
+**Evaluate substance, not format.** Read the entire body end-to-end, ignoring HTML comments, before scoring. Information often appears under a different heading than where a template expects it. A section counts as **present** if the substance appears **anywhere** in the body, regardless of which heading (or no heading) it sits under. Empty headings with only HTML comments or placeholders do not count.
 
-1. `## Description` explains the change. Missing or placeholder-only content is a failure.
-2. `## How Has This Been Tested?` contains testing information. Missing content is a warning.
-3. `## Test Impact` contains testing impact or a rationale that tests are inapplicable. Missing content is a warning.
-4. The self-checklist is meaningfully completed. Report checked versus unchecked items; do not require every item that is inapplicable to be checked.
-5. Jira linkage, resolved in this fixed order — take the first rule that matches and stop, so the same PR always yields the same result:
+Score these three aspects:
 
-   1. Body contains a tracker URL (`issues.redhat.com/browse/<KEY>` or `atlassian.net/browse/<KEY>`) → **passed**.
-   2. No URL, but an issue key matching `[A-Z][A-Z0-9]+-\d+` appears in the PR title or body → **warning**. The repository's convention is to carry the key in the title; the template asks for the URL, so a bare key is incomplete, not absent.
-   3. Neither a URL nor a key anywhere → **failed** for code changes. For a non-code change the template is not required (see its first line), so report ➖ not applicable rather than a failure.
+1. **Problem** — What is wrong or missing. The body describes the broken workflow, gap, or motivation — not just a file list or code-level cause. Missing or placeholder-only → ❌. Present but vague (one sentence, no actionable detail) → ⚠️.
 
-   Do not reclassify between these outcomes on judgment about whether the convention "counts" — the ladder is the decision.
-6. When changed paths include `.tsx`, `.css`, or `.scss`, look for image or GIF evidence in the body. Missing visual evidence is a warning, not a failure.
+2. **Solution** — What changed and why this approach. The body explains what the PR does and the reasoning behind the chosen approach. Missing or placeholder-only → ❌. Present but vague → ⚠️.
+
+3. **Evidence** — Proof the change works. Commands run, test results, CI links, cluster checks, screenshots, or log snippets. When changed paths include `.tsx`, `.css`, or `.scss`, look for image or GIF evidence; missing visual evidence for UI changes is a ⚠️ (folded into this aspect, not a separate row). Missing or placeholder-only → ❌. Present but thin (e.g., "tested locally" with no details) → ⚠️.
+
+One classic `## Description` may satisfy **both** Problem and Solution when both substances are clearly present. Do not require separate headings.
 
 ## Status mapping
 
-The overall status is the worst item status: any ❌ makes the review failed, otherwise any ⚠️ makes it a warning.
+The overall status is the worst aspect status: any ❌ makes the review failed, otherwise any ⚠️ makes it a warning.
 
 | Status | Meaning |
 | --- | --- |
-| ✅ passed | Description present; Jira linkage at rule 5.1; no warnings apply |
-| ⚠️ warning | Description present and Jira linkage at rule 5.1 or 5.2, but testing, Test Impact, checklist context, Jira URL, or applicable UI evidence is incomplete |
-| ❌ failed | Description is absent or placeholder-only, or Jira linkage falls to rule 5.3 on a code change |
-| ➖ not applicable | No PR body is available, or a non-code change the template does not govern |
+| ✅ passed | All three aspects present with substantive content |
+| ⚠️ warning | All aspects present but at least one is thin or vague, or UI evidence is missing for visual changes |
+| ❌ failed | At least one aspect is absent or placeholder-only |
+| ➖ not applicable | No PR body is available |
 
 ## Report
 
@@ -62,10 +59,7 @@ The overall status is the worst item status: any ❌ makes the review failed, ot
 
 | Item | Status | Evidence |
 | --- | --- | --- |
-| Description | <status> | <summary> |
-| Testing | <status> | <summary> |
-| Test Impact | <status> | <summary> |
-| Checklist | <status> | <checked>/<total> checked |
-| Jira link | <status> | <URL or absent> |
-| UI evidence | <status> | <applicable evidence or n/a> |
+| Problem | <status> | <summary> |
+| Solution | <status> | <summary> |
+| Evidence | <status> | <summary> |
 ```

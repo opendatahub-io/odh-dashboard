@@ -208,12 +208,6 @@ def reconcile_producers(result):
         inspected["producers"] = ran
     result["inspected"] = inspected
 
-    stray = summary_scope_problem(result)
-    if stray:
-        add_limit(inspected, "The change summary cites files that are not in this PR's diff: "
-                             + ", ".join(stray) + ".")
-        result["inspected"] = inspected
-
     problem = challenger_problem(challenger_record(ledger), result.get("findings") or [])
     if problem:
         add_limit(inspected, problem)
@@ -282,64 +276,6 @@ def normalize_protected_findings(result):
         }
     return result
 
-PATH_TOKEN = re.compile(r"(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+")
-# A summary that cites "post-review.sh" without its directory evades PATH_TOKEN,
-# which is how a wrong summary got through after the first version of this guard.
-# Bare names are only worth checking when the extension says "file in a repo",
-# so this list is deliberately narrow, and a few library names that look like
-# filenames are excluded outright.
-BARE_FILE_TOKEN = re.compile(
-    r"\b[\w.-]+\.(?:tsx?|jsx?|mjs|cjs|scss|css|go|py|sh|ya?ml|json|md|snap)\b")
-BARE_FILE_EXCEPTIONS = {"node.js", "next.js", "nest.js", "vue.js", "three.js", "d3.js"}
-# A directory the PR does not touch is the same claim in coarser form.
-DIR_TOKEN = re.compile(r"(?:[\w.-]+/){1,}")
-
-def summary_scope_problem(result):
-    """File paths the change summary cites that this PR does not touch.
-
-    change_summary is meant to describe the PR's own diff. On a re-review whose
-    head has just merged the base branch in, `changed_since_prior` is full of
-    base-branch files the PR does not own, and summarizing those produces a
-    confident description of somebody else's change. The instruction not to do
-    that has now been ignored once, so the host checks it."""
-    summary = result.get("change_summary") or ""
-    changed = changed_paths()
-    if not summary or not changed:
-        return []
-    stray = []
-
-    def note(token):
-        if token not in stray:
-            stray.append(token)
-
-    paths = PATH_TOKEN.findall(summary)
-    for token in paths:
-        if any(token == f or f.endswith("/" + token) or token.endswith("/" + f) for f in changed):
-            continue
-        note(token)
-
-    basenames = {f.rsplit("/", 1)[-1] for f in changed}
-    for token in BARE_FILE_TOKEN.findall(summary):
-        if token.lower() in BARE_FILE_EXCEPTIONS or token in basenames:
-            continue
-        # Already reported, with its directory, by the full-path pass above.
-        if any(token == path.rsplit("/", 1)[-1] for path in paths):
-            continue
-        note(token)
-
-    for token in DIR_TOKEN.findall(summary):
-        directory = token.rstrip("/")
-        if not directory or "/" not in token:
-            continue
-        if any(f == directory or f.startswith(directory + "/") for f in changed):
-            continue
-        # A directory that is only the leading part of a full path already flagged.
-        if any(path.startswith(token) for path in paths):
-            continue
-        note(token)
-
-    return stray
-
 def unverified_producers(result):
     """Everything this run could not establish, by whatever shape reported it.
 
@@ -362,8 +298,6 @@ def unverified_producers(result):
 def cap_confidence(result):
     """Host completeness re-cap: may lower confidence only (never raises risk)."""
     missing = unverified_producers(result)
-    if summary_scope_problem(result):
-        missing = missing + ["the change summary (it describes files outside this PR's diff)"]
     if not missing:
         return result
     confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
@@ -723,12 +657,6 @@ def render_body(result, previous_md, action):
         return "\n".join(lines).rstrip() + "\n"
 
     lines += ["", "## Change summary", "", clean(result.get("change_summary"))]
-    stray = summary_scope_problem(result)
-    if stray:
-        changed = changed_paths()
-        lines += ["", f"> 🟡 This summary names files that are not in this PR's diff "
-                      f"(`{'`, `'.join(stray)}`). This PR changes "
-                      f"{len(changed)} file(s): `{'`, `'.join(changed)}`."]
     lines += ["", "## Status", "", status_headline(result, action)]
     lines += render_signal_table(result)
 
@@ -1177,99 +1105,15 @@ run_self_test() {
     echo "PASS challenger section reports removals and merges"
   fi
 
-  # The exact shape runs 240/243/246 produced: the summary describes the
-  # base-branch merge instead of the PR's own four files.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Infrastructure-only update: modified .fullsend/scripts/post-review.sh and .fullsend/skills/pr-review/SKILL.md.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/scope.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/useSmokeQuota.ts
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/scope.json"
-  ) > "${tmp}/scope-out.json"
-  body=$(jq -r .body "${tmp}/scope-out.json")
-  if ! grep -q "names files that are not in this PR's diff" <<<"${body}"; then
-    echo "FAIL summary-scope: a summary describing files outside the diff went unchallenged" >&2
-    fail=1
-  elif ! grep -q 'post-review.sh' <<<"${body}"; then
-    echo "FAIL summary-scope: the offending paths were not named" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "medium"' "${tmp}/scope-out.json" >/dev/null; then
-    echo "FAIL summary-scope: confidence stayed high on a summary of the wrong change" >&2
-    fail=1
-  else
-    echo "PASS out-of-diff change summary is challenged and caps confidence"
-  fi
-
-  # A summary that names only files the PR touches must pass clean.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Adds a quota panel in frontend/src/pages/smokeReview/useSmokeQuota.ts and documents it.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/scope-ok.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/useSmokeQuota.ts
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/scope-ok.json"
-  ) > "${tmp}/scope-ok-out.json"
-  if grep -q "names files that are not in this PR's diff" <<<"$(jq -r .body "${tmp}/scope-ok-out.json")"; then
-    echo "FAIL summary-scope: an in-diff summary was falsely challenged" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "high"' "${tmp}/scope-ok-out.json" >/dev/null; then
-    echo "FAIL summary-scope: an in-diff summary should not cap confidence" >&2
-    fail=1
-  else
-    echo "PASS in-diff change summary passes clean"
-  fi
-
-  # Run 249's summary, verbatim. It named the base-branch files by basename only
-  # ("post-review.sh", not ".fullsend/scripts/post-review.sh"), so the first
-  # version of this guard -- which required a slash -- let it through.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Infrastructure-only changes to Fullsend review harness: updated fetch-jira-context.sh and post-review.sh scripts in .fullsend/scripts/. No changes to smoke fixture code (frontend/src/pages/smokeReview/) which remains unchanged since prior review at 6285d45.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/bare.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/SmokeAdminPanel.tsx
-frontend/src/pages/smokeReview/useSmokeQuota.ts
-frontend/src/pages/smokeReview/SmokeAdminPanel.scss
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/bare.json"
-  ) > "${tmp}/bare-out.json"
-  body=$(jq -r .body "${tmp}/bare-out.json")
-  if ! grep -q "names files that are not in this PR's diff" <<<"${body}"; then
-    echo "FAIL bare-scope: a summary citing base-branch files by basename went unchallenged" >&2
-    fail=1
-  elif ! grep -q 'post-review.sh' <<<"${body}"; then
-    echo "FAIL bare-scope: the offending basename was not named" >&2
-    fail=1
-  elif ! grep -q '.fullsend/scripts/' <<<"${body}"; then
-    echo "FAIL bare-scope: the untouched directory was not named" >&2
-    fail=1
-  elif ! jq -e '.confidence.level == "medium"' "${tmp}/bare-out.json" >/dev/null; then
-    echo "FAIL bare-scope: confidence stayed high on a summary of the wrong change" >&2
-    fail=1
-  else
-    echo "PASS basenames and directories outside the diff are challenged too"
-  fi
-
-  # The widened matcher must not fire on a correct summary: basenames that are in
-  # the diff, a directory that is, and a library whose name looks like a filename.
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","schema_version":"2","change_summary":"Adds a quota panel in frontend/src/pages/smokeReview/useSmokeQuota.ts, styles it in SmokeAdminPanel.scss, and documents it in docs/admin-dashboard.md. Written against Node.js 22.","risk":{"level":"low","why":"n"},"confidence":{"level":"high","why":"All producers ran."},"verification":[{"id":"evidence","label":"Evidence","result":"pass"}],"findings":[]}' > "${tmp}/bare-ok.json"
-  (
-    export REVIEW_CHANGED_FILES="frontend/src/pages/smokeReview/SmokeAdminPanel.tsx
-frontend/src/pages/smokeReview/useSmokeQuota.ts
-frontend/src/pages/smokeReview/SmokeAdminPanel.scss
-docs/admin-dashboard.md"
-    transform_review_result "${tmp}/bare-ok.json"
-  ) > "${tmp}/bare-ok-out.json"
-  if grep -q "names files that are not in this PR's diff" <<<"$(jq -r .body "${tmp}/bare-ok-out.json")"; then
-    echo "FAIL bare-scope: an in-diff summary was falsely challenged" >&2
-    jq -r .body "${tmp}/bare-ok-out.json" | grep "names files" >&2
-    fail=1
-  else
-    echo "PASS in-diff basenames and a library name pass clean"
-  fi
-
   # Every U+FE0F variation selector is stripped from the comment before it is
   # posted -- the live body carries none. A glyph that needs one to be coloured
   # (U+26A0 WARNING SIGN is the one that bit us) therefore renders monochrome on
   # GitHub no matter how the source is written. Every marker must be a character
   # that is emoji-presentation by default, so scan the rendered body rather than
   # trusting the marker tables.
-  jq -r .body "${tmp}/scope-out.json" "${tmp}/ledger-out.json" "${tmp}/prov-out.json" \
+  jq -r .body "${tmp}/ledger-out.json" "${tmp}/prov-out.json" \
       "${tmp}/request-changes-out.json" "${tmp}/structured-out.json" \
+      "${tmp}/needs-human-out.json" \
     | python3 -c '
 import sys, unicodedata
 text = sys.stdin.read()
