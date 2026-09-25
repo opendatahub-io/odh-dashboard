@@ -92,6 +92,7 @@ export type DashboardConfig = K8sResourceCommon & {
       // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
       // notebookNamespace?: string;
       storageClassName?: string;
+      probeTimeoutSeconds?: number;
     };
     templateOrder?: string[];
     templateDisablement?: string[];
