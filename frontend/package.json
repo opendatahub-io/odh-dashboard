@@ -99,7 +99,7 @@
     "grpc-web": "^1.5.0",
     "lodash-es": "^4.18.1",
     "marked": "^15.0.12",
-    "monaco-editor": "^0.54.0",
+    "monaco-editor": "^0.56.0",
     "react": "^18.3.1",
     "react-cool-dimensions": "^2.0.7",
     "react-dom": "^18.3.1",
