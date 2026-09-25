@@ -61,6 +61,7 @@ export type HardwareProfileBindingConfig = {
     resourceType: ResourceType;
     isRunning: boolean;
     name?: string;
+    isDRA?: boolean;
   }) => string;
 };
 

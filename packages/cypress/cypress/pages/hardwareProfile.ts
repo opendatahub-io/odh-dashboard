@@ -443,6 +443,10 @@ class EditHardwareProfile extends ManageHardwareProfile {
   findViewAllHardwareProfilesButton() {
     return cy.findByTestId('view-all-hardware-profiles');
   }
+
+  findDRANotEditableTitle() {
+    return cy.findByTestId('dra-hardware-profile-not-editable');
+  }
 }
 
 class DuplicateHardwareProfile extends ManageHardwareProfile {
@@ -457,6 +461,10 @@ class DuplicateHardwareProfile extends ManageHardwareProfile {
 
   findViewAllHardwareProfilesButton() {
     return cy.findByTestId('view-all-hardware-profiles');
+  }
+
+  findDRANotEditableTitle() {
+    return cy.findByTestId('dra-hardware-profile-not-editable');
   }
 }
 
