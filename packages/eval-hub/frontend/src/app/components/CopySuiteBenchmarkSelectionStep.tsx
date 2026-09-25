@@ -208,7 +208,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
         aria-busy={isInteractionDisabled}
       >
         <div className="evalhub-copy-suite-benchmark-catalog__content">
-          <Title headingLevel="h2" size="2xl" data-testid="copy-suite-select-benchmarks-title">
+          <Title headingLevel="h1" size="2xl" data-testid="copy-suite-select-benchmarks-title">
             Select benchmarks
           </Title>
           <Content component="p">

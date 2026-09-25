@@ -2,7 +2,9 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -216,6 +218,29 @@ func TestKueueAvailabilityCacheSharesInFlightLookupAndReturnsClones(t *testing.T
 	}
 	if second.LocalQueueNames[0] != "gpu-default" {
 		t.Fatalf("cached availability was mutated: %v", second.LocalQueueNames)
+	}
+}
+
+// TestKueueAvailabilityCachePreservesEmptyQueueNames verifies that cached availability responses
+// retain the API contract's empty array instead of serializing it as null.
+func TestKueueAvailabilityCachePreservesEmptyQueueNames(t *testing.T) {
+	cache := newKueueAvailabilityCache(time.Minute)
+	availability, err := cache.get(context.Background(), "user-a:namespace-a", func() (*models.KueueAvailability, error) {
+		return newKueueAvailability(true, true, []string{}), nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if availability.LocalQueueNames == nil {
+		t.Fatal("LocalQueueNames = nil, want an empty array")
+	}
+
+	encoded, err := json.Marshal(availability)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(encoded), `"local_queue_names":[]`) {
+		t.Fatalf("cached availability serialized as %s, want local_queue_names: []", encoded)
 	}
 }
 

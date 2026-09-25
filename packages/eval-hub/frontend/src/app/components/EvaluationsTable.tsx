@@ -72,13 +72,14 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'cancelled', label: 'Canceled' },
   { value: 'completed', label: 'Completed' },
   { value: 'failed', label: 'Failed' },
+  { value: 'inadmissible', label: 'Inadmissible' },
   { value: 'pending', label: 'Pending' },
   { value: 'queued', label: 'Queued' },
   { value: 'running', label: 'Running' },
   { value: 'stopping', label: 'Canceling' },
 ];
 
-const KUEUE_STATUS_FILTERS: StatusFilter[] = ['queued', 'admitted'];
+const KUEUE_STATUS_FILTERS: StatusFilter[] = ['queued', 'admitted', 'inadmissible'];
 
 const matchesStatusFilter = (
   job: EvaluationJob,
@@ -168,7 +169,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   // Pause polling when the browser tab is backgrounded to reduce server load
   const isPollingEnabled = usePageVisibility();
   const evaluationIDs = React.useMemo(
-    () => evaluations.map((job) => job.resource.id),
+    () =>
+      evaluations.filter((job) => !isTerminalState(job.status.state)).map((job) => job.resource.id),
     [evaluations],
   );
   const isKueueWorkloadStatusPollingEnabled = loaded && isPollingEnabled;
@@ -181,7 +183,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     evaluationIDs,
     isKueueEnabled,
     isKueueWorkloadStatusPollingEnabled,
-    evaluations.some((job) => !isTerminalState(job.status.state)),
+    evaluationIDs.length > 0,
   );
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');

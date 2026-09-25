@@ -58,7 +58,11 @@ const mockKueueHardwareProfiles = ({
   profiles?: ReturnType<typeof mockHardwareProfile>[];
   validation?: HardwareProfileValidationResponse;
 } = {}) => {
-  cy.interceptApi('GET /api/:apiVersion/kueue/availability', { path: API_VERSION }, availability);
+  cy.interceptApi(
+    'GET /api/:apiVersion/kueue/availability',
+    { path: API_VERSION },
+    availability,
+  ).as('kueueAvailability');
   cy.interceptApi(
     'GET /api/:apiVersion/hardwareprofiles',
     { path: API_VERSION },
@@ -502,6 +506,7 @@ describe('Start Evaluation Run - Kueue Hardware Profiles', () => {
 
   it('should hide the HardwareProfile field when Kueue is unavailable', () => {
     navigateToBenchmarkStart();
+    cy.wait(['@kueueAvailability', '@hardwareProfiles']);
 
     startEvaluationRunPage.findHardwareProfileToggle().should('not.exist');
   });

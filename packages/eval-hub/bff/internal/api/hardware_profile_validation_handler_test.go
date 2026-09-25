@@ -91,3 +91,30 @@ func TestValidateProfileAgainstProviderRejectsInvalidProviderQuantity(t *testing
 		t.Fatalf("expected invalid quantity mismatch, got %+v", mismatches[0])
 	}
 }
+
+// TestFindProfileResourcePrefersGPUResources verifies that generic GPU requirements do not match
+// unrelated qualified resources when a GPU-specific resource is available.
+func TestFindProfileResourcePrefersGPUResources(t *testing.T) {
+	resources := map[string]models.HardwareProfileResource{
+		"openshift.io/sriov-nic": {Identifier: "openshift.io/sriov-nic", Default: "8"},
+		"nvidia.com/gpu":         {Identifier: "nvidia.com/gpu", Default: "1"},
+	}
+
+	profileResource, found := findProfileResource(resources, "gpu")
+	if !found || profileResource.Identifier != "nvidia.com/gpu" {
+		t.Fatalf("generic GPU matched %+v, want nvidia.com/gpu", profileResource)
+	}
+}
+
+// TestFindProfileResourceRejectsAmbiguousExtendedResourceFallback verifies that a generic GPU
+// requirement is not assigned to an arbitrary qualified resource.
+func TestFindProfileResourceRejectsAmbiguousExtendedResourceFallback(t *testing.T) {
+	resources := map[string]models.HardwareProfileResource{
+		"example.com/fpga":       {Identifier: "example.com/fpga", Default: "1"},
+		"openshift.io/sriov-nic": {Identifier: "openshift.io/sriov-nic", Default: "1"},
+	}
+
+	if profileResource, found := findProfileResource(resources, "gpu"); found {
+		t.Fatalf("generic GPU unexpectedly matched %+v", profileResource)
+	}
+}

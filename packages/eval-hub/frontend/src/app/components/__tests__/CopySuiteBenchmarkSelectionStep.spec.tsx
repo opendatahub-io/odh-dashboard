@@ -104,7 +104,7 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-select-benchmarks-title')).toHaveClass('pf-m-2xl');
     expect(
-      screen.getByRole('heading', { name: 'Select benchmarks', level: 2 }),
+      screen.getByRole('heading', { name: 'Select benchmarks', level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-catalog-checkbox-planning')).toBeChecked();
     expect(screen.getByTestId('benchmark-catalog-checkbox-tasks')).toBeChecked();

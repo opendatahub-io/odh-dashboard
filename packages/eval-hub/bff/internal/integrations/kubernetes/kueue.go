@@ -145,7 +145,10 @@ func cloneKueueAvailability(availability *models.KueueAvailability) *models.Kueu
 		return nil
 	}
 	clone := *availability
-	clone.LocalQueueNames = append([]string(nil), availability.LocalQueueNames...)
+	clone.LocalQueueNames = append(
+		make([]string, 0, len(availability.LocalQueueNames)),
+		availability.LocalQueueNames...,
+	)
 	return &clone
 }
 

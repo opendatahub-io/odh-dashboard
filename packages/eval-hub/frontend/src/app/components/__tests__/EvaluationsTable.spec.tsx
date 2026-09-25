@@ -292,13 +292,53 @@ describe('EvaluationsTable', () => {
       fireEvent.click(screen.getByTestId('filter-status-toggle'));
 
       expect(screen.getByTestId('filter-status-option-queued')).toBeInTheDocument();
+      expect(screen.getByTestId('filter-status-option-inadmissible')).toBeInTheDocument();
       expect(mockUseKueueWorkloadStatuses).toHaveBeenCalledWith(
         undefined,
-        mockJobs.map((job) => job.resource.id),
+        ['job-2'],
         true,
         expect.any(Boolean),
         true,
       );
+    });
+
+    it('should filter by inadmissible Kueue status', () => {
+      mockUseKueueAvailability.mockReturnValue({
+        availability: {
+          enabled: true,
+          // eslint-disable-next-line camelcase -- Kueue API field name.
+          scheduling_ready: true,
+        },
+        loaded: true,
+        error: undefined,
+      });
+      mockUseKueueWorkloadStatuses.mockReturnValue({
+        statusesByEvaluationId: new Map([
+          [
+            'job-2',
+            {
+              // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+              evaluation_id: 'job-2',
+              // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+              queue_name: 'default',
+              state: 'inadmissible',
+            },
+          ],
+        ]),
+        loaded: true,
+        isLoading: false,
+        error: undefined,
+      });
+      renderTable({ evaluations: mockJobs, loaded: true });
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Inadmissible' }));
+
+      expect(screen.getByText('Beta Evaluation')).toBeInTheDocument();
+      expect(screen.queryByText('Alpha Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Gamma Evaluation')).not.toBeInTheDocument();
     });
 
     it('should filter by evaluation name', () => {
