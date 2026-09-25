@@ -1,0 +1,86 @@
+# Containerized real-cluster E2E test runner for the early-gate "shiftleft" runner.
+#
+# RHOAIENG-87692: packages the //go:build e2e test binary (see test/e2e/) into an
+# image the early-gate pipeline can run against a ROSA HCP cluster. Build context
+# is the repository root (same as dashboard-operator/Dockerfile), so all COPY
+# paths are prefixed with `dashboard-operator/`.
+#
+#   Local:   make e2e-image           (docker build -f Dockerfile.e2e .. )
+#   Run:     docker run --rm -v $KUBECONFIG:/kubeconfig:ro \
+#              -e KUBECONFIG=/kubeconfig -e TEST_NAMESPACE=dashboard-operator-e2e \
+#              <image> -test.v -test.run TestE2EDashboardLifecycle
+#
+# The binary fails fast with a clear message when KUBECONFIG / TEST_NAMESPACE are
+# missing, so an image started without cluster env exits non-zero immediately.
+
+# --- Build stage: compile the standalone E2E test binary --------------------
+FROM golang:1.26 AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /usr/src/app
+
+COPY dashboard-operator/go.mod dashboard-operator/go.sum ./
+RUN go mod download
+
+# The test/e2e package only imports the operator's api/v1alpha1 package, so the
+# build stays lean — no cmd/ or internal/ is required to compile the tests.
+COPY dashboard-operator/api/ api/
+COPY dashboard-operator/test/ test/
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go test -c -tags=e2e -o /tmp/e2e.test ./test/e2e
+
+# --- CLI stage: fetch oc + kubectl for cluster interaction ------------------
+# NOTE: this downloads from mirror.openshift.com. Konflux hermetic builds may
+# restrict external network; DevOps may need to source oc/kubectl from an
+# internal mirror or a base image (handoff, see test/e2e/README.md).
+#
+# The client version is pinned to an immutable release (not "stable") and every
+# architecture's archive is verified against a repo-controlled SHA-256 checksum
+# before extraction, so a mutated upstream artifact fails the build. Bump
+# OC_VERSION and the OC_SHA256_* checksums together; refresh from
+# https://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp/<version>/sha256sum.txt
+FROM registry.access.redhat.com/ubi9/ubi:9.3 AS cli
+
+ARG TARGETARCH
+ARG OC_VERSION=4.17.10
+ARG OC_SHA256_x86_64=d826c272dff763ffe9f3162f149cc9cb09b8a486c55e6c59cb987b0501218974
+ARG OC_SHA256_arm64=7817ea59a2dbb1a3e701f67d5556859152accab8ec21b8b64f4e11e101d35607
+ARG OC_SHA256_ppc64le=8f4ea71376af9748079c6505bae2845fde0badead379f2a6080097d1ca18913d
+ARG OC_SHA256_s390x=b1c8a32c4d760d3f830cb169416377c2bc194c69fccefaf08f9756bba6f5309d
+
+RUN set -eux; \
+    case "${TARGETARCH:-amd64}" in \
+      amd64)   OC_ARCH=x86_64;  OC_SHA256="${OC_SHA256_x86_64}" ;; \
+      arm64)   OC_ARCH=arm64;   OC_SHA256="${OC_SHA256_arm64}" ;; \
+      ppc64le) OC_ARCH=ppc64le; OC_SHA256="${OC_SHA256_ppc64le}" ;; \
+      s390x)   OC_ARCH=s390x;   OC_SHA256="${OC_SHA256_s390x}" ;; \
+      *)       echo "unsupported TARGETARCH: ${TARGETARCH:-amd64}" >&2; exit 1 ;; \
+    esac; \
+    curl -sSfL "https://mirror.openshift.com/pub/openshift-v4/${OC_ARCH}/clients/ocp/${OC_VERSION}/openshift-client-linux-${OC_VERSION}.tar.gz" \
+      -o /tmp/oc.tar.gz; \
+    echo "${OC_SHA256}  /tmp/oc.tar.gz" | sha256sum -c -; \
+    tar -xzf /tmp/oc.tar.gz -C /usr/local/bin oc kubectl; \
+    chmod +x /usr/local/bin/oc /usr/local/bin/kubectl
+
+# --- Runtime stage ----------------------------------------------------------
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+
+WORKDIR /
+
+COPY --from=builder /tmp/e2e.test /usr/local/bin/e2e.test
+COPY --from=cli /usr/local/bin/oc /usr/local/bin/oc
+COPY --from=cli /usr/local/bin/kubectl /usr/local/bin/kubectl
+
+# CRD + fixtures for scenarios that verify or (later) install cluster resources.
+# The current suite verifies the CRD is present rather than installing it; these
+# are bundled for future operand/contract scenarios and manual debugging.
+COPY --chown=65532:0 dashboard-operator/config/crd/bases/ /opt/e2e/crd/
+
+USER 65532:65532
+
+# KUBECONFIG and TEST_NAMESPACE must be supplied at run time.
+ENTRYPOINT ["/usr/local/bin/e2e.test"]
+CMD ["-test.v"]

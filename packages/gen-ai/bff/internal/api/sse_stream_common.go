@@ -244,6 +244,7 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 			*cfg.Usage = extractUsageFromEvent(event)
 			if streamingEvent.Response != nil {
 				processResponseCitations(streamingEvent.Response)
+				streamingEvent.syncProcessedResponse()
 				if span := trace.SpanFromContext(ctx); span.IsRecording() && len(streamingEvent.Response.Output) > 0 {
 					outputJSON, _ := json.Marshal(streamingEvent.Response.Output)
 					span.SetAttributes(

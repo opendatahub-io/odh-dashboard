@@ -1,10 +1,12 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -14,6 +16,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -23,32 +26,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
-
-// Supported streaming event types that we want to process for the Gen AI API
-// These events represent the core response generation lifecycle that clients need to track.
-// Other LlamaStack events (connection, debug, etc.) are filtered out to reduce
-// noise and bandwidth while maintaining the essential streaming response functionality.
-var supportedEventTypes = map[string]bool{
-	"response.created":            true, // Response generation started
-	"response.content_part.added": true, // New content part added to response
-	// NOTE: delta events may contain raw citation markers (<|uuid|>) during
-	// streaming. These are ephemeral display-only tokens; the final cleaned
-	// text and annotations are sent via the response.completed event, which
-	// the frontend uses for the definitive render.
-	"response.output_text.delta":    true, // Text delta/chunk for streaming text
-	"response.content_part.done":    true, // Content part completed
-	"response.completed":            true, // Response generation completed
-	"response.failed":               true, // Response generation failed (contains error code/message)
-	"response.refusal.delta":        true, // Refusal text
-	"response.refusal.done":         true, // Refusal text completed
-	"response.reasoning_text.delta": true, // Reasoning/thinking text delta
-	"response.reasoning_text.done":  true, // Reasoning/thinking text completed
-}
-
-// isEventTypeSupported checks if the given event type should be processed
-func isEventTypeSupported(eventType string) bool {
-	return supportedEventTypes[eventType]
-}
 
 // ChatContextMessage represents a message in chat context history
 type ChatContextMessage struct {
@@ -67,6 +44,88 @@ type StreamingEvent struct {
 	OutputIndex    int           `json:"output_index"`
 	ContentIndex   int           `json:"content_index,omitempty"` // For refusal events
 	Response       *ResponseData `json:"response,omitempty"`
+
+	// raw preserves the complete upstream event. The Responses API adds event
+	// types over time, and tool events carry fields (for example item and part)
+	// that are intentionally not modeled by this BFF. Forwarding the raw event
+	// keeps the UI compatible with both current and future event types.
+	raw json.RawMessage
+}
+
+// MarshalJSON forwards the original upstream event, including fields unknown to
+// this BFF.
+func (event StreamingEvent) MarshalJSON() ([]byte, error) {
+	if event.raw != nil {
+		return event.raw, nil
+	}
+
+	type streamingEvent StreamingEvent
+	return json.Marshal(streamingEvent(event))
+}
+
+// syncProcessedResponse updates only citation-processed output text and
+// annotations in the raw response.completed event. All other response and
+// event fields, including fields added by upstream in the future, are kept.
+func (event *StreamingEvent) syncProcessedResponse() {
+	if event.raw == nil || event.Response == nil {
+		return
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(event.raw))
+	decoder.UseNumber()
+	var rawEvent map[string]interface{}
+	if decoder.Decode(&rawEvent) != nil {
+		event.raw = nil
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		event.raw = nil
+		return
+	}
+
+	rawResponse, ok := rawEvent["response"].(map[string]interface{})
+	if !ok {
+		event.raw = nil
+		return
+	}
+	rawOutput, ok := rawResponse["output"].([]interface{})
+	if !ok {
+		return
+	}
+
+	for outputIndex, output := range event.Response.Output {
+		if output.Type != "message" || outputIndex >= len(rawOutput) {
+			continue
+		}
+		rawOutputItem, ok := rawOutput[outputIndex].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		rawContent, ok := rawOutputItem["content"].([]interface{})
+		if !ok {
+			continue
+		}
+		for contentIndex, content := range output.Content {
+			if content.Type != "output_text" || contentIndex >= len(rawContent) {
+				continue
+			}
+			rawContentItem, ok := rawContent[contentIndex].(map[string]interface{})
+			if !ok {
+				continue
+			}
+			rawContentItem["text"] = content.Text
+			if content.Annotations != nil {
+				rawContentItem["annotations"] = content.Annotations
+			}
+		}
+	}
+
+	updatedRaw, err := json.Marshal(rawEvent)
+	if err != nil {
+		event.raw = nil
+		return
+	}
+	event.raw = updatedRaw
 }
 
 // ResponseData represents the response structure for both streaming and non-streaming
@@ -173,8 +232,10 @@ type CreateResponseRequest struct {
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
 func convertToStreamingEvent(event interface{}) *StreamingEvent {
-	// Direct marshal to our clean schema - Go JSON ignores extra fields automatically!
-	eventJSON, err := json.Marshal(event)
+	// ResponseStreamEventUnion keeps the original event JSON. Use it instead of
+	// marshaling the union itself, which serializes every field from every union
+	// variant (including zero values) into every SSE event.
+	eventJSON, err := streamingEventJSON(event)
 	if err != nil {
 		return nil
 	}
@@ -184,14 +245,25 @@ func convertToStreamingEvent(event interface{}) *StreamingEvent {
 		return nil
 	}
 
-	// Only process the supported event types, ignore all others
-	if !isEventTypeSupported(streamingEvent.Type) {
-		// Skip some events types to reduce noise.
-		// Full list of events: https://platform.openai.com/docs/api-reference/responses-streaming
-		return nil
-	}
+	streamingEvent.raw = eventJSON
 
 	return &streamingEvent
+}
+
+func streamingEventJSON(event interface{}) ([]byte, error) {
+	if streamEvent, ok := event.(responses.ResponseStreamEventUnion); ok {
+		if rawEvent := streamEvent.RawJSON(); rawEvent != "" {
+			return []byte(rawEvent), nil
+		}
+	}
+
+	if streamEvent, ok := event.(*responses.ResponseStreamEventUnion); ok && streamEvent != nil {
+		if rawEvent := streamEvent.RawJSON(); rawEvent != "" {
+			return []byte(rawEvent), nil
+		}
+	}
+
+	return json.Marshal(event)
 }
 
 // convertToResponseData converts a LlamaStack response to our clean ResponseData schema
@@ -527,6 +599,21 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	var guardrailOpts nemo.GuardrailsOptions
 	var inputMessages []nemo.Message
 	if createRequest.GuardrailConfig != nil && createRequest.GuardrailConfig.GuardrailModel != "" {
+		if _, err := helper.GetContextNemoClient(ctx); err != nil {
+			nemoClient, resolveErr := app.resolveNemoClient(r)
+			if resolveErr != nil || nemoClient == nil {
+				if resolveErr != nil {
+					app.logger.Error("Failed to resolve NeMo Guardrails client", "error", resolveErr)
+				} else {
+					app.logger.Info("NeMo Guardrails unavailable for guardrailed request")
+				}
+				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				return
+			}
+			ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
+			r = r.WithContext(ctx)
+		}
+
 		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(ctx, createRequest.GuardrailConfig.GuardrailModel, createRequest.GuardrailConfig.GuardrailModelSourceType, createRequest.GuardrailConfig.ResolveSubscription(createRequest.Subscription))
 		if err != nil {
 			app.logger.Error("Failed to resolve guardrail model endpoint", "model", createRequest.GuardrailConfig.GuardrailModel, "error", err)

@@ -3,6 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { rspack } = require('@rspack/core');
+
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
@@ -36,7 +37,7 @@ const pluginPackageDetails = getPluginPackageDetails();
 if (pluginPackageDetails.length === 0) {
   console.warn(
     'Warning: No plugin packages discovered. The pluginChunks splitChunks group will have no effect. ' +
-      'Check that workspace packages have ./extensions exports and that npm query is working.',
+      'Check that workspace packages have ./extensions exports and that workspace discovery is working.',
   );
 }
 
@@ -62,6 +63,9 @@ module.exports = (env) => ({
       {
         test: /\.(tsx|ts|jsx|js)?$/,
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
+        // Transpile host sources and workspace packages only. With pnpm symlinks enabled,
+        // workspace links resolve to packages/ paths. Including node_modules/@odh-dashboard
+        // makes Istanbul walk the entire hoisted tree and can hang the Cypress coverage build.
         include: [
           SRC_DIR,
           COMMON_DIR,
@@ -87,22 +91,7 @@ module.exports = (env) => ({
         ].filter(Boolean),
       },
       {
-        test: /\.(svg|ttf|eot|woff|woff2)$/,
-        include: [
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly/dist/fonts'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/dist/styles/assets/fonts',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/dist/styles/assets/pficon',
-          ),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/fonts'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/pficon'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@fontsource'),
-        ],
+        test: /\.(ttf|eot|woff|woff2)$|[/\\]pficon[/\\].*\.svg$/i,
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
@@ -141,32 +130,6 @@ module.exports = (env) => ({
       },
       {
         test: /\.(jpg|jpeg|png|gif)$/i,
-        include: [
-          SRC_DIR,
-          COMMON_DIR,
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/dist/styles/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
-          ),
-        ],
         type: 'asset',
         parser: {
           dataUrlCondition: { maxSize: 5000 },
@@ -290,6 +253,14 @@ module.exports = (env) => ({
   ],
   resolve: {
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
+    // Keep React canonical when compiling sources from the npm-managed Model Registry subtree.
+    alias: Object.fromEntries(
+      ['react', 'react-dom'].map((packageName) => [
+        packageName,
+        path.dirname(require.resolve(`${packageName}/package.json`, { paths: [RELATIVE_DIRNAME] })),
+      ]),
+    ),
+    // Follow workspace symlinks so other imports resolve through each package's dependency tree.
     symlinks: true,
     cacheWithContext: false,
   },

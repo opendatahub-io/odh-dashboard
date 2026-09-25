@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -36,6 +37,47 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type countingLlamaStackClient struct {
+	*lsmocks.MockLlamaStackClient
+	createResponseCalls int
+}
+
+func (c *countingLlamaStackClient) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
+	c.createResponseCalls++
+	return c.MockLlamaStackClient.CreateResponse(ctx, params)
+}
+
+type nemoDiscoveryTestFactory struct {
+	client         k8s.KubernetesClientInterface
+	getClientErr   error
+	getClientCalls int
+}
+
+func (f *nemoDiscoveryTestFactory) GetClient(context.Context) (k8s.KubernetesClientInterface, error) {
+	f.getClientCalls++
+	return f.client, f.getClientErr
+}
+
+func (f *nemoDiscoveryTestFactory) ExtractRequestIdentity(http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "test-token"}, nil
+}
+
+func (f *nemoDiscoveryTestFactory) ValidateRequestIdentity(*integrations.RequestIdentity) error {
+	return nil
+}
+
+type nemoDiscoveryTestClient struct {
+	k8s.KubernetesClientInterface
+	serviceURL     string
+	err            error
+	discoveryCalls int
+}
+
+func (c *nemoDiscoveryTestClient) GetNemoGuardrailsServiceURL(context.Context, *integrations.RequestIdentity, string) (string, error) {
+	c.discoveryCalls++
+	return c.serviceURL, c.err
+}
 
 var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	var app App
@@ -109,6 +151,67 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.Equal(t, "assistant", messageItem["role"])
 		assert.Contains(t, messageItem, "content")
 	})
+
+	It("should not resolve NeMo for ordinary responses", func() {
+		t := GinkgoT()
+		factory := &nemoDiscoveryTestFactory{getClientErr: errors.New("NeMo discovery should not run")}
+		app.kubernetesClientFactory = factory
+		llamaStackClient := &countingLlamaStackClient{MockLlamaStackClient: lsmocks.NewMockLlamaStackClient()}
+
+		payload := CreateResponseRequest{
+			Input: llamastack.InputUnion{Text: "Hello"},
+			Model: testutil.GetTestLlamaStackModel(),
+		}
+		req, err := createJSONRequest(payload)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusCreated, rr.Code)
+		assert.Zero(t, factory.getClientCalls)
+		assert.Equal(t, 1, llamaStackClient.createResponseCalls)
+	})
+
+	DescribeTable("should reject inline guardrails when NeMo is unavailable",
+		func(factory *nemoDiscoveryTestFactory) {
+			t := GinkgoT()
+			app.kubernetesClientFactory = factory
+			llamaStackClient := &countingLlamaStackClient{MockLlamaStackClient: lsmocks.NewMockLlamaStackClient()}
+
+			payload := CreateResponseRequest{
+				Input: llamastack.InputUnion{Text: "Hello"},
+				Model: testutil.GetTestLlamaStackModel(),
+				GuardrailConfig: &models.GuardrailInlineConfig{
+					GuardrailModel: "guardrail-model",
+				},
+			}
+			req, err := createJSONRequest(payload)
+			require.NoError(t, err)
+			ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
+			req = req.WithContext(ctx)
+
+			rr := httptest.NewRecorder()
+			app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+			assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+			var response integrations.FrontendErrorResponse
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			require.NotNil(t, response.Error)
+			assert.Equal(t, constants.GuardrailServiceUnavailableCode, response.Error.Code)
+			assert.Equal(t, constants.GuardrailServiceUnavailableMessage, response.Error.Message)
+			assert.Equal(t, 1, factory.getClientCalls)
+			if client, ok := factory.client.(*nemoDiscoveryTestClient); ok {
+				assert.Equal(t, 1, client.discoveryCalls)
+			}
+			assert.Zero(t, llamaStackClient.createResponseCalls)
+		},
+		Entry("when NeMo discovery fails", &nemoDiscoveryTestFactory{getClientErr: errors.New("discovery failed")}),
+		Entry("when no NeMo service exists", &nemoDiscoveryTestFactory{client: &nemoDiscoveryTestClient{}}),
+	)
 
 	It("should create response with all optional parameters", func() {
 		t := GinkgoT()
@@ -2113,30 +2216,9 @@ func TestMockRAGCitationPipeline(t *testing.T) {
 
 }
 
-// TestIsEventTypeSupported_ReasoningEvents verifies reasoning event types are supported
-func TestIsEventTypeSupported_ReasoningEvents(t *testing.T) {
-	t.Run("should support response.reasoning_text.delta", func(t *testing.T) {
-		assert.True(t, isEventTypeSupported("response.reasoning_text.delta"))
-	})
-
-	t.Run("should support response.reasoning_text.done", func(t *testing.T) {
-		assert.True(t, isEventTypeSupported("response.reasoning_text.done"))
-	})
-
-	t.Run("should still support existing event types", func(t *testing.T) {
-		assert.True(t, isEventTypeSupported("response.output_text.delta"))
-		assert.True(t, isEventTypeSupported("response.completed"))
-		assert.True(t, isEventTypeSupported("response.created"))
-	})
-
-	t.Run("should not support unknown event types", func(t *testing.T) {
-		assert.False(t, isEventTypeSupported("response.unknown"))
-		assert.False(t, isEventTypeSupported(""))
-	})
-}
-
-// TestConvertToStreamingEvent_ReasoningEvents verifies reasoning events are correctly converted
-func TestConvertToStreamingEvent_ReasoningEvents(t *testing.T) {
+// TestConvertToStreamingEvent verifies events are forwarded without filtering or
+// dropping fields that the UI needs to render tool calls and other output items.
+func TestConvertToStreamingEvent(t *testing.T) {
 	t.Run("should convert reasoning_text.delta with delta field", func(t *testing.T) {
 		event := map[string]interface{}{
 			"type":            "response.reasoning_text.delta",
@@ -2171,15 +2253,90 @@ func TestConvertToStreamingEvent_ReasoningEvents(t *testing.T) {
 		assert.Equal(t, "msg_123", result.ItemID)
 	})
 
-	t.Run("should still filter unsupported event types", func(t *testing.T) {
+	t.Run("should preserve unknown event types and their payload", func(t *testing.T) {
 		event := map[string]interface{}{
 			"type":            "response.unknown_event",
 			"sequence_number": float64(1),
 			"output_index":    float64(0),
+			"custom_payload": map[string]interface{}{
+				"value": "preserved for the UI",
+			},
 		}
 
 		result := convertToStreamingEvent(event)
-		assert.Nil(t, result, "unsupported event type should be filtered out")
+		require.NotNil(t, result)
+
+		forwarded, err := json.Marshal(result)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"type":"response.unknown_event","sequence_number":1,"output_index":0,"custom_payload":{"value":"preserved for the UI"}}`, string(forwarded))
+	})
+
+	t.Run("should preserve tool output items", func(t *testing.T) {
+		event := map[string]interface{}{
+			"type":            "response.output_item.added",
+			"sequence_number": float64(2),
+			"output_index":    float64(0),
+			"item": map[string]interface{}{
+				"id":           "mcpc_123",
+				"type":         "mcp_call",
+				"server_label": "weather",
+				"name":         "get_forecast",
+				"arguments":    `{"city":"Toronto"}`,
+			},
+		}
+
+		result := convertToStreamingEvent(event)
+		require.NotNil(t, result)
+
+		forwarded, err := json.Marshal(result)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"mcpc_123","type":"mcp_call","server_label":"weather","name":"get_forecast","arguments":"{\"city\":\"Toronto\"}"}}`, string(forwarded))
+	})
+
+	t.Run("should use the original SDK event JSON", func(t *testing.T) {
+		var event responses.ResponseStreamEventUnion
+		err := json.Unmarshal([]byte(`{"type":"response.file_search_call.in_progress","sequence_number":11,"item_id":"fs_123","output_index":0}`), &event)
+		require.NoError(t, err)
+
+		result := convertToStreamingEvent(event)
+		require.NotNil(t, result)
+
+		forwarded, err := json.Marshal(result)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"type":"response.file_search_call.in_progress","sequence_number":11,"item_id":"fs_123","output_index":0}`, string(forwarded))
+	})
+}
+
+func TestSyncProcessedResponse(t *testing.T) {
+	t.Run("should preserve large integer values in the raw completed event", func(t *testing.T) {
+		event := StreamingEvent{
+			raw: []byte(`{"response":{"output":[{"type":"message","content":[{"type":"output_text","text":"original"}]}],"large_integer":9007199254740993}}`),
+			Response: &ResponseData{
+				Output: []OutputItem{{
+					Type: "message",
+					Content: []ContentItem{{
+						Type: "output_text",
+						Text: "processed",
+					}},
+				}},
+			},
+		}
+
+		event.syncProcessedResponse()
+
+		assert.Contains(t, string(event.raw), `"large_integer":9007199254740993`)
+		assert.Contains(t, string(event.raw), `"text":"processed"`)
+	})
+
+	t.Run("should reject raw events with trailing JSON", func(t *testing.T) {
+		event := StreamingEvent{
+			raw:      []byte(`{"response":{"output":[]}} {"trailing":true}`),
+			Response: &ResponseData{},
+		}
+
+		event.syncProcessedResponse()
+
+		assert.Nil(t, event.raw)
 	})
 }
 
