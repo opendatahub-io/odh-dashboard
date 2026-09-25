@@ -8,12 +8,17 @@ import {
   resolveHfTokenSecretName,
   resolveHfTokenServiceAccountName,
 } from '@odh-dashboard/model-serving/shared/hfTokenSecret';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 
 export { resolveHfTokenSecretName, resolveHfTokenServiceAccountName };
 
+const is404 = (error: unknown): boolean => getGenericErrorCode(error) === 404;
+
 /**
  * Source of truth is the ServiceAccount (`{deployment}-hf-sa`) and its Secret refs.
+ * Missing SA/Secret (404) is treated as unconfigured so the user can supply a replacement.
+ * Auth and other API failures propagate to the edit flow.
  */
 export const extractHuggingFaceApiKey = async (
   deployment: InferenceServiceKind,
@@ -32,15 +37,17 @@ export const extractHuggingFaceApiKey = async (
       serviceAccountName,
       namespace,
     );
-    if (!configuredSecretName) {
-      return null;
-    }
+    // SA is ours but Secret may be missing (out-of-band delete) — still surface the field
+    // so the user can supply a replacement token.
     return {
       token: '',
       configuredSecretName,
     };
-  } catch {
-    return null;
+  } catch (error) {
+    if (is404(error)) {
+      return { token: '' };
+    }
+    throw error;
   }
 };
 

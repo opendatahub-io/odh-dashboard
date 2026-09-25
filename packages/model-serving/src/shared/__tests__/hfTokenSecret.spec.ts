@@ -4,7 +4,7 @@ import {
   getServiceAccount,
   replaceServiceAccount,
 } from '@odh-dashboard/k8s-core/api/serviceAccounts';
-import { K8sStatusError } from '@odh-dashboard/k8s-core';
+import { K8sStatusError, type SecretKind } from '@odh-dashboard/k8s-core';
 import {
   HF_TOKEN_DASHBOARD_LABEL,
   HF_TOKEN_ENV_NAME,
@@ -191,6 +191,12 @@ describe('hfTokenSecret', () => {
       },
       secrets: [{ name: 'other-secret' }],
     });
+    mockGetSecret.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: { name: 'other-secret', namespace: 'test-project' },
+      data: {},
+    });
     mockReplaceServiceAccount.mockResolvedValue({
       apiVersion: 'v1',
       kind: 'ServiceAccount',
@@ -220,12 +226,74 @@ describe('hfTokenSecret', () => {
       },
       secrets: [{ name: 'hf-secret' }, { name: 'my-model-hf-sa-dockercfg-xyz' }],
     });
+    mockGetSecret.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: { name: 'my-model-hf-sa-dockercfg-xyz', namespace: 'test-project' },
+      data: {},
+    });
 
     const saName = await resolveHfTokenServiceAccountName('test-project', 'hf-secret', 'my-model');
 
     expect(saName).toBe('my-model-hf-sa');
     expect(mockCreateServiceAccount).not.toHaveBeenCalled();
     expect(mockReplaceServiceAccount).not.toHaveBeenCalled();
+  });
+
+  it('should drop stale dashboard HF secret refs and dangling 404 refs when attaching a new secret', async () => {
+    mockGetServiceAccount.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'ServiceAccount',
+      metadata: {
+        name: 'my-model-hf-sa',
+        namespace: 'test-project',
+        resourceVersion: '9',
+        labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
+      },
+      secrets: [
+        { name: 'old-hf-secret' },
+        { name: 'deleted-secret' },
+        { name: 'my-model-hf-sa-dockercfg-xyz' },
+      ],
+    });
+    mockGetSecret.mockImplementation(async (_ns: string, name: string) => {
+      if (name === 'old-hf-secret') {
+        return {
+          apiVersion: 'v1',
+          kind: 'Secret',
+          metadata: {
+            name,
+            namespace: 'test-project',
+            labels: { [HF_TOKEN_DASHBOARD_LABEL]: 'true' },
+          },
+          data: { [HF_TOKEN_ENV_NAME]: 'dG9rZW4=' },
+        } as SecretKind;
+      }
+      if (name === 'deleted-secret') {
+        throw make404();
+      }
+      return {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: { name, namespace: 'test-project' },
+        data: {},
+      } as SecretKind;
+    });
+    mockReplaceServiceAccount.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'ServiceAccount',
+      metadata: { name: 'my-model-hf-sa', namespace: 'test-project' },
+    });
+
+    const saName = await resolveHfTokenServiceAccountName('test-project', 'hf-secret', 'my-model');
+
+    expect(saName).toBe('my-model-hf-sa');
+    expect(mockReplaceServiceAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        secrets: [{ name: 'my-model-hf-sa-dockercfg-xyz' }, { name: 'hf-secret' }],
+      }),
+      undefined,
+    );
   });
 
   it('should not mutate an existing ServiceAccount that is not dashboard-managed', async () => {

@@ -69,7 +69,8 @@ export const assembleHfTokenServiceAccount = (
 
 /**
  * Reads the dashboard-managed HF token Secret name from a ServiceAccount.
- * Skips OpenShift-managed dockercfg/token refs by checking Secret labels.
+ * Skips OpenShift-managed dockercfg/token refs by checking Secret labels + HF_TOKEN key.
+ * Propagates auth/API failures; treats missing Secrets as absent.
  */
 export const getHfTokenSecretNameFromServiceAccount = async (
   serviceAccountName: string,
@@ -91,12 +92,69 @@ export const getHfTokenSecretNameFromServiceAccount = async (
       if (isDashboardManagedHfTokenSecret(secret)) {
         return name;
       }
-    } catch {
-      // Secret may have been deleted; keep scanning other refs.
+    } catch (error) {
+      if (is404(error)) {
+        // Secret may have been deleted out of band; keep scanning other refs.
+        continue;
+      }
+      throw error;
     }
   }
 
   return undefined;
+};
+
+/**
+ * Keeps unrelated / OpenShift-managed SA secret refs, drops dangling (404) refs and
+ * other dashboard-managed HF token secrets so the SA self-heals after rotations or
+ * out-of-band deletes.
+ */
+const normalizeHfServiceAccountSecrets = async (
+  existingSecrets: ServiceAccountKind['secrets'],
+  secretName: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<NonNullable<ServiceAccountKind['secrets']>> => {
+  const kept: NonNullable<ServiceAccountKind['secrets']> = [];
+
+  for (const ref of existingSecrets ?? []) {
+    if (!ref.name || ref.name === secretName) {
+      continue;
+    }
+    try {
+      const secret = await getSecret(namespace, ref.name, opts);
+      if (isDashboardManagedHfTokenSecret(secret)) {
+        continue;
+      }
+      kept.push({ name: ref.name });
+    } catch (error) {
+      if (is404(error)) {
+        continue;
+      }
+      // Keep the ref when we cannot inspect it (e.g. 403) rather than mutating blindly.
+      kept.push({ name: ref.name });
+    }
+  }
+
+  return [...kept, { name: secretName }];
+};
+
+const secretRefsEqual = (
+  left: ServiceAccountKind['secrets'],
+  right: ServiceAccountKind['secrets'],
+): boolean => {
+  const leftNames = (left ?? [])
+    .map((secret) => secret.name)
+    .filter(Boolean)
+    .toSorted();
+  const rightNames = (right ?? [])
+    .map((secret) => secret.name)
+    .filter(Boolean)
+    .toSorted();
+  return (
+    leftNames.length === rightNames.length &&
+    leftNames.every((name, index) => name === rightNames[index])
+  );
 };
 
 export const resolveHfTokenSecretName = async (
@@ -111,23 +169,35 @@ export const resolveHfTokenSecretName = async (
   const trimmedToken = huggingFaceApiKey.token.trim();
   if (trimmedToken) {
     if (huggingFaceApiKey.configuredSecretName) {
-      const existingSecret = await getSecret(
-        namespace,
-        huggingFaceApiKey.configuredSecretName,
-        opts,
-      );
-      if (!isDashboardManagedHfTokenSecret(existingSecret)) {
+      try {
+        const existingSecret = await getSecret(
+          namespace,
+          huggingFaceApiKey.configuredSecretName,
+          opts,
+        );
+        if (!isDashboardManagedHfTokenSecret(existingSecret)) {
+          const createdSecret = await createSecret(
+            assembleHfTokenSecret(namespace, trimmedToken),
+            opts,
+          );
+          return createdSecret.metadata.name;
+        }
+        const replacedSecret = await replaceSecret(
+          mergeHfTokenIntoExistingSecret(existingSecret, trimmedToken),
+          opts,
+        );
+        return replacedSecret.metadata.name;
+      } catch (error) {
+        if (!is404(error)) {
+          throw error;
+        }
+        // Configured secret was deleted out of band — create a replacement.
         const createdSecret = await createSecret(
           assembleHfTokenSecret(namespace, trimmedToken),
           opts,
         );
         return createdSecret.metadata.name;
       }
-      const replacedSecret = await replaceSecret(
-        mergeHfTokenIntoExistingSecret(existingSecret, trimmedToken),
-        opts,
-      );
-      return replacedSecret.metadata.name;
     }
 
     const createdSecret = await createSecret(assembleHfTokenSecret(namespace, trimmedToken), opts);
@@ -166,8 +236,13 @@ export const resolveHfTokenServiceAccountName = async (
       );
     }
 
-    const hasSecretRef = existing.secrets?.some((secret) => secret.name === secretName);
-    if (hasSecretRef) {
+    const nextSecrets = await normalizeHfServiceAccountSecrets(
+      existing.secrets,
+      secretName,
+      namespace,
+      opts,
+    );
+    if (secretRefsEqual(existing.secrets, nextSecrets)) {
       return serviceAccountName;
     }
 
@@ -181,11 +256,7 @@ export const resolveHfTokenServiceAccountName = async (
             [HF_TOKEN_DASHBOARD_LABEL]: 'true',
           },
         },
-        // Keep OpenShift-managed refs (e.g. dockercfg); only ensure the HF Secret is attached.
-        secrets: [
-          ...(existing.secrets ?? []).filter((secret) => secret.name !== secretName),
-          { name: secretName },
-        ],
+        secrets: nextSecrets,
       },
       opts,
     );
