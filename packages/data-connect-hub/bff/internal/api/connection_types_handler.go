@@ -197,20 +197,58 @@ func mockConnectionType(namespace, connectionTypeID string) (ConnectionType, boo
 }
 
 func mockConnectionTypes(namespace string) []ConnectionType {
+	description := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor."
 	types := make([]ConnectionType, 2)
 	types[0].Metadata.ID = "postgresql"
 	types[0].Metadata.TenantID = namespace
 	types[0].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
 	types[0].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
 	types[0].Resource.Name = "PostgreSQL"
-	types[0].Resource.Provider = "postgresql"
-	types[0].Resource.CredentialsFields = []ConnectionTypeCredentialField{}
+	types[0].Resource.Provider = "postgres"
+	types[0].Resource.Description = description
+	types[0].Resource.CredentialsFields = []ConnectionTypeCredentialField{
+		{
+			Name:        "url",
+			Label:       "Connection URL",
+			Description: "The URL used to connect to the PostgreSQL database.",
+			Required:    true,
+			Type:        "string",
+			EnumValues: []struct {
+				Value string `json:"value"`
+				Label string `json:"label"`
+			}{
+				{Value: "us-east-1", Label: "US East"},
+			},
+			DefaultValue: "postgresql://localhost:5432/database",
+		},
+	}
+	types[0].Status.Capabilities.Flight = true
+	types[0].Status.Capabilities.Rest = true
+
 	types[1].Metadata.ID = "s3"
 	types[1].Metadata.TenantID = namespace
 	types[1].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
 	types[1].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
 	types[1].Resource.Name = "S3"
 	types[1].Resource.Provider = "s3"
-	types[1].Resource.CredentialsFields = []ConnectionTypeCredentialField{}
+	types[1].Resource.Description = description
+	types[1].Resource.CredentialsFields = []ConnectionTypeCredentialField{
+		{
+			Name:        "region",
+			Label:       "Region",
+			Description: "The AWS region containing the S3 bucket.",
+			Required:    true,
+			Type:        "string",
+			EnumValues: []struct {
+				Value string `json:"value"`
+				Label string `json:"label"`
+			}{
+				{Value: "us-east-1", Label: "US East"},
+			},
+			DefaultValue: "us-east-1",
+		},
+	}
+	types[1].Status.Capabilities.Flight = true
+	types[1].Status.Capabilities.Rest = true
 	return types
 }
