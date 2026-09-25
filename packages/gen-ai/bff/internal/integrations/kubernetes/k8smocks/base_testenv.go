@@ -529,7 +529,8 @@ spec:
   displayName: Mock deployment agent
   model:
     id: mock-agent-model
-    uri: https://mock-model.example.com`,
+    uri: https://mock-model.example.com
+    sourceType: maas`,
 		},
 	}
 	return k8sClient.Create(ctx, cm)

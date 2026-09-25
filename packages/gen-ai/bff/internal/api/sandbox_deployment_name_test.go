@@ -32,3 +32,28 @@ func TestValidateSandboxDeploymentName(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateSandboxModelSourceType(t *testing.T) {
+	tests := []struct {
+		name       string
+		sourceType string
+		wantErr    string
+	}{
+		{name: "MaaS", sourceType: "maas"},
+		{name: "namespace", sourceType: "namespace"},
+		{name: "custom endpoint", sourceType: "custom_endpoint"},
+		{name: "missing", wantErr: "is required"},
+		{name: "unsupported", sourceType: "unknown", wantErr: "is unsupported"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateSandboxModelSourceType(tt.sourceType)
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorContains(t, err, tt.wantErr)
+		})
+	}
+}

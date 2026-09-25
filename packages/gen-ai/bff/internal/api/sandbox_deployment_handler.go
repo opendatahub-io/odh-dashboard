@@ -16,6 +16,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -130,6 +131,10 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if err := validateSandboxModelSourceType(profile.Spec.Model.SourceType); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 	systemPrompt, err := app.resolveSandboxSystemPrompt(ctx, namespace, profile.Spec.Prompt)
@@ -288,6 +293,10 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		apiKey, secretErr := k8sClient.GetSecretValue(ctx, nil, namespace, credentials.CredentialsRef.Name, credentials.CredentialsRef.Key)
 		if secretErr != nil {
 			rollback()
+			if apierrors.IsForbidden(secretErr) {
+				app.forbiddenResponse(w, r, fmt.Sprintf("access denied reading secret %q", credentials.CredentialsRef.Name))
+				return
+			}
 			app.serverErrorResponse(w, r, secretErr)
 			return
 		}
@@ -451,6 +460,17 @@ func validateSandboxDeploymentName(name, namespace string) error {
 		return fmt.Errorf("name must be at most %d characters for namespace %q", maxLength, namespace)
 	}
 	return nil
+}
+
+func validateSandboxModelSourceType(sourceType string) error {
+	switch models.ModelSourceTypeEnum(sourceType) {
+	case models.ModelSourceTypeMaaS, models.ModelSourceTypeNamespace, models.ModelSourceTypeCustomEndpoint:
+		return nil
+	case "":
+		return fmt.Errorf("agent profile model sourceType is required")
+	default:
+		return fmt.Errorf("agent profile model sourceType %q is unsupported", sourceType)
+	}
 }
 
 // normalizeMCPServerAuth accepts either a raw OAuth token or an Authorization header value.

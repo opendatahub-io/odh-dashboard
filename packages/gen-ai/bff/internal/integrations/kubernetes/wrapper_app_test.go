@@ -46,6 +46,7 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `elif AGENT_MODEL_SOURCE_TYPE == "namespace":`)
 	assert.Contains(t, script, `AGENT_MODEL_API_KEY`)
 	assert.Contains(t, script, `sanitized_headers`)
+	assert.Contains(t, script, `"detail": "Unsupported model source type"`)
 
 	// Every HTTP endpoint is authorized against the caller's access to this exact Sandbox
 	// before model credentials, MCP credentials, or the profile snapshot are made available.

@@ -206,6 +206,9 @@ class MaaSTokenMiddleware:
             elif AGENT_MODEL_SOURCE_TYPE == "namespace":
                 provider_data = json.dumps({"openai_api_key": user_token}).encode()
                 sanitized_headers.append((b"x-ogx-provider-data", provider_data))
+            else:
+                await _send_json(send, 500, {"detail": "Unsupported model source type"})
+                return
             scope = {**scope, "headers": sanitized_headers}
 
         await self.app(scope, receive, send)
