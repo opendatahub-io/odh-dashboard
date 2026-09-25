@@ -18,6 +18,33 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Package Manager Policy — reject unexpected npm lockfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          allowed_lockfiles=(
+            "packages/model-registry/upstream/package-lock.json"
+            "packages/model-registry/upstream/frontend/package-lock.json"
+            "packages/notebooks/upstream/workspaces/frontend/package-lock.json"
+          )
+          unexpected=()
+          while IFS= read -r file; do
+            if [[ " ${allowed_lockfiles[*]} " == *" $file "* ]]; then
+              continue
+            fi
+            unexpected+=("$file")
+          done < <(
+            git ls-files |
+              grep -E '(^|/)(package-lock\.json|npm-shrinkwrap\.json)$' || true
+          )
+
+          if ((${#unexpected[@]} > 0)); then
+            printf '::error::Unexpected npm lockfile(s):\n'
+            printf '  %s\n' "${unexpected[@]}"
+            echo 'Use the root pnpm-lock.yaml.'
+            echo 'Only documented vendored upstream lockfiles are allowed.'
+            exit 1
+          fi
       - name: Free disk space
         uses: ./.github/actions/free-disk-space
       - name: Setup pnpm and Node.js
