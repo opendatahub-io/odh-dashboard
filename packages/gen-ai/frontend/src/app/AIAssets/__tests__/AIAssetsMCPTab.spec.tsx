@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import type { MCPServerFromAPI } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import AIAssetsMCPTab from '~/app/AIAssets/AIAssetsMCPTab';
 
@@ -12,6 +13,11 @@ jest.mock('~/app/hooks/useFetchMCPServers', () => ({
 }));
 
 jest.mock('~/app/hooks/useMCPServerStatuses', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('~/app/hooks/useGenAiMcpRegistryServers', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -30,6 +36,7 @@ jest.mock('~/app/AIAssets/components/mcp/MCPServersTable', () => ({
 }));
 
 const mockUseFetchMCPServers = jest.mocked(useFetchMCPServers);
+const mockUseGenAiMcpRegistryServers = jest.mocked(useGenAiMcpRegistryServers);
 const mockUseMCPServerStatuses = jest.mocked(useMCPServerStatuses);
 
 const withDashboardConfig = (overrides: Record<string, unknown>) => {
@@ -49,6 +56,7 @@ const withDashboardConfig = (overrides: Record<string, unknown>) => {
 describe('AIAssetsMCPTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiMcpRegistryServers.mockReturnValue(false);
   });
 
   it('should render loading state', () => {
@@ -172,6 +180,81 @@ describe('AIAssetsMCPTab', () => {
     expect(screen.getByTestId('mcp-servers-table')).toBeInTheDocument();
     expect(screen.getByTestId('server-server-1')).toBeInTheDocument();
     expect(screen.getByText('server-1')).toBeInTheDocument();
+  });
+
+  it('should render registered and manual servers when genAiMcpRegistryServers is enabled', () => {
+    mockUseGenAiMcpRegistryServers.mockReturnValue(true);
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [
+        {
+          name: 'registered-server',
+          url: 'http://registered.example.com',
+          transport: 'sse',
+          logo: '',
+          source: 'registry',
+        },
+        {
+          name: 'manual-server',
+          url: 'http://manual.example.com',
+          transport: 'sse',
+          logo: '',
+          source: 'configmap',
+        },
+      ] as MCPServerFromAPI[],
+      configMapName: null,
+      registryAvailable: true,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
+
+    render(<AIAssetsMCPTab />);
+
+    expect(screen.getByTestId('server-registered-server')).toBeInTheDocument();
+    expect(screen.getByTestId('server-manual-server')).toBeInTheDocument();
+  });
+
+  it('should hide registered servers and keep manual servers when the flag is disabled', () => {
+    const servers = [
+      {
+        name: 'registered-server',
+        url: 'http://registered.example.com',
+        transport: 'sse',
+        logo: '',
+        source: 'registry',
+      },
+      {
+        name: 'manual-server',
+        url: 'http://manual.example.com',
+        transport: 'sse',
+        logo: '',
+        source: 'configmap',
+      },
+    ] as MCPServerFromAPI[];
+    mockUseFetchMCPServers.mockReturnValue({
+      data: servers,
+      configMapName: null,
+      registryAvailable: true,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
+
+    render(<AIAssetsMCPTab />);
+
+    expect(screen.queryByTestId('server-registered-server')).not.toBeInTheDocument();
+    expect(screen.getByTestId('server-manual-server')).toBeInTheDocument();
+    expect(mockUseMCPServerStatuses).toHaveBeenCalledWith([servers[1]], true);
   });
 
   it('should show registry unavailable banner when mcpRegistry flag is enabled and registry is down', () => {
