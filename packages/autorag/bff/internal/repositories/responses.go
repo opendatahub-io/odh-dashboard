@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,15 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
+
+// maxTopK bounds max_num_results so a caller-controlled value can't drive an
+// unbounded LIMIT/allocation in the vector DB search.
+const maxTopK = 100
+
+// validVectorStoreID matches a vector store ID that is already a safe Milvus
+// collection / pgvector table identifier, so distinct IDs never silently
+// collide onto the same target after sanitizeCollection normalizes them.
+var validVectorStoreID = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 
 // ResponsesParams holds the per-request parameters for the responses endpoint.
 type ResponsesParams struct {
@@ -207,11 +217,58 @@ type ragContext struct {
 	chatReq    maas.ChatRequest
 }
 
+// parseFileSearchTool extracts and validates the file_search tool's vector store
+// target and search parameters from the request. It fails fast on a malformed
+// request before any credential resolution or vector DB connection is attempted.
+func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK int, alpha float32, hybrid bool, err error) {
+	topK = 5
+	alpha = 0.5
+	for _, tool := range req.Tools {
+		if tool.Type != "file_search" || len(tool.VectorStoreIDs) == 0 {
+			continue
+		}
+		collection = tool.VectorStoreIDs[0]
+		if tool.MaxNumResults > 0 {
+			if tool.MaxNumResults > maxTopK {
+				return "", 0, 0, false, fmt.Errorf("max_num_results %d exceeds maximum of %d", tool.MaxNumResults, maxTopK)
+			}
+			topK = tool.MaxNumResults
+		}
+		if tool.RankingOptions.Ranker != "" {
+			hybrid = true
+			if tool.RankingOptions.Alpha > 0 {
+				if tool.RankingOptions.Alpha > 1 {
+					return "", 0, 0, false, fmt.Errorf("ranking_options.alpha %v must be between 0 and 1", tool.RankingOptions.Alpha)
+				}
+				alpha = float32(tool.RankingOptions.Alpha)
+			}
+		}
+		break
+	}
+	if collection == "" {
+		return "", 0, 0, false, fmt.Errorf("no file_search tool with vector_store_ids found in request")
+	}
+	if !validVectorStoreID.MatchString(collection) {
+		return "", 0, 0, false, fmt.Errorf("invalid vector_store_ids value %q: must match %s", collection, validVectorStoreID.String())
+	}
+	return collection, topK, alpha, hybrid, nil
+}
+
 // prepareRAGContext resolves credentials, does vector search, and assembles the chat messages.
 func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params ResponsesParams, req *models.ResponsesRequest) (*ragContext, error) {
 	embeddingModel := req.Metadata["embedding_model"]
 	if embeddingModel == "" {
 		return nil, fmt.Errorf("metadata.embedding_model is required")
+	}
+
+	collection, topK, alpha, hybrid, err := parseFileSearchTool(req)
+	if err != nil {
+		return nil, err
+	}
+
+	systemPrompt, history, question := extractHistoryAndQuestion(req.Input)
+	if question == "" {
+		return nil, fmt.Errorf("no user message found in input")
 	}
 
 	maasClient, err := r.resolveMaasClient(ctx, params.Namespace, params.MaasSecretName)
@@ -224,34 +281,6 @@ func (r *ResponsesRepository) prepareRAGContext(ctx context.Context, params Resp
 		return nil, err
 	}
 	defer db.Close()
-
-	var collection string
-	var topK = 5
-	var alpha float32 = 0.5
-	var hybrid bool
-	for _, tool := range req.Tools {
-		if tool.Type == "file_search" && len(tool.VectorStoreIDs) > 0 {
-			collection = tool.VectorStoreIDs[0]
-			if tool.MaxNumResults > 0 {
-				topK = tool.MaxNumResults
-			}
-			if tool.RankingOptions.Ranker != "" {
-				hybrid = true
-				if tool.RankingOptions.Alpha > 0 {
-					alpha = float32(tool.RankingOptions.Alpha)
-				}
-			}
-			break
-		}
-	}
-	if collection == "" {
-		return nil, fmt.Errorf("no file_search tool with vector_store_ids found in request")
-	}
-
-	systemPrompt, history, question := extractHistoryAndQuestion(req.Input)
-	if question == "" {
-		return nil, fmt.Errorf("no user message found in input")
-	}
 
 	sources, err := r.ragSearch(ctx, maasClient, db, embeddingModel, question, collection, topK, alpha, hybrid)
 	if err != nil {

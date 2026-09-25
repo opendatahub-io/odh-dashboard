@@ -7,6 +7,7 @@ import (
 	"github.com/openai/openai-go"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // msgRole returns the role of a chat message param union, or "" if unset.
@@ -341,4 +342,90 @@ func TestSanitizeCollection(t *testing.T) {
 	assert.Equal(t, "vs_abc_123", sanitizeCollection("vs.abc.123"))
 	assert.Equal(t, "already_fine", sanitizeCollection("already_fine"))
 	assert.Equal(t, "mix_of_both_things", sanitizeCollection("mix-of.both-things"))
+}
+
+// ---------- parseFileSearchTool ----------
+
+func fileSearchRequest(tool models.FileSearchTool) *models.ResponsesRequest {
+	return &models.ResponsesRequest{Tools: []models.FileSearchTool{tool}}
+}
+
+func TestParseFileSearchTool_Defaults(t *testing.T) {
+	collection, topK, alpha, hybrid, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "vs_abc_123", collection)
+	assert.Equal(t, 5, topK)
+	assert.InDelta(t, 0.5, alpha, 0.0001)
+	assert.False(t, hybrid)
+}
+
+func TestParseFileSearchTool_NoFileSearchTool(t *testing.T) {
+	_, _, _, _, err := parseFileSearchTool(&models.ResponsesRequest{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no file_search tool with vector_store_ids found")
+}
+
+func TestParseFileSearchTool_RejectsInvalidVectorStoreID(t *testing.T) {
+	tests := []string{"vs-abc-123", "vs.abc.123", "vs abc", "", "vs/abc"}
+	for _, id := range tests {
+		t.Run(id, func(t *testing.T) {
+			_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+				Type:           "file_search",
+				VectorStoreIDs: []string{id},
+			}))
+			require.Error(t, err)
+			if id != "" {
+				assert.Contains(t, err.Error(), "invalid vector_store_ids value")
+			} else {
+				// An empty ID never enters the loop's collection assignment path,
+				// so it surfaces as "no file_search tool" instead.
+				assert.Contains(t, err.Error(), "no file_search tool with vector_store_ids found")
+			}
+		})
+	}
+}
+
+func TestParseFileSearchTool_RejectsExcessiveMaxNumResults(t *testing.T) {
+	_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		MaxNumResults:  maxTopK + 1,
+	}))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeds maximum")
+}
+
+func TestParseFileSearchTool_AllowsMaxNumResultsAtLimit(t *testing.T) {
+	_, topK, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		MaxNumResults:  maxTopK,
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, maxTopK, topK)
+}
+
+func TestParseFileSearchTool_RejectsAlphaAboveOne(t *testing.T) {
+	_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "rrf", Alpha: 1.5},
+	}))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must be between 0 and 1")
+}
+
+func TestParseFileSearchTool_HybridWithValidAlpha(t *testing.T) {
+	collection, _, alpha, hybrid, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "rrf", Alpha: 0.7},
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "vs_abc_123", collection)
+	assert.True(t, hybrid)
+	assert.InDelta(t, 0.7, alpha, 0.0001)
 }
