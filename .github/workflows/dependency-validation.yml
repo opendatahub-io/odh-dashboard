@@ -26,7 +26,7 @@ jobs:
     outputs:
       dirs: ${{ steps.dirs.outputs.dirs }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           fetch-depth: 0
 
@@ -58,7 +58,7 @@ jobs:
         dir: ${{ fromJSON(needs.detect-dirs.outputs.dirs) }}
     steps:
       - name: Checkout PR head
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
       - name: Setup pnpm
         uses: ./.github/actions/pnpm-setup
@@ -103,7 +103,7 @@ jobs:
           cat head-ids.txt
 
       - name: Checkout base for comparison
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base

@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
       - name: Package Manager Policy — reject unexpected npm lockfiles
         shell: bash
         run: |
@@ -68,7 +68,7 @@ jobs:
       matrix:
         check: [lint, type-check]
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
@@ -96,7 +96,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
@@ -148,7 +148,7 @@ jobs:
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
@@ -176,7 +176,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
@@ -254,7 +254,7 @@ jobs:
     outputs:
       packages: ${{ steps.cypress.outputs.packages }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           persist-credentials: false
       - name: Setup pnpm
@@ -280,7 +280,7 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.Get-Cypress-Packages.outputs.packages) }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           persist-credentials: false
       - name: Setup pnpm and install dependencies
@@ -307,7 +307,7 @@ jobs:
       matrix:
         test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           persist-credentials: false
       - name: Setup pnpm and install dependencies
@@ -375,7 +375,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
       - name: Setup pnpm
         uses: ./.github/actions/pnpm-setup
         with:
