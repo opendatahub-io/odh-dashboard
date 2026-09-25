@@ -1,4 +1,5 @@
 import React from 'react';
+import { Label } from '@patternfly/react-core';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -19,7 +20,8 @@ export const useWorkbenchesV2Tab = (): SectionDefinition[] => {
   return [
     {
       id: ProjectSectionID.WORKBENCHES_V2,
-      title: 'Workbenches v2 (Dev Preview)',
+      title: 'Workbenches v2',
+      label: <Label variant="outline">Dev Preview</Label>,
       component: (
         <LazyCodeRefComponent
           component={workbenchesV2Extension}
