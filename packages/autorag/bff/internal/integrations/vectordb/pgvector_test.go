@@ -30,6 +30,29 @@ func TestNewPgvectorFromSecret_InvalidPort(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
 }
 
+func TestNewPgvectorFromSecret_PortOutOfRange(t *testing.T) {
+	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
+		"PGVECTOR_HOST": []byte("localhost"),
+		"PGVECTOR_DB":   []byte("db"),
+		"PGVECTOR_USER": []byte("user"),
+		"PGVECTOR_PORT": []byte("70000"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
+	assert.Contains(t, err.Error(), "1-65535")
+}
+
+func TestNewPgvectorFromSecret_InvalidSSLMode(t *testing.T) {
+	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
+		"PGVECTOR_HOST":    []byte("localhost"),
+		"PGVECTOR_DB":      []byte("db"),
+		"PGVECTOR_USER":    []byte("user"),
+		"PGVECTOR_SSLMODE": []byte("not-a-real-mode"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid PGVECTOR_SSLMODE")
+}
+
 func TestNewPgvectorFromSecret_DisableRejectedForRemoteHost(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
 		"PGVECTOR_HOST":    []byte("db.apps.example.com"),

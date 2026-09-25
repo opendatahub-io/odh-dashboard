@@ -13,7 +13,6 @@ import ChatbotPlayground from './ChatbotPlayground';
 import { EmbeddedMessagesContext } from './context/EmbeddedMessagesContext';
 import { createChatbotConfigStore, ChatbotConfigStoreContext, DEFAULT_CONFIG_ID } from './store';
 
-
 /**
  * Embeddable wrapper for the ChatbotPlayground component.
  * Provides all required context providers for use within Module Federation

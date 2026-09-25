@@ -37,6 +37,9 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 		}
 		port = p
 	}
+	if port < 1 || port > 65535 {
+		return nil, fmt.Errorf("pgvector invalid PGVECTOR_PORT: %d (must be 1-65535)", port)
+	}
 
 	sslMode := strings.TrimSpace(string(data["PGVECTOR_SSLMODE"]))
 	if sslMode == "" {
@@ -48,17 +51,29 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 			sslMode = "disable"
 		}
 	}
+	switch sslMode {
+	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
+	default:
+		return nil, fmt.Errorf("pgvector invalid PGVECTOR_SSLMODE: %q", sslMode)
+	}
 	if sslMode == "disable" && !isLocalNetworkHost(host) {
 		return nil, fmt.Errorf(
 			"pgvector: sslmode=disable is only allowed for localhost or *.cluster.local hosts, got %q — set PGVECTOR_SSLMODE or provide PGVECTOR_SERVER_CERT", host)
 	}
-	dsn := fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=%s",
-		host, port, db, user, password, sslMode)
 
-	connConfig, err := pgx.ParseConfig(dsn)
+	// Build the connection config from an sslmode-only DSN, then assign
+	// user-controlled values (host, credentials) as struct fields directly.
+	// Avoids DSN string interpolation, which a password containing spaces,
+	// quotes, or backslashes can break or use to inject extra keywords.
+	connConfig, err := pgx.ParseConfig("sslmode=" + sslMode)
 	if err != nil {
 		return nil, fmt.Errorf("pgvector parse config: %w", err)
 	}
+	connConfig.Host = host
+	connConfig.Port = uint16(port)
+	connConfig.Database = db
+	connConfig.User = user
+	connConfig.Password = password
 
 	if len(certPEM) > 0 {
 		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "PGVECTOR_SERVER_CERT")
