@@ -1,0 +1,13 @@
+projectName: "test-workbench-storage-preset"
+storageClassRWO: "nfs-storage"
+storageClassMultiAccess: "sc-wb-multi-access"
+workbenchRWO: "wb-rwo-test"
+workbenchMultiAccessA: "wb-multi-a"
+workbenchMultiAccessB: "wb-multi-b"
+storageRWO: "storage-rwo"
+storageMultiAccess: "storage-multi"
+mountPathA: "mnt/path-a"
+mountPathB: "mnt/path-b"
+mountPathC: "mnt/path-c"
+notebookImage: "code-server-notebook"
+isS390x: true

@@ -2,11 +2,42 @@ import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
- * Validates environment variables in a workbench pod
+ * Waits until the workbench pod is fully Ready using `oc wait`, which is the authoritative
+ * Kubernetes readiness gate. This is required before `oc exec` because:
+ *
+ * - `.state.running` is set as soon as the container PID is forked, but the CRI exec shim
+ *   socket may not be active yet, so `oc exec` can still fail.
+ * - `.ready` via jsonpath filter `?(@.name=="…")` is unreliable: the Go jsonpath
+ *   implementation in `oc` has known bugs where filter expressions on single-element arrays
+ *   return the element regardless of whether the filter matches, producing false positives.
+ *
+ * `oc wait --for=condition=Ready` blocks until the pod's Ready condition is True at the
+ * Kubernetes API level, which guarantees the CRI exec endpoint is active.
+ */
+const waitForPodReady = (namespace: string, podName: string): Cypress.Chainable<void> => {
+  // 120s matches the timeout already used in waitForNotebookReady in the test file.
+  const waitCmd = `oc wait pod/${podName} -n ${namespace} --for=condition=Ready --timeout=120s`;
+  cy.log(`Waiting for pod ${podName} to be Ready via oc wait`);
+
+  return cy.exec(waitCmd, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Pod "${podName}" in namespace "${namespace}" did not become Ready within 120s. ` +
+          `stderr: ${result.stderr}`,
+      );
+    }
+    cy.log(`✅ Pod ${podName} is Ready.`);
+    return cy.wrap(undefined as void);
+  });
+};
+
+/**
+ * Validates environment variables in a workbench pod.
+ * Waits for the pod container to be Running before executing oc exec.
  *
  * @param namespace The namespace where the workbench pod is running
  * @param workbench The name of the workbench container
- * @param variablesToCheck Array of environment variable names and expected values to validate
+ * @param variablesToCheck Map of environment variable names to expected values
  * @returns Cypress.Chainable that resolves to the result of the validation
  */
 export const validateWorkbenchEnvironmentVariables = (
@@ -25,29 +56,34 @@ export const validateWorkbenchEnvironmentVariables = (
         `Workbench pod found: ${workbenchPodName}. Proceeding to validate environment variables.`,
       );
 
-      // Construct grep command for all variables
-      const grepPattern = Object.keys(variablesToCheck).join('|');
-      const validateEnvVarsCommand = `oc exec -n ${namespace} ${workbenchPodName} -c ${workbench} -- env | grep -E "^(${grepPattern})="`;
-      cy.log(`Executing command: ${validateEnvVarsCommand}`);
+      // Wait until the pod is fully Ready before attempting oc exec.
+      // The Notebook CR "Ready" status visible in the UI can lead the actual pod
+      // Ready condition on a loaded cluster, causing oc exec to fail.
+      return waitForPodReady(namespace, workbenchPodName).then(() => {
+        // Construct grep command for all variables
+        const grepPattern = Object.keys(variablesToCheck).join('|');
+        const validateEnvVarsCommand = `oc exec -n ${namespace} ${workbenchPodName} -c ${workbench} -- env | grep -E "^(${grepPattern})="`;
+        cy.log(`Executing command: ${validateEnvVarsCommand}`);
 
-      return cy.exec(validateEnvVarsCommand, { failOnNonZeroExit: false }).then((envResult) => {
-        if (envResult.exitCode !== 0) {
-          const maskedStderr = maskSensitiveInfo(envResult.stderr);
-          throw new Error(`Failed to validate environment variables: ${maskedStderr}`);
-        }
-
-        // Validate each variable's value
-        Object.entries(variablesToCheck).forEach(([key, expectedValue]) => {
-          const regex = new RegExp(`^${key}=${expectedValue}$`, 'm');
-          if (!regex.test(envResult.stdout)) {
-            throw new Error(
-              `Validation failed for variable: ${key}. Expected value: ${expectedValue}`,
-            );
+        return cy.exec(validateEnvVarsCommand, { failOnNonZeroExit: false }).then((envResult) => {
+          if (envResult.exitCode !== 0) {
+            const maskedStderr = maskSensitiveInfo(envResult.stderr);
+            throw new Error(`Failed to validate environment variables: ${maskedStderr}`);
           }
-          cy.log(`✅ Variable "${key}" validated with value "${expectedValue}".`);
-        });
 
-        return cy.wrap(envResult);
+          // Validate each variable's value
+          Object.entries(variablesToCheck).forEach(([key, expectedValue]) => {
+            const regex = new RegExp(`^${key}=${expectedValue}$`, 'm');
+            if (!regex.test(envResult.stdout)) {
+              throw new Error(
+                `Validation failed for variable: ${key}. Expected value: ${expectedValue}`,
+              );
+            }
+            cy.log(`✅ Variable "${key}" validated with value "${expectedValue}".`);
+          });
+
+          return cy.wrap(envResult);
+        });
       });
     }
 
