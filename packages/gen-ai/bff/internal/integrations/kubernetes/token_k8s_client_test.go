@@ -2723,3 +2723,25 @@ func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
 		assert.Contains(t, err.Error(), "already exists", "stale URL must fall through to legacy error, not zero-restart")
 	})
 }
+
+func TestInstallOGXServer_UsesConfiguredDistribution(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, ogxapi.AddToScheme(scheme))
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+	kc := &TokenKubernetesClient{
+		Logger:    slog.Default(),
+		Client:    fakeClient,
+		EnvConfig: config.EnvConfig{DistributionName: "rh"},
+	}
+	_, err := kc.InstallOGXServer(context.Background(), &integrations.RequestIdentity{Token: "test-token"},
+		"test-ns", nil, nil, false, nil)
+	require.NoError(t, err)
+
+	server := &ogxapi.OGXServer{}
+	require.NoError(t, fakeClient.Get(context.Background(), types.NamespacedName{
+		Name: lsdName, Namespace: "test-ns",
+	}, server))
+	assert.Equal(t, "rh", server.Spec.Distribution.Name)
+}

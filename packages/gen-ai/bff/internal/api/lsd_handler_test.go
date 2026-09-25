@@ -202,6 +202,11 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 
 		assert.Equal(t, "mock-lsd", dataMap["name"])
 		assert.Equal(t, "200", dataMap["httpStatus"])
+
+		ogxServer := &ogxapi.OGXServer{}
+		err = testK8sClient.Get(ctx, client.ObjectKey{Name: "mock-lsd", Namespace: namespace}, ogxServer)
+		require.NoError(t, err)
+		assert.Equal(t, "rh", ogxServer.Spec.Distribution.Name)
 	})
 
 	It("should return error when request body is missing", func() {
