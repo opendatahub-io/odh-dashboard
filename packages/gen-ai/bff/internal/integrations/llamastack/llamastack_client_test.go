@@ -104,6 +104,56 @@ func TestBuildRequestOptions(t *testing.T) {
 	}
 }
 
+func TestProcessFile(t *testing.T) {
+	t.Run("concatenates processor chunks and propagates the user token", func(t *testing.T) {
+		var requests int
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "Bearer user-token", r.Header.Get("Authorization"))
+			requests++
+			switch requests {
+			case 1:
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Equal(t, "/v1alpha/file-processors/jobs", r.URL.Path)
+				assert.Contains(t, r.Header.Get("Content-Type"), "multipart/form-data")
+				require.NoError(t, r.ParseMultipartForm(1<<20))
+				assert.Equal(t, "file-123", r.FormValue("file_id"))
+				_, err := w.Write([]byte(`{"job_id":"job-123","status":"in_progress"}`))
+				require.NoError(t, err)
+			case 2:
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Equal(t, "/v1alpha/file-processors/jobs/job-123", r.URL.Path)
+				_, err := w.Write([]byte(`{"job_id":"job-123","status":"completed","result":{"chunks":[{"content":"First page"},{"content":"Second page"}]}}`))
+				require.NoError(t, err)
+			default:
+				t.Fatalf("unexpected request %d", requests)
+			}
+		}))
+		defer server.Close()
+
+		client := NewLlamaStackClient(server.URL, "user-token", false, nil, "/v1")
+		document, err := client.ProcessFile(context.Background(), "file-123")
+
+		require.NoError(t, err)
+		assert.Equal(t, "First page\nSecond page", document.Text)
+	})
+
+	t.Run("attributes processor failures to OGX", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "processor unavailable", http.StatusServiceUnavailable)
+		}))
+		defer server.Close()
+
+		client := NewLlamaStackClient(server.URL, "user-token", false, nil, "/v1")
+		_, err := client.ProcessFile(context.Background(), "file-123")
+
+		require.Error(t, err)
+		processorError, ok := err.(*LlamaStackError)
+		require.True(t, ok)
+		assert.Equal(t, ComponentOGX, processorError.Component)
+		assert.Equal(t, http.StatusServiceUnavailable, processorError.StatusCode)
+	})
+}
+
 func TestListModelsWithProviderData(t *testing.T) {
 	var receivedProviderData map[string]interface{}
 	var unmarshalErr error

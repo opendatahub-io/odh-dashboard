@@ -21,6 +21,7 @@ import {
   TokenInfo,
   ToolCallStreamEvent,
   ClassifiedError,
+  DocumentAttachment,
 } from '~/app/types';
 import {
   ERROR_MESSAGES,
@@ -59,6 +60,22 @@ export type ChatbotMessageProps = MessageProps & {
   isTextStreaming?: boolean;
   /** True only after the stream has reached its terminal event. */
   isToolCallStreamComplete?: boolean;
+  attachmentWarning?: 'general' | 'near-limit' | 'context-exceeded';
+  /**
+   * Full document metadata retained with the sent message so its attachment
+   * card can reopen the extracted text that was included in the prompt.
+   */
+  documentAttachments?: DocumentAttachment[];
+};
+
+const isDocumentContextWindowExceeded = (error: ApiError): boolean => {
+  const errorCode = error.error.code.toLowerCase();
+  const errorMessage = error.error.message.toLowerCase();
+
+  return (
+    ['context_length', 'context_length_exceeded', 'stream_context'].includes(errorCode) ||
+    (errorCode === 'invalid_prompt' && errorMessage.includes('maximum context length'))
+  );
 };
 
 export interface UseChatbotMessagesReturn {
@@ -115,6 +132,7 @@ interface UseChatbotMessagesProps {
   hasImageInConversation?: boolean;
   hasAudioInConversation?: boolean;
   isProfileDirty?: boolean;
+  documentAttachments?: DocumentAttachment[];
 }
 
 const useChatbotMessages = ({
@@ -145,6 +163,7 @@ const useChatbotMessages = ({
   hasImageInConversation,
   hasAudioInConversation,
   isProfileDirty,
+  documentAttachments = [],
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -426,13 +445,20 @@ const useChatbotMessages = ({
         },
       });
     }
-    const userMessage: MessageProps = {
+    const userMessage: ChatbotMessageProps = {
       id: getId(),
       role: 'user',
       content: message,
       name: username || 'User',
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
+      ...(documentAttachments.length > 0 && {
+        attachments: documentAttachments.map(({ file_id, filename }) => ({
+          id: file_id,
+          name: filename,
+        })),
+        documentAttachments,
+      }),
       ...(Object.keys(extraContent).length > 0 && { extraContent }),
     };
 
@@ -505,11 +531,24 @@ const useChatbotMessages = ({
           }),
         chat_context: messages
           .filter((msg) => msg.content && !msg.errorClassification)
-          .map((msg) => ({
-            role:
-              msg.role === ChatMessageRole.USER ? ChatMessageRole.USER : ChatMessageRole.ASSISTANT,
-            content: multimodalContentRef.current.get(msg.id!) || msg.content || '',
-          }))
+          .map((msg) => {
+            const content = multimodalContentRef.current.get(msg.id!) || msg.content || '';
+            const attachmentText = msg.documentAttachments
+              ?.map((attachment) => attachment.text)
+              .filter(Boolean)
+              .join('\n\n');
+
+            return {
+              role:
+                msg.role === ChatMessageRole.USER
+                  ? ChatMessageRole.USER
+                  : ChatMessageRole.ASSISTANT,
+              content:
+                typeof content === 'string' && attachmentText
+                  ? [content, attachmentText].filter(Boolean).join('\n\n')
+                  : content,
+            };
+          })
           .filter((msg) => msg.content),
         instructions: systemInstruction,
         stream: isStreamingEnabled,
@@ -520,6 +559,13 @@ const useChatbotMessages = ({
           model_source_type: selectedModel.model_source_type,
         }),
         ...(subscription && { subscription }),
+        ...(documentAttachments.length > 0 && {
+          attachments: documentAttachments.map(({ file_id, filename, text }) => ({
+            file_id,
+            filename,
+            text,
+          })),
+        }),
       };
 
       const hasImage = !!fileId;
@@ -864,6 +910,19 @@ const useChatbotMessages = ({
               retriable: false,
             },
           };
+
+      if (documentAttachments.length > 0 && isDocumentContextWindowExceeded(apiError)) {
+        setMessages((previous) =>
+          previous
+            .filter((entry) => entry.id !== botMessageId)
+            .map((entry) =>
+              entry.id === userMessage.id
+                ? { ...entry, attachmentWarning: 'context-exceeded' }
+                : entry,
+            ),
+        );
+        return;
+      }
 
       // Check if this is an abort error (from user stopping or clearing)
       const isAbortError =

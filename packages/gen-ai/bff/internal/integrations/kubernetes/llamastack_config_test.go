@@ -1197,8 +1197,8 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	assert.Equal(t, expectedAPIs, config.APIs)
 
 	require.Len(t, config.Providers.FileProcessors, 1)
-	assert.Equal(t, "pypdf", config.Providers.FileProcessors[0].ProviderID)
-	assert.Equal(t, "inline::pypdf", config.Providers.FileProcessors[0].ProviderType)
+	assert.Equal(t, "auto", config.Providers.FileProcessors[0].ProviderID)
+	assert.Equal(t, "inline::auto", config.Providers.FileProcessors[0].ProviderType)
 
 	require.Len(t, config.Providers.Responses, 1)
 	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
@@ -1264,7 +1264,7 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, yamlStr, "inline::builtin")
 		assert.Contains(t, yamlStr, "inline::file-search")
 		assert.NotContains(t, yamlStr, "inline::milvus")
-		assert.Contains(t, yamlStr, "inline::pypdf")
+		assert.Contains(t, yamlStr, "inline::auto")
 		assert.Contains(t, yamlStr, "default_provider_id: pgvector")
 	})
 
@@ -1276,7 +1276,7 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, jsonStr, "inline::builtin")
 		assert.Contains(t, jsonStr, "inline::file-search")
 		assert.NotContains(t, jsonStr, "inline::milvus")
-		assert.Contains(t, jsonStr, "inline::pypdf")
+		assert.Contains(t, jsonStr, "inline::auto")
 		assert.Contains(t, jsonStr, "\"default_provider_id\":\"pgvector\"")
 	})
 }

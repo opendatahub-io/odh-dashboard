@@ -4,8 +4,9 @@ import "time"
 
 const (
 	// DefaultMaxBodySize is the global safety-net body limit applied via middleware
-	// to all API routes. Individual handlers set tighter limits as needed.
-	DefaultMaxBodySize = 50 << 20 // 50MB
+	// to all API routes. It includes 1MB of multipart framing overhead so a direct
+	// document attachment may use its full 50MB file-size allowance.
+	DefaultMaxBodySize = 51 << 20 // 51MB
 
 	// ResponsesMaxBodySize caps the request body for POST /lsd/responses.
 	// With the file_id architecture, payloads contain JSON with small file_id
@@ -15,6 +16,14 @@ const (
 	// FileUploadMaxBodySize caps multipart uploads for vector store documents.
 	// Matches frontend FILE_UPLOAD_CONFIG.MAX_FILE_SIZE.
 	FileUploadMaxBodySize = 10 << 20 // 10MB
+
+	// DocumentAttachmentMaxBodySize caps direct Playground document attachments.
+	// Files larger than 50MB are rejected before document text extraction.
+	DocumentAttachmentMaxBodySize = 50 << 20 // 50MB
+
+	// DocumentExtractionTimeout bounds the OGX file-processors call after a
+	// document is uploaded. The user can retry after a timeout.
+	DocumentExtractionTimeout = 30 * time.Second
 
 	// VisionUploadMaxBodySize caps multipart uploads for vision image files.
 	// Matches frontend VISION_UPLOAD_CONFIG.MAX_FILE_SIZE.

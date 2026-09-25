@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { MCPServerFromAPI, TokenInfo } from '~/app/types';
+import { DocumentAttachment, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
@@ -50,6 +50,8 @@ interface ChatbotConfigInstanceProps {
   hasAudioInCurrentMessage?: boolean;
   hasAudioInConversation?: boolean;
   onViewTrace?: (traceId: string) => void;
+  onViewDocument?: (attachment: DocumentAttachment) => void;
+  documentAttachments?: DocumentAttachment[];
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -72,6 +74,8 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   hasAudioInCurrentMessage,
   hasAudioInConversation,
   onViewTrace,
+  onViewDocument,
+  documentAttachments,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
@@ -163,6 +167,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     hasImageInConversation: hasImagesInConversation,
     hasAudioInConversation,
     isProfileDirty,
+    documentAttachments,
   });
 
   const embeddedMessagesHook = useEmbeddedChatbotMessages({
@@ -233,6 +238,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         placeholderContent={placeholderBotContentProp ?? PLACEHOLDER_BOT_CONTENT}
         hasImagesInConversation={hasImagesInConversation}
         onViewTrace={onViewTrace}
+        onViewDocument={onViewDocument}
         compareMode={isCompareMode}
         configID={configIndex === 0 ? 'default' : String(configIndex)}
       />

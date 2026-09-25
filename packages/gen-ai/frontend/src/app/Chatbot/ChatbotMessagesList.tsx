@@ -1,16 +1,20 @@
 import React from 'react';
-import { Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Alert, Button, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
+import type { DocumentAttachment } from '~/app/types';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
 import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
 import ChatbotFileSearchResults from '~/app/Chatbot/ChatbotFileSearchResults';
 import ChatbotToolCalls from '~/app/Chatbot/ChatbotToolCalls';
 import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
+import { getDocumentAttachmentTypeLabel } from '~/app/Chatbot/documentAttachmentUtils';
+import RhUiResourceIcon from '~/app/bgimages/rh-ui-resource-icon.svg';
 import './ChatbotMessagesList.scss';
+import * as styles from './components/ChatbotMessageInput.module.scss';
 
 type ChatbotMessagesListProps = {
   messageList: ChatbotMessageProps[];
@@ -24,6 +28,8 @@ type ChatbotMessagesListProps = {
   hasImagesInConversation?: boolean;
   /** Called when the user clicks "View trace" on a bot message with a traceId */
   onViewTrace?: (traceId: string) => void;
+  /** Called when the user opens a sent document attachment */
+  onViewDocument?: (attachment: DocumentAttachment) => void;
   /** Whether compare mode is active */
   compareMode?: boolean;
   /** Config ID string for tracking: 'default', '1', or '2' */
@@ -45,6 +51,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   placeholderContent,
   hasImagesInConversation = false,
   onViewTrace,
+  onViewDocument,
   compareMode = false,
   configID = 'default',
 }) => {
@@ -83,11 +90,55 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           citationMap,
           toolCalls,
           isTextStreaming,
+          attachmentWarning,
+          documentAttachments,
           ...messageProps
         } = message;
 
+        const attachments = messageProps.attachments?.filter(
+          (attachment) =>
+            !documentAttachments?.some(({ file_id: fileId }) => fileId === attachment.id),
+        );
+
         // Build extraContent with metrics and error alerts
         const extraContent: PFMessageProps['extraContent'] = { ...messageExtraContent };
+
+        if (message.role === 'user' && (documentAttachments?.length || attachmentWarning)) {
+          extraContent.endContent = (
+            <>
+              {documentAttachments && (
+                <Flex flexWrap={{ default: 'wrap' }} gap={{ default: 'gapSm' }}>
+                  {documentAttachments.map((attachment) => (
+                    <Label
+                      key={attachment.file_id}
+                      className={styles.documentAttachment}
+                      icon={
+                        <span className={styles.icon}>
+                          <img src={RhUiResourceIcon} alt="" />
+                        </span>
+                      }
+                      onClick={() => onViewDocument?.(attachment)}
+                      variant="outline"
+                      data-testid={`sent-document-attachment-${attachment.file_id}`}
+                    >
+                      <span className={styles.details}>
+                        <span className={styles.filename}>{attachment.filename}</span>
+                        <span className={styles.type}>
+                          {getDocumentAttachmentTypeLabel(attachment.filename)}
+                        </span>
+                      </span>
+                    </Label>
+                  ))}
+                </Flex>
+              )}
+              {attachmentWarning && (
+                <Alert variant="danger" isInline isPlain title="Model context window exceeded">
+                  Model’s context window exceeded. Instead upload files to Settings → RAG.
+                </Alert>
+              )}
+            </>
+          );
+        }
 
         const isGuardrailViolation =
           errorClassification?.details.errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION ||
@@ -327,7 +378,9 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
             <Message
               {...messageProps}
               {...citationProps}
+              attachments={attachments}
               extraContent={Object.keys(extraContent).length > 0 ? extraContent : undefined}
+              isPrimary={message.role === 'user'}
               data-testid={`chatbot-message-${message.role}`}
               {...(hasImagesInConversation && { hasNoImagesInUserMessages: false })}
             />

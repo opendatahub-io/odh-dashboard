@@ -13,6 +13,19 @@ const (
 
 	// LlamaStackConfigYAMLKey is the key for the config.yaml configuration in the ConfigMap (llama-stack v0.4.0+)
 	LlamaStackConfigYAMLKey = "config.yaml"
+
+	// OfficeMIMETypesConfigMapName provides MIME mappings missing from the OGX
+	// runtime's Python image. inline::auto uses Python's mimetypes registry to
+	// dispatch Office documents to MarkItDown.
+	OfficeMIMETypesConfigMapName = "ogx-office-mime-types"
+
+	// OfficeMIMETypesConfigMapKey is imported automatically by Python when the
+	// ConfigMap is mounted on PYTHONPATH.
+	OfficeMIMETypesConfigMapKey = "sitecustomize.py"
+
+	// OfficeMIMETypesMountPath is deliberately separate from the OGX install so
+	// mounting the compatibility module cannot shadow packaged Python modules.
+	OfficeMIMETypesMountPath = "/opt/app-root/odh-office-mime-types"
 )
 
 // Vector Store Providers

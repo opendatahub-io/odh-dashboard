@@ -1452,6 +1452,68 @@ paths:
       summary: Upload File to Vector Store
       description: Uploads a file and adds it to the specified vector store for RAG functionality. Supports custom chunking strategies for optimal document processing.
 
+  /gen-ai/api/v1/lsd/documents:
+    summary: Upload a text-based Playground document
+    description: >-
+      Stores a text-based attachment in OGX and extracts its text through the
+      configured file processor. The returned text is sent as input_text in a
+      Responses request, so the document can be used with any text model.
+      Supported formats are PDF, TXT, Markdown, CSV, DOCX, and PPTX;
+      the maximum upload size is 50MB. Image-only PDFs are rejected.
+    post:
+      tags:
+        - Files
+      operationId: uploadPlaygroundDocument
+      summary: Upload Playground Document
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Text-based document to extract (maximum 50MB)
+      responses:
+        '200':
+          $ref: '#/components/responses/DocumentUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: File size exceeds 50MB limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: OGX file processor did not return a result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: Document text extraction timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: OGX file processing service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /gen-ai/api/v1/lsd/files/media:
     summary: Upload media file (vision images or audio)
     description: >-
@@ -3670,6 +3732,23 @@ components:
           pattern: '^file-[a-f0-9]+$'
           description: OGX file ID reference (required when type is input_image)
 
+    DocumentAttachment:
+      type: object
+      required:
+        - file_id
+        - filename
+        - text
+      properties:
+        file_id:
+          type: string
+          description: Durable OGX file reference retained by the Playground
+        filename:
+          type: string
+          description: Original filename shown to the user
+        text:
+          type: string
+          description: Text extracted from the document by OGX
+
     MCPServerRequestConfig:
       type: object
       required:
@@ -3740,6 +3819,13 @@ components:
             type: string
           example: ['vs_abc123', 'vs_def456']
           description: Vector store IDs for file search (RAG functionality)
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentAttachment'
+          description: >-
+            Playground documents retained by the client for this turn. The BFF
+            appends each attachment's extracted text as an input_text part.
         chat_context:
           type: array
           items:
@@ -5861,6 +5947,34 @@ components:
                   id: 'vsf-def789ghi012'
                   vector_store_id: 'vs_abc123'
                   status: 'completed'
+
+    DocumentUploadResponse:
+      description: Text-based Playground document uploaded and extracted successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - id
+                  - filename
+                  - content_type
+                  - text
+                properties:
+                  id:
+                    type: string
+                    description: Durable OGX file ID
+                  filename:
+                    type: string
+                  content_type:
+                    type: string
+                  text:
+                    type: string
+                    description: Extracted document text, ready to include in a Responses request
 
     FilesResponse:
       description: List of files with pagination support
