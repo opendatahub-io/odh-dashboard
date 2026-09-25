@@ -2,8 +2,8 @@ import { commonFetch, k8sListResource } from '@openshift/dynamic-plugin-sdk-util
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
 import { getPodContainerLogText, getPodsForKserve, getPodsForNotebook } from '#~/api/k8s/pods';
-import { PodModel } from '#~/api/models';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

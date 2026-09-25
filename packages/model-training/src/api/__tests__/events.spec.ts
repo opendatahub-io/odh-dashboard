@@ -1,11 +1,11 @@
 import { renderHook } from '@testing-library/react';
 import { EventKind } from '@odh-dashboard/k8s-core';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { EventModel } from '@odh-dashboard/internal/api/models/k8s';
 import { useWatchTrainJobEvents } from '../events';
 import { mockEventK8sResource } from '../../__mocks__/mockEventK8sResource';
 
-jest.mock('@odh-dashboard/internal/utilities/useK8sWatchResourceList');
+jest.mock('@odh-dashboard/ui-core/hooks/useK8sWatchResourceList');
 
 const mockUseK8sWatchResourceList = jest.mocked(useK8sWatchResourceList);
 

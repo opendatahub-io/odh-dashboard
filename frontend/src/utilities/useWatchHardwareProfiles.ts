@@ -1,7 +1,8 @@
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '#~/types';
-import { groupVersionKind, HardwareProfileModel } from '#~/api';
-import useK8sWatchResourceList from './useK8sWatchResourceList';
+import { HardwareProfileModel } from '#~/api';
 
 /**
  * Hook to watch hardware profiles in a specific namespace.

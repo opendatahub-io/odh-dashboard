@@ -24,7 +24,7 @@ jest.mock('@odh-dashboard/k8s-core', () => ({
   })),
 }));
 
-jest.mock('@odh-dashboard/internal/api/k8sUtils', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/k8sUtils', () => ({
   createPatchesFromDiff: jest.fn((a, b) => {
     if (JSON.stringify(a) === JSON.stringify(b)) {
       return [];

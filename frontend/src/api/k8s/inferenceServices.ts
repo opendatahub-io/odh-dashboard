@@ -11,7 +11,8 @@ import {
 import { KnownLabels, type PodKind } from '@odh-dashboard/k8s-core';
 import { InferenceServiceKind, DeploymentMode } from '@odh-dashboard/model-serving/shared';
 import { applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
-import { InferenceServiceModel, PodModel } from '#~/api/models';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
+import { InferenceServiceModel } from '#~/api/models';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import { parseCommandLine } from '#~/api/k8s/utils';

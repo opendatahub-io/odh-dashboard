@@ -19,9 +19,11 @@ import {
   ClusterQueueModel,
   LocalQueueModel,
   WorkloadModel,
+  PodModel,
 } from '@odh-dashboard/k8s-core/api/models';
 import { RayClusterModel, RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models';
-import { ProjectModel, PodModel } from '../../../utils/models';
+
+import { ProjectModel } from '../../../utils/models';
 
 export const projectName = 'test-rayjobs-project';
 export const projectDisplayName = 'Test RayJobs Project';

@@ -5,9 +5,10 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
 import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
-import { LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { LocalQueueModel, WorkloadModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts, type InitInterceptsOptions } from './infrastructureMocks';
-import { PodModel, ProjectModel } from '../../../utils/models';
+
+import { ProjectModel } from '../../../utils/models';
 import { getK8sAPIResourceURL } from '../../../utils/k8s';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';

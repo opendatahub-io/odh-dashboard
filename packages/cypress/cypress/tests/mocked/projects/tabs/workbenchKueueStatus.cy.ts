@@ -14,14 +14,11 @@ import {
   ClusterQueueModel,
   LocalQueueModel,
   WorkloadModel,
+  PodModel,
 } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts } from './workbenchTestUtils';
-import {
-  EventModel,
-  PodModel,
-  ProjectModel,
-  SelfSubjectAccessReviewModel,
-} from '../../../../utils/models';
+
+import { EventModel, ProjectModel, SelfSubjectAccessReviewModel } from '../../../../utils/models';
 import { workbenchPage, workbenchStatusModal } from '../../../../pages/workbench';
 
 const mockCanViewClusterQueue = (allowed = true) =>

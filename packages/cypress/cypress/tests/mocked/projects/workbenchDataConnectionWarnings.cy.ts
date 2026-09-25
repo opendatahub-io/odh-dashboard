@@ -12,11 +12,11 @@ import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8s
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { ConfigMapModel, SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
+
 import {
   ImageStreamModel,
   NotebookModel,
-  PodModel,
   ProjectModel,
   RouteModel,
   StorageClassModel,
