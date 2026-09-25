@@ -14,6 +14,7 @@ import {
   deleteModelRegistryDatabase,
   deletePostgresDatabase,
   ensureOperatorMemoryLimit,
+  forceDeleteModelRegistry,
   waitForDefaultDatabase,
 } from '../../../utils/oc_commands/modelRegistry';
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
@@ -54,6 +55,13 @@ describe('Verify a model registry can be created and deleted', () => {
   retryableBeforeEach(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+
+    // Force-cleanup: strip finalizers and remove leftover CRs that may be stuck
+    // in Terminating state from a previous failed run, so the validating webhook
+    // doesn't reject the create with "Duplicate value".
+    forceDeleteModelRegistry(registryName);
+    forceDeleteModelRegistry(postgresRegistryName);
+    forceDeleteModelRegistry(defaultDbName);
   });
 
   it(
@@ -94,7 +102,11 @@ describe('Verify a model registry can be created and deleted', () => {
       checkModelRegistry(registryName).should('be.true');
 
       cy.step('Delete the model registry');
-      modelRegistrySettings.findModelRegistryRow(registryName).findKebab().click();
+      modelRegistrySettings
+        .findModelRegistryRow(registryName)
+        .findKebab()
+        .should('be.visible')
+        .click();
       modelRegistrySettings.findDeleteRegistryAction().click();
       modelRegistrySettings.findConfirmDeleteNameInput().type(registryName);
       modelRegistrySettings.findSubmitButton().click();
@@ -153,7 +165,11 @@ describe('Verify a model registry can be created and deleted', () => {
       checkModelRegistry(postgresRegistryName).should('be.true');
 
       cy.step('Delete the model registry');
-      modelRegistrySettings.findModelRegistryRow(postgresRegistryName).findKebab().click();
+      modelRegistrySettings
+        .findModelRegistryRow(postgresRegistryName)
+        .findKebab()
+        .should('be.visible')
+        .click();
       modelRegistrySettings.findDeleteRegistryAction().click();
       modelRegistrySettings.findConfirmDeleteNameInput().type(postgresRegistryName);
       modelRegistrySettings.findSubmitButton().click();
@@ -200,7 +216,11 @@ describe('Verify a model registry can be created and deleted', () => {
       checkDefaultDatabaseExists(defaultDbName).should('be.true');
 
       cy.step('Delete the model registry with default database');
-      modelRegistrySettings.findModelRegistryRow(defaultDbName).findKebab().click();
+      modelRegistrySettings
+        .findModelRegistryRow(defaultDbName)
+        .findKebab()
+        .should('be.visible')
+        .click();
       modelRegistrySettings.findDeleteRegistryAction().click();
       modelRegistrySettings.findConfirmDeleteNameInput().type(defaultDbName);
       modelRegistrySettings.findSubmitButton().click();
@@ -237,5 +257,11 @@ describe('Verify a model registry can be created and deleted', () => {
 
     cy.step('Delete the PostgreSQL database');
     deletePostgresDatabase(postgresDbName).should('be.true');
+
+    cy.step('Delete the model registry (default db)');
+    deleteModelRegistry(defaultDbName);
+
+    cy.step('Verify model registry (default db) is removed from the backend');
+    checkModelRegistry(defaultDbName).should('be.false');
   });
 });
