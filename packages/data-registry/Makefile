@@ -44,7 +44,7 @@ dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme pnpm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-start
 dev-start: ## Start in mock mode - recommended for local development

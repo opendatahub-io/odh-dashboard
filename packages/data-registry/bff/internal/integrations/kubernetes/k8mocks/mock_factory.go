@@ -10,6 +10,7 @@ import (
 	"github.com/opendatahub-io/data-registry/bff/internal/config"
 	"github.com/opendatahub-io/data-registry/bff/internal/constants"
 	k8s "github.com/opendatahub-io/data-registry/bff/internal/integrations/kubernetes"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -112,7 +113,12 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return nil, fmt.Errorf("failed to create test user client: %w", err)
 	}
 
-	client := newMockedTokenKubernetesClientFromClientset(clientset, f.logger)
+	dynamicClient, err := dynamic.NewForConfig(authenticatedUser.Config())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create test user dynamic client: %w", err)
+	}
+
+	client := newMockedTokenKubernetesClientFromClientset(clientset, dynamicClient, f.logger)
 	f.clients[identity.Token] = client
 	return client, nil
 }
