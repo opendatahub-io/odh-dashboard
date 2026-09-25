@@ -329,8 +329,8 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
       {shouldShowImagePreservedMessage && (
         <HelperText>
           <HelperTextItem variant="error">
-            NVIDIA NIM account information could not be loaded. The deployed image is preserved but
-            cannot be changed.
+            Unable to retrieve NVIDIA NIM account information. The deployed image is preserved but
+            cannot be edited.
           </HelperTextItem>
         </HelperText>
       )}
@@ -344,7 +344,8 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
       {existingOptionNotFound && canConfirmImageIsMissing && !externalData.loadError && (
         <HelperText>
           <HelperTextItem variant="warning" data-testid="nim-image-not-found-warning">
-            The existing NIM image was not found. The deployment may not work as expected.
+            The selected NIM image could not be found, which might result in a failed deployment.
+            Try a different image or contact your administrator.
           </HelperTextItem>
         </HelperText>
       )}

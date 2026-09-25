@@ -11,6 +11,7 @@ import {
   InputGroup,
   InputGroupItem,
   ValidatedOptions,
+  Form,
 } from '@patternfly/react-core';
 import {
   EyeIcon,
@@ -141,7 +142,8 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
 
   return (
     <ContentModal
-      title="Enter NVIDIA personal API key"
+      title="Add NVIDIA personal API key"
+      description="Your personal API key will be saved to this project and used for all future NIM deployments within it."
       onClose={handleClose}
       variant="medium"
       dataTestId="nim-api-key-modal"
@@ -165,42 +167,44 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
         },
       ]}
       contents={
-        <FormGroup label="NVIDIA personal API key" fieldId="nim-api-key">
-          <InputGroup>
-            <InputGroupItem isFill>
-              <TextInput
-                id="nim-api-key"
-                type={showKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(_e, value) => setApiKey(value)}
-                isDisabled={isInputDisabled}
-                validated={hasValidationError ? ValidatedOptions.error : ValidatedOptions.default}
-                data-testid="nim-api-key-input"
-              />
-            </InputGroupItem>
-            <InputGroupItem>
-              <Button
-                variant="control"
-                onClick={() => setShowKey((prev) => !prev)}
-                aria-label={showKey ? 'Hide API key' : 'Show API key'}
-                data-testid="nim-api-key-toggle"
-              >
-                {showKey ? <EyeSlashIcon /> : <EyeIcon />}
-              </Button>
-            </InputGroupItem>
-          </InputGroup>
-          <FormHelperText>
-            <HelperText>
-              {hasValidationError ? (
-                <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                  Invalid API key. Verify your key and try again.
-                </HelperTextItem>
-              ) : (
-                <HelperTextItem>This key is given to you by NVIDIA</HelperTextItem>
-              )}
-            </HelperText>
-          </FormHelperText>
-        </FormGroup>
+        <Form>
+          <FormGroup label="NVIDIA personal API key" fieldId="nim-api-key">
+            <InputGroup>
+              <InputGroupItem isFill>
+                <TextInput
+                  id="nim-api-key"
+                  type={showKey ? 'text' : 'password'}
+                  value={apiKey}
+                  onChange={(_e, value) => setApiKey(value)}
+                  isDisabled={isInputDisabled}
+                  validated={hasValidationError ? ValidatedOptions.error : ValidatedOptions.default}
+                  data-testid="nim-api-key-input"
+                />
+              </InputGroupItem>
+              <InputGroupItem>
+                <Button
+                  variant="control"
+                  onClick={() => setShowKey((prev) => !prev)}
+                  aria-label={showKey ? 'Hide API key' : 'Show API key'}
+                  data-testid="nim-api-key-toggle"
+                >
+                  {showKey ? <EyeSlashIcon /> : <EyeIcon />}
+                </Button>
+              </InputGroupItem>
+            </InputGroup>
+            <FormHelperText>
+              <HelperText>
+                {hasValidationError ? (
+                  <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                    Invalid API key. Ensure it is accurate, then try again.
+                  </HelperTextItem>
+                ) : (
+                  <HelperTextItem>Get your API key from the NVIDIA NGC portal.</HelperTextItem>
+                )}
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+        </Form>
       }
     />
   );
