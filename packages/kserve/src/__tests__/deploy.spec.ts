@@ -19,6 +19,7 @@ jest.mock('../deployModel', () => ({
 jest.mock('../hfTokenSecret', () => ({
   ...jest.requireActual('../hfTokenSecret'),
   resolveHfTokenSecretName: jest.fn().mockResolvedValue(undefined),
+  resolveHfTokenServiceAccountName: jest.fn().mockResolvedValue(undefined),
 }));
 
 const mockCreateServingRuntime = jest.mocked(createServingRuntime);

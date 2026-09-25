@@ -1,6 +1,7 @@
 import React from 'react';
 import { setupDefaults } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
+import useFetch, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getExternalRouteFromDeployment, getTokenAuthenticationFromDeployment } from './utils';
 import { useWizardFieldExtractors } from './useWizardFieldExtractors';
 import { type InitialWizardFormData } from '../../shared/types/form-data';
@@ -9,6 +10,7 @@ import { isModelServingDeploymentFormDataExtension } from '../../../extension-po
 import { isModelServingAuthExtension } from '../../../extension-points';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 import { useDeploymentAuthTokens } from '../../concepts/auth';
+import type { HuggingFaceApiKeyFieldData } from '../../shared/wizard-fields';
 
 const collectExtractionErrors = (
   ...results: (ExtractionResult<unknown> | undefined | null)[]
@@ -83,9 +85,35 @@ export const useExtractFormDataFromDeployment = (
   const { extractedFieldData, extractorsLoaded, extractorErrors } =
     useWizardFieldExtractors(deployment);
 
+  const extractHuggingFaceApiKeyFn = formDataExtension?.properties.extractHuggingFaceApiKey;
+  const extractHuggingFaceApiKeyCallback = React.useCallback(async () => {
+    if (!deployment) {
+      throw new NotReadyError('No deployment');
+    }
+    if (!formDataExtensionLoaded) {
+      throw new NotReadyError('Form data extension not resolved');
+    }
+    if (typeof extractHuggingFaceApiKeyFn !== 'function') {
+      return null;
+    }
+    return Promise.resolve(extractHuggingFaceApiKeyFn(deployment));
+  }, [deployment, formDataExtensionLoaded, extractHuggingFaceApiKeyFn]);
+
+  const {
+    data: huggingFaceApiKey,
+    loaded: huggingFaceApiKeyLoaded,
+    error: huggingFaceApiKeyError,
+  } = useFetch<HuggingFaceApiKeyFieldData | null>(extractHuggingFaceApiKeyCallback, null, {
+    initialPromisePurity: true,
+  });
+
   const loaded =
     !deployment ||
-    (formDataExtensionLoaded && deploymentSecretsLoaded && extractorsLoaded && authExtensionLoaded);
+    (formDataExtensionLoaded &&
+      deploymentSecretsLoaded &&
+      extractorsLoaded &&
+      authExtensionLoaded &&
+      huggingFaceApiKeyLoaded);
 
   // Memoize error computation to prevent unnecessary recalculations
   const loadingError = React.useMemo((): Error | undefined => {
@@ -98,6 +126,11 @@ export const useExtractFormDataFromDeployment = (
     if (deploymentSecretsError) {
       return new Error(deploymentSecretsError.message || 'Failed to load deployment secrets');
     }
+    if (huggingFaceApiKeyError) {
+      return new Error(
+        huggingFaceApiKeyError.message || 'Failed to load Hugging Face API key configuration',
+      );
+    }
     if (extractorErrors.length > 0) {
       const firstError = extractorErrors[0];
       const errorMessage =
@@ -105,7 +138,13 @@ export const useExtractFormDataFromDeployment = (
       return new Error(errorMessage);
     }
     return undefined;
-  }, [deployment, formDataExtensionErrors, deploymentSecretsError, extractorErrors]);
+  }, [
+    deployment,
+    formDataExtensionErrors,
+    deploymentSecretsError,
+    huggingFaceApiKeyError,
+    extractorErrors,
+  ]);
 
   const hardwareProfileResult = React.useMemo(
     () =>
@@ -179,16 +218,8 @@ export const useExtractFormDataFromDeployment = (
       environmentVariables:
         formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
 
-      ...(() => {
-        const huggingFaceApiKey =
-          typeof formDataExtension?.properties.extractHuggingFaceApiKey === 'function'
-            ? formDataExtension.properties.extractHuggingFaceApiKey(deployment) ?? undefined
-            : undefined;
-        return {
-          huggingFaceApiKey,
-          requiresHuggingFaceApiKey: Boolean(huggingFaceApiKey),
-        };
-      })(),
+      huggingFaceApiKey: huggingFaceApiKey ?? undefined,
+      requiresHuggingFaceApiKey: Boolean(huggingFaceApiKey),
 
       // Extract model availability data
       modelAvailability:
@@ -214,6 +245,7 @@ export const useExtractFormDataFromDeployment = (
     loadingError,
     extractedFieldData,
     platformAuthCheck,
+    huggingFaceApiKey,
   ]);
 
   // Collect errors from platform-specific extract functions and validation
