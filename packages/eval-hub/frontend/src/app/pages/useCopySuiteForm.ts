@@ -1,8 +1,8 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
@@ -11,6 +11,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { cloneCollection, createCollection } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
 import {
   copySuiteDefaultValues,
@@ -755,12 +756,19 @@ export function useCopySuiteForm({
 
         refreshCollections();
 
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-          runType: 'collection',
-          collectionName: clonedCollection.name,
-          benchmarkTypes: JSON.stringify((clonedCollection.benchmarks ?? []).map((b) => b.id)),
-          countOfBenchmarks: clonedCollection.benchmarks?.length ?? 0,
-        });
+        trackEvalHubEvent(
+          EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+          {
+            runType: 'collection',
+            collectionName: clonedCollection.name,
+            benchmarkTypes: JSON.stringify((clonedCollection.benchmarks ?? []).map((b) => b.id)),
+            countOfBenchmarks: clonedCollection.benchmarks?.length ?? 0,
+          },
+          {
+            collectionType: clonedCollection.resource.read_only ? 'system' : 'custom',
+            providerType: clonedCollection.benchmarks?.[0]?.provider_id,
+          },
+        );
 
         return clonedCollection;
       } catch (e) {
@@ -811,12 +819,19 @@ export function useCopySuiteForm({
 
         refreshCollections();
 
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-          runType: 'collection',
-          collectionName: createdCollection.name,
-          benchmarkTypes: JSON.stringify((createdCollection.benchmarks ?? []).map((b) => b.id)),
-          countOfBenchmarks: createdCollection.benchmarks?.length ?? 0,
-        });
+        trackEvalHubEvent(
+          EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+          {
+            runType: 'collection',
+            collectionName: createdCollection.name,
+            benchmarkTypes: JSON.stringify((createdCollection.benchmarks ?? []).map((b) => b.id)),
+            countOfBenchmarks: createdCollection.benchmarks?.length ?? 0,
+          },
+          {
+            collectionType: createdCollection.resource.read_only ? 'system' : 'custom',
+            providerType: createdCollection.benchmarks?.[0]?.provider_id,
+          },
+        );
 
         return createdCollection;
       } catch (e) {
@@ -867,6 +882,15 @@ export function useCopySuiteForm({
             buildCloneRequest(),
           )({ signal: controller.signal });
 
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_SAVED,
+        {
+          outcome: 'success',
+          collectionName: savedCollection.name,
+        },
+        { collectionType: 'custom' },
+      );
+
       notification.success(
         isCreateMode ? 'Suite created' : 'Suite saved',
         `"${savedCollection.name}" has been added to your benchmark suites.`,
@@ -876,6 +900,15 @@ export function useCopySuiteForm({
     } catch (e) {
       if (controller && !controller.signal.aborted) {
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';
+        trackEvalHubEvent(
+          EVAL_HUB_EVENTS.COLLECTION_SAVED,
+          {
+            outcome: 'error',
+            // eslint-disable-next-line camelcase
+            error_category: e instanceof Error ? e.name : 'unknown_error',
+          },
+          { collectionType: 'custom' },
+        );
         notification.error(
           isCreateMode ? 'Failed to create suite' : 'Failed to copy suite',
           message,

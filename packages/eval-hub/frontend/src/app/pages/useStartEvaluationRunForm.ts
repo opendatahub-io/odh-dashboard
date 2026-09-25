@@ -1,11 +1,8 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
 import { createEvaluationJob } from '~/app/api/k8s';
@@ -17,6 +14,7 @@ import {
   type RunMetricSelectedProperties,
   type RunParameterChangedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
@@ -143,6 +141,18 @@ export function useStartEvaluationRunForm({
   const availableMetrics = React.useMemo(() => benchmark?.metrics ?? [], [benchmark]);
   const defaultPrimaryMetric = benchmark?.primary_score?.metric ?? availableMetrics[0];
 
+  const trackingContext = React.useMemo(
+    () => ({
+      collectionType: collection
+        ? collection.resource.read_only
+          ? ('system' as const)
+          : ('custom' as const)
+        : ('unknown' as const),
+      providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+    }),
+    [benchmark, collection],
+  );
+
   const benchmarkDisplayNameRef = React.useRef('');
   const defaultPrimaryMetricRef = React.useRef(defaultPrimaryMetric);
   React.useEffect(() => {
@@ -227,9 +237,9 @@ export function useStartEvaluationRunForm({
         thresholdValue: value,
         benchmarkName: benchmarkDisplayNameRef.current,
       };
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props);
+      trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props, trackingContext);
     },
-    [form],
+    [form, trackingContext],
   );
 
   const handlePrimaryMetricChange = React.useCallback(
@@ -241,9 +251,9 @@ export function useStartEvaluationRunForm({
         isDefault: metric === defaultPrimaryMetricRef.current,
         benchmarkName: benchmarkDisplayNameRef.current,
       };
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
+      trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props, trackingContext);
     },
-    [form],
+    [form, trackingContext],
   );
 
   const setEvaluationName = React.useCallback(
@@ -288,10 +298,10 @@ export function useStartEvaluationRunForm({
           selectedModel: isExternal ? 'Other (External endpoint)' : value,
           isExternal,
         };
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, props);
+        trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, props, trackingContext);
       }
     },
-    [form, setConnectionValidation],
+    [form, setConnectionValidation, trackingContext],
   );
 
   const handleSourceModeChange = React.useCallback(
@@ -300,9 +310,9 @@ export function useStartEvaluationRunForm({
       setConnectionValidation({ status: 'idle' });
 
       const props: RunSourceSelectedProperties = { sourceType: mode };
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, props);
+      trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, props, trackingContext);
     },
-    [form, setConnectionValidation],
+    [form, setConnectionValidation, trackingContext],
   );
 
   const selectedExperiment = React.useMemo(
@@ -560,15 +570,19 @@ export function useStartEvaluationRunForm({
           ? ('agent' as const)
           : ('pre_recorded_responses' as const);
 
-    fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
-      source: trackingSource,
-      evaluationName: evaluationName.trim(),
-      sourceType: sourceTypeLabel,
-      hasAPIKey:
-        sourceMode === 'model' || sourceMode === 'agent' ? apiKeySecretRef.trim() !== '' : false,
-      hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
-      outcome: TrackingOutcome.cancel,
-    });
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
+      {
+        source: trackingSource,
+        evaluationName: evaluationName.trim(),
+        sourceType: sourceTypeLabel,
+        hasAPIKey:
+          sourceMode === 'model' || sourceMode === 'agent' ? apiKeySecretRef.trim() !== '' : false,
+        hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
+        outcome: TrackingOutcome.cancel,
+      },
+      trackingContext,
+    );
     if (onCancel) {
       onCancel();
       return;
@@ -583,11 +597,20 @@ export function useStartEvaluationRunForm({
     onCancel,
     showAdditionalArgs,
     sourceMode,
+    trackingContext,
     trackingSource,
   ]);
 
   const handleSubmit = async (submitOverrides?: { collection?: Collection }) => {
-    if (!isValid || isSubmitting) {
+    if (!isValid) {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
+        { validation_error_category: 'form_invalid' },
+        trackingContext,
+      );
+      return;
+    }
+    if (isSubmitting) {
       return;
     }
 
@@ -605,6 +628,11 @@ export function useStartEvaluationRunForm({
             'Invalid benchmark parameters',
             'Benchmark parameters must be a JSON object (e.g. {"key": "value"}).',
           );
+          trackEvalHubEvent(
+            EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
+            { validation_error_category: 'parameters_not_object' },
+            trackingContext,
+          );
           setIsSubmitting(false);
           return;
         }
@@ -618,12 +646,17 @@ export function useStartEvaluationRunForm({
             benchmarkName: benchmarkDisplayName,
             isDefault: false,
           };
-          fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED, paramProps);
+          trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED, paramProps, trackingContext);
         }
       } catch {
         notification.error(
           'Invalid benchmark parameters',
           'Benchmark parameters must be valid JSON.',
+        );
+        trackEvalHubEvent(
+          EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
+          { validation_error_category: 'parameters_invalid_json' },
+          trackingContext,
         );
         setIsSubmitting(false);
         return;
@@ -695,15 +728,19 @@ export function useStartEvaluationRunForm({
       primaryScoreOverride,
     });
 
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED, {
-      experimentSelection: isNewExperiment
-        ? 'new'
-        : !experimentManuallyChangedRef.current &&
-            selectedExperimentName === DEFAULT_EXPERIMENT_NAME
-          ? 'default'
-          : 'existing',
-      experimentName,
-    });
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED,
+      {
+        experimentSelection: isNewExperiment
+          ? 'new'
+          : !experimentManuallyChangedRef.current &&
+              selectedExperimentName === DEFAULT_EXPERIMENT_NAME
+            ? 'default'
+            : 'existing',
+        experimentName,
+      },
+      trackingContext,
+    );
 
     const sourceTypeLabel =
       values.sourceMode === 'model'
@@ -747,11 +784,15 @@ export function useStartEvaluationRunForm({
       if (controller.signal.aborted) {
         return;
       }
-      fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
-        ...runTrackingProps,
-        outcome: TrackingOutcome.submit,
-        success: true,
-      });
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
+        {
+          ...runTrackingProps,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+        trackingContext,
+      );
       notification.success(
         'Evaluation started',
         `Evaluation "${values.evaluationName}" has been started.`,
@@ -769,12 +810,16 @@ export function useStartEvaluationRunForm({
         return;
       }
       const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-      fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
-        ...runTrackingProps,
-        outcome: TrackingOutcome.submit,
-        success: false,
-        errorName: e instanceof Error ? e.name : 'UnknownError',
-      });
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
+        {
+          ...runTrackingProps,
+          outcome: TrackingOutcome.submit,
+          success: false,
+          errorName: e instanceof Error ? e.name : 'UnknownError',
+        },
+        trackingContext,
+      );
       notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
     } finally {
       setIsSubmitting(false);

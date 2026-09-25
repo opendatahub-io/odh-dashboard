@@ -15,6 +15,7 @@ import {
   getCollection,
   getCollections,
   getEvalHubCRStatus,
+  getEvalHubServerHealth,
   getEvaluationJob,
   getProviders,
   createEvaluationJob,
@@ -53,6 +54,34 @@ const mockRestDELETE = jest.mocked(restDELETE);
 const mockRestPATCH = jest.mocked(restPATCH);
 const mockIsModArchResponse = jest.mocked(isModArchResponse);
 // handleRestFailures is mocked to pass through the promise — no need to assert on it directly
+
+describe('getEvalHubServerHealth', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should return the top-level server health response', async () => {
+    const health = {
+      status: 'available',
+      system_info: { version: '1.2.3' },
+    };
+    mockRestGET.mockResolvedValue(health);
+
+    const result = await getEvalHubServerHealth('')({});
+
+    expect(result).toEqual(health);
+    expect(mockIsModArchResponse).not.toHaveBeenCalled();
+  });
+
+  it('should throw when the server health response has an invalid shape', async () => {
+    mockRestGET.mockResolvedValue({ data: { status: 'available' } });
+
+    await expect(getEvalHubServerHealth('')({})).rejects.toThrow(
+      'Invalid server health response format',
+    );
+  });
+});
 
 describe('getEvalHubCRStatus', () => {
   beforeEach(() => {

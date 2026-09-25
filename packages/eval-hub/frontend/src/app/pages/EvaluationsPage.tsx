@@ -42,6 +42,8 @@ import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
+import { createEvalHubTrackingScope } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import EvaluateTab from './EvaluateTab';
 
 import './EvaluationsTabs.scss';
@@ -82,6 +84,15 @@ const EvaluationsPage: React.FC = () => {
   const { selectedCollection, benchmarkDetailsMap, selectCollection, closeDrawer } =
     useCollectionDrawer(namespace ?? '');
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
+  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
+
+  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
+
+  React.useEffect(() => {
+    trackingScope.trackEventOnce(EVAL_HUB_EVENTS.PAGE_VIEWED, namespace ?? 'unknown', {
+      surface: 'evaluations_page',
+    });
+  }, [namespace, trackingScope]);
 
   const handleRunCollection = React.useCallback((collection: Collection) => {
     setCollectionToRun(collection);

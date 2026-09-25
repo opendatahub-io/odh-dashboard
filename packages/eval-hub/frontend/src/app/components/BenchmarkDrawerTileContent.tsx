@@ -14,13 +14,13 @@ import {
   ListItem,
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   ProviderAgentMetadata,
   ProviderBenchmarkPassCriteria,
   ProviderBenchmarkScore,
 } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import { formatAsPercentage } from '~/app/utilities/evaluationUtils';
@@ -126,7 +126,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
             iconPosition="end"
             style={compactFontStyle}
             onClick={() =>
-              fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
+              trackEvalHubEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
                 url: resolvedUrl,
                 benchmarkId: id,
                 surface: trackingSurface,

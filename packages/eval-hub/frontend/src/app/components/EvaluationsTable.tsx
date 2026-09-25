@@ -22,9 +22,9 @@ import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import {
   getEvaluationName,
   getBenchmarkName,
@@ -267,7 +267,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
 
         const job = evaluations.find((j) => j.resource.id === jobId);
         if (job) {
-          fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED, {
+          trackEvalHubEvent(EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED, {
             evaluationName: getEvaluationName(job),
             evaluationType: isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Benchmark',
             isSelected: checked,
@@ -291,7 +291,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     const allSuites = selectedJobs.every(isBenchmarkSuiteRun);
     const allBenchmarks = selectedJobs.every((job) => !isBenchmarkSuiteRun(job));
 
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_INITIATED, {
+    trackEvalHubEvent(EVAL_HUB_EVENTS.COMPARE_INITIATED, {
       countOfRuns: selectedJobs.length,
       runTypes: allBenchmarks ? 'all_benchmarks' : allSuites ? 'all_suites' : 'mixed',
       hasCollections: hasSuiteSelections,

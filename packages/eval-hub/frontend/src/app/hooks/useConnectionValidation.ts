@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { verifyConnection } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
   type ExternalConnectionTestedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { getUserFriendlyConnectionError } from '~/app/utils/validationUtils';
 import type { ConnectionValidationState, SourceMode, VerifyConnectionRequest } from '~/app/types';
 
@@ -82,7 +82,7 @@ export const useConnectionValidation = ({
           outcome: 'success',
           endpointType: sourceMode,
         };
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, successProps);
+        trackEvalHubEvent(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, successProps);
       }
     } catch (err: unknown) {
       if (controller.signal.aborted) {
@@ -107,7 +107,7 @@ export const useConnectionValidation = ({
         endpointType: sourceMode,
         error: errorMessage,
       };
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, errorProps);
+      trackEvalHubEvent(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, errorProps);
     }
   }, [namespace, sourceMode, endpointUrl, apiKeySecretRef, modelName, agentName]);
 

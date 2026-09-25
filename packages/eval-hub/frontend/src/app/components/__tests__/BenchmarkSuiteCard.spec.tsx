@@ -2,8 +2,20 @@ import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { mockCollection } from '~/__mocks__/mockCollection';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 describe('BenchmarkSuiteCard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render collection metadata and metrics', () => {
     const collection = mockCollection({
       id: 'model-suite',
@@ -85,6 +97,49 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-card-name-model-suite'));
 
     expect(onSelect).toHaveBeenCalledWith(collection);
+  });
+
+  it('should track detail views only when selection opens the drawer', () => {
+    const collection = mockCollection({ id: 'model-suite' });
+    const onSelect = jest.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        onSelect={onSelect}
+      />,
+    );
+
+    const nameButton = screen.getByTestId('benchmark-suite-card-name-model-suite');
+    fireEvent.click(nameButton);
+    fireEvent.click(nameButton);
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(3);
+    expect(mockTrackEvalHubEvent).toHaveBeenNthCalledWith(
+      2,
+      EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+      {
+        collectionName: collection.name,
+        surface: 'collection_gallery',
+      },
+      {
+        collectionType: 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenNthCalledWith(
+      3,
+      EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED,
+      {
+        collectionName: collection.name,
+        surface: 'collection_gallery',
+      },
+      {
+        collectionType: 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
   });
 
   it('should prefer category over domains for classification labels', () => {
