@@ -107,6 +107,34 @@ paths:
       operationId: getConnectionTypes
       summary: Get connection types
       description: Returns the connection types available to the selected project.
+  /api/v1/connection-types/{id}:
+    summary: Path used to retrieve a connection type for a project.
+    get:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionTypeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: getConnectionType
+      summary: Get a connection type
+      description: Returns a connection type available to the selected project.
   /api/v1/connections/{id}/readiness:
     summary: Path used to verify a data connection.
     post:
@@ -233,16 +261,25 @@ components:
           type: object
           required:
             - id
+            - created_at
+            - updated_at
           properties:
             id:
               type: string
             tenant_id:
               type: string
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
         resource:
           type: object
           required:
             - name
             - provider
+            - credentials_fields
           properties:
             name:
               type: string
@@ -252,6 +289,43 @@ components:
               example: postgresql
             description:
               type: string
+            credentials_fields:
+              type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - label
+                  - required
+                  - type
+                properties:
+                  name:
+                    type: string
+                  label:
+                    type: string
+                  description:
+                    type: string
+                    nullable: true
+                  required:
+                    type: boolean
+                  type:
+                    type: string
+                  enum_values:
+                    type: array
+                    nullable: true
+                    items:
+                      type: object
+                      required:
+                        - value
+                        - label
+                      properties:
+                        value:
+                          type: string
+                        label:
+                          type: string
+                  default_value:
+                    type: string
+                    nullable: true
         status:
           type: object
           properties:
@@ -314,6 +388,110 @@ components:
             The external id that come from the clients' system. This field is optional.
             If set, it must be unique among all resources within a database instance.
           type: string
+    MetadataValue:
+      oneOf:
+        - $ref: '#/components/schemas/MetadataIntValue'
+        - $ref: '#/components/schemas/MetadataDoubleValue'
+        - $ref: '#/components/schemas/MetadataStringValue'
+        - $ref: '#/components/schemas/MetadataStructValue'
+        - $ref: '#/components/schemas/MetadataProtoValue'
+        - $ref: '#/components/schemas/MetadataBoolValue'
+      discriminator:
+        propertyName: metadataType
+        mapping:
+          MetadataBoolValue: '#/components/schemas/MetadataBoolValue'
+          MetadataDoubleValue: '#/components/schemas/MetadataDoubleValue'
+          MetadataIntValue: '#/components/schemas/MetadataIntValue'
+          MetadataProtoValue: '#/components/schemas/MetadataProtoValue'
+          MetadataStringValue: '#/components/schemas/MetadataStringValue'
+          MetadataStructValue: '#/components/schemas/MetadataStructValue'
+      description: A value in properties.
+    MetadataIntValue:
+      description: An integer (int64) property value.
+      type: object
+      required:
+        - metadataType
+        - int_value
+      properties:
+        int_value:
+          format: int64
+          type: string
+        metadataType:
+          type: string
+          example: MetadataIntValue
+          default: MetadataIntValue
+    MetadataDoubleValue:
+      description: A double property value.
+      type: object
+      required:
+        - metadataType
+        - double_value
+      properties:
+        double_value:
+          format: double
+          type: number
+        metadataType:
+          type: string
+          example: MetadataDoubleValue
+          default: MetadataDoubleValue
+    MetadataStringValue:
+      description: A string property value.
+      type: object
+      required:
+        - metadataType
+        - string_value
+      properties:
+        string_value:
+          type: string
+        metadataType:
+          type: string
+          example: MetadataStringValue
+          default: MetadataStringValue
+    MetadataStructValue:
+      description: A struct property value.
+      type: object
+      required:
+        - metadataType
+        - struct_value
+      properties:
+        struct_value:
+          description: Base64 encoded bytes for struct value
+          type: string
+        metadataType:
+          type: string
+          example: MetadataStructValue
+          default: MetadataStructValue
+    MetadataProtoValue:
+      description: A proto property value.
+      type: object
+      required:
+        - metadataType
+        - type
+        - proto_value
+      properties:
+        type:
+          description: url describing proto value
+          type: string
+        proto_value:
+          description: Base64 encoded bytes for proto value
+          type: string
+        metadataType:
+          type: string
+          example: MetadataProtoValue
+          default: MetadataProtoValue
+    MetadataBoolValue:
+      description: A bool property value.
+      type: object
+      required:
+        - metadataType
+        - bool_value
+      properties:
+        bool_value:
+          type: boolean
+        metadataType:
+          type: string
+          example: MetadataBoolValue
+          default: MetadataBoolValue
 
     Error:
       description: Error code and message.
@@ -468,6 +646,19 @@ components:
                 items:
                   $ref: '#/components/schemas/ConnectionType'
       description: List of connection types for a project.
+    ConnectionTypeResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+              data:
+                $ref: '#/components/schemas/ConnectionType'
+      description: A connection type for a project.
     ConflictResponse:
       content:
         application/json:

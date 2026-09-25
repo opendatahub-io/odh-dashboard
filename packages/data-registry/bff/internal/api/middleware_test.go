@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/data-registry/bff/internal/config"
+	"github.com/opendatahub-io/data-registry/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/data-registry/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,4 +47,30 @@ func TestEnableCORS_PreflightAllowsAuthorizationAndContentType(t *testing.T) {
 	allowedHeaders := strings.ToLower(res.Header.Get("Access-Control-Allow-Headers"))
 	assert.Contains(t, allowedHeaders, "authorization")
 	assert.Contains(t, allowedHeaders, "content-type")
+}
+
+func TestInjectRequestIdentity_EmptyBearerTokenReturnsUnauthorized(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	cfg := config.EnvConfig{
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: config.DefaultAuthTokenHeader,
+		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
+	}
+	app := &App{
+		config:                  cfg,
+		logger:                  logger,
+		kubernetesClientFactory: kubernetes.NewTokenClientFactory(logger, cfg),
+		repositories:            repositories.NewRepositories(),
+	}
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/namespaces", nil)
+	req.Header.Set("Authorization", "Bearer ")
+
+	rr := httptest.NewRecorder()
+	app.InjectRequestIdentity(next).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }

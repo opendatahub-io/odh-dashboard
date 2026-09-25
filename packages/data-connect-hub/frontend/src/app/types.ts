@@ -1,3 +1,19 @@
+export type Identified<I> = {
+  id: I;
+};
+export type Labelled<L> = {
+  label: L;
+};
+export type Described<D> = {
+  description: D;
+};
+export type Valued<V> = {
+  value: V;
+};
+export type Iconed<I> = {
+  icon: I;
+};
+
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
   'openshift.io/display-name': string;
@@ -42,12 +58,32 @@ export type Connection = {
   };
 };
 
+export type ConnectionTypeGroup = 'all' | 'red_hat' | 'partner' | 'other';
+
+type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
+
+type ConnectionTypeCredentialField = {
+  name: string;
+  label: string;
+  description?: string | null;
+  required: boolean;
+  type: string;
+  enum_values?: ConnectionTypeEnumValue[] | null;
+  default_value?: string | null;
+};
+
 export type ConnectionType = {
-  metadata: { id: string; tenant_id?: string };
+  metadata: {
+    id: string;
+    tenant_id?: string;
+    created_at: string;
+    updated_at: string;
+  };
   resource: {
     name: string;
     provider: string;
-    description?: string;
+    description?: string | null;
+    credentials_fields: ConnectionTypeCredentialField[];
   };
   status?: { capabilities: { flight: boolean; rest: boolean } };
 };
