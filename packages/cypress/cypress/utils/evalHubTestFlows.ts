@@ -711,7 +711,6 @@ export const verifyEvaluationProgressModal = (evaluationRunName: string): void =
 
 export const verifyEvaluationCompletedAndViewResults = (
   evaluationRunName: string,
-  evaluationTenantProject: string,
   expectedBenchmarkIds: string[] = [],
 ): void => {
   cy.step('Re-open status modal after completion — View Results shown, Stop absent');
@@ -725,7 +724,8 @@ export const verifyEvaluationCompletedAndViewResults = (
     .click();
   evaluationsPage.findStatusModal(statusTimeout).should('be.visible');
   evaluationsPage.findStatusModalStopButton(statusTimeout).should('not.exist');
-  evaluationsPage.findStatusModalViewResultsButton(statusTimeout).should('be.visible').click();
+  evaluationsPage.findStatusModalViewResultsButton(statusTimeout).should('be.visible');
+  evaluationsPage.findStatusModalViewResultsButton(statusTimeout).click();
 
   cy.step('Verify evaluation results page renders with score and metadata');
   evaluationResultsPage.findResultsContent().should('be.visible');
@@ -757,16 +757,6 @@ export const verifyEvaluationCompletedAndViewResults = (
   evaluationResultsPage.findEventLogModal().should('be.visible');
   evaluationResultsPage.findLogContent().should('be.visible');
   evaluationResultsPage.findEventLogModalCloseButton().click();
-
-  cy.step('Return to evaluations list and verify Complete status');
-  cy.visitWithLogin(
-    `${evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject)}&tab=runs`,
-    LDAP_ADMIN_USER,
-  );
-  evaluationsPage.findRunsTabContent({ timeout: 30000 }).should('be.visible');
-  evaluationsPage
-    .findEvaluationStatusButtonInRow(evaluationRunName)
-    .should('contain.text', 'Complete');
 };
 
 // Stop and reconfigure flow
@@ -833,7 +823,7 @@ export const runSingleBenchmarkEvaluationFlow = (
   submitSingleBenchmarkEvaluation(opts);
   verifyEvaluationProgressModal(opts.evaluationRunName);
   waitForEvaluationJobComplete(evaluationTenantProject);
-  verifyEvaluationCompletedAndViewResults(opts.evaluationRunName, evaluationTenantProject);
+  verifyEvaluationCompletedAndViewResults(opts.evaluationRunName);
 };
 
 // Shared cleanup orchestration

@@ -223,7 +223,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
       verifyEvaluationProgressModal(evaluationRunName);
       cy.step(`Wait for Kueue evaluation ${evaluationRunName} to complete`);
       waitForEvaluationRunComplete(evaluationTenantProject, evaluationRunName);
-      verifyEvaluationCompletedAndViewResults(evaluationRunName, evaluationTenantProject);
+      verifyEvaluationCompletedAndViewResults(evaluationRunName);
     },
   );
 
@@ -259,7 +259,6 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
       waitForEvaluationRunComplete(evaluationTenantProject, evaluationRunName, 1800000);
       verifyEvaluationCompletedAndViewResults(
         evaluationRunName,
-        evaluationTenantProject,
         benchmarks.map(({ id }) => id),
       );
     },
