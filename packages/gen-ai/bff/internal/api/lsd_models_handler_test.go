@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
-	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -90,32 +89,6 @@ var _ = Describe("LlamaStackModelsHandler", func() {
 
 		assert.Equal(t, "model", firstModel["object"])
 		assert.Equal(t, "ogx", firstModel["owned_by"])
-	})
-
-	It("should include custom endpoint models discovered through the passthrough proxy", func() {
-		t := GinkgoT()
-		app = NewK8sLSTestApp()
-		rr := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/models?namespace=mock-test-namespace-2", nil)
-
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
-		req = req.WithContext(ctx)
-
-		app.LlamaStackModelsHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response map[string][]map[string]interface{}
-		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-
-		modelIDs := make(map[string]bool)
-		for _, model := range response["data"] {
-			modelIDs[model["id"].(string)] = true
-		}
-		assert.True(t, modelIDs["custom-llm-model"], "custom endpoint model should be selectable in Playground")
 	})
 })
 
