@@ -141,7 +141,7 @@ describe('Gen AI API Contract Tests', () => {
           headers: result.error.headers,
           data: result.error.data,
         }).toMatchContract(apiSchema, {
-          ref: '#/components/responses/BadRequest/content/application/json/schema',
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
           status: 400,
         });
       }

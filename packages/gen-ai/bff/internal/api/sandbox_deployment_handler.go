@@ -25,6 +25,8 @@ const sandboxRollbackTimeout = 30 * time.Second
 
 const mockSandboxOGXImage = "example.com/ogx:mock"
 
+var errSandboxMCPDashboardConfigRead = errors.New("failed to read dashboard MCP server ConfigMap")
+
 const (
 	sandboxNameSuffixLength    = 5 // hyphen plus four random hexadecimal characters
 	sandboxServiceSuffixLength = len("-ext")
@@ -169,6 +171,10 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	}
 	mcpServers, err := app.resolveSandboxMCPServers(ctx, k8sClient, profile, mcpServerAuth)
 	if err != nil {
+		if errors.Is(err, errSandboxMCPDashboardConfigRead) {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -429,8 +435,8 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 // validateSandboxDeploymentName ensures the user-provided base name remains valid after the
 // generated suffixes needed by the Sandbox, its Service, and OpenShift's default Route host.
 func validateSandboxDeploymentName(name, namespace string) error {
-	if errors := k8svalidation.IsDNS1123Label(name); len(errors) > 0 {
-		return fmt.Errorf("name must be a DNS-1123 label: %s", strings.Join(errors, "; "))
+	if errors := k8svalidation.IsDNS1035Label(name); len(errors) > 0 {
+		return fmt.Errorf("name must be a DNS-1035 label: %s", strings.Join(errors, "; "))
 	}
 
 	// The derived Service is <name>-<4 hex>-ext and must be a DNS label. OpenShift's
@@ -488,7 +494,7 @@ func (app *App) resolveSandboxMCPServers(
 		k8sClient, ctx, app.dashboardNamespace, constants.MCPServerName,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errSandboxMCPDashboardConfigRead, err)
 	}
 	registryByID := make(map[string]models.MCPServerConfig, len(registryServers))
 	for _, server := range registryServers {

@@ -64,6 +64,27 @@ func TestResolveSandboxMCPServersRejectsAuthForUnselectedServer(t *testing.T) {
 	require.ErrorContains(t, err, "AgentProfile has no MCP servers")
 }
 
+func TestResolveSandboxMCPServersClassifiesDashboardConfigReadFailures(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	k8sClient := &kubernetes.TokenKubernetesClient{
+		Client: fake.NewClientBuilder().Build(),
+		Logger: logger,
+	}
+	app := &App{
+		logger:             logger,
+		dashboardNamespace: "redhat-ods-applications",
+		repositories:       repositories.NewRepositoriesWithMCP(nil, logger),
+	}
+	profile := &models.AgentProfile{Spec: models.AgentProfileSpec{MCPServers: []models.MCPServerReference{{
+		ServerRef: models.MCPServerRef{Kind: "ConfigMap", Name: constants.MCPServerName, Key: "GitHub-MCP-Server"},
+	}}}}
+
+	_, err := app.resolveSandboxMCPServers(context.Background(), k8sClient, profile, nil)
+
+	require.Error(t, err)
+	require.ErrorIs(t, err, errSandboxMCPDashboardConfigRead)
+}
+
 func TestNormalizeMCPServerAuthStripsBearerScheme(t *testing.T) {
 	normalized, err := normalizeMCPServerAuth(map[string]string{
 		"GitHub-MCP-Server": "Bearer deployment-token",
