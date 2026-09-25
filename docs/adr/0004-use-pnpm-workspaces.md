@@ -24,14 +24,15 @@ Use **pnpm 11.22.0** for the first-party monorepo workspace.
 - Run local development, tests, builds, CI, release automation, and first-party container builds with pnpm.
 - Keep Turbo as the task orchestrator; pnpm replaces npm as the package manager, not Turbo.
 - Do not depend on Corepack being available. Developer and CI setup must install the repository-pinned pnpm version explicitly before running `pnpm install`.
-- Do not create package-local `package-lock.json` files in first-party workspace packages.
+- Do not create package-local `package-lock.json` files in first-party workspace packages. CI rejects npm lockfiles outside the allowlist below.
 
 ### Upstream subtree exceptions
 
-The following independently maintained upstream frontends are outside the pnpm workspace and intentionally continue to use npm and their checked-in upstream lockfiles:
+These independently maintained upstream subtrees are outside the pnpm workspace and intentionally retain checked-in npm lockfiles. Their lockfiles are allowlisted by the CI policy:
 
-- `packages/model-registry/upstream/frontend`
-- `packages/notebooks/upstream/frontend`
+- `packages/model-registry/upstream/package-lock.json`
+- `packages/model-registry/upstream/frontend/package-lock.json`
+- `packages/notebooks/upstream/workspaces/frontend/package-lock.json`
 
 Commands that execute inside those directories must follow the upstream project. Wrapper scripts and automation owned by this repository use pnpm until they enter an upstream subtree.
 
