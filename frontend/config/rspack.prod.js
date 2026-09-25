@@ -50,7 +50,9 @@ module.exports = merge(
       minimize: true,
       minimizer: [
         new rspack.SwcJsMinimizerRspackPlugin(),
-        new rspack.LightningCssMinimizerRspackPlugin(),
+        // Keep PatternFly Charts CSS numeric tokens such as 0.5 intact.
+        // Its runtime parser uses JSON.parse, which rejects Lightning CSS's
+        // shortened .5 representation.
       ],
     },
     plugins: [
