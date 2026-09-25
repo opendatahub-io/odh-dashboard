@@ -1,5 +1,6 @@
 import { applyOpenShiftYaml, pollUntilSuccess } from './baseCommands';
 import { createEvalHubHardwareProfile } from './evalHubHardwareProfile';
+import type { EvalHubInstance } from './evalHubInstance';
 import { checkInferenceServiceState } from './modelServing';
 import type { CommandLineResult, EvalHubTestData } from '../../types';
 
@@ -15,7 +16,7 @@ type EvalHubDiscoveryConfigMap = {
   data?: Partial<Record<string, string>>;
 };
 
-type EvalHubServiceTarget = {
+export type EvalHubServiceTarget = {
   serviceName: string;
   serviceNamespace: string;
 };
@@ -63,6 +64,20 @@ const assertKubernetesName = (value: string, description: string): string => {
     throw new Error(`${description} must be a DNS-1123 name; received '${value}'.`);
   }
   return value;
+};
+
+export const getEvalHubTenantResourceSelector = ({
+  serviceName,
+  serviceNamespace,
+}: EvalHubServiceTarget): string => {
+  const safeServiceName = assertKubernetesName(serviceName, 'EvalHub service name');
+  assertKubernetesName(serviceNamespace, 'EvalHub service namespace');
+
+  return [
+    'app=eval-hub',
+    `app.kubernetes.io/instance=${safeServiceName}`,
+    'app.kubernetes.io/component=job',
+  ].join(',');
 };
 
 /**
@@ -177,6 +192,37 @@ const getEvalHubServiceIdentity = (
         }),
     );
 
+const waitForExpectedEvalHubDiscovery = (
+  tenantNamespace: string,
+  expectedInstance: EvalHubInstance,
+): Cypress.Chainable<Cypress.Exec> => {
+  const expectedName = assertKubernetesName(expectedInstance.name, 'Expected EvalHub name');
+  const expectedNamespace = assertKubernetesName(
+    expectedInstance.namespace,
+    'Expected EvalHub namespace',
+  );
+  const expectedKey = `${expectedName}.url`;
+  const shortHost = `${expectedName}.${expectedNamespace}.svc`;
+  const fullHost = `${shortHost}.cluster.local`;
+
+  return pollUntilSuccess(
+    `oc -n ${tenantNamespace} get configmap ${EVALHUB_DISCOVERY_CONFIGMAP} -o json | ` +
+      `jq -e --arg key "${expectedKey}" --arg shortHost "${shortHost}" --arg fullHost "${fullHost}" '` +
+      '(.data // {}) as $data | ' +
+      '([$data | to_entries[] | select(.key | endswith(".url")) | select(.value != null and .value != "")] ' +
+      '| sort_by(.key) | .[0] // {key: "service-url", value: ($data["service-url"] // "")}) as $selected | ' +
+      '(($selected.key == $key) or ($selected.key == "service-url")) and ' +
+      '(($selected.value | ' +
+      'if startswith("https://") then ltrimstr("https://") ' +
+      'elif startswith("http://") then ltrimstr("http://") else "" end | ' +
+      'split("/")[0] | split(":")[0]) as $host | ' +
+      '($host == $shortHost or $host == $fullHost))' +
+      "'",
+    `tenant discovery to select EvalHub ${expectedNamespace}/${expectedName}`,
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+};
+
 const renderEvalHubJobRoleBindings = ({
   serviceNamespace,
   serviceAccountName,
@@ -235,45 +281,56 @@ const assertEvalHubJobPermission = (
 
 const waitForEvalHubTenantResources = (
   tenantNamespace: string,
-  { serviceNamespace }: EvalHubServiceIdentity,
+  serviceIdentity: EvalHubServiceIdentity,
 ): Cypress.Chainable<Cypress.Exec> => {
-  const jobServiceAccountName = assertKubernetesName(
-    `evalhub-${serviceNamespace}-job`,
-    'operator-provisioned EvalHub Job ServiceAccount name',
-  );
-  const jobAccessRoleName = assertKubernetesName(
-    `evalhub-${serviceNamespace}-job-access-role`,
-    'operator-provisioned EvalHub Job access Role name',
-  );
+  // The operator shortens long Job ServiceAccount and Role names with a stable hash. Select by
+  // the operator-owned labels instead of duplicating that private naming algorithm in Cypress.
+  const jobResourceSelector = getEvalHubTenantResourceSelector(serviceIdentity);
+  const instanceDescription = `${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceName}`;
 
   return pollUntilSuccess(
-    `oc -n ${tenantNamespace} get sa ${jobServiceAccountName} -o name`,
-    `operator-provisioned ServiceAccount ${jobServiceAccountName}`,
+    `oc -n ${tenantNamespace} get serviceaccounts -l '${jobResourceSelector}' -o json | ` +
+      "jq -e '.items | length > 0'",
+    `operator-provisioned Job ServiceAccount for EvalHub ${instanceDescription}`,
     { maxAttempts: 30, pollIntervalMs: 2000 },
   )
     .then(() =>
       pollUntilSuccess(
-        `oc -n ${tenantNamespace} get configmap evalhub-service-ca -o name`,
-        'operator-provisioned evalhub-service-ca ConfigMap',
+        `oc -n ${tenantNamespace} get configmaps -l '${jobResourceSelector}' -o json | ` +
+          "jq -e '[.items[]? | " +
+          'select(.metadata.annotations["service.beta.openshift.io/inject-cabundle"] == "true")] ' +
+          "| length > 0'",
+        `operator-provisioned service CA ConfigMap for EvalHub ${instanceDescription}`,
         { maxAttempts: 30, pollIntervalMs: 2000 },
       ),
     )
     .then(() =>
       pollUntilSuccess(
-        `oc -n ${tenantNamespace} get role ${jobAccessRoleName} -o name`,
-        `operator-provisioned status-events Role ${jobAccessRoleName}`,
+        `oc -n ${tenantNamespace} get roles -l '${jobResourceSelector}' -o json | ` +
+          'jq -e \'[.items[]?.rules[]?.resources[]? | select(. == "status-events")] | length > 0\'',
+        `operator-provisioned status-events Role for EvalHub ${instanceDescription}`,
         { maxAttempts: 30, pollIntervalMs: 2000 },
       ),
     );
 };
 
-const ensureEvalHubTenantJobAccess = (tenantNamespace: string): void => {
-  pollUntilSuccess(
-    `oc -n ${tenantNamespace} get configmap ${EVALHUB_DISCOVERY_CONFIGMAP} -o name`,
-    'operator-provisioned EvalHub discovery ConfigMap',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  ).then(() =>
+const ensureEvalHubTenantJobAccess = (
+  tenantNamespace: string,
+  expectedInstance: EvalHubInstance,
+): void => {
+  waitForExpectedEvalHubDiscovery(tenantNamespace, expectedInstance).then(() =>
     getEvalHubServiceIdentity(tenantNamespace).then((serviceIdentity) => {
+      if (
+        serviceIdentity.serviceName !== expectedInstance.name ||
+        serviceIdentity.serviceNamespace !== expectedInstance.namespace
+      ) {
+        throw new Error(
+          `Tenant ${tenantNamespace} discovered EvalHub ` +
+            `${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceName}, expected ` +
+            `${expectedInstance.namespace}/${expectedInstance.name}.`,
+        );
+      }
+
       return waitForEvalHubTenantResources(tenantNamespace, serviceIdentity).then(() => {
         cy.step(
           `Grant EvalHub ${serviceIdentity.serviceNamespace}/${serviceIdentity.serviceAccountName} job access in tenant`,
@@ -367,6 +424,7 @@ export function setupTenantAndDeployModel(
   ns: string,
   td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
   hwProfileName: string,
+  evalHubInstance: EvalHubInstance,
 ): void {
   cy.step('Label namespace so TrustyAI operator provisions tenant RBAC');
   cy.exec(
@@ -374,7 +432,7 @@ export function setupTenantAndDeployModel(
   );
 
   cy.step('Wait for operator to reconcile tenant resources');
-  ensureEvalHubTenantJobAccess(ns);
+  ensureEvalHubTenantJobAccess(ns, evalHubInstance);
 
   cy.step('Deploy vLLM model in tenant namespace');
   const {
