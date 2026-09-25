@@ -2,8 +2,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import type { PipelineRun, PipelinesApi } from '../../../api/pipelines';
-import { AutoXApiProvider } from '../../../context';
+import type { PipelineRun } from '../../../api/pipelines/types';
+import type { PipelinesApi } from '../../../api/pipelines/pipelines';
+import { AutoXApiProvider } from '../../../context/AutoXApiContext';
 import { usePipelineRunQuery } from '../usePipelineRunQuery';
 
 const mockPipelinesApi: PipelinesApi = {
@@ -16,8 +17,8 @@ const mockPipelinesApi: PipelinesApi = {
   deletePipelineRun: jest.fn(),
 };
 
-jest.mock('../../../api', () => ({
-  ...jest.requireActual('../../../api'),
+jest.mock('../../../api/pipelines/pipelines', () => ({
+  ...jest.requireActual('../../../api/pipelines/pipelines'),
   createPipelinesApi: jest.fn(() => mockPipelinesApi),
 }));
 

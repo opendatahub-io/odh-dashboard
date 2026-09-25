@@ -1,11 +1,7 @@
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
-import { createK8sApi } from '@odh-dashboard/autox-core/ui/api';
 import * as z from 'zod';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { MaaSModelsResponse } from '~/app/types';
-
-export const k8sApi = createK8sApi(URL_PREFIX, BFF_API_VERSION);
-export const { getUser, getNamespaces } = k8sApi;
 
 const MaaSModelsResponseSchema = z.object({
   /* eslint-disable camelcase */

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
 import React from 'react';
-import { getS3JsonQueryKey, useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import { useS3CacheActions, useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 
 export type TaskType = 'binary' | 'multiclass' | 'regression';
 
@@ -39,6 +39,7 @@ export function useS3GetFileSchemaQuery(
   key?: string,
 ): UseQueryResult<ColumnSchema[], Error> & { resetSchemaCache: () => void } {
   const { fetchS3Json } = useS3FileFetchers();
+  const { invalidateS3JsonCache } = useS3CacheActions();
   const queryClient = useQueryClient();
   const queryKey = React.useMemo(
     () => getS3FileSchemaQueryKey(namespace, secretName, bucket, key),
@@ -83,9 +84,9 @@ export function useS3GetFileSchemaQuery(
   const resetSchemaCache = React.useCallback(() => {
     queryClient.setQueryData(queryKey, []);
     if (namespace && key) {
-      void queryClient.invalidateQueries({ queryKey: getS3JsonQueryKey(namespace, key) });
+      void invalidateS3JsonCache(namespace, key);
     }
-  }, [key, namespace, queryClient, queryKey]);
+  }, [invalidateS3JsonCache, key, namespace, queryClient, queryKey]);
 
   return { ...query, resetSchemaCache };
 }

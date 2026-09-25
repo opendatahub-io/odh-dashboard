@@ -13,6 +13,18 @@
  *
  * See ../../ARCHITECTURE.md for the full layering conventions.
  */
-export * from './k8s';
-export * from './s3';
-export * from './pipelines';
+export type { NamespaceKind, SecretListItem } from './k8s/types';
+export type { S3ObjectInfo, S3CommonPrefix, S3ListObjectsResponse } from './s3/types';
+export type {
+  PipelineVersionReference,
+  PipelineRunRuntimeConfig,
+  PipelineRunErrorDetail,
+  PipelineRunError,
+  PipelineSpec,
+  PipelineRunTaskDetail,
+  PipelineRunDetails,
+  PipelineRunStateHistoryEntry,
+  PipelineRun,
+  PipelineRunsData,
+  GetPipelineRunsFromBFFParams,
+} from './pipelines/types';

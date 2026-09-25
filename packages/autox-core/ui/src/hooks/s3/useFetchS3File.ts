@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
-import type { FetchS3FileOptions } from '../../api/s3';
-import { useAutoXApi } from '../../context';
+import type { FetchS3FileOptions } from '../../api/s3/s3';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 
 export function useFetchS3File(): (
   namespace: string,

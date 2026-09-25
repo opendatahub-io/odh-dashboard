@@ -1,7 +1,1 @@
-export {
-  AutoXApiProvider,
-  useAutoXApi,
-  type AutoXApi,
-  type AutoXApiProviderProps,
-  type AutoXApiContextValue,
-} from './AutoXApiContext';
+export { AutoXApiProvider, type AutoXApiProviderProps } from './AutoXApiContext';

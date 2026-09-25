@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import type { S3Api } from '../../../api/s3';
-import { AutoXApiProvider } from '../../../context';
+import type { S3Api } from '../../../api/s3/s3';
+import { AutoXApiProvider } from '../../../context/AutoXApiContext';
 import { useS3FileUploadMutation } from '../useS3FileUploadMutation';
 
 const mockS3Api: S3Api = {
@@ -12,8 +12,8 @@ const mockS3Api: S3Api = {
   fetchS3Json: jest.fn(),
 };
 
-jest.mock('../../../api', () => ({
-  ...jest.requireActual('../../../api'),
+jest.mock('../../../api/s3/s3', () => ({
+  ...jest.requireActual('../../../api/s3/s3'),
   createS3Api: jest.fn(() => mockS3Api),
 }));
 

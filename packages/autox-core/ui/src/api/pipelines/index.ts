@@ -11,5 +11,3 @@ export type {
   PipelineRunsData,
   GetPipelineRunsFromBFFParams,
 } from './types';
-export type { PipelinesApi } from './pipelines';
-export { createPipelinesApi, DEFAULT_PAGE_SIZE } from './pipelines';

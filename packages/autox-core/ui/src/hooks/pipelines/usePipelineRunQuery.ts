@@ -1,7 +1,8 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import type { PipelineRun } from '../../api/pipelines';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
+import React from 'react';
+import type { PipelineRun } from '../../api/pipelines/types';
 import { isRunInTerminalState } from '../../api/pipelines/kfTypes';
-import { useAutoXApi } from '../../context';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 import { parseErrorStatus } from '../../utils/parseErrorStatus';
 
 const POLL_INTERVAL_MS = 10000;
@@ -57,4 +58,18 @@ export function usePipelineRunQuery<
       return POLL_INTERVAL_MS;
     },
   });
+}
+
+export function usePipelineRunCacheActions(): {
+  invalidatePipelineRun: (runId: string, namespace: string) => Promise<void>;
+} {
+  const queryClient = useQueryClient();
+
+  return React.useMemo(
+    () => ({
+      invalidatePipelineRun: (runId: string, namespace: string) =>
+        queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] }),
+    }),
+    [queryClient],
+  );
 }

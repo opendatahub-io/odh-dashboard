@@ -1,5 +1,5 @@
 import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
-import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import type {
   ComponentStageMapComponent,
   ComponentStageMapStage,

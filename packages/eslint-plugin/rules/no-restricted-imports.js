@@ -2,12 +2,24 @@ const { Linter } = require('eslint');
 const micromatch = require('micromatch');
 
 const baseNoRestrictedImports = new Linter().getRules().get('no-restricted-imports');
+const schema = JSON.parse(JSON.stringify(baseNoRestrictedImports.meta.schema));
+schema.anyOf[1].items[0].properties.paths.items.anyOf[1].properties.allowTypeImports = {
+  type: 'boolean',
+};
 
 // Wrap the base rule to support negation patterns with '!'
 module.exports = {
   ...baseNoRestrictedImports,
+  meta: { ...baseNoRestrictedImports.meta, schema },
   create(context) {
     const options = context.options || [];
+
+    const typeOnlyImportSources = new Set(
+      options
+        .flatMap((option) => option?.paths ?? [])
+        .filter((path) => path && typeof path === 'object' && path.allowTypeImports)
+        .map((path) => path.name),
+    );
 
     // Extract negation patterns (those starting with '!')
     const processedOptions = options.map((option) => {
@@ -42,6 +54,14 @@ module.exports = {
     return {
       ImportDeclaration(node) {
         const importSource = node.source.value;
+
+        const isTypeOnlyImport =
+          node.importKind === 'type' ||
+          (node.specifiers.length > 0 &&
+            node.specifiers.every((specifier) => specifier.importKind === 'type'));
+        if (isTypeOnlyImport && typeOnlyImportSources.has(importSource)) {
+          return;
+        }
 
         // Check if this import should be allowed based on negation patterns
         const isAllowed = processedOptions.some((option) =>

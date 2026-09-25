@@ -1,6 +1,10 @@
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  useS3CacheActions,
+  useS3ListFilesQuery,
+  useS3FileFetchers,
+} from '@odh-dashboard/autox-core/ui/hooks';
 import {
   isCanonicalRawPattern,
   parsePatternArtifact,
@@ -245,7 +249,7 @@ export function useAutoragResults(
     queries: patternDirectories.map(({ name, directory }) => {
       const patternJsonPath = `${directory}pattern.json`;
       return {
-        queryKey: ['autorag', 's3File', namespace, name, patternJsonPath],
+        queryKey: ['s3File', namespace, patternJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace || !patternJsonPath) {
             throw new Error('namespace and key are required');
@@ -355,14 +359,10 @@ export function useAutoragResults(
     (isRagPatternsError ? new Error('Failed to list RAG patterns directory') : undefined) ||
     (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
 
-  const queryClient = useQueryClient();
+  const { invalidateS3Results } = useS3CacheActions();
   const refetch = React.useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] }),
-      queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] }),
-      queryClient.invalidateQueries({ queryKey: ['autorag', 's3File', namespace] }),
-    ]);
-  }, [queryClient, namespace]);
+    await invalidateS3Results(namespace);
+  }, [invalidateS3Results, namespace]);
 
   return {
     patterns,

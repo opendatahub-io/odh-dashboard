@@ -20,6 +20,7 @@ module.exports = {
   // includes the typescript specific rules found here: https://github.com/typescript-eslint/typescript-eslint/tree/master/packages/eslint-plugin#supported-rules
   plugins: [
     '@typescript-eslint',
+    '@odh-dashboard',
     'react-hooks',
     'import',
     'no-only-tests',
@@ -240,13 +241,13 @@ module.exports = {
       files: ['src/app/components/**/*.{ts,tsx}', 'src/app/pages/**/*.{ts,tsx}'],
       excludedFiles: ['**/__tests__/**', '**/__mocks__/**'],
       rules: {
-        'no-restricted-imports': [
+        '@odh-dashboard/no-restricted-imports': [
           'error',
           {
             paths: [
               {
                 name: '@tanstack/react-query',
-                importNames: ['useQuery', 'useMutation', 'useQueryClient'],
+                allowTypeImports: true,
                 message: 'Use a named domain hook from the hooks layer instead.',
               },
             ],
@@ -254,6 +255,16 @@ module.exports = {
               {
                 group: ['~/app/api/**', '@odh-dashboard/k8s-core/api/**'],
                 message: 'Components and pages must consume named hooks, not raw API modules.',
+              },
+              {
+                group: [
+                  '@odh-dashboard/autox-core/ui/api',
+                  '@odh-dashboard/autox-core/ui/api/**',
+                  '@odh-dashboard/autox-core/ui/context',
+                  '@odh-dashboard/autox-core/ui/context/**',
+                  '@odh-dashboard/autox-core/ui/src/**',
+                ],
+                message: 'Components and pages must consume named hooks, not shared API internals.',
               },
             ],
           },

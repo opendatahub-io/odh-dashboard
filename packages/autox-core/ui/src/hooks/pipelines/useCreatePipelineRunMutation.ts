@@ -1,6 +1,6 @@
 import { useMutation, type UseMutationResult } from '@tanstack/react-query';
-import type { PipelineRun } from '../../api/pipelines';
-import { useAutoXApi } from '../../context';
+import type { PipelineRun } from '../../api/pipelines/types';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 
 export function useCreatePipelineRunMutation<
   TVariables extends Record<string, unknown> = Record<string, unknown>,

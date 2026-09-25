@@ -33,10 +33,7 @@ import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import {
-  isRunTerminatable,
-  isRunRetryable,
-} from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
 import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';

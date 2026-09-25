@@ -22,31 +22,27 @@ export {
   type NotificationFunc,
 } from './common/useNotification';
 
-export { createUseNamespaces } from './k8s/useNamespaces';
-export { useSecretsQuery, createSecretsQueryOptions, secretsQueryKey } from './k8s/useSecretsQuery';
+export { useNamespaces } from './k8s/useNamespaces';
+export { useSecretsQuery } from './k8s/useSecretsQuery';
 export { useCreateSecretMutation } from './k8s/useCreateSecretMutation';
 
 export { usePipelineRuns, type PipelineRunsResult } from './pipelines/usePipelineRuns';
-export { usePipelineRunQuery } from './pipelines/usePipelineRunQuery';
+export { usePipelineRunQuery, usePipelineRunCacheActions } from './pipelines/usePipelineRunQuery';
 export { useCreatePipelineRunMutation } from './pipelines/useCreatePipelineRunMutation';
 export { useTerminatePipelineRunMutation } from './pipelines/useTerminatePipelineRunMutation';
 export { useRetryPipelineRunMutation } from './pipelines/useRetryPipelineRunMutation';
 export { useDeletePipelineRunMutation } from './pipelines/useDeletePipelineRunMutation';
-export {
-  usePipelineServerReadinessQuery,
-  pipelineServerReadinessKey,
-} from './pipelines/usePipelineServerReadinessQuery';
+export { usePipelineServerReadinessQuery } from './pipelines/usePipelineServerReadinessQuery';
 export { useEnableManagedPipelinesMutation } from './pipelines/useEnableManagedPipelinesMutation';
 
-export { useS3FileFetchers } from './s3/useS3FileFetchers';
-export { useFetchS3File } from './s3/useFetchS3File';
 export {
-  getS3JsonQueryKey,
-  type FetchS3FileOptions,
-  type FetchS3JsonOptions,
+  useS3FileFetchers,
+  useS3CacheActions,
+  useS3FileOperations,
   type S3FileFetchers,
-} from '../api/s3';
-export { useS3ListFilesQuery, createS3ListFilesQueryOptions } from './s3/useS3ListFilesQuery';
+} from './s3/useS3FileFetchers';
+export { useFetchS3File } from './s3/useFetchS3File';
+export { useS3ListFilesQuery, useS3ListFilesQueries } from './s3/useS3ListFilesQuery';
 export {
   useS3FileUploadMutation,
   type S3FileUploadMutationVariables,

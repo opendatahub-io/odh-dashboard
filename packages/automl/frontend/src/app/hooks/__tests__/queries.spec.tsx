@@ -3,10 +3,24 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { AutoXApiProvider } from '@odh-dashboard/autox-core/ui/context';
-import { getS3JsonQueryKey } from '@odh-dashboard/autox-core/ui/hooks';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/useModelEvaluationArtifactsQuery';
+
+const getS3JsonQueryKey = (
+  namespace: string,
+  key: string,
+  options: { secretName?: string; bucket?: string; view?: string; maxBytes?: number },
+) =>
+  [
+    's3Json',
+    namespace,
+    key,
+    options.secretName,
+    options.bucket,
+    options.view,
+    options.maxBytes ?? 50 * 1024 * 1024,
+  ] as const;
 import type {
   AutomlRawTabularModelV34,
   AutomlRawTimeseriesModelV34,

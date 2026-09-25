@@ -25,8 +25,8 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
-import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
 import { Link, useParams } from 'react-router';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import type { AutoragRuntimeParameters } from '~/app/types';
 import type { MetricReference } from '~/app/types/autoragPattern';

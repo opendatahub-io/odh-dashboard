@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react';
-import { AutoXApiProvider, useAutoXApi } from '..';
+import { AutoXApiProvider, useAutoXApi } from '../AutoXApiContext';
 
 const createWrapper = (apiPrefix: string) =>
   function Wrapper({ children }: React.PropsWithChildren) {

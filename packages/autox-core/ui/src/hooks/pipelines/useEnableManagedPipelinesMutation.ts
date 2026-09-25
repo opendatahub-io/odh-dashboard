@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { pipelineServerReadinessKey } from './usePipelineServerReadinessQuery';
-import { useAutoXApi } from '../../context';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 
 export function useEnableManagedPipelinesMutation(): UseMutationResult<void, Error, string> {
   const { pipelines: pipelinesApi } = useAutoXApi();

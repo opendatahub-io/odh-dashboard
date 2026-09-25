@@ -1,5 +1,5 @@
-import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
+import { usePipelineRunCacheActions } from '@odh-dashboard/autox-core/ui/hooks';
 import { useDeletePipelineRunMutation } from '~/app/hooks/useDeletePipelineRunMutation';
 import { useRetryPipelineRunMutation } from '~/app/hooks/useRetryPipelineRunMutation';
 import { useTerminatePipelineRunMutation } from '~/app/hooks/useTerminatePipelineRunMutation';
@@ -32,7 +32,7 @@ export const useAutomlRunActions = (
   source: RunActionSource,
   onActionComplete?: () => void | Promise<void>,
 ): AutomlRunActions => {
-  const queryClient = useQueryClient();
+  const { invalidatePipelineRun } = usePipelineRunCacheActions();
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
   const terminateMutation = useTerminatePipelineRunMutation(namespace, runId);
@@ -41,7 +41,7 @@ export const useAutomlRunActions = (
   const handleRetry = React.useCallback(async () => {
     try {
       await retryMutation.mutateAsync();
-      await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
+      await invalidatePipelineRun(runId, namespace);
       notification.success(
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
@@ -63,12 +63,20 @@ export const useAutomlRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful retry.
     }
-  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
+  }, [
+    retryMutation,
+    invalidatePipelineRun,
+    runId,
+    namespace,
+    onActionComplete,
+    notification,
+    source,
+  ]);
 
   const handleConfirmStop = React.useCallback(async () => {
     try {
       await terminateMutation.mutateAsync();
-      await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
+      await invalidatePipelineRun(runId, namespace);
       notification.success(
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
@@ -90,12 +98,20 @@ export const useAutomlRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful stop.
     }
-  }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
+  }, [
+    terminateMutation,
+    invalidatePipelineRun,
+    runId,
+    namespace,
+    onActionComplete,
+    notification,
+    source,
+  ]);
 
   const handleDelete = React.useCallback(async () => {
     try {
       await deleteMutation.mutateAsync();
-      await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
+      await invalidatePipelineRun(runId, namespace);
       notification.success(
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
@@ -117,7 +133,15 @@ export const useAutomlRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful delete.
     }
-  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
+  }, [
+    deleteMutation,
+    invalidatePipelineRun,
+    runId,
+    namespace,
+    onActionComplete,
+    notification,
+    source,
+  ]);
 
   return {
     handleRetry,

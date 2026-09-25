@@ -1,5 +1,4 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { useAutoXApi } from '@odh-dashboard/autox-core/ui/context';
 import { useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
@@ -26,15 +25,16 @@ const mockS3FileFetchers = {
   fetchS3Json: jest.fn().mockRejectedValue(new Error('S3 unavailable')),
 };
 const mockS3Api = { getFiles: jest.fn() };
+const mockS3FileOperations = {
+  listS3Files: (namespace: string, path: string, signal?: AbortSignal) =>
+    mockS3Api.getFiles('', { signal }, { namespace, path }),
+};
 
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3ListFilesQuery: jest.fn(),
   useS3FileFetchers: jest.fn(() => mockS3FileFetchers),
-}));
-
-jest.mock('@odh-dashboard/autox-core/ui/context', () => ({
-  useAutoXApi: jest.fn(() => ({ s3: mockS3Api })),
+  useS3FileOperations: jest.fn(() => mockS3FileOperations),
 }));
 
 /* eslint-disable camelcase */
@@ -1013,13 +1013,11 @@ describe('mergeStatusIntoStageMap', () => {
 
 describe('useComponentStatuses', () => {
   const useS3ListFilesQueryMock = jest.mocked(useS3ListFilesQuery);
-  const useAutoXApiMock = jest.mocked(useAutoXApi);
   const getFilesMock = jest.mocked(mockS3Api.getFiles);
   const dataUpdatedAt = 1_700_000_000_000;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useAutoXApiMock.mockReturnValue({ s3: mockS3Api } as unknown as ReturnType<typeof useAutoXApi>);
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     useS3ListFilesQueryMock.mockReturnValue({
       data: undefined,

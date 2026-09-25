@@ -3,8 +3,12 @@
  * Only handles task nodes -- no artifact nodes.
  */
 import { RunStatus } from '@patternfly/react-topology';
-import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
-import { RuntimeStateKF, RunDetailsKF, TaskDetailKF } from '~/app/types/pipeline';
+import {
+  isRunInTerminalState,
+  RuntimeStateKF,
+  RunDetailsKF,
+  TaskDetailKF,
+} from '~/app/types/pipeline';
 import { PipelineTaskRunStatus } from '~/app/types/topology';
 
 // SUCCEEDED (60) outranks CANCELING (59) / CANCELED (51) because the KFP driver

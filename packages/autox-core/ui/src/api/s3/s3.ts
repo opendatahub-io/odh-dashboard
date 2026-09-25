@@ -2,7 +2,7 @@
 
 import * as z from 'zod';
 import { APIOptions, isModArchResponse, restCREATE, restGET } from 'mod-arch-core';
-import type { S3ListObjectsResponse } from './types';
+import type { S3ListObjectsResponse, UploadFileToS3Params, UploadFileToS3Response } from './types';
 import { handleRestWithUIErrors } from '../../components/primitive';
 
 // Globals -------------------------------------------------------------------->
@@ -36,18 +36,6 @@ const S3ListObjectsResponseSchema = z.object({
 
 // Types ---------------------------------------------------------------------->
 
-export type UploadFileToS3Params = {
-  namespace: string;
-  secretName: string;
-  bucket?: string;
-  key: string;
-};
-
-export type UploadFileToS3Response = {
-  uploaded: boolean;
-  key: string;
-};
-
 export type GetFilesOptions = {
   namespace: string;
   secretName?: string;
@@ -75,11 +63,6 @@ export type FetchS3JsonOptions<T> = {
   maxBytes?: number;
 };
 
-export type S3JsonQueryKeyOptions = Pick<
-  FetchS3JsonOptions<unknown>,
-  'secretName' | 'bucket' | 'view' | 'maxBytes'
->;
-
 export type S3FileFetchers = Pick<S3Api, 'fetchS3File' | 'fetchS3Json'>;
 
 export type S3Api = {
@@ -98,37 +81,6 @@ export type S3Api = {
 };
 
 const DEFAULT_MAX_JSON_BYTES = 50 * 1024 * 1024;
-type S3JsonQueryKey =
-  | readonly ['s3Json', string, string]
-  | readonly [
-      's3Json',
-      string,
-      string,
-      string | undefined,
-      string | undefined,
-      string | undefined,
-      number,
-    ];
-
-export const getS3JsonQueryKey = (
-  namespace: string,
-  key: string,
-  options?: S3JsonQueryKeyOptions,
-): S3JsonQueryKey => {
-  if (!options) {
-    return ['s3Json', namespace, key] as const;
-  }
-
-  return [
-    's3Json',
-    namespace,
-    key,
-    options.secretName,
-    options.bucket,
-    options.view,
-    options.maxBytes ?? DEFAULT_MAX_JSON_BYTES,
-  ] as const;
-};
 
 // Public --------------------------------------------------------------------->
 

@@ -6,24 +6,9 @@ import {
   restCREATE,
   restGET,
 } from 'mod-arch-core';
-import { createPipelinesApi } from '@odh-dashboard/autox-core/ui/api';
 import { parseCreatePipelineRunResponse } from '~/app/hooks/useCreatePipelineRunMutation';
 import type { CreateIndexingPipelineRunRequest, ManagedPipeline, PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-
-export type {
-  PipelineRunsData,
-  GetPipelineRunsFromBFFParams,
-} from '@odh-dashboard/autox-core/ui/api';
-
-/**
- * Pipeline-runs API surface for the AutoRAG BFF.
- * @see packages/autorag/docs/pipeline-runs-api.md
- */
-export const pipelinesApi = createPipelinesApi(URL_PREFIX, BFF_API_VERSION);
-
-export const { getPipelineRunsFromBFF, getPipelineRunFromBFF, enableManagedPipelines } =
-  pipelinesApi;
 
 export async function getManagedPipelines(
   hostPath: string,

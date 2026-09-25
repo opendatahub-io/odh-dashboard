@@ -2,11 +2,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
-import type { PipelineRun, PipelinesApi } from '../../../api/pipelines';
-import { useAutoXApi } from '../../../context';
+import type { PipelineRun } from '../../../api/pipelines/types';
+import type { PipelinesApi } from '../../../api/pipelines/pipelines';
+import { useAutoXApi } from '../../../context/AutoXApiContext';
 import { useCreatePipelineRunMutation } from '../useCreatePipelineRunMutation';
 
-jest.mock('../../../context', () => ({
+jest.mock('../../../context/AutoXApiContext', () => ({
   useAutoXApi: jest.fn(),
 }));
 

@@ -2,9 +2,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import type { S3Api } from '../../../api/s3';
-import { AutoXApiProvider } from '../../../context';
-import { useS3ListFilesQuery } from '../useS3ListFilesQuery';
+import type { S3Api } from '../../../api/s3/s3';
+import { AutoXApiProvider } from '../../../context/AutoXApiContext';
+import { useS3ListFilesQueries, useS3ListFilesQuery } from '../useS3ListFilesQuery';
 
 const mockS3Api: S3Api = {
   uploadFileToS3: jest.fn(),
@@ -13,8 +13,8 @@ const mockS3Api: S3Api = {
   fetchS3Json: jest.fn(),
 };
 
-jest.mock('../../../api', () => ({
-  ...jest.requireActual('../../../api'),
+jest.mock('../../../api/s3/s3', () => ({
+  ...jest.requireActual('../../../api/s3/s3'),
   createS3Api: jest.fn(() => mockS3Api),
 }));
 
@@ -92,5 +92,42 @@ describe('useS3ListFilesQuery', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(result.current.error).toBe(fetchError);
+  });
+
+  it('should create one scoped query per path and forward each query signal', async () => {
+    const firstResponse = {
+      common_prefixes: [],
+      contents: [{ key: 'first.csv', size: 1 }],
+      is_truncated: false,
+      key_count: 1,
+      max_keys: 1000,
+    };
+    const secondResponse = {
+      common_prefixes: [],
+      contents: [{ key: 'second.csv', size: 2 }],
+      is_truncated: false,
+      key_count: 1,
+      max_keys: 1000,
+    };
+    getFiles.mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
+    const { result } = renderHook(() => useS3ListFilesQueries('ns', ['one/', 'two/']), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.every((query) => query.isSuccess)).toBe(true));
+
+    expect(result.current.map((query) => query.data)).toEqual([firstResponse, secondResponse]);
+    expect(getFiles).toHaveBeenNthCalledWith(
+      1,
+      '',
+      { signal: expect.any(AbortSignal) },
+      { namespace: 'ns', path: 'one/' },
+    );
+    expect(getFiles).toHaveBeenNthCalledWith(
+      2,
+      '',
+      { signal: expect.any(AbortSignal) },
+      { namespace: 'ns', path: 'two/' },
+    );
   });
 });

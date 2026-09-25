@@ -20,7 +20,11 @@ import {
   isComponentTaskDirName,
   findComponentTaskPrefix,
 } from '~/app/utilities/utils';
-import { formatMetricName, formatMetricValue, getOptimizedScore } from '~/app/utilities/metricUtils';
+import {
+  formatMetricName,
+  formatMetricValue,
+  getOptimizedScore,
+} from '~/app/utilities/metricUtils';
 
 describe('isRunCompleted', () => {
   it('should return true for SUCCEEDED', () => {

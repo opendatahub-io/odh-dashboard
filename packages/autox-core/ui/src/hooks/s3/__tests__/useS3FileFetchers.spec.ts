@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import * as z from 'zod';
-import type { S3Api } from '../../../api/s3';
-import { AutoXApiProvider } from '../../../context';
-import { useS3FileFetchers } from '../useS3FileFetchers';
+import type { S3Api } from '../../../api/s3/s3';
+import { AutoXApiProvider } from '../../../context/AutoXApiContext';
+import { useS3CacheActions, useS3FileFetchers } from '../useS3FileFetchers';
 
 const mockS3Api: S3Api = {
   uploadFileToS3: jest.fn(),
@@ -13,8 +13,8 @@ const mockS3Api: S3Api = {
   fetchS3Json: jest.fn(),
 };
 
-jest.mock('../../../api', () => ({
-  ...jest.requireActual('../../../api'),
+jest.mock('../../../api/s3/s3', () => ({
+  ...jest.requireActual('../../../api/s3/s3'),
   createS3Api: jest.fn(() => mockS3Api),
 }));
 
@@ -77,5 +77,55 @@ describe('useS3FileFetchers', () => {
     expect(firstSchema).toEqual({ value: 1 });
     expect(secondSchema).toEqual({ value: '1' });
     expect(fetchS3File).toHaveBeenCalledTimes(1);
+  });
+
+  it('should forward an imperative download signal and cache the result', async () => {
+    const blob = new Blob(['content']);
+    fetchS3File.mockResolvedValue(blob);
+    const controller = new AbortController();
+    const { Wrapper, queryClient } = createWrapper();
+    const { result } = renderHook(() => useS3FileFetchers(), { wrapper: Wrapper });
+
+    await result.current.fetchS3File('namespace', 'file.csv', { signal: controller.signal });
+
+    expect(fetchS3File).toHaveBeenCalledWith(
+      'namespace',
+      'file.csv',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(
+      queryClient.getQueryData([
+        's3File',
+        'namespace',
+        'file.csv',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      ]),
+    ).toBe(blob);
+  });
+
+  it('should refetch JSON after the scoped cache action invalidates it', async () => {
+    fetchS3File
+      .mockResolvedValueOnce({
+        text: () => Promise.resolve(JSON.stringify({ name: 'stale-model' })),
+      } as Blob)
+      .mockResolvedValueOnce({
+        text: () => Promise.resolve(JSON.stringify({ name: 'fresh-model' })),
+      } as Blob);
+    const { Wrapper } = createWrapper();
+    const { result: fetchers } = renderHook(() => useS3FileFetchers(), { wrapper: Wrapper });
+    const { result: actions } = renderHook(() => useS3CacheActions(), { wrapper: Wrapper });
+
+    await expect(fetchers.current.fetchS3Json('namespace', 'models/model.json')).resolves.toEqual({
+      name: 'stale-model',
+    });
+    await actions.current.invalidateS3JsonCache('namespace', 'models/model.json');
+    await expect(fetchers.current.fetchS3Json('namespace', 'models/model.json')).resolves.toEqual({
+      name: 'fresh-model',
+    });
+
+    await waitFor(() => expect(fetchS3File).toHaveBeenCalledTimes(2));
   });
 });

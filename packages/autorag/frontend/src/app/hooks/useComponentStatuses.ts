@@ -1,8 +1,11 @@
 import React from 'react';
-import { useAutoXApi, type AutoXApi } from '@odh-dashboard/autox-core/ui/context';
 import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
-import { useS3FileFetchers, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
-import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
+import {
+  useS3FileFetchers,
+  useS3FileOperations,
+  useS3ListFilesQuery,
+} from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type {
   ComponentStageMap,
@@ -349,13 +352,13 @@ async function discoverStatusJsonPath(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
-  s3Api: AutoXApi['s3'],
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<string | undefined> {
-  const result: S3ListObjectsResponse = await s3Api.getFiles(
-    '',
-    { signal },
-    { namespace, path: s3Prefix },
-  );
+  const result = await listS3Files(namespace, s3Prefix, signal);
   const prefix = result.common_prefixes[0]?.prefix;
   if (!prefix) {
     return undefined;
@@ -368,9 +371,13 @@ async function fetchComponentStatus(
   s3Prefix: string,
   signal: AbortSignal,
   fetchers: S3FileFetchers,
-  s3Api: AutoXApi['s3'],
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<ComponentStatusFile | undefined> {
-  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal, s3Api);
+  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal, listS3Files);
   if (!jsonPath) {
     return undefined;
   }
@@ -386,16 +393,20 @@ export async function fetchComponentStatusForComponent(
   runLevelPrefixes: { prefix: string }[] | undefined,
   signal: AbortSignal,
   fetchers?: S3FileFetchers,
-  s3Api?: AutoXApi['s3'],
+  listS3Files?: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<{ componentId: string; data: ComponentStatusFile } | undefined> {
   const s3Prefix = resolveComponentTaskS3Prefix(rootDir, runId, componentId, runLevelPrefixes);
   if (!s3Prefix) {
     return undefined;
   }
-  if (!fetchers || !s3Api) {
+  if (!fetchers || !listS3Files) {
     return undefined;
   }
-  const data = await fetchComponentStatus(namespace, s3Prefix, signal, fetchers, s3Api);
+  const data = await fetchComponentStatus(namespace, s3Prefix, signal, fetchers, listS3Files);
   if (!data || data.component_id !== componentId) {
     return undefined;
   }
@@ -422,8 +433,8 @@ export function useComponentStatuses(
   componentStageMap: ComponentStageMap | undefined,
   dataUpdatedAt: number,
 ): UseComponentStatusesReturn {
-  const { s3: s3Api } = useAutoXApi();
   const fetchers = useS3FileFetchers();
+  const { listS3Files } = useS3FileOperations();
   const { rootDir } = useAutoragOutputDir(pipelineRun);
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
   const shouldMergeStatuses = React.useMemo(() => {
@@ -545,7 +556,7 @@ export function useComponentStatuses(
           runLevelPrefixes,
           controller.signal,
           { fetchS3File: fetchers.fetchS3File, fetchS3Json: fetchers.fetchS3Json },
-          s3Api,
+          listS3Files,
         ),
       ),
     )
@@ -612,7 +623,7 @@ export function useComponentStatuses(
     };
   }, [
     fetchers,
-    s3Api,
+    listS3Files,
     runId,
     namespace,
     pipelineRun,

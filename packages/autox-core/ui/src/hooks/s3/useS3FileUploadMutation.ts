@@ -1,6 +1,6 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import type { UploadFileToS3Params, UploadFileToS3Response } from '../../api/s3';
-import { useAutoXApi } from '../../context';
+import type { UploadFileToS3Params, UploadFileToS3Response } from '../../api/s3/types';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 
 export type S3FileUploadMutationVariables = UploadFileToS3Params & {
   file: File;

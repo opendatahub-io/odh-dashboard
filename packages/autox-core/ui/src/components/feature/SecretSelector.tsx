@@ -11,7 +11,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { TypeaheadSelect } from '@odh-dashboard/ui-core';
 import type { TypeaheadSelectProps } from '@odh-dashboard/ui-core';
 import * as React from 'react';
-import type { SecretListItem } from '../../api/k8s';
+import type { SecretListItem } from '../../api/k8s/types';
 import { useSecretsQuery } from '../../hooks';
 import { formatMissingKeysMessage, getMissingRequiredKeys } from '../../utils/secretValidation';
 

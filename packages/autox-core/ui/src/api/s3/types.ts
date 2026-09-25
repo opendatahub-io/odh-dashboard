@@ -22,3 +22,15 @@ export type S3ListObjectsResponse = {
   next_continuation_token?: string;
   prefix?: string;
 };
+
+export type UploadFileToS3Params = {
+  namespace: string;
+  secretName: string;
+  bucket?: string;
+  key: string;
+};
+
+export type UploadFileToS3Response = {
+  uploaded: boolean;
+  key: string;
+};

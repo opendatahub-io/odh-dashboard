@@ -3,8 +3,9 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFetchState } from 'mod-arch-core';
 import React from 'react';
-import type { PipelineRun, PipelinesApi } from '../../../api/pipelines';
-import { AutoXApiProvider } from '../../../context';
+import type { PipelineRun } from '../../../api/pipelines/types';
+import type { PipelinesApi } from '../../../api/pipelines/pipelines';
+import { AutoXApiProvider } from '../../../context/AutoXApiContext';
 import { usePipelineRuns } from '../usePipelineRuns';
 
 const mockPipelinesApi: PipelinesApi = {

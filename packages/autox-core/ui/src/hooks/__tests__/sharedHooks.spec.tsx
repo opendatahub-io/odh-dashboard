@@ -2,31 +2,26 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
-import type { K8sApi } from '../../api/k8s';
-import type { PipelinesApi } from '../../api/pipelines';
-import type { S3Api } from '../../api/s3';
-import { useAutoXApi } from '../../context';
+import type { K8sApi } from '../../api/k8s/k8s';
+import type { PipelinesApi } from '../../api/pipelines/pipelines';
+import type { S3Api } from '../../api/s3/s3';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 import {
-  createSecretsQueryOptions,
-  secretsQueryKey,
   useCreateSecretMutation,
   useEnableManagedPipelinesMutation,
   usePipelineServerReadinessQuery,
   useSecretsQuery,
+  useS3ListFilesQuery,
 } from '../index';
-import { createS3ListFilesQueryOptions } from '../s3/useS3ListFilesQuery';
 
-jest.mock('../../context', () => ({ useAutoXApi: jest.fn() }));
-jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({ createSecret: jest.fn() }));
-
+jest.mock('../../context/AutoXApiContext', () => ({ useAutoXApi: jest.fn() }));
 const k8sApi = { getSecrets: jest.fn() } as unknown as K8sApi;
 const pipelinesApi = {
   getPipelineRunsFromBFF: jest.fn(),
   enableManagedPipelines: jest.fn(),
 } as unknown as PipelinesApi;
 const s3Api = { getFiles: jest.fn() } as unknown as S3Api;
-const api = { k8s: k8sApi, pipelines: pipelinesApi, s3: s3Api };
+const api = { k8s: { ...k8sApi, createSecret: jest.fn() }, pipelines: pipelinesApi, s3: s3Api };
 const useAutoXApiMock = jest.mocked(useAutoXApi);
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -41,27 +36,18 @@ describe('shared AutoX hooks', () => {
     useAutoXApiMock.mockReturnValue(api);
   });
 
-  it('should expose secret query keys, enabled behavior, and signal forwarding', async () => {
-    const { signal } = new AbortController();
+  it('should list secrets and forward the request signal', async () => {
     const getSecrets = jest.mocked(k8sApi.getSecrets);
     const getSecretsRequest = jest.fn().mockResolvedValue([]);
     getSecrets.mockReturnValue((() => getSecretsRequest) as never);
-    expect(secretsQueryKey('ns', 'storage')).toEqual(['secrets', 'ns', 'storage']);
-    expect(createSecretsQueryOptions(k8sApi, undefined).enabled).toBe(false);
-
     const { result } = renderHook(() => useSecretsQuery('ns', 'storage'), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getSecrets).toHaveBeenCalledWith('');
-    const queryOptions = createSecretsQueryOptions(k8sApi, 'ns', 'storage');
-    if (typeof queryOptions.queryFn === 'function') {
-      await queryOptions.queryFn({ signal } as never);
-    }
-    expect(getSecretsRequest).toHaveBeenCalledWith({ signal });
-    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(getSecretsRequest).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
   });
 
   it('should create secrets through the mutation hook', async () => {
-    const createSecretMock = jest.mocked(createSecret);
+    const createSecretMock = jest.mocked(api.k8s.createSecret);
     createSecretMock.mockResolvedValue({} as never);
     const mutation = renderHook(() => useCreateSecretMutation(), { wrapper });
     await mutation.result.current.mutateAsync({
@@ -105,7 +91,7 @@ describe('shared AutoX hooks', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['pipelineServerReadiness', 'ns'] });
   });
 
-  it('should expose S3 query options with enabled state and signal forwarding', async () => {
+  it('should list S3 files with the configured provider client', async () => {
     const getFiles = jest.mocked(s3Api.getFiles);
     getFiles.mockResolvedValue({
       common_prefixes: [],
@@ -114,12 +100,8 @@ describe('shared AutoX hooks', () => {
       key_count: 0,
       max_keys: 1000,
     });
-    const options = createS3ListFilesQueryOptions(s3Api, 'ns', 'path');
-    expect(options.queryKey).toEqual(['s3Files', 'ns', 'path']);
-    expect(options.enabled).toBe(true);
-    if (typeof options.queryFn === 'function') {
-      await options.queryFn({ signal: new AbortController().signal } as never);
-    }
+    const { result } = renderHook(() => useS3ListFilesQuery('ns', 'path'), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getFiles).toHaveBeenCalledWith(
       '',
       { signal: expect.any(AbortSignal) },

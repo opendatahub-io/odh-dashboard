@@ -4,7 +4,9 @@
   "description": "AutoX shared library package - provides shared BFF and Frontend utilities for AutoML, AutoRAG, and related packages.",
   "version": "0.0.0",
   "exports": {
-    "./ui/api": "./ui/src/api/index.ts",
+    "./ui/api/k8s/types": "./ui/src/api/k8s/types.ts",
+    "./ui/api/s3/types": "./ui/src/api/s3/types.ts",
+    "./ui/api/pipelines/types": "./ui/src/api/pipelines/types.ts",
     "./ui/api/pipelines/kfTypes": "./ui/src/api/pipelines/kfTypes.ts",
     "./ui/context": "./ui/src/context/index.ts",
     "./ui/hooks": "./ui/src/hooks/index.ts",

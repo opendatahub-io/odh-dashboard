@@ -9,14 +9,6 @@ jest.mock('~/app/utilities/const', () => ({
   BFF_API_VERSION: 'v1',
 }));
 
-jest.mock('@odh-dashboard/autox-core/ui/api', () => ({
-  createPipelinesApi: jest.fn(() => ({
-    getPipelineRunsFromBFF: jest.fn(),
-    getPipelineRunFromBFF: jest.fn(),
-    enableManagedPipelines: jest.fn(),
-  })),
-}));
-
 jest.mock('mod-arch-core', () => ({
   handleRestFailures: jest.fn(),
   isModArchResponse: jest.fn(),

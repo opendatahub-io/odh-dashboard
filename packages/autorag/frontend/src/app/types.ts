@@ -4,9 +4,13 @@ import type { ComponentType, CSSProperties } from 'react';
 import type {
   NamespaceKind as SharedNamespaceKind,
   SecretListItem as SharedSecretListItem,
+} from '@odh-dashboard/autox-core/ui/api/k8s/types';
+import type {
   S3ObjectInfo as SharedS3ObjectInfo,
   S3CommonPrefix as SharedS3CommonPrefix,
   S3ListObjectsResponse as SharedS3ListObjectsResponse,
+} from '@odh-dashboard/autox-core/ui/api/s3/types';
+import type {
   PipelineVersionReference as SharedPipelineVersionReference,
   PipelineRunRuntimeConfig as SharedPipelineRunRuntimeConfig,
   PipelineRunErrorDetail as SharedPipelineRunErrorDetail,
@@ -16,7 +20,7 @@ import type {
   PipelineRunDetails as SharedPipelineRunDetails,
   PipelineRunStateHistoryEntry as SharedPipelineRunStateHistoryEntry,
   PipelineRun as SharedPipelineRun,
-} from '@odh-dashboard/autox-core/ui/api';
+} from '@odh-dashboard/autox-core/ui/api/pipelines/types';
 
 // Types ---------------------------------------------------------------------->
 

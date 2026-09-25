@@ -1,8 +1,9 @@
 /* eslint-disable camelcase -- PipelineRunsData uses snake_case to match BFF API */
 import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
 import React from 'react';
-import { DEFAULT_PAGE_SIZE, type PipelineRun } from '../../api/pipelines';
-import { useAutoXApi } from '../../context';
+import { DEFAULT_PAGE_SIZE } from '../../api/pipelines/pipelines';
+import type { PipelineRun } from '../../api/pipelines/types';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 
 export type PipelineRunsResult<TParams = Record<string, unknown>> = {
   runs: PipelineRun<TParams>[];

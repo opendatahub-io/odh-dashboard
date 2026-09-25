@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import React from 'react';
-import { useAutoXApi } from '../../context';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 
 export const pipelineServerReadinessKey = (namespace: string) =>
   ['pipelineServerReadiness', namespace] as const;

@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import type { NamespaceKind } from '../../../api/k8s';
+import type { NamespaceKind } from '../../../api/k8s/types';
 import { createUseNamespaces } from '../useNamespaces';
 
 describe('createUseNamespaces', () => {

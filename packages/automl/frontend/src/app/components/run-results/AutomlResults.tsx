@@ -2,7 +2,7 @@ import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/rea
 import React from 'react';
 import { useParams } from 'react-router';
 import { useFetchS3File } from '@odh-dashboard/autox-core/ui/hooks';
-import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
 import { useTreeViewData } from '~/app/topology/tree-view';

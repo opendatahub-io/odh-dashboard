@@ -1,5 +1,5 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import { useAutoXApi } from '../../context';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 
 export function useTerminatePipelineRunMutation(
   namespace: string,

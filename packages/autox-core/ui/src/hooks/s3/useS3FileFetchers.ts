@@ -1,8 +1,35 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as z from 'zod';
 import { useCallback, useMemo } from 'react';
-import { getS3JsonQueryKey, type FetchS3JsonOptions, type S3FileFetchers } from '../../api/s3';
-import { useAutoXApi } from '../../context';
+import type { FetchS3FileOptions, FetchS3JsonOptions } from '../../api/s3/s3';
+import type { S3ListObjectsResponse } from '../../api/s3/types';
+import { useAutoXApi } from '../../context/AutoXApiContext';
+
+export type S3FileFetchers = {
+  fetchS3File: (namespace: string, key: string, options?: FetchS3FileOptions) => Promise<Blob>;
+  fetchS3Json: <T>(namespace: string, key: string, options?: FetchS3JsonOptions<T>) => Promise<T>;
+};
+
+type S3JsonQueryKeyOptions = Pick<
+  FetchS3JsonOptions<unknown>,
+  'secretName' | 'bucket' | 'view' | 'maxBytes'
+>;
+
+const getS3JsonQueryKey = (namespace: string, key: string, options?: S3JsonQueryKeyOptions) => {
+  if (!options) {
+    return ['s3Json', namespace, key] as const;
+  }
+
+  return [
+    's3Json',
+    namespace,
+    key,
+    options.secretName,
+    options.bucket,
+    options.view,
+    options.maxBytes ?? 50 * 1024 * 1024,
+  ] as const;
+};
 
 export function useS3FileFetchers(): S3FileFetchers {
   const queryClient = useQueryClient();
@@ -63,4 +90,43 @@ export function useS3FileFetchers(): S3FileFetchers {
   );
 
   return useMemo(() => ({ fetchS3File, fetchS3Json }), [fetchS3File, fetchS3Json]);
+}
+
+export function useS3CacheActions(): {
+  invalidateS3JsonCache: (namespace: string, key: string) => Promise<void>;
+  invalidateS3Results: (namespace?: string) => Promise<void>;
+} {
+  const queryClient = useQueryClient();
+  return useMemo(
+    () => ({
+      invalidateS3JsonCache: async (namespace: string, key: string) => {
+        await queryClient.invalidateQueries({ queryKey: getS3JsonQueryKey(namespace, key) });
+      },
+      invalidateS3Results: async (namespace?: string) => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] }),
+          queryClient.invalidateQueries({ queryKey: ['s3Json', namespace] }),
+          queryClient.invalidateQueries({ queryKey: ['s3File', namespace] }),
+        ]);
+      },
+    }),
+    [queryClient],
+  );
+}
+
+export function useS3FileOperations(): {
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>;
+} {
+  const { s3: s3Api } = useAutoXApi();
+  return useMemo(
+    () => ({
+      listS3Files: (namespace: string, path: string, signal?: AbortSignal) =>
+        s3Api.getFiles('', { signal }, { namespace, path }),
+    }),
+    [s3Api],
+  );
 }
