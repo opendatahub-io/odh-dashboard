@@ -18,12 +18,17 @@ import (
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
@@ -31,6 +36,86 @@ import (
 	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+type noMatchListClient struct {
+	client.Client
+}
+
+func (c noMatchListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
+	return &apimeta.NoKindMatchError{
+		GroupKind: schema.GroupKind{Group: "trustyai.opendatahub.io", Kind: "NemoGuardrails"},
+	}
+}
+
+type errorListClient struct {
+	client.Client
+	err error
+}
+
+func (c errorListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
+	return c.err
+}
+
+func TestGetNemoGuardrailsServiceURL(t *testing.T) {
+	t.Run("returns service URL for a NemoGuardrails CR", func(t *testing.T) {
+		guardrails := &unstructured.Unstructured{Object: map[string]interface{}{
+			"apiVersion": "trustyai.opendatahub.io/v1alpha1",
+			"kind":       "NemoGuardrails",
+			"metadata": map[string]interface{}{
+				"name":      "guardrails",
+				"namespace": testutil.TestNamespace,
+			},
+		}}
+		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().WithObjects(guardrails).Build(), Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Equal(t, "https://guardrails."+testutil.TestNamespace+".svc.cluster.local:443", url)
+	})
+
+	t.Run("returns no URL when no NemoGuardrails CR exists", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().Build(), Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns no URL when the CRD is not installed", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: noMatchListClient{Client: fake.NewClientBuilder().Build()}, Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns no URL when the API server reports the CRD resource as not found", func(t *testing.T) {
+		kc := &TokenKubernetesClient{
+			Client: errorListClient{
+				Client: fake.NewClientBuilder().Build(),
+				err:    apierrors.NewNotFound(schema.GroupResource{Group: "trustyai.opendatahub.io", Resource: "nemoguardrails"}, ""),
+			},
+			Logger: slog.Default(),
+		}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns an error for an unexpected Kubernetes error", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: errorListClient{Client: fake.NewClientBuilder().Build(), err: assert.AnError}, Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		assert.Empty(t, url)
+		require.ErrorIs(t, err, assert.AnError)
+	})
+}
 
 func TestCanListOGXServers(t *testing.T) {
 	t.Run("should create proper SAR request for OGXServer resources", func(t *testing.T) {

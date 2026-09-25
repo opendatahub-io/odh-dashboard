@@ -58,6 +58,11 @@ declare global {
           response: ApiResponse<CollectionsListResponse | Collection[]>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /api/:apiVersion/evaluations/collections/:collectionId',
+          options: { path: { apiVersion: string; collectionId: string } },
+          response: ApiResponse<Collection>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/:apiVersion/evaluations/jobs',
           options: { path: { apiVersion: string }; query?: Record<string, string> },
           response: ApiResponse<EvaluationJob[]>,

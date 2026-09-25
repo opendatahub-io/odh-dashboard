@@ -53,11 +53,7 @@ func main() {
 
 	// ─── Data Connect Hub API ────────────────────────────────────────
 	flag.StringVar(&cfg.DataConnectHubAPIURL, "data-connect-hub-api-url", getEnvAsString("DATA_CONNECT_HUB_API_URL", ""),
-		"Base URL of the upstream Data Connect Hub API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
-	flag.StringVar(&cfg.DataConnectHubConfigMapName, "data-connect-hub-configmap-name", getEnvAsString("DATA_CONNECT_HUB_CONFIGMAP_NAME", config.DefaultDataConnectHubConfigMapName),
-		"Name of the ConfigMap (in the pod's namespace) holding the Data Connect Hub API URL")
-	flag.StringVar(&cfg.DataConnectHubConfigMapKey, "data-connect-hub-configmap-key", getEnvAsString("DATA_CONNECT_HUB_CONFIGMAP_KEY", config.DefaultDataConnectHubConfigMapKey),
-		"Key within the Data Connect Hub ConfigMap holding the API URL")
+		"Base URL of the upstream Data Connect Hub API. Overrides gateway Route discovery when set (primarily for local dev/tests)")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
@@ -83,6 +79,10 @@ func main() {
 	//validate auth method
 	if cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
 		logger.Error("invalid auth method: (must be internal or user_token)", "authMethod", cfg.AuthMethod)
+		os.Exit(1)
+	}
+	if cfg.InsecureSkipVerify && (!cfg.DevMode || certFile != "") {
+		logger.Error("insecure TLS verification is only allowed in dev mode without a server certificate")
 		os.Exit(1)
 	}
 

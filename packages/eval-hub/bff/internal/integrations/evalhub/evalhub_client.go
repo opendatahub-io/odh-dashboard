@@ -26,13 +26,25 @@ type ListEvaluationJobsParams struct {
 
 // ListCollectionsParams holds optional query parameters for the list collections endpoint.
 type ListCollectionsParams struct {
-	Namespace string
-	Limit     int
-	Offset    int
-	Name      string
-	Category  string
-	Tags      string
-	Scope     string
+	Namespace         string
+	Limit             int
+	Offset            int
+	Name              string
+	Category          string
+	Tags              string
+	Scope             string
+	SortBy            string
+	Domains           string
+	Industries        string
+	EvaluationTargets string
+}
+
+// CollectionPatchOperation is one JSON Patch operation accepted by EvalHub's
+// collection PATCH endpoint.
+type CollectionPatchOperation struct {
+	Op    string          `json:"op"`
+	Path  string          `json:"path"`
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 // GetJobLogsParams holds optional query parameters for the log endpoints.
@@ -57,7 +69,11 @@ type EvalHubClientInterface interface {
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
+	CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error)
 	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
+	PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error)
+	DeleteCollection(ctx context.Context, id string, namespace string) error
+	CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (EvaluationJobLogsResponse, error)
 	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (EvaluationJobLogsResponse, error)
@@ -321,24 +337,39 @@ type ProviderBenchmarkPassCriteria struct {
 
 // Collection represents a benchmark collection from eval-hub.
 type Collection struct {
-	Resource     CollectionResource      `json:"resource"`
-	Name         string                  `json:"name"`
-	Category     string                  `json:"category,omitempty"`
-	Description  string                  `json:"description,omitempty"`
-	Tags         []string                `json:"tags,omitempty"`
-	Custom       map[string]any          `json:"custom,omitempty"`
-	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
-	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+	Resource          CollectionResource      `json:"resource"`
+	Name              string                  `json:"name"`
+	Category          string                  `json:"category,omitempty"`
+	Description       string                  `json:"description,omitempty"`
+	Tags              []string                `json:"tags,omitempty"`
+	Domains           []string                `json:"domains,omitempty"`
+	Tasks             []string                `json:"tasks,omitempty"`
+	Modalities        []string                `json:"modalities,omitempty"`
+	Industries        []string                `json:"industries,omitempty"`
+	EvaluationTargets []string                `json:"evaluation_targets,omitempty"`
+	CurationOrder     int                     `json:"curation_order,omitempty"`
+	State             *CollectionState        `json:"state,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks,omitempty"`
 }
 
 // CollectionResource holds the resource metadata for a collection.
 type CollectionResource struct {
-	ID        string `json:"id"`
-	Tenant    string `json:"tenant,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-	ReadOnly  bool   `json:"read_only,omitempty"`
-	Owner     string `json:"owner,omitempty"`
+	ID             string `json:"id"`
+	Tenant         string `json:"tenant,omitempty"`
+	CreatedAt      string `json:"created_at,omitempty"`
+	UpdatedAt      string `json:"updated_at,omitempty"`
+	ReadOnly       bool   `json:"read_only,omitempty"`
+	Owner          string `json:"owner,omitempty"`
+	VersionCounter int    `json:"version_counter,omitempty"`
+}
+
+// CollectionState contains server-derived metadata used to order and summarize collections.
+type CollectionState struct {
+	DerivedFrom string `json:"derived_from,omitempty"`
+	RunCount    int    `json:"run_count,omitempty"`
+	PinnedOrder int    `json:"pinned_order,omitempty"`
 }
 
 // CollectionBenchmark represents a BenchmarkConfig entry within a collection.
@@ -361,6 +392,39 @@ type CollectionPrimaryScore struct {
 // CollectionPassCriteria defines the passing threshold for a benchmark.
 type CollectionPassCriteria struct {
 	Threshold float64 `json:"threshold"`
+}
+
+// CloneCollectionRequest is the optional payload for cloning a collection.
+type CloneCollectionRequest struct {
+	Name        string   `json:"name,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Category    string   `json:"category,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+	// Pointer slices distinguish omitted fields (inherit) from explicit empty arrays (clear).
+	Domains           *[]string               `json:"domains,omitempty"`
+	Tasks             *[]string               `json:"tasks,omitempty"`
+	Modalities        *[]string               `json:"modalities,omitempty"`
+	Industries        *[]string               `json:"industries,omitempty"`
+	EvaluationTargets *[]string               `json:"evaluation_targets,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks,omitempty"`
+}
+
+// CreateCollectionRequest is the payload sent to create a tenant collection.
+type CreateCollectionRequest struct {
+	Name              string                  `json:"name"`
+	Category          string                  `json:"category,omitempty"`
+	Description       string                  `json:"description,omitempty"`
+	Tags              []string                `json:"tags,omitempty"`
+	Domains           []string                `json:"domains,omitempty"`
+	Tasks             []string                `json:"tasks,omitempty"`
+	Modalities        []string                `json:"modalities,omitempty"`
+	Industries        []string                `json:"industries,omitempty"`
+	EvaluationTargets []string                `json:"evaluation_targets,omitempty"`
+	Custom            map[string]any          `json:"custom,omitempty"`
+	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks        []CollectionBenchmark   `json:"benchmarks"`
 }
 
 // CreateEvaluationJobRequest is the payload sent to the EvalHub API to start a new evaluation run.
@@ -590,6 +654,18 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 	if params.Scope != "" {
 		query.Set("scope", params.Scope)
 	}
+	if params.SortBy != "" {
+		query.Set("sort_by", params.SortBy)
+	}
+	if params.Domains != "" {
+		query.Set("domains", params.Domains)
+	}
+	if params.Industries != "" {
+		query.Set("industries", params.Industries)
+	}
+	if params.EvaluationTargets != "" {
+		query.Set("evaluation_targets", params.EvaluationTargets)
+	}
 
 	path := "/evaluations/collections"
 	if len(query) > 0 {
@@ -604,6 +680,23 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 		resp.Items = []Collection{}
 	}
 	return *resp, nil
+}
+
+// CreateCollection creates a tenant-scoped collection in EvalHub.
+// The namespace is sent as the X-Tenant header rather than a query parameter.
+func (c *EvalHubClient) CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error) {
+	path := "/evaluations/collections"
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[Collection](c, ctx, path, req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CreateCollection")
+	}
+	return resp, nil
 }
 
 // GetCollection retrieves a single benchmark collection by ID.
@@ -621,6 +714,59 @@ func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace 
 		return nil, wrapClientError(err, "GetCollection")
 	}
 	return resp, nil
+}
+
+// PatchCollection partially updates a tenant-owned collection using JSON Patch
+// operations. The namespace is sent as the X-Tenant header to scope the
+// request to the caller's tenant.
+func (c *EvalHubClient) PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := patch[Collection](c, ctx, path, operations, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "PatchCollection")
+	}
+	return resp, nil
+}
+
+// CloneCollection creates a tenant-scoped copy of an existing collection.
+// The namespace is sent as the X-Tenant header. The request body optionally overrides
+// name, description, category, tags, domains, tasks, modalities, industries,
+// evaluation targets, custom metadata, benchmarks, and pass criteria.
+func (c *EvalHubClient) CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s/clones", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[Collection](c, ctx, path, req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CloneCollection")
+	}
+	return resp, nil
+}
+
+// DeleteCollection permanently removes a benchmark collection from EvalHub.
+// The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
+func (c *EvalHubClient) DeleteCollection(ctx context.Context, id string, namespace string) error {
+	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return err
+	}
+
+	if err := doRequest(c, ctx, http.MethodDelete, path, headers); err != nil {
+		return wrapClientError(err, "DeleteCollection")
+	}
+	return nil
 }
 
 // ListProviders retrieves all evaluation providers with their benchmark catalogues from EvalHub.
@@ -778,6 +924,52 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := readResponseBody(resp.Body, maxPostResponseSize)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, &httpError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
+	}
+
+	var result T
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// patch performs a typed PATCH request against the EvalHub API.
+// extraHeaders is an optional map of additional HTTP headers to include in the request.
+func patch[T any](c *EvalHubClient, ctx context.Context, path string, body any, extraHeaders map[string]string) (*T, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.baseURL+path, bytes.NewReader(jsonBody))
 	if err != nil {
 		return nil, err
 	}

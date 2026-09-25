@@ -1,13 +1,15 @@
 import { applyOpenShiftYaml, pollUntilSuccess } from './baseCommands';
 import { createEvalHubHardwareProfile } from './evalHubHardwareProfile';
 import { checkInferenceServiceState } from './modelServing';
-import type { EvalHubTestData } from '../../types';
+import type { CommandLineResult, EvalHubTestData } from '../../types';
 
 const EVALHUB_DISCOVERY_CONFIGMAP = 'evalhub-discovery';
 const EVALHUB_DISCOVERY_URL_KEY = 'service-url';
 const EVALHUB_JOB_CONFIG_CLUSTER_ROLE = 'trustyai-service-operator-evalhub-job-config';
 const EVALHUB_JOBS_WRITER_CLUSTER_ROLE = 'trustyai-service-operator-evalhub-jobs-writer';
 const KUBERNETES_NAME_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
+const KSERVE_APPLY_MAX_ATTEMPTS = 4;
+const KSERVE_APPLY_RETRY_INTERVAL_MS = 5000;
 
 type EvalHubDiscoveryConfigMap = {
   data?: Partial<Record<string, string>>;
@@ -21,6 +23,40 @@ type EvalHubServiceTarget = {
 type EvalHubServiceIdentity = EvalHubServiceTarget & {
   serviceAccountName: string;
 };
+
+const isTransientKServeWebhookError = (output: string): boolean =>
+  output.includes('failed calling webhook') &&
+  ['context deadline exceeded', 'connection refused', 'no endpoints available for service'].some(
+    (message) => output.includes(message),
+  );
+
+const applyKServeResource = (
+  namespace: string,
+  filePath: string,
+  resourceDescription: string,
+  attempt = 1,
+): Cypress.Chainable<CommandLineResult> =>
+  cy
+    .exec(`oc apply -n ${namespace} -f ${filePath}`, { failOnNonZeroExit: false })
+    .then((result) => {
+      if (result.exitCode === 0) {
+        return cy.wrap(result);
+      }
+
+      const output = result.stderr || result.stdout;
+      if (isTransientKServeWebhookError(output) && attempt < KSERVE_APPLY_MAX_ATTEMPTS) {
+        cy.log(
+          `${resourceDescription} admission webhook was unavailable; retrying ` +
+            `(${attempt}/${KSERVE_APPLY_MAX_ATTEMPTS})`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting -- bounded webhook readiness backoff
+        return cy
+          .wait(KSERVE_APPLY_RETRY_INTERVAL_MS)
+          .then(() => applyKServeResource(namespace, filePath, resourceDescription, attempt + 1));
+      }
+
+      throw new Error(`${resourceDescription} apply failed: ${output}`);
+    });
 
 const assertKubernetesName = (value: string, description: string): string => {
   if (!KUBERNETES_NAME_RE.test(value)) {
@@ -353,11 +389,7 @@ export function setupTenantAndDeployModel(
   cy.fixture(servingRuntimeYamlPath, 'utf8').then((srYaml: string) => {
     const tmpFile = `/tmp/evalhub-sr-${ns}.yaml`;
     cy.writeFile(tmpFile, srYaml);
-    cy.exec(`oc apply -n ${ns} -f ${tmpFile}`, { failOnNonZeroExit: false }).then((result) => {
-      if (result.exitCode !== 0) {
-        throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
-      }
-    });
+    applyKServeResource(ns, tmpFile, 'ServingRuntime');
   });
 
   cy.fixture('resources/eval-hub/evalhub-inference-service.yaml', 'utf8').then(
@@ -368,13 +400,7 @@ export function setupTenantAndDeployModel(
         .replace('__MODEL_URI__', modelOciUri);
       const isvcTmpFile = `/tmp/evalhub-isvc-${ns}.yaml`;
       cy.writeFile(isvcTmpFile, isvcYaml);
-      cy.exec(`oc apply -n ${ns} -f ${isvcTmpFile}`, { failOnNonZeroExit: false }).then(
-        (result) => {
-          if (result.exitCode !== 0) {
-            throw new Error(`InferenceService apply failed: ${result.stderr}`);
-          }
-        },
-      );
+      applyKServeResource(ns, isvcTmpFile, 'InferenceService');
     },
   );
 

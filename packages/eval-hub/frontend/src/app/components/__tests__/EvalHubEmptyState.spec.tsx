@@ -1,12 +1,27 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
+
+const LocationSearch: React.FC = () => {
+  const { search } = useLocation();
+  return <span data-testid="location-search">{search}</span>;
+};
 
 const renderWithRouter = () =>
   render(
-    <MemoryRouter>
-      <EvalHubEmptyState />
+    <MemoryRouter initialEntries={['/test-project?tab=runs']}>
+      <Routes>
+        <Route
+          path="/:namespace"
+          element={
+            <>
+              <EvalHubEmptyState />
+              <LocationSearch />
+            </>
+          }
+        />
+      </Routes>
     </MemoryRouter>,
   );
 
@@ -30,5 +45,12 @@ describe('EvalHubEmptyState', () => {
     expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
       'Start evaluation run',
     );
+  });
+
+  it('should return to the Evaluate tab when starting an evaluation run', () => {
+    renderWithRouter();
+    fireEvent.click(screen.getByTestId('create-evaluation-button'));
+
+    expect(screen.getByTestId('location-search')).toHaveTextContent('?tab=evaluate');
   });
 });

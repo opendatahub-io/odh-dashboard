@@ -599,6 +599,10 @@ func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context
 	})
 
 	if err := kc.Client.List(ctx, list, client.InNamespace(namespace)); err != nil {
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
+			kc.Logger.Debug("NemoGuardrails CRD is unavailable", "namespace", namespace)
+			return "", nil
+		}
 		kc.Logger.Error("failed to list NemoGuardrails CRs", "error", err, "namespace", namespace)
 		return "", fmt.Errorf("failed to list NemoGuardrails CRs: %w", err)
 	}

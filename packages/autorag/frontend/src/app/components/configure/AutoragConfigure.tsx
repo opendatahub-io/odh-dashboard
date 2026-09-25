@@ -92,11 +92,11 @@ import {
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_OVERALL_SCORE,
-  METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
 import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
+import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_FILES,
@@ -927,7 +927,7 @@ function AutoragConfigure({
                             const selected = OPTIMIZATION_METRICS.find(
                               (m) => m.value === field.value,
                             );
-                            const metricDescription = METRIC_DESCRIPTIONS[field.value];
+                            const metricDescription = getMetricDescription(field.value);
                             return (
                               <>
                                 <Select

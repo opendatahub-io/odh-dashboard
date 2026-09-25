@@ -22,12 +22,14 @@ type BenchmarkDrawerPanelProps = {
   benchmark: FlatBenchmark | undefined;
   onClose: () => void;
   onRunBenchmark: (b: FlatBenchmark) => void;
+  primaryActionLabel?: string;
 };
 
 const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   benchmark,
   onClose,
   onRunBenchmark,
+  primaryActionLabel = 'Select benchmark',
 }) => {
   if (!benchmark) {
     // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
@@ -53,7 +55,12 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   };
 
   return (
-    <DrawerPanelContent isResizable minSize="400px" data-testid="benchmark-drawer-panel">
+    <DrawerPanelContent
+      isResizable
+      minSize="400px"
+      focusTrap={{ enabled: true }}
+      data-testid="benchmark-drawer-panel"
+    >
       <DrawerHead style={drawerHeadStyle}>
         <Stack hasGutter>
           {benchmark.category && (
@@ -111,7 +118,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               data-testid="select-benchmark-button"
               onClick={() => onRunBenchmark(benchmark)}
             >
-              Select benchmark
+              {primaryActionLabel}
             </Button>
           </FlexItem>
           <FlexItem>

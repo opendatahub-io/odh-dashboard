@@ -32,6 +32,13 @@ delete that singleton resource.
   the `openshift-service-ca.crt` ConfigMap; create the `pods/portforward`
   subresource in the test namespace; and list ValidatingWebhookConfigurations.
 
+The operator-chaos scenarios additionally require RBAC to get, list, and delete
+controller Pods; get the controller Deployment; create, get, and delete
+NetworkPolicies; create, get, update, and delete PodDisruptionBudgets in the
+operator namespace; create the `pods/eviction` subresource; and patch operand
+Deployments in the test namespace. The cluster CNI must enforce Kubernetes
+NetworkPolicy.
+
 Set the required environment variables:
 
 ```bash
@@ -105,6 +112,53 @@ The equivalent direct command is:
 
 ```bash
 go test -v -count=1 -tags=e2e -timeout=30m -run TestE2E_BFFHealthchecks ./test/e2e/...
+```
+
+## Operator Chaos Scenarios
+
+The destructive chaos suite executes the `pod-kill`, `network-partition`, and
+`pdb-block` experiments from `chaos/experiments` against the deployed
+dashboard-operator controller. It uses operator-chaos injectors inside this E2E
+framework so each test can prove that its fault occurred, explicitly revert it,
+and only then verify recovery. The scenarios run serially and must use an
+isolated early-gate cluster.
+
+Set an explicit safety opt-in and run the selective target:
+
+```bash
+export TEST_ENABLE_CHAOS=true
+export TEST_OPERATOR_NAMESPACE=<namespace-containing-dashboard-operator>
+# Optional when the installed controller uses a different name:
+export TEST_OPERATOR_DEPLOYMENT=dashboard-operator
+
+make test-e2e-chaos
+```
+
+When the compiled test binary does not run from a repository checkout, mount
+the experiment directory and set `TEST_CHAOS_EXPERIMENT_DIR` to that absolute
+path. CI should run the test through its Go-to-JUnit wrapper and retain the
+captured pod UIDs, injected resource names, eviction result, and recovery logs.
+
+The suite validates:
+
+- controller pod replacement after a forced kill while operands remain healthy;
+- managed-resource drift remaining unreconciled after the singleton controller
+  is restarted under an active NetworkPolicy, followed by informer reconnection
+  and drift repair after policy removal; and
+- a real `policy/v1` eviction denied with HTTP 429 while the injected
+  `maxUnavailable: 0` PDB is active.
+
+Every reversible fault registers cleanup immediately. Cleanup uses a fresh
+timeout context, calls both the injector cleanup and stateless revert paths, and
+verifies that the injected NetworkPolicy or PDB is absent before proceeding.
+The NetworkPolicy injector also stamps its resource with the experiment TTL.
+If the test process is forcibly terminated, remove any NetworkPolicy or PDB
+leftovers before retrying:
+
+```bash
+oc delete networkpolicy,poddisruptionbudget \
+  -n "$TEST_OPERATOR_NAMESPACE" \
+  -l app.kubernetes.io/managed-by=operator-chaos
 ```
 
 ## Compile and Run in a Container
