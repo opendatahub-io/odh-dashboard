@@ -1,14 +1,21 @@
 import { resolveTreeNodeVisualState } from '~/app/topology/tree-view/treeNodeVisualState';
 
 describe('resolveTreeNodeVisualState', () => {
-  it('should use winner chrome when a rank is present', () => {
+  it('should use winner chrome only for an explicitly resolved winner', () => {
     expect(
       resolveTreeNodeVisualState({
         stepState: 'completed',
         justCompleted: true,
-        winnerRank: 1,
+        isResolvedWinner: true,
       }),
     ).toBe('winner');
+    expect(
+      resolveTreeNodeVisualState({
+        stepState: 'completed',
+        justCompleted: false,
+        isResolvedWinner: false,
+      }),
+    ).toBe('success');
   });
 
   it('should flash just-completed then rest as success', () => {
@@ -28,6 +35,23 @@ describe('resolveTreeNodeVisualState', () => {
         winnerRank: 1,
       }),
     ).toBe('pending');
+  });
+
+  it('should preserve failed and active states for ranked nodes', () => {
+    expect(
+      resolveTreeNodeVisualState({
+        stepState: 'failed',
+        justCompleted: false,
+        isResolvedWinner: true,
+      }),
+    ).toBe('failed');
+    expect(
+      resolveTreeNodeVisualState({
+        stepState: 'active',
+        justCompleted: false,
+        isResolvedWinner: true,
+      }),
+    ).toBe('active');
   });
 
   it('should map failed, active, and pending/unreached states', () => {

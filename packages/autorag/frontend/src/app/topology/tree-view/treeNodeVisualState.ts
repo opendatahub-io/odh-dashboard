@@ -46,13 +46,13 @@ export const useJustCompleted = (stepState: TreeStepState): boolean => {
 export const resolveTreeNodeVisualState = ({
   stepState,
   justCompleted,
-  winnerRank,
+  isResolvedWinner,
 }: {
   stepState: TreeStepState;
   justCompleted: boolean;
-  winnerRank?: WinnerRank;
+  isResolvedWinner?: boolean;
 }): TreeNodeVisualState => {
-  if (winnerRank && stepState === 'completed') {
+  if (isResolvedWinner && stepState === 'completed') {
     return 'winner';
   }
   if (stepState === 'failed') {

@@ -239,12 +239,14 @@ const patternTerminusExtras = (
   }
 
   const winnerRank = resolvePatternRank(topologyNode, options.patternRanks);
+  const isWinner = matchesWinnerPattern(topologyNode, options);
+  const isResolvedWinner = options.winnerResolved && isWinner;
+  extras.isResolvedWinner = isResolvedWinner;
+  extras.showWinnerStar = isResolvedWinner && (winnerRank === undefined || winnerRank === 1);
   if (winnerRank) {
     extras.winnerRank = winnerRank;
-    extras.showWinnerStar = winnerRank === 1;
   }
 
-  const isWinner = matchesWinnerPattern(topologyNode, options);
   let collapsedRowLabel: string | undefined;
   if (isCollapsedSpine) {
     const collapsedBranchIndex = getBranchIndex(topologyNode.id);
@@ -259,7 +261,6 @@ const patternTerminusExtras = (
         ...extras,
         label: collapsedRowLabel,
         labelSubtitle: 'winner',
-        showWinnerStar: true,
         winnerRank: extras.winnerRank ?? 1,
       };
     }
@@ -278,7 +279,6 @@ const patternTerminusExtras = (
       ...extras,
       label: options.winnerPatternLabel ?? topologyNode.label,
       labelSubtitle: 'winner',
-      showWinnerStar: true,
       winnerRank: extras.winnerRank ?? 1,
     };
   }

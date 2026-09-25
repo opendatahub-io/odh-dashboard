@@ -29,12 +29,14 @@ jest.mock('~/app/topology/utils', () => ({
     pipelineTask,
     runAfterTasks,
     runStatus,
+    patternKey,
   }: {
     id: string;
     label: string;
     pipelineTask: unknown;
     runAfterTasks?: string[];
     runStatus?: string;
+    patternKey?: string;
   }) => ({
     id,
     label,
@@ -42,7 +44,7 @@ jest.mock('~/app/topology/utils', () => ({
     width: 100,
     height: 30,
     runAfterTasks,
-    data: { pipelineTask, runStatus },
+    data: { pipelineTask, runStatus, patternKey },
   }),
 }));
 
@@ -371,13 +373,20 @@ describe('transformStageMapNodesToTree', () => {
       patternsExpanded: true,
       winnerResolved: true,
       winnerPatternLabel: 'PatternHyDE',
+      winnerPatternKey: 'PatternHyDE',
+      patternRanks: { PatternGraphRAG: 1, PatternHyDE: 2 },
     });
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(2);
-    const winner = patternNodes.find((node) => node.data.showWinnerStar);
+    const winner = patternNodes.find((node) => node.data.isResolvedWinner);
     expect(winner?.data.hideLabel).toBe(true);
     expect(winner?.data.labelSubtitle).toBe('winner');
+    expect(winner?.data.winnerRank).toBe(2);
+    expect(winner?.data.showWinnerStar).toBe(false);
+    const rankOneNonWinner = patternNodes.find((node) => node.data.winnerRank === 1);
+    expect(rankOneNonWinner?.data.isResolvedWinner).toBe(false);
+    expect(rankOneNonWinner?.data.showWinnerStar).toBe(false);
     expect(nodes.some((node) => node.data.nodeRole === 'column-header')).toBe(true);
     expect(nodes.some((node) => node.data.nodeRole === 'column-rule')).toBe(true);
     const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
@@ -427,6 +436,32 @@ describe('transformStageMapNodesToTree', () => {
     const lastRow = firstBranchNodes.reduce((lowest, node) => (node.y > lowest.y ? node : lowest));
     const expandedToggle = nodes.find((node) => node.data.nodeRole === 'patterns-toggle');
     expect((expandedToggle?.y ?? 0) - lastRow.y).toBe(50);
+  });
+
+  it('preserves pattern ranks without applying winner chrome when unresolved', () => {
+    const completedOptimization = makeComponent('rag_optimization', [
+      makeStage('validate_inputs', { status: 'completed' }),
+      makeStage('optimize_templates', {
+        status: 'completed',
+        selected_patterns: ['PatternGraphRAG', 'PatternHyDE'],
+        steps: ['chunking'],
+      }),
+      makeStage('run_optimization', { status: 'completed' }),
+      makeStage('write_patterns', { status: 'completed' }),
+      makeStage('build_leaderboard', { status: 'completed' }),
+    ]);
+    const topologyNodes = buildStageMapTopology(makeStageMap([completedOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: false,
+      patternRanks: { PatternGraphRAG: 1, PatternHyDE: 2 },
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes.map((node) => node.data.stepState)).toEqual(['completed', 'completed']);
+    expect(patternNodes.map((node) => node.data.winnerRank)).toEqual([1, 2]);
+    expect(patternNodes.every((node) => node.data.isResolvedWinner === false)).toBe(true);
+    expect(patternNodes.every((node) => node.data.showWinnerStar === false)).toBe(true);
   });
 
   it('should mark later pending stages unreached after an earlier failure', () => {

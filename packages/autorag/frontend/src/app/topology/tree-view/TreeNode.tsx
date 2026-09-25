@@ -48,6 +48,8 @@ export type TreeNodeData = {
   labelSubtitle?: string;
   stepState: 'completed' | 'active' | 'pending' | 'failed' | 'unreached';
   activeIconVariant?: 'sync' | 'pulse';
+  /** Pattern is the resolved winner for this run, independent of its leaderboard rank. */
+  isResolvedWinner?: boolean;
   /** Star decorator (upper-right) for the rank-1 winning pattern terminus. */
   showWinnerStar?: boolean;
   /** Rank 1–3 badges on pattern result nodes (expanded table). */
@@ -455,52 +457,52 @@ const FailedNodeBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
 });
 FailedNodeBadge.displayName = 'FailedNodeBadge';
 
-/** Filled rank badge at the top-left: gold star for 1, orange 2/3. */
-const WinnerRankBadge: React.FC<{ rank: WinnerRank; size: number }> = React.memo(
-  ({ rank, size }) => {
-    const isStar = rank === 1;
-    const iconSize = WINNER_BADGE_RADIUS * 1.35;
-    // Center on the upper-left stroke (same 45° point as the failed badge).
-    const pos = (size / 2) * (1 - Math.SQRT1_2);
-    return (
-      <g
-        className={cx(
-          'autorag-tree-node__winner-badge',
-          isStar
-            ? 'autorag-tree-node__winner-badge--star'
-            : rank === 3
-              ? 'autorag-tree-node__winner-badge--rank-3'
-              : 'autorag-tree-node__winner-badge--rank-2',
-        )}
-        transform={`translate(${pos}, ${pos})`}
-        data-testid={`winner-rank-badge-${rank}`}
-        role="img"
-        aria-label={isStar ? 'Pattern winner' : `Pattern winner ${rank}`}
-      >
-        <circle className="autorag-tree-node__winner-badge-disc" r={WINNER_BADGE_RADIUS} />
-        {isStar ? (
-          <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
-            <StarIcon
-              className="autorag-tree-node__winner-badge-icon"
-              width={iconSize}
-              height={iconSize}
-              color={iconColorInverse.var}
-              style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
-            />
-          </g>
-        ) : (
-          <text
-            className="autorag-tree-node__winner-badge-text"
-            textAnchor="middle"
-            dominantBaseline="central"
-          >
-            {rank}
-          </text>
-        )}
-      </g>
-    );
-  },
-);
+/** Rank badge at the top-left: gold star for the resolved rank-1 winner, rank otherwise. */
+const WinnerRankBadge: React.FC<{
+  rank: WinnerRank;
+  isResolvedWinner: boolean;
+  size: number;
+}> = React.memo(({ rank, isResolvedWinner, size }) => {
+  const isStar = rank === 1 && isResolvedWinner;
+  const iconSize = WINNER_BADGE_RADIUS * 1.35;
+  // Center on the upper-left stroke (same 45° point as the failed badge).
+  const pos = (size / 2) * (1 - Math.SQRT1_2);
+  return (
+    <g
+      className={cx(
+        'autorag-tree-node__winner-badge',
+        isStar
+          ? 'autorag-tree-node__winner-badge--star'
+          : `autorag-tree-node__winner-badge--rank-${rank}`,
+      )}
+      transform={`translate(${pos}, ${pos})`}
+      data-testid={`winner-rank-badge-${rank}`}
+      role="img"
+      aria-label={isStar ? 'Pattern winner' : `Pattern rank ${rank}`}
+    >
+      <circle className="autorag-tree-node__winner-badge-disc" r={WINNER_BADGE_RADIUS} />
+      {isStar ? (
+        <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
+          <StarIcon
+            className="autorag-tree-node__winner-badge-icon"
+            width={iconSize}
+            height={iconSize}
+            color={iconColorInverse.var}
+            style={{ color: iconColorInverse.var, fill: iconColorInverse.var }}
+          />
+        </g>
+      ) : (
+        <text
+          className="autorag-tree-node__winner-badge-text"
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          {rank}
+        </text>
+      )}
+    </g>
+  );
+});
 WinnerRankBadge.displayName = 'WinnerRankBadge';
 
 const TreeNodeInner: React.FC<{
@@ -514,7 +516,8 @@ const TreeNodeInner: React.FC<{
   const stepState = data?.stepState ?? 'pending';
   const justCompleted = useJustCompleted(stepState);
   const winnerRank = data?.winnerRank;
-  const visualState = resolveTreeNodeVisualState({ stepState, justCompleted, winnerRank });
+  const isResolvedWinner = data?.isResolvedWinner === true;
+  const visualState = resolveTreeNodeVisualState({ stepState, justCompleted, isResolvedWinner });
   const activeIconVariant = data?.activeIconVariant;
   const hideLabel = data?.hideLabel === true;
   const nodeRole = data?.nodeRole ?? 'task';
@@ -524,7 +527,9 @@ const TreeNodeInner: React.FC<{
   const taskLabel = hideLabel || isAnnotation ? annotationLabel : (data?.label ?? node.getLabel());
   const labelSubtitle = hideLabel || isAnnotation ? undefined : data?.labelSubtitle;
   const showWinnerStar =
-    visualState === 'winner' && (data?.showWinnerStar === true || winnerRank === 1);
+    visualState === 'winner' &&
+    isResolvedWinner &&
+    (data.showWinnerStar === true || winnerRank === 1);
   const nodeStatus =
     visualState === 'winner'
       ? undefined
@@ -654,7 +659,9 @@ const TreeNodeInner: React.FC<{
           data-branch-step={branchStep ? 'true' : 'false'}
           data-status-only={branchStep ? 'true' : 'false'}
           data-winner-star={showWinnerStar ? 'true' : 'false'}
-          data-winner-rank={visualState === 'winner' && winnerRank ? String(winnerRank) : undefined}
+          data-winner-rank={
+            stepState === 'completed' && winnerRank ? String(winnerRank) : undefined
+          }
           data-node-role={nodeRole}
         >
           {visualState === 'pending' && showsTaskIcon ? (
@@ -752,10 +759,10 @@ const TreeNodeInner: React.FC<{
       </DefaultNode>
       {visualState === 'active' && showsTaskIcon ? <ActiveNodeBadge node={node} /> : null}
       {visualState === 'failed' && showsTaskIcon ? <FailedNodeBadge size={width} /> : null}
-      {visualState === 'winner' && winnerRank ? (
-        <WinnerRankBadge rank={winnerRank} size={width} />
+      {stepState === 'completed' && winnerRank ? (
+        <WinnerRankBadge rank={winnerRank} isResolvedWinner={isResolvedWinner} size={width} />
       ) : showWinnerStar ? (
-        <WinnerRankBadge rank={1} size={width} />
+        <WinnerRankBadge rank={1} isResolvedWinner={isResolvedWinner} size={width} />
       ) : null}
     </g>
   );

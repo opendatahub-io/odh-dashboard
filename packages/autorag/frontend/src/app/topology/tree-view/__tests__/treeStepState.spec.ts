@@ -43,6 +43,8 @@ describe('isTreeNodeData', () => {
     expect(isTreeNodeData({ stepState: 'active', winnerRank: 2, nodeRole: 'row-label' })).toBe(
       true,
     );
+    expect(isTreeNodeData({ stepState: 'completed', isResolvedWinner: true })).toBe(true);
+    expect(isTreeNodeData({ stepState: 'completed', isResolvedWinner: 'yes' })).toBe(false);
     expect(isTreeNodeData({ stepState: 'active', winnerRank: 4 })).toBe(false);
     expect(isTreeNodeData({ stepState: 'active', nodeRole: 'column-rule' })).toBe(true);
     expect(isTreeNodeData({ stepState: 'active', columnRuleWidth: 240 })).toBe(true);

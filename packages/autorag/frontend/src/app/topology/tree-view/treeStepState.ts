@@ -64,6 +64,14 @@ export const isTreeNodeData = (data: unknown): data is TreeNodeData => {
   }
 
   if (
+    'isResolvedWinner' in data &&
+    data.isResolvedWinner !== undefined &&
+    typeof data.isResolvedWinner !== 'boolean'
+  ) {
+    return false;
+  }
+
+  if (
     'showWinnerStar' in data &&
     data.showWinnerStar !== undefined &&
     typeof data.showWinnerStar !== 'boolean'

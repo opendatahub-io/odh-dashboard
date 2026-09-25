@@ -211,6 +211,11 @@
   stroke: none;
 }
 
+.autorag-tree-node__winner-badge--rank-1 .autorag-tree-node__winner-badge-disc {
+  fill: var(--pf-t--global--color--status--warning--200);
+  stroke: none;
+}
+
 .autorag-tree-node__winner-badge--rank-2 .autorag-tree-node__winner-badge-disc {
   fill: #c4610e;
   stroke: none;
