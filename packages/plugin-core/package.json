@@ -22,6 +22,11 @@
     "./__mocks__/mockDsciStatus": "./src/__mocks__/mockDsciStatus.ts",
     "./__mocks__/mockDscStatus": "./src/__mocks__/mockDscStatus.ts"
   },
+  "module-federation-shared": [
+    "./areas",
+    "./host-api",
+    "./integrations"
+  ],
   "dependencies": {
     "@odh-dashboard/foundation": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
