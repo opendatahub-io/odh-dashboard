@@ -1,5 +1,6 @@
 {
   "name": "autorag-ui",
+  "lint:owner": true,
   "version": "1.0.0",
   "description": "A user interface for AutoRAG",
   "license": "Apache-2.0",

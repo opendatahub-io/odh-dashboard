@@ -1,5 +1,6 @@
 {
   "name": "autox-core-ui",
+  "lint:owner": true,
   "version": "0.0.0",
   "description": "AutoX frontend shared library",
   "license": "Apache-2.0",

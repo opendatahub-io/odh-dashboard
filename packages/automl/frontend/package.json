@@ -1,5 +1,6 @@
 {
   "name": "automl-ui",
+  "lint:owner": true,
   "version": "1.0.0",
   "description": "An user interface for AutoML projects",
   "repository": "https://github.com/opendatahub-io/mod-arch-library.git",

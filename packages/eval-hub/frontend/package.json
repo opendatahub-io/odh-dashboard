@@ -1,5 +1,6 @@
 {
   "name": "eval-hub-ui",
+  "lint:owner": true,
   "version": "1.0.0",
   "description": "An user interface for Eval Hub projects",
   "repository": "https://github.com/opendatahub-io/mod-arch-library.git",
