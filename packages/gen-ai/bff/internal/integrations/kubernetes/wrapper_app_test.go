@@ -45,6 +45,8 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `elif AGENT_MODEL_SOURCE_TYPE == "custom_endpoint":`)
 	assert.Contains(t, script, `elif AGENT_MODEL_SOURCE_TYPE == "namespace":`)
 	assert.Contains(t, script, `AGENT_MODEL_API_KEY`)
+	assert.Contains(t, script, `if api_key := os.environ.get("AGENT_MODEL_API_KEY"):`)
+	assert.NotContains(t, script, `Custom endpoint credentials are not configured`)
 	assert.Contains(t, script, `sanitized_headers`)
 	assert.Contains(t, script, `"detail": "Unsupported model source type"`)
 

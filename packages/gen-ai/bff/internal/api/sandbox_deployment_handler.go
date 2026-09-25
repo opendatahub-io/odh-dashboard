@@ -297,33 +297,35 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		secretRef := provider.Config.CustomGenAI.APIKey.SecretRef
-		if secretRef.Name == "" || secretRef.Key == "" {
+		if secretRef.Name != "" && secretRef.Key == "" {
 			rollback()
-			app.badRequestResponse(w, r, fmt.Errorf("custom endpoint model %q has no API key Secret reference", profile.Spec.Model.ID))
+			app.badRequestResponse(w, r, fmt.Errorf("custom endpoint model %q has a Secret name but no key", profile.Spec.Model.ID))
 			return
 		}
-		apiKey, secretErr := k8sClient.GetSecretValue(ctx, nil, namespace, secretRef.Name, secretRef.Key)
-		if secretErr != nil {
-			rollback()
-			if apierrors.IsForbidden(secretErr) {
-				app.forbiddenResponse(w, r, fmt.Sprintf("access denied reading secret %q", secretRef.Name))
+		if secretRef.Name != "" {
+			apiKey, secretErr := k8sClient.GetSecretValue(ctx, nil, namespace, secretRef.Name, secretRef.Key)
+			if secretErr != nil {
+				rollback()
+				if apierrors.IsForbidden(secretErr) {
+					app.forbiddenResponse(w, r, fmt.Sprintf("access denied reading secret %q", secretRef.Name))
+					return
+				}
+				app.serverErrorResponse(w, r, secretErr)
 				return
 			}
-			app.serverErrorResponse(w, r, secretErr)
-			return
-		}
-		secret, secretErr := k8sClient.CreateSandboxModelAuthSecret(ctx, namespace, apiKey)
-		if secretErr != nil {
-			rollback()
-			if httpErr, ok := secretErr.(*integrations.HTTPError); ok && httpErr.StatusCode == http.StatusForbidden {
-				app.forbiddenResponse(w, r, httpErr.Message)
+			secret, secretErr := k8sClient.CreateSandboxModelAuthSecret(ctx, namespace, apiKey)
+			if secretErr != nil {
+				rollback()
+				if httpErr, ok := secretErr.(*integrations.HTTPError); ok && httpErr.StatusCode == http.StatusForbidden {
+					app.forbiddenResponse(w, r, httpErr.Message)
+					return
+				}
+				app.serverErrorResponse(w, r, secretErr)
 				return
 			}
-			app.serverErrorResponse(w, r, secretErr)
-			return
+			resources.MCPAuthSecretNames = append(resources.MCPAuthSecretNames, secret.Name)
+			modelAuthSecret = &kubernetes.SandboxSecretEnvVar{Name: "AGENT_MODEL_API_KEY", SecretName: secret.Name}
 		}
-		resources.MCPAuthSecretNames = append(resources.MCPAuthSecretNames, secret.Name)
-		modelAuthSecret = &kubernetes.SandboxSecretEnvVar{Name: "AGENT_MODEL_API_KEY", SecretName: secret.Name}
 	}
 
 	// Build Sandbox CR options from the profile snapshot and BFF config.

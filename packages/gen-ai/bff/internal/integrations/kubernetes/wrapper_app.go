@@ -197,12 +197,9 @@ class MaaSTokenMiddleware:
                 provider_data = json.dumps({"openai_api_key": api_key}).encode()
                 sanitized_headers.append((b"x-ogx-provider-data", provider_data))
             elif AGENT_MODEL_SOURCE_TYPE == "custom_endpoint":
-                try:
-                    provider_data = json.dumps({"openai_api_key": os.environ["AGENT_MODEL_API_KEY"]}).encode()
-                except KeyError:
-                    await _send_json(send, 500, {"detail": "Custom endpoint credentials are not configured"})
-                    return
-                sanitized_headers.append((b"x-ogx-provider-data", provider_data))
+                if api_key := os.environ.get("AGENT_MODEL_API_KEY"):
+                    provider_data = json.dumps({"openai_api_key": api_key}).encode()
+                    sanitized_headers.append((b"x-ogx-provider-data", provider_data))
             elif AGENT_MODEL_SOURCE_TYPE == "namespace":
                 provider_data = json.dumps({"openai_api_key": user_token}).encode()
                 sanitized_headers.append((b"x-ogx-provider-data", provider_data))
