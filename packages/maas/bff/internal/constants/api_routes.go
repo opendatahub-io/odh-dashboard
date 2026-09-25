@@ -8,6 +8,9 @@ const (
 	APIKeySearchPath     = ApiPathPrefix + "/api-keys/search"
 	APIKeyBulkRevokePath = ApiPathPrefix + "/api-keys/bulk-revoke"
 	APIKeyByIDPath       = ApiPathPrefix + "/api-keys/:id"
+	// APIKeyConfigPath is a sibling of /api-keys (not /api-keys/config) so it does not
+	// conflict with httprouter's GET /api-keys/:id registration.
+	APIKeyConfigPath = ApiPathPrefix + "/api-keys-config"
 
 	// Access review
 	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"

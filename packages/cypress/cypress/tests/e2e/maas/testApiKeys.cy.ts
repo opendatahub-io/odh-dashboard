@@ -183,9 +183,7 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
       createApiKeyModal
         .findSubscriptionModelRateLimit(modelName)
         .should('contain.text', tokenLimit);
-      createApiKeyModal
-        .findExpirationToggle()
-        .should('contain.text', testData.apiKeyExpirationTime);
+      createApiKeyModal.findExpirationDateInput().should('exist');
       createApiKeyModal.findSubmitButton().click();
       copyApiKeyModal.findApiKeyName().should('contain.text', apiKeyName);
       copyApiKeyModal.findSubscriptionName().should('contain.text', subscriptionName);
@@ -255,18 +253,16 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
       createApiKeyModal
         .findSubscriptionModelRateLimit(modelName)
         .should('contain.text', tokenLimit);
-      createApiKeyModal.findExpirationToggle().click();
-      createApiKeyModal.findExpirationOption(testData.apiKeyExpirationTimeInvalid).click();
-      createApiKeyModal.findSubmitButton().click();
-      createApiKeyModal.findErrorAlert().should('exist');
-      createApiKeyModal.findExpirationToggle().click();
-      createApiKeyModal.findExpirationOption(apiKeyExpirationTimeId).click();
+      createApiKeyModal.setAfterDays(200);
+      createApiKeyModal.findSubmitButton().should('be.disabled');
+      createApiKeyModal.findExpirationModeToggle().should('exist');
+      createApiKeyModal.setAfterDays(30);
       createApiKeyModal.findSubmitButton().click();
 
       copyApiKeyModal.shouldBeOpen();
       copyApiKeyModal.findApiKeyName().should('contain.text', secondApiKeyName);
       copyApiKeyModal.findSubscriptionName().should('contain.text', subscriptionName);
-      copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', apiKeyExpirationTime);
+      copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '30 days');
       copyApiKeyModal.findCloseButton().click();
       apiKeysPage.findRows().should('contain.text', secondApiKeyName);
 

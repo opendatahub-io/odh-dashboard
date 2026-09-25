@@ -4,6 +4,7 @@ import { UserSubscription } from '~/app/types/subscriptions';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
 import { searchApiKeys } from '~/app/api/api-keys';
+import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const KeysAndSubsContext = React.createContext({} as KeysAndSubsContextType);
@@ -18,6 +19,9 @@ type KeysAndSubsContextType = {
   hasAnyApiKeys: boolean; // from a single existence-check search (limit 1)
   hasAnyApiKeysLoaded: boolean;
   hasAnyApiKeysError: Error | undefined;
+  maxExpirationDays: number;
+  apiKeyConfigLoaded: boolean;
+  apiKeyConfigError: Error | undefined;
   refresh: () => void;
 };
 
@@ -54,11 +58,15 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   const [hasAnyApiKeys, hasAnyApiKeysLoaded, hasAnyApiKeysError, refreshHasAnyApiKeys] =
     useFetchState(hasAnyApiKeysCallback, false, { refreshRate: POLL_INTERVAL });
 
+  const [apiKeyConfig, apiKeyConfigLoaded, apiKeyConfigError, refreshApiKeyConfig] =
+    useApiKeyConfig();
+
   const refresh = React.useCallback(() => {
     refreshSubscriptions();
     refreshIsMaasAdmin();
     refreshHasAnyApiKeys();
-  }, [refreshSubscriptions, refreshIsMaasAdmin, refreshHasAnyApiKeys]);
+    refreshApiKeyConfig();
+  }, [refreshSubscriptions, refreshIsMaasAdmin, refreshHasAnyApiKeys, refreshApiKeyConfig]);
 
   const value = React.useMemo(
     () => ({
@@ -71,6 +79,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
       hasAnyApiKeys,
       hasAnyApiKeysLoaded,
       hasAnyApiKeysError,
+      maxExpirationDays: apiKeyConfig.max_expiration_days,
+      apiKeyConfigLoaded,
+      apiKeyConfigError,
       refresh,
     }),
     [
@@ -83,6 +94,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
       hasAnyApiKeys,
       hasAnyApiKeysLoaded,
       hasAnyApiKeysError,
+      apiKeyConfig.max_expiration_days,
+      apiKeyConfigLoaded,
+      apiKeyConfigError,
       refresh,
     ],
   );

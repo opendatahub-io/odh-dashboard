@@ -18,6 +18,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { APIKey } from '~/app/types/api-key';
 import { UserSubscription } from '~/app/types/subscriptions';
 import { useSubscriptionApiKeysTableState } from '~/app/hooks/useSubscriptionApiKeysTableState';
+import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import ApiKeysTableRow from '~/app/pages/keys-and-subs/apiKeys/allKeys/ApiKeysTableRow';
 import { ApiKeyColumn } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal';
@@ -109,19 +110,22 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
     onPerPageSelect,
     onSort,
   } = useSubscriptionApiKeysTableState(subscriptionId);
+  const { maxExpirationDays, apiKeyConfigLoaded, apiKeyConfigError } = useKeysAndSubsContext();
 
   const apiKeys = response.data;
-  const showTableLoading = !loaded || isFetching;
+  const showTableLoading = !loaded || isFetching || !apiKeyConfigLoaded;
+  const tableError = error ?? apiKeyConfigError;
   const activeSortIndex = subscriptionApiKeyColumns.findIndex(
     (c) => c.serverSortField === sortField,
   );
 
   return (
     <>
-      {isModalOpen && (
+      {isModalOpen && apiKeyConfigLoaded && !apiKeyConfigError && (
         <CreateApiKeyModal
           initialSubscription={subscription}
           initiatedFrom={ApiKeyCreateInitiatedFrom.SUBSCRIPTION_DETAIL}
+          maxExpirationDays={maxExpirationDays}
           onClose={(created?: boolean) => {
             setIsModalOpen(false);
             if (created) {
@@ -154,7 +158,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
             <Button
               variant="primary"
               onClick={() => setIsModalOpen(true)}
-              isDisabled={!loaded}
+              isDisabled={!loaded || !apiKeyConfigLoaded || !!apiKeyConfigError}
               data-testid="create-api-key-button"
             >
               Create API key
@@ -163,14 +167,14 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
         </ToolbarContent>
       </Toolbar>
 
-      {error && (
+      {tableError && (
         <Alert
           variant="danger"
           isInline
           title="Failed to load API keys"
           data-testid="subscription-api-keys-error"
         >
-          {error.message}
+          {tableError.message}
         </Alert>
       )}
       <Table data-testid="subscription-api-keys-table" aria-label="Subscription API keys table">
@@ -205,7 +209,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
           </Tr>
         </Thead>
         <Tbody>
-          {showTableLoading && !error ? (
+          {showTableLoading && !tableError ? (
             <SubscriptionApiKeySkeletonRows rowCount={perPage} />
           ) : apiKeys.length === 0 ? (
             <Tr>

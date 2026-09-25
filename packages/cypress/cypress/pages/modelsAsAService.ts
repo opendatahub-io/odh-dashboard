@@ -328,20 +328,50 @@ class CreateApiKeyModal extends Modal {
     return this.find().findByTestId('api-key-description-input');
   }
 
-  findExpirationToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('api-key-expiration-toggle');
+  findExpirationModeToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-expiration-mode-toggle');
   }
 
-  findExpirationOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`api-key-expiration-option-${value}`);
+  findExpirationModeOption(
+    mode: 'max' | 'onDate' | 'after',
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-expiration-mode-${mode}`);
   }
 
-  findCustomDaysInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('api-key-custom-days-input');
+  selectExpirationMode(mode: 'max' | 'onDate' | 'after'): void {
+    this.findExpirationModeToggle().click();
+    this.findExpirationModeOption(mode).click();
   }
 
-  findCustomDaysErrorMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('api-key-custom-days-error-message');
+  findExpirationDateInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-expiration-date-picker').find('input');
+  }
+
+  findAfterDaysInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-expiration-after-days-input');
+  }
+
+  findExpirationHelper(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-expiration-helper');
+  }
+
+  /** Sets after-days mode and enters a day count. */
+  setAfterDays(days: number): void {
+    this.selectExpirationMode('after');
+    this.findAfterDaysInput().clear().type(String(days)).blur();
+  }
+
+  /** Sets on-date mode and enters today + days (YYYY-MM-DD). */
+  setExpirationDaysFromToday(days: number): void {
+    this.selectExpirationMode('onDate');
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    const value = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+    this.findExpirationDateInput().clear().type(value).blur();
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {

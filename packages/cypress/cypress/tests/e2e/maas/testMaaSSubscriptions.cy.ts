@@ -451,10 +451,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .type(`Cypress test: API key for ${subscriptionName}`);
       createApiKeyModal.findSubscriptionToggle().click();
       createApiKeyModal.findSubscriptionOption(subscriptionName).click();
-      createApiKeyModal.findExpirationToggle().click();
-      createApiKeyModal.findExpirationOption('custom').click();
-      createApiKeyModal.findCustomDaysInput().should('exist');
-      createApiKeyModal.findCustomDaysInput().type('1');
+      createApiKeyModal.setAfterDays(1);
       createApiKeyModal.findSubmitButton().should('be.enabled');
       createApiKeyModal.findSubmitButton().click();
 
