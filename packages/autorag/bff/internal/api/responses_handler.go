@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"time"
 
@@ -30,6 +31,8 @@ type ResponsesHandler struct {
 
 type RAGResponseEnvelope Envelope[*models.RAGResponse, None]
 
+const maxFileSearchResults = 100
+
 // ResponsesHandler handles POST /api/v1/pipeline-runs/:runId/patterns/:patternName/responses
 func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	params, ok := h.extractParams(w, r)
@@ -41,6 +44,10 @@ func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *htt
 	var req models.ResponsesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
+		return
+	}
+	if err := validateResponsesRequest(&req); err != nil {
+		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
 
@@ -58,6 +65,21 @@ func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *htt
 	if err := writeJSON(w, http.StatusOK, RAGResponseEnvelope{Data: result}, nil); err != nil {
 		serverErrorResponse(h.logger, w, r, err)
 	}
+}
+
+func validateResponsesRequest(req *models.ResponsesRequest) error {
+	for _, tool := range req.Tools {
+		if tool.Type != "file_search" {
+			continue
+		}
+		if tool.MaxNumResults < 0 || tool.MaxNumResults > maxFileSearchResults {
+			return fmt.Errorf("file_search max_num_results must be between 0 and %d", maxFileSearchResults)
+		}
+		if math.IsNaN(tool.RankingOptions.Alpha) || math.IsInf(tool.RankingOptions.Alpha, 0) || tool.RankingOptions.Alpha < 0 || tool.RankingOptions.Alpha > 1 {
+			return fmt.Errorf("file_search ranking_options.alpha must be between 0 and 1")
+		}
+	}
+	return nil
 }
 
 // extractParams pulls and validates the common parameters for the responses endpoint.
@@ -134,7 +156,7 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 		if msg.Role == "user" {
 			for _, c := range msg.Content {
 				if c.Type == "input_text" {
-					question = c.Text
+					question += c.Text
 				}
 			}
 		}
@@ -170,7 +192,13 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 	})
 
 	if err != nil {
-		sseData(w, flusher, map[string]any{"type": "error", "message": err.Error()})
+		h.logger.Error("RAG streaming response failed",
+			"namespace", params.Namespace,
+			"vector_db_secret_name", params.VectorDbSecretName,
+			"maas_secret_name", params.MaasSecretName,
+			"error", err,
+		)
+		sseData(w, flusher, map[string]any{"type": "error", "sequence_number": next(), "message": err.Error()})
 		fmt.Fprintf(w, "data: [DONE]\n\n")
 		if flusher != nil {
 			flusher.Flush()
@@ -212,7 +240,8 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 	})
 
 	sseData(w, flusher, map[string]any{
-		"type": "response.metrics",
+		"type":            "response.metrics",
+		"sequence_number": next(),
 		"metrics": map[string]any{
 			"latency_ms":             result.LatencyMs,
 			"time_to_first_token_ms": result.FirstTokenMs,

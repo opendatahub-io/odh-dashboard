@@ -59,10 +59,21 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
 }) => {
   const { parameters, patterns } = useAutoragResultsContext();
   const secretName =
-    typeof parameters?.ogx_secret_name === 'string' ? parameters.ogx_secret_name : '';
+    typeof parameters?.maas_secret_name === 'string'
+      ? parameters.maas_secret_name
+      : typeof parameters?.ogx_secret_name === 'string'
+        ? parameters.ogx_secret_name
+        : '';
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
 
-  const vectorDbSecretName = (parameters?.vector_io_provider_id ?? '').replace(/-remote$/, '');
+  const vectorDbSecretNameParameter = parameters?.vector_db_secret_name;
+  const vectorIoProviderId = parameters?.vector_io_provider_id;
+  const vectorDbSecretName =
+    typeof vectorDbSecretNameParameter === 'string'
+      ? vectorDbSecretNameParameter
+      : typeof vectorIoProviderId === 'string'
+        ? vectorIoProviderId.replace(/-remote$/, '')
+        : '';
   const responsesEndpointUrl = React.useMemo(() => {
     if (!vectorDbSecretName || !secretName) {
       return undefined;
@@ -82,6 +93,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
       embedding_model: settings.embedding.model_id,
       system_message_text: settings.generation.system_message_text ?? '',
       context_template_text: settings.generation.context_template_text ?? '',
+      user_message_text: settings.generation.user_message_text ?? '',
       /* eslint-enable camelcase */
     };
   }, [patterns, patternInfo.patternName]);
@@ -118,13 +130,11 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               )}
             >
               <SelectList>
-                {Object.entries(patterns)
-                  .filter(([, p]) => p.inference?.responses_template)
-                  .map(([name]) => (
-                    <SelectOption key={name} value={name}>
-                      {formatPatternName(name)}
-                    </SelectOption>
-                  ))}
+                {Object.entries(patterns).map(([name]) => (
+                  <SelectOption key={name} value={name}>
+                    {formatPatternName(name)}
+                  </SelectOption>
+                ))}
               </SelectList>
             </Select>
           </FlexItem>

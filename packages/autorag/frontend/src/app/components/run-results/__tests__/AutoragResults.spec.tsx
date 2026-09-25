@@ -917,17 +917,32 @@ describe('AutoragResults', () => {
     };
     const patterns = { Pattern1: patternWithTemplate };
 
-    it('should not expose Try this pattern from the leaderboard action', () => {
+    it('should expose Try this pattern from the leaderboard action', () => {
       const onTryPattern = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
 
       const row = screen.getByTestId('leaderboard-row-1');
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
 
-      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
     });
 
-    it('should not expose Try this pattern from the pattern details modal action', async () => {
+    it('should expose Try this pattern when a pattern has no responses template', () => {
+      const onTryPattern = jest.fn();
+      const patternsWithoutTemplate = { Pattern1: createMockPattern('Pattern1') };
+      renderWithContext(mockPipelineRun, patternsWithoutTemplate, 'test-namespace', undefined, {
+        onTryPattern,
+      });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      fireEvent.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+    });
+
+    it('should expose Try this pattern from the pattern details modal action', async () => {
       const user = userEvent.setup();
       const onTryPattern = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, {
@@ -943,8 +958,9 @@ describe('AutoragResults', () => {
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
 
-      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
-    }, 45_000);
+      await user.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
+    }, 15_000);
   });
 
   describe('onViewCode source', () => {

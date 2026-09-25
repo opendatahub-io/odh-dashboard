@@ -3,12 +3,13 @@ package vectordb
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
+	"net"
 	"strings"
 
 	milvusclient "github.com/milvus-io/milvus-sdk-go/v2/client"
 	"github.com/milvus-io/milvus-sdk-go/v2/entity"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/certificates"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -39,20 +40,31 @@ func newMilvusFromSecret(ctx context.Context, data map[string][]byte) (VectorDB,
 	}
 
 	addr := strings.TrimPrefix(strings.TrimPrefix(uri, "https://"), "http://")
+	useTLS := strings.HasPrefix(uri, "https://")
+
+	if !useTLS {
+		host := addr
+		if h, _, err := net.SplitHostPort(addr); err == nil {
+			host = h
+		}
+		if !isLocalNetworkHost(host) {
+			return nil, fmt.Errorf(
+				"milvus: plaintext (http://) is only allowed for localhost or *.cluster.local hosts, got %q — use https:// with MILVUS_SERVER_CERT", host)
+		}
+	}
 
 	cfg := milvusclient.Config{
 		Address:       addr,
 		Username:      username,
 		Password:      password,
-		EnableTLSAuth: strings.HasPrefix(uri, "https://"),
+		EnableTLSAuth: useTLS,
 	}
 
 	if len(certPEM) > 0 {
-		pool, err := x509.SystemCertPool()
+		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "MILVUS_SERVER_CERT")
 		if err != nil {
-			pool = x509.NewCertPool()
+			return nil, fmt.Errorf("milvus: %w", err)
 		}
-		pool.AppendCertsFromPEM(certPEM)
 		creds := credentials.NewTLS(&tls.Config{RootCAs: pool})
 		cfg.DialOptions = append(cfg.DialOptions, grpc.WithTransportCredentials(creds))
 		cfg.EnableTLSAuth = false

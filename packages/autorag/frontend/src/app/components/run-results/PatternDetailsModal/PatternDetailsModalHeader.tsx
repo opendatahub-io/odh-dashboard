@@ -41,8 +41,8 @@ type PatternDetailsModalHeaderProps = {
   comparisonPatternIndex?: number | null;
 };
 
-// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
-const OGX_ACTIONS_ENABLED = false;
+// Code snippets remain unavailable while the Responses API's chat workflow is rolled out.
+const VIEW_CODE_ACTION_ENABLED = false;
 
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   patterns,
@@ -190,7 +190,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
               >
                 <DropdownList>
                   {/* eslint-disable @typescript-eslint/no-unnecessary-condition */}
-                  {OGX_ACTIONS_ENABLED && data.inference?.responses_template && onTryPattern && (
+                  {onTryPattern && (
                     <DropdownItem
                       key="try-pattern"
                       value="try-pattern"
@@ -199,7 +199,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       Try this pattern
                     </DropdownItem>
                   )}
-                  {OGX_ACTIONS_ENABLED && data.inference?.responses_template && onViewCode && (
+                  {VIEW_CODE_ACTION_ENABLED && data.inference?.responses_template && onViewCode && (
                     <DropdownItem
                       key="view-code"
                       value="view-code"
