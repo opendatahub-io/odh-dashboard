@@ -95,6 +95,7 @@ import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__m
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type {
   APIKey,
+  APIKeyConfig,
   APIKeyListResponse,
   BulkRevokeResponse,
   CreateAPIKeyResponse,
@@ -1158,6 +1159,10 @@ declare global {
         ((
           type: 'POST /maas/api/v1/api-keys',
           response: { data: OdhResponse<CreateAPIKeyResponse> },
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/api-keys-config',
+          response: OdhResponse<{ data: APIKeyConfig }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/is-maas-admin',
