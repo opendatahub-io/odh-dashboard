@@ -271,6 +271,34 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		mcpAuthSecrets = append(mcpAuthSecrets, kubernetes.SandboxSecretEnvVar{Name: server.AuthorizationEnvVar, SecretName: secret.Name})
 	}
 
+	var modelAuthSecret *kubernetes.SandboxSecretEnvVar
+	if profile.Spec.Model.SourceType == string(models.ModelSourceTypeCustomEndpoint) {
+		credentials := profile.Spec.Model.Authorization
+		if credentials == nil || credentials.CredentialsRef == nil || credentials.CredentialsRef.Kind != "Secret" || credentials.CredentialsRef.Name == "" || credentials.CredentialsRef.Key == "" {
+			rollback()
+			app.badRequestResponse(w, r, fmt.Errorf("custom endpoint model requires a Secret credentialsRef"))
+			return
+		}
+		apiKey, secretErr := k8sClient.GetSecretValue(ctx, nil, namespace, credentials.CredentialsRef.Name, credentials.CredentialsRef.Key)
+		if secretErr != nil {
+			rollback()
+			app.serverErrorResponse(w, r, secretErr)
+			return
+		}
+		secret, secretErr := k8sClient.CreateSandboxModelAuthSecret(ctx, namespace, apiKey)
+		if secretErr != nil {
+			rollback()
+			if httpErr, ok := secretErr.(*integrations.HTTPError); ok && httpErr.StatusCode == http.StatusForbidden {
+				app.forbiddenResponse(w, r, httpErr.Message)
+				return
+			}
+			app.serverErrorResponse(w, r, secretErr)
+			return
+		}
+		resources.MCPAuthSecretNames = append(resources.MCPAuthSecretNames, secret.Name)
+		modelAuthSecret = &kubernetes.SandboxSecretEnvVar{Name: "AGENT_MODEL_API_KEY", SecretName: secret.Name}
+	}
+
 	// Build Sandbox CR options from the profile snapshot and BFF config.
 	sandboxOpts := kubernetes.SandboxCROptions{
 		Name:                    sandboxName,
@@ -281,10 +309,12 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		MaaSGatewayURL:          app.config.MaaSURL,
 		AgentConfigJSON:         string(agentConfigJSON),
 		OGXModelID:              kubernetes.SandboxOGXModelID(profile.Spec.Model.ID),
+		ModelSourceType:         profile.Spec.Model.SourceType,
 		SystemPrompt:            systemPrompt,
 		MCPServersJSON:          string(mcpServersJSON),
 		VectorStoreIDsJSON:      string(vectorStoreIDsJSON),
 		MCPAuthSecrets:          mcpAuthSecrets,
+		ModelAuthSecret:         modelAuthSecret,
 		PgvectorHost:            app.config.PgvectorHost,
 		PgvectorSecretName:      app.config.PgvectorPasswordSecretName,
 	}

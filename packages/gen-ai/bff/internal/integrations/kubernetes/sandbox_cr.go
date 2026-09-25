@@ -44,10 +44,14 @@ type SandboxCROptions struct {
 	// OGXModelID is the sole provider-qualified LLM model registered for this deployment.
 	// The wrapper applies it to every Responses API request.
 	OGXModelID string
+	// ModelSourceType controls whether the wrapper exchanges a caller token for a MaaS API key.
+	ModelSourceType string
 	// SystemPrompt is the resolved MLflow system message applied to every Responses API request.
 	SystemPrompt string
 	// MCPServersJSON describes selected MCP servers without embedding credentials.
 	MCPServersJSON string
+	// ModelAuthSecret is set for custom endpoint models and injected as AGENT_MODEL_API_KEY.
+	ModelAuthSecret *SandboxSecretEnvVar
 	// VectorStoreIDsJSON describes the vector stores selected by the profile. The
 	// wrapper uses it to add a file_search tool to every Responses API request.
 	VectorStoreIDsJSON string
@@ -223,6 +227,7 @@ func buildSandboxEnvVars(opts SandboxCROptions, pgvectorHost, pgvectorSecret str
 		sandboxEnvVar("MAAS_SUBSCRIPTION", opts.MaaSSubscription),
 		sandboxEnvVar("AGENT_CONFIG_JSON", opts.AgentConfigJSON),
 		sandboxEnvVar("AGENT_OGX_MODEL_ID", opts.OGXModelID),
+		sandboxEnvVar("AGENT_MODEL_SOURCE_TYPE", opts.ModelSourceType),
 		sandboxEnvVar("AGENT_SYSTEM_PROMPT", opts.SystemPrompt),
 		sandboxEnvVar("AGENT_MCP_SERVERS_JSON", opts.MCPServersJSON),
 		sandboxEnvVar("AGENT_VECTOR_STORE_IDS_JSON", opts.VectorStoreIDsJSON),
@@ -238,6 +243,9 @@ func buildSandboxEnvVars(opts SandboxCROptions, pgvectorHost, pgvectorSecret str
 	}
 	for _, secret := range opts.MCPAuthSecrets {
 		vars = append(vars, sandboxEnvVarFromSecret(secret.Name, secret.SecretName, sandboxMCPAuthSecretKey))
+	}
+	if opts.ModelAuthSecret != nil {
+		vars = append(vars, sandboxEnvVarFromSecret(opts.ModelAuthSecret.Name, opts.ModelAuthSecret.SecretName, sandboxMCPAuthSecretKey))
 	}
 
 	if opts.MLflowTrackingURI != "" {

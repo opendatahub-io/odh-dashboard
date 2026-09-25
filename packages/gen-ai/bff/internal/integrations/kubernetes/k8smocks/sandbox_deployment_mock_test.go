@@ -55,8 +55,10 @@ func TestMockSandboxDeploymentPersistsResources(t *testing.T) {
 
 	secret, err := mockClient.CreateSandboxMCPAuthSecret(ctx, namespace, "github", "token")
 	require.NoError(t, err)
+	modelSecret, err := mockClient.CreateSandboxModelAuthSecret(ctx, namespace, "custom-endpoint-key")
+	require.NoError(t, err)
 	require.NoError(t, mockClient.SetSandboxConfigMapsOwner(ctx, namespace, sandboxName, llamaConfig.Name, wrapperConfig.Name))
-	require.NoError(t, mockClient.SetSandboxMCPAuthSecretsOwner(ctx, namespace, sandboxName, secret.Name))
+	require.NoError(t, mockClient.SetSandboxMCPAuthSecretsOwner(ctx, namespace, sandboxName, secret.Name, modelSecret.Name))
 	require.NoError(t, mockClient.CreateSandboxService(ctx, namespace, sandboxName, selector))
 	routeURL, err := mockClient.CreateSandboxRoute(ctx, namespace, sandboxName)
 	require.NoError(t, err)
@@ -78,6 +80,11 @@ func TestMockSandboxDeploymentPersistsResources(t *testing.T) {
 	require.NoError(t, ctrlClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: secret.Name}, createdSecret))
 	require.Len(t, createdSecret.OwnerReferences, 1)
 	require.Equal(t, sandboxName, createdSecret.OwnerReferences[0].Name)
+
+	createdModelSecret := &corev1.Secret{}
+	require.NoError(t, ctrlClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: modelSecret.Name}, createdModelSecret))
+	require.Len(t, createdModelSecret.OwnerReferences, 1)
+	require.Equal(t, sandboxName, createdModelSecret.OwnerReferences[0].Name)
 
 	service := &corev1.Service{}
 	require.NoError(t, ctrlClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: sandboxName + "-ext"}, service))

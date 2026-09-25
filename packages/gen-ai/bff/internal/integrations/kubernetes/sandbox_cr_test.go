@@ -51,6 +51,38 @@ func TestBuildSandboxEnvVarsIncludesOGXModelID(t *testing.T) {
 	t.Fatal("AGENT_OGX_MODEL_ID not found")
 }
 
+func TestBuildSandboxEnvVarsIncludesModelSourceType(t *testing.T) {
+	const sourceType = "maas"
+
+	vars := buildSandboxEnvVars(SandboxCROptions{ModelSourceType: sourceType}, "pgvector", "pgvector-secret")
+
+	for _, raw := range vars {
+		variable := raw.(map[string]interface{})
+		if variable["name"] == "AGENT_MODEL_SOURCE_TYPE" {
+			assert.Equal(t, sourceType, variable["value"])
+			return
+		}
+	}
+	t.Fatal("AGENT_MODEL_SOURCE_TYPE not found")
+}
+
+func TestBuildSandboxEnvVarsIncludesCustomModelCredential(t *testing.T) {
+	vars := buildSandboxEnvVars(SandboxCROptions{
+		ModelAuthSecret: &SandboxSecretEnvVar{Name: "AGENT_MODEL_API_KEY", SecretName: "agent-model-auth-1234"},
+	}, "pgvector", "pgvector-secret")
+
+	for _, raw := range vars {
+		variable := raw.(map[string]interface{})
+		if variable["name"] == "AGENT_MODEL_API_KEY" {
+			secretRef := variable["valueFrom"].(map[string]interface{})["secretKeyRef"].(map[string]interface{})
+			assert.Equal(t, "agent-model-auth-1234", secretRef["name"])
+			assert.Equal(t, sandboxMCPAuthSecretKey, secretRef["key"])
+			return
+		}
+	}
+	t.Fatal("AGENT_MODEL_API_KEY not found")
+}
+
 func TestBuildSandboxEnvVarsIncludesMCPServerConfiguration(t *testing.T) {
 	vars := buildSandboxEnvVars(SandboxCROptions{
 		MCPServersJSON: `[{"server_label":"github","server_url":"https://example.com/mcp","authorization_env_var":"MCP_AUTH_1"}]`,

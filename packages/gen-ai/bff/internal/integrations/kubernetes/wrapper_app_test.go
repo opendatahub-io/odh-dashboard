@@ -40,6 +40,12 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	// Env vars — not hardcoded
 	assert.Contains(t, script, `MAAS_GATEWAY_URL`)
 	assert.Contains(t, script, `MAAS_SUBSCRIPTION`)
+	assert.Contains(t, script, `AGENT_MODEL_SOURCE_TYPE`)
+	assert.Contains(t, script, `if AGENT_MODEL_SOURCE_TYPE == "maas":`)
+	assert.Contains(t, script, `elif AGENT_MODEL_SOURCE_TYPE == "custom_endpoint":`)
+	assert.Contains(t, script, `elif AGENT_MODEL_SOURCE_TYPE == "namespace":`)
+	assert.Contains(t, script, `AGENT_MODEL_API_KEY`)
+	assert.Contains(t, script, `sanitized_headers`)
 
 	// Agent config snapshot endpoint is authenticated before it returns data.
 	assert.Contains(t, script, `AGENT_CONFIG_JSON`)

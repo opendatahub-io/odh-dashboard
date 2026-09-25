@@ -20,6 +20,7 @@ MAAS_GATEWAY_URL = os.environ["MAAS_GATEWAY_URL"]
 MAAS_SUBSCRIPTION = os.environ["MAAS_SUBSCRIPTION"]
 AGENT_CONFIG_JSON = os.environ["AGENT_CONFIG_JSON"]
 AGENT_OGX_MODEL_ID = os.environ["AGENT_OGX_MODEL_ID"]
+AGENT_MODEL_SOURCE_TYPE = os.environ.get("AGENT_MODEL_SOURCE_TYPE", "")
 AGENT_SYSTEM_PROMPT = os.environ.get("AGENT_SYSTEM_PROMPT", "")
 # json.Marshal(nil) produces "null". Normalize both that value and an absent
 # environment variable to an empty list so non-MCP deployments still rewrite
@@ -115,17 +116,29 @@ class MaaSTokenMiddleware:
             if not auth.startswith("Bearer ") or not (user_token := auth.removeprefix("Bearer ").strip()):
                 await _send_json(send, 401, {"detail": "Unauthorized"})
                 return
-            try:
-                api_key = await _get_maas_api_key(user_token)
-            except Exception as e:
-                print(f"[MaaSTokenMiddleware] token exchange failed: {e}")
-                await _send_json(send, 401, {"detail": "Unauthorized"})
-                return
-            provider_data = json.dumps({"openai_api_key": api_key}).encode()
-            scope = {**scope, "headers": [
+            sanitized_headers = [
                 *(header for header in scope["headers"] if header[0].lower() != b"x-ogx-provider-data"),
-                (b"x-ogx-provider-data", provider_data),
-            ]}
+            ]
+            if AGENT_MODEL_SOURCE_TYPE == "maas":
+                try:
+                    api_key = await _get_maas_api_key(user_token)
+                except Exception as e:
+                    print(f"[MaaSTokenMiddleware] token exchange failed: {e}")
+                    await _send_json(send, 401, {"detail": "Unauthorized"})
+                    return
+                provider_data = json.dumps({"openai_api_key": api_key}).encode()
+                sanitized_headers.append((b"x-ogx-provider-data", provider_data))
+            elif AGENT_MODEL_SOURCE_TYPE == "custom_endpoint":
+                try:
+                    provider_data = json.dumps({"openai_api_key": os.environ["AGENT_MODEL_API_KEY"]}).encode()
+                except KeyError:
+                    await _send_json(send, 500, {"detail": "Custom endpoint credentials are not configured"})
+                    return
+                sanitized_headers.append((b"x-ogx-provider-data", provider_data))
+            elif AGENT_MODEL_SOURCE_TYPE == "namespace":
+                provider_data = json.dumps({"openai_api_key": user_token}).encode()
+                sanitized_headers.append((b"x-ogx-provider-data", provider_data))
+            scope = {**scope, "headers": sanitized_headers}
 
         await self.app(scope, receive, send)
 

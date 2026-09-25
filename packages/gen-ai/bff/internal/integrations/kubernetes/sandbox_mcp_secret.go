@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	sandboxMCPAuthSecretPrefix = "agent-mcp-auth-"
-	sandboxMCPAuthSecretKey    = "authorization"
-	mcpServerIDAnnotation      = "opendatahub.io/mcp-server-id"
+	sandboxMCPAuthSecretPrefix   = "agent-mcp-auth-"
+	sandboxMCPAuthSecretKey      = "authorization"
+	sandboxModelAuthSecretPrefix = "agent-model-auth-"
+	mcpServerIDAnnotation        = "opendatahub.io/mcp-server-id"
 )
 
 // CreateSandboxMCPAuthSecret creates a deployment-only Secret for one MCP server's
@@ -44,6 +45,35 @@ func (kc *TokenKubernetesClient) CreateSandboxMCPAuthSecret(
 		return nil, fmt.Errorf("failed to create MCP authentication Secret: %w", err)
 	}
 	kc.Logger.Info("created MCP authentication Secret", "name", secret.Name, "namespace", namespace, "serverID", serverID)
+	return secret, nil
+}
+
+// CreateSandboxModelAuthSecret creates a deployment-owned Secret for a custom endpoint API key.
+// The caller attaches the Sandbox owner after creating the CR.
+func (kc *TokenKubernetesClient) CreateSandboxModelAuthSecret(
+	ctx context.Context,
+	namespace, apiKey string,
+) (*corev1.Secret, error) {
+	suffix, err := RandomHex4()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate model auth Secret name suffix: %w", err)
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      sandboxModelAuthSecretPrefix + suffix,
+			Namespace: namespace,
+			Labels:    map[string]string{dashboardLabel: "true"},
+		},
+		Type:       corev1.SecretTypeOpaque,
+		StringData: map[string]string{sandboxMCPAuthSecretKey: apiKey},
+	}
+	if err := kc.Client.Create(ctx, secret); err != nil {
+		if apierrors.IsForbidden(err) {
+			return nil, &integrations.HTTPError{StatusCode: 403, ErrorResponse: integrations.ErrorResponse{Code: "forbidden", Message: "insufficient permissions to create model authentication Secret"}}
+		}
+		return nil, fmt.Errorf("failed to create model authentication Secret: %w", err)
+	}
+	kc.Logger.Info("created model authentication Secret", "name", secret.Name, "namespace", namespace)
 	return secret, nil
 }
 

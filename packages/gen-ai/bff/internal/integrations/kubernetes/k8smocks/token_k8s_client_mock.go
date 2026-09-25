@@ -892,6 +892,10 @@ func (m *TokenKubernetesClientMock) CreateSandboxMCPAuthSecret(ctx context.Conte
 	return m.TokenKubernetesClient.CreateSandboxMCPAuthSecret(ctx, namespace, serverID, authorization)
 }
 
+func (m *TokenKubernetesClientMock) CreateSandboxModelAuthSecret(ctx context.Context, namespace, apiKey string) (*corev1.Secret, error) {
+	return m.TokenKubernetesClient.CreateSandboxModelAuthSecret(ctx, namespace, apiKey)
+}
+
 func (m *TokenKubernetesClientMock) SetSandboxMCPAuthSecretsOwner(ctx context.Context, namespace, sandboxName string, secretNames ...string) error {
 	return m.TokenKubernetesClient.SetSandboxMCPAuthSecretsOwner(ctx, namespace, sandboxName, secretNames...)
 }
