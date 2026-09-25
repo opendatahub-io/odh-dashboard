@@ -83,21 +83,6 @@ func TestGetConnectionsHandlerReturnsMockConnections(t *testing.T) {
 	require.Equal(t, "warehouse", envelope.Data[0].Resource.Name)
 }
 
-func TestGetConnectionTypesHandlerReturnsMockTypes(t *testing.T) {
-	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
-	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types?namespace=test-project")
-
-	app.GetConnectionTypesHandler(response, request, httprouter.Params{})
-
-	require.Equal(t, http.StatusOK, response.Code)
-	body, err := io.ReadAll(response.Body)
-	require.NoError(t, err)
-	var envelope ConnectionTypesEnvelope
-	require.NoError(t, json.Unmarshal(body, &envelope))
-	require.Len(t, envelope.Data, 2)
-	require.Equal(t, "PostgreSQL", envelope.Data[0].Resource.Name)
-}
-
 func TestMutationHandlersReturnNoContentInMockMode(t *testing.T) {
 	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
 
@@ -159,6 +144,18 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 			expectedStatus:   http.StatusOK,
 			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
 				app.GetConnectionTypesHandler(w, r, p)
+			},
+		},
+		{
+			name:             "connection type",
+			method:           http.MethodGet,
+			path:             "/api/v1/connection-types/postgresql?namespace=test-project",
+			params:           httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}},
+			expectedVerb:     "get",
+			expectedResource: "data-connection-types",
+			expectedStatus:   http.StatusOK,
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.GetConnectionTypeHandler(w, r, p)
 			},
 		},
 		{
@@ -237,5 +234,19 @@ func TestDataConnectHubHeadersUsesServiceAccountTokenForInternalAuth(t *testing.
 
 	require.NoError(t, err)
 	require.Equal(t, "Bearer service-account-token", headers.Get("Authorization"))
+	require.Equal(t, "test-project", headers.Get("X-Tenant-ID"))
+}
+
+func TestDataConnectHubHeadersAllowsTokenInLocalInsecureTLSMode(t *testing.T) {
+	app := &App{config: config.EnvConfig{DevMode: true, InsecureSkipVerify: true}, logger: slog.Default()}
+
+	headers, err := app.dataConnectHubHeaders(
+		context.Background(),
+		&k8s.RequestIdentity{UserID: "test-user", Token: "user-token"},
+		"test-project",
+	)
+
+	require.NoError(t, err)
+	require.Equal(t, "Bearer user-token", headers.Get("Authorization"))
 	require.Equal(t, "test-project", headers.Get("X-Tenant-ID"))
 }

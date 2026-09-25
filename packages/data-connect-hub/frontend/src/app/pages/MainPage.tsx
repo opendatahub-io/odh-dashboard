@@ -1,6 +1,6 @@
 import React from 'react';
 import { PageSection, Tab, TabContent, Tabs, TabTitleText } from '@patternfly/react-core';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ProjectObjectType, TitleWithIcon } from '@odh-dashboard/ui-core';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { useNamespaceSelector, type UseNamespaceSelectorArgs } from 'mod-arch-core';
@@ -13,15 +13,13 @@ const PERSISTENCE_OPTIONS = {
 } satisfies UseNamespaceSelectorArgs;
 
 const PROJECT_QUERY_PARAM = 'project';
-const TAB_KEYS = ['connection-types', 'connections'] as const;
-type TabKey = (typeof TAB_KEYS)[number];
+type TabKey = 'connection-types' | 'connections';
 
 type MainPageProps = {
-  basePath: string;
+  activeTabKey: TabKey;
 };
 
-const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
-  const { pathname } = useLocation();
+const MainPage: React.FC<MainPageProps> = ({ activeTabKey }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const {
@@ -34,10 +32,6 @@ const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
   } = useNamespaceSelector(PERSISTENCE_OPTIONS);
   const namespaceError = namespacesLoadError ?? initializationError;
 
-  const pathTab = pathname.slice(basePath.length).split('/').filter(Boolean)[0];
-  const activeTabKey: TabKey = TAB_KEYS.includes(pathTab as TabKey)
-    ? (pathTab as TabKey)
-    : 'connection-types';
   const requestedProject = searchParams.get(PROJECT_QUERY_PARAM);
   const projectNamespaces = React.useMemo(
     () =>
@@ -57,14 +51,6 @@ const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
     '';
 
   React.useEffect(() => {
-    if (pathTab !== activeTabKey) {
-      const nextSearch = searchParams.toString();
-      navigate(`${basePath}/${activeTabKey}${nextSearch ? `?${nextSearch}` : ''}`, {
-        replace: true,
-      });
-      return;
-    }
-
     if (!selectedProject) {
       return;
     }
@@ -87,11 +73,7 @@ const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
       );
     }
   }, [
-    activeTabKey,
-    basePath,
-    navigate,
     projectNamespaces,
-    pathTab,
     preferredNamespace,
     requestedProject,
     searchParams,
@@ -137,7 +119,9 @@ const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
           activeKey={activeTabKey}
           onSelect={(_event, tabKey) => {
             const nextSearch = searchParams.toString();
-            navigate(`${basePath}/${String(tabKey)}${nextSearch ? `?${nextSearch}` : ''}`);
+            navigate(`../${String(tabKey)}${nextSearch ? `?${nextSearch}` : ''}`, {
+              relative: 'path',
+            });
           }}
         >
           <Tab
@@ -160,7 +144,7 @@ const MainPage: React.FC<MainPageProps> = ({ basePath }) => {
         activeKey={activeTabKey}
         hidden={activeTabKey !== 'connection-types'}
       >
-        <ConnectionTypesTab />
+        <ConnectionTypesTab namespace={selectedProject} />
       </TabContent>
       <TabContent
         id="tab-content-connections"
