@@ -19,6 +19,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
@@ -44,7 +45,7 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 	httpClient := &http.Client{
 		Transport: otelhttp.NewTransport(&http.Transport{
 			TLSClientConfig: tlsConfig,
-		}),
+		}, otelhttp.WithFilter(hasActiveTraceContext)),
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 		// Provider data can contain credentials. Return redirect responses to the caller
 		// rather than forwarding those credentials to the redirect target.
@@ -63,6 +64,10 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 	return &LlamaStackClient{
 		client: &client,
 	}
+}
+
+func hasActiveTraceContext(r *http.Request) bool {
+	return trace.SpanContextFromContext(r.Context()).IsValid()
 }
 
 // ListModels retrieves all available models from Llama Stack.
