@@ -31,8 +31,8 @@ type openAIModelList struct {
 // GenAIProxyNSModelsHandler handles GET /api/v1/genai-proxy/ns/:namespace/v1/models.
 //
 // Aggregates models from namespace ISVCs, custom endpoints, and MaaS and returns them
-// in OpenAI list format. Auth is required: OGX forwards the user's JWT from
-// passthrough_api_key in X-OGX-Provider-Data to the BFF's configured token header.
+// in OpenAI list format. Auth is required: OGX forwards the user's JWT via
+// Authorization: Bearer (from passthrough_api_key in X-OGX-Provider-Data).
 func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 

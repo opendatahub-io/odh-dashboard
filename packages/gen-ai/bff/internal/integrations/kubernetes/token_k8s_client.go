@@ -1456,13 +1456,6 @@ func (kc *TokenKubernetesClient) buildPassthroughBaseURL(namespace string) strin
 		kc.EnvConfig.GatewayDomain, pathPrefix, kc.EnvConfig.APIPathPrefix, namespace)
 }
 
-func (kc *TokenKubernetesClient) passthroughAuthTokenHeader() string {
-	if kc.EnvConfig.AuthTokenHeader != "" {
-		return kc.EnvConfig.AuthTokenHeader
-	}
-	return config.DefaultAuthTokenHeader
-}
-
 // existingServerHasPassthrough reads the OGXServer's linked ConfigMap and checks
 // whether it already contains a remote::passthrough inference provider whose
 // base_url matches the URL the BFF would generate for this namespace. Returns
@@ -1504,79 +1497,7 @@ func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx c
 		kc.Logger.Debug("could not parse OGXServer config for passthrough detection", "error", err)
 		return false
 	}
-	return config.HasPassthroughProvider(expectedBaseURL, kc.passthroughAuthTokenHeader())
-}
-
-// repairExistingPassthroughProvider adds newly required forwarding headers to a
-// dashboard-managed passthrough provider without replacing the user's Playground.
-// Updating the linked ConfigMap causes the OGX operator to roll the workload with
-// the corrected configuration.
-func (kc *TokenKubernetesClient) repairExistingPassthroughProvider(ctx context.Context, server *ogxapi.OGXServer, namespace string) (bool, error) {
-	expectedBaseURL := kc.buildPassthroughBaseURL(namespace)
-	if expectedBaseURL == "" || server.Spec.OverrideConfig == nil ||
-		server.Spec.OverrideConfig.Name == "" || server.Spec.OverrideConfig.Key == "" {
-		return false, nil
-	}
-
-	var cm corev1.ConfigMap
-	if err := kc.Client.Get(ctx, types.NamespacedName{
-		Name:      server.Spec.OverrideConfig.Name,
-		Namespace: namespace,
-	}, &cm); err != nil {
-		return false, fmt.Errorf("failed to read OGXServer ConfigMap for passthrough repair: %w", err)
-	}
-
-	configYAML, ok := cm.Data[server.Spec.OverrideConfig.Key]
-	if !ok {
-		return false, nil
-	}
-
-	var llamaStackConfig LlamaStackConfig
-	if err := llamaStackConfig.FromYAML(configYAML); err != nil {
-		return false, nil
-	}
-
-	for i := range llamaStackConfig.Providers.Inference {
-		provider := &llamaStackConfig.Providers.Inference[i]
-		if provider.ProviderType != constants.PassthroughProviderType || provider.ProviderID != constants.PassthroughProviderID {
-			continue
-		}
-		baseURL, _ := provider.Config["base_url"].(string)
-		if baseURL != expectedBaseURL {
-			return false, nil
-		}
-
-		if llamaStackConfig.HasPassthroughProvider(expectedBaseURL, kc.passthroughAuthTokenHeader()) {
-			return true, nil
-		}
-
-		switch headers := provider.Config["forward_headers"].(type) {
-		case map[string]interface{}:
-			headers["passthrough_api_key"] = kc.passthroughAuthTokenHeader()
-		case map[interface{}]interface{}:
-			headers["passthrough_api_key"] = kc.passthroughAuthTokenHeader()
-		default:
-			provider.Config["forward_headers"] = map[string]interface{}{
-				"passthrough_api_key":         kc.passthroughAuthTokenHeader(),
-				"maas_subscription":           constants.MaaSSubscriptionHeader,
-				"inference_model_source_type": constants.InferenceModelSourceTypeHeader,
-			}
-		}
-
-		repairedYAML, err := llamaStackConfig.ToYAML()
-		if err != nil {
-			return false, fmt.Errorf("failed to serialize repaired OGXServer config: %w", err)
-		}
-		cm.Data[server.Spec.OverrideConfig.Key] = repairedYAML
-		if err := kc.Client.Update(ctx, &cm); err != nil {
-			return false, fmt.Errorf("failed to update OGXServer ConfigMap with passthrough repair: %w", err)
-		}
-
-		kc.Logger.Info("repaired OGX passthrough provider identity forwarding", "namespace", namespace, "server", server.Name)
-		return true, nil
-	}
-
-	return false, nil
+	return config.HasPassthroughProvider(expectedBaseURL)
 }
 
 // ogxCommand returns the container command for the OGXServer pod.
@@ -1661,16 +1582,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			kc.Logger.Info("OGXServer exists with passthrough provider; new models resolved per-request via Responses API (zero-restart)",
 				"namespace", namespace, "server", existing.Name)
 			return existing, nil
-		}
-		if len(vectorStores) == 0 {
-			repaired, repairErr := kc.repairExistingPassthroughProvider(ctx, existing, namespace)
-			if repairErr != nil {
-				return nil, repairErr
-			}
-			if repaired {
-				kc.Logger.Info("OGXServer passthrough provider configuration reconciled", "namespace", namespace, "server", existing.Name)
-				return existing, nil
-			}
 		}
 		return nil, fmt.Errorf("OGXServer already exists in namespace %s", namespace)
 	}
@@ -2422,7 +2333,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		}
 		passthroughURL := fmt.Sprintf("https://%s%s%s/genai-proxy/ns/%s",
 			kc.EnvConfig.GatewayDomain, pathPrefix, kc.EnvConfig.APIPathPrefix, namespace)
-		passthroughProvider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL, kc.passthroughAuthTokenHeader())
+		passthroughProvider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
 		config.AddInferenceProvider(passthroughProvider)
 		kc.Logger.Info("Added remote::passthrough provider (Responses API resolves models per-request, supports zero restart)",
 			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)

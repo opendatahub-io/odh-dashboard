@@ -129,8 +129,8 @@ dev-start-mock-debug: ## Run frontend, gen-ai BFF (mocks + debugger), and MLflow
 
 .PHONY: dev-portforward
 dev-portforward: ## Start port-forwarding for cluster services (Llama Stack, optional ASR)
-	@echo "Starting resilient port-forward for lsd-genai-playground-service..."
-	@nohup sh -c 'while :; do oc port-forward -n "$$1" svc/lsd-genai-playground-service 8321:8321 || true; echo "Llama Stack port-forward ended; reconnecting..." >&2; sleep 1; done' sh "${PLAYGROUND_NAMESPACE}" >/tmp/odh-gen-ai-port-forward.log 2>&1 &
+	@echo "Starting port-forward for lsd-genai-playground-service..."
+	@oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321 &
 	@if [ -n "$${ASR_SERVICE_NAME}" ]; then \
 		sleep 1; \
 		echo "Starting port-forward for ASR model ($${ASR_SERVICE_NAME}) on port $${ASR_LOCAL_PORT:-8790}..."; \

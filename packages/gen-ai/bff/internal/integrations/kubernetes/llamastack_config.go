@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -405,14 +404,9 @@ func EmptyConfig() map[string]interface{} {
 //
 // forward_headers maps X-OGX-Provider-Data JSON keys to outbound HTTP headers.
 // OGX reads these keys from the provider data and forwards them as headers to the
-// passthrough endpoint. This allows the caller's identity and routing metadata
+// passthrough endpoint. This allows per-request credentials (e.g. MaaS tokens)
 // to flow through OGX without OGX needing to understand them.
-func NewPassthroughProvider(providerID, baseURL string, authTokenHeader ...string) Provider {
-	forwardedAuthHeader := config.DefaultAuthTokenHeader
-	if len(authTokenHeader) > 0 && authTokenHeader[0] != "" {
-		forwardedAuthHeader = authTokenHeader[0]
-	}
-
+func NewPassthroughProvider(providerID, baseURL string) Provider {
 	return Provider{
 		ProviderID:   providerID,
 		ProviderType: constants.PassthroughProviderType,
@@ -420,7 +414,6 @@ func NewPassthroughProvider(providerID, baseURL string, authTokenHeader ...strin
 			"base_url": baseURL,
 			"api_key":  "",
 			"forward_headers": map[string]interface{}{
-				"passthrough_api_key":         forwardedAuthHeader,
 				"maas_subscription":           constants.MaaSSubscriptionHeader,
 				"inference_model_source_type": constants.InferenceModelSourceTypeHeader,
 			},
@@ -436,37 +429,29 @@ func NewPassthroughProvider(providerID, baseURL string, authTokenHeader ...strin
 // Requiring the URL guards against stale configs written under a previous
 // GATEWAY_DOMAIN value: if the domain or path prefix changes, the existing
 // provider points at the wrong host and must NOT be reused for zero-restart.
-func (c *LlamaStackConfig) HasPassthroughProvider(expectedBaseURL string, authTokenHeader ...string) bool {
-	expectedAuthHeader := config.DefaultAuthTokenHeader
-	if len(authTokenHeader) > 0 && authTokenHeader[0] != "" {
-		expectedAuthHeader = authTokenHeader[0]
-	}
-
+func (c *LlamaStackConfig) HasPassthroughProvider(expectedBaseURL string) bool {
 	for _, p := range c.Providers.Inference {
 		if p.ProviderType == constants.PassthroughProviderType &&
 			p.ProviderID == constants.PassthroughProviderID {
 			baseURL, _ := p.Config["base_url"].(string)
 			return baseURL == expectedBaseURL &&
-				hasExpectedPassthroughForwardHeaders(p.Config["forward_headers"], expectedAuthHeader)
+				hasExpectedPassthroughForwardHeaders(p.Config["forward_headers"])
 		}
 	}
 	return false
 }
 
-func hasExpectedPassthroughForwardHeaders(forwardHeaders interface{}, expectedAuthHeader string) bool {
-	var passthroughAPIKey, maasSubscription, inferenceModelSourceType string
+func hasExpectedPassthroughForwardHeaders(forwardHeaders interface{}) bool {
+	var maasSubscription, inferenceModelSourceType string
 	switch headers := forwardHeaders.(type) {
 	case map[string]interface{}:
-		passthroughAPIKey, _ = headers["passthrough_api_key"].(string)
 		maasSubscription, _ = headers["maas_subscription"].(string)
 		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
 	case map[interface{}]interface{}:
-		passthroughAPIKey, _ = headers["passthrough_api_key"].(string)
 		maasSubscription, _ = headers["maas_subscription"].(string)
 		inferenceModelSourceType, _ = headers["inference_model_source_type"].(string)
 	}
-	return passthroughAPIKey == expectedAuthHeader &&
-		maasSubscription == constants.MaaSSubscriptionHeader &&
+	return maasSubscription == constants.MaaSSubscriptionHeader &&
 		inferenceModelSourceType == constants.InferenceModelSourceTypeHeader
 }
 

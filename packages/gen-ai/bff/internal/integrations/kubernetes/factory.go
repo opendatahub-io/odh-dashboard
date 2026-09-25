@@ -99,8 +99,8 @@ func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*in
 	raw := httpHeader.Get(f.Header)
 
 	// Fallback: when the primary header (e.g. x-forwarded-access-token) is absent,
-	// accept an Authorization header with a Bearer prefix for integrations that
-	// provide standard OpenAI-style authentication.
+	// try the Authorization header with Bearer prefix. OGX's remote::passthrough
+	// provider sends the user JWT this way on proxy endpoints.
 	if raw == "" {
 		if auth := httpHeader.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
 			token := strings.TrimPrefix(auth, "Bearer ")

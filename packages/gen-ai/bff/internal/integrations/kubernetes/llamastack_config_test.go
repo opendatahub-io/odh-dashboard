@@ -1438,7 +1438,6 @@ func TestNewPassthroughProvider(t *testing.T) {
 	// forward_headers maps provider data keys to outbound HTTP headers
 	fh, ok := provider.Config["forward_headers"].(map[string]interface{})
 	assert.True(t, ok, "forward_headers should be a map")
-	assert.Equal(t, "x-forwarded-access-token", fh["passthrough_api_key"])
 	assert.Equal(t, "X-MaaS-Subscription", fh["maas_subscription"])
 	assert.Equal(t, "X-Inference-Model-Source-Type", fh["inference_model_source_type"])
 }
@@ -1468,11 +1467,11 @@ func TestHasPassthroughProvider(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		provider := NewPassthroughProvider("genai-bff-proxy", matchingURL)
 		forwardHeaders := provider.Config["forward_headers"].(map[string]interface{})
-		delete(forwardHeaders, "passthrough_api_key")
+		delete(forwardHeaders, "inference_model_source_type")
 		config.AddInferenceProvider(provider)
 
 		assert.False(t, config.HasPassthroughProvider(matchingURL),
-			"a stale passthrough provider must be updated to forward the user's identity")
+			"a stale passthrough provider must be updated to forward model source type")
 	})
 
 	t.Run("returns false when only vllm providers exist", func(t *testing.T) {
