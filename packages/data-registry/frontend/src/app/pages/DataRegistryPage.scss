@@ -14,3 +14,9 @@
   border-bottom: 3px solid var(--pf-t--global--color--brand--default);
   margin-bottom: -1px;
 }
+
+.odh-data-registry__empty-state-image {
+  height: 20rem;
+  max-width: 100%;
+  object-fit: contain;
+}

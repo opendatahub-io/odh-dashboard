@@ -145,6 +145,7 @@ describe('Registry Table', () => {
 
     cy.visit('/ai-hub/data/browse');
     cy.findByTestId('no-projects-empty-state').should('exist');
+    cy.findByRole('img', { name: 'No projects' }).should('be.visible');
     cy.findByRole('heading', { name: 'No projects' }).should('exist');
     cy.findByRole('button', { name: 'Create project' }).should('exist');
   });

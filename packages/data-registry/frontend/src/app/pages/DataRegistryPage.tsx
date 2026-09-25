@@ -5,12 +5,13 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateVariant,
+  EmptyStateActions,
+  Button,
   Spinner,
   Flex,
   FlexItem,
   Content,
 } from '@patternfly/react-core';
-import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useNamespaceSelector, type UseNamespaceSelectorArgs } from 'mod-arch-core';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
@@ -28,6 +29,7 @@ import RegisterDataModal from '~/app/components/RegisterDataModal';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
+import noProjectsImage from '~/images/RHOAI-Registerdata-Noprojects-RGB.png';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
 const HIDDEN_NS_PREFIXES = ['openshift-', 'kube-'];
@@ -40,11 +42,23 @@ type NoProjectsPageProps = {
   onProjectCreated: (projectName: string) => void | Promise<void>;
 };
 
+type ProjectCreationErrorPageProps = {
+  projectName: string;
+  error?: Error;
+  onRetry: () => void;
+};
+
 const NoProjectsPage: React.FC<NoProjectsPageProps> = ({ onProjectCreated }) => (
   <PageSection hasBodyWrapper={false} isFilled>
     <EmptyState
       headingLevel="h2"
-      icon={WrenchIcon}
+      icon={() => (
+        <img
+          className="odh-data-registry__empty-state-image"
+          src={noProjectsImage}
+          alt="No projects"
+        />
+      )}
       titleText="No projects"
       variant={EmptyStateVariant.lg}
       data-testid="no-projects-empty-state"
@@ -57,6 +71,32 @@ const NoProjectsPage: React.FC<NoProjectsPageProps> = ({ onProjectCreated }) => 
   </PageSection>
 );
 
+const ProjectCreationErrorPage: React.FC<ProjectCreationErrorPageProps> = ({
+  projectName,
+  error,
+  onRetry,
+}) => (
+  <PageSection hasBodyWrapper={false} isFilled>
+    <EmptyState
+      headingLevel="h2"
+      titleText="Project is not available yet"
+      variant={EmptyStateVariant.lg}
+    >
+      <EmptyStateBody>
+        {error?.message ||
+          `Project "${projectName}" was created, but it is not available in the project list yet.`}
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Button variant="primary" onClick={onRetry} data-testid="retry-project-creation">
+            Retry
+          </Button>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  </PageSection>
+);
+
 const DataRegistryPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,6 +104,7 @@ const DataRegistryPage: React.FC = () => {
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
+  const [projectCreationFailure, setProjectCreationFailure] = React.useState<string>();
 
   const { preferredNamespace, updatePreferredNamespace } =
     useNamespaceSelector(PERSISTENCE_OPTIONS);
@@ -166,11 +207,33 @@ const DataRegistryPage: React.FC = () => {
 
   const handleProjectCreated = React.useCallback(
     async (projectName: string) => {
-      await namespacesRefresh();
+      const refreshedNamespaces = await namespacesRefresh();
+      if (!refreshedNamespaces?.some((namespace) => namespace.name === projectName)) {
+        setProjectCreationFailure(projectName);
+        return;
+      }
+
+      setProjectCreationFailure(undefined);
       navigate(`/ai-hub/data/browse?project=${encodeURIComponent(projectName)}`);
     },
     [namespacesRefresh, navigate],
   );
+
+  const handleProjectCreationRetry = React.useCallback(() => {
+    if (projectCreationFailure) {
+      void handleProjectCreated(projectCreationFailure);
+    }
+  }, [handleProjectCreated, projectCreationFailure]);
+
+  if (projectCreationFailure) {
+    return (
+      <ProjectCreationErrorPage
+        projectName={projectCreationFailure}
+        error={namespacesError}
+        onRetry={handleProjectCreationRetry}
+      />
+    );
+  }
 
   if (namespacesError) {
     if (is503Error(namespacesError)) {

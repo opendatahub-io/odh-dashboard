@@ -56,7 +56,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			return
 		}
 		if error := app.kubernetesClientFactory.ValidateRequestIdentity(identity); error != nil {
-			app.badRequestResponse(w, r, error)
+			app.unauthorizedResponse(w, r, error)
 			return
 		}
 
