@@ -385,6 +385,23 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/operator-subscription-status:
+    get:
+      tags:
+        - Status
+      operationId: getOperatorSubscriptionStatus
+      summary: Get the installed data science operator channel
+      description: Returns the channel of the installed OpenShift AI or Open Data Hub operator subscription.
+      responses:
+        '200':
+          $ref: '#/components/responses/OperatorSubscriptionStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/dashboardConfig/{namespace}/{name}:
     parameters:
       - name: namespace
@@ -1397,6 +1414,14 @@ components:
         isImpersonating:
           type: boolean
 
+    OperatorSubscriptionStatus:
+      type: object
+      required:
+        - channel
+      properties:
+        channel:
+          type: string
+
     StatusEnvelope:
       type: object
       required:
@@ -1670,6 +1695,13 @@ components:
               isAllowed: true
               serverURL: 'https://api.cluster.example.com:6443'
               isImpersonating: false
+
+    OperatorSubscriptionStatusResponse:
+      description: Installed data science operator subscription status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OperatorSubscriptionStatus'
 
     ComponentsResponse:
       description: List of OdhApplication components

@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	ConfigPath           = APIPathPrefix + "/config"
-	ComponentsPath       = APIPathPrefix + "/components"
-	StatusPath           = APIPathPrefix + "/status"
-	DashboardConfigPath  = APIPathPrefix + "/dashboardConfig/:namespace/:name"
-	ClusterSettingsPath  = APIPathPrefix + "/cluster-settings"
-	ComponentsRemovePath = APIPathPrefix + "/components/remove"
-	AllowedUsersPath     = APIPathPrefix + "/status/:namespace/allowedUsers"
+	ConfigPath                     = APIPathPrefix + "/config"
+	ComponentsPath                 = APIPathPrefix + "/components"
+	StatusPath                     = APIPathPrefix + "/status"
+	OperatorSubscriptionStatusPath = APIPathPrefix + "/operator-subscription-status"
+	DashboardConfigPath            = APIPathPrefix + "/dashboardConfig/:namespace/:name"
+	ClusterSettingsPath            = APIPathPrefix + "/cluster-settings"
+	ComponentsRemovePath           = APIPathPrefix + "/components/remove"
+	AllowedUsersPath               = APIPathPrefix + "/status/:namespace/allowedUsers"
 )
 
 func (app *App) registerConfigRoutes(r *httprouter.Router) {
@@ -20,6 +21,7 @@ func (app *App) registerConfigRoutes(r *httprouter.Router) {
 	r.GET(ConfigPath, app.secureRoute(app.GetConfigHandler))
 	r.GET(ComponentsPath, app.secureRoute(app.GetComponentsHandler))
 	r.GET(StatusPath, app.secureRoute(app.GetStatusHandler))
+	r.GET(OperatorSubscriptionStatusPath, app.requirePlatform(config.PlatformOpenShift, app.secureRoute(app.GetOperatorSubscriptionStatusHandler)))
 
 	// Admin-only
 	r.PATCH(ConfigPath, app.secureAdminRoute(app.PatchConfigHandler))

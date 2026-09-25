@@ -24,6 +24,7 @@
     "@odh-dashboard/plugin-core": "workspace:*",
     "@odh-dashboard/ui-core": "workspace:*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.0",
     "@patternfly/patternfly": "~6.5.2",
     "@patternfly/react-core": "~6.5.1",
     "@patternfly/react-icons": "~6.5.1",

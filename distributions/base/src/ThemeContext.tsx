@@ -1,4 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  ThemeContext as SharedThemeContext,
+  type ThemeContextProps as SharedThemeContextProps,
+} from '@odh-dashboard/ui-core/contexts/ThemeContext';
 
 type Theme = 'light' | 'dark';
 
@@ -47,6 +51,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [theme]);
 
   const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
+  const sharedValue = useMemo<SharedThemeContextProps>(
+    () => ({
+      theme,
+      setTheme: (themeName) => setTheme(themeName === 'dark' ? 'dark' : 'light'),
+    }),
+    [theme, setTheme],
+  );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>
+      <SharedThemeContext.Provider value={sharedValue}>{children}</SharedThemeContext.Provider>
+    </ThemeContext.Provider>
+  );
 };

@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
-import ClusterDetailsVariablesProvider from './ClusterDetailsVariablesProvider';
 import NamespaceUrlSync from './NamespaceUrlSync';
 import PersesProvider from '../perses/embeddable/PersesProvider';
 import PersesDashboard from '../perses/embeddable/PersesDashboard';
@@ -19,16 +18,28 @@ import {
   NAMESPACE_URL_PARAM,
 } from '../utils/dashboardUtils';
 import { transformNamespaceVariable } from '../utils/transformDashboardVariables';
+import type { NamespaceOption } from '../utils/transformDashboardVariables';
 
 export type DashboardContentProps = {
   dashboards: DashboardResource[];
-  projectNames: string[];
+  projectNames: NamespaceOption[];
+  persesProxyBasePath?: string;
+  routeBasePath?: string;
+  browserBasePath?: string;
+  ClusterDetailsAdapter: React.ComponentType;
 };
 
 /**
  * Dashboard content with tabs for multiple dashboards
  */
-const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, projectNames }) => {
+const DashboardContent: React.FC<DashboardContentProps> = ({
+  dashboards,
+  projectNames,
+  persesProxyBasePath,
+  routeBasePath = '/observe-and-monitor/dashboard',
+  browserBasePath = '',
+  ClusterDetailsAdapter,
+}) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -77,9 +88,11 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, project
       }
       event.preventDefault();
       // Use replace to avoid creating extra history entries when switching tabs
-      navigate(buildDashboardUrl(String(eventKey), searchParams.toString()), { replace: true });
+      navigate(buildDashboardUrl(String(eventKey), searchParams.toString(), routeBasePath), {
+        replace: true,
+      });
     },
-    [navigate, searchParams],
+    [navigate, routeBasePath, searchParams],
   );
 
   if (transformedDashboards.length === 0) {
@@ -92,8 +105,13 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, project
 
   return (
     <div ref={setRelativeLinkHandlerRef}>
-      <PersesProvider key={activeDashboardName} dashboardResource={activeDashboard} syncToUrl>
-        {needsClusterDetails && <ClusterDetailsVariablesProvider />}
+      <PersesProvider
+        key={activeDashboardName}
+        dashboardResource={activeDashboard}
+        syncToUrl
+        persesProxyBasePath={persesProxyBasePath}
+      >
+        {needsClusterDetails && <ClusterDetailsAdapter />}
         <NamespaceUrlSync />
         <ApplicationsPage
           title={DASHBOARD_PAGE_TITLE}
@@ -115,7 +133,11 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, project
                 key={dashboard.metadata.name}
                 eventKey={dashboard.metadata.name}
                 title={<TabTitleText>{getDashboardDisplayName(dashboard)}</TabTitleText>}
-                href={buildDashboardUrl(dashboard.metadata.name, searchParams.toString())}
+                href={buildDashboardUrl(
+                  dashboard.metadata.name,
+                  searchParams.toString(),
+                  `${browserBasePath}${routeBasePath}`,
+                )}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
                   <PersesVariables />

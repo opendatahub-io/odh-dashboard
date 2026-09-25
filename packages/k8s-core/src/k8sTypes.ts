@@ -43,6 +43,12 @@ export type AccessReviewResourceAttributes = {
   namespace?: string;
 };
 
+/** A namespace returned by a BFF namespace-list endpoint. */
+export type NamespaceKind = {
+  name: string;
+  displayName?: string;
+};
+
 export const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 
 export enum KnownLabels {

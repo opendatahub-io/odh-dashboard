@@ -16,3 +16,9 @@ rules:
       - ingresses
     verbs:
       - get
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - subscriptions
+    verbs:
+      - get

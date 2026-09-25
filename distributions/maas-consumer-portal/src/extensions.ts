@@ -17,6 +17,26 @@ const extensions: Extension[] = [
     },
   } satisfies RouteExtension,
 
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['observabilityDashboard'] },
+    properties: {
+      id: 'portal-observability-dashboard',
+      title: 'Observability dashboard',
+      href: '/observe-and-monitor/dashboard',
+      path: '/observe-and-monitor/dashboard/*',
+      group: '4_dashboard',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: { required: ['observabilityDashboard'] },
+    properties: {
+      path: '/observe-and-monitor/dashboard/*',
+      component: () => import('./observability/ObservabilityDashboard'),
+    },
+  } satisfies RouteExtension,
+
   // /maas redirect — overrides the package's MaaSRedirect with the
   // portal's own root redirect
   {

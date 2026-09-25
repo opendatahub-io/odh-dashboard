@@ -182,6 +182,7 @@ describe('MaaS Consumer Portal extensions', () => {
       chatPlayground: true,
       externalVectorStores: true,
       agentConfigManagement: true,
+      observabilityDashboard: true,
     });
   };
 
@@ -271,6 +272,24 @@ describe('MaaS Consumer Portal extensions', () => {
     expect(governanceNavigation?.properties.section).toBeUndefined();
     expect(governanceNavigation?.properties.group).toBe('4_maas_governance');
     expect(governanceRoute).toBeDefined();
+  });
+
+  it('should place MaaS governance last at the top level', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: true });
+
+    const navigation = store
+      .getExtensions()
+      .filter((e) => e.type === 'app.navigation/href' && e.properties.section === undefined)
+      .toSorted((a, b) =>
+        String(a.properties.group ?? '5_default').localeCompare(
+          String(b.properties.group ?? '5_default'),
+        ),
+      )
+      .map((e) => e.properties.id);
+
+    expect(navigation.at(-1)).toBe('maas-governance-view');
   });
 
   it('should hide the MaaS governance navigation item and route when MaaS admin access is absent', () => {

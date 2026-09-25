@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "pnpm run start:dev",
     "start:dev": "rspack dev --hot --config ./config/rspack.dev.js",
+    "start:dev:ext": "cross-env EXT_CLUSTER=true pnpm run start:dev",
     "build": "rspack --config ./config/rspack.prod.js",
     "build:prod": "rspack --config ./config/rspack.prod.js",
     "test-unit": "jest --silent",
@@ -22,6 +23,7 @@
     "@odh-dashboard/gen-ai": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
     "@odh-dashboard/maas": "workspace:*",
+    "@odh-dashboard/observability": "workspace:*",
     "@odh-dashboard/plugin-core": "workspace:*",
     "@odh-dashboard/ui-core": "workspace:*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
@@ -31,6 +33,7 @@
     "@patternfly/react-icons": "~6.5.1",
     "@patternfly/react-styles": "~6.5.1",
     "@patternfly/react-table": "~6.5.1",
+    "@perses-dev/dashboards": "^0.54.0-beta.10",
     "lodash-es": "^4.18.1",
     "mod-arch-core": "^1.16.1",
     "mod-arch-shared": "^1.15.4",

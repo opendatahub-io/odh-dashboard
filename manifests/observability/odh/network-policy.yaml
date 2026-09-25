@@ -16,6 +16,12 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/part-of: odh-dashboard
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: opendatahub
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: maas-consumer-portal
       ports:
         - protocol: TCP
           port: 8080

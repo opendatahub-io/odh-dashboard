@@ -1,8 +1,8 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react';
 import { AreaContext, SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import PortalAreaContextProvider from '../PortalAreaContextProvider';
-import PortalContextProvider from '../PortalContextProvider';
+import PortalAreaContextProvider from '../providers/PortalAreaContextProvider';
+import PortalContextProvider from '../providers/PortalContextProvider';
 
 jest.mock('mod-arch-core', () => ({
   ModularArchContextProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -14,6 +14,10 @@ jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   usePluginStore: () => ({
     setFeatureFlags: jest.fn(),
   }),
+}));
+
+jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
+  k8sCreateResource: jest.fn(),
 }));
 
 const AREA_SAMPLES = [
