@@ -1,5 +1,6 @@
 import { K8sCondition, K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import type { K8sEnvironmentVariableInput } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 
@@ -69,11 +70,7 @@ export type NIMServiceKind = K8sResourceCommon & {
       readOnly?: boolean;
       sharedMemorySizeLimit?: string;
     };
-    env?: Array<{
-      name: string;
-      value?: string;
-      valueFrom?: Record<string, unknown>;
-    }>;
+    env?: K8sEnvironmentVariableInput[];
     expose?: {
       service?: {
         type?: string;
