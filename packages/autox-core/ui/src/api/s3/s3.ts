@@ -75,6 +75,11 @@ export type FetchS3JsonOptions<T> = {
   maxBytes?: number;
 };
 
+export type S3JsonQueryKeyOptions = Pick<
+  FetchS3JsonOptions<unknown>,
+  'secretName' | 'bucket' | 'view' | 'maxBytes'
+>;
+
 export type S3FileFetchers = Pick<S3Api, 'fetchS3File' | 'fetchS3Json'>;
 
 export type S3Api = {
@@ -93,6 +98,37 @@ export type S3Api = {
 };
 
 const DEFAULT_MAX_JSON_BYTES = 50 * 1024 * 1024;
+type S3JsonQueryKey =
+  | readonly ['s3Json', string, string]
+  | readonly [
+      's3Json',
+      string,
+      string,
+      string | undefined,
+      string | undefined,
+      string | undefined,
+      number,
+    ];
+
+export const getS3JsonQueryKey = (
+  namespace: string,
+  key: string,
+  options?: S3JsonQueryKeyOptions,
+): S3JsonQueryKey => {
+  if (!options) {
+    return ['s3Json', namespace, key] as const;
+  }
+
+  return [
+    's3Json',
+    namespace,
+    key,
+    options.secretName,
+    options.bucket,
+    options.view,
+    options.maxBytes ?? DEFAULT_MAX_JSON_BYTES,
+  ] as const;
+};
 
 // Public --------------------------------------------------------------------->
 
@@ -310,11 +346,6 @@ export function createS3Api(urlPrefix: string, bffApiVersion: string): S3Api {
   }
 
   return { uploadFileToS3, getFiles, fetchS3File, fetchS3Json };
-}
-
-export function createS3FileFetchers(urlPrefix: string): S3FileFetchers {
-  const { fetchS3File, fetchS3Json } = createS3Api(urlPrefix, 'v1');
-  return { fetchS3File, fetchS3Json };
 }
 
 // Private -------------------------------------------------------------------->

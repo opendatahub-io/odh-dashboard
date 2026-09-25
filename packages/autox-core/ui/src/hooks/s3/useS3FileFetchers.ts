@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as z from 'zod';
 import { useCallback, useMemo } from 'react';
-import type { FetchS3JsonOptions, S3FileFetchers } from '../../api/s3';
+import { getS3JsonQueryKey, type FetchS3JsonOptions, type S3FileFetchers } from '../../api/s3';
 import { useAutoXApi } from '../../context';
 
 export function useS3FileFetchers(): S3FileFetchers {
@@ -30,15 +30,7 @@ export function useS3FileFetchers(): S3FileFetchers {
     async <T>(namespace: string, key: string, options?: FetchS3JsonOptions<T>): Promise<T> => {
       const maxBytes = options?.maxBytes ?? 50 * 1024 * 1024;
       const text = await queryClient.fetchQuery({
-        queryKey: [
-          's3Json',
-          namespace,
-          key,
-          options?.secretName,
-          options?.bucket,
-          options?.view,
-          maxBytes,
-        ],
+        queryKey: getS3JsonQueryKey(namespace, key, { ...options, maxBytes }),
         queryFn: ({ signal }) =>
           s3Api
             .fetchS3File(namespace, key, { ...options, maxBytes, signal })

@@ -23,6 +23,8 @@ export {
 } from './common/useNotification';
 
 export { createUseNamespaces } from './k8s/useNamespaces';
+export { useSecretsQuery, createSecretsQueryOptions, secretsQueryKey } from './k8s/useSecretsQuery';
+export { useCreateSecretMutation } from './k8s/useCreateSecretMutation';
 
 export { usePipelineRuns, type PipelineRunsResult } from './pipelines/usePipelineRuns';
 export { usePipelineRunQuery } from './pipelines/usePipelineRunQuery';
@@ -30,11 +32,21 @@ export { useCreatePipelineRunMutation } from './pipelines/useCreatePipelineRunMu
 export { useTerminatePipelineRunMutation } from './pipelines/useTerminatePipelineRunMutation';
 export { useRetryPipelineRunMutation } from './pipelines/useRetryPipelineRunMutation';
 export { useDeletePipelineRunMutation } from './pipelines/useDeletePipelineRunMutation';
+export {
+  usePipelineServerReadinessQuery,
+  pipelineServerReadinessKey,
+} from './pipelines/usePipelineServerReadinessQuery';
+export { useEnableManagedPipelinesMutation } from './pipelines/useEnableManagedPipelinesMutation';
 
 export { useS3FileFetchers } from './s3/useS3FileFetchers';
 export { useFetchS3File } from './s3/useFetchS3File';
-export type { FetchS3FileOptions, FetchS3JsonOptions, S3FileFetchers } from '../api/s3';
-export { useS3ListFilesQuery } from './s3/useS3ListFilesQuery';
+export {
+  getS3JsonQueryKey,
+  type FetchS3FileOptions,
+  type FetchS3JsonOptions,
+  type S3FileFetchers,
+} from '../api/s3';
+export { useS3ListFilesQuery, createS3ListFilesQueryOptions } from './s3/useS3ListFilesQuery';
 export {
   useS3FileUploadMutation,
   type S3FileUploadMutationVariables,

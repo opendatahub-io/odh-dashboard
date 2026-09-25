@@ -191,6 +191,7 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 const mockuseS3GetFileSchemaQuery = jest.mocked(useS3GetFileSchemaQuery);
+const mockResetSchemaCache = jest.fn();
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 
@@ -357,6 +358,7 @@ describe('AutomlConfigure', () => {
     mockuseS3GetFileSchemaQuery.mockReturnValue({
       data: MOCK_COLUMNS,
       isLoading: false,
+      resetSchemaCache: mockResetSchemaCache,
     } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
@@ -1009,7 +1011,8 @@ describe('AutomlConfigure', () => {
           { name: 'amount', type: 'double', task_type: 'multiclass', unique_count: 3 },
         ],
         isLoading: false,
-      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       selectSecretAndFile();
       selectTargetColumn('amount');
@@ -1037,7 +1040,8 @@ describe('AutomlConfigure', () => {
           { name: '店舗', type: 'string', task_type: 'multiclass' },
         ],
         isLoading: false,
-      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       selectSecretAndFile();
       selectTargetColumn('amount');
@@ -1056,7 +1060,8 @@ describe('AutomlConfigure', () => {
           { name: 'amount', type: 'double', task_type: 'regression' },
         ],
         isLoading: false,
-      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       selectSecretAndFile();
       selectTargetColumn('amount');
@@ -1075,7 +1080,8 @@ describe('AutomlConfigure', () => {
           { name: 'category', type: 'string', task_type: 'multiclass', unique_count: 3 },
         ],
         isLoading: false,
-      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       renderComponent();
       selectSecretAndFile();
       selectTargetColumn('category');
@@ -1121,6 +1127,7 @@ describe('AutomlConfigure', () => {
         mockuseS3GetFileSchemaQuery.mockReturnValue({
           data: [],
           isLoading: false,
+          resetSchemaCache: mockResetSchemaCache,
         } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
         renderComponent();
         selectSecretAndFile();
@@ -1151,7 +1158,8 @@ describe('AutomlConfigure', () => {
         mockuseS3GetFileSchemaQuery.mockReturnValue({
           data: [...MOCK_COLUMNS, { name: 'observed', type: 'timestamp', task_type: 'multiclass' }],
           isLoading: false,
-        } as ReturnType<typeof useS3GetFileSchemaQuery>);
+          resetSchemaCache: mockResetSchemaCache,
+        } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
         renderWithInitialValues(
           {
             initialInputDataSecret: {

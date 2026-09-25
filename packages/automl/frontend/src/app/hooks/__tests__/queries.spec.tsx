@@ -1,8 +1,9 @@
 /* eslint-disable camelcase -- test data matches API response field names */
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { AutoXApiProvider } from '@odh-dashboard/autox-core/ui/context';
+import { getS3JsonQueryKey } from '@odh-dashboard/autox-core/ui/hooks';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/useModelEvaluationArtifactsQuery';
@@ -31,7 +32,7 @@ const createWrapper = () => {
     </AutoXApiProvider>
   );
   Wrapper.displayName = 'TestQueryClientProvider';
-  return Wrapper;
+  return { Wrapper, queryClient };
 };
 
 describe('useS3GetFileSchemaQuery', () => {
@@ -42,7 +43,7 @@ describe('useS3GetFileSchemaQuery', () => {
   it('should be disabled when namespace is missing', () => {
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery(undefined, 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.data).toEqual([]);
@@ -53,7 +54,7 @@ describe('useS3GetFileSchemaQuery', () => {
   it('should be disabled when secretName is missing', () => {
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', undefined, 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.data).toEqual([]);
@@ -64,7 +65,7 @@ describe('useS3GetFileSchemaQuery', () => {
   it('should be disabled when key is missing', () => {
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', undefined),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.data).toEqual([]);
@@ -93,7 +94,7 @@ describe('useS3GetFileSchemaQuery', () => {
     renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       {
-        wrapper: createWrapper(),
+        wrapper: createWrapper().Wrapper,
       },
     );
 
@@ -129,7 +130,7 @@ describe('useS3GetFileSchemaQuery', () => {
     renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', undefined, 'data.csv'),
       {
-        wrapper: createWrapper(),
+        wrapper: createWrapper().Wrapper,
       },
     );
 
@@ -171,7 +172,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -192,7 +193,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -208,7 +209,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -234,7 +235,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.txt'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -257,7 +258,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -272,7 +273,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     const { result } = renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -288,7 +289,7 @@ describe('useS3GetFileSchemaQuery', () => {
     renderHook(
       () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       {
-        wrapper: createWrapper(),
+        wrapper: createWrapper().Wrapper,
       },
     );
 
@@ -298,13 +299,38 @@ describe('useS3GetFileSchemaQuery', () => {
   });
 
   it('should use correct query key', () => {
-    const { result } = renderHook(
-      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
-      { wrapper: createWrapper() },
+    const { Wrapper, queryClient } = createWrapper();
+    const queryKey = ['files', 'test-namespace', 'test-secret', 'test-bucket', 'data.csv'];
+    const s3JsonQueryKey = getS3JsonQueryKey('test-namespace', 'data.csv', {
+      secretName: 'test-secret',
+      bucket: 'test-bucket',
+      view: 'schema',
+    });
+    queryClient.setQueryData(queryKey, [{ name: 'stale-column' }]);
+    queryClient.setQueryData(s3JsonQueryKey, { data: { columns: [] } });
+    queryClient.setQueryData(
+      ['files', 'test-namespace', 'test-secret', 'other-bucket', 'data.csv'],
+      [{ name: 'unrelated-column' }],
     );
 
-    expect(result.current).toBeDefined();
-    // Query key is ['files', namespace, secretName, bucket, key]
+    const { result } = renderHook(
+      () => useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      { wrapper: Wrapper },
+    );
+
+    act(() => result.current.resetSchemaCache());
+
+    expect(queryClient.getQueryData(queryKey)).toEqual([]);
+    expect(queryClient.getQueryState(s3JsonQueryKey)?.isInvalidated).toBe(true);
+    expect(
+      queryClient.getQueryData([
+        'files',
+        'test-namespace',
+        'test-secret',
+        'other-bucket',
+        'data.csv',
+      ]),
+    ).toEqual([{ name: 'unrelated-column' }]);
   });
 
   it('should handle URL encoding for special characters in parameters', async () => {
@@ -325,7 +351,7 @@ describe('useS3GetFileSchemaQuery', () => {
     renderHook(
       () =>
         useS3GetFileSchemaQuery('test-namespace', 'test-secret', 'my-bucket', 'folder/my file.csv'),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -639,7 +665,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -660,7 +686,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -697,7 +723,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -711,7 +737,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
   it('should be disabled when namespace is missing', () => {
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery(undefined, 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.isLoading).toBe(false);
@@ -723,7 +749,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
   it('should be disabled when modelDirectory is missing', () => {
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', undefined, true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.isLoading).toBe(false);
@@ -761,7 +787,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -800,7 +826,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -848,7 +874,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, true),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {
@@ -865,7 +891,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, false),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper().Wrapper },
     );
 
     await waitFor(() => {

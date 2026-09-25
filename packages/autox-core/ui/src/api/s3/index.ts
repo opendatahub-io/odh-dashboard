@@ -7,5 +7,6 @@ export type {
   FetchS3JsonOptions,
   S3FileFetchers,
   S3Api,
+  S3JsonQueryKeyOptions,
 } from './s3';
-export { createS3Api, createS3FileFetchers } from './s3';
+export { createS3Api, getS3JsonQueryKey } from './s3';

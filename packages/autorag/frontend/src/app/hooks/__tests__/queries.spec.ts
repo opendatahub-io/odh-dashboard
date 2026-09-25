@@ -1,13 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import {
-  fetchS3File,
-  fetchS3Json,
-  useMaaSModelsQuery,
-} from '~/app/hooks/queries';
-import { useSecretCredentialsQuery } from '../useSecretCredentialsQuery';
 import { getMaaSModels, getSecretByName } from '~/app/api/k8s';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
+import { useSecretCredentialsQuery } from '~/app/hooks/useSecretCredentialsQuery';
 
 jest.mock('~/app/api/k8s', () => ({
   getMaaSModels: jest.fn(),

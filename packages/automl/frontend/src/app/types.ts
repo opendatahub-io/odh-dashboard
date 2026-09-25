@@ -50,13 +50,6 @@ export type NamespaceKind = SharedNamespaceKind;
 
 export type IconType = ComponentType<{ style?: CSSProperties }>;
 
-export type PipelineDefinition = {
-  pipeline_id: string;
-  display_name: string;
-  created_at: string;
-  description?: string;
-};
-
 /** Pipeline reference embedded in a run (API schema). */
 export type PipelineVersionReference = SharedPipelineVersionReference;
 

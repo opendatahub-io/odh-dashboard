@@ -1,6 +1,7 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import React from 'react';
+import { getS3JsonQueryKey, useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 
 export type TaskType = 'binary' | 'multiclass' | 'regression';
 
@@ -11,6 +12,13 @@ export type ColumnSchema = {
   unique_count?: number;
   values?: (string | number)[];
 };
+
+export const getS3FileSchemaQueryKey = (
+  namespace?: string,
+  secretName?: string,
+  bucket?: string,
+  key?: string,
+) => ['files', namespace, secretName, bucket, key] as const;
 
 const ColumnSchemaArraySchema = z.array(
   z.object({
@@ -29,10 +37,15 @@ export function useS3GetFileSchemaQuery(
   secretName?: string,
   bucket?: string,
   key?: string,
-): UseQueryResult<ColumnSchema[], Error> {
+): UseQueryResult<ColumnSchema[], Error> & { resetSchemaCache: () => void } {
   const { fetchS3Json } = useS3FileFetchers();
-  return useQuery({
-    queryKey: ['files', namespace, secretName, bucket, key],
+  const queryClient = useQueryClient();
+  const queryKey = React.useMemo(
+    () => getS3FileSchemaQueryKey(namespace, secretName, bucket, key),
+    [namespace, secretName, bucket, key],
+  );
+  const query = useQuery({
+    queryKey,
     queryFn: async ({ signal }) => {
       if (!namespace || !secretName || !key) {
         return [];
@@ -66,4 +79,13 @@ export function useS3GetFileSchemaQuery(
     retry: false,
     placeholderData: [],
   });
+
+  const resetSchemaCache = React.useCallback(() => {
+    queryClient.setQueryData(queryKey, []);
+    if (namespace && key) {
+      void queryClient.invalidateQueries({ queryKey: getS3JsonQueryKey(namespace, key) });
+    }
+  }, [key, namespace, queryClient, queryKey]);
+
+  return { ...query, resetSchemaCache };
 }

@@ -3,11 +3,10 @@ import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feat
 import { getMissingRequiredKeys, parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useParams } from 'react-router';
+import { useSecretsQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
-import { getSecrets } from '~/app/api/k8s';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
@@ -136,29 +135,17 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     data: storageSecrets,
     isPending: storageSecretsPending,
     isError: storageSecretsError,
-  } = useQuery({
-    queryKey: ['secrets', namespace, 'storage'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'storage')({}),
-    enabled: !!namespace,
-  });
+  } = useSecretsQuery(namespace, 'storage');
   const {
     data: maasSecrets,
     isPending: maasSecretsPending,
     isError: maasSecretsError,
-  } = useQuery({
-    queryKey: ['secrets', namespace, 'maas'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'maas')({}),
-    enabled: !!namespace && !isLegacyRun,
-  });
+  } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'maas');
   const {
     data: vectorDbSecrets,
     isPending: vectorDbSecretsPending,
     isError: vectorDbSecretsError,
-  } = useQuery({
-    queryKey: ['secrets', namespace, 'vector-db'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'vector-db')({}),
-    enabled: !!namespace && !isLegacyRun,
-  });
+  } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'vector-db');
 
   const parsedParams = React.useMemo(
     () => (params == null ? undefined : parseReconfigureParameters(params)),

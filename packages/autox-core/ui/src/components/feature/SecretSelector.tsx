@@ -8,12 +8,11 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { TypeaheadSelect } from '@odh-dashboard/ui-core';
 import type { TypeaheadSelectProps } from '@odh-dashboard/ui-core';
 import * as React from 'react';
-import { useAutoXApi } from '../../context';
 import type { SecretListItem } from '../../api/k8s';
+import { useSecretsQuery } from '../../hooks';
 import { formatMissingKeysMessage, getMissingRequiredKeys } from '../../utils/secretValidation';
 
 export interface SecretSelection extends SecretListItem {
@@ -61,20 +60,15 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   toggleProps: userToggleProps,
   ...props
 }) => {
-  const { k8s } = useAutoXApi();
   const [validationError, setValidationError] = React.useState<string>('');
-
-  const callback = React.useCallback<FetchStateCallbackPromise<SecretListItem[]>>(
-    (opts: APIOptions) => k8s.getSecrets('')(namespace, type)(opts),
-    [k8s, namespace, type],
-  );
-
-  const [secrets, loaded, error, refresh] = useFetchState<SecretListItem[]>(callback, []);
+  const { data: secrets, isPending: loading, error, refetch } = useSecretsQuery(namespace, type);
+  const refresh = React.useCallback(async () => (await refetch()).data, [refetch]);
 
   React.useEffect(() => {
     onRefreshReady?.(refresh);
   }, [refresh, onRefreshReady]);
 
+  const loaded = !loading;
   const secretsList = React.useMemo(() => (Array.isArray(secrets) ? secrets : []), [secrets]);
   const hasSecrets = secretsList.length > 0;
   const hasError = !!error;

@@ -1,4 +1,4 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import type { S3ListObjectsResponse } from '../../api/s3';
 import { useAutoXApi } from '../../context';
 
@@ -11,7 +11,15 @@ export function useS3ListFilesQuery(
 ): UseQueryResult<S3ListObjectsResponse, Error> {
   const { s3: s3Api } = useAutoXApi();
 
-  return useQuery({
+  return useQuery(createS3ListFilesQueryOptions(s3Api, namespace, path));
+}
+
+export function createS3ListFilesQueryOptions(
+  s3Api: ReturnType<typeof useAutoXApi>['s3'],
+  namespace?: string,
+  path?: string,
+): UseQueryOptions<S3ListObjectsResponse, Error> {
+  return {
     queryKey: ['s3Files', namespace, path],
     queryFn: async ({ signal }) => {
       if (!namespace || !path) {
@@ -28,5 +36,5 @@ export function useS3ListFilesQuery(
     },
     enabled: Boolean(namespace && path),
     retry: false,
-  });
+  };
 }

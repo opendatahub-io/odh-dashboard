@@ -1,23 +1,14 @@
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { createK8sApi } from '@odh-dashboard/autox-core/ui/api';
+import * as z from 'zod';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { MaaSModelsResponse } from '~/app/types';
 
 export const k8sApi = createK8sApi(URL_PREFIX, BFF_API_VERSION);
 export const { getUser, getNamespaces } = k8sApi;
-import * as z from 'zod';
-import type { SecretListItem } from '~/app/types';
-
-const SecretListItemSchema = z.object({
-  uuid: z.string(),
-  name: z.string(),
-  type: z.string().optional(),
-  data: z.record(z.string(), z.string()),
-  displayName: z.string().optional(),
-  description: z.string().optional(),
-});
 
 const MaaSModelsResponseSchema = z.object({
+  /* eslint-disable camelcase */
   models: z.array(
     z.object({
       id: z.string(),
@@ -27,20 +18,8 @@ const MaaSModelsResponseSchema = z.object({
       ready: z.boolean(),
     }),
   ),
+  /* eslint-enable camelcase */
 });
-
-export const getSecrets =
-  (hostPath: string) =>
-  (namespace: string, type?: string) =>
-  (opts: APIOptions): Promise<SecretListItem[]> =>
-    k8sApi.getSecrets(hostPath)(namespace, type)(opts).then((secrets) => {
-      try {
-        return SecretListItemSchema.array().parse(secrets);
-      } catch {
-        throw new Error('Invalid response format');
-      }
-    });
-
 
 export const getSecretByName =
   (hostPath: string) =>

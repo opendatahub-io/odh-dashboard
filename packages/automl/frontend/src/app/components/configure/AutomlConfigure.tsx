@@ -45,7 +45,6 @@ import {
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
-import { useQueryClient } from '@tanstack/react-query';
 import type { FileRejection } from 'react-dropzone';
 import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -130,7 +129,6 @@ function AutomlConfigure({
   onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
-  const queryClient = useQueryClient();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
     () =>
@@ -286,6 +284,7 @@ function AutomlConfigure({
     isLoading: isLoadingColumns,
     isFetching: isFetchingColumns,
     error: columnsError,
+    resetSchemaCache,
   } = useS3GetFileSchemaQuery(
     namespace ?? '',
     trainDataSecretName,
@@ -400,10 +399,7 @@ function AutomlConfigure({
       return;
     }
     if (!trainDataSecretName || !trainDataBucketName || !trainDataFileKey) {
-      queryClient.setQueryData(
-        ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
-        [],
-      );
+      resetSchemaCache();
       setValue('target_column', '', { shouldValidate: true });
     }
   }, [
@@ -411,7 +407,7 @@ function AutomlConfigure({
     trainDataBucketName,
     trainDataFileKey,
     namespace,
-    queryClient,
+    resetSchemaCache,
     setValue,
   ]);
 

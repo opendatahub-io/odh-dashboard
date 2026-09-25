@@ -19,7 +19,7 @@ import type {
   K8sNameDescriptionFieldData,
 } from '@odh-dashboard/k8s-core';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { useCreateSecretMutation } from '../../hooks';
 import './ConnectionModal.scss';
 
 const S3_REQUIRED_ENV_VARS = ['AWS_DEFAULT_REGION', 'AWS_S3_BUCKET'];
@@ -56,6 +56,7 @@ const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const submittingRef = React.useRef(false);
   const createdConnectionRef = React.useRef<Connection>();
   const hasReportedOutcomeRef = React.useRef(false);
+  const createSecretMutation = useCreateSecretMutation();
 
   const enabledConnectionTypes = React.useMemo(() => {
     const filtered = filterEnabledConnectionTypes(connectionTypes);
@@ -162,7 +163,7 @@ const ConnectionModal: React.FC<ConnectionModalProps> = ({
     let connectionToSubmit = createdConnectionRef.current;
     if (!connectionToSubmit) {
       try {
-        await createSecret(assembledConnection);
+        await createSecretMutation.mutateAsync(assembledConnection);
       } catch (error) {
         hasReportedOutcomeRef.current = true;
         setSubmitError(getCreateError(error));

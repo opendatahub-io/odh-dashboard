@@ -8,12 +8,7 @@ import {
 } from 'mod-arch-core';
 import { createPipelinesApi } from '@odh-dashboard/autox-core/ui/api';
 import { parseCreatePipelineRunResponse } from '~/app/hooks/useCreatePipelineRunMutation';
-import type {
-  CreateIndexingPipelineRunRequest,
-  ManagedPipeline,
-  PipelineDefinition,
-  PipelineRun,
-} from '~/app/types';
+import type { CreateIndexingPipelineRunRequest, ManagedPipeline, PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
 export type {
@@ -61,7 +56,9 @@ export async function createIndexingPipelineRun(
   const response = await handleRestFailures(
     restCREATE<PipelineRun>(
       hostPath,
-      `${URL_PREFIX}/api/${BFF_API_VERSION}/indexing-pipeline-runs?namespace=${encodeURIComponent(namespace)}`,
+      `${URL_PREFIX}/api/${BFF_API_VERSION}/indexing-pipeline-runs?namespace=${encodeURIComponent(
+        namespace,
+      )}`,
       payload,
     ),
   );
@@ -69,16 +66,4 @@ export async function createIndexingPipelineRun(
     return parseCreatePipelineRunResponse(response.data);
   }
   throw new Error('Invalid response format');
-}
-
-export async function getPipelineDefinitions(
-  _hostPath: string,
-  namespace: string,
-): Promise<PipelineDefinition[]> {
-  if (!namespace) {
-    return [];
-  }
-  // Prefer managed-pipelines discovery for runtime pipeline availability.
-  // Legacy callers expecting PipelineDefinition[] still get an empty list.
-  return [];
 }

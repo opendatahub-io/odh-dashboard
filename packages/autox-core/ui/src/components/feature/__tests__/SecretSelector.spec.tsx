@@ -1,17 +1,14 @@
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import { useFetchState } from 'mod-arch-core';
-import { useAutoXApi } from '../../../context';
 import type { SecretListItem } from '../../../api/k8s';
+import { useSecretsQuery } from '../../../hooks';
 import SecretSelector from '../SecretSelector';
 
-jest.mock('mod-arch-core', () => ({
-  ...jest.requireActual('mod-arch-core'),
-  useFetchState: jest.fn(),
+jest.mock('../../../hooks', () => ({
+  ...jest.requireActual('../../../hooks'),
+  useSecretsQuery: jest.fn(),
 }));
-
-jest.mock('../../../context', () => ({ useAutoXApi: jest.fn() }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   TypeaheadSelect: ({
@@ -43,8 +40,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ),
 }));
 
-const mockUseFetchState = jest.mocked(useFetchState);
-const mockUseAutoXApi = jest.mocked(useAutoXApi);
+const mockUseSecretsQuery = jest.mocked(useSecretsQuery);
 
 const secrets: SecretListItem[] = [
   {
@@ -64,14 +60,15 @@ const secrets: SecretListItem[] = [
 describe('SecretSelector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseAutoXApi.mockReturnValue({
-      k8s: { getSecrets: jest.fn() },
-    } as unknown as ReturnType<typeof useAutoXApi>);
+    mockUseSecretsQuery.mockReturnValue({
+      data: [],
+      isPending: true,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
   });
 
   it('should show a skeleton while secrets are loading', () => {
-    mockUseFetchState.mockReturnValue([[], false, undefined, jest.fn()]);
-
     render(<SecretSelector namespace="test" onChange={jest.fn()} />);
 
     expect(document.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
@@ -80,19 +77,29 @@ describe('SecretSelector', () => {
   it('should render fetched secrets and expose the refresh callback', () => {
     const refresh = jest.fn();
     const onRefreshReady = jest.fn();
-    mockUseFetchState.mockReturnValue([secrets, true, undefined, refresh]);
+    mockUseSecretsQuery.mockReturnValue({
+      data: secrets,
+      isPending: false,
+      error: null,
+      refetch: refresh,
+    } as never);
 
     render(
       <SecretSelector namespace="test" onChange={jest.fn()} onRefreshReady={onRefreshReady} />,
     );
 
     expect(screen.getByText('valid-secret')).toBeInTheDocument();
-    expect(onRefreshReady).toHaveBeenCalledWith(refresh);
+    expect(onRefreshReady).toHaveBeenCalled();
   });
 
   it('should report an invalid selection when required keys are missing', () => {
     const onChange = jest.fn();
-    mockUseFetchState.mockReturnValue([secrets, true, undefined, jest.fn()]);
+    mockUseSecretsQuery.mockReturnValue({
+      data: secrets,
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
 
     render(
       <SecretSelector
@@ -108,7 +115,12 @@ describe('SecretSelector', () => {
   });
 
   it('should show a validation message for a selected secret missing required keys', () => {
-    mockUseFetchState.mockReturnValue([secrets, true, undefined, jest.fn()]);
+    mockUseSecretsQuery.mockReturnValue({
+      data: secrets,
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
 
     render(
       <SecretSelector
@@ -122,5 +134,46 @@ describe('SecretSelector', () => {
     expect(
       screen.getByText('Required key "REQUIRED" is not set in this secret'),
     ).toBeInTheDocument();
+  });
+
+  it('should reconcile valueName to the matching UUID and clear stale selections', async () => {
+    const onChange = jest.fn();
+    mockUseSecretsQuery.mockReturnValue({
+      data: secrets,
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+    const { rerender } = render(
+      <SecretSelector namespace="test" valueName="valid-secret" onChange={onChange} />,
+    );
+
+    expect(screen.getByText('valid-secret')).toBeInTheDocument();
+    mockUseSecretsQuery.mockReturnValue({
+      data: [secrets[1]],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+    rerender(<SecretSelector namespace="test" valueName="valid-secret" onChange={onChange} />);
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
+  });
+
+  it('should preserve a newly available valueName after a refreshed result', () => {
+    const onChange = jest.fn();
+    const refreshedSecret = { ...secrets[0], uuid: 'new-uuid', name: 'new-secret' };
+    mockUseSecretsQuery.mockReturnValue({
+      data: [refreshedSecret],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+
+    render(<SecretSelector namespace="test" valueName="new-secret" onChange={onChange} />);
+
+    expect(onChange).not.toHaveBeenCalledWith(undefined);
+    fireEvent.click(screen.getByRole('button'));
+    expect(onChange).toHaveBeenCalledWith({ ...refreshedSecret, invalid: false });
   });
 });

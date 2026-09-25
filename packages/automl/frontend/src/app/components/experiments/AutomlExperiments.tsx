@@ -1,19 +1,17 @@
 import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
-import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
-import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
 import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';
-import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import {
   shouldShowManagedPipelinesMissing,
   shouldShowNoDSPAEmptyState,
   shouldShowPipelineServerNotReady,
+  getPipelineErrorCode,
 } from '~/app/utilities/pipelineServerEmptyState';
 import { automlConfigurePathname } from '~/app/utilities/routes';
 
@@ -48,11 +46,6 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   );
 
   const {
-    loaded: defsLoaded,
-    error: defsError,
-    refresh: refreshDefs,
-  } = usePipelineDefinitions(effectiveNamespace);
-  const {
     runs,
     totalSize,
     page,
@@ -64,8 +57,8 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     refresh: refreshRuns,
   } = usePipelineRuns(effectiveNamespace);
 
-  const loaded = defsLoaded && runsLoaded;
-  const loadError = defsError ?? runsError;
+  const loaded = runsLoaded;
+  const loadError = runsError;
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
@@ -119,15 +112,11 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     };
   }, [effectiveNamespace, hasLoadError, loaded, hasExperiments]);
 
-  const errorCode = loadError
-    ? (getGenericErrorCode(loadError) ??
-      (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
-    : undefined;
+  const errorCode = loadError ? getPipelineErrorCode(loadError) : undefined;
 
   const handleServerReady = React.useCallback(() => {
-    void refreshDefs();
     refreshRuns();
-  }, [refreshDefs, refreshRuns]);
+  }, [refreshRuns]);
 
   React.useEffect(() => {
     if (serverBusy && (loaded || loadError)) {

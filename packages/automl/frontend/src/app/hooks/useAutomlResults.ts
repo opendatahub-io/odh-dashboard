@@ -1,8 +1,12 @@
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  createS3ListFilesQueryOptions,
+  useS3ListFilesQuery,
+  useS3FileFetchers,
+} from '@odh-dashboard/autox-core/ui/hooks';
+import { useAutoXApi } from '@odh-dashboard/autox-core/ui/context';
 import { AutomlModelSchema, isRawTimeseriesModelV34 } from '~/app/hooks/modelSchema';
-import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
@@ -27,6 +31,16 @@ type UseAutomlResultsReturn = {
   error: Error | undefined;
   modelsBasePath?: string;
   refetch: () => Promise<void>;
+};
+
+export const invalidateAutomlResultsQueries = async (
+  queryClient: ReturnType<typeof useQueryClient>,
+  namespace?: string,
+): Promise<void> => {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] }),
+    queryClient.invalidateQueries({ queryKey: ['s3Json', namespace] }),
+  ]);
 };
 
 /**
@@ -74,6 +88,7 @@ export function useAutomlResults(
   pipelineRun?: PipelineRun,
 ): UseAutomlResultsReturn {
   const { fetchS3Json } = useS3FileFetchers();
+  const { s3: s3Api } = useAutoXApi();
   // Step 0: Discover the training task directory under the run prefix.
   // The pipeline uses preset-based condition branches that produce different task
   // names (e.g. "autogluon-models-training" for balanced, "autogluon-models-training-2"
@@ -123,24 +138,7 @@ export function useAutomlResults(
       .filter((prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0)
       .map((prefixObj) => {
         const path = `${prefixObj.prefix}${modelArtifactsDirectory}`;
-        return {
-          queryKey: ['automl', 's3Files', namespace, path],
-          queryFn: async ({ signal }) => {
-            if (!namespace) {
-              throw new Error('namespace is required');
-            }
-            return getS3Files(
-              '',
-              { signal },
-              {
-                namespace,
-                path,
-              },
-            );
-          },
-          enabled: Boolean(namespace && s3Files?.common_prefixes),
-          retry: false,
-        };
+        return createS3ListFilesQueryOptions(s3Api, namespace, path);
       }),
     combine: (results) => ({
       data: results
@@ -202,7 +200,7 @@ export function useAutomlResults(
     queries: modelDirectories.map(({ name, directory, artifactDirectory }) => {
       const modelJsonPath = `${directory}model.json`;
       return {
-        queryKey: ['automl', 's3File', namespace, name, modelJsonPath],
+        queryKey: ['s3File', namespace, modelJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace) {
             throw new Error('namespace is required');
@@ -297,7 +295,10 @@ export function useAutomlResults(
       if (!entry.name || !entry.model) {
         // eslint-disable-next-line no-console
         console.warn(
-          `Skipping model with incomplete data: ${JSON.stringify({ name: entry.name, hasModel: !!entry.model })}`,
+          `Skipping model with incomplete data: ${JSON.stringify({
+            name: entry.name,
+            hasModel: !!entry.model,
+          })}`,
         );
         return;
       }
@@ -331,13 +332,10 @@ export function useAutomlResults(
     : undefined;
 
   const queryClient = useQueryClient();
-  const refetch = React.useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] }),
-      queryClient.invalidateQueries({ queryKey: ['automl', 's3Files', namespace] }),
-      queryClient.invalidateQueries({ queryKey: ['automl', 's3File', namespace] }),
-    ]);
-  }, [queryClient, namespace]);
+  const refetch = React.useCallback(
+    () => invalidateAutomlResultsQueries(queryClient, namespace),
+    [queryClient, namespace],
+  );
 
   return {
     models,

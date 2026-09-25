@@ -1,12 +1,11 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useParams } from 'react-router';
+import { useSecretsQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
 import { getMissingRequiredKeys, parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
-import { getSecrets } from '~/app/api/k8s';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
@@ -56,11 +55,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     data: secrets,
     isPending: secretsPending,
     isError: secretsError,
-  } = useQuery({
-    queryKey: ['secrets', namespace, 'storage'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'storage')({}),
-    enabled: !!namespace,
-  });
+  } = useSecretsQuery(namespace, 'storage');
 
   const params = pipelineRun?.runtime_config?.parameters;
 

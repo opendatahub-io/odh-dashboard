@@ -237,6 +237,30 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['src/app/components/**/*.{ts,tsx}', 'src/app/pages/**/*.{ts,tsx}'],
+      excludedFiles: ['**/__tests__/**', '**/__mocks__/**'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: '@tanstack/react-query',
+                importNames: ['useQuery', 'useMutation'],
+                message: 'Use a named domain hook from the hooks layer instead.',
+              },
+            ],
+            patterns: [
+              {
+                group: ['~/app/api/**', '@odh-dashboard/k8s-core/api/**'],
+                message: 'Components and pages must consume named hooks, not raw API modules.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
       files: ['./src/api/**'],
       rules: {
         'no-restricted-imports': [

@@ -49,13 +49,6 @@ export type NamespaceKind = SharedNamespaceKind;
 
 export type IconType = ComponentType<{ style?: CSSProperties }>;
 
-export type PipelineDefinition = {
-  pipeline_id: string;
-  display_name: string;
-  created_at: string;
-  description?: string;
-};
-
 export type ManagedPipelineType = 'autorag' | 'indexing';
 
 export type ManagedPipeline = {

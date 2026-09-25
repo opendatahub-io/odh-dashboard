@@ -33,9 +33,15 @@ jest.mock('~/app/hooks/usePipelineRunQuery', () => ({
 }));
 
 const mockGetSecretsQueryFn = jest.fn();
-const mockGetSecrets = jest.fn().mockReturnValue(mockGetSecretsQueryFn);
-jest.mock('~/app/api/k8s', () => ({
-  getSecrets: () => (namespace: string, type?: string) => mockGetSecrets(namespace, type),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useSecretsQuery: (namespace?: string, type?: string) =>
+    jest.requireActual('@tanstack/react-query').useQuery({
+      queryKey: ['secrets', namespace, type],
+      queryFn: () => mockGetSecretsQueryFn(),
+      enabled: Boolean(namespace),
+      retry: false,
+    }),
 }));
 
 const mockNotification = {
@@ -721,7 +727,7 @@ describe('AutomlReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      expect(mockGetSecrets).toHaveBeenCalledWith('test-ns', 'storage');
+      expect(mockGetSecretsQueryFn).toHaveBeenCalled();
     });
   });
 });

@@ -33,7 +33,7 @@ export type PipelinesApi<TParams = Record<string, unknown>> = {
     namespace: string,
     opts?: APIOptions,
   ) => Promise<PipelineRun<TParams>>;
-  enableManagedPipelines: (hostPath: string, namespace: string) => Promise<void>;
+  enableManagedPipelines: (hostPath: string, namespace: string, opts?: APIOptions) => Promise<void>;
   terminatePipelineRun: (namespace: string, runId: string) => Promise<void>;
   retryPipelineRun: (namespace: string, runId: string) => Promise<void>;
   deletePipelineRun: (namespace: string, runId: string) => Promise<void>;
@@ -108,7 +108,11 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
     throw new Error('Invalid response format');
   }
 
-  async function enableManagedPipelines(hostPath: string, namespace: string): Promise<void> {
+  async function enableManagedPipelines(
+    hostPath: string,
+    namespace: string,
+    opts?: APIOptions,
+  ): Promise<void> {
     await handleRestFailures(
       restCREATE(
         hostPath,
@@ -116,6 +120,8 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
           namespace,
         )}`,
         {},
+        {},
+        opts,
       ),
     );
   }

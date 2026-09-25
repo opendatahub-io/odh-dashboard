@@ -28,3 +28,5 @@ export { default as SecretSelector } from './SecretSelector';
 export type { SecretSelection, SecretSelectorProps } from './SecretSelector';
 export { default as ConnectionModal } from './ConnectionModal';
 export type { ConnectionModalOutcome, ConnectionModalProps } from './ConnectionModal';
+export { default as PipelineServerSetup } from './PipelineServerSetup';
+export type { PipelineServerSetupConfig, PipelineServerSetupProps } from './PipelineServerSetup';

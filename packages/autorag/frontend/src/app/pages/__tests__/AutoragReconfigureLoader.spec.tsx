@@ -33,8 +33,15 @@ jest.mock('~/app/hooks/usePipelineRunQuery', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
 }));
 
-jest.mock('~/app/api/k8s', () => ({
-  getSecrets: () => (_namespace: string, type: string) => () => mockGetSecrets(type),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useSecretsQuery: (namespace?: string, type?: string) =>
+    jest.requireActual('@tanstack/react-query').useQuery({
+      queryKey: ['secrets', namespace, type],
+      queryFn: () => mockGetSecrets(type),
+      enabled: Boolean(namespace),
+      retry: false,
+    }),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({

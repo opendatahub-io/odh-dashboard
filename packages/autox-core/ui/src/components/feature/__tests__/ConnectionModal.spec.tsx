@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/k8s-core/api/secrets';
@@ -22,13 +23,15 @@ const renderModal = (
     ...overrides,
   };
   render(
-    <ConnectionModal
-      connectionTypes={connectionTypes}
-      project="my-project"
-      onClose={jest.fn()}
-      onSubmit={onSubmit}
-      {...props}
-    />,
+    <QueryClientProvider client={new QueryClient()}>
+      <ConnectionModal
+        connectionTypes={connectionTypes}
+        project="my-project"
+        onClose={jest.fn()}
+        onSubmit={onSubmit}
+        {...props}
+      />
+    </QueryClientProvider>,
   );
   return props;
 };
@@ -43,17 +46,7 @@ describe('ConnectionModal', () => {
     const onClose = jest.fn();
     const onOutcome = jest.fn();
     const onSubmit = jest.fn();
-    render(
-      <ConnectionModal
-        connectionTypes={connectionTypes}
-        project="my-project"
-        onClose={onClose}
-        onSubmit={onSubmit}
-        onOutcome={onOutcome}
-        getCreateError={(error) => new Error(String(error))}
-        getSubmitError={(error) => new Error(String(error))}
-      />,
-    );
+    renderModal({ onClose, onSubmit, onOutcome });
 
     await userEvent
       .setup()
@@ -115,22 +108,14 @@ describe('ConnectionModal', () => {
       getCreateError: (error: unknown) => new Error(String(error)),
       getSubmitError: (error: unknown) => new Error(String(error)),
     };
-    render(
-      <ConnectionModal
-        connectionTypes={connectionTypes}
-        project="my-project"
-        onClose={onClose}
-        onSubmit={onSubmit}
-        {...props}
-      />,
-    );
+    renderModal({ onClose, onSubmit, ...props });
     const user = userEvent.setup();
     await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-conn');
     const addButton = screen.getByRole('button', { name: 'Add connection' });
     fireEvent.click(addButton);
     fireEvent.click(addButton);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(createSecretMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(createSecretMock).toHaveBeenCalledTimes(1));
     expect(onClose).not.toHaveBeenCalled();
 
     resolveCreate?.();

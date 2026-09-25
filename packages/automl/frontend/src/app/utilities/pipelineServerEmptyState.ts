@@ -54,3 +54,10 @@ export function shouldShowPipelineServerNotReady(error: unknown): boolean {
   }
   return false;
 }
+
+export function getPipelineErrorCode(error: unknown): number | undefined {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+  return getGenericErrorCode(error) ?? parseErrorStatus(error);
+}

@@ -5,7 +5,17 @@ import {
   isModArchResponse,
   restGET,
 } from 'mod-arch-core';
+import * as z from 'zod';
 import type { NamespaceKind, SecretListItem } from './types';
+
+const SecretListItemSchema = z.object({
+  uuid: z.string(),
+  name: z.string(),
+  type: z.string().optional(),
+  data: z.record(z.string(), z.string()).optional(),
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+});
 
 export type K8sApi = {
   getUser: (hostPath: string) => (opts: APIOptions) => Promise<UserSettings>;
@@ -55,8 +65,8 @@ export function createK8sApi(urlPrefix: string, bffApiVersion: string): K8sApi {
       return handleRestFailures(
         restGET(hostPath, `${urlPrefix}/api/${bffApiVersion}/secrets`, queryParams, opts),
       ).then((response) => {
-        if (isModArchResponse<SecretListItem[]>(response)) {
-          return response.data;
+        if (isModArchResponse<unknown>(response)) {
+          return SecretListItemSchema.array().parse(response.data);
         }
         throw new Error('Invalid response format');
       });

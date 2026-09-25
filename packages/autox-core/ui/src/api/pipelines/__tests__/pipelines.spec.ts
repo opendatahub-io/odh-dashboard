@@ -219,15 +219,18 @@ describe('createPipelinesApi', () => {
   });
 
   describe('enableManagedPipelines', () => {
-    it('should call restCREATE with the correct URL', async () => {
+    it('should pass the empty request body and API options separately', async () => {
       mockRestCREATE.mockResolvedValue({ data: {} });
+      const opts = { signal: new AbortController().signal };
 
-      await enableManagedPipelines('', 'my-ns');
+      await enableManagedPipelines('', 'my-ns', opts);
 
       expect(mockRestCREATE).toHaveBeenCalledWith(
         '',
         '/test-product/api/v1/managed-pipelines/enable?namespace=my-ns',
         {},
+        {},
+        opts,
       );
     });
 
@@ -240,6 +243,8 @@ describe('createPipelinesApi', () => {
         '',
         '/test-product/api/v1/managed-pipelines/enable?namespace=ns%2Fwith%2Fslashes',
         {},
+        {},
+        undefined,
       );
     });
   });
