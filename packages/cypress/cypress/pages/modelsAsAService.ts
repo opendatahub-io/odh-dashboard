@@ -813,6 +813,10 @@ class CreateSubscriptionPage {
   findTokenLimitRequiredError(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`token-limit-required-error-${index}`);
   }
+
+  findSystemAuthenticatedWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('system-authenticated-warning');
+  }
 }
 
 class EditSubscriptionPage {
@@ -1131,6 +1135,10 @@ class PolicyPage {
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('policy-submit-button');
+  }
+
+  findSystemAuthenticatedWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('system-authenticated-warning');
   }
 }
 

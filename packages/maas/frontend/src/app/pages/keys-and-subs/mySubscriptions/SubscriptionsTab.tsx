@@ -1,8 +1,8 @@
 import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import PageLoadErrorState from '~/app/components/PageLoadErrorState';
-import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { UserSubscription } from '~/app/types/subscriptions';
+import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import SubscriptionsToolbar from './SubscriptionsToolbar';
 import SubscriptionsViewTable, { ModelGroupEntry } from './SubscriptionsViewTable';
 import ModelsViewTable from './ModelsViewTable';
@@ -41,7 +41,11 @@ export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroup
 export type SubscriptionSortField = 'subscription' | 'model';
 
 const SubscriptionsTab: React.FC = () => {
-  const [subscriptions, loaded, loadError] = useUserSubscriptions();
+  const {
+    subscriptions,
+    subscriptionsLoaded: loaded,
+    subscriptionsError: loadError,
+  } = useKeysAndSubsContext();
   const [searchValue, setSearchValue] = React.useState('');
   const [sortField, setSortField] = React.useState<SubscriptionSortField>('subscription');
   const [modelSortDirection, setModelSortDirection] = React.useState<'asc' | 'desc' | undefined>(

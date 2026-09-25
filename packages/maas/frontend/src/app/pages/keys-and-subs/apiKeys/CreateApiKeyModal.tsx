@@ -43,14 +43,12 @@ import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useFetchState, type FetchStateCallbackPromise } from 'mod-arch-core';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { formatApiKeyError, formatApiKeyHiddenPreview } from '~/app/pages/keys-and-subs/utils';
 import { createApiKey } from '~/app/api/api-keys';
-import { listUserSubscriptions } from '~/app/api/subscriptions';
 import {
   MaaSModelRefSummary,
   ModelSubscriptionRef,
@@ -64,6 +62,7 @@ import {
   ApiKeyCreationSubscriptionBrowsedProperties,
   MaaSEvents,
 } from '~/app/types/event-tracking';
+import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 
 const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
 
@@ -121,14 +120,9 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   initiatedFrom,
 }) => {
   const canLockSubscription = Boolean(initialSubscription);
-  const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
-    (opts) => (canLockSubscription ? Promise.resolve([]) : listUserSubscriptions()(opts)),
-    [canLockSubscription],
-  );
-  const [subscriptions, subscriptionsLoaded, subscriptionsError] = useFetchState(
-    subscriptionsCallback,
-    [],
-  );
+
+  const { subscriptions, subscriptionsLoaded, subscriptionsError } = useKeysAndSubsContext();
+
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
     description: '',
