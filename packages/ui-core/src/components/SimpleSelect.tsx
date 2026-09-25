@@ -63,6 +63,8 @@ type SimpleSelectProps = {
   previewDescription?: boolean;
   isSkeleton?: boolean;
   autoSelectOnlyOption?: boolean;
+  /** When false, omits PF Select `selected` so menu items do not show a checkmark indicator. */
+  showSelectedIndicator?: boolean;
 } & Omit<
   React.ComponentProps<typeof Select>,
   'isOpen' | 'toggle' | 'dropdownItems' | 'onChange' | 'selected'
@@ -85,6 +87,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   popperProps,
   isSkeleton,
   autoSelectOnlyOption = true,
+  showSelectedIndicator = true,
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -154,7 +157,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
       <Select
         {...props}
         isOpen={open}
-        selected={value || toggleLabel}
+        {...(showSelectedIndicator ? { selected: value || toggleLabel } : {})}
         onSelect={(e, selectValue) => {
           const key = String(selectValue);
           const option = findOptionForKey(key);
