@@ -724,18 +724,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                   </DescriptionList>
                 </StackItem>
               ) : null}
-              {queue ? (
-                <StackItem>
-                  <DescriptionList isHorizontal isCompact>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Queue</DescriptionListTerm>
-                      <DescriptionListDescription data-testid="evaluation-status-queue">
-                        {queue}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  </DescriptionList>
-                </StackItem>
-              ) : null}
               <StackItem>
                 <ProgressTabContent
                   benchmarks={progressBenchmarks}

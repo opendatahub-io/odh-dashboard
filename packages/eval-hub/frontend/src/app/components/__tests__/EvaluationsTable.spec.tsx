@@ -432,7 +432,7 @@ describe('EvaluationsTable', () => {
       expect(table).toHaveTextContent('Result');
     });
 
-    it('should show a Kueue resource wait in the Status column without rendering a separate column', () => {
+    it('should show queued status without rendering a separate Queue column', () => {
       mockUseKueueAvailability.mockReturnValue({
         availability: {
           enabled: true,
@@ -465,11 +465,11 @@ describe('EvaluationsTable', () => {
 
       expect(screen.queryByText('Kueue status')).not.toBeInTheDocument();
       expect(screen.queryByTestId('evaluation-kueue-status')).not.toBeInTheDocument();
-      expect(screen.getByRole('columnheader', { name: 'Queue' })).toBeInTheDocument();
+      expect(screen.queryByRole('columnheader', { name: 'Queue' })).not.toBeInTheDocument();
       const betaRow = screen.getByText('Beta Evaluation').closest('tr');
       expect(betaRow).not.toBeNull();
       expect(within(betaRow!).getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
-      expect(within(betaRow!).getByTestId('evaluation-queue')).toHaveTextContent('default');
+      expect(within(betaRow!).queryByTestId('evaluation-queue')).not.toBeInTheDocument();
     });
 
     it('should preserve a terminal EvalHub status when Kueue has not updated yet', () => {

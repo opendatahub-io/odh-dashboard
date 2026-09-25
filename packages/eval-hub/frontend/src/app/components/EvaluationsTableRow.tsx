@@ -34,7 +34,6 @@ type EvaluationsTableRowProps = {
   onShowStatus: (job: EvaluationJob) => void;
   isSelected: boolean;
   onSelectionChange: (checked: boolean) => void;
-  showQueue?: boolean;
   kueueWorkloadStatus?: KueueWorkloadStatus;
   isKueueWorkloadStatusLoading?: boolean;
 };
@@ -51,7 +50,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   onShowStatus,
   isSelected,
   onSelectionChange,
-  showQueue = true,
   kueueWorkloadStatus,
   isKueueWorkloadStatusLoading = false,
 }) => {
@@ -247,11 +245,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             </div>
           ) : null}
         </Td>
-        {showQueue && (
-          <Td dataLabel="Queue" data-testid="evaluation-queue">
-            {queue ?? '-'}
-          </Td>
-        )}
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip
             content={

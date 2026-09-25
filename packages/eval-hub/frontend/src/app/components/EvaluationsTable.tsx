@@ -29,7 +29,6 @@ import {
   getEvaluationName,
   getBenchmarkName,
   getEvaluationDisplayState,
-  getEvaluationQueue,
   isEvaluationJobQueued,
   isEvaluationJobComparable,
   isTerminalState,
@@ -105,7 +104,6 @@ type SortConfig = {
 const getSortableValue = (
   job: EvaluationJob,
   columnIndex: number,
-  dateColumnIndex: number,
   kueueWorkloadStatus: KueueWorkloadStatus | undefined,
 ): string | number => {
   switch (columnIndex) {
@@ -117,7 +115,7 @@ const getSortableValue = (
         isPreStartFailure: isPreStartFailure(job),
         kueueWorkloadStatus,
       });
-    case dateColumnIndex:
+    case 4:
       return job.resource.created_at ? new Date(job.resource.created_at).getTime() : 0;
     default:
       return '';
@@ -185,16 +183,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     isKueueWorkloadStatusPollingEnabled,
     evaluations.some((job) => !isTerminalState(job.status.state)),
   );
-  const hasQueueAssignments = React.useMemo(
-    () =>
-      evaluations.some(
-        (job) =>
-          Boolean(getEvaluationQueue(job)) ||
-          Boolean(kueueWorkloadStatusesByEvaluationID.get(job.resource.id)?.queue_name),
-      ),
-    [evaluations, kueueWorkloadStatusesByEvaluationID],
-  );
-  const dateColumnIndex = hasQueueAssignments ? 5 : 4;
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedStatus, setSelectedStatus] = React.useState<StatusFilter | ''>('');
@@ -203,24 +191,16 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({
-    index: 5,
+    index: 4,
     direction: 'desc',
   });
   const [selectedEvaluationIds, setSelectedEvaluationIds] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
-    setSortConfig((previous) => {
-      if (previous.index !== 4 && previous.index !== 5) {
-        return previous;
-      }
-      return previous.index === dateColumnIndex
-        ? previous
-        : { ...previous, index: dateColumnIndex };
-    });
     if (!isKueueEnabled && KUEUE_STATUS_FILTERS.some((status) => status === selectedStatus)) {
       setSelectedStatus('');
     }
-  }, [dateColumnIndex, isKueueEnabled, selectedStatus]);
+  }, [isKueueEnabled, selectedStatus]);
 
   const filteredEvaluations = React.useMemo(
     () =>
@@ -257,13 +237,11 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
       const aVal = getSortableValue(
         a,
         sortConfig.index,
-        dateColumnIndex,
         kueueWorkloadStatusesByEvaluationID.get(a.resource.id),
       );
       const bVal = getSortableValue(
         b,
         sortConfig.index,
-        dateColumnIndex,
         kueueWorkloadStatusesByEvaluationID.get(b.resource.id),
       );
       if (typeof aVal === 'number' && typeof bVal === 'number') {
@@ -272,7 +250,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
       return String(aVal).localeCompare(String(bVal));
     });
     return sortConfig.direction === 'desc' ? sorted.reverse() : sorted;
-  }, [dateColumnIndex, filteredEvaluations, kueueWorkloadStatusesByEvaluationID, sortConfig]);
+  }, [filteredEvaluations, kueueWorkloadStatusesByEvaluationID, sortConfig]);
 
   const paginatedEvaluations = React.useMemo(
     () => sortedEvaluations.slice(perPage * (page - 1), perPage * page),
@@ -639,7 +617,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th sort={getSortParams(1)} modifier="nowrap">
                 Status
               </Th>
-              {hasQueueAssignments && <Th modifier="nowrap">Queue</Th>}
               <Th
                 modifier="nowrap"
                 info={{
@@ -656,7 +633,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               >
                 Evaluated
               </Th>
-              <Th sort={getSortParams(dateColumnIndex)} modifier="nowrap">
+              <Th sort={getSortParams(4)} modifier="nowrap">
                 Date
               </Th>
               <Th
@@ -684,7 +661,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 onShowStatus={onShowStatus}
                 isSelected={selectedEvaluationIds.has(job.resource.id)}
                 onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
-                showQueue={hasQueueAssignments}
                 kueueWorkloadStatus={kueueWorkloadStatusesByEvaluationID.get(job.resource.id)}
                 isKueueWorkloadStatusLoading={
                   !kueueAvailabilityLoaded || (isKueueEnabled && isKueueWorkloadStatusesLoading)
