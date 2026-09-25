@@ -30,6 +30,7 @@ export const AUTORAG_EVENTS = {
   RESULTS_VIEWED: 'AutoRAG Results Viewed',
   PLAYGROUND_OPENED: 'AutoRAG Playground Opened',
   NOTEBOOK_DOWNLOADED: 'AutoRAG Notebook Downloaded',
+  STARTER_KIT_DOWNLOADED: 'AutoRAG Starter Kit Downloaded',
   RESULTS_COLUMN_TOGGLED: 'AutoRAG Results Column Toggled',
   PATTERN_DETAILS_VIEWED: 'AutoRAG Pattern Details Viewed',
   PATTERN_DETAILS_DOWNLOAD_INITIATED: 'AutoRAG Pattern Details Download Initiated',
@@ -539,6 +540,10 @@ export type NotebookDownloadedType = 'indexing' | 'inference' | 'other';
  */
 export const fireAutoragNotebookDownloaded = (notebookType: NotebookDownloadedType): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, { notebookType });
+};
+
+export const fireAutoragStarterKitDownloaded = (): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, { downloadType: 'starterKit' });
 };
 
 /**

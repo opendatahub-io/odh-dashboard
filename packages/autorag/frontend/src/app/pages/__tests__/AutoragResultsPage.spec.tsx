@@ -10,6 +10,7 @@ import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+import { downloadBlob } from '~/app/utilities/utils';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -17,6 +18,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 }));
 
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const downloadBlobMock = jest.mocked(downloadBlob);
 
 // ============================================================================
 // Mocks
@@ -56,12 +58,21 @@ jest.mock('mod-arch-core', () => ({
 
 const mockUsePipelineRunQuery = jest.fn();
 const mockUseAutoragResults = jest.fn();
+const mockUseS3ListFilesQuery = jest.fn();
+const mockFetchS3File = jest.fn();
 
 const mockUseSecretCredentialsQuery = jest.fn();
 
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+  useS3ListFilesQuery: (...args: unknown[]) => mockUseS3ListFilesQuery(...args),
+  fetchS3File: (...args: unknown[]) => mockFetchS3File(...args),
   useSecretCredentialsQuery: (...args: unknown[]) => mockUseSecretCredentialsQuery(...args),
+}));
+
+jest.mock('~/app/utilities/utils', () => ({
+  ...jest.requireActual('~/app/utilities/utils'),
+  downloadBlob: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useAutoragResults', () => ({
@@ -330,6 +341,12 @@ describe('AutoragResultsPage', () => {
       isLoading: false,
       error: undefined,
     });
+    mockUseS3ListFilesQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    });
+    mockFetchS3File.mockReset();
 
     mockUseAutoragResults.mockReturnValue({
       patterns: {},
@@ -1179,6 +1196,155 @@ describe('AutoragResultsPage', () => {
         }),
         onRetryPatterns: mockRefetch,
       });
+    });
+  });
+
+  describe('starter kit download', () => {
+    const renderWithRun = (run: PipelineRun) => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: run,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+      renderPage();
+    };
+
+    it.each(['PENDING', 'RUNNING', 'CANCELING', 'PAUSED', undefined])(
+      'should disable the action before successful completion for state %s',
+      (state) => {
+        renderWithRun(createMockPipelineRun({ state: state as PipelineRun['state'] }));
+
+        expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
+      },
+    );
+
+    it.each(['FAILED', 'CANCELED', 'SKIPPED', 'CACHED'])(
+      'should disable the action after unsuccessful completion for state %s',
+      (state) => {
+        renderWithRun(createMockPipelineRun({ state: state as PipelineRun['state'] }));
+
+        expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
+      },
+    );
+
+    it('should remain disabled while successful-run artifact discovery is pending', () => {
+      mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: true, isError: false });
+      renderWithRun(createMockPipelineRun());
+
+      expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should show the approved tooltip for an incomplete run', async () => {
+      const user = userEvent.setup();
+      renderWithRun(createMockPipelineRun({ state: 'RUNNING' }));
+
+      await user.hover(screen.getByTestId('starter-kit-download-button'));
+
+      expect(
+        await screen.findByText('Available after the run completes successfully'),
+      ).toBeInTheDocument();
+    });
+
+    it('should show the approved tooltip for an unsuccessful run', async () => {
+      const user = userEvent.setup();
+      renderWithRun(createMockPipelineRun({ state: 'FAILED' }));
+
+      await user.hover(screen.getByTestId('starter-kit-download-button'));
+
+      expect(
+        await screen.findByText('Unavailable because the run did not complete successfully'),
+      ).toBeInTheDocument();
+    });
+
+    it('should remain disabled when the exact artifact is absent or listing fails', () => {
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      renderWithRun(createMockPipelineRun());
+
+      expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should show Artifact unavailable when a successful run has no exact artifact', async () => {
+      const user = userEvent.setup();
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      renderWithRun(createMockPipelineRun());
+
+      await user.hover(screen.getByTestId('starter-kit-download-button'));
+
+      expect(await screen.findByText('Artifact unavailable')).toBeInTheDocument();
+    });
+
+    it('should hide the artifact behind the unavailable state when listing fails', () => {
+      mockUseS3ListFilesQuery.mockReturnValue({ data: undefined, isLoading: false, isError: true });
+      renderWithRun(createMockPipelineRun());
+
+      expect(screen.getByTestId('starter-kit-download-button')).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+
+    it('should download the exact starter kit and track only after success', async () => {
+      const key = 'documents-rag-optimization-pipeline/run-123/starter_kit.zip';
+      const blob = new Blob(['zip']);
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [{ key, size: blob.size }], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      mockFetchS3File.mockResolvedValue(blob);
+      renderWithRun(createMockPipelineRun());
+
+      await userEvent.click(screen.getByTestId('starter-kit-download-button'));
+
+      await waitFor(() => {
+        expect(mockFetchS3File).toHaveBeenCalledWith('test-ns', key);
+        expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'starter_kit.zip');
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED,
+          { downloadType: 'starterKit' },
+        );
+      });
+    });
+
+    it('should show the existing danger alert and not track a failed download', async () => {
+      const key = 'documents-rag-optimization-pipeline/run-123/starter_kit.zip';
+      mockUseS3ListFilesQuery.mockReturnValue({
+        data: { contents: [{ key, size: 1 }], common_prefixes: [] },
+        isLoading: false,
+        isError: false,
+      });
+      mockFetchS3File.mockRejectedValue(new Error('S3 connection failed'));
+      renderWithRun(createMockPipelineRun());
+
+      await userEvent.click(screen.getByTestId('starter-kit-download-button'));
+
+      expect(await screen.findByText('Starter kit download failed')).toBeInTheDocument();
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED,
+        expect.anything(),
+      );
     });
   });
 
