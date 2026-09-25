@@ -1,6 +1,6 @@
-# Operand ingress NetworkPolicy for the Data Connect Hub BFF/UI per HPSTRAT-104 and the
-# operand contract RHOAIENG-90747 (R3-R5). Egress is intentionally unmanaged because the
-# BFF discovers a hostname-based API endpoint that cannot be selected by NetworkPolicy.
+# Operand NetworkPolicy for the Data Connect Hub BFF/UI per HPSTRAT-104 and the operand
+# contract RHOAIENG-90747 (R3-R5). Egress is restricted to required ports while destination
+# scoping for the hostname-based DCH API endpoint is addressed separately.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -11,6 +11,7 @@ spec:
       deployment: data-connect-hub-ui
   policyTypes:
     - Ingress
+    - Egress
   ingress:
     - ports:
         - port: 9243
@@ -19,3 +20,29 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+    # Kubernetes API server. NetworkPolicy cannot select the API server endpoints
+    # because they are host-networked and use dynamic addresses.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 6443
+          protocol: TCP
+    # The DCH API endpoint is discovered as a hostname at runtime, which cannot be
+    # selected by NetworkPolicy. Keep HTTPS port-limited until destination scoping exists.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP
