@@ -23,11 +23,6 @@ yarn-debug.log*
 yarn-error.log*
 yarn.lock
 
-# pnpm is the package manager for first-party workspaces. Keep npm lockfiles
-# only in the vendored upstream subtrees listed below.
-**/package-lock.json
-**/npm-shrinkwrap.json
-
 # snyk cache file
 .dccache
 
@@ -100,11 +95,6 @@ vendor/
 
 # Shared specs for cross-worktree context
 .claude/local-specs/
-
-# Vendored upstream npm lockfiles (intentional exceptions to the pnpm workspace policy)
-!packages/model-registry/upstream/package-lock.json
-!packages/model-registry/upstream/frontend/package-lock.json
-!packages/notebooks/upstream/workspaces/frontend/package-lock.json
 
 # Triage artifacts
 .artifacts/

@@ -24,7 +24,7 @@ Use **pnpm 11.22.0** for the first-party monorepo workspace.
 - Run local development, tests, builds, CI, release automation, and first-party container builds with pnpm.
 - Keep Turbo as the task orchestrator; pnpm replaces npm as the package manager, not Turbo.
 - Do not depend on Corepack being available. Developer and CI setup must install the repository-pinned pnpm version explicitly before running `pnpm install`.
-- Do not create package-local `package-lock.json` files in first-party workspace packages. `.gitignore` prevents accidental staging, and CI rejects npm lockfiles outside the allowlist below.
+- Do not create package-local `package-lock.json` files in first-party workspace packages. CI rejects npm lockfiles outside the allowlist below.
 
 ### Upstream subtree exceptions
 
