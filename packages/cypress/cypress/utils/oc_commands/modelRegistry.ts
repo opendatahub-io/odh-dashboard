@@ -703,7 +703,6 @@ export const deleteModelRegistry = (registryName: string): Cypress.Chainable<Com
 /**
  * Force-delete a model registry by stripping finalizers first. Handles CRs stuck
  * in Terminating state where the operator hasn't processed the finalizer yet.
- * Polls until the CR is fully gone from the API server.
  * @param registryName Name of the model registry to delete
  * @returns Cypress.Chainable<boolean> true when the CR no longer exists
  */
@@ -728,30 +727,15 @@ export const forceDeleteModelRegistry = (registryName: string): Cypress.Chainabl
         )
         .then(() =>
           cy.exec(
-            `oc delete ${resource} -n ${targetNamespace} --wait=false --ignore-not-found=true`,
-            { failOnNonZeroExit: false },
+            `oc delete ${resource} -n ${targetNamespace} --ignore-not-found=true --timeout=60s`,
+            { failOnNonZeroExit: false, timeout: 120000 },
           ),
         )
-        .then(() => {
-          const pollGone = (attempts = 0): Cypress.Chainable<boolean> => {
-            return cy
-              .exec(`oc get ${resource} -n ${targetNamespace} -o name`, {
-                failOnNonZeroExit: false,
-              })
-              .then((check: CommandLineResult) => {
-                if (check.exitCode !== 0) {
-                  cy.log(`${registryName} fully removed`);
-                  return cy.wrap(true);
-                }
-                if (attempts >= 12) {
-                  cy.log(`WARNING: ${registryName} still exists after 60s`);
-                  return cy.wrap(false);
-                }
-                // eslint-disable-next-line cypress/no-unnecessary-waiting
-                return cy.wait(5000).then(() => pollGone(attempts + 1));
-              });
-          };
-          return pollGone();
+        .then((deleteResult: CommandLineResult) => {
+          cy.log(
+            `${registryName} ${deleteResult.exitCode === 0 ? 'fully removed' : 'delete failed'}`,
+          );
+          return cy.wrap(deleteResult.exitCode === 0);
         });
     });
 };

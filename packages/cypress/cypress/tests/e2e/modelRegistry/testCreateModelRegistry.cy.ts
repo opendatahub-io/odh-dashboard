@@ -10,13 +10,13 @@ import {
   checkModelRegistry,
   createAndVerifyDatabase,
   createAndVerifyPostgresDatabase,
-  deleteModelRegistry,
   deleteModelRegistryDatabase,
   deletePostgresDatabase,
   ensureOperatorMemoryLimit,
   forceDeleteModelRegistry,
   waitForDefaultDatabase,
 } from '../../../utils/oc_commands/modelRegistry';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { loadModelRegistryFixture } from '../../../utils/dataLoader';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelRegistryTestData } from '../../../types';
@@ -55,6 +55,9 @@ describe('Verify a model registry can be created and deleted', () => {
   retryableBeforeEach(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+
+    // Ensure oc targets the correct cluster before cleanup
+    ensureAdminOcSession();
 
     // Force-cleanup: strip finalizers and remove leftover CRs that may be stuck
     // in Terminating state from a previous failed run, so the validating webhook
@@ -241,7 +244,7 @@ describe('Verify a model registry can be created and deleted', () => {
     cy.visit('/');
 
     cy.step('Delete the model registry (MySQL external db)');
-    deleteModelRegistry(registryName);
+    forceDeleteModelRegistry(registryName);
 
     cy.step('Verify model registry (MySQL external db) is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
@@ -250,7 +253,7 @@ describe('Verify a model registry can be created and deleted', () => {
     deleteModelRegistryDatabase(sqlDbName).should('be.true');
 
     cy.step('Delete the model registry (PostgreSQL external db)');
-    deleteModelRegistry(postgresRegistryName);
+    forceDeleteModelRegistry(postgresRegistryName);
 
     cy.step('Verify model registry (PostgreSQL external db) is removed from the backend');
     checkModelRegistry(postgresRegistryName).should('be.false');
@@ -259,7 +262,7 @@ describe('Verify a model registry can be created and deleted', () => {
     deletePostgresDatabase(postgresDbName).should('be.true');
 
     cy.step('Delete the model registry (default db)');
-    deleteModelRegistry(defaultDbName);
+    forceDeleteModelRegistry(defaultDbName);
 
     cy.step('Verify model registry (default db) is removed from the backend');
     checkModelRegistry(defaultDbName).should('be.false');
