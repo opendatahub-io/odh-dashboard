@@ -115,6 +115,7 @@ normalize_stream() {
       review: {
         reported_findings: ($done.findings // null),
         unreviewed_files: ($done.unreviewedFileCount // 0),
+        reviewed_files: (($done.reviewedFiles // []) | map(select(type == "string")) | length),
         outcome: ($done.outcome // $done.status // "unknown")
       },
       findings: ($findings +
@@ -146,8 +147,13 @@ summarize_stream() {
         "status=\($done.status // "?")",
         "outcome=\($done.outcome // "?")",
         "findings=\($done.findings // "?")",
-        "unreviewed=\($done.unreviewedFileCount // 0)"
+        "unreviewed=\($done.unreviewedFileCount // 0)",
+        "reviewed_files=\(($done.reviewedFiles // []) | length)"
       ] | join(" ") end
+    ),
+    "CodeRabbit reviewed: " + (
+      (($done.reviewedFiles // []) | map(select(type == "string")))
+      | if length == 0 then "(not reported)" else join(", ")[0:2000] end
     )
   ' "${raw}" 2>/dev/null || echo "CodeRabbit stream: (unparseable)"
 }
@@ -255,6 +261,22 @@ run_self_test() {
     and (.findings[3] | has("remediation") | not)
   ' "${_OUT}" >/dev/null
 
+  # Verbatim complete event from coderabbit 0.7.8. reviewedFiles[] is absent
+  # from both the CLI reference and CodeRabbit's published agent event schema,
+  # so it is pinned here against real output rather than documentation.
+  printf '%s\n' \
+    '{"type":"finding","severity":"minor","fileName":"a.ts","codegenInstructions":"Guard the empty list."}' \
+    '{"type":"complete","status":"review_completed","findings":1,"reviewedFiles":[".fullsend/scripts/post-review.sh",".fullsend/skills/pr-review/SKILL.md"],"outcome":"completed","message":"Review completed"}' \
+    > "${temp_dir}/reviewed.ndjson"
+  normalize_stream "${temp_dir}/reviewed.ndjson"
+  jq -e '
+    .review.reviewed_files == 2
+    and .review.reported_findings == 1
+    and .review.outcome == "completed"
+  ' "${_OUT}" >/dev/null
+  summarize_stream "${temp_dir}/reviewed.ndjson" | grep -q "reviewed_files=2"
+  summarize_stream "${temp_dir}/reviewed.ndjson" | grep -q "CodeRabbit reviewed: .fullsend/scripts/post-review.sh, .fullsend/skills/pr-review/SKILL.md"
+
   # An empty result must stay distinguishable from a review that never ran, and
   # from one this normalizer filtered down to nothing.
   printf '%s\n' \
@@ -263,6 +285,7 @@ run_self_test() {
   normalize_stream "${temp_dir}/clean-empty.ndjson"
   jq -e '
     .status == "ok" and (.findings | length == 0)
+    and .review.reviewed_files == 0
     and .review.reported_findings == 0
     and .review.unreviewed_files == 0
     and .review.outcome == "completed"
