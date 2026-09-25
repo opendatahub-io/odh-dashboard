@@ -789,6 +789,17 @@ describe('getEvaluationDisplayState', () => {
     ).toBe('running');
   });
 
+  it.each(['queued', 'preempted', 'inadmissible'] as const)(
+    'should preserve stopping when Kueue reports "%s"',
+    (state) => {
+      expect(
+        getEvaluationDisplayState('stopping', {
+          kueueWorkloadStatus: makeKueueWorkloadStatus(state),
+        }),
+      ).toBe('stopping');
+    },
+  );
+
   it('should preserve the EvalHub state when Kueue has finished the workload', () => {
     expect(
       getEvaluationDisplayState('pending', {

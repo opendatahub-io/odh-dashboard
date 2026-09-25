@@ -184,9 +184,16 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   className,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const selected = profiles.find((profile) => profile.name === selectedProfile);
+  const schedulableProfiles = availability?.enabled
+    ? profiles.filter(
+        (profile) =>
+          !!profile.local_queue_name &&
+          availability.local_queue_names.includes(profile.local_queue_name),
+      )
+    : profiles;
+  const selected = schedulableProfiles.find((profile) => profile.name === selectedProfile);
   const hasNoQueues = availability?.enabled === true && !availability.scheduling_ready;
-  const hasNoProfiles = availability?.scheduling_ready === true && profiles.length === 0;
+  const hasNoProfiles = availability?.scheduling_ready === true && schedulableProfiles.length === 0;
   const fieldState = getHardwareProfileFieldState({
     error,
     hasNoQueues,
@@ -237,7 +244,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
           onSelect(
             selectedValue === NO_HARDWARE_PROFILE_VALUE
               ? undefined
-              : profiles.find((profile) => profile.name === selectedValue),
+              : schedulableProfiles.find((profile) => profile.name === selectedValue),
           );
           setIsOpen(false);
         }}
@@ -263,7 +270,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
           >
             No hardware profile
           </SelectOption>
-          {profiles.map((profile) => (
+          {schedulableProfiles.map((profile) => (
             <SelectOption
               key={profile.name}
               value={profile.name}

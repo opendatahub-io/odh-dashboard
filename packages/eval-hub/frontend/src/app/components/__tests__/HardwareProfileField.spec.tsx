@@ -48,6 +48,34 @@ describe('HardwareProfileField', () => {
     expect(onSelect).toHaveBeenCalledWith(profile);
   });
 
+  it('only offers profiles whose LocalQueue is currently available', () => {
+    const unavailableProfile: HardwareProfile = {
+      ...profile,
+      name: 'gpu-stale',
+      display_name: 'Stale GPU',
+      local_queue_name: 'deleted-queue',
+    };
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[profile, unavailableProfile]}
+        loaded
+        selectedProfile={unavailableProfile.name}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toHaveTextContent(
+      'Select hardware profile',
+    );
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+
+    expect(screen.getByTestId(`hardware-profile-option-${profile.name}`)).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`hardware-profile-option-${unavailableProfile.name}`),
+    ).not.toBeInTheDocument();
+  });
+
   it('labels an insufficient profile without disabling its selection', () => {
     const insufficientProfile: HardwareProfile = {
       ...profile,
@@ -251,6 +279,29 @@ describe('HardwareProfileField', () => {
       <HardwareProfileField
         availability={availability}
         profiles={[]}
+        loaded
+        onSelect={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
+    expect(
+      screen.getByText(
+        /No compatible hardware profiles are configured for this project. An evaluation cannot start/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the no-compatible-profiles state when all profiles use unavailable queues', () => {
+    const unavailableProfile: HardwareProfile = {
+      ...profile,
+      local_queue_name: 'deleted-queue',
+    };
+
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[unavailableProfile]}
         loaded
         onSelect={jest.fn()}
       />,

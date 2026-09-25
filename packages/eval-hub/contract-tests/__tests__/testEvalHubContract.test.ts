@@ -57,6 +57,21 @@ describe('EvalHub API Contract Tests', () => {
       });
     });
 
+    it('should return a BadRequest error when evaluation_ids are missing', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/kueue/workloads?namespace=default');
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
+      }
+    });
+
     it('should return the documented compatible HardwareProfiles response', async () => {
       const result = await apiClient.get('/eval-hub/api/v1/hardwareprofiles?namespace=default');
 
@@ -81,6 +96,29 @@ describe('EvalHub API Contract Tests', () => {
         ref: '#/paths/~1eval-hub~1api~1v1~1hardwareprofiles~1validate/post/responses/200/content/application~1json/schema',
         status: 200,
       });
+    });
+
+    it('should return a BadRequest error when no HardwareProfiles are provided', async () => {
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/hardwareprofiles/validate?namespace=default',
+        {
+          // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+          hardware_profiles: [],
+          // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+          provider_ids: ['lm_evaluation_harness'],
+        },
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
+      }
     });
   });
 

@@ -315,6 +315,9 @@ export const getEvaluationDisplayState = (
   if (isTerminalState(state)) {
     return state;
   }
+  if (state === 'stopping') {
+    return state;
+  }
   switch (kueueWorkloadStatus?.state) {
     case 'queued':
     case 'preempted':
