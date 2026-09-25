@@ -896,19 +896,15 @@ describe('AutoragConfigurePage', () => {
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
 
-      expect(
-        await screen.findByRole('heading', { name: 'Select file or folder' }),
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Add files' })).toBeInTheDocument();
 
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
       await user.click(await screen.findByRole('button', { name: 'Next' }));
 
-      expect(
-        await screen.findByRole('heading', { name: 'Select file or folder' }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Add files' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add files' })).toBeInTheDocument();
     });
 
     it('should keep Create run disabled while the changed MaaS connection models are loading', async () => {
@@ -945,7 +941,7 @@ describe('AutoragConfigurePage', () => {
       await user.click(await screen.findByRole('button', { name: 'Next' }));
 
       await user.click(await screen.findByTestId('aws-secret-selector-select-secret'));
-      await user.click(await screen.findByRole('button', { name: 'Browse bucket' }));
+      await user.click(await screen.findByRole('button', { name: 'Add files' }));
       await user.click(await screen.findByTestId('file-explorer-select-file'));
 
       const backButton = await screen.findByRole('button', { name: 'Back' });
@@ -992,7 +988,7 @@ describe('AutoragConfigurePage', () => {
       await user.click(selectAwsSecretButton);
 
       // Select input data files
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
 
       // FileExplorer should open for input data
@@ -1045,7 +1041,7 @@ describe('AutoragConfigurePage', () => {
       await user.click(selectAwsSecretButton);
 
       // Select input data files
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
@@ -1091,7 +1087,7 @@ describe('AutoragConfigurePage', () => {
       await user.click(selectAwsSecretButton);
 
       // Select input data files
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
@@ -1137,7 +1133,7 @@ describe('AutoragConfigurePage', () => {
       await user.click(selectAwsSecretButton);
 
       // Select input data files
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
 
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
@@ -1155,64 +1151,6 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(mockNotificationError).toHaveBeenCalledWith('Failed to create pipeline run', '');
       });
-    });
-
-    it('should upload file on selection in upload mode and pass resolved input_data_key to pipeline run', async () => {
-      const user = userEvent.setup();
-      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-456' });
-      mockS3UploadMutateAsync.mockResolvedValue({ uploaded: true, key: 'resolved-key.pdf' });
-
-      renderWithProviders(<AutoragConfigurePage />);
-
-      const nameInput = await screen.findByLabelText(/Name/i);
-      await user.type(nameInput, 'Upload Immediate Test');
-
-      const selectOgxSecretButton = await screen.findByTestId('maas-secret-selector-select-secret');
-      await user.click(selectOgxSecretButton);
-
-      const nextButton = await screen.findByRole('button', { name: 'Next' });
-      await user.click(nextButton);
-
-      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
-      await user.click(selectAwsSecretButton);
-
-      await user.click(screen.getByRole('button', { name: 'Upload file' }));
-
-      const file = new File(['doc'], 'original-name.pdf', { type: 'application/pdf' });
-      const fileInputs = [...document.querySelectorAll('input[type="file"]')] as HTMLInputElement[];
-      const uploadInput = fileInputs.find((el) => el.accept.includes('pdf')) ?? fileInputs[0];
-      expect(uploadInput).toBeTruthy();
-      await user.upload(uploadInput, file);
-
-      await waitFor(() => {
-        expect(mockS3UploadMutateAsync).toHaveBeenCalledWith(
-          expect.objectContaining({
-            namespace: 'test-namespace',
-            secretName: 'Test AWS Secret',
-            bucket: 'test-bucket',
-            key: 'original-name.pdf',
-            file,
-          }),
-        );
-      });
-      expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
-
-      const runButton = await screen.findByRole('button', {
-        name: 'Create run',
-      });
-      await waitFor(() => {
-        expect(runButton).toBeEnabled();
-      });
-      await user.click(runButton);
-
-      await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalledWith(
-          expect.objectContaining({
-            input_data_keys: ['resolved-key.pdf'],
-          }),
-        );
-      });
-      expect(mockS3UploadMutateAsync).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1236,7 +1174,7 @@ describe('AutoragConfigurePage', () => {
       // path), so knowledgeSourceType is reported as 's3' via RunTriggeredTrackingContext.
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
@@ -1286,7 +1224,7 @@ describe('AutoragConfigurePage', () => {
 
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
@@ -1517,7 +1455,7 @@ describe('AutoragConfigurePage', () => {
 
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
@@ -1596,7 +1534,7 @@ describe('AutoragConfigurePage', () => {
       const user = await navigateToReconfigureConfigureStep();
 
       // Re-select via the real S3 browser flow, so knowledgeSourceTypeRef is actually set.
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
@@ -1770,7 +1708,7 @@ describe('AutoragConfigurePage', () => {
       // Complete the "Knowledge setup" milestone via the real AutoragConfigure S3 flow.
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
@@ -1799,7 +1737,7 @@ describe('AutoragConfigurePage', () => {
       // Complete the "Knowledge setup" milestone.
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
@@ -1846,7 +1784,7 @@ describe('AutoragConfigurePage', () => {
 
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
@@ -1900,7 +1838,7 @@ describe('AutoragConfigurePage', () => {
 
       const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
       await user.click(selectAwsSecretButton);
-      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      const selectFilesButton = await screen.findByRole('button', { name: 'Add files' });
       await user.click(selectFilesButton);
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);

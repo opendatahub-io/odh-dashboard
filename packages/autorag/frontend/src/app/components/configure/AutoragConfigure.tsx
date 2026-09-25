@@ -14,9 +14,6 @@ import {
   CardTitle,
   Content,
   Divider,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   EmptyState,
   EmptyStateBody,
   Flex,
@@ -29,8 +26,6 @@ import {
   List,
   ListItem,
   MenuToggle,
-  MultipleFileUpload,
-  MultipleFileUploadMain,
   NumberInput,
   Popover,
   Radio,
@@ -38,38 +33,25 @@ import {
   SelectList,
   SelectOption,
   Skeleton,
-  Spinner,
   Split,
   SplitItem,
   Stack,
   StackItem,
-  ToggleGroup,
-  ToggleGroupItem,
   Tooltip,
   Truncate,
 } from '@patternfly/react-core';
-import {
-  CubesIcon,
-  EllipsisVIcon,
-  InfoCircleIcon,
-  TimesIcon,
-  UploadIcon,
-} from '@patternfly/react-icons';
+import { CubesIcon, InfoCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
-import type { FileRejection } from 'react-dropzone';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
-import { useUIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
-import { isUIError } from '~/app/components/common/UIError/util';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
-import InlineTooltip from '~/app/components/InlineTooltip';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
@@ -95,24 +77,13 @@ import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_FILES,
-  AUTORAG_UPLOAD_MAX_SIZE_MIB,
-  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
-  resolveSingleFileDropOutcome,
 } from '~/app/utilities/dropzoneFileUpload';
+import { fireAutoragKnowledgeSourceConfigured, TrackingOutcome } from '~/app/utilities/tracking';
 import {
-  AUTORAG_FAILURE_CATEGORY,
-  fireAutoragKnowledgeSourceConfigured,
-  TrackingOutcome,
-} from '~/app/utilities/tracking';
-import {
-  getInputDataDropRejectedNotification,
-  INPUT_DATA_FILE_ACCEPT,
   INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
   isAllowedInputDataUploadFile,
   SUPPORTED_FORMAT_EXTENSIONS,
   SUPPORTED_FORMAT_HINT,
-  SUPPORTED_FORMAT_NAMES_STRING_SIMPLE,
-  INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
 } from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
@@ -200,7 +171,6 @@ function AutoragConfigure({
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
     initialInputDataSecret,
   );
-  const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
   const [selectedInputDataFile, setSelectedInputDataFile] = useState<ExplorerFile | undefined>(
     () => {
       if (!initialInputDataKey) {
@@ -209,10 +179,6 @@ function AutoragConfigure({
       return getSelectedInputDataFile(initialInputDataKey);
     },
   );
-  const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
-  const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
-  const inputDataUploadSeqRef = useRef(0);
-  const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
   // Tracks whether the S3 file browser's "Select" primary action already fired the Knowledge
   // Source Configured event for the current open/close cycle, so onClose doesn't also fire it
   // as a cancel (onClose is invoked right after onSelectFiles when the user selects a file).
@@ -220,7 +186,6 @@ function AutoragConfigure({
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
 
   const notification = useNotification();
-  const { showUIError } = useUIErrorHandler();
   const { onKnowledgeSourceConfigured } = useRunTriggeredTracking();
 
   const form = useFormContext<ConfigureSchema>();
@@ -333,8 +298,6 @@ function AutoragConfigure({
   ]);
 
   const inputDataKey = inputDataKeys[0] ?? '';
-  const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
-
   // On Back → Next, RHF retains the selected key while this component's display state remounts.
   // Hydrate the display from RHF only when there is no local selection to preserve user edits.
   useEffect(() => {
@@ -367,14 +330,6 @@ function AutoragConfigure({
     }
   }, [inputDataSecretName, setValue]);
 
-  // reset input data key if document input mode changes (skips mount to preserve reconfigure)
-  useReconfigureSafeEffect(() => {
-    inputDataUploadSeqRef.current += 1;
-    setIsInputDataFileUploading(false);
-    setValue('input_data_keys', [], { shouldValidate: true });
-    setSelectedInputDataFile(undefined);
-  }, [inputDataSourceMode, setValue]);
-
   // ensure input and test have the same secret and bucket (skips mount to preserve reconfigure)
   useReconfigureSafeEffect(() => {
     if (inputDataSecretName !== testDataSecretName) {
@@ -387,8 +342,6 @@ function AutoragConfigure({
 
   // reset selected file values if input secret or bucket changes (skips mount to preserve reconfigure)
   useReconfigureSafeEffect(() => {
-    inputDataUploadSeqRef.current += 1;
-    setIsInputDataFileUploading(false);
     setValue('input_data_keys', [], { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [inputDataSecretName, inputDataBucketName, setValue]);
@@ -404,115 +357,23 @@ function AutoragConfigure({
     setIsExperimentSettingsOpen(true);
   };
 
-  const clearInputDataUpload = useCallback(() => {
-    setIsInputDataFileUploading(false);
-    setIsInputDataDropdownOpen(false);
-    setValue('input_data_keys', [], { shouldValidate: true });
-  }, [setValue]);
-
-  const uploadInputDataFile = useCallback(
-    async (file?: File) => {
-      if (!file || !namespace) {
-        return;
-      }
-      if (file.size > AUTORAG_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', AUTORAG_UPLOAD_TOO_LARGE_DETAIL);
-        return;
-      }
-      if (!isAllowedInputDataUploadFile(file)) {
-        notification.error('Invalid file type', INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION);
-        return;
-      }
-      const uploadRequestId = ++inputDataUploadSeqRef.current;
-      setValue('input_data_keys', [], { shouldValidate: true });
-      setIsInputDataDropdownOpen(false);
-      setIsInputDataFileUploading(true);
-      try {
-        const uploadResult = await uploadFileToS3({
-          namespace,
-          secretName: inputDataSecretName,
-          bucket: inputDataBucketName,
-          key: file.name,
-          file,
-        });
-        if (uploadRequestId !== inputDataUploadSeqRef.current) {
-          return;
-        }
-        setValue('input_data_keys', [uploadResult.key], { shouldValidate: true });
-        fireAutoragKnowledgeSourceConfigured({
-          knowledgeSourceType: 'upload',
-          countOfDocuments: 1,
-          outcome: TrackingOutcome.submit,
-          success: true,
-        });
-        onKnowledgeSourceConfigured('upload');
-      } catch (err) {
-        if (uploadRequestId === inputDataUploadSeqRef.current) {
-          if (isUIError(err)) {
-            showUIError(err);
-          } else {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            const isConflict = errorMessage.toLowerCase().includes('unique filename');
-
-            notification.error(
-              'Failed to upload file',
-              isConflict
-                ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
-                : errorMessage,
-            );
-          }
-          fireAutoragKnowledgeSourceConfigured({
-            knowledgeSourceType: 'upload',
-            countOfDocuments: 0,
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: AUTORAG_FAILURE_CATEGORY,
-          });
-        }
-      } finally {
-        if (uploadRequestId === inputDataUploadSeqRef.current) {
-          setIsInputDataFileUploading(false);
-        }
-      }
+  const uploadInputDataFiles = useCallback(
+    async (files: File[], folder: string) => {
+      const prefix = folder.replace(/^\/+|\/+$/g, '');
+      return Promise.all(
+        files.map((file) =>
+          uploadFileToS3({
+            namespace: namespace ?? '',
+            secretName: inputDataSecretName,
+            bucket: inputDataBucketName,
+            key: prefix ? `${prefix}/${file.name}` : file.name,
+            file,
+          }).then((result) => ({ key: result.key })),
+        ),
+      );
     },
-    [
-      inputDataBucketName,
-      inputDataSecretName,
-      namespace,
-      notification,
-      onKnowledgeSourceConfigured,
-      setValue,
-      showUIError,
-      uploadFileToS3,
-    ],
+    [inputDataBucketName, inputDataSecretName, namespace, uploadFileToS3],
   );
-
-  const handleInputDataDropRejected = useCallback(
-    (fileRejections: FileRejection[]) => {
-      const payload = getInputDataDropRejectedNotification(fileRejections);
-      if (payload) {
-        notification.error(payload.title, payload.description);
-      }
-    },
-    [notification],
-  );
-
-  const processInputDataDropOutcome = useCallback(
-    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
-      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
-      if (outcome.kind === 'reject') {
-        handleInputDataDropRejected(outcome.fileRejections);
-      } else if (outcome.kind === 'upload') {
-        void uploadInputDataFile(outcome.file);
-      }
-    },
-    [handleInputDataDropRejected, uploadInputDataFile],
-  );
-
-  const openInputDataReplaceFileDialog = useCallback(() => {
-    setIsInputDataDropdownOpen(false);
-    inputDataNativeInputRef.current?.click();
-  }, []);
 
   if (!namespace) {
     return <Navigate to={autoragExperimentsPathname} replace />;
@@ -584,7 +445,7 @@ function AutoragConfigure({
                         <SplitItem>
                           <Button
                             key="add-new-connection"
-                            variant="tertiary"
+                            variant="secondary"
                             isDisabled={isSubmitting}
                             onClick={() => setIsConnectionModalOpen(true)}
                           >
@@ -600,234 +461,67 @@ function AutoragConfigure({
                         <Divider />
                       </StackItem>
                       <StackItem className="pf-v6-u-mt-sm">
-                        <ToggleGroup
-                          aria-label="Choose how to add documents"
-                          className="autorag-configure__toggle-group-full-width pf-v6-u-mb-md"
-                        >
-                          <ToggleGroupItem
-                            text="Select file or folder"
-                            buttonId="document-input-select"
-                            data-testid="input-data-source-select-toggle"
-                            isSelected={inputDataSourceMode === 'select'}
-                            isDisabled={isSubmitting}
-                            onChange={() => setInputDataSourceMode('select')}
-                          />
-                          <ToggleGroupItem
-                            text="Upload file"
-                            buttonId="document-input-upload"
-                            data-testid="input-data-source-upload-toggle"
-                            isSelected={inputDataSourceMode === 'upload'}
-                            isDisabled={isSubmitting}
-                            onChange={() => setInputDataSourceMode('upload')}
-                          />
-                        </ToggleGroup>
+                        <Content component="h4">Knowledge documents</Content>
                       </StackItem>
 
-                      {inputDataSourceMode === 'select' && (
-                        <>
-                          <StackItem>
-                            <Content component="h4">Select file or folder</Content>
-                          </StackItem>
-                          <StackItem>
-                            <Content component="small">
-                              Select one file or folder from this bucket to use as the knowledge for
-                              your experiment.
-                            </Content>
-                          </StackItem>
-                          <StackItem>
-                            <Button
-                              key="select-files"
-                              variant="secondary"
-                              data-testid="browse-bucket-button"
-                              onClick={() => setFileExplorerMode('input_data')}
-                              isDisabled={
-                                !inputDataSecretName || selectedSecret?.invalid || isSubmitting
-                              }
-                            >
-                              Browse bucket
-                            </Button>
-                          </StackItem>
-                          {selectedInputDataFile && (
-                            <StackItem>
-                              <Table aria-label="Selected input data file" variant="compact">
-                                <Thead>
-                                  <Tr>
-                                    <Th>Name</Th>
-                                    <Th>Type</Th>
-                                    <Th />
-                                  </Tr>
-                                </Thead>
-                                <Tbody>
-                                  <Tr>
-                                    <Td dataLabel="Name">
-                                      <span title={selectedInputDataFile.path}>
-                                        <Truncate content={selectedInputDataFile.name} />
-                                      </span>
-                                    </Td>
-                                    <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
-                                    <Td isActionCell>
-                                      <Tooltip content="Remove selection">
-                                        <Button
-                                          size="sm"
-                                          variant="plain"
-                                          aria-label="Remove selection"
-                                          icon={<TimesIcon />}
-                                          isDisabled={isSubmitting}
-                                          onClick={() => {
-                                            setSelectedInputDataFile(undefined);
-                                            setValue('input_data_keys', [], {
-                                              shouldValidate: true,
-                                            });
-                                          }}
-                                        />
-                                      </Tooltip>
-                                    </Td>
-                                  </Tr>
-                                </Tbody>
-                              </Table>
-                            </StackItem>
-                          )}
-                        </>
-                      )}
-
-                      {inputDataSourceMode === 'upload' && (
-                        <>
-                          <StackItem>
-                            <Content component="h4">Upload file</Content>
-                          </StackItem>
-                          <StackItem>
-                            <Content component="small" id="input-data-upload-description">
-                              Drop a file here or browse to select a file.
-                            </Content>
-                          </StackItem>
-                          <StackItem>
-                            <input
-                              ref={inputDataNativeInputRef}
-                              type="file"
-                              hidden
-                              data-testid="autorag-upload-file-input"
-                              accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
-                              aria-hidden
-                              tabIndex={-1}
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                const input = event.currentTarget;
-                                const file = input.files?.[0];
-                                input.value = '';
-                                if (!file) {
-                                  return;
-                                }
-                                void uploadInputDataFile(file);
-                              }}
-                            />
-                            {showInputDataUploadDropzone && (
-                              <MultipleFileUpload
-                                aria-describedby="input-data-upload-description"
-                                data-testid="knowledge-upload-zone"
-                                dropzoneProps={{
-                                  accept: INPUT_DATA_FILE_ACCEPT,
-                                  disabled: isSubmitting || isInputDataFileUploading,
-                                  maxFiles: AUTORAG_UPLOAD_MAX_FILES,
-                                  maxSize: AUTORAG_UPLOAD_MAX_BYTES,
-                                  multiple: false,
-                                  onDrop: processInputDataDropOutcome,
-                                }}
-                              >
-                                <MultipleFileUploadMain
-                                  titleIcon={<UploadIcon />}
-                                  titleText="Drag and drop files here"
-                                  titleTextSeparator="or"
-                                  infoText={
-                                    <>
-                                      <InlineTooltip
-                                        text="Accepted file types"
-                                        tooltip={SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}
-                                      />
-                                      . Maximum file size: {AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB
-                                    </>
-                                  }
-                                  browseButtonText="Upload"
-                                />
-                              </MultipleFileUpload>
-                            )}
-                            {!showInputDataUploadDropzone && (
-                              <Table
-                                aria-label="Knowledge document upload"
-                                borders
-                                variant="compact"
-                                className="pf-v6-u-w-100"
-                              >
-                                <Thead>
-                                  <Tr>
-                                    <Th>File</Th>
-                                    <Th aria-label="Actions" />
-                                  </Tr>
-                                </Thead>
-                                <Tbody>
-                                  <Tr>
-                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
-                                      <Split hasGutter>
-                                        {isInputDataFileUploading && (
-                                          <SplitItem>
-                                            <Spinner
-                                              size="md"
-                                              aria-label="Uploading file"
-                                              data-testid="input-data-upload-spinner"
-                                            />
-                                          </SplitItem>
-                                        )}
-                                        <SplitItem isFilled>
-                                          {isInputDataFileUploading ? (
-                                            'Uploading…'
-                                          ) : (
-                                            <Truncate content={inputDataKey} />
-                                          )}
-                                        </SplitItem>
-                                      </Split>
-                                    </Td>
-                                    <Td isActionCell modifier="fitContent">
-                                      <Dropdown
-                                        isOpen={isInputDataDropdownOpen}
-                                        onOpenChange={setIsInputDataDropdownOpen}
-                                        shouldFocusToggleOnSelect
-                                        toggle={(toggleRef) => (
-                                          <MenuToggle
-                                            ref={toggleRef}
-                                            variant="plain"
-                                            aria-label="Uploaded file actions"
-                                            icon={<EllipsisVIcon />}
-                                            onClick={() =>
-                                              setIsInputDataDropdownOpen(!isInputDataDropdownOpen)
-                                            }
-                                            isExpanded={isInputDataDropdownOpen}
-                                            isDisabled={isSubmitting || isInputDataFileUploading}
-                                          />
-                                        )}
-                                        popperProps={{ position: 'end', preventOverflow: true }}
-                                      >
-                                        <DropdownList>
-                                          <DropdownItem
-                                            key="remove"
-                                            isDisabled={isSubmitting}
-                                            onClick={clearInputDataUpload}
-                                          >
-                                            Remove
-                                          </DropdownItem>
-                                          <DropdownItem
-                                            key="replace"
-                                            isDisabled={isSubmitting}
-                                            onClick={openInputDataReplaceFileDialog}
-                                          >
-                                            Replace
-                                          </DropdownItem>
-                                        </DropdownList>
-                                      </Dropdown>
-                                    </Td>
-                                  </Tr>
-                                </Tbody>
-                              </Table>
-                            )}
-                          </StackItem>
-                        </>
+                      <StackItem>
+                        <Content component="small">
+                          Select or upload a file or folder to use as the knowledge source for your
+                          experiment.
+                        </Content>
+                      </StackItem>
+                      <StackItem>
+                        <Button
+                          key="select-files"
+                          variant="secondary"
+                          data-testid="add-knowledge-files-button"
+                          onClick={() => setFileExplorerMode('input_data')}
+                          isDisabled={
+                            !inputDataSecretName || selectedSecret?.invalid || isSubmitting
+                          }
+                        >
+                          {inputDataKeys.length || selectedInputDataFile
+                            ? 'Replace files'
+                            : 'Add files'}
+                        </Button>
+                      </StackItem>
+                      {selectedInputDataFile && (
+                        <StackItem>
+                          <Table aria-label="Selected input data file" variant="compact">
+                            <Thead>
+                              <Tr>
+                                <Th>Name</Th>
+                                <Th>Type</Th>
+                                <Th />
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              <Tr>
+                                <Td dataLabel="Name">
+                                  <span title={selectedInputDataFile.path}>
+                                    <Truncate content={selectedInputDataFile.name} />
+                                  </span>
+                                </Td>
+                                <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
+                                <Td isActionCell>
+                                  <Tooltip content="Remove selection">
+                                    <Button
+                                      size="sm"
+                                      variant="plain"
+                                      aria-label="Remove selection"
+                                      icon={<TimesIcon />}
+                                      isDisabled={isSubmitting}
+                                      onClick={() => {
+                                        setSelectedInputDataFile(undefined);
+                                        setValue('input_data_keys', [], { shouldValidate: true });
+                                      }}
+                                    />
+                                  </Tooltip>
+                                </Td>
+                              </Tr>
+                            </Tbody>
+                          </Table>
+                        </StackItem>
                       )}
                     </>
                   )}
@@ -1324,6 +1018,14 @@ function AutoragConfigure({
               setValue('test_data_key', filePath, { shouldValidate: true });
             }
           }
+        }}
+        uploadFiles={fileExplorerMode === 'input_data' ? uploadInputDataFiles : undefined}
+        uploadConfig={{
+          accept: INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
+          maxFiles: AUTORAG_UPLOAD_MAX_FILES,
+          maxSize: AUTORAG_UPLOAD_MAX_BYTES,
+          validateFile: (file) =>
+            isAllowedInputDataUploadFile(file) ? undefined : 'File type is not supported.',
         }}
         selectableExtensions={SUPPORTED_FORMAT_EXTENSIONS}
         unselectableReason={SUPPORTED_FORMAT_HINT}
