@@ -157,6 +157,7 @@ describe('useEmbeddedChatbotMessages', () => {
       }),
       expect.any(Function),
       expect.any(AbortSignal),
+      undefined,
     );
   });
 
