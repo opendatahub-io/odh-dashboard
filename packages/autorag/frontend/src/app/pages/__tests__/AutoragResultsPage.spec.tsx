@@ -387,7 +387,7 @@ describe('AutoragResultsPage', () => {
         ogx_secret_name: 'ogx-secret',
         generation_models: ['llama-3'],
         embedding_models: ['text-embedding-3'],
-        optimization_metric: 'faithfulness',
+        optimization_metric: 'unitxt:faithfulness',
         optimization_max_rag_patterns: 10,
       });
 
@@ -427,7 +427,7 @@ describe('AutoragResultsPage', () => {
           ogx_secret_name: 'ogx-secret',
           generation_models: ['llama-3'],
           embedding_models: ['text-embedding-3'],
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 10,
         },
       });

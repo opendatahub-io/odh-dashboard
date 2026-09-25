@@ -85,7 +85,7 @@ describe('getPipelineSummaryDetails', () => {
       },
       {
         label: 'Evaluation metric',
-        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+        value: `${OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC]} (custom)`,
       },
     ]);
   });
@@ -192,7 +192,7 @@ describe('getPipelineSummaryDetails', () => {
       },
       {
         label: 'Evaluation metric',
-        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+        value: `${OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC]} (custom)`,
       },
     ]);
   });
@@ -307,7 +307,38 @@ describe('getPipelineSummaryDetails', () => {
     );
 
     expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe(
-      'Answer faithfulness (ragas)',
+      'Faithfulness (RAGAS)',
     );
   });
+
+  it.each([
+    {
+      runtimeMetric: 'unitxt:faithfulness',
+      optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
+      expectedLabel: 'Faithfulness (Unitxt)',
+    },
+    {
+      runtimeMetric: 'ragas:faithfulness',
+      optimizationMetric: { name: 'faithfulness', evaluator: 'ragas' },
+      expectedLabel: 'Faithfulness (RAGAS)',
+    },
+  ])(
+    'renders qualified runtime metric $runtimeMetric',
+    ({ runtimeMetric, optimizationMetric, expectedLabel }) => {
+      const details = getPipelineSummaryDetails(
+        {
+          ...mockPipelineRun,
+          runtime_config: { parameters: { optimization_metric: runtimeMetric } },
+        },
+        mockStageMap,
+        patterns,
+        undefined,
+        optimizationMetric,
+      );
+
+      expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe(
+        expectedLabel,
+      );
+    },
+  );
 });

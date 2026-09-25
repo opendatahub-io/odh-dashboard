@@ -799,6 +799,27 @@ describe('AutoragConfigurePage', () => {
       expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });
 
+    it('should revalidate the reset metric when switching from balanced to speed', async () => {
+      const user = userEvent.setup();
+
+      await user.click(await screen.findByTestId('aws-secret-selector-select-secret'));
+      await user.click(await screen.findByRole('button', { name: 'Browse bucket' }));
+      await user.click(await screen.findByTestId('file-explorer-select-file'));
+
+      const runButton = await screen.findByRole('button', { name: 'Create run' });
+      await waitFor(() => expect(runButton).toBeEnabled());
+
+      await user.click(await screen.findByTestId('preset-radio-balanced'));
+      await user.click(await screen.findByTestId('optimization-metric-select'));
+      await user.click(await screen.findByTestId('metric-option-faithfulness-ragas'));
+      await user.click(await screen.findByTestId('preset-radio-speed'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent('Overall score');
+        expect(runButton).toBeEnabled();
+      });
+    });
+
     it('should render "Back" button', async () => {
       expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
     });
@@ -1257,6 +1278,7 @@ describe('AutoragConfigurePage', () => {
           evaluationSourceType: undefined,
           vectorDatabase: undefined,
           optimizationMetric: 'overallScore',
+          optimizationMetricEvaluator: 'custom',
           countOfModels: 2,
           countOfKnowledgeDocuments: 1,
           countOfEvaluationDocuments: 1,
@@ -1328,7 +1350,7 @@ describe('AutoragConfigurePage', () => {
       test_data_secret_name: 'Test AWS Secret',
       test_data_bucket_name: 'test-bucket',
       test_data_key: 'eval.json',
-      optimization_metric: 'faithfulness' as const,
+      optimization_metric: 'unitxt:faithfulness' as const,
       generation_models: ['llama-3-8b', 'llama-3-70b'],
       embedding_models: ['text-embedding-ada-002'],
     };
@@ -1493,6 +1515,7 @@ describe('AutoragConfigurePage', () => {
           knowledgeSourceType: undefined,
           evaluationSourceType: undefined,
           optimizationMetric: 'answerFaithfulness',
+          optimizationMetricEvaluator: 'unitxt',
           vectorDatabase: undefined,
           countOfFoundationModels: 2,
           countOfEmbeddingModels: 1,
@@ -1557,9 +1580,9 @@ describe('AutoragConfigurePage', () => {
 
       fireEvent.click(screen.getByTestId('optimization-metric-select'));
       await waitFor(() => {
-        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+        expect(screen.getByText('Answer correctness (Unitxt)')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByText('Answer correctness'));
+      fireEvent.click(screen.getByText('Answer correctness (Unitxt)'));
 
       const runButton = await screen.findByRole('button', { name: 'Create new run' });
       await waitFor(() => {
@@ -1637,9 +1660,9 @@ describe('AutoragConfigurePage', () => {
 
       fireEvent.click(screen.getByTestId('optimization-metric-select'));
       await waitFor(() => {
-        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+        expect(screen.getByText('Answer correctness (Unitxt)')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByText('Answer correctness'));
+      fireEvent.click(screen.getByText('Answer correctness (Unitxt)'));
 
       const runButton = await screen.findByRole('button', { name: 'Create new run' });
       await waitFor(() => {
@@ -1680,9 +1703,9 @@ describe('AutoragConfigurePage', () => {
 
       fireEvent.click(screen.getByTestId('optimization-metric-select'));
       await waitFor(() => {
-        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+        expect(screen.getByText('Answer correctness (Unitxt)')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByText('Answer correctness'));
+      fireEvent.click(screen.getByText('Answer correctness (Unitxt)'));
 
       await user.click(await screen.findByRole('button', { name: 'Back' }));
 
@@ -2309,7 +2332,7 @@ describe('AutoragConfigurePage', () => {
         test_data_secret_name: 'Test AWS Secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'eval.json',
-        optimization_metric: 'faithfulness' as const,
+        optimization_metric: 'unitxt:faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
       const reconfigureInitialOgxSecret = {
@@ -2423,8 +2446,38 @@ describe('AutoragConfigurePage', () => {
         await navigateToConfigure();
 
         expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-          'Answer faithfulness',
+          'Faithfulness (Unitxt)',
         );
+      });
+
+      it('should submit the selected preset and qualified optimization metric when reconfiguring', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={{
+              ...reconfigureInitialValues,
+              preset: 'balanced',
+              optimization_metric: 'ragas:faithfulness',
+            }}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialMaaSSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+        const user = await navigateToConfigure();
+        mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+
+        // The form starts with the source run's balanced/RAGAS selections and should preserve
+        // those qualified values through the reconfigure submission.
+        await user.click(screen.getByRole('button', { name: 'Create new run' }));
+
+        await waitFor(() => {
+          expect(mockMutateAsync).toHaveBeenCalledWith(
+            expect.objectContaining({
+              preset: 'balanced',
+              optimization_metric: 'ragas:faithfulness',
+            }),
+          );
+        });
       });
 
       it('should show the pre-filled max RAG patterns value in the configure step', async () => {

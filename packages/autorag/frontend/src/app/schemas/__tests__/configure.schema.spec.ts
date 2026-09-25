@@ -16,7 +16,7 @@ describe('Configure Schema', () => {
     vector_db_secret_name: 'vector-db-secret',
     generation_models: ['gpt-4'],
     embedding_models: ['text-embedding-3'],
-    optimization_metric: 'faithfulness' as const,
+    optimization_metric: 'unitxt:faithfulness' as const,
     optimization_max_rag_patterns: 10,
   };
 
@@ -31,6 +31,46 @@ describe('Configure Schema', () => {
 
   it('should accept canonical connection and corpus fields', () => {
     expect(schema.full.safeParse(validData).success).toBe(true);
+  });
+
+  it('should reject RAGAS metrics for the speed preset', () => {
+    const result = schema.full.safeParse({
+      ...validData,
+      preset: 'speed',
+      optimization_metric: 'ragas:faithfulness',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['optimization_metric'],
+            message: expect.stringContaining('not available for preset "speed"'),
+          }),
+        ]),
+      );
+    }
+  });
+
+  it('should accept RAGAS metrics for the balanced preset', () => {
+    expect(
+      schema.full.safeParse({
+        ...validData,
+        preset: 'balanced',
+        optimization_metric: 'ragas:faithfulness',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('should accept valid speed preset metrics', () => {
+    expect(
+      schema.full.safeParse({
+        ...validData,
+        preset: 'speed',
+        optimization_metric: 'unitxt:answer_correctness',
+      }).success,
+    ).toBe(true);
   });
 
   it('should accept one valid canonical corpus location', () => {

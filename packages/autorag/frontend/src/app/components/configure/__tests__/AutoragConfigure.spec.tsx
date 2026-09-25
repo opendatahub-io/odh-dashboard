@@ -1200,6 +1200,20 @@ describe('AutoragConfigure', () => {
       expect(betterQualityRadio).not.toBeChecked();
     });
 
+    it('should render the run preset before the optimization metric', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const runPresetLabel = screen.getByTestId('configure-form-group-label-run-preset');
+      const optimizationMetricLabel = screen.getByTestId(
+        'configure-form-group-label-optimization-metric',
+      );
+
+      expect(runPresetLabel.compareDocumentPosition(optimizationMetricLabel)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+
     it('should display human-readable labels for presets', () => {
       renderComponent();
       selectSecretAndFile();
@@ -1245,41 +1259,87 @@ describe('AutoragConfigure', () => {
       );
     });
 
-    it('should only offer overall_score, faithfulness, and answer_correctness as selectable metrics', async () => {
-      const user = userEvent.setup();
-      renderComponent();
+    it('should reset an unavailable metric when switching to speed', () => {
+      renderComponent({
+        preset: 'balanced',
+        optimization_metric: 'ragas:faithfulness',
+      });
       selectSecretAndFile();
 
-      await user.click(screen.getByTestId('optimization-metric-select'));
+      fireEvent.click(screen.getByTestId('preset-radio-speed'));
 
-      await waitFor(() => {
-        expect(screen.getByTestId('metric-option-overall_score')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
-      });
-      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent('Overall score');
     });
 
-    it('should offer exactly three optimization metrics', async () => {
+    it('should preserve an available metric when switching presets', () => {
+      renderComponent({
+        preset: 'balanced',
+        optimization_metric: 'unitxt:faithfulness',
+      });
+      selectSecretAndFile();
+
+      fireEvent.click(screen.getByTestId('preset-radio-speed'));
+
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+        'Faithfulness (Unitxt)',
+      );
+    });
+
+    it('should offer only speed metrics by default', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
 
       await user.click(screen.getByTestId('optimization-metric-select'));
 
+      const expectedMetrics = [
+        ['custom:overall_score', 'Overall score'],
+        ['unitxt:faithfulness', 'Faithfulness (Unitxt)'],
+        ['unitxt:answer_correctness', 'Answer correctness (Unitxt)'],
+      ];
       await waitFor(() => {
-        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
+        expect(screen.getAllByTestId(/^metric-option-/)).toHaveLength(expectedMetrics.length);
+      });
+      expectedMetrics.forEach(([metric, label]) => {
+        const metricTestId = metric.includes(':') ? metric.split(':').reverse().join('-') : metric;
+        expect(screen.getByTestId(`metric-option-${metricTestId}`)).toHaveTextContent(label);
+      });
+      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-option-faithfulness-ragas')).not.toBeInTheDocument();
+    });
+
+    it('should offer exactly the seven balanced metrics with evaluator-specific labels', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      selectSecretAndFile();
+
+      await user.click(screen.getByTestId('preset-radio-balanced'));
+      await user.click(screen.getByTestId('optimization-metric-select'));
+
+      const expectedMetrics = [
+        ['custom:overall_score', 'Overall score'],
+        ['unitxt:faithfulness', 'Faithfulness (Unitxt)'],
+        ['unitxt:answer_correctness', 'Answer correctness (Unitxt)'],
+        ['ragas:faithfulness', 'Faithfulness (RAGAS)'],
+        ['ragas:answer_relevancy', 'Answer relevancy (RAGAS)'],
+        ['ragas:context_precision', 'Context precision (RAGAS)'],
+        ['ragas:context_recall', 'Context recall (RAGAS)'],
+      ];
+      await waitFor(() => {
+        expect(screen.getAllByTestId(/^metric-option-/)).toHaveLength(expectedMetrics.length);
       });
 
-      const selectList = screen.getByTestId('optimization-metric-select-list');
-      const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
-      expect(options).toHaveLength(3);
+      expectedMetrics.forEach(([metric, label]) => {
+        const metricTestId = metric.includes(':') ? metric.split(':').reverse().join('-') : metric;
+        expect(screen.getByTestId(`metric-option-${metricTestId}`)).toHaveTextContent(label);
+      });
+      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
     });
 
     it('should render with a non-default metric when configured', () => {
       renderComponent({
         // eslint-disable-next-line camelcase
-        optimization_metric: 'answer_correctness',
+        optimization_metric: 'unitxt:answer_correctness',
       });
       selectSecretAndFile();
 
@@ -1634,7 +1694,7 @@ describe('AutoragConfigure', () => {
           vector_db_secret_name: 'vector-db-secret',
           generation_models: ['model-a'],
           embedding_models: ['model-b'],
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
         {
@@ -1672,7 +1732,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
         {
@@ -1682,7 +1742,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
       );
@@ -1706,7 +1766,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
         {
@@ -1716,7 +1776,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 8,
         },
       );
@@ -1743,7 +1803,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'answer_correctness',
+          optimization_metric: 'unitxt:answer_correctness',
           optimization_max_rag_patterns: 8,
         },
         {
@@ -1753,7 +1813,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'answer_correctness',
+          optimization_metric: 'unitxt:answer_correctness',
           optimization_max_rag_patterns: 8,
         },
       );
@@ -1779,7 +1839,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 9,
         },
         {
@@ -1789,7 +1849,7 @@ describe('AutoragConfigure', () => {
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
-          optimization_metric: 'faithfulness',
+          optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 9,
         },
       );

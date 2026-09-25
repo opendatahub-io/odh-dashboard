@@ -623,6 +623,24 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Create Pipeline Run', () => {
+      const validCreateRunRequest = {
+        test_data_secret_name: SECRET,
+        test_data_bucket_name: BUCKET,
+        test_data_key:
+          'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
+        input_data_secret_name: SECRET,
+        input_data_bucket_name: BUCKET,
+        input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
+        maas_secret_name: MAAS_SECRET,
+        vector_db_secret_name: 'vector-db',
+        embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+        generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
+      };
+
+      type RunEnvelope = {
+        data: { runtime_config?: { parameters?: Record<string, unknown> } };
+      };
+
       it('should create a pipeline run with required fields', async () => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'contract-test-run',
@@ -646,9 +664,6 @@ describe('AutoRAG API Contract Tests', () => {
           status: 200,
         });
         if (result.success) {
-          type RunEnvelope = {
-            data: { runtime_config?: { parameters?: Record<string, unknown> } };
-          };
           const parameters = (result.response.data as RunEnvelope).data.runtime_config?.parameters;
           expect(parameters?.input_data_keys).toEqual([
             'autorag input data/pdf/bank_policies_pdf/documents',
@@ -671,7 +686,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
           vector_db_secret_name: 'vector-db',
-          optimization_metric: 'answer_correctness',
+          optimization_metric: 'unitxt:answer_correctness',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
           generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });
@@ -707,6 +722,58 @@ describe('AutoRAG API Contract Tests', () => {
         });
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
+      });
+
+      it('should reject RAGAS metrics for the speed preset', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          ...validCreateRunRequest,
+          display_name: 'speed-ragas-metric-run',
+          preset: 'speed',
+          optimization_metric: 'ragas:faithfulness',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+      });
+
+      it('should accept RAGAS metrics for the balanced preset', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          ...validCreateRunRequest,
+          display_name: 'balanced-ragas-metric-run',
+          preset: 'balanced',
+          optimization_metric: 'ragas:faithfulness',
+        });
+
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+        if (result.success) {
+          const parameters = (result.response.data as RunEnvelope).data.runtime_config?.parameters;
+          expect(parameters?.optimization_metric).toBe('ragas:faithfulness');
+        }
+      });
+
+      it.each([
+        { name: 'default speed', preset: undefined, expected: 'unitxt:faithfulness' },
+        { name: 'explicit speed', preset: 'speed', expected: 'unitxt:faithfulness' },
+        { name: 'balanced', preset: 'balanced', expected: 'ragas:faithfulness' },
+      ])('should normalize bare faithfulness for $name', async ({ name, preset, expected }) => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          ...validCreateRunRequest,
+          display_name: `legacy-faithfulness-${name.replace(' ', '-')}-run`,
+          ...(preset ? { preset } : {}),
+          optimization_metric: 'faithfulness',
+        });
+
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+        if (result.success) {
+          const parameters = (result.response.data as RunEnvelope).data.runtime_config?.parameters;
+          expect(parameters?.optimization_metric).toBe(expected);
+        }
       });
 
       it('should return 400 for blank input keys and model identifiers', async () => {
