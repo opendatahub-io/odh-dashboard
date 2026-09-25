@@ -474,15 +474,14 @@ describe('Model Serving LLMD', () => {
     });
 
     it('should edit an LLMD deployment', () => {
+      const llmInferenceService = mockLLMInferenceServiceK8sResource({
+        name: 'test-llmd-model',
+        displayName: 'Test LLM Inference Service',
+        replicas: 2,
+        modelType: ServingRuntimeModelType.GENERATIVE,
+      });
       initIntercepts({
-        llmInferenceServices: [
-          mockLLMInferenceServiceK8sResource({
-            name: 'test-llmd-model',
-            displayName: 'Test LLM Inference Service',
-            replicas: 2,
-            modelType: ServingRuntimeModelType.GENERATIVE,
-          }),
-        ],
+        llmInferenceServices: [llmInferenceService],
       });
       // Mock the default token secret since auth is enabled on the deployment
       cy.interceptK8sList(
@@ -599,6 +598,10 @@ describe('Model Serving LLMD', () => {
 
       cy.wait('@updateLLMInferenceService').then((interception) => {
         expect(interception.request.url).not.to.include('?dryRun=All');
+        // Verify complex scheduler yaml is preserved
+        expect(interception.request.body.spec.router.scheduler).to.deep.equal(
+          llmInferenceService.spec.router?.scheduler,
+        );
       });
 
       cy.get('@updateLLMInferenceService.all').then((interceptions) => {

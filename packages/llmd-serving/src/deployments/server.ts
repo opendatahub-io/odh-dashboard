@@ -54,15 +54,5 @@ export const applyConfigBaseRef = (
     result.spec.baseRefs = result.spec.baseRefs.filter((ref) => ref.name !== k8sName);
   }
 
-  // Remove scheduler if no baseRef (llmd-serving basically)
-  if (baseRef && result.spec.baseRefs?.find((ref) => ref.name === k8sName)) {
-    delete result.spec.router?.scheduler;
-  } else {
-    result.spec.router = {
-      ...result.spec.router,
-      scheduler: {},
-    };
-  }
-
   return result;
 };

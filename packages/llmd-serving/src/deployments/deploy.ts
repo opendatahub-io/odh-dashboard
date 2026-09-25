@@ -19,6 +19,7 @@ import {
   applyDisplayNameDesc,
   applyDashboardResourceLabel,
   applyTokenAuthentication,
+  applyDefaultScheduler,
 } from './model';
 import { applyConfigBaseRef } from './server';
 import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
@@ -42,6 +43,7 @@ import {
 } from '../api/LLMInferenceServiceConfigs';
 import { cleanlyDuplicateConfig } from '../utils';
 import { applyHfTokenEnvVar, resolveHfTokenSecretName } from '../hfTokenSecret';
+import { LLMD_DEPLOYMENT_METHOD_KEY } from '../wizardFields/deploymentMethodField';
 
 export const BaseLLMInferenceService = (
   name?: string,
@@ -62,7 +64,6 @@ export const BaseLLMInferenceService = (
         name: name ?? '',
       },
       router: {
-        scheduler: {},
         route: {},
         gateway: {},
       },
@@ -91,6 +92,7 @@ type CreateLLMInferenceServiceParams = {
   modelAvailability?: ModelAvailabilityFieldsData;
   tokenAuthentication?: { displayName: string; uuid: string; error?: string }[];
   baseRef?: string;
+  isLLMdSelected?: boolean;
 };
 
 /**
@@ -117,6 +119,7 @@ const assembleLLMInferenceService = (
     modelAvailability,
     tokenAuthentication,
     baseRef,
+    isLLMdSelected,
   } = data;
   let llmInferenceService: LLMInferenceServiceKind = existingDeployment
     ? { ...existingDeployment }
@@ -135,6 +138,7 @@ const assembleLLMInferenceService = (
     createConnectionData,
     dryRun,
   );
+  llmInferenceService = applyDefaultScheduler(llmInferenceService, isLLMdSelected);
   llmInferenceService = applyHardwareProfileConfig(
     llmInferenceService,
     hardwareProfile,
@@ -234,6 +238,7 @@ export const assembleLLMdDeployment = (
         modelAvailability: wizardData.state.modelAvailability.data,
         tokenAuthentication: wizardData.state.tokenAuthentication.data,
         baseRef: llmInferenceServiceConfig ? k8sName : undefined,
+        isLLMdSelected: wizardData.state.deploymentMethod?.method === LLMD_DEPLOYMENT_METHOD_KEY,
       },
       existingDeployment?.model,
       connectionSecretName,

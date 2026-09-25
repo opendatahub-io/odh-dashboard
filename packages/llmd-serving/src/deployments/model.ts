@@ -292,6 +292,37 @@ export const applyTokenAuthentication = (
   return result;
 };
 
+//////// Deployment method field ////////
+
+/**
+ * For "LLMd" deployments, make sure there is at least a base `scheduler` object
+ * For "simple vLLM deployment", clear any `scheduler` object
+ */
+export const applyDefaultScheduler = (
+  llmInferenceService: LLMInferenceServiceKind,
+  isLLMdSelected?: boolean,
+): LLMInferenceServiceKind => {
+  const result = structuredClone(llmInferenceService);
+
+  const scheduler = result.spec.router?.scheduler;
+
+  if (isLLMdSelected) {
+    if (!scheduler) {
+      result.spec.router = {
+        ...result.spec.router,
+        scheduler: {},
+      };
+    }
+  } else {
+    result.spec.router = {
+      ...result.spec.router,
+    };
+    delete result.spec.router.scheduler;
+  }
+
+  return result;
+};
+
 export const extractDeploymentMethodAlwaysLlmd = (): { method: string } => ({
   method: LLMD_DEPLOYMENT_METHOD_KEY,
 });
