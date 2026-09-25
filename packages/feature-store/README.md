@@ -48,7 +48,7 @@ No separate dev server is needed. Feature Store code is compiled into the host d
 ### Prerequisites
 
 - Node.js >= 22.18.0
-- pnpm 11.22.0
+- pnpm (use the version pinned in the root `package.json`)
 - A cluster with a Feast service deployed (`FeatureStore` CR with label `feature-store-ui=enabled`)
 
 ### Running locally

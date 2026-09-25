@@ -5,7 +5,7 @@
 This project requires the following tools to be installed on your system:
 
 - [Node.js](https://nodejs.org/) `>=22.18.0`
-- [pnpm](https://pnpm.io/) `11.22.0` (pinned in the repository root)
+- [pnpm](https://pnpm.io/) (use the version pinned in the root `package.json`)
 
 ## Development
 

@@ -49,7 +49,8 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
 # npm only bootstraps the repository-pinned pnpm binary.
-RUN npm install -g pnpm@11.22.0
+COPY scripts/get-pnpm-version.js /tmp/pnpm-bootstrap/get-pnpm-version.js
+RUN npm install -g "pnpm@$(node /tmp/pnpm-bootstrap/get-pnpm-version.js /usr/src/workspace/package.json)"
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
@@ -116,7 +117,8 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
 # npm only bootstraps the repository-pinned pnpm binary.
-RUN npm install -g pnpm@11.22.0
+COPY scripts/get-pnpm-version.js /tmp/pnpm-bootstrap/get-pnpm-version.js
+RUN npm install -g "pnpm@$(node /tmp/pnpm-bootstrap/get-pnpm-version.js /usr/src/workspace/package.json)"
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}

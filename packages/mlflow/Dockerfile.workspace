@@ -52,7 +52,7 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 USER default
 
 # Install pnpm and workspace dependencies
-RUN npm install -g pnpm@11.22.0
+RUN npm install -g "pnpm@$(node scripts/get-pnpm-version.js)"
 RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 # Build the module

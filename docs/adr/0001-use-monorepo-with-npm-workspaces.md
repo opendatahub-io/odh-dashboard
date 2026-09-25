@@ -30,8 +30,7 @@ Use a **monorepo** structure with **npm workspaces** and **Turbo** for orchestra
 ## Current Implementation
 
 The monorepo structure and Turbo orchestration remain in place, but the package manager
-is now **pnpm 11.22.0**. Workspace membership is declared in `pnpm-workspace.yaml`,
-and the root `package.json` pins the package-manager version.
+is now pnpm, with its version pinned in the root `package.json`. Workspace membership is declared in `pnpm-workspace.yaml`.
 
 Structure:
 ```

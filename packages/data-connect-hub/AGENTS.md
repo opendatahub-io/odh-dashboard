@@ -97,7 +97,7 @@ mod-arch-starter/
 ### Frontend
 
 - **Node.js**: >= 22.0.0
-- **pnpm**: 11.22.0 (pinned in the repository root `package.json`)
+- **pnpm**: the version pinned in the root `package.json`
 
 ### BFF
 

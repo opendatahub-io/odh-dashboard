@@ -14,7 +14,10 @@ ARG BUILD_MODE
 
 WORKDIR /usr/src/app
 
-RUN npm install -g pnpm@11.22.0
+# Bootstrap pnpm from the root package-manager declaration before copying the full source.
+COPY package.json /tmp/package.json
+COPY scripts/get-pnpm-version.js /tmp/pnpm-bootstrap/get-pnpm-version.js
+RUN npm install -g "pnpm@$(node /tmp/pnpm-bootstrap/get-pnpm-version.js)"
 
 ## Copying in source code
 COPY --chown=default:root ${SOURCE_CODE} /usr/src/app

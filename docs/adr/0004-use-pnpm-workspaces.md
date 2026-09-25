@@ -16,7 +16,7 @@ The repository also vendors independently maintained upstream frontends under Mo
 
 ## Decision
 
-Use **pnpm 11.22.0** for the first-party monorepo workspace.
+Use the pnpm version pinned in the root `package.json` for the first-party monorepo workspace.
 
 - Pin the pnpm version in the root `package.json` `packageManager` field.
 - Declare workspace membership in `pnpm-workspace.yaml`.
@@ -24,6 +24,7 @@ Use **pnpm 11.22.0** for the first-party monorepo workspace.
 - Run local development, tests, builds, CI, release automation, and first-party container builds with pnpm.
 - Keep Turbo as the task orchestrator; pnpm replaces npm as the package manager, not Turbo.
 - Do not depend on Corepack being available. Developer and CI setup must install the repository-pinned pnpm version explicitly before running `pnpm install`.
+- Set `pmOnFail: ignore` so pnpm does not add its package-manager resolution document to the lockfile; explicit setup remains responsible for installing the pinned version.
 - Do not create package-local `package-lock.json` files in first-party workspace packages.
 
 ### Upstream subtree exceptions

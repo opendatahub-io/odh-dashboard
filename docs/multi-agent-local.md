@@ -7,7 +7,7 @@ For foundational concepts (worktrees, conflict avoidance, best practices), see [
 ## Prerequisites
 
 - Claude Code CLI installed and authenticated
-- Node.js >= 22.18.0, pnpm 11.22.0
+- Node.js >= 22.18.0, and the version pinned in the root `package.json`
 - Git configured with remote access to the repository
 - Terminal emulator supporting split panes (built-in in most modern terminals)
 
