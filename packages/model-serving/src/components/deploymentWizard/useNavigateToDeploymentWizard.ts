@@ -67,6 +67,7 @@ export const useNavigateToDeploymentWizard = (
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
   const fromCatalog = navSource?.fromCatalog;
   const catalogModelId = navSource?.catalogModelId;
+  const extraDeployTrackingProperties = navSource?.extraDeployTrackingProperties;
   const fromProject = navSource?.fromProject;
   const fromProjectNavigator = navSource?.fromProjectNavigator;
 
@@ -107,6 +108,7 @@ export const useNavigateToDeploymentWizard = (
           navSource: {
             fromCatalog,
             catalogModelId,
+            extraDeployTrackingProperties,
             fromProject,
             fromProjectNavigator,
           },
@@ -125,6 +127,7 @@ export const useNavigateToDeploymentWizard = (
           projectName,
           fromCatalog,
           catalogModelId,
+          extraDeployTrackingProperties,
           fromProject,
           fromProjectNavigator,
           editMode: Boolean(deployment),
@@ -143,6 +146,7 @@ export const useNavigateToDeploymentWizard = (
       isYAMLViewerEnabled,
       fromCatalog,
       catalogModelId,
+      extraDeployTrackingProperties,
       fromProject,
       fromProjectNavigator,
     ],
