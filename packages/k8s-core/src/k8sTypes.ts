@@ -406,6 +406,19 @@ export type DataScienceClusterKindStatus = {
   };
 };
 
+export type AIHubKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  spec: {
+    instancesNamespace?: string;
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    phase?: string;
+  };
+};
+
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   release?: {

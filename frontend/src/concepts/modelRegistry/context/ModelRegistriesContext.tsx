@@ -41,8 +41,8 @@ export const ModelRegistriesContextProvider: React.FC<ModelRegistriesContextProv
 };
 
 const EnabledModelRegistriesContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const { dscStatus } = React.useContext(AreaContext);
-  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
+  const { aiHub, aiHubError } = React.useContext(AreaContext);
+  const modelRegistryNamespace = aiHub?.spec.instancesNamespace;
   const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<ServiceKind | null>(
     null,
   );
@@ -63,7 +63,7 @@ const EnabledModelRegistriesContextProvider: React.FC<React.PropsWithChildren> =
 
   const contextValue = React.useMemo(() => {
     const error = !modelRegistryNamespace
-      ? new Error('No registries namespace could be found')
+      ? aiHubError || new Error('No registries namespace could be found')
       : servicesError;
 
     return {
@@ -82,6 +82,7 @@ const EnabledModelRegistriesContextProvider: React.FC<React.PropsWithChildren> =
     updatePreferredModelRegistry,
     refreshRulesReview,
     modelRegistryNamespace,
+    aiHubError,
   ]);
 
   return (

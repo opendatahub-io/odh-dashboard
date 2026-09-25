@@ -38,7 +38,7 @@ const areasStatus = {
   [SupportedArea.K_SERVE]: availableAreaStatus,
 };
 
-const areaContextValue = { dscStatus: null, dsciStatus: null, areasStatus };
+const areaContextValue = { aiHub: null, dscStatus: null, dsciStatus: null, areasStatus };
 
 const RhaiiAppProvider: React.FC<RhaiiAppProviderProps> = ({ children }) => (
   <IntegrationsContext.Provider value={integrationsContextValue}>
