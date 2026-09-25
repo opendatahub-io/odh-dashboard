@@ -63,9 +63,6 @@ describe('Verify Connection Type Creation', () => {
       cy.log(`Loaded project name: ${projectName}`);
       deleteConnectionTypeByName(toConnectionTypeConfigMapName(connectionTypeName));
       deleteConnectionTypeByName(toConnectionTypeConfigMapName(duplicateConnectionTypeName));
-      deleteConnectionTypeByName(
-        toConnectionTypeConfigMapName(`Copy of ${existingConnectionTypeName}`),
-      );
       createCleanProject(projectName);
     }),
   );
@@ -223,6 +220,9 @@ describe('Verify Connection Type Creation', () => {
       const exisitingRow = connectionTypesPage.getConnectionTypeRow(existingConnectionTypeName);
       exisitingRow.findKebab().click();
       connectionTypesPage.findDuplicateAction().click();
+      createConnectionTypePage
+        .findConnectionTypeName()
+        .should('have.value', `Copy of ${existingConnectionTypeName}`);
       createConnectionTypePage.findConnectionTypeName().clear().type(duplicateConnectionTypeName);
       createConnectionTypePage.findSubmitButton().should('be.enabled').click();
       createConnectionTypePage.findFooterError().should('not.exist');
@@ -271,14 +271,9 @@ describe('Verify Connection Type Creation', () => {
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
       modelServingWizard.findModelLocationSelectOption(modelLocation).click();
-      // Dropdown only renders when multiple S3-compatible types exist; after delete it may be gone.
-      cy.get('body').then(($body) => {
-        if ($body.find('[data-testid="custom-type-select"]').length > 0) {
-          modelServingWizard
-            .findCustomModelLocationSelectOption(duplicateConnectionTypeName)
-            .should('not.exist');
-        }
-      });
+      modelServingWizard.shouldNotHaveCustomModelLocationOptionIfSelectExists(
+        duplicateConnectionTypeName,
+      );
     },
   );
 });
